@@ -89,3 +89,11 @@ pub use scene_renderer::{
     SceneRendererGpuPassTiming, SceneRendererGpuTimingReport, SceneRendererStartupOptions,
     SceneRendererStartupReport,
 };
+
+pub(in crate::graphics) use scene_renderer::{
+    VirtualGeometryNativeReadbackPacket, VirtualGeometryReadbackBudget,
+    VirtualGeometryReadbackScope, VirtualGeometryReadyReadback, VirtualGeometryTicketedReadback,
+};
+pub use scene_renderer::{VirtualGeometryReadbackDecoder, VirtualGeometryReadbackReservation};
+
+pub use scene_renderer::RenderPassGpuRecordingContext;

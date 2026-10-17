@@ -1,3 +1,6 @@
+//! 覆盖通知标识在转换步骤中的分配身份，以及默认动作查询早于事件移交的顺序。
+//! 忽略基准使用固定大字符串夹具，计时范围包含转换及转换结果的释放。
+
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -7,6 +10,7 @@ use zircon_runtime_interface::ui::{dispatch::UiInputEventMetadata, event_ui::UiN
 const TARGET_P95_PERCENT: u128 = 70;
 
 #[test]
+/// 用分配地址验证转换步骤保留原通知标识，并核对目标。
 fn optimization_batch_20260828ib_runtime_toast_event_reuses_owned_id_allocation() {
     let toast = benchmark_toast(4 * 1024);
     let allocation = toast.toast_id.as_ptr();
@@ -21,6 +25,7 @@ fn optimization_batch_20260828ib_runtime_toast_event_reuses_owned_id_allocation(
 }
 
 #[test]
+/// 原始源码分段要求先读取默认动作，再消费通知并移交回执事件。
 fn optimization_batch_20260828ib_runtime_toast_dispatch_moves_event_after_default_action() {
     let source = include_str!("../../toast_timer.rs");
     let dispatch = source
@@ -41,6 +46,7 @@ fn optimization_batch_20260828ib_runtime_toast_dispatch_moves_event_after_defaul
 
 #[test]
 #[ignore = "release performance contract; run through the managed validation coordinator"]
+/// 输入在计时前构造，交替测量两种转换；样本的最近秩百分位仅描述本夹具。
 fn optimization_batch_20260828ib_runtime_owned_toast_timer_event_benchmark() {
     const SAMPLES: usize = 11;
     const ITERATIONS: usize = 512;
@@ -99,6 +105,7 @@ fn legacy_toast_timer_event(toast: UiToastTimerInputEvent) -> UiInputEvent {
     UiInputEvent::ToastTimer(toast.clone())
 }
 
+/// 消费预建通知，计时包含回调对每个转换结果的处理与释放。
 fn measure_toasts(
     toasts: Vec<UiToastTimerInputEvent>,
     mut convert: impl FnMut(UiToastTimerInputEvent),

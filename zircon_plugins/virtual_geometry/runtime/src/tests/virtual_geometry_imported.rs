@@ -23,9 +23,7 @@ fn virtual_geometry_mesh_based_extract_uses_imported_cooked_model_assets() {
     let model_path = root.join("imported_triangle.model.toml");
     fs::write(
         &model_path,
-        uncooked_triangle_model_asset(model_uri.clone())
-            .to_toml_string()
-            .unwrap(),
+        toml::to_string_pretty(&uncooked_triangle_model_asset(model_uri.clone())).unwrap(),
     )
     .unwrap();
     // 源模型故意没有虚拟几何烘焙数据；导入器完成烘焙后，自动提取才有页和簇可读。

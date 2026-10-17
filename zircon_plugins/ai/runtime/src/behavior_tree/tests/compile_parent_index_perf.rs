@@ -2,10 +2,12 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use zircon_runtime::core::framework::ai::{
-    AiBehaviorAbortPolicy, AiBehaviorNodeDescriptor, AiBehaviorNodeKind, AiBehaviorTreeDescriptor,
+    AiBehaviorAbortPolicy, AiBehaviorNodeDescriptor, AiBehaviorNodeKind,
+    AiBehaviorNodeParameterValue, AiBehaviorTreeDescriptor,
 };
 
 use super::{compile_behavior_tree, CompiledBehaviorTree};
+use crate::behavior_tree::{BehaviorNodeSemantics, SUBTREE_TARGET_PARAMETER_KEY};
 
 const BENCHMARK_NODE_COUNT: usize = 4_096;
 const BENCHMARK_ABORT_PROBE_COUNT: usize = 1_024;
@@ -265,7 +267,7 @@ fn legacy_parent_checksum(tree: &CompiledBehaviorTree) -> u64 {
                 .map(|parent| u64::from(parent) + 1)
                 .unwrap_or_default()
         })
-        .sum()
+        .sum::<u64>()
 }
 
 fn legacy_parent_of(tree: &CompiledBehaviorTree, node_index: u32) -> Option<u32> {
@@ -315,7 +317,7 @@ fn legacy_subtree_target_checksum(tree: &CompiledBehaviorTree) -> u64 {
             })
         })
         .map(|target| target.len() as u64)
-        .sum()
+        .sum::<u64>()
 }
 
 fn compiled_subtree_target_checksum(tree: &CompiledBehaviorTree) -> u64 {

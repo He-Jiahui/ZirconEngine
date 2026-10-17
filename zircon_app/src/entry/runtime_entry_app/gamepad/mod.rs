@@ -9,6 +9,8 @@ mod events;
 mod host;
 #[path = "polling.rs"]
 mod polling;
+#[path = "producer.rs"]
+pub(super) mod producer;
 #[path = "rumble.rs"]
 mod rumble;
 

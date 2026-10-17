@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::ops::Range;
 
 use crate::core::framework::render::RenderGraphExecutionBatchReport;
+use crate::render_graph::RenderGraphResource;
 use crate::render_graph::{
     CompiledRenderGraph, CompiledRenderGraphAccessAllocationBinding,
     CompiledRenderGraphResourceStateTransition, QueueLane, RenderGraphBufferRange,
@@ -793,21 +794,74 @@ impl CompiledRenderGraphDeviceExecutionPlan {
                 })?;
             let from_pass = &graph.passes()[*from_pass_index];
             let to_pass = &graph.passes()[*to_pass_index];
-            if from_pass_index >= to_pass_index
-                || transition.resource != from_binding.key.resource
-                || transition.resource != to_binding.key.resource
-                || transition.from_state
-                    != crate::render_graph::RenderGraphResourceState::from(from_binding.key.intent)
-                || transition.to_state
-                    != crate::render_graph::RenderGraphResourceState::from(to_binding.key.intent)
-                || transition.from_queue != from_pass.queue
-                || transition.to_queue != to_pass.queue
-                || !access_ranges_overlap(transition.range, from_binding.key.range)
-                || !access_ranges_overlap(transition.range, to_binding.key.range)
+            let from_backing_resource =
+                graph
+                    .resource_declaration(from_binding.key.resource)
+                    .map(|declaration| {
+                        declaration
+                            .texture_view_alias
+                            .map_or(from_binding.key.resource, |alias| {
+                                RenderGraphResource::TransientTexture(alias.parent)
+                            })
+                    });
+            let to_backing_resource =
+                graph
+                    .resource_declaration(to_binding.key.resource)
+                    .map(|declaration| {
+                        declaration
+                            .texture_view_alias
+                            .map_or(to_binding.key.resource, |alias| {
+                                RenderGraphResource::TransientTexture(alias.parent)
+                            })
+                    });
+            let invalid_order = from_pass_index >= to_pass_index;
+            let source_resource_mismatch = from_backing_resource != Some(transition.resource);
+            let destination_resource_mismatch = to_backing_resource != Some(transition.resource);
+            let source_state_mismatch = transition.from_state
+                != crate::render_graph::RenderGraphResourceState::from(from_binding.key.intent);
+            let destination_state_mismatch = transition.to_state
+                != crate::render_graph::RenderGraphResourceState::from(to_binding.key.intent);
+            let source_queue_mismatch = transition.from_queue != from_pass.queue;
+            let destination_queue_mismatch = transition.to_queue != to_pass.queue;
+            let source_range_mismatch =
+                !access_ranges_overlap(transition.range, from_binding.key.range);
+            let destination_range_mismatch =
+                !access_ranges_overlap(transition.range, to_binding.key.range);
+            if invalid_order
+                || source_resource_mismatch
+                || destination_resource_mismatch
+                || source_state_mismatch
+                || destination_state_mismatch
+                || source_queue_mismatch
+                || destination_queue_mismatch
+                || source_range_mismatch
+                || destination_range_mismatch
             {
                 return Err(format!(
-                    "device execution transition {:?}->{:?} disagrees with its ordered access rows",
-                    transition.from_access, transition.to_access
+                    "device execution transition {:?}->{:?} disagrees with its ordered access rows: \
+                     invalid_order={invalid_order} graph_pass_indices={from_pass_index}->{to_pass_index}; \
+                     transition_resource={:?} source_resource={:?} source_backing={:?} destination_resource={:?} destination_backing={:?}; \
+                     transition_range={:?} source_range={:?} destination_range={:?} source_range_mismatch={source_range_mismatch} destination_range_mismatch={destination_range_mismatch}; \
+                     transition_states={:?}->{:?} access_states={:?}->{:?} source_state_mismatch={source_state_mismatch} destination_state_mismatch={destination_state_mismatch}; \
+                     transition_queues={:?}->{:?} pass_queues={:?}->{:?} source_queue_mismatch={source_queue_mismatch} destination_queue_mismatch={destination_queue_mismatch}",
+                    transition.from_access,
+                    transition.to_access,
+                    transition.resource,
+                    from_binding.key.resource,
+                    from_backing_resource,
+                    to_binding.key.resource,
+                    to_backing_resource,
+                    transition.range,
+                    from_binding.key.range,
+                    to_binding.key.range,
+                    transition.from_state,
+                    transition.to_state,
+                    crate::render_graph::RenderGraphResourceState::from(from_binding.key.intent),
+                    crate::render_graph::RenderGraphResourceState::from(to_binding.key.intent),
+                    transition.from_queue,
+                    transition.to_queue,
+                    from_pass.queue,
+                    to_pass.queue,
                 ));
             }
             transitions_by_graph_pass[*to_pass_index]
@@ -847,7 +901,7 @@ impl CompiledRenderGraphDeviceExecutionPlan {
     }
 }
 
-fn access_ranges_overlap(
+pub(super) fn access_ranges_overlap(
     transition: RenderGraphResourceAccessRange,
     access: RenderGraphResourceAccessRange,
 ) -> bool {
@@ -860,6 +914,10 @@ fn access_ranges_overlap(
             RenderGraphResourceAccessRange::Buffer(left),
             RenderGraphResourceAccessRange::Buffer(right),
         ) => buffer_ranges_overlap(left, right),
+        (
+            RenderGraphResourceAccessRange::UnresolvedExternal,
+            RenderGraphResourceAccessRange::UnresolvedExternal,
+        ) => true,
         _ => false,
     }
 }

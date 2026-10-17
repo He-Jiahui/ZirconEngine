@@ -20,6 +20,9 @@ class RuntimeRichTableTrackMetricsPerformanceContract(unittest.TestCase):
         self.assertIn("pub(super) fn origin(&self", source)
         self.assertIn("pub(super) fn span_extent(&self", source)
         self.assertIn("pub(super) fn total_extent(&self", source)
+        # BUG: [CR-ZCA-R078-0001] 此处仍读取实现原文，但要求的测试名已拆到直属测试文件，当前会触发 AssertionError。
+        # 上方七项实现断言均成立；条件测试挂载不会把另一个文件的文本并入此读取结果。
+        # 应另行修正守卫的读取对象；本标记不改变断言，也不表示产品表格布局有缺陷。
         self.assertIn("track_metrics_include_gap_in_origins_spans_and_total", source)
         self.assertIn("empty_and_clamped_track_queries_are_safe", source)
         self.assertIn(

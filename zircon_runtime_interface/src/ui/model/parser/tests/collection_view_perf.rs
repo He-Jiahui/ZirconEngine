@@ -1,5 +1,11 @@
+//! 集合窗口构造的移动语义、错误次序对照和独立的参数搬运微基准。
+//!
+//! 普通测试比较新旧构造器的完整结果与错误次序；本夹具的窗口越界，
+//! 首组相等断言比较的是相同错误。显式忽略的微基准只比较参数搬运，不执行窗口构造。
+
 use super::*;
 
+/// 提供八项参数；窗口终点大于总长，作为两实现返回相同错误的基线。
 fn collection_view_arguments() -> Vec<UiBindingValue> {
     vec![
         UiBindingValue::String("provider.primary".to_string()),
@@ -13,6 +19,7 @@ fn collection_view_arguments() -> Vec<UiBindingValue> {
     ]
 }
 
+/// 历史移除参数的比较实现，保留数量、类型、身份及窗口校验次序。
 fn construct_collection_view_removing(
     constructor: &str,
     mut arguments: Vec<UiBindingValue>,
@@ -54,6 +61,7 @@ fn construct_collection_view_removing(
     ))
 }
 
+/// 比较基线、逐项错误、零版本、多项错误及错误数量的返回结果，不将结果相等解释为构造成功。
 #[test]
 fn runtime_interface03_batch44_46_moved_collection_view_arguments_preserve_remove_results_and_error_order(
 ) {
@@ -109,12 +117,14 @@ fn runtime_interface03_batch44_46_moved_collection_view_arguments_preserve_remov
     }
 }
 
+/// 在至少三个参数的测试前提下取走两个固定位置的拥有值；缺项会触发测试辅助代码的失败。
 fn move_arguments_removing(mut arguments: Vec<UiBindingValue>) -> (UiBindingValue, UiBindingValue) {
     let item_schema_id = arguments.remove(2);
     let provider_id = arguments.remove(0);
     (provider_id, item_schema_id)
 }
 
+/// 消费至少三个参数的迭代器并移出两个拥有值，供与历史搬运方式比较。
 fn move_arguments_consuming(arguments: Vec<UiBindingValue>) -> (UiBindingValue, UiBindingValue) {
     let mut arguments = arguments.into_iter();
     let provider_id = arguments.next().unwrap();
@@ -123,6 +133,7 @@ fn move_arguments_consuming(arguments: Vec<UiBindingValue>) -> (UiBindingValue, 
     (provider_id, item_schema_id)
 }
 
+/// 为每次测量生成可独立消费的批次；各批次参数数量满足两个搬运辅助函数的前提。
 fn benchmark_argument_batches(count: usize) -> Vec<Vec<UiBindingValue>> {
     (0..count)
         .map(|_| {
@@ -140,6 +151,7 @@ fn benchmark_argument_batches(count: usize) -> Vec<Vec<UiBindingValue>> {
         .collect()
 }
 
+/// 显式忽略的参数搬运微基准；不包含文本解析、窗口准入或 Runtime 处理器执行。
 #[test]
 #[ignore = "release-only moved collection-view argument benchmark"]
 fn runtime_interface03_batch44_46_moved_collection_view_arguments_release_benchmark() {

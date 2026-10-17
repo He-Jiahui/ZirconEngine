@@ -112,6 +112,8 @@ pub struct TransactionRecord {
     pub selection_before: SelectionSnapshot,
     pub selection_after: SelectionSnapshot,
     pub significant: bool,
+    // Declared last: the payload is destroyed before its accounting capability.
+    pub(crate) retention: Option<super::retention::RootRetentionV1>,
 }
 
 impl TransactionRecord {
@@ -139,10 +141,117 @@ impl TransactionRecord {
         }
     }
 
+    fn retained_bound_v1(
+        &self,
+        model: super::retention::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<u64, EditCommandError> {
+        use super::retention::{RetainedBoundBuilderV1, RetainedBytesV1};
+        let mut m = RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(limit));
+        m.layout(std::mem::size_of::<Self>(), std::mem::align_of::<Self>())?;
+        m.owned(&self.label)?;
+        m.array::<CommandBox>(self.commands.capacity())?;
+        for command in &self.commands {
+            m.owned(command.as_ref())?;
+        }
+        m.btree::<DocumentId, ()>(self.participants.len())?;
+        m.owned(&self.selection_before)?;
+        m.owned(&self.selection_after)?;
+        Ok(m.bytes().get())
+    }
+    fn prepare_command_v1(
+        &mut self,
+        index: usize,
+        context: &mut dyn EditContext,
+        phase: super::RetentionPhaseV1,
+    ) -> Result<(), CommandExecutionError> {
+        self.prepare_quoted_command_v1(index, context, phase, None)
+    }
+    fn prepare_quoted_command_v1(
+        &mut self,
+        index: usize,
+        context: &mut dyn EditContext,
+        phase: super::RetentionPhaseV1,
+        quoted: Option<&super::CommandRetentionPlanV1>,
+    ) -> Result<(), CommandExecutionError> {
+        let Some(owner) = self.retention.as_ref() else {
+            return Ok(());
+        }; // unadmitted standalone records
+        let command = &mut self.commands[index];
+        let plan = match quoted {
+            Some(quote) => {
+                let materialization_bytes = quote
+                    .retained_bytes
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(quote.peak_bytes))
+                    .ok_or_else(|| {
+                        CommandExecutionError::unchanged(
+                            super::retention::RetentionContractError::Overflow.into(),
+                        )
+                    })?;
+                let plan = command
+                    .retention_plan_with_limits_v1(
+                        context,
+                        phase,
+                        owner.model(),
+                        super::CommandRetentionLimitsV1 {
+                            retained_bytes: quote.retained_bytes,
+                            materialization_bytes,
+                            selection_bytes: quote.selection_bytes,
+                        },
+                    )
+                    .map_err(CommandExecutionError::unchanged)?;
+                // Refresh the current revision after earlier commands, without
+                // widening any command's record-wide preflight allowance.
+                if plan.retained_bytes > quote.retained_bytes
+                    || plan.peak_bytes > quote.peak_bytes
+                    || plan.selection_bytes > quote.selection_bytes
+                    || quote.phase != phase
+                {
+                    return Err(CommandExecutionError::unchanged(
+                        super::retention::RetentionContractError::Provider {
+                            reason: "replay preparation widened its admitted command allowance",
+                        }
+                        .into(),
+                    ));
+                }
+                plan
+            }
+            None => command
+                .retention_plan_v1(context, phase, owner.model(), owner.budget().record_bytes)
+                .map_err(CommandExecutionError::unchanged)?,
+        };
+        // The record-wide preflight covers these preparations before any model mutation.
+        if plan.peak_bytes > owner.reserved_peak_v1() {
+            return Err(CommandExecutionError::unchanged(
+                super::retention::RetentionContractError::Provider {
+                    reason: "replay materialization exceeded its preflight proof",
+                }
+                .into(),
+            ));
+        }
+        let mut permit = super::RetentionMaterializationV1::new(plan, owner.model());
+        command.prepare_retention_v1(context, phase, &mut permit)?;
+        permit.finish_v1().map_err(CommandExecutionError::unchanged)
+    }
     fn undo(&mut self, context: &mut dyn EditContext) -> Result<(), EditCommandError> {
+        self.undo_quoted_v1(context, &[])
+    }
+    fn undo_quoted_v1(
+        &mut self,
+        context: &mut dyn EditContext,
+        quotes: &[super::CommandRetentionPlanV1],
+    ) -> Result<(), EditCommandError> {
         let original_selection = context.selection_snapshot();
         for index in (0..self.commands.len()).rev() {
-            let result = self.commands[index].revert(context);
+            let result = self
+                .prepare_quoted_command_v1(
+                    index,
+                    context,
+                    super::RetentionPhaseV1::Undo,
+                    quotes.get(index),
+                )
+                .and_then(|()| self.commands[index].revert(context));
             if let Err(command_error) = result {
                 if command_error.effect == CommandEffect::Interrupted
                     || command_error.source.is_interrupted()
@@ -162,9 +271,23 @@ impl TransactionRecord {
     }
 
     fn redo(&mut self, context: &mut dyn EditContext) -> Result<(), EditCommandError> {
+        self.redo_quoted_v1(context, &[])
+    }
+    fn redo_quoted_v1(
+        &mut self,
+        context: &mut dyn EditContext,
+        quotes: &[super::CommandRetentionPlanV1],
+    ) -> Result<(), EditCommandError> {
         let original_selection = context.selection_snapshot();
         for index in 0..self.commands.len() {
-            let result = self.commands[index].apply(context);
+            let result = self
+                .prepare_quoted_command_v1(
+                    index,
+                    context,
+                    super::RetentionPhaseV1::Redo,
+                    quotes.get(index),
+                )
+                .and_then(|()| self.commands[index].apply(context));
             if let Err(command_error) = result {
                 if command_error.effect == CommandEffect::Interrupted
                     || command_error.source.is_interrupted()
@@ -197,7 +320,10 @@ impl TransactionRecord {
         };
         let command_error = command_error.into_source();
         for rollback_index in rollback_start..self.commands.len() {
-            if let Err(rollback_error) = self.commands[rollback_index].apply(context) {
+            if let Err(rollback_error) = self
+                .prepare_command_v1(rollback_index, context, super::RetentionPhaseV1::Apply)
+                .and_then(|()| self.commands[rollback_index].apply(context))
+            {
                 return Err(EditCommandError::RollbackFailed {
                     command_error: Box::new(command_error),
                     rollback_error: Box::new(rollback_error.into_source()),
@@ -227,7 +353,10 @@ impl TransactionRecord {
         };
         let command_error = command_error.into_source();
         for rollback_index in (0..rollback_end).rev() {
-            if let Err(rollback_error) = self.commands[rollback_index].revert(context) {
+            if let Err(rollback_error) = self
+                .prepare_command_v1(rollback_index, context, super::RetentionPhaseV1::Rollback)
+                .and_then(|()| self.commands[rollback_index].revert(context))
+            {
                 return Err(EditCommandError::RollbackFailed {
                     command_error: Box::new(command_error),
                     rollback_error: Box::new(rollback_error.into_source()),
@@ -249,8 +378,11 @@ impl TransactionRecord {
         original_selection: SelectionSnapshot,
         command_error: EditCommandError,
     ) -> Result<(), EditCommandError> {
-        for command in &mut self.commands {
-            if let Err(rollback_error) = command.apply(context) {
+        for index in 0..self.commands.len() {
+            if let Err(rollback_error) = self
+                .prepare_command_v1(index, context, super::RetentionPhaseV1::Apply)
+                .and_then(|()| self.commands[index].apply(context))
+            {
                 return Err(EditCommandError::RollbackFailed {
                     command_error: Box::new(command_error),
                     rollback_error: Box::new(rollback_error.into_source()),
@@ -272,8 +404,11 @@ impl TransactionRecord {
         original_selection: SelectionSnapshot,
         command_error: EditCommandError,
     ) -> Result<(), EditCommandError> {
-        for command in self.commands.iter_mut().rev() {
-            if let Err(rollback_error) = command.revert(context) {
+        for index in (0..self.commands.len()).rev() {
+            if let Err(rollback_error) = self
+                .prepare_command_v1(index, context, super::RetentionPhaseV1::Rollback)
+                .and_then(|()| self.commands[index].revert(context))
+            {
                 return Err(EditCommandError::RollbackFailed {
                     command_error: Box::new(command_error),
                     rollback_error: Box::new(rollback_error.into_source()),
@@ -458,6 +593,157 @@ impl HistoryStore {
         }
     }
 
+    pub(crate) fn with_retention_capacity_v1(capacity: usize) -> Result<Self, EditCommandError> {
+        let mut store = Self::new(capacity)?;
+        let count = capacity
+            .checked_add(1)
+            .ok_or(super::retention::RetentionContractError::Overflow)?;
+        store
+            .entries
+            .try_reserve_exact(count)
+            .map_err(|_| super::retention::RetentionContractError::Allocation)?;
+        if store.entries.capacity() != count {
+            return Err(super::retention::RetentionContractError::Provider {
+                reason: "history VecDeque capacity differs from admitted model",
+            }
+            .into());
+        }
+        Ok(store)
+    }
+    pub(crate) fn backing_capacity_v1(&self) -> usize {
+        self.entries.capacity()
+    }
+    pub(crate) fn retention_owner_v1(
+        &self,
+        id: TransactionId,
+    ) -> Option<&super::retention::RootRetentionV1> {
+        transaction_record_by_id(&self.entries, id).and_then(|record| record.retention.as_ref())
+    }
+    pub(crate) fn reserve_retention_v1(
+        &self,
+        owner: &super::retention::RootRetentionV1,
+        retained: u64,
+        peak: u64,
+    ) -> Result<(), EditCommandError> {
+        use super::retention::RetentionContractError;
+        let kept = self.top.map_or(0, |top| top + 1);
+        let redo = self.entries.len() - kept;
+        if self
+            .entries
+            .range(kept..)
+            .any(|r| r.retention.as_ref().is_some_and(|o| o.protected()))
+        {
+            return Err(RetentionContractError::Provider {
+                reason: "redo branch is pinned",
+            }
+            .into());
+        }
+        let mut prefix = kept.saturating_add(1).saturating_sub(self.capacity);
+        let mut last_error = None;
+        loop {
+            if self
+                .entries
+                .range(..prefix)
+                .any(|r| r.retention.as_ref().is_some_and(|o| o.protected()))
+            {
+                return Err(last_error
+                    .unwrap_or_else(|| RetentionContractError::Provider {
+                        reason: "pinned record or undo barrier prevents retirement",
+                    })
+                    .into());
+            }
+            let mut bytes = owner.charge_for_payload_v1(retained)?;
+            for record in self.entries.range(prefix..kept) {
+                bytes = bytes
+                    .checked_add(
+                        record
+                            .retention
+                            .as_ref()
+                            .ok_or(RetentionContractError::Provider {
+                                reason: "history record has no retention owner",
+                            })?
+                            .retained(),
+                    )
+                    .ok_or(RetentionContractError::Overflow)?;
+            }
+            if bytes <= owner.budget().history_bytes {
+                let old = self
+                    .entries
+                    .range(..prefix)
+                    .chain(self.entries.range(kept..))
+                    .filter_map(|r| r.retention.as_ref().map(|o| o.id()));
+                match owner.reserve(retained, peak, old, prefix, redo) {
+                    Ok(()) => return Ok(()),
+                    Err(error @ RetentionContractError::Budget { .. }) => last_error = Some(error),
+                    Err(error) => return Err(error.into()),
+                }
+            } else {
+                last_error = Some(RetentionContractError::Budget {
+                    budget: "one history",
+                    requested: bytes,
+                    limit: owner.budget().history_bytes,
+                });
+            }
+            if prefix == kept {
+                return Err(last_error.expect("budget refusal has a reason").into());
+            }
+            prefix += 1;
+        }
+    }
+
+    pub(crate) fn restore_reservation_v1(
+        &self,
+        owner: &super::retention::RootRetentionV1,
+        checkpoint: super::retention::RetentionReservationCheckpointV1,
+    ) {
+        let (prefix, redo) = checkpoint.retirement_plan();
+        let tail = self.entries.len() - redo;
+        owner.restore_reservation_v1(
+            checkpoint,
+            self.entries
+                .range(..prefix)
+                .chain(self.entries.range(tail..))
+                .filter_map(|record| record.retention.as_ref().map(|o| o.id())),
+        );
+    }
+    pub(crate) fn push_reserved_v1(&mut self, record: TransactionRecord) -> Vec<TransactionRecord> {
+        let owner = record
+            .retention
+            .as_ref()
+            .expect("engine records have a retention capability");
+        let (prefix, redo) = owner.retirement_plan();
+        let kept = self.top.map_or(0, |top| top + 1);
+        assert_eq!(
+            self.entries.len() - kept,
+            redo,
+            "reserved redo branch remained stable"
+        );
+        assert!(prefix <= kept);
+        // The scratch allocation and every removed owner are covered by the preparation peak.
+        let mut removed = Vec::with_capacity(self.capacity + 1);
+        if self.saved_top_reachable && self.saved_top.is_some_and(|saved| saved >= kept) {
+            self.saved_top_reachable = false;
+        }
+        removed.extend(self.entries.drain(kept..));
+        for _ in 0..prefix {
+            removed.push(self.entries.pop_front().expect("reserved prefix"));
+            if self.saved_top_reachable {
+                match self.saved_top {
+                    Some(saved) => self.saved_top = saved.checked_sub(1),
+                    None => self.saved_top_reachable = false,
+                }
+            }
+        }
+        self.entries.push_back(record);
+        self.top = Some(self.entries.len() - 1);
+        self.entries
+            .back()
+            .and_then(|r| r.retention.as_ref())
+            .expect("owner")
+            .ready();
+        removed
+    }
+
     pub(crate) fn push(&mut self, record: TransactionRecord) -> Vec<TransactionRecord> {
         let retained = self.top.map_or(0, |top| top + 1);
         if self.saved_top_reachable && self.saved_top.is_some_and(|saved| saved >= retained) {
@@ -499,6 +785,24 @@ impl HistoryStore {
         self.top = top.checked_sub(1);
         Ok(Some(event_metadata))
     }
+    pub(crate) fn undo_quoted_v1(
+        &mut self,
+        context: &mut dyn EditContext,
+        quotes: &[super::CommandRetentionPlanV1],
+    ) -> Result<Option<(TransactionId, String)>, EditCommandError> {
+        let Some(top) = self.top else {
+            return Ok(None);
+        };
+        let Some(record) = self.entries.get_mut(top) else {
+            return Err(EditCommandError::InvariantViolation {
+                invariant: "history top points at an existing record",
+            });
+        };
+        record.undo_quoted_v1(context, quotes)?;
+        let event_metadata = (record.id, record.label.clone());
+        self.top = top.checked_sub(1);
+        Ok(Some(event_metadata))
+    }
 
     pub(crate) fn redo(
         &mut self,
@@ -512,6 +816,198 @@ impl HistoryStore {
         let event_metadata = (record.id, record.label.clone());
         self.top = Some(next);
         Ok(Some(event_metadata))
+    }
+    pub(crate) fn redo_quoted_v1(
+        &mut self,
+        context: &mut dyn EditContext,
+        quotes: &[super::CommandRetentionPlanV1],
+    ) -> Result<Option<(TransactionId, String)>, EditCommandError> {
+        let next = self.top.map_or(0, |top| top + 1);
+        let Some(record) = self.entries.get_mut(next) else {
+            return Ok(None);
+        };
+        record.redo_quoted_v1(context, quotes)?;
+        let event_metadata = (record.id, record.label.clone());
+        self.top = Some(next);
+        Ok(Some(event_metadata))
+    }
+
+    pub(crate) fn prepare_replay_v1(
+        &self,
+        context: &dyn EditContext,
+        undo: bool,
+    ) -> Result<Vec<super::CommandRetentionPlanV1>, EditCommandError> {
+        use super::retention::{RetainedBoundBuilderV1, RetainedBytesV1, RetentionContractError};
+        let index = if undo {
+            self.top
+        } else {
+            Some(self.top.map_or(0, |top| top + 1))
+        };
+        let Some(record) = index.and_then(|index| self.entries.get(index)) else {
+            return Ok(Vec::new());
+        };
+        let Some(owner) = record.retention.as_ref() else {
+            return Ok(Vec::new());
+        };
+        let model = owner.model();
+        let budget = owner.budget();
+        let selection = context.selection_retention_bound_v1(model, budget.record_bytes)?;
+        let actual = record.retained_bound_v1(model, budget.record_bytes)?;
+        let old = owner.payload_bytes();
+        let lease = owner.charge_for_payload_v1(0)?;
+        let mut other_history = 0u64;
+        for other in &self.entries {
+            if other.id != record.id {
+                other_history = other_history
+                    .checked_add(other.retention.as_ref().map_or(0, |o| o.retained()))
+                    .ok_or(RetentionContractError::Overflow)?;
+            }
+        }
+        let history_remaining = budget
+            .history_bytes
+            .checked_sub(other_history)
+            .and_then(|n| n.checked_sub(lease))
+            .ok_or(RetentionContractError::Budget {
+                budget: "one replaying history",
+                requested: other_history,
+                limit: budget.history_bytes,
+            })?;
+        let record_remaining = budget
+            .record_bytes
+            .checked_sub(lease)
+            .ok_or(RetentionContractError::Overflow)?
+            .min(history_remaining);
+        let mut metadata =
+            RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(budget.staging_bytes));
+        metadata.layout(
+            std::mem::size_of::<Vec<super::CommandRetentionPlanV1>>(),
+            std::mem::align_of::<Vec<super::CommandRetentionPlanV1>>(),
+        )?;
+        metadata.array::<super::CommandRetentionPlanV1>(record.commands.len())?;
+        metadata.add(selection)?;
+        let fixed = metadata.bytes().get();
+        let headroom = owner.materialization_headroom_v1()?;
+        let checkpoint = owner.checkpoint_v1();
+        // The temporary quote table is itself reserved before allocation.
+        let baseline = actual.max(old);
+        let initial_peak = baseline
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(fixed))
+            .ok_or(RetentionContractError::Overflow)?;
+        owner.reserve(baseline, initial_peak, std::iter::empty(), 0, 0)?;
+        let result = (|| {
+            let mut quotes = Vec::new();
+            quotes
+                .try_reserve_exact(record.commands.len())
+                .map_err(|_| RetentionContractError::Overflow)?;
+            if quotes.capacity() != record.commands.len() {
+                return Err(RetentionContractError::Provider {
+                    reason: "replay quote backing differs from the supported Vec model",
+                }
+                .into());
+            }
+            let phase = if undo {
+                super::RetentionPhaseV1::Undo
+            } else {
+                super::RetentionPhaseV1::Redo
+            };
+            let mut bound = actual;
+            let mut peak = 0u64;
+            for command in &record.commands {
+                let floor = bound
+                    .checked_add(selection)
+                    .ok_or(RetentionContractError::Overflow)?
+                    .max(old);
+                let fixed_peak = floor
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(fixed))
+                    .and_then(|n| n.checked_add(peak))
+                    .and_then(|n| n.checked_add(lease))
+                    .ok_or(RetentionContractError::Overflow)?;
+                let retained_bytes = record_remaining
+                    .checked_sub(bound)
+                    .and_then(|n| n.checked_sub(selection))
+                    .ok_or(RetentionContractError::Budget {
+                        budget: "remaining replay command record",
+                        requested: bound,
+                        limit: record_remaining,
+                    })?;
+                let materialization_bytes =
+                    headroom
+                        .checked_sub(fixed_peak)
+                        .ok_or(RetentionContractError::Budget {
+                            budget: "remaining replay materialization",
+                            requested: fixed_peak,
+                            limit: headroom,
+                        })?;
+                let quote = command.retention_plan_with_limits_v1(
+                    context,
+                    phase,
+                    model,
+                    super::CommandRetentionLimitsV1 {
+                        retained_bytes,
+                        materialization_bytes,
+                        selection_bytes: selection,
+                    },
+                )?;
+                bound = bound
+                    .checked_add(quote.retained_bytes)
+                    .and_then(|n| n.checked_add(quote.selection_bytes))
+                    .ok_or(RetentionContractError::Overflow)?;
+                peak = peak
+                    .checked_add(quote.peak_bytes)
+                    .ok_or(RetentionContractError::Overflow)?;
+                if bound > record_remaining {
+                    return Err(RetentionContractError::Budget {
+                        budget: "one replaying history record",
+                        requested: bound,
+                        limit: record_remaining,
+                    }
+                    .into());
+                }
+                quotes.push(quote);
+            }
+            let bound = bound.max(old);
+            let peak = bound
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(fixed))
+                .and_then(|n| n.checked_add(peak))
+                .ok_or(RetentionContractError::Overflow)?;
+            owner.reserve(bound, peak, std::iter::empty(), 0, 0)?;
+            Ok(quotes)
+        })();
+        if result.is_err() {
+            // The closure has dropped its temporary table before releasing its
+            // charge. No cursor, saved point, model or history row changed.
+            owner.restore_reservation_v1(checkpoint, std::iter::empty());
+        }
+        result
+    }
+    pub(crate) fn finish_replay_v1(
+        &self,
+        undo: bool,
+        previous_top: Option<TransactionId>,
+        faulted: bool,
+    ) -> Result<(), EditCommandError> {
+        if faulted {
+            return Ok(());
+        }
+        let record = if undo {
+            previous_top.and_then(|id| transaction_record_by_id(&self.entries, id))
+        } else {
+            let next = previous_top
+                .and_then(|id| self.entries.iter().position(|r| r.id == id))
+                .map_or(0, |i| i + 1);
+            self.entries.get(next)
+        };
+        if let Some(record) = record {
+            if let Some(owner) = record.retention.as_ref() {
+                let retained =
+                    record.retained_bound_v1(owner.model(), owner.budget().record_bytes)?;
+                owner.finish_replay(retained.max(owner.payload_bytes()))?;
+            }
+        }
+        Ok(())
     }
 
     pub(crate) fn journal(
@@ -540,7 +1036,12 @@ impl HistoryStore {
     }
 
     pub(crate) fn can_undo(&self) -> bool {
-        self.top.is_some()
+        self.top.is_some_and(|top| {
+            !self.entries[top]
+                .retention
+                .as_ref()
+                .is_some_and(|owner| owner.is_barrier())
+        })
     }
 
     pub(crate) fn can_redo(&self) -> bool {
@@ -611,6 +1112,11 @@ impl HistoryStore {
         self.top = None;
         self.saved_top = None;
         self.saved_top_reachable = true;
+        for record in &self.entries {
+            if let Some(owner) = &record.retention {
+                owner.retire();
+            }
+        }
         self.entries.drain(..).collect()
     }
 }

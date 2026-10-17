@@ -80,11 +80,8 @@ fn hierarchy_pointer_bridge_uses_direct_arithmetic_routing_only() {
 
 #[test]
 fn welcome_recent_pointer_bridge_uses_direct_arithmetic_routing_only() {
-    let bridge =
-        source("src/ui/retained/welcome_recent_pointer/bridge.rs");
-    let route = source(
-        "src/ui/retained/welcome_recent_pointer/bridge_project_route.rs",
-    );
+    let bridge = source("src/ui/retained/welcome_recent_pointer/bridge.rs");
+    let route = source("src/ui/retained/welcome_recent_pointer/bridge_project_route.rs");
 
     for forbidden in ["UiSurface", "UiPointerDispatcher", "EditorRouteIntentMap"] {
         assert!(

@@ -10,7 +10,7 @@ use super::pending_mesh_draw::{PendingMeshDraw, PendingSkinnedGpuSource};
 
 #[derive(Default)]
 pub(super) struct PreviousSkinnedGpuState {
-    pub(super) joint_palette: Option<SkinnedMeshJointPaletteStorage>,
+    pub(super) joint_palette: Option<Arc<SkinnedMeshJointPaletteStorage>>,
     pub(super) source: Option<Arc<GpuMeshResource>>,
 }
 
@@ -42,7 +42,7 @@ pub(super) fn skinned_joint_palette_state_for_pending_draw(
             .skinned_gpu_source
             .as_ref()
             .and_then(PendingSkinnedGpuSource::morph_shape_signature),
-        storage: pending_draw.skinned_joint_palette?,
+        storage: pending_draw.skinned_joint_palette.clone()?,
     })
 }
 

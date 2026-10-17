@@ -42,6 +42,11 @@ pub(crate) struct FroxelMediaInjectOutcome {
 }
 
 impl FroxelMediaInjectPipeline {
+    /// The cached fallback buffer is initialized once for each pipeline/device epoch.
+    pub(crate) fn initial_upload_bytes() -> u64 {
+        u64::try_from(std::mem::size_of::<GpuFogVolume>()).unwrap_or(u64::MAX)
+    }
+
     pub(crate) fn uploaded_bytes(local_volume_count: usize, include_local_volumes: bool) -> u64 {
         let uploaded_volume_count = if include_local_volumes {
             local_volume_count

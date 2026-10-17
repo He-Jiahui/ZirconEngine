@@ -29,9 +29,9 @@ pub(super) fn draw_dock_layers(
             !super::super::super::componentized_workbench_regions::owns_authored_level_viewport(
                 presentation,
                 document,
-            ) && frame.paint_clip().is_none_or(|clip| {
-                intersect(&document.region_frame, clip).is_some()
-            })
+            ) && frame
+                .paint_clip()
+                .is_none_or(|clip| intersect(&document.region_frame, clip).is_some())
         });
     let visited = [route.left, route.document, route.right, route.bottom]
         .into_iter()
@@ -60,9 +60,10 @@ pub(super) fn draw_dock_layers(
             if !super::super::super::componentized_workbench_regions::owns_authored_level_viewport(
                 presentation,
                 document,
-            ) && frame.paint_clip().is_none_or(|clip| {
-                intersect(&document.region_frame, clip).is_some()
-            }) {
+            ) && frame
+                .paint_clip()
+                .is_none_or(|clip| intersect(&document.region_frame, clip).is_some())
+            {
                 docks::draw_document_dock(
                     frame,
                     document,

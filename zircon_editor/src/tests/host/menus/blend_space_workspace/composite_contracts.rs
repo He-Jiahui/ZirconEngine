@@ -420,9 +420,9 @@ fn blend_space_timeline_uses_shared_unreal_density_transport_controls() {
 #[test]
 fn blend_space_preview_uses_shared_real_image_atom_and_runtime_text_overlays() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let primitive = std::fs::read_to_string(manifest.join(
-        "assets/ui/editor/workbench/primitives/data/preview_viewport.zui",
-    ))
+    let primitive = std::fs::read_to_string(
+        manifest.join("assets/ui/editor/workbench/primitives/data/preview_viewport.zui"),
+    )
     .expect("shared preview viewport primitive should be readable");
     let workspace = std::fs::read_to_string(manifest.join(
         "assets/ui/editor/components/workbench/modules/extensions/animation/\

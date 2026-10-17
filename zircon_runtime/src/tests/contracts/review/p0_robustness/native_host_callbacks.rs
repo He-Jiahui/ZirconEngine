@@ -3,16 +3,11 @@
 fn review_f1_native_host_callbacks_catch_unwind_before_crossing_ffi() {
     let panic_guard = include_str!("../../../../plugin/loader/ffi_panic_guard.rs");
     let host_api_adapter = concat!(
-        include_str!(
-            "../../../../plugin/loader/host_api_adapter/bridge_scope/mod.rs"
-        ),
-        include_str!(
-            "../../../../plugin/loader/host_api_adapter/ecs_registration/mod.rs"
-        )
+        include_str!("../../../../plugin/loader/host_api_adapter/bridge_scope/mod.rs"),
+        include_str!("../../../../plugin/loader/host_api_adapter/ecs_registration/mod.rs")
     );
     let host_callbacks = include_str!("../../../../plugin/loader/host_callbacks.rs");
-    let output_sink =
-        include_str!("../../../../plugin/loader/behavior_calls/output_sink.rs");
+    let output_sink = include_str!("../../../../plugin/loader/behavior_calls/output_sink.rs");
     let review_findings = concat!(
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")

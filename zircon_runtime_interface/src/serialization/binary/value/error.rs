@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+/// JSON 与扁平节点流转换、以及读取节点流时使用的值域错误类别。
+/// loader 会把不合法的 BinaryValue 映射为 `LoadError::InvalidBinaryPayload`。
 #[derive(Debug, Error)]
 pub(in crate::serialization) enum BinaryValueError {
     #[error("floating-point value {value} is not finite")]

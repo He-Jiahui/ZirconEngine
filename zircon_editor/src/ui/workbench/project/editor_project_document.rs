@@ -15,6 +15,7 @@ pub struct EditorProjectDocument {
     pub project_info: ProjectInfo,
     pub project_settings: ProjectSettingsLoadState,
     pub world: Scene,
+    pub scene_source_revision: Option<zircon_runtime::scene::world::SceneSourceRevision>,
     pub editor_workspace: Option<ProjectEditorWorkspace>,
     pub workspace_restore_diagnostics: Vec<EditorWorkspaceRestoreDiagnostic>,
 }

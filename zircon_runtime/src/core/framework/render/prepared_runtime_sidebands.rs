@@ -255,6 +255,8 @@ pub struct RenderHybridGiPreparedTraceRegionSceneData {
 pub struct RenderPreparedRuntimeSidebands {
     pub plugin_renderer_outputs: RenderPluginRendererOutputs,
     pub hybrid_gi_prepared_frame: Option<RenderHybridGiPreparedFrame>,
+    pub virtual_geometry_prepared_cpu_frame:
+        Option<std::sync::Arc<super::RenderVirtualGeometryPreparedCpuFrame>>,
     pub hybrid_gi_evictable_probe_ids: Vec<u32>,
     pub virtual_geometry_evictable_page_ids: Vec<u32>,
 }
@@ -268,6 +270,7 @@ impl RenderPreparedRuntimeSidebands {
         Self {
             plugin_renderer_outputs,
             hybrid_gi_prepared_frame: None,
+            virtual_geometry_prepared_cpu_frame: None,
             hybrid_gi_evictable_probe_ids,
             virtual_geometry_evictable_page_ids,
         }
@@ -281,8 +284,17 @@ impl RenderPreparedRuntimeSidebands {
         self
     }
 
+    pub fn with_virtual_geometry_prepared_cpu_frame(
+        mut self,
+        frame: Option<std::sync::Arc<super::RenderVirtualGeometryPreparedCpuFrame>>,
+    ) -> Self {
+        self.virtual_geometry_prepared_cpu_frame = frame;
+        self
+    }
+
     pub fn is_empty(&self) -> bool {
-        self.plugin_renderer_outputs.is_empty()
+        self.virtual_geometry_prepared_cpu_frame.is_none()
+            && self.plugin_renderer_outputs.is_empty()
             && self
                 .hybrid_gi_prepared_frame
                 .as_ref()

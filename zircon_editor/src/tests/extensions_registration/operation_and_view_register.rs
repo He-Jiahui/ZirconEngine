@@ -311,7 +311,8 @@ fn editor_runtime_registers_plugin_views_as_activity_descriptors() {
 
     let descriptor = runtime
         .runtime
-        .descriptors().unwrap()
+        .descriptors()
+        .unwrap()
         .into_iter()
         .find(|descriptor| descriptor.descriptor_id.0 == "weather.cloud_layers")
         .expect("plugin view descriptor registered");
@@ -372,7 +373,8 @@ fn editor_runtime_projects_plugin_views_into_view_menu_operations() {
     ));
     assert!(runtime
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .iter()
         .any(|instance| instance.descriptor_id.0 == "weather.cloud_layers"));
     assert_eq!(

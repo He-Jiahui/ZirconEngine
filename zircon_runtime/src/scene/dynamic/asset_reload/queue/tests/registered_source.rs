@@ -467,48 +467,64 @@ mod lifecycle_interruption {
             fixture.level.with_world_mut(|world| {
                 world.observe_component_lifecycle::<Name>(
                     LifecycleEventKind::Add,
-                    move |world, _| {
-                        assert_eq!(first.fetch_add(1, Ordering::SeqCst), 0);
-                        match target {
-                            LifecycleTargetChange::World => {
-                                let mut replacement = World::empty();
-                                replacement.spawn_node(NodeKind::Cube).unwrap();
-                                let counter = Arc::clone(&updates);
-                                replacement
-                                    .register_native_system::<(), _>(
-                                        "tests.asset-reload.fresh",
-                                        SystemStage::Update,
-                                        0,
-                                        move |()| {
-                                            counter.fetch_add(1, Ordering::SeqCst);
-                                        },
-                                    )
-                                    .unwrap();
-                                let owner =
-                                    retained.upgrade().expect("original owner remains alive");
-                                *owner.lock().unwrap() =
-                                    Some(std::mem::replace(world, replacement));
-                            }
-                            LifecycleTargetChange::Schedule => {
-                                *world.schedule_mut() = Default::default();
-                                let counter = Arc::clone(&updates);
-                                world
-                                    .register_native_system::<(), _>(
-                                        "tests.asset-reload.fresh",
-                                        SystemStage::Update,
-                                        0,
-                                        move |()| {
-                                            counter.fetch_add(1, Ordering::SeqCst);
-                                        },
-                                    )
-                                    .unwrap();
-                            }
-                        }
+                    // SAFETY: Only a separate replacement World is built before owner
+                    // retirement; no retained payload of the original owner grows or adopts it.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                            move |world, _| {
+                                assert_eq!(first.fetch_add(1, Ordering::SeqCst), 0);
+                                match target {
+                                    LifecycleTargetChange::World => {
+                                        let mut replacement = World::empty();
+                                        replacement.spawn_node(NodeKind::Cube).unwrap();
+                                        let counter = Arc::clone(&updates);
+                                        replacement
+                                            .register_native_system::<(), _>(
+                                                "tests.asset-reload.fresh",
+                                                SystemStage::Update,
+                                                0,
+                                                move |()| {
+                                                    counter.fetch_add(1, Ordering::SeqCst);
+                                                },
+                                            )
+                                            .unwrap();
+                                        let owner = retained
+                                            .upgrade()
+                                            .expect("original owner remains alive");
+                                        *owner.lock().unwrap() =
+                                            Some(std::mem::replace(world, replacement));
+                                    }
+                                    LifecycleTargetChange::Schedule => {
+                                        *world.schedule_mut() = Default::default();
+                                        let counter = Arc::clone(&updates);
+                                        world
+                                            .register_native_system::<(), _>(
+                                                "tests.asset-reload.fresh",
+                                                SystemStage::Update,
+                                                0,
+                                                move |()| {
+                                                    counter.fetch_add(1, Ordering::SeqCst);
+                                                },
+                                            )
+                                            .unwrap();
+                                    }
+                                }
+                            },
+                        )
                     },
                 );
-                world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |_, _| {
-                    stale.fetch_add(1, Ordering::SeqCst);
-                });
+                world.observe_component_lifecycle::<Name>(
+                    LifecycleEventKind::Add,
+                    // SAFETY: Only an external atomic counter changes; retained World payload
+                    // and dynamic JSON are untouched.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                            stale.fetch_add(1, Ordering::SeqCst);
+                        })
+                    },
+                );
             });
             let ids = fixture.stage_three();
             let scheduler = fixture.core.scheduler().clone();

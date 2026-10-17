@@ -8,8 +8,16 @@ fn escape_without_game_focus_stops_play_and_respects_edit_mode_availability() {
     harness.activate_workbench_page();
     {
         let mut host = harness.host.borrow_mut();
-        host.runtime.shell().lock().state.enter_play_mode().expect("loaded test world should enter editor play mode");
-        host.runtime.play_sessions().request_play(PlayStartRequest::immediate(PlayKind::Play, None)).expect("test play backend should start");
+        host.runtime
+            .shell()
+            .lock()
+            .state
+            .enter_play_mode()
+            .expect("loaded test world should enter editor play mode");
+        host.runtime
+            .play_sessions()
+            .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+            .expect("test play backend should start");
         host.runtime.refresh_reflection();
         host.refresh_ui();
         host.recompute_if_dirty();
@@ -18,17 +26,40 @@ fn escape_without_game_focus_stops_play_and_respects_edit_mode_availability() {
     }
     let before_global_stop = harness.journal_len();
     harness.root_ui.dispatch_native_key_for_test(
-        key_event(Key::Named(NamedKey::Escape), PhysicalKey::Code(KeyCode::Escape), None, ElementState::Pressed),
+        key_event(
+            Key::Named(NamedKey::Escape),
+            PhysicalKey::Code(KeyCode::Escape),
+            None,
+            ElementState::Pressed,
+        ),
         ModifiersState::empty(),
     );
-    assert_eq!(harness.delta_events_since(before_global_stop).iter().filter(|event| matches!(event, EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode))).count(), 1);
-    assert_eq!(harness.host.borrow().runtime.play_sessions().mode(), PlayModeKind::Edit);
+    assert_eq!(
+        harness
+            .delta_events_since(before_global_stop)
+            .iter()
+            .filter(|event| matches!(event, EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode)))
+            .count(),
+        1
+    );
+    assert_eq!(
+        harness.host.borrow().runtime.play_sessions().mode(),
+        PlayModeKind::Edit
+    );
     let before_edit_escape = harness.journal_len();
     harness.root_ui.dispatch_native_key_for_test(
-        key_event(Key::Named(NamedKey::Escape), PhysicalKey::Code(KeyCode::Escape), None, ElementState::Pressed),
+        key_event(
+            Key::Named(NamedKey::Escape),
+            PhysicalKey::Code(KeyCode::Escape),
+            None,
+            ElementState::Pressed,
+        ),
         ModifiersState::empty(),
     );
-    assert!(harness.delta_events_since(before_edit_escape).iter().all(|event| !matches!(event, EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode))));
+    assert!(harness
+        .delta_events_since(before_edit_escape)
+        .iter()
+        .all(|event| !matches!(event, EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode))));
 }
 
 #[test]
@@ -86,16 +117,31 @@ fn focused_game_keeps_regular_keys_in_play_but_dispatches_the_registered_stop_sh
 
     {
         let mut host = harness.host.borrow_mut();
-        host.workbench_window_bridge.toggle_content_drawer().expect("content drawer should open above Game play input");
+        host.workbench_window_bridge
+            .toggle_content_drawer()
+            .expect("content drawer should open above Game play input");
         host.refresh_ui();
         host.recompute_if_dirty();
         host.sync_content_drawer_native_focus();
         assert!(host.workbench_window_bridge.content_drawer_is_open());
-        assert_eq!(harness.root_ui.global::<UiHostContext>().get_text_input_focus().control_id.as_str(), "SearchEdited");
+        assert_eq!(
+            harness
+                .root_ui
+                .global::<UiHostContext>()
+                .get_text_input_focus()
+                .control_id
+                .as_str(),
+            "SearchEdited"
+        );
     }
     let before_drawer_cancel = harness.journal_len();
     harness.root_ui.dispatch_native_key_for_test(
-        key_event(Key::Named(NamedKey::Escape), PhysicalKey::Code(KeyCode::Escape), None, ElementState::Pressed),
+        key_event(
+            Key::Named(NamedKey::Escape),
+            PhysicalKey::Code(KeyCode::Escape),
+            None,
+            ElementState::Pressed,
+        ),
         ModifiersState::empty(),
     );
     assert_eq!(harness.journal_len(), before_drawer_cancel);

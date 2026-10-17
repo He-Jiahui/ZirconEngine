@@ -1,8 +1,12 @@
+//! 固定 Control 与按下态，验证三种逻辑键组合对应的历史方向。
+//! 测试通过父模块私有入口分类，不创建 Surface 或文档历史资源。
+
 use super::*;
 use zircon_runtime_interface::ui::dispatch::{
     UiInputEventMetadata, UiInputSequence, UiInputTimestamp,
 };
 
+// 逻辑键与物理键标签使用同一入参；Control 与按下态固定，Shift 独立选择。
 fn keyboard(logical_key: &str, shift: bool) -> UiKeyboardInputEvent {
     let mut metadata =
         UiInputEventMetadata::new(UiInputTimestamp::from_micros(1), UiInputSequence::new(1));

@@ -1,5 +1,5 @@
 use crate::error::HubError;
-use crate::process::{OpenFolderCommand, open_folder};
+use crate::process::{open_folder, OpenFolderCommand};
 use crate::state::{
     DeliveryMessageId, HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId,
     LearnMessageId, ShellMessageId, TaskOperationKind, TaskStatus,

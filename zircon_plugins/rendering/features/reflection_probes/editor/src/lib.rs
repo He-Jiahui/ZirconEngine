@@ -8,11 +8,11 @@ mod plugin;
 
 pub use capability::{CAPABILITY, EDITOR_CAPABILITIES, FEATURE_ID};
 pub use capture::{
-    ReflectionProbeCaptureEditorCommand, ReflectionProbeCaptureEditorCommandError,
-    ReflectionProbeCaptureEditorExecutionError, ReflectionProbeCaptureEditorResult,
-    ReflectionProbeCaptureEditorTrigger, ReflectionProbeCaptureProjectPublicationError,
-    publish_reflection_probe_capture_source,
+    publish_reflection_probe_capture_source, ReflectionProbeCaptureEditorCommand,
+    ReflectionProbeCaptureEditorCommandError, ReflectionProbeCaptureEditorExecutionError,
+    ReflectionProbeCaptureEditorResult, ReflectionProbeCaptureEditorTrigger,
+    ReflectionProbeCaptureProjectPublicationError,
 };
 pub use plugin::{
-    RenderingReflectionProbesEditorFeature, editor_capabilities, editor_feature, feature_manifest,
+    editor_capabilities, editor_feature, feature_manifest, RenderingReflectionProbesEditorFeature,
 };

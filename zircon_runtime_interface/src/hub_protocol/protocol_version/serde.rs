@@ -4,6 +4,7 @@ use super::HUB_PROTOCOL_VERSION_V1;
 
 /// Exact protocol marker that prevents a v1 mailbox reader from accepting another revision.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 零字段标记类型通过自定义 Serde 实现固定的协议版本 wire 值。
 pub struct HubProtocolVersionV1;
 
 impl Serialize for HubProtocolVersionV1 {

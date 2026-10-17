@@ -7,6 +7,8 @@ use zircon_runtime::asset::project::ResolvedProjectPath;
 use zircon_runtime::core::framework::window::{WindowDescriptor, WindowLifecyclePolicy};
 use zircon_runtime::platform::EventLoopPolicy;
 
+pub(in crate::entry) use crate::entry::runtime_product_proof::RuntimeProductProofPolicy;
+
 #[derive(Clone, Debug, PartialEq)]
 /// 由产品入口在创建事件循环应用前设定，供 RuntimeEntryApp 构造一次性消费。
 pub(in crate::entry) struct RuntimeEntryAppConfig {
@@ -15,7 +17,7 @@ pub(in crate::entry) struct RuntimeEntryAppConfig {
     pub(in crate::entry::runtime_entry_app) window_lifecycle_policy: WindowLifecyclePolicy,
     pub(in crate::entry::runtime_entry_app) exit_after_presented_frames: Option<NonZeroU64>,
     pub(in crate::entry::runtime_entry_app) first_frame_capture_path: Option<ResolvedProjectPath>,
-    pub(in crate::entry::runtime_entry_app) require_persisted_scene_diagnostics: bool,
+    pub(in crate::entry::runtime_entry_app) product_proof_policy: RuntimeProductProofPolicy,
     pub(in crate::entry::runtime_entry_app) reference_cpu_presenter: bool,
     /// Native AppSession V2 is opt-in. False keeps the published Winit V1 text/cursor path.
     pub(in crate::entry::runtime_entry_app) native_ime_composition_requested: bool,
@@ -76,8 +78,11 @@ impl RuntimeEntryAppConfig {
         self
     }
 
-    pub(in crate::entry) fn with_persisted_scene_diagnostics(mut self, require: bool) -> Self {
-        self.require_persisted_scene_diagnostics = require;
+    pub(in crate::entry) fn with_product_proof_policy(
+        mut self,
+        policy: RuntimeProductProofPolicy,
+    ) -> Self {
+        self.product_proof_policy = policy;
         self
     }
 
@@ -128,8 +133,8 @@ impl RuntimeEntryAppConfig {
     }
 
     #[cfg(test)]
-    pub(in crate::entry) fn require_persisted_scene_diagnostics(&self) -> bool {
-        self.require_persisted_scene_diagnostics
+    pub(in crate::entry) fn product_proof_policy(&self) -> RuntimeProductProofPolicy {
+        self.product_proof_policy
     }
 
     #[cfg(test)]
@@ -151,7 +156,7 @@ impl Default for RuntimeEntryAppConfig {
             window_lifecycle_policy: WindowLifecyclePolicy::default(),
             exit_after_presented_frames: None,
             first_frame_capture_path: None,
-            require_persisted_scene_diagnostics: false,
+            product_proof_policy: RuntimeProductProofPolicy::Disabled,
             reference_cpu_presenter: false,
             native_ime_composition_requested: false,
         }

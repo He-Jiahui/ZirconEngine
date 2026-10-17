@@ -1,35 +1,35 @@
-//! 尽力补全当前目录并词法折叠路径；Windows 统一大小写，供路径 gate registry 作为键使用。
-//! 这里只统一 registry 的词法键；实际 I/O 沿用原始路径，文件系统别名与跨进程冲突不由此键解决。
-use std::path::{Path, PathBuf};
+//! Resolve one physical address for both process-local admission and all config I/O.
+use std::fs;
+use std::io;
+use std::path::Path;
 
-// 相对路径尝试补当前目录，再消除 . 与 ..；获取目录失败时仍对输入做词法折叠。
-pub(super) fn absolute_path(path: &Path) -> PathBuf {
-    let absolute = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        std::env::current_dir()
-            .map(|directory| directory.join(path))
-            .unwrap_or_else(|_| path.to_path_buf())
-    };
-    let mut normalized = PathBuf::new();
-    for component in absolute.components() {
-        match component {
-            std::path::Component::CurDir => {}
-            std::path::Component::ParentDir => {
-                normalized.pop();
-            }
-            _ => normalized.push(component.as_os_str()),
-        }
+use crate::asset::project::{ProjectPaths, ResolvedProjectPathIdentity};
+
+pub(super) fn physical_path(path: &Path) -> io::Result<ResolvedProjectPathIdentity> {
+    // Capture relative-path context once, including Windows drive-relative inputs.
+    // The symlink probe and physical resolver must consume the same absolute path.
+    let path = std::path::absolute(path)?;
+    if !path.is_absolute() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "config persistence path did not resolve to an absolute address",
+        ));
     }
-    normalize_platform_path(normalized)
-}
-
-#[cfg(windows)]
-fn normalize_platform_path(path: PathBuf) -> PathBuf {
-    PathBuf::from(path.to_string_lossy().to_lowercase())
-}
-
-#[cfg(not(windows))]
-fn normalize_platform_path(path: PathBuf) -> PathBuf {
-    path
+    // Atomic publication rejects a final symlink rather than replacing or following it.
+    // Check before canonicalization so admission cannot silently change that contract.
+    match fs::symlink_metadata(&path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!(
+                    "config persistence does not support a final symlink: {}",
+                    path.display()
+                ),
+            ));
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error),
+    }
+    ProjectPaths::resolve_identity(&path)
 }

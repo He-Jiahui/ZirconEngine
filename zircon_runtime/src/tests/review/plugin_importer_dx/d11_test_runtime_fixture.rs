@@ -1,16 +1,12 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
-const ANIMATION_PHYSICS_TEST: &str = include_str!(
-    "../../../../../zircon_plugins/animation/runtime/tests/physics_tick.rs"
-);
-const ANIMATION_ASSETS_FIXTURE: &str = include_str!(
-    "../../../../../zircon_plugins/animation/runtime/tests/animation_assets.rs"
-);
-const RUNTIME_HELPERS_FIXTURE: &str = include_str!(
-    "../../../../../zircon_plugins/animation/runtime/tests/runtime_helpers.rs"
-);
-const TARGET_RESOLUTION_FIXTURE: &str = include_str!(
-    "../../../../../zircon_plugins/animation/runtime/tests/target_resolution.rs"
-);
+const ANIMATION_PHYSICS_TEST: &str =
+    include_str!("../../../../../zircon_plugins/animation/runtime/tests/physics_tick.rs");
+const ANIMATION_ASSETS_FIXTURE: &str =
+    include_str!("../../../../../zircon_plugins/animation/runtime/tests/animation_assets.rs");
+const RUNTIME_HELPERS_FIXTURE: &str =
+    include_str!("../../../../../zircon_plugins/animation/runtime/tests/runtime_helpers.rs");
+const TARGET_RESOLUTION_FIXTURE: &str =
+    include_str!("../../../../../zircon_plugins/animation/runtime/tests/target_resolution.rs");
 const PLUGIN_SDK_TEST_RUNTIME: &str =
     include_str!("../../../../../zircon_plugins/plugin_sdk/src/test.rs");
 const PLUGIN_SDK_LIB: &str = include_str!("../../../../../zircon_plugins/plugin_sdk/src/lib.rs");

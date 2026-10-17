@@ -15,9 +15,9 @@ pub(crate) struct AssetBackendRefreshPlan {
     pub mark_paint_only_dirty: bool,
 }
 
-pub(crate) fn plan_asset_backend_refresh(
+pub(crate) fn plan_asset_backend_refresh<'a>(
     active_scene_uri: Option<&str>,
-    asset_changes: &[AssetChange],
+    asset_changes: impl IntoIterator<Item = &'a AssetChange>,
     editor_changes: &[EditorAssetChange],
     resource_changes: &[ResourceEvent],
 ) -> AssetBackendRefreshPlan {
@@ -68,7 +68,7 @@ pub(crate) fn plan_asset_backend_refresh(
     if let Some(active_scene_uri) = active_scene_uri {
         let active_scene_locator = ResourceLocator::parse(active_scene_uri).ok();
         let active_scene_changed = asset_changes
-            .iter()
+            .into_iter()
             .any(|change| active_scene_locator.as_ref() == Some(&change.uri))
             || resource_changes.iter().any(|change| {
                 change

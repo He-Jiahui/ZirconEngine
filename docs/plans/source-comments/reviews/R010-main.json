@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R010",
+  "reviewer": "main",
+  "reviewed_at_utc": "2026-10-15T00:03:15.934077+00:00",
+  "status": "accepted-local-review-and-scoped-static-validation",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R010.json",
+    "sha256": "edaf63e6415e907bf311b07767101b570ed8e3cceacdf1d4461f6bfb15159716"
+  },
+  "amendment_record": {
+    "path": "docs/plans/source-comments/reviews/R010-amendment.json",
+    "sha256": "5d1430cafce041cb955098123fe18ff4795f3e7c21e022bc40d889e5427824e7"
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs",
+      "before_sha256": "1609f71e289d1ae4a2516eb78ca310df16f35cfc76f8662ee943914a074f3d96",
+      "child_snapshot_sha256": "e09db2f9925cc8c7f146473d0a1fb21bc8adc21a459ea66f67b21fde23aa1452",
+      "after_sha256": "e09db2f9925cc8c7f146473d0a1fb21bc8adc21a459ea66f67b21fde23aa1452",
+      "original_lines": 248,
+      "current_lines": 252,
+      "bytes": 8469,
+      "main_full_manual_read": true,
+      "main_manual_observations": [
+        "Read all 20 fixtures/helpers and function-table callbacks. Dummy component containment only tests entity liveness; read returns fixture data, write compares without persistence, remove reports liveness without removing storage. Resource fixture always reports existence and enabled=true. Added comments expose these deliberate fixture boundaries."
+      ],
+      "original_source_reconstructed_by_inverse_task_edits": true,
+      "normalized_original_equals_pinned_HEAD": true,
+      "child_comment_insertions": [
+        {
+          "after_byte_offset": 6011,
+          "inserted_byte_length": 107,
+          "inserted_sha256": "4e478aca284419529c81d6def07c82324109c15f449534bb4e9baece59f900c6"
+        },
+        {
+          "after_byte_offset": 5757,
+          "inserted_byte_length": 85,
+          "inserted_sha256": "b6db4a51d78718531560d5526894ebf4eb833a258912c3a495743a0676bae649"
+        },
+        {
+          "after_byte_offset": 3872,
+          "inserted_byte_length": 104,
+          "inserted_sha256": "a8ce46153f7a6dd4a7d4c2183577e4883fd797cbc20e8a943e1adecf4ebf191c"
+        },
+        {
+          "after_byte_offset": 3366,
+          "inserted_byte_length": 120,
+          "inserted_sha256": "cc00a279fc054ee8273e0c3f74ec6e45e92cb0580824c722933d86d3ced7e874"
+        }
+      ],
+      "root_followup_edits": [],
+      "all_original_nonempty_bytes_and_comments_preserved": true,
+      "syntax_API_strings_and_assertions_preserved": true,
+      "issues": [],
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/foundation/registry.rs",
+      "before_sha256": "500a939a49fe18dd2d14264aa746a954aa93c8af0c873956e53f5dd31df48243",
+      "child_snapshot_sha256": "1fabb02e44c756d8b54fcc5e2c3e27b40b9f4396f0c9f3fb370da4b27d21f0d1",
+      "after_sha256": "1fabb02e44c756d8b54fcc5e2c3e27b40b9f4396f0c9f3fb370da4b27d21f0d1",
+      "original_lines": 371,
+      "current_lines": 375,
+      "bytes": 14214,
+      "main_full_manual_read": true,
+      "main_manual_observations": [
+        "Read all ten tests and registration helpers. Invalid metadata cases use a fresh catalog; collisions reject publication without generation changes. Dense field count cases probe first/middle/last positions at 0/1/16/512/513/4096, deduplicating tiny cases and rejecting 4097 fields.",
+        "Short-path results borrow owned registry data after caller string drop. Adapter equality tests only establish metadata/presence behavior, without callback identity guarantee. Serde excludes runtime-only registry data and reconstructs defaults. Existing assertions are unchanged."
+      ],
+      "original_source_reconstructed_by_inverse_task_edits": true,
+      "normalized_original_equals_pinned_HEAD": true,
+      "child_comment_insertions": [
+        {
+          "after_byte_offset": 11133,
+          "inserted_byte_length": 107,
+          "inserted_sha256": "3368e685baa75a2240c1cab78502c4821c8d9d191756f4126ddd8a9e92f0620f"
+        },
+        {
+          "after_byte_offset": 8418,
+          "inserted_byte_length": 113,
+          "inserted_sha256": "ffea23631a0c6fde4c742865b0fd6a6fe30ec3c0f5d29a28a3de7867e529a56b"
+        },
+        {
+          "after_byte_offset": 5821,
+          "inserted_byte_length": 71,
+          "inserted_sha256": "eb8e662249cc908e984b3fe151a11ea89cb3511950daad3e9d442123eb1d9b5e"
+        },
+        {
+          "after_byte_offset": 2779,
+          "inserted_byte_length": 104,
+          "inserted_sha256": "a9c7e076b848fe3350235c89f90387fa5981a94c8dd884d8af24de5f98ebd491"
+        }
+      ],
+      "root_followup_edits": [],
+      "all_original_nonempty_bytes_and_comments_preserved": true,
+      "syntax_API_strings_and_assertions_preserved": true,
+      "issues": [],
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs",
+      "before_sha256": "edfbf16b138f02fee1219b543e8203ec064f9502ca7f8c8bf662ce9588076bb7",
+      "child_snapshot_sha256": "fd0c816c855eede9f42d038dcdb1c6b6ab7498d6a07871c630d8e0971cee0eb9",
+      "after_sha256": "f32b6daa07acf266facd5cc722b00810179c821107caf8db28ba22888fa1f653",
+      "original_lines": 693,
+      "current_lines": 702,
+      "bytes": 27030,
+      "main_full_manual_read": true,
+      "main_manual_observations": [
+        "Read all 16 tests, including six source-shape guard groups and seven related helper functions across the fixture group. Dynamic descriptor registration is distinct from attachment; field enumeration follows schema order, JSON missing keys remain UnknownField, and changed writes versus idempotent writes obey generation contracts.",
+        "Both before and final production wrapper ranges fail the same two required positive source-shape assertions. Parent added CR-ZCA-R010-0001 directly before unchanged assertions; selected branch text and searched literals were not changed. Nine dependent predicate groups were independently reconstructed and compared; eight match expected shape, one proven preexisting failure remains.",
+        "Read actual VM backend, write/editability, unknown fields/type names, plugin unloading and sorted schema rows tests and direct caller contexts. This audit changes explanatory comments only; source tests were read, not run."
+      ],
+      "original_source_reconstructed_by_inverse_task_edits": true,
+      "normalized_original_equals_pinned_HEAD": true,
+      "child_comment_insertions": [
+        {
+          "after_byte_offset": 20439,
+          "inserted_byte_length": 101,
+          "inserted_sha256": "4f1bbc75861ade35631e2ba76dc18c2523bdb19195f8597c71b5ee3f9d7ae382"
+        },
+        {
+          "after_byte_offset": 18915,
+          "inserted_byte_length": 98,
+          "inserted_sha256": "6acaea99faff13572bae9f804db3e5ba3f19cd6cb4c1f330e59bdd33b99917fc"
+        },
+        {
+          "after_byte_offset": 15456,
+          "inserted_byte_length": 97,
+          "inserted_sha256": "98cec57721bf86add97a97ae568c172f04f6d4efbf2042b5ddf6b609affd5ca2"
+        },
+        {
+          "after_byte_offset": 14201,
+          "inserted_byte_length": 89,
+          "inserted_sha256": "e667087a012c474400b5315dfab8397f789bb89782b6c9f3d94d03c59c60d790"
+        },
+        {
+          "after_byte_offset": 12993,
+          "inserted_byte_length": 94,
+          "inserted_sha256": "1a60eca8fbdbf041e37d43a92b7cfe63aeb3b2b26496f411489009cd94b00e65"
+        },
+        {
+          "after_byte_offset": 2648,
+          "inserted_byte_length": 128,
+          "inserted_sha256": "9e30935aa21691eb5eccf2e3b20c09b2e60f9d645c4947d23da48d5bbd306584"
+        },
+        {
+          "after_byte_offset": 2490,
+          "inserted_byte_length": 107,
+          "inserted_sha256": "d07c8a4b459258041fe90c8a9eba9e97a5ca54b5560bed405389597e139f7ab5"
+        }
+      ],
+      "root_followup_edits": [
+        {
+          "after_byte_offset": 9472,
+          "byte_length": 268,
+          "sha256": "1f866b128cbe3a5fbaf2c9654620ec080f71c0f890741c59969ec43663664bc4",
+          "exact_text": "    // BUG: [CR-ZCA-R010-0001] 运行本结构测试时，截取范围只包含读取入口包装函数，下面的转换分支断言会失败。\n    // 证据：入口已委派给共用读取助手，实际属性读取和转换错误分支位于截取终点之后。\n",
+          "line_span": [
+            224,
+            225
+          ]
+        }
+      ],
+      "all_original_nonempty_bytes_and_comments_preserved": true,
+      "syntax_API_strings_and_assertions_preserved": true,
+      "issues": [
+        "CR-ZCA-R010-0001"
+      ],
+      "formal_acceptance": false
+    }
+  ],
+  "independent_review_evidence": [
+    "functions.exec 156 metadata and declaration inventory",
+    "functions.exec 157 foundation.rs plus registry.rs",
+    "functions.exec 158 dynamic_components.rs full source",
+    "functions.exec 159 missing registry range; retained output read 160",
+    "functions.exec 162 original byte proofs and actual scoped checks",
+    "functions.exec 167 all nine independent before/after lexical groups",
+    "functions.exec 173 exact two-line BUG source tag write and writer failure before metadata",
+    "functions.exec 174 immutable recovery amendment and issue ledger consistency",
+    "functions.exec terminal 1ea75f final actual diff/format/guard"
+  ],
+  "all_objects_and_blocks_reviewed": true,
+  "all_original_nonempty_bytes_and_comments_preserved": true,
+  "syntax_API_strings_and_assertions_preserved": true,
+  "issues": [
+    {
+      "id": "CR-ZCA-R010-0001",
+      "kind": "BUG",
+      "trigger": "Execute dynamic_component_reflection_read_helpers_use_direct_success_branches against the current production source text.",
+      "observable_effect": "Two required positive contains predicates are false; assert! fails because conversion branches live in read_declared_field beyond the selected wrapper range.",
+      "static_evidence": {
+        "test_section_start": "fn read_field",
+        "test_section_end": "fn read_dense_slot",
+        "selected_section_sha256": "d2274fb08b100aa7bf944a9ee3bf179bdccb52018c6dc04d0d615ea904f297c1",
+        "search_strings": [
+          "let Some(value) = world.dynamic_component_property(entity, &property_path) else",
+          "return Err(ReflectError::UnsupportedConversion",
+          ".ok_or_else(|| ReflectError::UnsupportedConversion"
+        ],
+        "before_predicates": [
+          false,
+          false,
+          false
+        ],
+        "current_predicates": [
+          false,
+          false,
+          false
+        ],
+        "expected_contains_results": [
+          true,
+          true,
+          false
+        ],
+        "production_path": "zircon_runtime/src/scene/reflect/dynamic_component.rs",
+        "production_sha256": "cb27b21d9b5b0a992b706f851805d3e6389d85bac815d28f96e57e7e5a43a346",
+        "production_spans": [
+          [
+            122,
+            142
+          ],
+          [
+            148,
+            184
+          ]
+        ],
+        "R008_before_source_predicates_independently_verified_equal": true
+      },
+      "source_tag": "// BUG: [CR-ZCA-R010-0001] 运行本结构测试时，截取范围只包含读取入口包装函数，下面的转换分支断言会失败。",
+      "next_action": "Keep all assertions and production behavior unchanged in this audit; a separate fix can align evidence with the shared helper or validate delegated structure."
+    }
+  ],
+  "builds_or_Rust_tests_executed": false,
+  "formal_acceptance": false,
+  "coordinator_commit": "pending",
+  "validation_record": {
+    "path": "docs/plans/source-comments/reviews/R010-post-validation.json",
+    "sha256": "c3668943220df58d02544c3a0afc6847181706fefa8ef420f3c8a427bc593baa"
+  }
+}

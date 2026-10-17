@@ -1,5 +1,5 @@
-use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use super::*;
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use std::time::Duration;
 
 use crate::core::notifications::{
@@ -43,7 +43,14 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn refresh_activity_notification_presentation(&mut self) {
-        if (match self.active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }) {
+        if (match self.active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)
+        {
+            Ok(value) => value,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        }) {
             self.sync_activity_notifications();
         } else {
             self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
@@ -51,8 +58,19 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn sync_activity_notifications(&mut self) {
-        if !(match self.active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }) {
+        if !(match self
+            .active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)
+        {
+            Ok(value) => value,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        }) {
             return;
+        }
+        if let Some((id, token)) = self.workbench_window_bridge.dismissed_activity_toast() {
+            self.runtime.context().notifications().dismiss_toast(&id, token);
         }
         let (pending_decisions, toasts, progress) = {
             let context = self.runtime.context();

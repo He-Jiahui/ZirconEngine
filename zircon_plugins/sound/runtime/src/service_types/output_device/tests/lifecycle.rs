@@ -383,9 +383,20 @@ fn owner_native_prepare_callback_is_silent_until_commit_then_reports_pcm() {
     crate::kira_bridge::OwnerCpalBackend::install_callback_nonzero_signal(nonzero_tx);
     let owner = Arc::clone(&manager);
     let start = std::thread::spawn(move || owner.start_output_device_impl());
-    commit_rx
-        .recv_timeout(Duration::from_secs(1))
-        .expect("normal owner must reach the visible commit admission barrier");
+    if let Err(wait_error) = commit_rx.recv_timeout(Duration::from_secs(1)) {
+        drop(commit_rx);
+        drop(commit_release_tx);
+        OWNER_COMMIT_BARRIER
+            .get_or_init(|| Mutex::new(None))
+            .lock()
+            .unwrap()
+            .take();
+        let start_result = start.join();
+        crate::kira_bridge::OwnerCpalBackend::reset_callback_telemetry();
+        panic!(
+            "normal owner must reach the visible commit admission barrier: {wait_error:?}; owner start result: {start_result:?}"
+        );
+    }
     callback_enter_rx
         .recv_timeout(Duration::from_secs(1))
         .expect("prepared normal CPAL callback must run before owner commit");

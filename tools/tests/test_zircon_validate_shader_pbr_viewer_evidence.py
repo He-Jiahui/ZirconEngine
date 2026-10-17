@@ -218,7 +218,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "duration hierarchy"):
                 validate_ready_frame_evidence(png_path)
 
-    def test_cli_requires_v18_schema_and_identity_binding_unless_legacy_read_is_explicit(
+    def test_cli_requires_v19_schema_and_identity_binding_unless_legacy_read_is_explicit(
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -249,7 +249,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
                 ):
                     self.assertEqual(1, main())
                 self.assertIn(
-                    "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v18",
+                    "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v19",
                     stderr.getvalue(),
                 )
 
@@ -290,7 +290,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             ):
                 self.assertEqual(1, main())
             self.assertIn(
-                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v18",
+                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v19",
                 stderr.getvalue(),
             )
             with (
@@ -332,7 +332,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             ):
                 self.assertEqual(1, main())
             self.assertIn(
-                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v18",
+                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v19",
                 stderr.getvalue(),
             )
             with (
@@ -366,7 +366,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             ):
                 self.assertEqual(1, main())
             self.assertIn(
-                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v18",
+                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v19",
                 stderr.getvalue(),
             )
             with (
@@ -393,6 +393,40 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
                 **_v14_host_capability_fields(),
                 **_ready_frame_identity_fields(png_path, policy_version=18),
             )
+            stderr = StringIO()
+            with (
+                mock.patch("sys.argv", ["validator", str(png_path)]),
+                redirect_stderr(stderr),
+            ):
+                self.assertEqual(1, main())
+            self.assertIn(
+                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v19",
+                stderr.getvalue(),
+            )
+            with (
+                mock.patch(
+                    "sys.argv", ["validator", "--allow-legacy-schema", str(png_path)]
+                ),
+                redirect_stdout(StringIO()),
+            ):
+                self.assertEqual(0, main())
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v19",
+                interactive_direct_present_enabled="false",
+                material_fixture="metal-mirror",
+                required_material_base_pipeline_kind="environment-only-pbr-base",
+                required_material_base_pipeline_ready_at_capture="true",
+                environment_only_base_prewarm_requested="true",
+                environment_only_base_prewarm_pipeline_ready="true",
+                environment_only_base_pipeline_ready_at_capture="true",
+                **_v11_ibl_staging_fields(),
+                **_v12_shader_pipeline_metrics(),
+                **_v19_system_texture_startup_metrics(),
+                **_v14_host_capability_fields(),
+                **_ready_frame_identity_fields(png_path, policy_version=19),
+            )
             stdout = StringIO()
             with (
                 mock.patch("sys.argv", ["validator", str(png_path)]),
@@ -413,6 +447,16 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             self.assertEqual(
                 1_350_000_000,
                 summary["startup_timing_ns"]["viewer_ready_elapsed_ns"],
+            )
+            self.assertEqual(
+                7_000_000,
+                summary["startup_timing_ns"][
+                    "scene_startup_renderer_system_texture_upload_batch_submission_ns"
+                ],
+            )
+            self.assertNotIn(
+                "scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns",
+                summary["startup_timing_ns"],
             )
 
             _write_sidecar(
@@ -459,7 +503,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
 
             _write_sidecar(
                 png_path,
-                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v18",
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v19",
                 interactive_direct_present_enabled="false",
                 material_fixture="metal-mirror",
                 required_material_base_pipeline_kind="environment-only-pbr-base",
@@ -470,9 +514,9 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
                 ibl_bake_algorithm_version="202607310004",
                 **_v11_ibl_staging_fields(),
                 **_v12_shader_pipeline_metrics(),
-                **_v17_brdf_lut_startup_metrics(),
+                **_v19_system_texture_startup_metrics(),
                 **_v14_host_capability_fields(),
-                **_ready_frame_identity_fields(png_path, policy_version=18),
+                **_ready_frame_identity_fields(png_path, policy_version=19),
             )
             stderr = StringIO()
             with (
@@ -1032,6 +1076,13 @@ def _v14_host_capability_fields() -> dict[str, str]:
     }
 
 
+
+
+def _v19_system_texture_startup_metrics() -> dict[str, str]:
+    metrics = _v17_brdf_lut_startup_metrics()
+    del metrics["scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns"]
+    metrics["scene_startup_renderer_system_texture_upload_batch_submission_ns"] = "7000000"
+    return metrics
 
 
 def _ready_frame_identity_fields(

@@ -16,7 +16,13 @@ impl RetainedEditorHost {
             height,
             self.browser_asset_details_scroll_surface.size(),
             ViewContentKind::AssetBrowser,
-        ) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        });
         if self.browser_asset_details_scroll_surface.set_size(size) {
             let Some(snapshot) = self.asset_workspace_snapshot_for_pointer("browser") else {
                 self.set_status_line("Asset Browser pointer projection is not ready");

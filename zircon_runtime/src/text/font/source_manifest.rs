@@ -1,9 +1,11 @@
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "native-host")]
 use crate::asset::project::AssetMetaDocument;
-use crate::asset::{
-    runtime_asset_path, AssetUri, AssetUuid, FontAsset, FontBlobArtifact, ProjectAssetManager,
-};
+use crate::asset::{AssetUri, AssetUuid, FontAsset, FontBlobArtifact, ProjectAssetManager};
+
+#[cfg(feature = "native-host")]
+use crate::asset::{runtime_asset_path, runtime_asset_root, AssetRelativePath};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct LoadedTextFontSource {
@@ -62,6 +64,7 @@ impl From<std::io::ErrorKind> for FontLoadIoFailure {
     }
 }
 
+#[cfg(feature = "native-host")]
 pub(crate) fn load_text_font_source(
     asset_ref: &str,
     asset_manager: Option<&ProjectAssetManager>,
@@ -107,6 +110,7 @@ pub(crate) fn load_text_font_source(
     })
 }
 
+#[cfg(feature = "native-host")]
 fn load_project_font_source(
     asset_manager: &ProjectAssetManager,
     asset_ref: &str,
@@ -156,6 +160,7 @@ pub(super) fn cooked_font_asset_source_key(uri: &AssetUri) -> PathBuf {
     Path::new("cooked-font").join(uri.path())
 }
 
+#[cfg(feature = "native-host")]
 fn font_manifest_asset_uuid(manifest_path: &Path) -> Option<AssetUuid> {
     let file_name = manifest_path.file_name()?.to_str()?;
     let meta_path = manifest_path.with_file_name(format!("{file_name}.zmeta"));
@@ -164,20 +169,24 @@ fn font_manifest_asset_uuid(manifest_path: &Path) -> Option<AssetUuid> {
         .map(|meta| meta.uuid)
 }
 
+#[cfg(feature = "native-host")]
 fn resolve_font_asset_path(asset_ref: &str) -> Option<PathBuf> {
     resolve_font_asset_path_with(asset_ref, runtime_font_asset_path)
 }
 
-fn runtime_font_asset_path(relative: &Path) -> PathBuf {
+#[cfg(feature = "native-host")]
+fn runtime_font_asset_path(relative: &AssetRelativePath<'_>) -> PathBuf {
     runtime_asset_path(relative)
 }
 
+#[cfg(feature = "native-host")]
 fn resolve_font_asset_path_with(
     asset_ref: &str,
-    resolve_runtime_asset: impl FnOnce(&Path) -> PathBuf,
+    resolve_runtime_asset: impl FnOnce(&AssetRelativePath<'_>) -> PathBuf,
 ) -> Option<PathBuf> {
     if let Some(relative) = asset_ref.strip_prefix("res://") {
-        return Some(resolve_runtime_asset(Path::new(relative)));
+        let relative = AssetRelativePath::parse(relative).ok()?;
+        return Some(resolve_runtime_asset(&relative));
     }
     let path = PathBuf::from(asset_ref);
     path.is_absolute()
@@ -185,13 +194,14 @@ fn resolve_font_asset_path_with(
         .or(Some(Path::new(env!("CARGO_MANIFEST_DIR")).join(asset_ref)))
 }
 
+#[cfg(feature = "native-host")]
 fn resolve_manifest_source_path(
     asset_ref: &str,
     manifest_path: &Path,
     source: &str,
 ) -> Result<PathBuf, FontLoadError> {
     let allowed_root = if asset_ref.starts_with("res://") {
-        runtime_asset_path("")
+        runtime_asset_root()
     } else {
         manifest_path
             .parent()
@@ -201,6 +211,7 @@ fn resolve_manifest_source_path(
     resolve_manifest_source_path_with_allowed_root(manifest_path, source, allowed_root)
 }
 
+#[cfg(feature = "native-host")]
 fn resolve_manifest_source_path_with_allowed_root(
     manifest_path: &Path,
     source: &str,
@@ -233,3 +244,31 @@ fn resolve_manifest_source_path_with_allowed_root(
 #[cfg(test)]
 #[path = "source_manifest/tests/cases.rs"]
 mod tests;
+
+#[cfg(not(feature = "native-host"))]
+pub(crate) fn load_text_font_source(
+    asset_ref: &str,
+    asset_manager: Option<&ProjectAssetManager>,
+) -> Result<LoadedTextFontSource, FontLoadError> {
+    let manager = asset_manager.ok_or(FontLoadError::ProjectAssetUnavailable)?;
+    let uri = AssetUri::parse(asset_ref).map_err(|_| FontLoadError::InvalidAssetReference)?;
+    let id = manager
+        .resolve_asset_id(&uri)
+        .ok_or(FontLoadError::ProjectAssetUnavailable)?;
+    let manifest = manager
+        .load_font_asset(id)
+        .map_err(|_| FontLoadError::ProjectAssetUnavailable)?;
+    let cooked_blob = manifest
+        .metadata
+        .as_ref()
+        .and_then(|m| m.cooked_blob.clone())
+        .ok_or(FontLoadError::ProjectCookedPayloadUnavailable)?;
+    Ok(LoadedTextFontSource {
+        source_path: cooked_font_asset_source_key(&uri),
+        cooked_blob: Some(cooked_blob),
+        family: manifest.family.clone(),
+        face_index: manifest.face_index,
+        asset: Some(manifest),
+        asset_uuid: None,
+    })
+}

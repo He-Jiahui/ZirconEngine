@@ -95,8 +95,7 @@ fn insert_arena_node(
         .and_then(|parent_id| tree.node(parent_id))
         .map(|parent| parent.container);
     let attributes = arena_node_attributes(node, document, resolved_styles, theme);
-    let style_overrides =
-        arena_node_style_overrides(node, document, resolved_styles, theme);
+    let style_overrides = arena_node_style_overrides(node, document, resolved_styles, theme);
     let style_tokens = arena_node_style_tokens(node, resolved_styles);
     let layout = infer_layout_contract(
         asset_id,

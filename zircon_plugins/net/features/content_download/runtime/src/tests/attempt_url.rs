@@ -1,8 +1,6 @@
 use std::{hint::black_box, time::Instant};
 
-use zircon_runtime::core::framework::net::{
-    NetDownloadChunk, NetDownloadId, NetDownloadManifest,
-};
+use zircon_runtime::core::framework::net::{NetDownloadChunk, NetDownloadId, NetDownloadManifest};
 
 use super::{candidate_url_for_attempt, candidate_urls_for_chunk};
 

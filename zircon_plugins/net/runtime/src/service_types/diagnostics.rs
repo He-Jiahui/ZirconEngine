@@ -30,8 +30,7 @@ impl DefaultNetManager {
     }
 
     pub(in crate::service_types) fn diagnostics_impl(&self) -> NetDiagnostics {
-        self.state
-            .poll_worker_ingress(DIAGNOSTICS_INGRESS_BUDGET);
+        self.state.poll_worker_ingress(DIAGNOSTICS_INGRESS_BUDGET);
         let (outbound_bytes, inbound_bytes, last_observed_latency_ms) =
             self.state.diagnostic_counters();
         NetDiagnostics {

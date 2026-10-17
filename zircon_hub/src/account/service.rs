@@ -1,8 +1,9 @@
 use super::{
-    AccountBroker, AccountError, cloud, oidc,
-    operations::{Mutation, OperationIdentity, OperationPayload, OperationStatus, validate_id},
+    cloud, oidc,
+    operations::{validate_id, Mutation, OperationIdentity, OperationPayload, OperationStatus},
+    AccountBroker, AccountError,
 };
-use openidconnect::{OAuth2TokenResponse, reqwest};
+use openidconnect::{reqwest, OAuth2TokenResponse};
 use serde::Deserialize;
 use serde_json::Value;
 

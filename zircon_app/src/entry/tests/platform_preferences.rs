@@ -8,7 +8,9 @@ use zircon_runtime::core::framework::platform::{
 };
 use zircon_runtime::core::framework::project::RuntimeProfileId;
 use zircon_runtime::core::manager::{platform_preference_storage_handle, resolve_manager_service};
+use zircon_runtime::core::runtime::modules::{TasksModule, TASKS_MODULE_NAME};
 use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::{foundation, platform};
 
 use super::super::{BuiltinEngineEntry, EngineEntry, EntryProfile};
@@ -75,10 +77,15 @@ fn platform_preference_storage_host_reports_explicit_mobile_backend() {
 
 #[test]
 fn builtin_engine_entry_installs_and_reports_explicit_preference_backend() {
+    let config_file = crate::entry::tests::IsolatedConfigFile::new();
     let entry = BuiltinEngineEntry::for_profile(EntryProfile::Runtime)
         .unwrap()
+        .with_config_file_path(config_file.path())
+        .unwrap()
         .with_preference_storage_backend(std::sync::Arc::new(
-            platform::AtomicFilePreferenceStorageBackend::new("explicit-host-preferences"),
+            platform::AtomicFilePreferenceStorageBackend::new(
+                config_file.path().with_extension("preferences"),
+            ),
         ));
     let report = entry.module_selection_report();
 
@@ -122,19 +129,27 @@ fn minimal_entry_ignores_preference_backend_when_platform_is_disabled() {
         report.preference_storage_backend,
         PreferenceStorageBackendKind::Unavailable
     );
-    entry.bootstrap().unwrap();
+    let runtime = CoreRuntime::new();
+    entry.bootstrap(&runtime).unwrap();
+    assert!(!runtime
+        .shutdown_until(std::time::Instant::now() + std::time::Duration::from_secs(5))
+        .expect("minimal bootstrap must close the original Core")
+        .has_in_flight_work());
 }
 
 #[test]
 fn platform_preference_storage_host_can_install_backend_on_manual_runtime() {
+    let config_file = crate::entry::tests::IsolatedConfigFile::new();
     let runtime = CoreRuntime::new();
-    runtime
-        .register_module(foundation::module_descriptor())
-        .unwrap();
+    let mut descriptor = foundation::module_descriptor();
+    foundation::bind_config_file_path(&mut descriptor, config_file.path()).unwrap();
+    runtime.register_module(descriptor).unwrap();
+    runtime.register_module(TasksModule.descriptor()).unwrap();
     runtime
         .register_module(platform::module_descriptor())
         .unwrap();
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
+    runtime.activate_module(TASKS_MODULE_NAME).unwrap();
     runtime.activate_module(PLATFORM_MODULE_NAME).unwrap();
     let root = std::env::temp_dir().join(format!(
         "zircon-app-preference-storage-{}",
@@ -157,6 +172,11 @@ fn platform_preference_storage_host_can_install_backend_on_manual_runtime() {
         storage.backend_kind(),
         PreferenceStorageBackendKind::AtomicFile
     );
+    drop(storage);
+    assert!(!runtime
+        .shutdown_until(std::time::Instant::now() + std::time::Duration::from_secs(5))
+        .expect("manual bootstrap must close the original Core")
+        .has_in_flight_work());
 }
 
 #[test]

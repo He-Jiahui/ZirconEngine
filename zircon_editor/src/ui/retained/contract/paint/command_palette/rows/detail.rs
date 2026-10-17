@@ -24,9 +24,13 @@ pub(super) fn push_command_row_detail(
     }
     let metrics = command_palette_metrics();
     let style = command_row_detail_text_style(color, &metrics);
+    let slot = row_detail_rect(row_rect);
+    let Some(slot_clip) = intersect(&slot, clip) else {
+        return;
+    };
     commands.push(HostPaintCommand::text(
-        row_detail_rect(row_rect),
-        Some(clip.clone()),
+        slot,
+        Some(slot_clip),
         order,
         text.to_string(),
         style.color,

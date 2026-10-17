@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R010F",
+  "parent_batch": "R010",
+  "reviewer": "root",
+  "created_at_utc": "2026-10-14T23:19:37.290697+00:00",
+  "source_path": "zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs",
+  "before_sha256": "fd0c816c855eede9f42d038dcdb1c6b6ab7498d6a07871c630d8e0971cee0eb9",
+  "after_sha256": "f32b6daa07acf266facd5cc722b00810179c821107caf8db28ba22888fa1f653",
+  "insertions": [
+    {
+      "after_byte_offset": 9472,
+      "byte_length": 268,
+      "sha256": "1f866b128cbe3a5fbaf2c9654620ec080f71c0f890741c59969ec43663664bc4",
+      "exact_text": "    // BUG: [CR-ZCA-R010-0001] 运行本结构测试时，截取范围只包含读取入口包装函数，下面的转换分支断言会失败。\n    // 证据：入口已委派给共用读取助手，实际属性读取和转换错误分支位于截取终点之后。\n",
+      "line_span": [
+        224,
+        225
+      ]
+    }
+  ],
+  "all_original_bytes_reconstructed": true,
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R010.json",
+    "sha256": "edaf63e6415e907bf311b07767101b570ed8e3cceacdf1d4461f6bfb15159716"
+  },
+  "issue": {
+    "id": "CR-ZCA-R010-0001",
+    "kind": "BUG",
+    "trigger": "Execute dynamic_component_reflection_read_helpers_use_direct_success_branches against the current production source text.",
+    "observable_effect": "Two required positive contains predicates are false; assert! fails because conversion branches live in read_declared_field beyond the selected wrapper range.",
+    "static_evidence": {
+      "test_section_start": "fn read_field",
+      "test_section_end": "fn read_dense_slot",
+      "selected_section_sha256": "d2274fb08b100aa7bf944a9ee3bf179bdccb52018c6dc04d0d615ea904f297c1",
+      "search_strings": [
+        "let Some(value) = world.dynamic_component_property(entity, &property_path) else",
+        "return Err(ReflectError::UnsupportedConversion",
+        ".ok_or_else(|| ReflectError::UnsupportedConversion"
+      ],
+      "before_predicates": [
+        false,
+        false,
+        false
+      ],
+      "current_predicates": [
+        false,
+        false,
+        false
+      ],
+      "expected_contains_results": [
+        true,
+        true,
+        false
+      ],
+      "production_path": "zircon_runtime/src/scene/reflect/dynamic_component.rs",
+      "production_sha256": "cb27b21d9b5b0a992b706f851805d3e6389d85bac815d28f96e57e7e5a43a346",
+      "production_spans": [
+        [
+          122,
+          142
+        ],
+        [
+          148,
+          184
+        ]
+      ],
+      "R008_before_source_predicates_independently_verified_equal": true
+    },
+    "source_tag": "// BUG: [CR-ZCA-R010-0001] 运行本结构测试时，截取范围只包含读取入口包装函数，下面的转换分支断言会失败。",
+    "next_action": "Keep all assertions and production behavior unchanged in this audit; a separate fix can align evidence with the shared helper or validate delegated structure."
+  },
+  "static_proof_is_not_Rust_test_execution": true,
+  "validation_status": "pending-new-source-actual-checks",
+  "formal_acceptance": false,
+  "record_writer_recovery": {
+    "failed_command_chunk_id": "241083",
+    "failure": "JSON boolean literal was embedded as Python code after exact source comment insertion; no R010 amendment record or R009 source write occurred before this failure.",
+    "recovery": "Current source contains the exact planned comment once; stripping it reconstructs the already verified child snapshot SHA. The original child record remains immutable."
+  }
+}

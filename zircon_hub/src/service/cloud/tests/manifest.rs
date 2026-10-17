@@ -60,22 +60,18 @@ fn canonical_manifest_digest_ignores_input_entry_order_and_rejects_links() {
 fn cloud_configuration_requires_separate_absolute_root_and_key() {
     let files = Files::new();
     assert!(files.config.validate().is_ok());
-    assert!(
-        CloudConfig {
-            root: "relative".into(),
-            key_file: files.config.key_file.clone()
-        }
-        .validate()
-        .is_err()
-    );
-    assert!(
-        CloudConfig {
-            root: files.path.clone(),
-            key_file: files.config.key_file.clone()
-        }
-        .validate()
-        .is_err()
-    );
+    assert!(CloudConfig {
+        root: "relative".into(),
+        key_file: files.config.key_file.clone()
+    }
+    .validate()
+    .is_err());
+    assert!(CloudConfig {
+        root: files.path.clone(),
+        key_file: files.config.key_file.clone()
+    }
+    .validate()
+    .is_err());
     let config = serde_json::json!({
         "bind":"127.0.0.1:7231", "database":files.path.join("test.db"),
         "issuer":"https://issuer.test", "audience":"hub", "introspection_client_id":"hub",

@@ -57,9 +57,19 @@ pub(crate) use nanite::{
 };
 #[allow(unused_imports)]
 pub(crate) use nanite::{
+    build_virtual_geometry_automatic_extract_from_admitted_sources,
     build_virtual_geometry_automatic_extract_from_meshes_with_debug,
     VirtualGeometryAutomaticExtractOutput,
 };
 pub(super) use normalized_page_table_entries::normalized_page_table_entries;
 pub(super) use renderer::runtime_prepare_renderer_outputs;
+#[cfg(test)]
+pub(crate) use renderer::{
+    uploader_test_collector_registration, VirtualGeometryGpuReadback,
+    VirtualGeometryUploaderTestCollector,
+};
 pub(crate) use types::*;
+
+pub(crate) use renderer::prepare_virtual_geometry_node_and_cluster_cull;
+
+pub(crate) use renderer::materialize_prepared_cull;

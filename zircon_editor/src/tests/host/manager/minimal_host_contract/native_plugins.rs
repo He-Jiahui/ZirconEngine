@@ -676,3 +676,456 @@ target_modes = ["client_runtime"]
     let _ = std::fs::remove_dir_all(project_root);
     let _ = std::fs::remove_dir_all(output_root);
 }
+
+#[cfg(windows)]
+mod durable_enablement {
+    use super::*;
+    use crate::ui::host::{
+        PluginEnablementApplied, PluginEnablementCauseKind, PluginEnablementDurable,
+        PluginEnablementRecovery, PluginEnablementRecoveryCommand,
+    };
+    use std::{
+        fs,
+        path::{Path, PathBuf},
+        sync::{
+            atomic::{AtomicU64, Ordering},
+            Arc,
+        },
+    };
+    use zircon_runtime::asset::project::{plugin_apply::*, ProjectPaths};
+    static NEXT: AtomicU64 = AtomicU64::new(1);
+    struct Fixture {
+        root: PathBuf,
+        project: PathBuf,
+        config: PathBuf,
+        old_config: Option<std::ffi::OsString>,
+    }
+    impl Fixture {
+        fn new(label: &str) -> Self {
+            use std::os::windows::fs::MetadataExt;
+            let base = Path::new("E:/cargo-targets/zircon-local");
+            for ancestor in base.ancestors() {
+                assert_eq!(
+                    fs::symlink_metadata(ancestor).unwrap().file_attributes() & 0x400,
+                    0,
+                    "fixture root must be physical before any write"
+                );
+            }
+            let resolved = ProjectPaths::resolve_existing(base).unwrap();
+            let physical = resolved.operation_path();
+            let display = physical.to_str().unwrap().replace('\\', "/");
+            assert!(display
+                .strip_prefix("//?/")
+                .unwrap_or(&display)
+                .eq_ignore_ascii_case("E:/cargo-targets/zircon-local"));
+            let root = physical.join(format!(
+                "e06-host-{label}-{}-{}",
+                std::process::id(),
+                NEXT.fetch_add(1, Ordering::Relaxed)
+            ));
+            fs::create_dir(&root).unwrap();
+            let project = root.join("project");
+            create_project_with_default_world(&project);
+            let config = root.join("runtime-config.json");
+            Self {
+                root,
+                project,
+                config,
+                old_config: std::env::var_os("ZIRCON_CONFIG_PATH"),
+            }
+        }
+        fn register_project_metadata(&self, manager: &EditorManager, id: &str) {
+            let package = self.project.join("zircon_plugins").join(id);
+            fs::create_dir_all(&package).unwrap();
+            fs::write(
+                package.join("plugin.toml"),
+                format!(
+                    r#"
+id = "{id}"
+version = "0.1.0"
+display_name = "E06 Metadata Only"
+default_packaging = ["native_dynamic"]
+[[modules]]
+name = "{id}.runtime"
+kind = "runtime"
+crate_name = "{id}_runtime"
+target_modes = ["editor_host"]
+capabilities = ["runtime.e06.metadata_only"]
+[[modules]]
+name = "{id}.editor"
+kind = "editor"
+crate_name = "{id}_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.e06_metadata_only"]
+"#
+                ),
+            )
+            .unwrap();
+            // Real metadata discovery + Project registration, without a builtin Rust handle.
+            manager
+                .register_enablement_test_project_package(&self.project, id)
+                .unwrap();
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            match self.old_config.take() {
+                Some(value) => std::env::set_var("ZIRCON_CONFIG_PATH", value),
+                None => std::env::remove_var("ZIRCON_CONFIG_PATH"),
+            }
+            // Every test drops all reports/manager handles and CoreRuntime (joining its writer)
+            // before this owned, uniquely created root. No foreign fixture is adopted.
+            fs::remove_dir_all(&self.root).unwrap();
+        }
+    }
+    #[test]
+    fn manifest_replace_failure_preserves_live_owner_and_report_arc() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let _env = env_lock().lock().unwrap();
+        let fixture = Fixture::new("disk-failure");
+        let runtime = editor_runtime_with_disabled_subsystems_config_path(&fixture.config);
+        let manager = runtime
+            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+            .unwrap();
+        manager
+            .open_enablement_test_project(&fixture.project)
+            .unwrap();
+        let paths = ProjectPaths::from_root(&fixture.project).unwrap();
+        let before = fs::read(paths.manifest_path()).unwrap();
+        let capabilities = manager.capability_snapshot();
+        let generation = manager.enablement_test_generation();
+        let status = manager.published_plugin_status_report();
+        let result = manager.set_plugin_enabled_with_commit_guard(
+            &fixture.project,
+            "runtime_diagnostics",
+            true,
+            |paths| {
+                fs::OpenOptions::new()
+                    .read(true)
+                    .share_mode(1)
+                    .open(paths.manifest_path())
+                    .unwrap()
+            },
+        );
+        let report = result
+            .expect_err("a read handle denying DELETE must reject atomic manifest replacement");
+        assert_eq!(report.applied, PluginEnablementApplied::NotApplied);
+        assert_eq!(
+            report.primary_cause.as_ref().unwrap().kind,
+            PluginEnablementCauseKind::DurableCommit
+        );
+        assert_eq!(fs::read(paths.manifest_path()).unwrap(), before);
+        assert_eq!(manager.capability_snapshot(), capabilities);
+        assert_eq!(manager.enablement_test_generation(), generation);
+        assert!(Arc::ptr_eq(
+            &status,
+            &manager.published_plugin_status_report()
+        ));
+        drop(report);
+        drop(status);
+        drop(manager);
+        drop(runtime);
+    }
+    #[test]
+    fn generation_change_during_prepare_cannot_stamp_an_old_plan() {
+        let _env = env_lock().lock().unwrap();
+        let fixture = Fixture::new("prepare-generation");
+        let runtime = editor_runtime_with_disabled_subsystems_config_path(&fixture.config);
+        let manager = runtime
+            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+            .unwrap();
+        manager
+            .open_enablement_test_project(&fixture.project)
+            .unwrap();
+        fixture.register_project_metadata(&manager, "e06_prepare_generation");
+        let paths = ProjectPaths::from_root(&fixture.project).unwrap();
+        let before = fs::read(paths.manifest_path()).unwrap();
+        let status = manager.published_plugin_status_report();
+        let report = manager
+            .set_plugin_enabled_changing_generation(
+                &fixture.project,
+                "runtime_diagnostics",
+                true,
+                false,
+            )
+            .unwrap_err();
+        assert_eq!(report.durable, PluginEnablementDurable::NotCommitted);
+        assert_eq!(
+            report.primary_cause.as_ref().unwrap().kind,
+            PluginEnablementCauseKind::Prepare
+        );
+        assert_eq!(fs::read(paths.manifest_path()).unwrap(), before);
+        assert!(pending_plugin_apply(&paths).unwrap().is_none());
+        assert!(Arc::ptr_eq(
+            &status,
+            &manager.published_plugin_status_report()
+        ));
+        drop(report);
+        drop(status);
+        drop(manager);
+        drop(runtime);
+    }
+    #[test]
+    fn generation_change_after_commit_keeps_typed_pending_without_runtime_apply() {
+        let _env = env_lock().lock().unwrap();
+        let fixture = Fixture::new("apply-generation");
+        let runtime = editor_runtime_with_disabled_subsystems_config_path(&fixture.config);
+        let manager = runtime
+            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+            .unwrap();
+        manager
+            .open_enablement_test_project(&fixture.project)
+            .unwrap();
+        fixture.register_project_metadata(&manager, "e06_apply_generation");
+        let capabilities = manager.capability_snapshot();
+        let status = manager.published_plugin_status_report();
+        let report = manager
+            .set_plugin_enabled_changing_generation(
+                &fixture.project,
+                "runtime_diagnostics",
+                true,
+                true,
+            )
+            .unwrap_err();
+        assert_eq!(report.durable, PluginEnablementDurable::Durable);
+        assert_eq!(report.applied, PluginEnablementApplied::NotApplied);
+        assert_eq!(
+            report.recovery,
+            PluginEnablementRecovery::PendingRuntimeApply
+        );
+        assert_eq!(manager.capability_snapshot(), capabilities);
+        let paths = ProjectPaths::from_root(&fixture.project).unwrap();
+        assert_eq!(
+            pending_plugin_apply(&paths).unwrap().unwrap().operation_id,
+            report.operation_id
+        );
+        let published = manager.published_plugin_status_report();
+        assert!(!Arc::ptr_eq(&status, &published));
+        assert_eq!(
+            published.enablement.as_ref().unwrap().operation_id,
+            report.operation_id
+        );
+        drop(published);
+        drop(report);
+        drop(status);
+        drop(manager);
+        drop(runtime);
+    }
+    #[test]
+    fn registered_project_package_without_live_handle_requires_explicit_repair() {
+        let _env = env_lock().lock().unwrap();
+        let fixture = Fixture::new("project-native");
+        let runtime = editor_runtime_with_disabled_subsystems_config_path(&fixture.config);
+        let manager = runtime
+            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+            .unwrap();
+        manager
+            .open_enablement_test_project(&fixture.project)
+            .unwrap();
+        fixture.register_project_metadata(&manager, "e06_metadata_only");
+        let capabilities = manager.capability_snapshot();
+        let generation = manager.enablement_test_generation();
+        let report = manager
+            .set_project_plugin_enabled_durable(&fixture.project, "e06_metadata_only", true)
+            .unwrap_err();
+        assert_eq!(report.durable, PluginEnablementDurable::Durable);
+        assert_eq!(report.applied, PluginEnablementApplied::NotApplied);
+        assert_eq!(
+            report.recovery,
+            PluginEnablementRecovery::RuntimeRepairRequired
+        );
+        assert_eq!(manager.capability_snapshot(), capabilities);
+        assert_eq!(manager.enablement_test_generation(), generation);
+        let paths = ProjectPaths::from_root(&fixture.project).unwrap();
+        let revision = report.committed_revision.clone().unwrap();
+        assert!(pending_plugin_apply(&paths).unwrap().is_some());
+        assert_eq!(
+            manager
+                .retry_project_plugin_enablement(&fixture.project, &report.operation_id, &revision)
+                .unwrap_err()
+                .recovery,
+            PluginEnablementRecovery::RuntimeRepairRequired
+        );
+        assert_eq!(
+            manager
+                .revert_project_plugin_enablement(&fixture.project, &report.operation_id, &revision)
+                .unwrap_err()
+                .recovery,
+            PluginEnablementRecovery::RuntimeRepairRequired
+        );
+        drop(report);
+        drop(manager);
+        drop(runtime);
+    }
+    #[test]
+    fn inspect_preserves_unknown_runtime_fence_and_rejects_retry_revert_and_new_intent() {
+        static CALLS: AtomicU64 = AtomicU64::new(0);
+        fn panic_in_runtime_callback_boundary() {
+            CALLS.fetch_add(1, Ordering::SeqCst);
+            panic!("injected runtime callback uncertainty");
+        }
+        fn unexpected_runtime_apply() {
+            CALLS.fetch_add(1, Ordering::SeqCst);
+        }
+
+        let _env = env_lock().lock().unwrap();
+        let fixture = Fixture::new("inspect-repair-fence");
+        let runtime = editor_runtime_with_disabled_subsystems_config_path(&fixture.config);
+        let manager = runtime
+            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+            .unwrap();
+        manager
+            .open_enablement_test_project(&fixture.project)
+            .unwrap();
+        let capabilities = manager.capability_snapshot();
+        let generation = manager.enablement_test_generation();
+        CALLS.store(0, Ordering::SeqCst);
+        manager
+            .set_enablement_runtime_checkpoint_for_test(Some(panic_in_runtime_callback_boundary));
+        let original = manager
+            .set_project_plugin_enabled_durable(&fixture.project, "runtime_diagnostics", true)
+            .unwrap_err();
+        assert_eq!(original.applied, PluginEnablementApplied::Unknown);
+        assert_eq!(
+            original.recovery,
+            PluginEnablementRecovery::RuntimeRepairRequired
+        );
+        assert_eq!(
+            original.primary_cause.as_ref().unwrap().kind,
+            PluginEnablementCauseKind::Panic
+        );
+        assert_eq!(CALLS.load(Ordering::SeqCst), 1);
+        let paths = ProjectPaths::from_root(&fixture.project).unwrap();
+        let revision = original.committed_revision.clone().unwrap();
+        let manifest = fs::read(paths.manifest_path()).unwrap();
+        let pending = pending_plugin_apply(&paths).unwrap().unwrap();
+        assert_eq!(pending.operation_id, original.operation_id);
+        let pending_path = paths.derived_root().join("plugin-enablement/pending.json");
+        let before_pending = fs::read(&pending_path).unwrap();
+
+        // Both ordinary status publishers and report eviction are presentation operations.
+        manager.replace_then_clear_enablement_status_for_test();
+        let inspected = manager
+            .execute_plugin_enablement_recovery(
+                &fixture.project,
+                PluginEnablementRecoveryCommand::Inspect { admission: None },
+            )
+            .unwrap_err();
+        assert_eq!(inspected, original);
+        assert_eq!(
+            manager.published_plugin_status_report().enablement.as_ref(),
+            Some(&original)
+        );
+        manager.set_enablement_runtime_checkpoint_for_test(Some(unexpected_runtime_apply));
+        let retry = manager
+            .execute_plugin_enablement_recovery(
+                &fixture.project,
+                PluginEnablementRecoveryCommand::Retry {
+                    operation_id: original.operation_id.clone(),
+                    expected_revision: revision.clone(),
+                },
+            )
+            .unwrap_err();
+        assert_eq!(retry, original);
+        let revert = manager
+            .execute_plugin_enablement_recovery(
+                &fixture.project,
+                PluginEnablementRecoveryCommand::Revert {
+                    operation_id: original.operation_id.clone(),
+                    expected_revision: revision,
+                    admission: None,
+                },
+            )
+            .unwrap_err();
+        assert_eq!(revert, original);
+        // A new plugin/op/revision intention must hit the whole Ready-session fence first.
+        let new_intent = manager
+            .set_project_plugin_enabled_durable(&fixture.project, "e06_unrelated_new_intent", false)
+            .unwrap_err();
+        assert_eq!(new_intent, original);
+        assert_eq!(CALLS.load(Ordering::SeqCst), 1);
+        assert_eq!(manager.capability_snapshot(), capabilities);
+        assert_eq!(manager.enablement_test_generation(), generation);
+        assert_eq!(fs::read(paths.manifest_path()).unwrap(), manifest);
+        assert_eq!(fs::read(&pending_path).unwrap(), before_pending);
+        manager.set_enablement_runtime_checkpoint_for_test(None);
+        drop(new_intent);
+        drop(revert);
+        drop(retry);
+        drop(inspected);
+        drop(original);
+        drop(manager);
+        drop(runtime);
+    }
+    #[test]
+    fn cold_preflight_projects_admitted_revert_and_then_allows_a_fresh_open() {
+        let _env = env_lock().lock().unwrap();
+        let fixture = Fixture::new("cold-caller");
+        let paths = ProjectPaths::from_root(&fixture.project).unwrap();
+        let document = PluginApplyDocument::read(&paths).unwrap();
+        let mut candidate = document.manifest.clone();
+        let selection = &mut candidate.plugins.selections[0];
+        let previous_enabled = selection.enabled;
+        selection.enabled = !previous_enabled;
+        let receipt = PendingPluginApply {
+            version: 1,
+            operation_id: "cold-operation".into(),
+            plugin_id: selection.id.clone(),
+            enabled: selection.enabled,
+            previous_enabled,
+            project_guid: candidate.project_guid.to_string(),
+            manifest_digest: String::new(),
+            session_instance: "closed-session".into(),
+            session_generation: 1,
+            catalog_generation: 1,
+            acknowledged: false,
+            resolved_before_activation: false,
+        };
+        let committed = commit_plugin_apply(&paths, &document, &candidate, receipt, None).unwrap();
+        let runtime = editor_runtime_with_disabled_subsystems_config_path(&fixture.config);
+        let manager = runtime
+            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+            .unwrap();
+        let capabilities = manager.capability_snapshot();
+        let generation = manager.enablement_test_generation();
+        assert!(manager.open_project_and_remember(&fixture.project).is_err());
+        let status = manager.published_plugin_status_report();
+        let pending = status
+            .enablement
+            .as_ref()
+            .expect("failed cold preflight must publish an actionable typed operation");
+        assert_eq!(pending.operation_id, "cold-operation");
+        assert!(
+            pending.recovery_admission.is_some(),
+            "authenticated BuildSet admission must be retained before Ready"
+        );
+        assert_eq!(manager.capability_snapshot(), capabilities);
+        assert_eq!(manager.enablement_test_generation(), generation);
+        let resolved = manager
+            .execute_plugin_enablement_recovery(
+                &fixture.project,
+                PluginEnablementRecoveryCommand::Revert {
+                    operation_id: pending.operation_id.clone(),
+                    expected_revision: committed.committed_revision.clone().unwrap(),
+                    admission: pending.recovery_admission.clone(),
+                },
+            )
+            .unwrap_err();
+        assert_ne!(resolved.operation_id, "cold-operation");
+        assert_eq!(resolved.recovery, PluginEnablementRecovery::RestartRequired);
+        assert_eq!(resolved.applied, PluginEnablementApplied::NotApplied);
+        assert_eq!(manager.capability_snapshot(), capabilities);
+        assert_eq!(manager.enablement_test_generation(), generation);
+        assert!(pending_plugin_apply(&paths).unwrap().is_none());
+        crate::core::project::ProjectAuthority::default()
+            .preflight_project(&fixture.project)
+            .unwrap();
+        manager
+            .open_enablement_test_project(&fixture.project)
+            .unwrap();
+        drop(resolved);
+        drop(status);
+        drop(manager);
+        drop(runtime);
+    }
+}

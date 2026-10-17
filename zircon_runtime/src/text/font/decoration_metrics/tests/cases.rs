@@ -1,3 +1,6 @@
+//! 装饰度量的字体表换算与合成几何契约测试。
+//! 真实字体夹具用于指标对照；这些断言不证明缓存命中、代次失效或 GPU 绘制。
+
 use std::fs;
 use std::path::Path;
 
@@ -100,6 +103,7 @@ fn render_text_decoration_strikeout_fallback_and_scale() {
     assert_close(strike.height, MIN_VISIBLE_TEXT_DECORATION_PX);
 }
 
+// 固定 UPEM 与两类线指标，只为相关的显示字号缩放和帧坐标断言提供可计算输入。
 fn synthetic_metrics(display_px: f32) -> TextDecorationMetrics {
     TextDecorationMetrics::from_font_units(
         FontAssetFaceMetrics {

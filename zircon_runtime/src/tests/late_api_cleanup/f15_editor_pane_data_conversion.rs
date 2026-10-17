@@ -1,15 +1,11 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f15_editor_pane_data_conversion_top_row_uses_projection_owners() {
-    let pane_mod = include_str!(
-        "../../../../zircon_editor/src/ui/retained/ui/data/mod.rs"
-    );
-    let template_node_projection = include_str!(
-        "../../../../zircon_editor/src/ui/retained/ui/data/node_projection.rs"
-    );
-    let animation_projection = include_str!(
-        "../../../../zircon_editor/src/ui/retained/ui/data/animation_projection.rs"
-    );
+    let pane_mod = include_str!("../../../../zircon_editor/src/ui/retained/ui/data/mod.rs");
+    let template_node_projection =
+        include_str!("../../../../zircon_editor/src/ui/retained/ui/data/node_projection.rs");
+    let animation_projection =
+        include_str!("../../../../zircon_editor/src/ui/retained/ui/data/animation_projection.rs");
     let apply_pane_conversion = include_str!(
         "../../../../zircon_editor/src/ui/retained/ui/apply_presentation/pane_conversion.rs"
     );
@@ -17,17 +13,14 @@ fn review_f15_editor_pane_data_conversion_top_row_uses_projection_owners() {
         include_str!("../../../../docs/plans/engine-code-review-findings-2026-06.md"),
         include_str!("../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
-    let convention =
-        include_str!("../../../../docs/plans/engine-code-structure-convention.md");
+    let convention = include_str!("../../../../docs/plans/engine-code-structure-convention.md");
     let runtime_15 = include_str!(
         "../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
-    let runtime_index =
-        include_str!("../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = include_str!("../../../../docs/plans/zircon_runtime/runtime/index.md");
     let module_doc =
         include_str!("../../../../docs/crates/zircon_runtime/structure/module-convention.md");
-    let editor_workbench_doc =
-        include_str!("../../../../docs/editor/editor-workbench-shell.md");
+    let editor_workbench_doc = include_str!("../../../../docs/editor/editor-workbench-shell.md");
     let f15_row = review_findings
         .lines()
         .find(|line| line.starts_with("| F15 |"))

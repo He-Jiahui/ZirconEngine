@@ -9,6 +9,9 @@ fn ui_runtime_module_registers_real_driver_and_manager_services() {
     runtime
         .register_module(crate::ui::module_descriptor())
         .unwrap();
+    // BUG: [CR-ZCA-R072-0001] 这里只注册 UI，缺少该描述符声明的 Input、Scene、Graphics 依赖；
+    // 若初始化和注册成功，激活在冻结依赖图时返回缺依赖错误，此 unwrap 会 panic，
+    // 后续两个服务解析因而不可达。应先补齐依赖注册，再验证服务解析断言。
     runtime.activate_module(crate::ui::UI_MODULE_NAME).unwrap();
 
     let _driver = runtime

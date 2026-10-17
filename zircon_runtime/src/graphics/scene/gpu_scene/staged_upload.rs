@@ -84,10 +84,9 @@ impl GpuScene {
         } else {
             let ranges = self
                 .updates
-                .prepare_primitive_upload_ranges(GPU_PRIMITIVE_DATA_STRIDE as u64)
-                .to_vec();
+                .prepare_primitive_upload_ranges(GPU_PRIMITIVE_DATA_STRIDE as u64);
             report.primitive_upload_range_count = ranges.len();
-            for range in &ranges {
+            for range in ranges {
                 let start = range.start as usize;
                 let end = start
                     .checked_add(range.len as usize)
@@ -114,10 +113,9 @@ impl GpuScene {
         } else {
             let ranges = self
                 .updates
-                .prepare_instance_upload_ranges(GPU_INSTANCE_DATA_STRIDE as u64)
-                .to_vec();
+                .prepare_instance_upload_ranges(GPU_INSTANCE_DATA_STRIDE as u64);
             report.instance_upload_range_count = ranges.len();
-            for range in &ranges {
+            for range in ranges {
                 let start = range.start as usize;
                 let end = start
                     .checked_add(range.len as usize)
@@ -143,10 +141,9 @@ impl GpuScene {
         } else {
             let ranges = self
                 .updates
-                .prepare_light_upload_ranges(GpuLightData::STRIDE as u64)
-                .to_vec();
+                .prepare_light_upload_ranges(GpuLightData::STRIDE as u64);
             report.light_upload_range_count = ranges.len();
-            for range in &ranges {
+            for range in ranges {
                 let start = range.start as usize;
                 let end = start
                     .checked_add(range.len as usize)

@@ -93,7 +93,9 @@ struct DetachedEntityBatchEntry {
     signature: ArchetypeSignature,
     table_components: BTreeMap<ComponentId, (StoredComponent, ComponentTicks)>,
     sparse_components: Vec<TransferredComponentRow>,
-    dynamic_components: Option<HashMap<String, serde_json::Value>>,
+    dynamic_components: Option<Vec<(String, serde_json::Value)>>,
+    // The concrete provider travels with the erased move-only payload.
+    retention_providers: Vec<(ComponentId, DetachedRetentionMeasureV1)>,
     observers: DetachedEntityObservers,
 }
 
@@ -528,9 +530,20 @@ impl World {
         let sparse_components = self
             .component_storage
             .extract_entity_rows(stable_location.internal, signature.sparse_set_components());
-        let dynamic_components = self.dynamic_components.remove(&entity);
+        let retained_ids = signature.ordered_component_ids();
+        let mut retention_providers = Vec::with_capacity(retained_ids.len());
+        for id in retained_ids.into_iter() {
+            if let Some(provider) = self.component_registry.retention_provider_v1(id) {
+                retention_providers.push((id, provider.measurement_v1()));
+            }
+        }
+        let dynamic_components = self.dynamic_components.remove(&entity).map(|values| {
+            let mut owned = Vec::with_capacity(values.len());
+            owned.extend(values);
+            owned
+        });
         if let Some(dynamic_components) = dynamic_components.as_ref() {
-            for component_id in dynamic_components.keys() {
+            for (component_id, _) in dynamic_components {
                 self.advance_dynamic_component_generation(component_id);
                 self.invalidate_world_component_type(component_id);
             }
@@ -573,6 +586,7 @@ impl World {
                 table_components,
                 sparse_components,
                 dynamic_components,
+                retention_providers,
                 observers,
             },
             repairs_swap,
@@ -712,13 +726,15 @@ impl World {
             debug_assert!(!replaced);
         }
         if let Some(dynamic_components) = entry.dynamic_components {
-            for component_id in dynamic_components.keys() {
+            for (component_id, _) in &dynamic_components {
                 self.advance_dynamic_component_generation(component_id);
                 self.invalidate_world_component_type(component_id);
             }
-            let previous = self
-                .dynamic_components
-                .insert(entry.entity, dynamic_components);
+            let previous = self.dynamic_components.insert(entry.entity, {
+                let mut restored = HashMap::with_capacity(dynamic_components.len());
+                restored.extend(dynamic_components);
+                restored
+            });
             debug_assert!(previous.is_none());
         }
         self.observers
@@ -737,5 +753,252 @@ impl World {
         self.record_world_fact(zircon_runtime_interface::world_sync::WorldFact::Spawned(
             entry.entity,
         ));
+    }
+}
+
+type DetachedRetentionMeasureV1 =
+    fn(
+        &dyn std::any::Any,
+        &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError>;
+
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for DetachedEntityBatch {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        use zircon_runtime_interface::retained_memory::{RetainedOwnerV1, RetentionContractError};
+        m.array::<DetachedEntityBatchEntry>(self.entries.capacity())?;
+        m.array::<usize>(self.restore_order.capacity())?;
+        m.items(self.entries.len())?;
+        for entry in &self.entries {
+            // Signature clones are made by Vec::clone under the admitted alloc model.
+            m.array::<ComponentId>(entry.signature.table_components().len())?;
+            m.array::<ComponentId>(entry.signature.sparse_set_components().len())?;
+            m.array::<(ComponentId, DetachedRetentionMeasureV1)>(
+                entry.retention_providers.capacity(),
+            )?;
+            m.btree::<ComponentId, (StoredComponent, ComponentTicks)>(
+                entry.table_components.len(),
+            )?;
+            m.array::<TransferredComponentRow>(entry.sparse_components.capacity())?;
+            m.items(
+                entry
+                    .table_components
+                    .len()
+                    .saturating_add(entry.sparse_components.len()),
+            )?;
+            for (id, (value, _)) in &entry.table_components {
+                let measure = entry
+                    .retention_providers
+                    .iter()
+                    .find(|(key, _)| key == id)
+                    .ok_or(RetentionContractError::Provider {
+                        reason: "detached table component has no typed owner",
+                    })?
+                    .1;
+                measure(value.as_ref(), m)?;
+            }
+            for value in &entry.sparse_components {
+                let measure = entry
+                    .retention_providers
+                    .iter()
+                    .find(|(key, _)| *key == value.component_id())
+                    .ok_or(RetentionContractError::Provider {
+                        reason: "detached sparse component has no typed owner",
+                    })?
+                    .1;
+                measure(value.retained_value_v1(), m)?;
+            }
+            entry.dynamic_components.retained_bound_v1(m)?;
+            entry.observers.retained_bound_v1(m)?;
+        }
+        Ok(())
+    }
+}
+impl World {
+    /// Allocation-free bounded projection of the payload the detach would own.
+    /// It does not flush deferred commands or advance any World generation.
+    pub fn detached_subtrees_retention_bound_v1(
+        &self,
+        roots: &[EntityId],
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        use zircon_runtime_interface::retained_memory::{RetainedOwnerV1, RetentionContractError};
+        m.items(roots.len())?;
+        // Root normalization owns a parent-chain memo and a reusable path.
+        // Count the requested chains without allocating the memo being certified.
+        let mut parent_rows = 0usize;
+        for &root in roots {
+            if !self.contains_entity(root) {
+                return Err(RetentionContractError::Stale);
+            }
+            let mut cursor = Some(root);
+            let mut hops = 0usize;
+            while let Some(entity) = cursor {
+                m.items(1)?;
+                hops = hops
+                    .checked_add(1)
+                    .ok_or(RetentionContractError::Overflow)?;
+                if hops > self.kinds.len() {
+                    return Err(RetentionContractError::Stale);
+                }
+                parent_rows = parent_rows
+                    .checked_add(1)
+                    .ok_or(RetentionContractError::Overflow)?;
+                cursor = self.parent_of(entity);
+            }
+        }
+        m.btree_construction::<EntityId, ()>(roots.len())?;
+        // The private two-state memo's entry fits in two EntityIds under model V1.
+        // It is fresh and insertion-only; two final bucket allocations also bound
+        // the old + new allocation during its growth.
+        let memo = zircon_runtime_interface::retained_memory::FreshHashStorageV1::for_request::<(
+            EntityId,
+            EntityId,
+        )>(parent_rows)?;
+        m.add(
+            memo.allocation::<(EntityId, EntityId)>()?
+                .checked_mul(2)
+                .ok_or(RetentionContractError::Overflow)?,
+        )?;
+        m.array::<EntityId>(
+            parent_rows
+                .max(4)
+                .checked_mul(4)
+                .ok_or(RetentionContractError::Overflow)?,
+        )?;
+        m.layout(
+            std::mem::size_of::<PreparedEntitySubtrees>(),
+            std::mem::align_of::<PreparedEntitySubtrees>(),
+        )?;
+        // The move-only preparation also keeps a clone of the World's Arc<()> identity.
+        m.layout(16, 8)?;
+        let mut count = 0usize;
+        for &entity in self.kinds.keys() {
+            m.items(1)?;
+            let mut cursor = Some(entity);
+            let mut included = false;
+            let mut hops = 0usize;
+            while let Some(node) = cursor {
+                m.items(roots.len().saturating_add(1))?;
+                if roots.contains(&node) {
+                    included = true;
+                    break;
+                }
+                hops = hops
+                    .checked_add(1)
+                    .ok_or(RetentionContractError::Overflow)?;
+                if hops > self.kinds.len() {
+                    return Err(RetentionContractError::Stale);
+                }
+                cursor = self.parent_of(node);
+            }
+            if !included {
+                continue;
+            }
+            count = count
+                .checked_add(1)
+                .ok_or(RetentionContractError::Overflow)?;
+            let location = self
+                .internal_entity_location(entity)
+                .ok_or(RetentionContractError::Stale)?;
+            let signature = self
+                .archetype_index
+                .signature(location.location.archetype_id)
+                .ok_or(RetentionContractError::Stale)?;
+            m.array::<ComponentId>(signature.table_components().len())?;
+            m.array::<ComponentId>(signature.sparse_set_components().len())?;
+            let ids = signature
+                .table_components()
+                .len()
+                .checked_add(signature.sparse_set_components().len())
+                .ok_or(RetentionContractError::Overflow)?;
+            m.array::<(ComponentId, DetachedRetentionMeasureV1)>(ids)?;
+            // Ordered-ID materialization and Vec growth during row transfer coexist.
+            m.array::<ComponentId>(ids.checked_mul(4).ok_or(RetentionContractError::Overflow)?)?;
+            m.btree_construction::<ComponentId, (StoredComponent, ComponentTicks)>(
+                signature.table_components().len(),
+            )?;
+            m.array::<TransferredComponentRow>(signature.sparse_set_components().len())?;
+            m.items(ids)?;
+            for id in signature.ordered_component_ids() {
+                self.component_registry
+                    .retention_provider_v1(id)
+                    .ok_or(RetentionContractError::Provider {
+                        reason: "registered component lacks mandatory retained owner",
+                    })?
+                    .measure_world(self, entity, id, m)?;
+            }
+            if let Some(values) = self.dynamic_components.get(&entity) {
+                m.array::<(String, serde_json::Value)>(values.len())?;
+                let restored =
+                    zircon_runtime_interface::retained_memory::FreshHashStorageV1::for_request::<(
+                        String,
+                        serde_json::Value,
+                    )>(values.len())?;
+                m.add(
+                    restored
+                        .allocation::<(String, serde_json::Value)>()?
+                        .checked_mul(2)
+                        .ok_or(RetentionContractError::Overflow)?,
+                )?;
+                m.items(values.len())?;
+                for (key, value) in values {
+                    key.retained_bound_v1(m)?;
+                    value.retained_bound_v1(m)?;
+                }
+            }
+            self.observers.retained_entity_bound_v1(entity, m)?;
+        }
+        m.array::<DetachedEntityBatchEntry>(count)?;
+        m.array::<usize>(count)?;
+        // All preparation vectors may coexist, including their growth allocation.
+        m.array::<EntityId>(
+            count
+                .max(4)
+                .checked_mul(12)
+                .ok_or(RetentionContractError::Overflow)?,
+        )?;
+        m.btree_construction::<u64, EntityId>(count)?;
+        let indices = zircon_runtime_interface::retained_memory::FreshHashStorageV1::for_request::<
+            (EntityId, usize),
+        >(count)?;
+        m.add(
+            indices
+                .allocation::<(EntityId, usize)>()?
+                .checked_mul(2)
+                .ok_or(RetentionContractError::Overflow)?,
+        )?;
+        m.array::<Option<DetachedEntityBatchEntry>>(count)?;
+        Ok(())
+    }
+}
+
+// Restore moves the payload rather than cloning it. Its indexing and fresh
+// dynamic-component tables still need a staging reservation before that move.
+impl DetachedEntityBatch {
+    pub fn restore_retention_peak_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        use zircon_runtime_interface::retained_memory::{
+            FreshHashStorageV1, RetentionContractError,
+        };
+        m.array::<Option<DetachedEntityBatchEntry>>(self.entries.len())?;
+        m.items(self.entries.len())?;
+        for entry in &self.entries {
+            if let Some(values) = &entry.dynamic_components {
+                let table =
+                    FreshHashStorageV1::for_request::<(String, serde_json::Value)>(values.len())?;
+                m.add(
+                    table
+                        .allocation::<(String, serde_json::Value)>()?
+                        .checked_mul(2)
+                        .ok_or(RetentionContractError::Overflow)?,
+                )?;
+            }
+        }
+        Ok(())
     }
 }

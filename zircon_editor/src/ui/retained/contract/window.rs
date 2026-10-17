@@ -26,6 +26,8 @@ mod failure;
 mod first_present;
 #[path = "window/focus_observer.rs"]
 mod focus_observer;
+#[path = "window/toast_presentation.rs"]
+pub(super) mod toast_presentation;
 #[path = "window/handle.rs"]
 mod handle;
 #[path = "window/hierarchy_pointer_route.rs"]
@@ -65,6 +67,7 @@ pub(crate) struct UiHostWindow {
     fatal_failure: Rc<RefCell<Option<failure::EditorHostWindowFailure>>>,
     first_present_notification: Rc<first_present::FirstPresentNotification>,
     native_focus_observer: Rc<focus_observer::NativeWindowFocusObserver>,
+    toast_presentation_observer: Rc<toast_presentation::ToastPresentationObserver>,
     runtime_presenter_factory: Rc<RefCell<Option<Arc<dyn RuntimeUiSurfacePresenterFactory>>>>,
     profile_artifact_job_owner: Rc<ProfileArtifactJobOwner>,
     visual_asset_load_binding_owner: Rc<VisualAssetLoadBindingOwner>,

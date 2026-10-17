@@ -53,6 +53,7 @@ pub use plugin::{
 };
 pub use render::{
     build_particle_extract, compile_particle_gpu_layout, compile_particle_gpu_program,
+    particle_graph_runtime_prepare_collector_registration,
     particle_render_pass_executor_registrations,
     particle_render_pass_executor_registrations_with_gpu_owner,
     particle_runtime_prepare_collector_registration,
@@ -62,13 +63,14 @@ pub use render::{
     ParticleGpuBuffers, ParticleGpuCompileDiagnostic, ParticleGpuCompileDiagnosticSeverity,
     ParticleGpuCounterReadback, ParticleGpuCpuParityReport, ParticleGpuEmitterFrameParams,
     ParticleGpuEmitterLayout, ParticleGpuFallbackDiagnostic, ParticleGpuFallbackReason,
-    ParticleGpuFrameParams, ParticleGpuFramePlanner, ParticleGpuLayout, ParticleGpuPassKind,
-    ParticleGpuPassPlan, ParticleGpuProgram, ParticleGpuReadbackDecodeError,
-    ParticleGpuReadbackRequest, ParticleGpuResourcePlan, ParticleGpuRuntimeBufferBindings,
-    ParticleGpuRuntimeFrame, ParticleGpuRuntimeOwner, ParticleGpuRuntimeOwnerError,
-    ParticleGpuRuntimeOwnerHandle, ParticleGpuShaderEntries, ParticleGpuShaderProgram,
-    ParticleGpuTransparentRenderConfig, ParticleGpuTransparentRenderParams,
-    ParticleGpuTransparentShaderEntries, ParticleGpuValueType, PARTICLE_GPU_MAX_PARTICLES,
+    ParticleGpuFragmentMaterial, ParticleGpuFrameParams, ParticleGpuFramePlanner,
+    ParticleGpuLayout, ParticleGpuPassKind, ParticleGpuPassPlan, ParticleGpuProgram,
+    ParticleGpuReadbackDecodeError, ParticleGpuReadbackRequest, ParticleGpuResourcePlan,
+    ParticleGpuRuntimeBufferBindings, ParticleGpuRuntimeFrame, ParticleGpuRuntimeOwner,
+    ParticleGpuRuntimeOwnerError, ParticleGpuRuntimeOwnerHandle, ParticleGpuShaderEntries,
+    ParticleGpuShaderProgram, ParticleGpuTransparentRenderConfig,
+    ParticleGpuTransparentRenderParams, ParticleGpuTransparentShaderEntries, ParticleGpuValueType,
+    ParticleGraphResourceNames, PARTICLE_GPU_MAX_PARTICLES,
 };
 pub use service::{
     ParticleEmitterState, ParticleGpuRuntimeInstance, ParticleRuntimeDiagnostic,

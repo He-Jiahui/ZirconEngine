@@ -95,3 +95,11 @@ use device::{DeterministicRhiContractCommandList, DeterministicRhiContractDevice
 #[cfg(test)]
 #[path = "tests/mod.rs"]
 mod tests;
+
+#[cfg(target_arch = "wasm32")]
+#[path = "canvas_surface.rs"]
+mod canvas_surface;
+#[cfg(target_arch = "wasm32")]
+pub use canvas_surface::{
+    register_canvas_surface, registered_canvas_surface_count, CanvasSurfaceRegistration,
+};

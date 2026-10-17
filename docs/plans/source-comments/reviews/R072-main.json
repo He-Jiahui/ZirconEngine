@@ -1,0 +1,1317 @@
+{
+  "schema": "source-comment-root-independent-review-v3",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R072",
+  "owner": "root",
+  "status": "independently-reviewed-local-formal-pending",
+  "created_at_utc": "2026-10-16T19:23:43.962110+00:00",
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false,
+  "audited_paths": [
+    "zircon_runtime/src/ui/tests/runtime_ui_support/mod.rs",
+    "zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs",
+    "zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager_error.rs",
+    "zircon_runtime/src/ui/tests/runtime_ui_support/window_event.rs",
+    "zircon_runtime/src/tests/ui_boundary/runtime_host.rs"
+  ],
+  "source_files": [
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_support/mod.rs",
+      "before_sha256": "213db24c34b0dac3422392fc91bb8e430259407dd2aaba115a5c230025e357db",
+      "sha256": "213db24c34b0dac3422392fc91bb8e430259407dd2aaba115a5c230025e357db",
+      "before_bytes": 475,
+      "bytes": 475,
+      "before_lines": 12,
+      "lines": 12,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 12
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs",
+      "before_sha256": "1981b6e92352fd3f49b7c3fc468c27e63612a30403e57eb8eea66c57a4df74d7",
+      "sha256": "8045b459ba3ff0acba163c1cd963c125b00cd97181ac5b596f0f6d822fe5fdc0",
+      "before_bytes": 13288,
+      "bytes": 17276,
+      "before_lines": 368,
+      "lines": 416,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 416
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager_error.rs",
+      "before_sha256": "065cf2295d27b874b362d8b370bf387c9eb7470024ad34b3134250dad4d7eb3c",
+      "sha256": "681e3a4bba8200fcf5583f3e64ecf8936c55872278c5c18c6a9ba20774cad025",
+      "before_bytes": 1259,
+      "bytes": 1592,
+      "before_lines": 40,
+      "lines": 45,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 45
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_support/window_event.rs",
+      "before_sha256": "c3240aab027c21451dec5c4b17ab3489e829f68194e99beda7d56a819e55352d",
+      "sha256": "1974b93981ddfd84d851607a7066f609ca3cb92610269fbdd79cd9f1234e9e20",
+      "before_bytes": 1621,
+      "bytes": 2725,
+      "before_lines": 40,
+      "lines": 56,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 56
+      }
+    },
+    {
+      "path": "zircon_runtime/src/tests/ui_boundary/runtime_host.rs",
+      "before_sha256": "3d8dd3784aadee088141b49685b80a05c25b9105ebecd4662b83546657f25a27",
+      "sha256": "27c6fbf42cbb1e783d209ca3fbf89178dde260d870cf67b2f033cfd64ed80850",
+      "before_bytes": 15569,
+      "bytes": 15903,
+      "before_lines": 396,
+      "lines": 399,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 399
+      }
+    }
+  ],
+  "fixed_child": {
+    "path": "docs/plans/source-comments/reviews/R072.json",
+    "sha256": "e852eb9a349de76d98447d87670fa6703015a365a4c0a708c6b09ac2f8e23290",
+    "bytes": 219014,
+    "lines": 6898,
+    "unchanged": true
+  },
+  "review": {
+    "summary": "独立复核 test-only Runtime UI 宿主与直接边界测试的精确5源。4源新增20组72行中文注释、1源保持原样；原32212字节/856行逐字节保留，现37971字节/928行。不改变程序行为、API、断言、宏、字符串或旧注释。",
+    "coverage": "54对象、18成员、54前后无空洞语义分区；352个 canonical 范围逐一验证前后字节哈希。8个普通Rust测试均为静态契约审读，没有执行。父模块/ABI/核心/其他测试/原文守卫仅调用上下文，不计入本批5源正式覆盖。",
+    "manager": "管理器初始化空模块与默认最大轴1；访问器借用随 &self，不能脱离宿主存活。回调存入 Arc，要求 HRTB + Send + Sync + 'static；注册相位键不等于证明节点存在或事件可达。成功载入后重置绑定，失败路径不应说明成已完成重置。返回的帧为测试快照，不是GPU执行或显示完成。",
+    "batch": "逐事件分派并在必要时重建布局，后项使用已提交的前项状态。遇错返回Err而不返回此前累积Vec，但宿主成功前缀状态保留；原模块说明中的“保留前序成功结果”已由新注释精确限定。泛型迭代enumerate的索引为原批次索引。事件上下文按值传入，同批不自动递增时序。",
+    "pump": "Created/Resized先计算候选尺寸，成功分派后才提交；之后布局重建报错不撤销已经提交的事件状态。轴有限且大于0时 round/max(1)/as u32，否则回退1；不承诺无精度损失、屏幕物理尺寸或任意上限。",
+    "index": "Surface资产登记只维护URI及反向索引并替换旧关联、去重，不触发资产I/O。节点收集登记为索引投影，不能写成资源已加载、验证存在或全部依赖可达。",
+    "tests": "八个host测试按实际断言审读，分别检查模块服务注册、最小fixture/布局命令、输入与命中/捕获/导航以及元数据脏状态/重载绑定等局部契约。第一个测试在正常Core构造和UI注册成功后仅注册UI，激活时缺已声明依赖而先返回MissingModuleDependency，unwrap先于两个服务解析断言panic。其余测试的断言存在不等于运行通过。",
+    "abi_todo": "安全helper可接收任意原始event，版本/长度/null/上限等数字检查无法证明非空指针的分配、完整可读范围、初始化与转换期间只读生命期。root完整审读三个直接ABI调用测试；使用的数值事件构造均从 ZrRuntimeEventV1::new 保留空payload，keyboard调用显式传ZrByteSlice::empty，且三源未再改payload。空载荷在checked_slice中先返回空slice，不访问原始指针。因此保留具体TODO0002，不把未证未来输入风险写成当前已触发BUG或普遍SAFETY。",
+    "bug_proof": "BUG0001的证据为：Core空模块注册表→仅UI descriptor插入，未自动注册Input/Scene/Graphics→activate冻结图→sort找不到依赖返回MissingModuleDependency→测试unwrap panic。无需运行即可证明条件路径；不声称构造/注册必然成功，也不承诺哪一条缺依赖先报错。后续另行行为修复任务应注册声明依赖后执行同一服务解析测试。",
+    "raw_guards": "独立核对23完整组、64字面量/存在性原子和实际Rust解码；all/each/pairwise_all组合保持原语义。全部历史/本次静态谓词为真，所有新增注释对原操作数贡献0。原文守卫静态真不证明其完整外层测试执行通过；legacy_renames只复核对应两组，不扩大为整测验收。",
+    "literal_check": "曾怀疑 runtime_dead_code/runtime_ui.rs19 的字符串转义被多解一层；452/cee88b实际源字符码点及ast.literal_eval证明源仅一个反斜杠转义，解码needle为普通引号，原计数1完全吻合。该疑虑已排除，无新增缺陷标签。",
+    "foreign_context": "graphics/mod.rs从child历史393d…177L变为root实读e378…179CRLF，只有四个原文禁词计数0与历史一致；未取得外部写归属、未比较全部旧字节、未证明行为相同或writer结束。child保持不改。本批只记录真实只读观察，外部源码按待归属处理。ui_boundary/mod.rs的已知R073注释13→17行变动由独立R073记录承接，不将其并入本批。",
+    "review_decision": "新注释与实际调用及错误边界一致，无需root修改代理新增注释；child不可变。BUG0001与TODO0002均应精确映射源码标签、调用证据和独立后续动作到中央问题账本。本批不修复行为。",
+    "validation": "root exact5 rustfmt --check、Git diff --check、+72/-0、cached为空和 change_guard 均通过，0error/0warning/0suppressed。12个实际同步命令均终态0。每个文件插入逆向等于授予原SHA和raw HEAD，所有新增字节是完整LF行注释。没有Cargo/宽泛测试/构建/性能复现。",
+    "limits": "未变更权限、Git配置或现存EOL；保留Git LF→CRLF warning。index.lock未知所有者仍保留；稳定哈希不构成writer退出证据。五源局部复核通过不代表整个子系统或milestone通过，指定Jenkins的精确候选验证、索引归属、阶段提交和附带授权企业微信仍待真实回执；无push授权。",
+    "lifecycle": "root验证453/cb0902在外部input pin门失败，位于所有子进程/文件写入前；455/456独立诊断后按真实上下文快照修订验证，不修改child/外部源。恢复459/9c0a84 native82108→1ccefc exit0/PID4668，post落盘已终态。所有已知本批源/child请求实际闭合；其他批历史未知writer不据此关闭。零临时脚本/源码副本/夹具/构建，释放0文件/0B。"
+  },
+  "coverage_counts": {
+    "before_bytes": 32212,
+    "after_bytes": 37971,
+    "before_lines": 856,
+    "after_lines": 928,
+    "files": 5,
+    "changed": 4,
+    "unchanged": 1,
+    "insertion_groups": 20,
+    "inserted_lines": 72,
+    "deleted_lines": 0,
+    "objects": 54,
+    "members": 18,
+    "gapfree_semantic_blocks": 54,
+    "normal_tests": 8,
+    "ignored_tests": 0,
+    "canonical_ranges": 352,
+    "range_digest": "1c9966ddc765254d97fff99982d43c80b6093bf5e5db109602805e0d19ae5d3f",
+    "raw_groups": 23,
+    "raw_atoms": 64,
+    "all_predicates_true": true,
+    "new_comment_operand_contribution": 0,
+    "counts": {
+      "module": 4,
+      "reexport": 2,
+      "semantic_block": 54,
+      "struct": 1,
+      "member": 18,
+      "impl": 1,
+      "method": 22,
+      "function": 7,
+      "enum": 1,
+      "variant": 7,
+      "constant": 1,
+      "test": 8
+    }
+  },
+  "canonical_ranges": 352,
+  "canonical_range_digest": "1c9966ddc765254d97fff99982d43c80b6093bf5e5db109602805e0d19ae5d3f",
+  "object_review": {
+    "count": 54,
+    "members": 18,
+    "model": "Immutable child files[].objects; all exact spans independently SHA-checked in post canonical_range_evidence, no independent coverage inferred from mere presence of a model."
+  },
+  "semantic_block_review": {
+    "count": 54,
+    "before_after_partition_gapfree": true,
+    "model": "Immutable child files[].block_audit; root full-read source and all final models, verified each entering/state/follow-up explanation and exact spans."
+  },
+  "new_comment_insertions": [
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_support/mod.rs",
+      "insertions": []
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs",
+      "insertions": [
+        {
+          "before_line": 2,
+          "exact_text": "//! 批次首错不交付成功前缀的结果向量；已处理事件的管理器状态仍然保留，不回滚。\n",
+          "reason": "区分状态前缀保留与 Err 的结果载体，补足既有模块句子的歧义。",
+          "before_offset": 149,
+          "after_offset": 149,
+          "byte_length": 116,
+          "sha256": "9b79f3d4aa86b67c56c0be8910100c35cc823f0f8a903b2dd0028db620cddb5c",
+          "after_lines": [
+            2,
+            2
+          ]
+        },
+        {
+          "before_line": 49,
+          "exact_text": "    /// 创建尚未选择夹具的测试宿主。\n    ///\n    /// # 参数与返回\n    /// `viewport_size` 同时用作布局根尺寸与帧尺寸，各轴下限为 1。\n    /// 返回值持有空表面和独立输入状态；加载夹具后，再注册对应节点的回调。\n",
+          "reason": "说明初始状态及构造时尺寸归一化，避免把测试宿主当产品启动。",
+          "before_offset": 2090,
+          "after_offset": 2206,
+          "byte_length": 280,
+          "sha256": "79e84158d99aa82a6cf6ec6c4cca8e01d203ef98fdc86f7a991b0e3ceb9e9ff4",
+          "after_lines": [
+            50,
+            54
+          ]
+        },
+        {
+          "before_line": 84,
+          "exact_text": "    /// 借用当前持久表面供测试断言；返回引用的有效期受 `self` 借用约束。\n    /// 持有该引用期间，不能经同一管理器执行需要可变借用的加载或输入处理。\n",
+          "reason": "说明 getter 返回的借用对象与可变操作的边界。",
+          "before_offset": 3566,
+          "after_offset": 3962,
+          "byte_length": 209,
+          "sha256": "8dfeeb7e253f07522d12bf981ada13b5e205cbf08bbc57277092f70aeaea897d",
+          "after_lines": [
+            90,
+            91
+          ]
+        },
+        {
+          "before_line": 88,
+          "exact_text": "    /// 借用已登记的资产与表面关联索引；读取此索引不会加载资产。\n    /// 返回引用借用管理器中的索引，生命周期随本次 `self` 借用。\n",
+          "reason": "明确索引读取与资产加载职责及借用。",
+          "before_offset": 3644,
+          "after_offset": 4249,
+          "byte_length": 182,
+          "sha256": "00c2fe5ae462186ab946d4092ab4d17ce55bca96833b6348b2015e22f8ba629b",
+          "after_lines": [
+            96,
+            97
+          ]
+        },
+        {
+          "before_line": 92,
+          "exact_text": "    /// 为当前输入管理器追加节点指针回调，供之后的表面路由调用。\n    ///\n    /// # 参数与生命周期\n    /// `node_id`、`kind` 是注册键；本入口不查询树，也不验证节点是否存在。\n    /// `handler` 须适用于任意一次路由借用，捕获满足 `Send + Sync + 'static`；\n    /// 闭包的静态约束不会延长上下文借用。成功切换夹具后，新输入管理器不沿用旧回调。\n    ///\n    /// # 参考\n    /// [`Self::load_builtin_fixture`] 是表面和输入管理器的切换边界。\n",
+          "reason": "直接 dispatcher 以 Arc 保存回调；解释 HRTB、捕获与重载边界。",
+          "before_offset": 3756,
+          "after_offset": 4543,
+          "byte_length": 563,
+          "sha256": "33919883266549ba9c6fd6a4c66be9f84bc4db6ad074fb9ad36d9bd8caa54787",
+          "after_lines": [
+            102,
+            110
+          ]
+        },
+        {
+          "before_line": 108,
+          "exact_text": "    /// 为指定阶段追加指针回调；参数与借用约束同 [`Self::register_pointer_handler`]。\n    /// `phase` 原样交给底层注册表，注册一个阶段键不保证路由必然到达该阶段。\n",
+          "reason": "阶段注册不扩展 dispatcher 支持或到达性，避免过度承诺。",
+          "before_offset": 4189,
+          "after_offset": 5539,
+          "byte_length": 214,
+          "sha256": "36805d2a67905a06465dd92e8fe06a70868c5f3c1167fd786f4134b7c4a2eb43",
+          "after_lines": [
+            127,
+            128
+          ]
+        },
+        {
+          "before_line": 125,
+          "exact_text": "    /// 为节点及导航种类追加回调，供当前表面生成的导航路由调用。\n    /// `node_id`、`kind` 只作为注册键；本入口不检查目标存在性。\n    /// 回调借用当前导航上下文；捕获、路由借用和夹具切换约束同\n    /// [`Self::register_pointer_handler`]，返回的决议交给表面继续处理。\n",
+          "reason": "连接导航回调、借用与后续表面提交，未把注册说成执行。",
+          "before_offset": 4673,
+          "after_offset": 6237,
+          "byte_length": 356,
+          "sha256": "9e1d0cc53cf70d99aaf046831c2cace208c6cf0de75e899ae6e4e66dae15154c",
+          "after_lines": [
+            146,
+            149
+          ]
+        },
+        {
+          "before_line": 165,
+          "exact_text": "    /// 处理一个规范化事件，再消费本轮表面脏状态，供后续输入使用更新后的表面。\n    ///\n    /// # 返回与错误\n    /// 成功返回本次分发结果；分发或后续重建失败则直接返回错误。\n    /// 本入口不恢复错误前已发生的状态修改，不能据返回错误推断事件毫无副作用。\n",
+          "reason": "解释分发与重建顺序，以及重建失败的非事务边界。",
+          "before_offset": 6023,
+          "after_offset": 7943,
+          "byte_length": 355,
+          "sha256": "1b8d87558df2ee9d24efed56ada8a9c7952e33bb2a773a87e53f1999c10b7960",
+          "after_lines": [
+            190,
+            194
+          ]
+        },
+        {
+          "before_line": 176,
+          "exact_text": "    /// 按迭代顺序处理规范化输入，逐项沿用单事件的分发和重建顺序。\n    ///\n    /// # 返回与错误\n    /// 全部成功才返回有序结果向量；首错记录原输入的零基索引，不交付成功前缀向量。\n    /// 前序事件状态已生效；失败项也可能在后续重建报错前改变状态，均不在此回滚。\n",
+          "reason": "补充 index 单位、Vec 交付条件及失败项可能已修改状态。",
+          "before_offset": 6358,
+          "after_offset": 8633,
+          "byte_length": 367,
+          "sha256": "a6f49aa5ea4ad11df28534ab3b5b846a1e6c9ca2584ee8f6be60341d99b4533a",
+          "after_lines": [
+            206,
+            210
+          ]
+        },
+        {
+          "before_line": 195,
+          "exact_text": "    /// 逐项规范化平台事件后处理；首错索引仍对应原平台事件的迭代位置。\n    /// 结果交付和已提交状态的约束同 [`Self::dispatch_input_batch`]。\n",
+          "reason": "说明平台批次索引域不因规范化改名。",
+          "before_offset": 7001,
+          "after_offset": 9643,
+          "byte_length": 187,
+          "sha256": "21be3bf1618592b4c0f260078f35a211816734e5c1b790e42145a52000a84469",
+          "after_lines": [
+            230,
+            231
+          ]
+        },
+        {
+          "before_line": 207,
+          "exact_text": "    /// 处理窗口泵事件，并在成功分发后保存创建或尺寸变化事件中的逻辑尺寸。\n    /// 本轮脏表面重建使用更新后的尺寸；其他事件不改此处的尺寸。\n    /// 分发失败时不保存候选尺寸，后续重建失败则不会还原已经保存的尺寸或先前修改。\n",
+          "reason": "解释候选 viewport 捕获、成功条件与后续 rebuild 的状态边界。",
+          "before_offset": 7459,
+          "after_offset": 10288,
+          "byte_length": 321,
+          "sha256": "5e20674ced815b157c5dcb0819f557da9a473a25ea9943f5a26e2c91a7209c47",
+          "after_lines": [
+            244,
+            246
+          ]
+        },
+        {
+          "before_line": 235,
+          "exact_text": "    /// 经同步 ABI 适配再处理单个事件；适配错误与树处理错误由测试错误类型区分。\n    /// 原始载荷约束见同模块窗口适配 helper：非空字节须由调用方保持有效且不变，\n    /// 直到同步转换返回；按值传递事件载体不会取得其载荷内存的所有权。\n",
+          "reason": "说明 raw carrier copy 与 payload ownership 的区别，不声称 helper 验证指针。",
+          "before_offset": 8550,
+          "after_offset": 11700,
+          "byte_length": 327,
+          "sha256": "0349ec7ca7c5d2a5f443ed6930af2e17649f60cb4b8b7ef36b7571bc72d0b48a",
+          "after_lines": [
+            275,
+            277
+          ]
+        },
+        {
+          "before_line": 243,
+          "exact_text": "    /// 顺序适配并提交 ABI 事件；单事件载荷约束逐项适用，同一 `context` 用于整批。\n    /// 首错返回原事件索引，前缀状态保留；只有全部成功才交付结果向量。\n",
+          "reason": "说明 ABI 批次 context 与原始输入索引、状态和结果载体。",
+          "before_offset": 8837,
+          "after_offset": 12314,
+          "byte_length": 214,
+          "sha256": "3d04ea099ad3ab91e0c53c04d763700b118a35ae496573f93b740902d4d5cc5f",
+          "after_lines": [
+            286,
+            287
+          ]
+        },
+        {
+          "before_line": 281,
+          "exact_text": "    /// 登记已成功构建的文档与节点资源引用，供反向查找表面使用。\n    /// 此步骤只更新关联索引，不重新加载引用资产，也不转移资产所有权。\n",
+          "reason": "实际索引方法只收集 URI 并维护映射，区别资产读取。",
+          "before_offset": 10191,
+          "after_offset": 13882,
+          "byte_length": 195,
+          "sha256": "a5cc828d6b583e24df370779958be4e02947a501e5665c66076814dcbcada0ba",
+          "after_lines": [
+            326,
+            327
+          ]
+        },
+        {
+          "before_line": 314,
+          "exact_text": "/// 将窗口逻辑尺寸逐轴四舍五入并至少取 1；非正或非有限的轴也回退为 1。\n",
+          "reason": "解释 metrics 到夹具整数尺寸的归一化，而非实际屏幕像素承诺。",
+          "before_offset": 11292,
+          "after_offset": 15178,
+          "byte_length": 102,
+          "sha256": "b2871a98f703f085bfb57fb400459816aa1cfb112fc9cbc7cb25c455c6063da7",
+          "after_lines": [
+            361,
+            361
+          ]
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager_error.rs",
+      "insertions": [
+        {
+          "before_line": 8,
+          "exact_text": "/// 测试宿主的资产、树与 ABI 适配错误，以及附带原输入位置的批次错误。\n///\n/// # 批次约束\n/// `index` 是输入迭代顺序的零基位置；首错返回且不携带成功前缀的结果向量。\n/// 此类型只描述错误，不执行回滚；前序输入已提交的状态仍由管理器持有。\n",
+          "reason": "说明所有四种批次变体共同的 index 与非回滚边界，不替代原 thiserror 属性。",
+          "before_offset": 326,
+          "after_offset": 326,
+          "byte_length": 333,
+          "sha256": "849ddcec95714c18012fff7c910980e97886ff4f8b4ece8f04996183e4a2ed0f",
+          "after_lines": [
+            8,
+            12
+          ]
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_support/window_event.rs",
+      "insertions": [
+        {
+          "before_line": 12,
+          "exact_text": "/// 同步转换原始 ABI 事件，再交当前测试宿主处理。\n///\n/// # 参数与约束\n/// `context` 提供窗口和时间身份；按值的 `event` 不拥有其载荷字节。\n/// 非空载荷必须处于同一有效分配，完整范围已初始化，并在转换返回前可读且不变；\n/// 事件形状和 ABI 数值校验不证明原指针有效。具体前提见\n/// [`runtime_abi_event_to_window_input_pump_event`]。\n///\n/// # 返回与错误\n/// 适配失败时不进入分发；之后的处理或重建报错，不恢复此前已发生的状态修改。\n",
+          "reason": "记录未经此 helper 验证的 payload 前提，以及适配与分发阶段边界。",
+          "before_offset": 456,
+          "after_offset": 456,
+          "byte_length": 576,
+          "sha256": "996c726d71f33b24250ee5ded0dcb0afe81c501184f75c4b9f922fd900433bab",
+          "after_lines": [
+            12,
+            21
+          ]
+        },
+        {
+          "before_line": 17,
+          "exact_text": "    // TODO: [CR-ZCA-R072-0002] 安全 helper 尚未落实非空原始载荷的有效性，已核调用只传空载荷。\n    // 扩展前须核实存储所有者、完整字节范围、初始化及转换期间的只读有效期，\n    // 或改用已验证的有效切片入口；当前版本和形状检查不能替代这些前提。\n",
+          "reason": "root复用Sol c535f7/012398/8b1f1e/7dcb2f静态证据批准TODO，不写BUG/SAFETY；本地再次读取checked_slice和from_raw_parts路径，非空载荷有效性无支配证明。",
+          "before_offset": 663,
+          "after_offset": 1239,
+          "byte_length": 336,
+          "sha256": "923bcb11df738e6ffb3276710c6e032579333df01f097db092ac75bf30821107",
+          "after_lines": [
+            27,
+            29
+          ]
+        },
+        {
+          "before_line": 24,
+          "exact_text": "///\n/// 同一 `context` 复用于所有事件，时间和序号不会由本 helper 自动递增。\n/// 原始载荷的有效性约束逐项适用；全部成功才返回有序结果向量。\n",
+          "reason": "补充 context 复用与载荷逐项有效期，保留原批次前缀说明。",
+          "before_offset": 994,
+          "after_offset": 1906,
+          "byte_length": 192,
+          "sha256": "1fa8d39a0ea1014d605f81220e7958ab08d62fcf688e9d203fae24e5e3c214dc",
+          "after_lines": [
+            37,
+            39
+          ]
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/tests/ui_boundary/runtime_host.rs",
+      "insertions": [
+        {
+          "before_line": 12,
+          "exact_text": "    // BUG: [CR-ZCA-R072-0001] 这里只注册 UI，缺少该描述符声明的 Input、Scene、Graphics 依赖；\n    // 若初始化和注册成功，激活在冻结依赖图时返回缺依赖错误，此 unwrap 会 panic，\n    // 后续两个服务解析因而不可达。应先补齐依赖注册，再验证服务解析断言。\n",
+          "reason": "root实际369/a4cd79 exit0/PID4684 独立核验初始化→仅UI注册→冻结依赖图→缺依赖返回；标签仅说明静态可达的测试前置失败，未执行Rust测试。",
+          "before_offset": 466,
+          "after_offset": 466,
+          "byte_length": 334,
+          "sha256": "fe9e61da9c8e7c8b6775b265a8add75eb79a3912201c5e083d93bcbc378f549d",
+          "after_lines": [
+            12,
+            14
+          ]
+        }
+      ]
+    }
+  ],
+  "test_contracts": [
+    {
+      "id": "host-service-resolution",
+      "function": "ui_runtime_module_registers_real_driver_and_manager_services",
+      "before_lines": [
+        6,
+        20
+      ],
+      "assertions": [
+        {
+          "lines": [
+            8,
+            12
+          ],
+          "claim": "new/register unwrap 后activate unwrap；静态缺依赖先失败"
+        },
+        {
+          "lines": [
+            14,
+            19
+          ],
+          "claim": "两个resolve unwrap仅在激活成功时可达，当前未形成实际解析证明"
+        }
+      ],
+      "limits": "BUG0001静态路径；未运行Rust测试。",
+      "source": "zircon_runtime/src/tests/ui_boundary/runtime_host.rs",
+      "source_before_sha256": "3d8dd3784aadee088141b49685b80a05c25b9105ebecd4662b83546657f25a27",
+      "source_after_sha256": "27c6fbf42cbb1e783d209ca3fbf89178dde260d870cf67b2f033cfd64ed80850",
+      "executed": false
+    },
+    {
+      "id": "host-production-split",
+      "function": "runtime_ui_host_surface_splits_production_frame_from_test_support",
+      "before_lines": [
+        22,
+        123
+      ],
+      "assertions": [
+        {
+          "lines": [
+            45,
+            54
+          ],
+          "claim": "retired/new目录exists"
+        },
+        {
+          "lines": [
+            55,
+            82
+          ],
+          "claim": "规范化两输入后挂载/出口/所有权负向项"
+        },
+        {
+          "lines": [
+            83,
+            101
+          ],
+          "claim": "required helper/frame/error锚点"
+        },
+        {
+          "lines": [
+            102,
+            122
+          ],
+          "claim": "旧public出口和graphics隔离禁项"
+        }
+      ],
+      "limits": "原始文本/存在性契约，注释也参与contains；只核本批实际向量，不等同Rust或AST模块解析。",
+      "source": "zircon_runtime/src/tests/ui_boundary/runtime_host.rs",
+      "source_before_sha256": "3d8dd3784aadee088141b49685b80a05c25b9105ebecd4662b83546657f25a27",
+      "source_after_sha256": "27c6fbf42cbb1e783d209ca3fbf89178dde260d870cf67b2f033cfd64ed80850",
+      "executed": false
+    },
+    {
+      "id": "host-five-fixtures",
+      "function": "runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces",
+      "before_lines": [
+        125,
+        155
+      ],
+      "assertions": [
+        {
+          "lines": [
+            140,
+            144
+          ],
+          "claim": "每个5fixture为1root且commands>=4"
+        },
+        {
+          "lines": [
+            145,
+            153
+          ],
+          "claim": "viewport等于输入且frame.ui为Some"
+        }
+      ],
+      "limits": "无完整控件行为/GPU执行/加载错误回滚证明。",
+      "source": "zircon_runtime/src/tests/ui_boundary/runtime_host.rs",
+      "source_before_sha256": "3d8dd3784aadee088141b49685b80a05c25b9105ebecd4662b83546657f25a27",
+      "source_after_sha256": "27c6fbf42cbb1e783d209ca3fbf89178dde260d870cf67b2f033cfd64ed80850",
+      "executed": false
+    },
+    {
+      "id": "host-pointer-navigation",
+      "function": "runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface",
+      "before_lines": [
+        157,
+        195
+      ],
+      "assertions": [
+        {
+          "lines": [
+            184,
+            185
+          ],
+          "claim": "pointer capture结果与持久focus均root"
+        },
+        {
+          "lines": [
+            194,
+            194
+          ],
+          "claim": "navigation Activate handled_by为root"
+        }
+      ],
+      "limits": "旧指针直接入口，不等同统一输入计时器/活动指针覆盖。",
+      "source": "zircon_runtime/src/tests/ui_boundary/runtime_host.rs",
+      "source_before_sha256": "3d8dd3784aadee088141b49685b80a05c25b9105ebecd4662b83546657f25a27",
+      "source_after_sha256": "27c6fbf42cbb1e783d209ca3fbf89178dde260d870cf67b2f033cfd64ed80850",
+      "executed": false
+    },
+    {
+      "id": "host-render-dirty",
+      "function": "runtime_ui_manager_applies_pointer_render_dirty_to_persistent_surface",
+      "before_lines": [
+        197,
+        240
+      ],
+      "assertions": [
+        {
+          "lines": [
+            229,
+            232
+          ],
+          "claim": "requested/report render、dirty节点root∪entered计数、render rebuilt"
+        },
+        {
+          "lines": [
+            233,
+            235
+          ],
+          "claim": "layout/arranged/hitgrid均false"
+        },
+        {
+          "lines": [
+            236,
+            239
+          ],
+          "claim": "persistent surface dirty清空"
+        }
+      ],
+      "limits": "单Move输入/固定fixture案例，不证明所有dirty组合的最小重建。",
+      "source": "zircon_runtime/src/tests/ui_boundary/runtime_host.rs",
+      "source_before_sha256": "3d8dd3784aadee088141b49685b80a05c25b9105ebecd4662b83546657f25a27",
+      "source_after_sha256": "27c6fbf42cbb1e783d209ca3fbf89178dde260d870cf67b2f033cfd64ed80850",
+      "executed": false
+    },
+    {
+      "id": "host-layout-dirty",
+      "function": "runtime_ui_manager_routes_pointer_layout_dirty_through_incremental_surface_rebuild",
+      "before_lines": [
+        242,
+        283
+      ],
+      "assertions": [
+        {
+          "lines": [
+            273,
+            278
+          ],
+          "claim": "requested/report layout及4重建域true"
+        },
+        {
+          "lines": [
+            279,
+            282
+          ],
+          "claim": "persistent dirty清空"
+        }
+      ],
+      "limits": "无像素几何数值/性能断言。",
+      "source": "zircon_runtime/src/tests/ui_boundary/runtime_host.rs",
+      "source_before_sha256": "3d8dd3784aadee088141b49685b80a05c25b9105ebecd4662b83546657f25a27",
+      "source_after_sha256": "27c6fbf42cbb1e783d209ca3fbf89178dde260d870cf67b2f033cfd64ed80850",
+      "executed": false
+    },
+    {
+      "id": "host-reset-pointer",
+      "function": "runtime_ui_manager_clears_node_bound_input_handlers_when_fixture_changes",
+      "before_lines": [
+        285,
+        323
+      ],
+      "assertions": [
+        {
+          "lines": [
+            307,
+            307
+          ],
+          "claim": "旧根capture生效"
+        },
+        {
+          "lines": [
+            319,
+            322
+          ],
+          "claim": "成功reload后capture None"
+        }
+      ],
+      "limits": "仅成功load边界；失败load和timer失效未由此测试证明。",
+      "source": "zircon_runtime/src/tests/ui_boundary/runtime_host.rs",
+      "source_before_sha256": "3d8dd3784aadee088141b49685b80a05c25b9105ebecd4662b83546657f25a27",
+      "source_after_sha256": "27c6fbf42cbb1e783d209ca3fbf89178dde260d870cf67b2f033cfd64ed80850",
+      "executed": false
+    },
+    {
+      "id": "host-reset-phase-navigation",
+      "function": "runtime_ui_manager_clears_phase_and_navigation_handlers_when_fixture_changes",
+      "before_lines": [
+        325,
+        396
+      ],
+      "assertions": [
+        {
+          "lines": [
+            358,
+            365
+          ],
+          "claim": "旧root PreviewTunnel handled/最后phase匹配"
+        },
+        {
+          "lines": [
+            370,
+            370
+          ],
+          "claim": "旧navigation handled root"
+        },
+        {
+          "lines": [
+            382,
+            386
+          ],
+          "claim": "reload后pointer invocations空且handledNone"
+        },
+        {
+          "lines": [
+            391,
+            395
+          ],
+          "claim": "reload后navigation invocations空且handledNone"
+        }
+      ],
+      "limits": "两个回调域/一个成功reload案例；不泛称所有输入状态均被实测。",
+      "source": "zircon_runtime/src/tests/ui_boundary/runtime_host.rs",
+      "source_before_sha256": "3d8dd3784aadee088141b49685b80a05c25b9105ebecd4662b83546657f25a27",
+      "source_after_sha256": "27c6fbf42cbb1e783d209ca3fbf89178dde260d870cf67b2f033cfd64ed80850",
+      "executed": false
+    }
+  ],
+  "issues": [
+    {
+      "id": "CR-ZCA-R072-0001",
+      "kind": "BUG",
+      "status": "open-static-proven",
+      "location": {
+        "path": "zircon_runtime/src/tests/ui_boundary/runtime_host.rs",
+        "after_lines": [
+          12,
+          15
+        ]
+      },
+      "trigger": "正常Core初始化与UI注册成功后，仅注册UI descriptor而缺Input/Scene/Graphics依赖；activate_module冻结当前注册图。",
+      "observable": "sort缺边返回MissingModuleDependency，原activate.unwrap先panic，两个服务解析尚不可达。",
+      "proof_evidence_ids": [
+        "ui-dependencies",
+        "core-constructor",
+        "core-inner-new",
+        "core-empty-modules",
+        "public-register-activate",
+        "two-service-register",
+        "two-service-prepare",
+        "locked-commit",
+        "single-module-insert",
+        "activation-freeze",
+        "freeze-snapshot",
+        "freeze-toposort",
+        "missing-dependency",
+        "dependency-aware-control"
+      ],
+      "root_confirmation": "a4cd79 exit0/PID4684独立核10源pin/最小链，明确授权标签；未运行Rust测试。",
+      "dedup": {
+        "path": "docs/plans/source-comments/issues.jsonl",
+        "sha256": "0c3aae7e5c19a54af474abad39fb01122e28776dfc3bd4f36642220e75c3f6ee",
+        "needles": [
+          "ui_runtime_module_registers_real_driver_and_manager_services",
+          "runtime_host.rs",
+          "MissingModuleDependency"
+        ],
+        "counts": {
+          "ui_runtime_module_registers_real_driver_and_manager_services": 0,
+          "runtime_host.rs": 0,
+          "MissingModuleDependency": 0
+        },
+        "matches": []
+      },
+      "next_step": "在正式行为修复任务补注册声明依赖后，以相同服务解析测试验证；本批不修断言或行为。"
+    },
+    {
+      "id": "CR-ZCA-R072-0002",
+      "kind": "TODO",
+      "status": "open-evidence-gap",
+      "location": {
+        "path": "zircon_runtime/src/ui/tests/runtime_ui_support/window_event.rs",
+        "after_lines": [
+          27,
+          30
+        ]
+      },
+      "known": "安全helper无非空载荷有效性支配检查；下层数值形状检查后会from_raw_parts；已核3测试文件调用均为空载荷。",
+      "unknown": "未来非空输入的存储所有者、完整范围、初始化及转换期只读有效性未在helper落实；未证明当前实际调用触发无效内存，故不写BUG/SAFETY。",
+      "proof_evidence_ids": [
+        "abi-contract",
+        "abi-view-borrow",
+        "byte-slice-gates",
+        "abi-pointer-callers",
+        "abi-keyboard-callers",
+        "abi-batch-callers"
+      ],
+      "root_core_confirmation": "Sol c535f7/012398/8b1f1e exit0，last native50528→7dcb2f exit0；root明确授权TODO0002。Sol调用者结论复用本审全文，不伪称其独立全文复核。",
+      "next_step": "扩展前查明载荷owner、范围、初始化和借用有效期，或用有效切片入口；有限边界验证另行授权。",
+      "central_mapping": "root最终问题账本登记，本child不编辑全局。"
+    }
+  ],
+  "actual_evidence": {
+    "root_full_source": [
+      "435/8b0619 exit0/PID35776 four complete helper sources",
+      "436/d26d54 exit0/PID10040 complete runtime_host399L; second model output actually truncated, not claimed complete"
+    ],
+    "root_complete_models": [
+      "439/9165bc native46393→2e686a exit0/PID3772 first manager model actually truncated",
+      "441/9ddaa6 exit0/PID34700 saved native full models; outer display truncated only, recovered same saved data",
+      "443 complete saved-data reemit missing host blocks and six context records, no new source mutation"
+    ],
+    "root_contexts": [
+      "369/a4cd79 exit0/PID4684 independent10-source missing-dependency proof and exact pins",
+      "445/cce944 exit0/PID36288 all23raw groups/64atoms and32 actual context current pins",
+      "447/958d2d native6270→4f27d4 exit0/PID27748 complete pointer_window_routes443L and batch_adapter263L",
+      "449/549d60 exit0/PID20368 complete keyboard_gamepad_routes393L plus ABI adapter71L,view74–98,checked_slice207–241",
+      "450/0ae2c6 native89390→c1117b exit0/PID6588 pointer1–140/navigation1–75/index80–123/resource1–75/raw readers and exact two legacy groups",
+      "452/cee88b exit0/PID33648 actual factories52–141/157–173/206–226/235–238/301–336/369–382/432–466/656–677/702–716,buffer empty180–185,actual literal codepoints",
+      "455/f5f254 exit0/PID23372 13raw input pin diagnosis",
+      "456/24ac85 exit0/PID29124 current foreign graphics full179L,ledger row and main/post absence"
+    ],
+    "root_validation": "459/9c0a84 native82108→460/1ccefc exit0/PID4668; all12 subprocess commands terminal0; post3f77317a…236154B",
+    "source_and_child_receipts": [
+      "grant acfb35 native44336→743f06 exit0/PID10488; independent136e64 exit0/PID6612",
+      "sourceead98f native86195→10715a exit0/PID35312",
+      "fmt6789de native40455→0fe0c6 exit0/PID31600",
+      "raw ead3ca native43590→5ce921 exit0/PID31212",
+      "TODO66d454 native93320→20e8e3 exit0/PID23480",
+      "finalfmted4a25 native24555→793974 exit0/PID19332",
+      "child apply_patch returned{} no native/PID exposed; no invented exit0",
+      "fixed independentbd2501 native2980→3fa3c7 exit0/PID30116 all20insert inverse/8tests"
+    ],
+    "core_todo_advice": "Sol c535f7/012398/8b1f1e exit0 and50528→7dcb2f exit0; PID not exposed. Historical core caller conclusion reused agent reads, now three callers separately full-read by root above."
+  },
+  "post_validation": {
+    "path": "docs/plans/source-comments/reviews/R072-post-validation.json",
+    "sha256": "3f77317abf8101feac04d8715aea6ca3836a9e3aea25eca6e0fb608a15aca268",
+    "bytes": 236154,
+    "lines": 7340,
+    "actual_writer_terminal": "459/9c0a84 native82108→460/1ccefc exit0/PID4668",
+    "commands_terminal": 12
+  },
+  "root_context_evidence_index": [
+    {
+      "id": "mount-ui",
+      "path": "zircon_runtime/src/ui/mod.rs",
+      "sha256": "c2428bd042db5c94d637bfcaf9565872b468b6b81199a4607e33440a367f1b09",
+      "lines": [
+        11,
+        24
+      ],
+      "fact": "cfg(test)+path挂载支持模块并pub(crate)重导出两个helper；生产frame从独立模块导出。"
+    },
+    {
+      "id": "mount-host",
+      "path": "zircon_runtime/src/tests/ui_boundary/mod.rs",
+      "sha256": "ae648bca478a3857f1c8b92fad14d0721dc2c904a19d025d3cfe7383a46eaba7",
+      "lines": [
+        8,
+        9
+      ],
+      "fact": "ui_boundary直接挂载runtime_host.rs。"
+    },
+    {
+      "id": "pointer-handler-lifetime",
+      "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+      "sha256": "e85516b855b09752b815f3f9e3aef9274a33dbb2cf20d90ec50485857f247576",
+      "lines": [
+        18,
+        25
+      ],
+      "fact": "Arc dyn for<'route> Fn(&context)->effect +Send+Sync+'static，捕获所有权与route借用分开。"
+    },
+    {
+      "id": "pointer-register",
+      "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+      "sha256": "e85516b855b09752b815f3f9e3aef9274a33dbb2cf20d90ec50485857f247576",
+      "lines": [
+        94,
+        133
+      ],
+      "fact": "register/register_phase追加Arc回调到键表，不查询UiTree节点存在性。"
+    },
+    {
+      "id": "navigation-register",
+      "path": "zircon_runtime/src/ui/dispatch/navigation/dispatcher.rs",
+      "sha256": "2fda28e310bc1f79878ddcdb7570ec109c65186bfb979b97d424e13be429f54a",
+      "lines": [
+        15,
+        55
+      ],
+      "fact": "导航Arc HRTB回调及追加register；管理器注册只存回调，非焦点提交。"
+    },
+    {
+      "id": "surface-assets-index",
+      "path": "zircon_runtime/src/ui/template/asset/surface_index.rs",
+      "sha256": "3f8ccd4ea7b7843b3eceb6550f0d9e45d031cdd6b533ff03f267c115fbd7787a",
+      "lines": [
+        97,
+        112
+      ],
+      "fact": "删除旧映射、收集去重资产键并维护反向映射，不加载内容。"
+    },
+    {
+      "id": "node-resource-index",
+      "path": "zircon_runtime/src/ui/template/asset/surface_index/node_resource_registration.rs",
+      "sha256": "b4bfc8358bf41e74bfe92d69c0946cef3e0448e2c9298b3c3063a42202a3d7c6",
+      "lines": [
+        12,
+        53
+      ],
+      "fact": "遍历节点元数据中的资源URI并登记关联，不执行资产I/O。"
+    },
+    {
+      "id": "abi-contract",
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event_abi.rs",
+      "sha256": "3a327faedb3b4b2bffc0ff576d85b4a35a94649321a347b4762e28c33379f657",
+      "lines": [
+        11,
+        44
+      ],
+      "fact": "unsafe入口要求非空完整载荷在同步转换期间已初始化、可读且不变，位于同一分配；版本/形状检查不是指针有效性证明，结果拥有数据。"
+    },
+    {
+      "id": "abi-batch-context",
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event_abi.rs",
+      "sha256": "3a327faedb3b4b2bffc0ff576d85b4a35a94649321a347b4762e28c33379f657",
+      "lines": [
+        47,
+        70
+      ],
+      "fact": "单一context逐项转换，文档不承诺自动递增时间序号。owned测试helper另外逐项分发，不能等同此仅转换批次。"
+    },
+    {
+      "id": "abi-view-borrow",
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event.rs",
+      "sha256": "9688cba399053dbc8c5ba62a1e0c71f30af469bcdaa7dfbab11de2f4841490a9",
+      "lines": [
+        74,
+        91
+      ],
+      "fact": "from_abi调用payload.checked_slice后构建借用view；安全前提仍由调用方提供。"
+    },
+    {
+      "id": "byte-slice-gates",
+      "path": "zircon_runtime_interface/src/buffer.rs",
+      "sha256": "4f311bf8fb2e1c436581e2f96f9b54567127644a121ac3ca6890b7ce05c4dad7",
+      "lines": [
+        220,
+        237
+      ],
+      "fact": "len0直接空，非空只查null/isize范围/limit后from_raw_parts；不证明分配、初始化或实际只读有效期。"
+    },
+    {
+      "id": "numeric-event-default",
+      "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "sha256": "d6185cde739619f1c43d49582daa22bde5b3a573bfb68429533ce0f42fd2af47",
+      "lines": [
+        50,
+        72
+      ],
+      "fact": "V1 new为payload赋empty；数值构造沿用该初值。"
+    },
+    {
+      "id": "numeric-event-pointer",
+      "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "sha256": "d6185cde739619f1c43d49582daa22bde5b3a573bfb68429533ce0f42fd2af47",
+      "lines": [
+        91,
+        139
+      ],
+      "fact": "metrics/pointer/mouse构造保留new的空payload。"
+    },
+    {
+      "id": "numeric-event-other",
+      "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "sha256": "d6185cde739619f1c43d49582daa22bde5b3a573bfb68429533ce0f42fd2af47",
+      "lines": [
+        206,
+        237
+      ],
+      "fact": "wheel/cursor构造不建立非空字节载荷。"
+    },
+    {
+      "id": "keyboard-raw-text",
+      "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "sha256": "d6185cde739619f1c43d49582daa22bde5b3a573bfb68429533ce0f42fd2af47",
+      "lines": [
+        450,
+        465
+      ],
+      "fact": "keyboard接收原始key_text carrier，因此构造器本身并非非空有效性证明。"
+    },
+    {
+      "id": "gamepad-raw-values",
+      "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "sha256": "d6185cde739619f1c43d49582daa22bde5b3a573bfb68429533ce0f42fd2af47",
+      "lines": [
+        656,
+        715
+      ],
+      "fact": "gamepad数值构造保持empty载荷。"
+    },
+    {
+      "id": "ui-dependencies",
+      "path": "zircon_runtime/src/ui/module.rs",
+      "sha256": "f98397e6ca05452f5eb73d6e04cd2eb7de46e97f1f21a3baf86e1d9b120c9624",
+      "lines": [
+        48,
+        75
+      ],
+      "fact": "UI descriptor声明Input/Scene/Graphics依赖，并登记2服务。"
+    },
+    {
+      "id": "core-constructor",
+      "path": "zircon_runtime/src/core/runtime/runtime.rs",
+      "sha256": "48eca2bd68d6b0b5a2a183b7fdab285e595a0b68ee5e14fb5ca8df3228940073",
+      "lines": [
+        51,
+        70
+      ],
+      "fact": "CoreRuntime::new走运行时构造链，未在此注册UI依赖。"
+    },
+    {
+      "id": "core-inner-new",
+      "path": "zircon_runtime/src/core/runtime/runtime.rs",
+      "sha256": "48eca2bd68d6b0b5a2a183b7fdab285e595a0b68ee5e14fb5ca8df3228940073",
+      "lines": [
+        156,
+        169
+      ],
+      "fact": "创建CoreRuntimeInner和handle；额外模块注册不在此链。"
+    },
+    {
+      "id": "core-empty-modules",
+      "path": "zircon_runtime/src/core/runtime/state/core_runtime_state.rs",
+      "sha256": "7af3a60aec11dbbcc34f4263679765e67c34d427cf5ae0cdea0b7dfe1c4ccbf0",
+      "lines": [
+        379,
+        408
+      ],
+      "fact": "CoreRuntimeInner::new将modules初始化Default空表。"
+    },
+    {
+      "id": "public-register-activate",
+      "path": "zircon_runtime/src/core/runtime/runtime.rs",
+      "sha256": "48eca2bd68d6b0b5a2a183b7fdab285e595a0b68ee5e14fb5ca8df3228940073",
+      "lines": [
+        296,
+        302
+      ],
+      "fact": "公共入口直接转交handle register/activate。"
+    },
+    {
+      "id": "two-service-register",
+      "path": "zircon_runtime/src/core/runtime/handle/registration/register_module.rs",
+      "sha256": "62bb761c60f16cdef2b8346a0b22731d155b74f768b61e6280a653bb9d82a829",
+      "lines": [
+        24,
+        62
+      ],
+      "fact": "UI两个服务走专用注册分支，不自动递归注册声明依赖。"
+    },
+    {
+      "id": "two-service-prepare",
+      "path": "zircon_runtime/src/core/runtime/handle/registration/register_module.rs",
+      "sha256": "62bb761c60f16cdef2b8346a0b22731d155b74f768b61e6280a653bb9d82a829",
+      "lines": [
+        175,
+        202
+      ],
+      "fact": "准备两个服务后调用commit，仅supplieddescriptor被传下。"
+    },
+    {
+      "id": "locked-commit",
+      "path": "zircon_runtime/src/core/runtime/handle/registration/register_module.rs",
+      "sha256": "62bb761c60f16cdef2b8346a0b22731d155b74f768b61e6280a653bb9d82a829",
+      "lines": [
+        301,
+        328
+      ],
+      "fact": "锁定modules/services，将单个descriptor交commit_prepared_module。"
+    },
+    {
+      "id": "single-module-insert",
+      "path": "zircon_runtime/src/core/runtime/handle/registration/commit.rs",
+      "sha256": "15ba0edb0266f61bd2e63c5314257817ebc9cd2061e85878a5811194d164380d",
+      "lines": [
+        16,
+        53
+      ],
+      "fact": "提交当前服务列表及单module条目，不创建依赖模块。"
+    },
+    {
+      "id": "activation-freeze",
+      "path": "zircon_runtime/src/core/runtime/handle/activation.rs",
+      "sha256": "c18655d5fa1848d2e84f5a6b8048d790bee5eb438e47ec604f7913d467974094",
+      "lines": [
+        51,
+        89
+      ],
+      "fact": "激活路径先调用frozen_module_graph?，失败则未到服务解析。"
+    },
+    {
+      "id": "freeze-snapshot",
+      "path": "zircon_runtime/src/core/runtime/handle/core_handle.rs",
+      "sha256": "eb555798f51c2ec220f821fc30c9d0f8e2c4d730cc3c57cd38f41cb455b1f340",
+      "lines": [
+        75,
+        86
+      ],
+      "fact": "注册描述符快照排序后FrozenModuleGraph::freeze?，成功才缓存。"
+    },
+    {
+      "id": "freeze-toposort",
+      "path": "zircon_runtime/src/core/runtime/descriptors/module_order.rs",
+      "sha256": "c77e5fb8fdccabd9799ce6a42d68ce129096e369a7cc4fc0220727dbb8e6dac0",
+      "lines": [
+        34,
+        45
+      ],
+      "fact": "freeze首先sort_module_activation_order?，模块依赖先验证。"
+    },
+    {
+      "id": "missing-dependency",
+      "path": "zircon_runtime/src/core/runtime/descriptors/module_order.rs",
+      "sha256": "c77e5fb8fdccabd9799ce6a42d68ce129096e369a7cc4fc0220727dbb8e6dac0",
+      "lines": [
+        187,
+        210
+      ],
+      "fact": "依赖名不在by_name直接MissingModuleDependency，首个缺边使freeze返回错误。"
+    },
+    {
+      "id": "dependency-aware-control",
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "sha256": "43c76aa300ddf23e2f935219f57ef064f04f9da53677e1e119046e267fef7309",
+      "lines": [
+        44,
+        59
+      ],
+      "fact": "对照helper先为UI每个声明依赖注册最小descriptor再UI注册。"
+    },
+    {
+      "id": "abi-pointer-callers",
+      "path": "zircon_runtime/src/ui/tests/abi/pointer_window_routes.rs",
+      "sha256": "1b2afd79ac4129e6804173a106452b72cfd4654f39120e4a6cc98f3d3f70a19d",
+      "lines": [
+        1,
+        443
+      ],
+      "fact": "全文只读：6个ABI调用23/97/195/279/311/386使用数值事件；仅证明已读调用，不泛化任意helper输入。"
+    },
+    {
+      "id": "abi-keyboard-callers",
+      "path": "zircon_runtime/src/ui/tests/abi/keyboard_gamepad_routes.rs",
+      "sha256": "0aeb43c2df37630fe0468b3d0e73dbada07d4e066b06a5814e1166b33ddcf5e4",
+      "lines": [
+        1,
+        393
+      ],
+      "fact": "全文只读：6调用29/52/166/181/294/309；keyboard54–61明确ZrByteSlice::empty，其他数值事件。"
+    },
+    {
+      "id": "abi-batch-callers",
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/batch_adapter.rs",
+      "sha256": "011d2875440cffc48a5c0f777c81af89eaef1f2242ba9f8596e4473290d7a7d6",
+      "lines": [
+        1,
+        263
+      ],
+      "fact": "全文只读：13/97/140/203/249调用；原测试断言 resize顺序、index1错误保留前缀状态、unsupported适配错误；不是执行结果。"
+    },
+    {
+      "id": "index-consumers",
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_asset_surface_index.rs",
+      "sha256": "9c03774063a6b13ff02a21fbb4a24094d52a429ccb2524e777bd851e15a63d0d",
+      "lines": [
+        10,
+        64
+      ],
+      "fact": "共享getter用于检查loaded夹具的索引与热重载targets；未据此声称执行资产重载。"
+    },
+    {
+      "id": "active-fixture-consumer",
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_layout_routes.rs",
+      "sha256": "9ef3c5958aa6be0a47d6f41a5b49c490125612927941f325e439b42c56c01e78",
+      "lines": [
+        29,
+        44
+      ],
+      "fact": "成功load后active_fixture断言Some(QuestLogDialog)。"
+    },
+    {
+      "id": "pump-batch-consumer",
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_layout_routes.rs",
+      "sha256": "9ef3c5958aa6be0a47d6f41a5b49c490125612927941f325e439b42c56c01e78",
+      "lines": [
+        145,
+        174
+      ],
+      "fact": "4个窗口泵项顺序处理，断言结果长度和表面窗口状态。"
+    },
+    {
+      "id": "pump-prefix-error-consumer",
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_layout_routes.rs",
+      "sha256": "9ef3c5958aa6be0a47d6f41a5b49c490125612927941f325e439b42c56c01e78",
+      "lines": [
+        342,
+        368
+      ],
+      "fact": "源码断言index1树错误时viewport800x450/scale2与dirty清除保留；仅该输入案例。"
+    },
+    {
+      "id": "normalized-batch-consumer",
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/normalized.rs",
+      "sha256": "c85284bcd3b25479c06fc7c5c7614e46777350356f83a827096ae36f8ab53b22",
+      "lines": [
+        105,
+        135
+      ],
+      "fact": "源码断言2项Vec顺序分别navigation/pointer。"
+    },
+    {
+      "id": "normalized-prefix-error",
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/normalized.rs",
+      "sha256": "c85284bcd3b25479c06fc7c5c7614e46777350356f83a827096ae36f8ab53b22",
+      "lines": [
+        178,
+        206
+      ],
+      "fact": "源码断言index1错误及前序capture仍保留。"
+    },
+    {
+      "id": "platform-prefix-error",
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/platform.rs",
+      "sha256": "b88f53c2ade78330d3bddf24ec16fd235523845ac3f3f6621820bdf1d8db5483",
+      "lines": [
+        207,
+        231
+      ],
+      "fact": "源码断言index1错误及前序capture仍保留。"
+    },
+    {
+      "id": "platform-batch-consumer",
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/platform.rs",
+      "sha256": "b88f53c2ade78330d3bddf24ec16fd235523845ac3f3f6621820bdf1d8db5483",
+      "lines": [
+        244,
+        271
+      ],
+      "fact": "源码断言platform规范化后两项navigation顺序。"
+    },
+    {
+      "id": "raw-reader-deadcode",
+      "path": "zircon_runtime/src/tests/contracts/structure/runtime_dead_code/mod.rs",
+      "sha256": "fbdc74e4ea782d612de17cf301228ed40c790030264b136d28ece9e80e18e688",
+      "lines": [
+        24,
+        27
+      ],
+      "fact": "fs读取失败panic；不规范化换行、不剥注释。"
+    },
+    {
+      "id": "raw-assert-all",
+      "path": "zircon_runtime/src/tests/contracts/structure/support.rs",
+      "sha256": "bbb3e8385361c8efc1fffe2b680512340b8a1947d46e1d634e2e5681e3dbac16",
+      "lines": [
+        2,
+        15
+      ],
+      "fact": "原assert_contains_all用!source.contains(anchor)收集缺项并断言空。"
+    },
+    {
+      "id": "raw-reader-legacy",
+      "path": "zircon_runtime/src/tests/contracts/ui_architecture/support.rs",
+      "sha256": "565bc026c67c6cebff72fd05f644846586ab06ac93217528d078faaafbfea7c3",
+      "lines": [
+        16,
+        20
+      ],
+      "fact": "read_repo_file直接fs读原串，失败panic，不剥注释。"
+    }
+  ],
+  "context_index_boundary": "Evidence index retains exact child historical pins; root actual narrower/full-read ranges are explicitly in actual_evidence. Not every context entry is a root whole-file review. mount-host oldae648 pin was independently updated and reviewed in R073 to ac0e44613→17L comment-only; graphics foreign old393d/currente378 observation is explicit in post. No formal coverage outside audited_paths.",
+  "source_preservation": {
+    "raw_byte_inverse_grant_and_HEAD": true,
+    "old_bytes_preserved": 32212,
+    "inserted_line_comment_groups": 20,
+    "inserted_LF_lines": 72,
+    "deleted_lines": 0,
+    "code_API_oldcomments_strings_assertions_macros_EOL_unchanged": true,
+    "source_copies": false,
+    "helpers_created": []
+  },
+  "reviewed_new_comments": {
+    "root_amendment_needed": false,
+    "fixed_child_unchanged": true,
+    "all20_insertions_reviewed_with_actual_callers": true,
+    "future_nonempty_ABI_premise_is_TODO_not_current_BUG": true
+  },
+  "tests_run": 0,
+  "retained_failures_and_limits": [
+    {
+      "receipt": "453/cb0902",
+      "exit_code": 1,
+      "point": "raw input exact pin gate line46 before any subprocess command or file write",
+      "reason": "Foreign graphics/mod.rs pin drift",
+      "source_or_record_writes": [],
+      "diagnosis": "455/f5f254 exit0/PID23372;456/24ac85 exit0/PID29124",
+      "recovery": "This invocation reevaluates13 observed input snapshots, preserves historical child, and independently checks current foreign four0 counts without source edit."
+    },
+    "No Rust tests, Cargo builds, benchmarks or full workspace check executed. Formatting is read-only on exact five paths.",
+    "Original source byte inverse matches exact ownership grant and raw HEAD. All added bytes are complete LF line comments; no original bytes or old comments changed.",
+    "All64 decoded literal guard predicates reevaluated. Results are static predicate values at pinned snapshots, not proof every containing Rust test reaches them or passes.",
+    "The literal in runtime_dead_code/runtime_ui.rs19 is a regular Rust string with one source escape; decoded plain-quote needle matches count1. Earlier display-escaping concern was disproved by452 actual codepoints, no issue tag.",
+    "Foreign graphics/mod.rs changed from child historical393d pin to e378 root observation. Historical before_count for its four forbidden operands is reused from immutable child; current independent e378 counts are0, source read full179L in456, no ownership/current behavior equivalence/foreign writer closure claimed. Other12 raw inputs exactly match child evaluation pins. Foreign inputs are historical pinned read snapshots, not held by this task.",
+    "Known R073 ui_boundary/mod.rs comment-only13-to17 line drift is covered by fixed R073 root review and inverse; not a source amendment in R072.",
+    "BUG0001 is code-path proof under successful Core construction/UI registration; no test execution and no dependency-order claim. TODO0002 is an unproven nonempty-payload validity premise, not a proven current invalid-memory call.",
+    "All owned source and fixed child bytes rechecked after commands. Jenkins exact candidate validation, index ownership and managed commit/notification acceptance remain open."
+  ],
+  "child_lifecycle": {
+    "all_known_batch_requests_terminal": true,
+    "unknown_other_batch_writers_preserved": true,
+    "no_invented_process_identity": true
+  },
+  "cleanup": {
+    "deleted_files": 0,
+    "freed_bytes": 0,
+    "retained": "Exact5 source/child/main/post and necessary read/validation/failure provenance until managed phase. No build products, helpers, source copies or generated fixtures."
+  }
+}

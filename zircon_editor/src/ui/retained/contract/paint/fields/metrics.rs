@@ -106,9 +106,11 @@ fn workbench_field_metrics_for_node_from_host(
     if let Some(value) = node.authored_field_padding[3].filter(|v| v.is_finite() && *v >= 0.0) {
         metrics.input_pad_bottom = value * scale;
     }
-    metrics.label_width = node.authored_field_label_width
+    metrics.label_width = node
+        .authored_field_label_width
         .filter(|value| value.is_finite() && *value >= 0.0)
-        .unwrap_or(0.0) * scale;
+        .unwrap_or(0.0)
+        * scale;
     metrics.search_text_left += metrics.input_pad_left - old_left;
     metrics
 }

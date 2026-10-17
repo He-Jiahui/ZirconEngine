@@ -236,3 +236,6 @@ fn rollback_prefix(
 #[cfg(test)]
 #[path = "tests/batch_transform.rs"]
 mod tests;
+
+zircon_runtime_interface::impl_retained_owner_v1!(BatchTransformTarget { before, after });
+zircon_runtime_interface::impl_retained_owner_v1!(BatchTransformCommand { targets });

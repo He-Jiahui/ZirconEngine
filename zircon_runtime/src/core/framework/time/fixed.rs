@@ -20,6 +20,7 @@ pub struct Fixed {
     overstep: Duration,
 }
 
+/// 默认采用 15_625 微秒步长（64 Hz），初始欠债为零。
 impl Default for Fixed {
     fn default() -> Self {
         Self {
@@ -49,10 +50,12 @@ impl Fixed {
         self.overstep
     }
 
+    // 只将 delta 饱和加入未兑现债务，后续扣债和已提交时钟推进分别完成。
     pub(crate) fn accumulate_overstep(&mut self, delta: Duration) {
         self.overstep = self.overstep.saturating_add(delta);
     }
 
+    // 用纳秒整除取得完整欠债步数，再按 max_steps 截断；常数次计算，不消费债务。
     pub(crate) fn available_steps(&self, max_steps: u32) -> u32 {
         (self.overstep.as_nanos() / self.timestep.as_nanos()).min(u128::from(max_steps)) as u32
     }

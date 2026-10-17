@@ -7,7 +7,9 @@ use super::super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::super::super::paint_theme::{
     current_host_metrics, current_host_palette, HostControlMetrics,
 };
-use super::super::super::super::{first_non_empty, MUTED_TEXT};
+use super::super::super::super::first_non_empty;
+#[cfg(test)]
+use super::super::super::super::MUTED_TEXT;
 
 pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer::docks::pane) fn draw_pane_fallback(
     frame: &mut HostRgbaFrame,
@@ -28,7 +30,7 @@ pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer::docks:
         body.y + metrics.gap_l,
         pane_label,
         Some(clip),
-        MUTED_TEXT,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text_muted,
     );
 
     let Some(card) = empty_state_card_frame(body) else {

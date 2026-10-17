@@ -61,8 +61,7 @@ fn runtime_15_core_framework_render_fixtures_use_current_names() {
     assert_contains_all(
         "post-process effect stack fixture current names",
         &read_text(
-            &manifest_root
-                .join("src/core/framework/render/post/tests/effects.rs"),
+            &manifest_root.join("src/core/framework/render/post/tests/effects.rs"),
             "post-process effect stack fixture source should be readable",
         ),
         &["extended_effect_stack_settings_enable_product_node_without_retired_fields"],

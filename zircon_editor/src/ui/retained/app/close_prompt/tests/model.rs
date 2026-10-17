@@ -38,10 +38,7 @@ fn discard_requires_a_dirty_scene_generation_to_match_the_captured_plan() {
     };
     use crate::core::play::WorldDomain;
     use std::any::Any;
-    use std::sync::{
-        atomic::{AtomicI64, Ordering},
-        Arc,
-    };
+    use std::sync::{Arc, Mutex};
     struct Context;
     impl EditContext for Context {
         fn capture_world_route(
@@ -56,6 +53,14 @@ fn discard_requires_a_dirty_scene_generation_to_match_the_captured_plan() {
         fn retire_world_route(&mut self, _: WorldDomain) -> Result<(), EditCommandError> {
             Ok(())
         }
+        fn selection_retention_bound_v1(
+            &self,
+            model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+            limit: u64,
+        ) -> Result<u64, EditCommandError> {
+            SelectionSnapshot::scalar_retention_bound_v1(model, limit)
+        }
+
         fn selection_snapshot(&self) -> SelectionSnapshot {
             SelectionSnapshot::default()
         }
@@ -69,17 +74,51 @@ fn discard_requires_a_dirty_scene_generation_to_match_the_captured_plan() {
             self
         }
     }
-    struct Add(Arc<AtomicI64>, i64);
+    struct Add(Arc<Mutex<i64>>, i64);
+    impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for Add {
+        fn retained_bound_v1(
+            &self,
+            m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+        ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+            m.owned(&self.0)?;
+            Ok(())
+        }
+    }
     impl EditCommand for Add {
+        fn retention_plan_v1(
+            &self,
+            context: &dyn crate::core::editing::engine::EditContext,
+            phase: crate::core::editing::engine::RetentionPhaseV1,
+            model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+            limit: u64,
+        ) -> Result<
+            crate::core::editing::engine::CommandRetentionPlanV1,
+            crate::core::editing::engine::EditCommandError,
+        > {
+            crate::core::editing::engine::CommandRetentionPlanV1::for_owner(
+                self, context, phase, model, limit,
+            )
+        }
+        fn prepare_retention_v1(
+            &mut self,
+            _: &mut dyn crate::core::editing::engine::EditContext,
+            phase: crate::core::editing::engine::RetentionPhaseV1,
+            permit: &mut crate::core::editing::engine::RetentionMaterializationV1,
+        ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+            permit
+                .consume(self, phase)
+                .map_err(crate::core::editing::engine::CommandExecutionError::unchanged)
+        }
+
         fn label(&self) -> &str {
             "close"
         }
         fn apply(&mut self, _: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
-            self.0.fetch_add(self.1, Ordering::SeqCst);
+            *self.0.lock().unwrap() += self.1;
             Ok(())
         }
         fn revert(&mut self, _: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
-            self.0.fetch_sub(self.1, Ordering::SeqCst);
+            *self.0.lock().unwrap() -= self.1;
             Ok(())
         }
         fn try_merge(&mut self, next: &dyn EditCommand) -> MergeOutcome {
@@ -93,10 +132,10 @@ fn discard_requires_a_dirty_scene_generation_to_match_the_captured_plan() {
             self
         }
     }
-    let command = |value: &Arc<AtomicI64>| Add(Arc::clone(value), 1);
+    let command = |value: &Arc<Mutex<i64>>| Add(Arc::clone(value), 1);
     let engine = EditorTransactionEngine::new(Context);
     let history = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let mut scope = engine.begin("close", history).unwrap();
     scope.set_merge_mode(MergeMode::Ends);
     scope.push(command(&value)).unwrap();
@@ -121,6 +160,6 @@ fn discard_requires_a_dirty_scene_generation_to_match_the_captured_plan() {
     prompt.finish_save(Vec::new(), Some(current.clone()));
     assert!(prompt.permits_discard(&[], Some(&current)));
     scope.cancel().unwrap();
-    assert_eq!(value.load(Ordering::SeqCst), 0);
+    assert_eq!(*value.lock().unwrap(), 0);
     assert!(prompt.permits_discard(&[], None));
 }

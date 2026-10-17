@@ -297,10 +297,18 @@ fn unreal_footer_chip_uses_authored_caption_for_both_label_and_value() {
     node.font_size = 10.666667;
     node.line_height_ratio = 1.2;
     node.font_family = "Roboto".into();
-    let rect = FrameRect { x: node.frame.x, y: node.frame.y, width: 144.0, height: 32.0 };
+    let rect = FrameRect {
+        x: node.frame.x,
+        y: node.frame.y,
+        width: 144.0,
+        height: 32.0,
+    };
     let mut commands = Vec::new();
     push_status_control_commands(&mut commands, &node, &rect, &rect, 0, 1.0);
-    let texts: Vec<_> = commands.iter().filter(|command| command.text.is_some()).collect();
+    let texts: Vec<_> = commands
+        .iter()
+        .filter(|command| command.text.is_some())
+        .collect();
     assert_eq!(texts.len(), 2);
     for text in &texts {
         assert!((text.font_size - 10.666667).abs() < 0.0001);

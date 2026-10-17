@@ -75,9 +75,7 @@ fn runtime_15_shader_prewarm_project_plugin_registry_wrapper_orchestration_is_wi
         ),
         (
             "zircon_runtime/src/tests/shader_prewarm_project_plugin_registry.rs",
-            include_str!(
-                "shader_prewarm_project_plugin_registry.rs"
-            ),
+            include_str!("shader_prewarm_project_plugin_registry.rs"),
         ),
     ] {
         let line_count = source.lines().count();

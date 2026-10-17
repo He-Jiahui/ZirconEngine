@@ -18,7 +18,7 @@ pub(super) enum PreparedMaterialCacheSlot {
 }
 
 impl ResourceStreamer {
-    pub(super) fn prepared_material_bundle_cache_is_current(
+    pub(in super::super) fn prepared_material_bundle_cache_is_current(
         &self,
         prepared: &PreparedMaterialBundle,
         requested_revision: Option<u64>,

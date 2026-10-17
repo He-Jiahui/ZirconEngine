@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use super::super::{
     BoundedKeyedIoKey, BoundedKeyedIoTicket, BoundedKeyedIoWork, BoundedKeyedIoWorkDeadline,

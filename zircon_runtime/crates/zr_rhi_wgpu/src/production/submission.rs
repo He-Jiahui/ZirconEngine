@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::Instant;
+use web_time::Instant;
 
 use zr_rhi::{
     DeviceGeneration, DeviceId, GpuMemoryBudget, GpuMemoryClass, RenderQueueClass, RhiError,

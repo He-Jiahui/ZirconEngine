@@ -312,6 +312,8 @@ pub(super) enum ProjectRecoveryDecisionError {
     NotificationIdentity(#[from] NotificationIdentityError),
     #[error(transparent)]
     RestoreFlow(#[from] RestoreFlowError),
+    #[error("recovery failure decision belongs to a different terminal attempt")]
+    FailureAttemptChanged,
     #[error("project recovery is already collecting operator decisions")]
     RecoveryAlreadyActive,
     #[error("project recovery notification sequence is exhausted")]
@@ -329,4 +331,153 @@ pub(super) enum ProjectRecoveryDecisionError {
     CandidateSourceOutsideProject { document: String },
     #[error("recovery decision receipt selected unknown option `{option}`")]
     UnexpectedReceiptOption { option: String },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum RecoveryFailureChoice {
+    Retry,
+    KeepFiles,
+    Defer,
+}
+
+pub(super) struct RecoveryFailureChoiceReceipt {
+    pub(super) attempt: crate::core::jobs::JobId,
+    pub(super) ticket: DecisionTicket,
+    pub(super) choice: RecoveryFailureChoice,
+}
+
+/// Presentation never grants recovery authority. The service validates this ticket against
+/// the current borrowed session owner and the retained terminal attempt before acting.
+#[derive(Default)]
+pub(super) struct RecoveryFailureReview {
+    attempt: Option<crate::core::jobs::JobId>,
+    cursor: Option<DecisionReceiptCursor>,
+    pending_ticket: Option<DecisionTicket>,
+    resolved: Option<(crate::core::jobs::JobId, DecisionTicket)>,
+    publication_blocked_at_pending_count: Option<usize>,
+    deferred: bool,
+}
+
+impl RecoveryFailureReview {
+    pub(super) fn authorizes(&self, receipt: &RecoveryFailureChoiceReceipt) -> bool {
+        self.resolved.as_ref().is_some_and(|(attempt, ticket)| {
+            *attempt == receipt.attempt && ticket == &receipt.ticket
+        })
+    }
+
+    pub(super) fn finish(&mut self, choice: RecoveryFailureChoice) {
+        self.pending_ticket = None;
+        self.resolved = None;
+        self.deferred = choice == RecoveryFailureChoice::Defer;
+        self.publication_blocked_at_pending_count = None;
+    }
+
+    pub(super) fn request_review(&mut self) {
+        self.deferred = false;
+        self.resolved = None;
+        self.publication_blocked_at_pending_count = None;
+    }
+}
+
+impl ProjectRecoveryDecisionCoordinator {
+    pub(super) fn pump_failure_review(
+        &self,
+        review: &mut RecoveryFailureReview,
+        center: &DecisionNotificationCenter,
+        attempt: crate::core::jobs::JobId,
+        remaining: usize,
+        retryable: usize,
+    ) -> Result<Option<RecoveryFailureChoiceReceipt>, ProjectRecoveryDecisionError> {
+        if review.attempt.is_some_and(|previous| previous != attempt) {
+            return Err(ProjectRecoveryDecisionError::FailureAttemptChanged);
+        }
+        review.attempt = Some(attempt);
+        if review.deferred {
+            return Ok(None);
+        }
+        if let Some(ticket) = review.pending_ticket.clone() {
+            let cursor = review.cursor.unwrap_or_else(|| center.initial_cursor());
+            let (batch, expired) = match center.receipts_since(cursor) {
+                Ok(batch) => (batch, false),
+                Err(DecisionNotificationError::CursorExpired { resume_cursor, .. }) => {
+                    (center.receipts_since(resume_cursor)?, true)
+                }
+                Err(error) => return Err(error.into()),
+            };
+            review.cursor = Some(batch.next_cursor());
+            if let Some(receipt) = batch.receipts().iter().find(|r| r.ticket() == &ticket) {
+                let choice = match receipt.option_id().as_str() {
+                    "retry" => RecoveryFailureChoice::Retry,
+                    "keep_files" => RecoveryFailureChoice::KeepFiles,
+                    "defer" => RecoveryFailureChoice::Defer,
+                    option => return Err(ProjectRecoveryDecisionError::UnexpectedReceiptOption {
+                        option: option.to_string(),
+                    }),
+                };
+                review.pending_ticket = None;
+                review.resolved = Some((attempt, ticket.clone()));
+                return Ok(Some(RecoveryFailureChoiceReceipt { attempt, ticket, choice }));
+            }
+            if expired && !center.pending_snapshot().iter().any(|s| s.ticket() == &ticket) {
+                // A missing receipt is uncertainty, never permission to settle the attempt.
+                review.pending_ticket = None;
+            }
+        }
+        if review.pending_ticket.is_some() || review.resolved.is_some() {
+            return Ok(None);
+        }
+        if review.publication_blocked_at_pending_count == Some(center.pending_count()) {
+            return Ok(None);
+        }
+        let sequence = self.next_notification_sequence()?;
+        let notification = recovery_failure_notification(sequence, remaining, retryable)?;
+        match center.publish(notification) {
+            Ok(ticket) => {
+                review.pending_ticket = Some(ticket);
+                review.cursor.get_or_insert_with(|| center.initial_cursor());
+                review.publication_blocked_at_pending_count = None;
+            }
+            Err(DecisionNotificationError::PendingCapacityReached { .. }) => {
+                review.publication_blocked_at_pending_count = Some(center.pending_count());
+            }
+            Err(error) => return Err(error.into()),
+        }
+        Ok(None)
+    }
+}
+
+fn recovery_failure_notification(
+    sequence: u64,
+    remaining: usize,
+    retryable: usize,
+) -> Result<DecisionNotification, ProjectRecoveryDecisionError> {
+    let mut options = Vec::with_capacity(3);
+    if retryable > 0 {
+        options.push(DecisionOption::new(
+            DecisionOptionId::parse("retry")?,
+            "editor.recovery.review.retry",
+        )?);
+    }
+    options.push(DecisionOption::new(
+        DecisionOptionId::parse("keep_files")?,
+        "editor.recovery.review.keep_files",
+    )?);
+    let defer = DecisionOptionId::parse("defer")?;
+    options.push(DecisionOption::new(
+        defer.clone(),
+        "editor.recovery.review.defer",
+    )?);
+    let id = NotificationId::parse(format!("editor.recovery.failure.{sequence}"))?;
+    let source = NotificationSource::builtin(RECOVERY_NOTIFICATION_SOURCE)?;
+    Ok(DecisionNotification::new(
+        id,
+        source,
+        "editor.recovery.review.title",
+        "editor.recovery.review.message",
+        options,
+    )?
+    .with_message_argument("remaining", remaining as u64)?
+    .with_message_argument("retryable", retryable as u64)?
+    .with_default_option(defer.clone())?
+    .with_cancel_option(defer)?)
 }

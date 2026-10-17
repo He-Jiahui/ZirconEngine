@@ -38,14 +38,63 @@ class LocalCargoTests(unittest.TestCase):
                 local_cargo.validate_output_path(value)
 
     def test_dry_run_never_creates_output_or_contacts_coordinator(self) -> None:
-        out = io.StringIO()
-        with patch.object(Path, "mkdir", side_effect=AssertionError("directory created")), patch.object(local_cargo.subprocess, "run", side_effect=AssertionError("process started")), contextlib.redirect_stdout(out):
-            code = local_cargo.main(["--target-dir", r"D:\cargo-targets\zircon-local\dry-test", "--dry-run", "--", "check", "-p", "zircon_runtime", "--locked"])
-        self.assertEqual(0, code)
-        report = json.loads(out.getvalue())
-        self.assertEqual("dry_run", report["status"])
-        self.assertIn("--target-dir", report["command"])
-        self.assertFalse(report["formalAcceptance"])
+        import hashlib
+        from tools.jenkins import frontend
+        repo = Path(__file__).resolve().parents[2]
+        entry = frontend.management_entry(repo)
+        cargo_args = ["check", "-p", "zircon_runtime", "--locked"]
+        expected_recipe = {"verb": "check", "packages": ["zircon_runtime"], "features": [],
+            "profile": "dev", "offline": False, "noDefaultFeatures": False, "allFeatures": False,
+            "locked": True, "jobs": 1, "lib": False, "tests": [], "noRun": False}
+        # Real identity reading and recipe parsing; downstream dispatch is this
+        # unit boundary, so no capsule, authority or Cargo acceptance is claimed.
+        with LocalCargoEvidenceTests.fixture(self) as (leaf, ownership):
+            identity = {"action": "validate", "sessionId": "fixture-session",
+                        "requestId": "fixture-request", "operationId": "fixture-operation"}
+            path = leaf / "identity.json"
+            raw = json.dumps(identity, sort_keys=True).encode("utf-8")
+            path.write_bytes(raw)
+            physical = path.stat()
+            target, build_root = str(leaf / "target"), r"E:\cargo-targets"
+            prepared = {"status": "prepared-not-submitted", "payload": {**identity, **expected_recipe},
+                        "requestedTargetDir": target, "buildRoot": build_root,
+                        "actualTargetDir": None, "formalAcceptance": False, "m8Accepted": False}
+            base = ["--target-dir", target, "--build-root", build_root, "--dry-run"]
+            try:
+                with patch.dict(os.environ, {"JENKINS_IDENTITY_FILE": "", "ZIRCON_JENKINS_IDENTITY_FILE": ""}), \
+                        patch.object(frontend, "management_entry", return_value=entry), \
+                        patch.object(entry, "dispatch", return_value=prepared) as dispatch, \
+                        patch.object(entry, "parse_cargo", wraps=entry.parse_cargo) as parse, \
+                        patch.object(Path, "mkdir", side_effect=AssertionError("directory created")), \
+                        patch.object(local_cargo.subprocess, "run", side_effect=AssertionError("process started")):
+                    out = io.StringIO()
+                    with contextlib.redirect_stdout(out):
+                        code = local_cargo.main([*base, "--jenkins-identity-file", str(path), "--", *cargo_args])
+                    self.assertEqual(0, code)
+                    self.assertEqual(prepared, json.loads(out.getvalue()))
+                    parse.assert_called_once_with(cargo_args)
+                    dispatch.assert_called_once_with(repo, identity, recipe=expected_recipe,
+                        target_dir=target, build_root=build_root, query_only=False, dry_run=True)
+                    dispatch.reset_mock()
+                    out = io.StringIO()
+                    with contextlib.redirect_stdout(out):
+                        code = local_cargo.main([*base, "--", *cargo_args])
+                    self.assertEqual(2, code)
+                    missing = json.loads(out.getvalue())
+                    self.assertEqual("pending", missing["status"])
+                    self.assertEqual("ordinary_identity_pending", missing["reasonCode"])
+                    self.assertFalse(missing["formalAcceptance"])
+                    dispatch.assert_not_called()
+                self.assertFalse((leaf / "target").exists())
+            finally:
+                try:
+                    current = local_cargo._evidence_output(path).stat()
+                    if ((current.st_dev, current.st_ino) != (physical.st_dev, physical.st_ino)
+                            or hashlib.sha256(path.read_bytes()).digest() != hashlib.sha256(raw).digest()):
+                        raise AssertionError("Synthetic identity changed; fixture preserved")
+                except BaseException:
+                    ownership["cleanup"] = False
+                    raise
 
     def test_target_override_and_cargo_configuration_cannot_escape_preflight(self) -> None:
         for args in (["check", "--target-dir", "C:/bad"], ["check", "--target-dir=C:/bad"], ["--config", "build.target-dir='C:/bad'", "check"], ["check", "--config=build.build-dir='C:/bad'"]):
@@ -72,17 +121,53 @@ class LocalCargoTests(unittest.TestCase):
             self.assertEqual(2, local_cargo.main(["--target-dir", r"D:\cargo-targets\zircon-local\low-disk", "--", "check"]))
 
     def test_powershell_wrapper_preserves_package_and_test_scope(self) -> None:
-        wrapper = Path(__file__).resolve().parents[1] / 'dev/local-cargo.ps1'
-        shell = Path(os.environ['SystemRoot']) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
-        result = subprocess.run([str(shell), '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', str(wrapper),
-                                 '-DryRun', 'test', '-p', 'zircon_runtime', '--lib', 'focused_filter',
-                                 '--locked', '--', '--exact'], capture_output=True, text=True,
-                                encoding='utf-8', errors='replace', check=False)
-        self.assertEqual(0, result.returncode, result.stderr)
-        command = json.loads(result.stdout)['command']
-        self.assertEqual('zircon_runtime', command[command.index('-p') + 1])
-        self.assertIn('focused_filter', command)
-        self.assertEqual(['--exact'], command[command.index('--') + 1:])
+        import hashlib
+        wrapper = Path(__file__).resolve().parents[1] / "dev/local-cargo.ps1"
+        repo = wrapper.parents[2]
+        shell = Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+        cargo_args = ["test", "-p", "zircon_runtime", "--lib", "focused_filter",
+                      "--locked", "--", "--exact"]
+        # Run the original wrapper in an actual PowerShell child. This tiny
+        # interpreter-argv probe never invokes Cargo or claims capsule authority.
+        with LocalCargoEvidenceTests.fixture(self) as (leaf, ownership):
+            identity, probe = leaf / "identity.json", leaf / "argv-probe.ps1"
+            contents = {
+                identity: json.dumps({"action": "validate", "sessionId": "wrapper-fixture",
+                    "requestId": "fixture-request", "operationId": "fixture-operation"}, sort_keys=True).encode("utf-8"),
+                probe: ("$ErrorActionPreference = 'Stop'\n"
+                    "[ordered]@{status='argv-observed';argv=@($args);formalAcceptance=$false} | "
+                    "ConvertTo-Json -Compress -Depth 8\n"
+                    "$global:LASTEXITCODE = 0\n").encode("utf-8"),
+            }
+            for path, raw in contents.items():
+                path.write_bytes(raw)
+            identities = {path: (path.stat().st_dev, path.stat().st_ino) for path in contents}
+            target, build_root = str(leaf / "target"), r"E:\cargo-targets"
+            try:
+                result = subprocess.run(
+                    [str(shell), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(wrapper),
+                     "-RepoRoot", str(repo), "-PythonInterpreter", str(probe), "-JenkinsIdentityFile", str(identity),
+                     "-TargetDir", target, "-BuildRoot", build_root, "-DryRun", *cargo_args],
+                    cwd=repo, env=dict(os.environ, JENKINS_IDENTITY_FILE="", ZIRCON_JENKINS_IDENTITY_FILE=""),
+                    capture_output=True, text=True, encoding="utf-8", errors="replace", check=False, timeout=30)
+                self.assertEqual(0, result.returncode, result.stderr)
+                report = json.loads(result.stdout)
+                self.assertEqual("argv-observed", report["status"])
+                self.assertFalse(report["formalAcceptance"])
+                self.assertEqual(["-B", "-X", "utf8", "-m", "tools.dev.local_cargo", "--repo-root", str(repo),
+                    "--jenkins-identity-file", str(identity), "--target-dir", target, "--build-root", build_root,
+                    "--dry-run", "--", *cargo_args], report["argv"])
+                self.assertFalse((leaf / "target").exists())
+            finally:
+                try:
+                    for path, raw in contents.items():
+                        current = local_cargo._evidence_output(path).stat()
+                        if ((current.st_dev, current.st_ino) != identities[path]
+                                or hashlib.sha256(path.read_bytes()).digest() != hashlib.sha256(raw).digest()):
+                            raise AssertionError("Owned argv-probe fixture changed; preserved")
+                except BaseException:
+                    ownership["cleanup"] = False
+                    raise
 
     def test_retired_conventions_do_not_delegate_to_old_managed_validator(self) -> None:
         from tools.audits.check_conventions import convention_commands_for_repo

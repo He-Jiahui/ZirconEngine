@@ -80,3 +80,10 @@ pub use surface::{NavMeshCollectMode, NavMeshSurfaceDescriptor, NavMeshUseGeomet
 #[cfg(test)]
 #[path = "tests/cases.rs"]
 mod tests;
+
+pub use operation::{
+    navigation_history_envelope_peak_v1, navigation_history_request_peak_v1,
+    navigation_history_restore_peak_v1, NavigationHistoryBudgetV1, NavigationHistoryRequestV1,
+    NAVIGATION_HISTORY_BAKE_SCENE_V1, NAVIGATION_HISTORY_BAKE_SURFACE_V1,
+    NAVIGATION_HISTORY_CLEAR_SURFACE_V1, NAVIGATION_HISTORY_RESTORE_V1,
+};

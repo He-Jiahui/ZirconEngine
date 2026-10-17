@@ -10,6 +10,7 @@ import type {
   ZuiAssetProjection,
 } from './bridge/penpot-projection-model';
 import { resolveDesignNumber } from './bridge/zui-prefab-system';
+import { styledPreviewNode } from './bridge/zui-style-projection';
 import {
   applyPenpotTextRuns,
   applyPenpotTextStyle,
@@ -188,6 +189,11 @@ export function measureLinearDesiredSizes(
   ) => LinearDesiredSize,
 ): Map<string, LinearDesiredSize> {
   const result = new Map<string, LinearDesiredSize>();
+  const sourceNodes = document.nodes ?? {};
+  const sourceNodeCount = Object.keys(sourceNodes).length;
+  const parentByNode = new Map<string, string>();
+  for (const [nodeId, node] of Object.entries(sourceNodes))
+    for (const child of node.children ?? []) parentByNode.set(child.node, nodeId);
   const visit = (
     projected: ProjectedZuiNode,
     parent?: ProjectedZuiNode,
@@ -201,8 +207,16 @@ export function measureLinearDesiredSizes(
       result.set(projected.nodeId, ZERO_SIZE);
       return ZERO_SIZE;
     }
-    const node = document.nodes?.[projected.nodeId];
-    if (!node) throw new Error(`Missing desired-size node ${projected.nodeId}`);
+    const sourceNode = sourceNodes[projected.nodeId];
+    if (!sourceNode) throw new Error(`Missing desired-size node ${projected.nodeId}`);
+    const ancestors: ZuiNode[] = [];
+    let parentId = parentByNode.get(projected.nodeId);
+    while (parentId && ancestors.length < sourceNodeCount) {
+      ancestors.push(sourceNodes[parentId]);
+      parentId = parentByNode.get(parentId);
+    }
+    // Measure the effective paint style without changing the authored document.
+    const node = styledPreviewNode(document, sourceNode, ancestors);
     const children = projected.children
       .filter((child) => !child.previewHidden && !child.visualDetached)
       .map((child) => {

@@ -8,6 +8,8 @@ use super::RenderArtifactManifestError;
 
 #[path = "contract/mesh.rs"]
 mod mesh;
+#[path = "contract/positional.rs"]
+mod positional;
 
 pub use mesh::{
     RenderArtifactMeshBounds, RenderArtifactMeshIndexFormat, RenderArtifactMeshLayout,
@@ -48,7 +50,7 @@ pub enum RenderArtifactResidencyClass {
     Streamable,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum RenderSubresourceId {
     TextureMipLayer { mip: u32, layer: u32 },
@@ -308,7 +310,7 @@ impl RenderArtifactTextureSubresourceLayout {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum RenderArtifactLayout {
     Texture { layout: RenderArtifactTextureLayout },
@@ -458,3 +460,6 @@ impl RenderArtifactManifest {
         self.layout.mesh_layout()?.subresource_layout(lod)
     }
 }
+
+/// Portable vertex/index block wire format, shared by cooking and upload.
+pub const RENDER_ARTIFACT_STATIC_MESH_FORMAT_V1: &str = "zr-static-mesh-v1";

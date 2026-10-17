@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::core::runtime::{TaskCancellationPolicy, TaskDescriptor, TaskId, TaskPoolKind};
 
@@ -10,7 +10,10 @@ use super::contract::{
 };
 use super::loader::RenderArtifactManifestLoaderInner;
 use super::state::take_task_id;
+#[cfg(not(target_arch = "wasm32"))]
 use super::worker::run_manifest_io_task;
+#[cfg(target_arch = "wasm32")]
+use super::worker::run_manifest_io_task_async;
 
 impl RenderArtifactManifestLoaderInner {
     // 按 frontier 优先级提交 I/O；提交失败会恢复该项，已提交任务使用 CancelOnDrop 配合 owner 关闭时的条目取消。
@@ -51,6 +54,7 @@ impl RenderArtifactManifestLoaderInner {
             let store = self.store.clone();
             let store_limits = self.limits.store_limits();
             let metrics = Arc::clone(&self.metrics);
+            #[cfg(not(target_arch = "wasm32"))]
             let task = self.scope.submit(
                 TaskDescriptor::new(
                     TaskId::new(task_id),
@@ -66,6 +70,25 @@ impl RenderArtifactManifestLoaderInner {
                         metrics,
                         cancellation,
                     );
+                },
+            );
+            #[cfg(target_arch = "wasm32")]
+            let task = self.scope.submit_local_future(
+                TaskDescriptor::new(
+                    TaskId::new(task_id),
+                    TaskPoolKind::Io,
+                    "render-artifact-manifest-read",
+                )
+                .with_cancellation_policy(TaskCancellationPolicy::CancelOnDrop),
+                move |cancellation| async move {
+                    run_manifest_io_task_async(
+                        entry_for_work,
+                        store,
+                        store_limits,
+                        metrics,
+                        cancellation,
+                    )
+                    .await;
                 },
             );
             let task = match task {

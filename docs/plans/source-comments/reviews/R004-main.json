@@ -1,0 +1,238 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R004",
+  "reviewer": "main",
+  "reviewed_at_utc": "2026-10-14T18:27:42.162102+00:00",
+  "status": "accepted-local-review-and-scoped-static-validation",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R004.json",
+    "sha256": "af3c93b83766e82908c33646527dca3b02b7bfc3a3bf4c913a451bdab9e19cb2"
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/reflect/mod.rs",
+      "before_sha256": "a7fd6a34ad0f8d841e3091b26c07b63bfb578d37fdbe4e315c766efbc0cbf6c5",
+      "reviewed_sha256": "a7fd6a34ad0f8d841e3091b26c07b63bfb578d37fdbe4e315c766efbc0cbf6c5",
+      "before_lines": 78,
+      "current_lines": 78,
+      "object_groups": 3,
+      "block_groups": 1,
+      "main_read": "Entire source and each recorded object/block; relevant calls and tests inspected separately.",
+      "decision": "accepted-local-comment-review",
+      "comments_added": false,
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_path.rs",
+      "before_sha256": "fd3a5e503eb45ffbfb4befc3bdc042f12e34480b004001cb92e6ef76dba80711",
+      "reviewed_sha256": "fd3a5e503eb45ffbfb4befc3bdc042f12e34480b004001cb92e6ef76dba80711",
+      "before_lines": 120,
+      "current_lines": 120,
+      "object_groups": 5,
+      "block_groups": 1,
+      "main_read": "Entire source and each recorded object/block; relevant calls and tests inspected separately.",
+      "decision": "accepted-local-comment-review",
+      "comments_added": false,
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_path/validation.rs",
+      "before_sha256": "339e66dcdd7f0a8934209eaa9a6d28c1de66ac5f380883edbeb943fb9a39d5b4",
+      "reviewed_sha256": "339e66dcdd7f0a8934209eaa9a6d28c1de66ac5f380883edbeb943fb9a39d5b4",
+      "before_lines": 231,
+      "current_lines": 231,
+      "object_groups": 8,
+      "block_groups": 2,
+      "main_read": "Entire source and each recorded object/block; relevant calls and tests inspected separately.",
+      "decision": "accepted-local-comment-review",
+      "comments_added": false,
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_registration.rs",
+      "before_sha256": "83f9fbefe89e20d157cba170e8ac1b3b18ec67561b8b6c9ce98eb67b9bf09070",
+      "reviewed_sha256": "83f9fbefe89e20d157cba170e8ac1b3b18ec67561b8b6c9ce98eb67b9bf09070",
+      "before_lines": 137,
+      "current_lines": 137,
+      "object_groups": 4,
+      "block_groups": 1,
+      "main_read": "Entire source and each recorded object/block; relevant calls and tests inspected separately.",
+      "decision": "accepted-local-comment-review",
+      "comments_added": false,
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_info.rs",
+      "before_sha256": "070f51c57e6144aec7395dee84b7af6bc5669d44a26c50ccedd4b433feda918c",
+      "reviewed_sha256": "070f51c57e6144aec7395dee84b7af6bc5669d44a26c50ccedd4b433feda918c",
+      "before_lines": 34,
+      "current_lines": 34,
+      "object_groups": 2,
+      "block_groups": 1,
+      "main_read": "Entire source and each recorded object/block; relevant calls and tests inspected separately.",
+      "decision": "accepted-local-comment-review",
+      "comments_added": false,
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_kind.rs",
+      "before_sha256": "ba01e15b69f04c2cfc6a5ec36ce066e6a3781d7241d8779e253f27b0cf2700ec",
+      "reviewed_sha256": "ba01e15b69f04c2cfc6a5ec36ce066e6a3781d7241d8779e253f27b0cf2700ec",
+      "before_lines": 25,
+      "current_lines": 25,
+      "object_groups": 1,
+      "block_groups": 1,
+      "main_read": "Entire source and each recorded object/block; relevant calls and tests inspected separately.",
+      "decision": "accepted-local-comment-review",
+      "comments_added": false,
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_role.rs",
+      "before_sha256": "9821edeb5bd41b9e5dbaf16fbdd888591c71ab0a72b6c461ff13ad47d4761919",
+      "reviewed_sha256": "9821edeb5bd41b9e5dbaf16fbdd888591c71ab0a72b6c461ff13ad47d4761919",
+      "before_lines": 14,
+      "current_lines": 14,
+      "object_groups": 1,
+      "block_groups": 1,
+      "main_read": "Entire source and each recorded object/block; relevant calls and tests inspected separately.",
+      "decision": "accepted-local-comment-review",
+      "comments_added": false,
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/read_write.rs",
+      "before_sha256": "f7bef6da11c021a8f7acbb26c468ff6a9f6b8e2d4f03e7bf379bff7f39e65be4",
+      "reviewed_sha256": "15ddca7335c44d36749ba57de91261d542ceb3ef57ff71fe5f8ede7f06c332f7",
+      "before_lines": 143,
+      "current_lines": 144,
+      "object_groups": 5,
+      "block_groups": 2,
+      "main_read": "Entire source and each recorded object/block; relevant calls and tests inspected separately.",
+      "decision": "accepted-local-comment-review",
+      "comments_added": true,
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/zr_reflect.rs",
+      "before_sha256": "6eeb0e0f3e53014a566b69bd8d5f848ca3f82464bf49fd549a422864c1600f47",
+      "reviewed_sha256": "6eeb0e0f3e53014a566b69bd8d5f848ca3f82464bf49fd549a422864c1600f47",
+      "before_lines": 32,
+      "current_lines": 32,
+      "object_groups": 5,
+      "block_groups": 1,
+      "main_read": "Entire source and each recorded object/block; relevant calls and tests inspected separately.",
+      "decision": "accepted-local-comment-review",
+      "comments_added": false,
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/zr_reflect_value.rs",
+      "before_sha256": "3c6cb7c4a88186f4af254efcd299f700042f236fc8e540fc081b14977c60c638",
+      "reviewed_sha256": "523d6061d6b62d7ad5c3488456376165cfea3149600a74ea10cafdcf817b48dd",
+      "before_lines": 312,
+      "current_lines": 314,
+      "object_groups": 8,
+      "block_groups": 2,
+      "main_read": "Entire source and each recorded object/block; relevant calls and tests inspected separately.",
+      "decision": "accepted-local-comment-review",
+      "comments_added": true,
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/schema.rs",
+      "before_sha256": "628bacb061980a36b660afa732e71c65fe4f98a4a5306ec042630681d1c5ecae",
+      "reviewed_sha256": "628bacb061980a36b660afa732e71c65fe4f98a4a5306ec042630681d1c5ecae",
+      "before_lines": 109,
+      "current_lines": 109,
+      "object_groups": 5,
+      "block_groups": 1,
+      "main_read": "Entire source and each recorded object/block; relevant calls and tests inspected separately.",
+      "decision": "accepted-local-comment-review",
+      "comments_added": false,
+      "formal_acceptance": false
+    }
+  ],
+  "implementation_record": "docs/plans/source-comments/reviews/R004-implementation.json",
+  "validation_records": [
+    {
+      "path": "docs/plans/source-comments/reviews/R004-validation.json",
+      "sha256": "e43444bf7008a82562bfb1538fa4c1d92b4efb343f19ab723d5cf73877e6a2c3"
+    },
+    {
+      "path": "docs/plans/source-comments/reviews/R004-implementation.json",
+      "sha256": "14cb9d6ab90a50503af6219f8019146ea4bcbc7b8870a1c5e4466266ed7716d0"
+    },
+    {
+      "path": "docs/plans/source-comments/reviews/R004-post-validation.json",
+      "sha256": "4fb4d3214085b44052624a0ec9b3d07a79444d44791c8090aaf36d5afec1e44b"
+    }
+  ],
+  "validation_summary": {
+    "rustfmt_before_11_exit_code": 0,
+    "rustfmt_after_2_exit_code": 0,
+    "diff_check_exit_code": 0,
+    "guard_summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "patch_sha256": "02cedbfe01e4ba1dd54bb68ca63a678c104661e4633df1068e40849c2422966d",
+    "build_or_tests_run": false
+  },
+  "confirmed_contracts": [
+    "Interface constructors/builders create owned declarations; Runtime admission and adapter binding are separate.",
+    "Checked path Deserialize restores grammar/short-name/module/plugin syntax; Runtime VM ownership prefix is an additional check.",
+    "Dense slots belong to current declaration order; stable IDs are resolved and cross-checked before object access.",
+    "Write response acknowledges the accepted request value; observation requires an explicit read. Adapter owns changed and publishing semantics.",
+    "Integer range/finite conversion and graph budget are separate checks; Entity(None)/Null conversion performs no entity lookup.",
+    "Schema fingerprint covers the entire catalog, while registration list may be filtered; category flags OR, visibility constraints AND, plugin-owned inclusion explicit."
+  ],
+  "additional_main_context": [
+    {
+      "path": "zircon_runtime/src/scene/reflect/world_reflection.rs",
+      "sha256": "641e3f66f37065c0ee70c84336229e136956239577ff4bb43e4d7a1b60689eba",
+      "read_spans": [
+        [
+          1,
+          364
+        ]
+      ],
+      "purpose": "Actual filter, DTO, stable-ID/slot/adapter paths; formally belongs to R005, no R004 source credit."
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/post_commit_write.rs",
+      "sha256": "544d8f9eb5cb936a5fe53f1aef64033983fe6a4132b88c3cf43d583fa14263e6",
+      "read_spans": [
+        [
+          1,
+          210
+        ]
+      ],
+      "purpose": "Write-only fixture read adapter rejects readback; assertions inspect response and published name. No execution/source-coverage claim."
+    }
+  ],
+  "child_record_corrections": {
+    "field_anchor": "Original ReflectWriteResponse.field line129; original line131 is changed. Exact English comment anchor preserved.",
+    "value_budget_assignment": "C003 owns value-budget audit; H001 is historical classification only. No extra R004 source credit.",
+    "unresolved_test_refs": [
+      "T-path-json",
+      "T-schema-filter-and-fingerprint"
+    ],
+    "test_ref_resolution": {
+      "T-path-json": "Use T-path-validation; no invented extra test.",
+      "T-schema-filter-and-fingerprint": "DTO helper/fingerprint assertions are T-read-write-roundtrip. Actual Runtime filtering proved separately by WorldReflection source; no filter test execution claim."
+    }
+  },
+  "issues": [],
+  "source_boundary": {
+    "insertions_only": true,
+    "original_bytes_reconstructable": true,
+    "existing_comments_preserved": true,
+    "source_copies_created": false,
+    "compiler_acceptance_claimed": false
+  },
+  "formal_acceptance": false,
+  "coordinator_commit": "pending actual authorized Jenkins flow"
+}

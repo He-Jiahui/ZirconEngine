@@ -705,3 +705,116 @@ fn failed_scene_tick_keeps_ui_timer_pending_for_successful_retry() {
         demand => panic!("visible tooltip intro should schedule its next sample, got {demand:?}"),
     }
 }
+
+#[test]
+fn gamepad_generation_admission_gates_published_runtime_ui_navigation_and_analog() {
+    use std::num::NonZeroU64;
+    use crate::core::framework::input::{GamepadId, InputEventRecordingConfig};
+    use zircon_runtime_interface::{
+        ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeGamepadGenerationV2,
+        ZrRuntimeViewportHandle, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
+        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
+        ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1,
+    };
+
+    fn arm_pending_tooltip(session: &mut RuntimeDynamicSession, node: UiNodeId) {
+        let timestamp = session.runtime_ui.next_input_metadata().timestamp;
+        let runtime_surface = &mut session.runtime_ui.surfaces[0];
+        runtime_surface.input.arm_tooltip_candidate(
+            &mut runtime_surface.surface, timestamp, node, "gamepad.admission.tooltip", 60_000,
+        );
+        assert!(session.runtime_ui.next_input_timer_delay_at(timestamp).is_some());
+    }
+
+    let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
+        .expect("headless session with a real nonempty UI receiver");
+    let node = UiNodeId::new(77);
+    let mut runtime_surface =
+        test_focusable_runtime_surface("test-runtime-ui:gamepad-admission", node);
+    runtime_surface.surface.rebuild();
+    runtime_surface.surface.focus_node(node).unwrap();
+    session.runtime_ui.surfaces = vec![runtime_surface];
+    let viewport_size = session.camera_controller.viewport_size();
+    session.runtime_ui.render_submission(viewport_size).unwrap();
+    assert_eq!(session.runtime_ui.navigation_surface, Some(0));
+    assert_eq!(session.runtime_ui.surfaces[0].surface.focus.focused, Some(node));
+    let viewport = ZrRuntimeViewportHandle::new(1);
+    let gamepad = 83;
+    let g1 = ZrRuntimeGamepadGenerationV2::encode_sample(NonZeroU64::MIN);
+    let g2 = ZrRuntimeGamepadGenerationV2::encode_sample(NonZeroU64::new(2).unwrap());
+    let payload = |bytes: &[u8]| ZrByteSlice { data: bytes.as_ptr(), len: bytes.len() };
+    let connection = |bytes: &[u8], state| ZrRuntimeEventV1::gamepad_connection_v2(
+        ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, gamepad, state, 0, 0, payload(bytes),
+    );
+    let navigation = |bytes: &[u8]| ZrRuntimeEventV1::gamepad_button_v2(
+        ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, gamepad,
+        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+        1.0, payload(bytes),
+    );
+    let analog = |bytes: &[u8]| ZrRuntimeEventV1::gamepad_axis_v2(
+        ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, gamepad,
+        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, 1.0, payload(bytes),
+    );
+
+    assert_eq!(session.handle_event(connection(&g1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1))
+        .status_code(), ZrStatusCode::Ok);
+    arm_pending_tooltip(&mut session, node);
+    let before_navigation = session.runtime_ui.input_sequence;
+    assert_eq!(session.handle_event(navigation(&g1)).status_code(), ZrStatusCode::Ok);
+    assert_eq!(session.runtime_ui.input_sequence, before_navigation + 1);
+    assert!(session.runtime_ui.next_input_timer_delay().is_none());
+    assert_eq!(session.runtime_ui.surfaces[0].surface.focus.focused, Some(node));
+
+    // Analog is observed through the actual UiInputManager activity/tooltip contract.
+    // This makes no claim that UI receives the manager's filtered axis value.
+    arm_pending_tooltip(&mut session, node);
+    let before_analog = session.runtime_ui.input_sequence;
+    assert_eq!(session.handle_event(analog(&g1)).status_code(), ZrStatusCode::Ok);
+    assert_eq!(session.runtime_ui.input_sequence, before_analog + 1);
+    assert!(session.runtime_ui.next_input_timer_delay().is_none());
+
+    assert_eq!(session.handle_event(connection(&g1, ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1))
+        .status_code(), ZrStatusCode::Ok);
+    {
+        let input = session.resolve_input_manager().unwrap();
+        input.set_event_recording_config(InputEventRecordingConfig::enabled(32));
+        input.begin_frame();
+        input.drain_events();
+    }
+    arm_pending_tooltip(&mut session, node);
+    let before_rejected = session.runtime_ui.input_sequence;
+    let focus_before = session.runtime_ui.surfaces[0].surface.focus.focused;
+    for event in [navigation(&g1), analog(&g1)] {
+        assert_eq!(session.handle_event(event).status_code(), ZrStatusCode::Ok);
+        assert_eq!(session.runtime_ui.input_sequence, before_rejected);
+        assert_eq!(session.runtime_ui.surfaces[0].surface.focus.focused, focus_before);
+        assert!(session.runtime_ui.next_input_timer_delay().is_some());
+    }
+    {
+        let input = session.resolve_input_manager().unwrap();
+        assert!(input.frame_snapshot().gamepad_axes.is_empty());
+        assert!(input.drain_events().is_empty());
+        assert!(input.drain_event_records().is_empty());
+    }
+    assert_eq!(session.handle_event(connection(&g2, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1))
+        .status_code(), ZrStatusCode::Ok);
+    for event in [navigation(&g1), analog(&g1)] {
+        assert_eq!(session.handle_event(event).status_code(), ZrStatusCode::Ok);
+        assert_eq!(session.runtime_ui.input_sequence, before_rejected);
+        assert!(session.runtime_ui.next_input_timer_delay().is_some());
+    }
+    let legacy = ZrRuntimeEventV1::gamepad_axis(
+        ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, gamepad,
+        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, 1.0,
+    );
+    assert_eq!(session.handle_event(legacy).status_code(), ZrStatusCode::InvalidArgument);
+    assert_eq!(session.runtime_ui.input_sequence, before_rejected);
+    assert!(session.runtime_ui.next_input_timer_delay().is_some());
+
+    assert_eq!(session.handle_event(analog(&g2)).status_code(), ZrStatusCode::Ok);
+    assert_eq!(session.runtime_ui.input_sequence, before_rejected + 1);
+    assert!(session.runtime_ui.next_input_timer_delay().is_none());
+    assert_eq!(session.resolve_input_manager().unwrap().frame_snapshot()
+        .connected_gamepads, vec![GamepadId(gamepad)]);
+}

@@ -1,0 +1,154 @@
+{
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R004",
+  "at_utc": "2026-10-14T18:03:27.142903+00:00",
+  "source_pins": [
+    {
+      "path": "zircon_runtime_interface/src/reflect/mod.rs",
+      "sha256": "a7fd6a34ad0f8d841e3091b26c07b63bfb578d37fdbe4e315c766efbc0cbf6c5"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_path.rs",
+      "sha256": "fd3a5e503eb45ffbfb4befc3bdc042f12e34480b004001cb92e6ef76dba80711"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_path/validation.rs",
+      "sha256": "339e66dcdd7f0a8934209eaa9a6d28c1de66ac5f380883edbeb943fb9a39d5b4"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_registration.rs",
+      "sha256": "83f9fbefe89e20d157cba170e8ac1b3b18ec67561b8b6c9ce98eb67b9bf09070"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_info.rs",
+      "sha256": "070f51c57e6144aec7395dee84b7af6bc5669d44a26c50ccedd4b433feda918c"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_kind.rs",
+      "sha256": "ba01e15b69f04c2cfc6a5ec36ce066e6a3781d7241d8779e253f27b0cf2700ec"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_role.rs",
+      "sha256": "9821edeb5bd41b9e5dbaf16fbdd888591c71ab0a72b6c461ff13ad47d4761919"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/read_write.rs",
+      "sha256": "f7bef6da11c021a8f7acbb26c468ff6a9f6b8e2d4f03e7bf379bff7f39e65be4"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/zr_reflect.rs",
+      "sha256": "6eeb0e0f3e53014a566b69bd8d5f848ca3f82464bf49fd549a422864c1600f47"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/zr_reflect_value.rs",
+      "sha256": "3c6cb7c4a88186f4af254efcd299f700042f236fc8e540fc081b14977c60c638"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/schema.rs",
+      "sha256": "628bacb061980a36b660afa732e71c65fe4f98a4a5306ec042630681d1c5ecae"
+    }
+  ],
+  "context_pins": [
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "recorded_sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "current_sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "matches": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/reflect_contracts.rs",
+      "recorded_sha256": "384eb1061f0ae15131109362978628c6011ad4498f665f516de18de8432a0647",
+      "current_sha256": "384eb1061f0ae15131109362978628c6011ad4498f665f516de18de8432a0647",
+      "matches": true
+    },
+    {
+      "path": "zircon_reflect_derive/src/derive.rs",
+      "recorded_sha256": "7351e19214f9ff5fcdd539503cd94de8aebcc8c2113b030be151e51ec1da5a55",
+      "current_sha256": "7351e19214f9ff5fcdd539503cd94de8aebcc8c2113b030be151e51ec1da5a55",
+      "matches": true
+    },
+    {
+      "path": "zircon_reflect_derive/src/fields.rs",
+      "recorded_sha256": "faad588c0123f1c6af93020bf91aee886926ca4ea0b7d1c3f76d9791c63bacee",
+      "current_sha256": "faad588c0123f1c6af93020bf91aee886926ca4ea0b7d1c3f76d9791c63bacee",
+      "matches": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs",
+      "recorded_sha256": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+      "current_sha256": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+      "matches": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs",
+      "recorded_sha256": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+      "current_sha256": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+      "matches": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/type_registry.rs",
+      "recorded_sha256": "2fa88aa63872b836b2622a8674d25b5681f1b80b75823a374b400d019a86b829",
+      "current_sha256": "2fa88aa63872b836b2622a8674d25b5681f1b80b75823a374b400d019a86b829",
+      "matches": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/world_reflection.rs",
+      "recorded_sha256": "641e3f66f37065c0ee70c84336229e136956239577ff4bb43e4d7a1b60689eba",
+      "current_sha256": "641e3f66f37065c0ee70c84336229e136956239577ff4bb43e4d7a1b60689eba",
+      "matches": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/dynamic_component.rs",
+      "recorded_sha256": "fef7bc43f25c2e61dc12ae2dcbbb2293a662c916b47f7d0abea577aab0815890",
+      "current_sha256": "fef7bc43f25c2e61dc12ae2dcbbb2293a662c916b47f7d0abea577aab0815890",
+      "matches": true
+    },
+    {
+      "path": "zircon_reflect_derive/src/tests/cases.rs",
+      "recorded_sha256": "9637d257aa51f5f31387f130a15fe6948c5d2c4da2083d06a4bf7d5e84901bb1",
+      "current_sha256": "9637d257aa51f5f31387f130a15fe6948c5d2c4da2083d06a4bf7d5e84901bb1",
+      "matches": true
+    }
+  ],
+  "rustfmt": {
+    "argv": [
+      "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+      "--check",
+      "--edition",
+      "2021",
+      "--config",
+      "skip_children=true",
+      "zircon_runtime_interface/src/reflect/mod.rs",
+      "zircon_runtime_interface/src/reflect/type_path.rs",
+      "zircon_runtime_interface/src/reflect/type_path/validation.rs",
+      "zircon_runtime_interface/src/reflect/type_registration.rs",
+      "zircon_runtime_interface/src/reflect/type_info.rs",
+      "zircon_runtime_interface/src/reflect/type_kind.rs",
+      "zircon_runtime_interface/src/reflect/type_role.rs",
+      "zircon_runtime_interface/src/reflect/read_write.rs",
+      "zircon_runtime_interface/src/reflect/zr_reflect.rs",
+      "zircon_runtime_interface/src/reflect/zr_reflect_value.rs",
+      "zircon_runtime_interface/src/reflect/schema.rs"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "diff_check": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "source_status": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "warning: unable to access 'C:\\Users\\HeJiahui/.config/git/ignore': Permission denied\n"
+  },
+  "marker_scan": {
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "tests_run": false,
+  "formal_acceptance": false
+}

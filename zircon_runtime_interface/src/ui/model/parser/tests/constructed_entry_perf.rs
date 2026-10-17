@@ -76,7 +76,9 @@ fn runtime_interface03_batch34_moved_constructed_entry_release_benchmark() {
         let measure_cloning = || {
             let started = Instant::now();
             for _ in 0..LOOKUP_COUNT {
-                let _ = black_box(parser.construct_record_cloning("record", black_box(arguments.clone())));
+                let _ = black_box(
+                    parser.construct_record_cloning("record", black_box(arguments.clone())),
+                );
             }
             started.elapsed().as_nanos()
         };

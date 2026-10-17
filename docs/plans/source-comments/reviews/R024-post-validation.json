@@ -1,0 +1,367 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R024",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T07:38:53.195952+00:00",
+  "status": "scoped-static-validation-passed",
+  "files": {
+    "zircon_runtime_interface/src/resource/asset_reference.rs": {
+      "before_sha256": "da548585783fef95eec590dabcf772f4f0280698c8eaa07ef2c457b3446c1cdf",
+      "reviewed_sha256": "da548585783fef95eec590dabcf772f4f0280698c8eaa07ef2c457b3446c1cdf",
+      "bytes": 5513,
+      "lines": 147,
+      "full_source_review_spans": [
+        [
+          1,
+          147
+        ]
+      ],
+      "child_object_groups_reviewed": 6,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 76,
+      "lone_lf_count": 71
+    },
+    "zircon_runtime_interface/src/resource/asset_uuid.rs": {
+      "before_sha256": "41f532cd7c564104ed340f38d4fbf9c535e0f76cfcbed57a5638d1e4d7b11bcc",
+      "reviewed_sha256": "41f532cd7c564104ed340f38d4fbf9c535e0f76cfcbed57a5638d1e4d7b11bcc",
+      "bytes": 3493,
+      "lines": 91,
+      "full_source_review_spans": [
+        [
+          1,
+          91
+        ]
+      ],
+      "child_object_groups_reviewed": 5,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 74,
+      "lone_lf_count": 17
+    },
+    "zircon_runtime_interface/src/resource/diagnostic.rs": {
+      "before_sha256": "8e3c4e0434c399d6b1babe7ff2e0021a37acba77d9d01733b3b3507acf4102ec",
+      "reviewed_sha256": "8e3c4e0434c399d6b1babe7ff2e0021a37acba77d9d01733b3b3507acf4102ec",
+      "bytes": 1637,
+      "lines": 45,
+      "full_source_review_spans": [
+        [
+          1,
+          45
+        ]
+      ],
+      "child_object_groups_reviewed": 3,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 45,
+      "lone_lf_count": 0
+    },
+    "zircon_runtime_interface/src/resource/locator.rs": {
+      "before_sha256": "10f27052fe2c97d6aea5becf18d535fb260e9da18d6f55223f74d70c15031971",
+      "reviewed_sha256": "3d79671710a7581b3d77ea4dea3fcc60cf5c55e7ef1133716e87f222a8a33947",
+      "bytes": 16268,
+      "lines": 420,
+      "full_source_review_spans": [
+        [
+          1,
+          420
+        ]
+      ],
+      "child_object_groups_reviewed": 15,
+      "child_block_groups_reviewed": 3,
+      "insertion_blocks": 6,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 420
+    },
+    "zircon_runtime_interface/src/resource/marker.rs": {
+      "before_sha256": "83fa80d55488377a4380eec9c238f1d8fec237e87178133f38d9c9450f085e8e",
+      "reviewed_sha256": "83fa80d55488377a4380eec9c238f1d8fec237e87178133f38d9c9450f085e8e",
+      "bytes": 7109,
+      "lines": 241,
+      "full_source_review_spans": [
+        [
+          1,
+          241
+        ]
+      ],
+      "child_object_groups_reviewed": 4,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 128,
+      "lone_lf_count": 113
+    },
+    "zircon_runtime_interface/src/resource/mod.rs": {
+      "before_sha256": "97ddf15a3b0480dbf017271b3f77c665c5304ecd80ef7ed4b392f04bcf5eaa91",
+      "reviewed_sha256": "97ddf15a3b0480dbf017271b3f77c665c5304ecd80ef7ed4b392f04bcf5eaa91",
+      "bytes": 2550,
+      "lines": 64,
+      "full_source_review_spans": [
+        [
+          1,
+          64
+        ]
+      ],
+      "child_object_groups_reviewed": 3,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 64
+    },
+    "zircon_runtime_interface/src/resource/resource_event.rs": {
+      "before_sha256": "69da593a15be5e956f0b07cadad3d390282cc6c0f786433624d31697b6425fe1",
+      "reviewed_sha256": "69da593a15be5e956f0b07cadad3d390282cc6c0f786433624d31697b6425fe1",
+      "bytes": 1487,
+      "lines": 29,
+      "full_source_review_spans": [
+        [
+          1,
+          29
+        ]
+      ],
+      "child_object_groups_reviewed": 1,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 23,
+      "lone_lf_count": 6
+    },
+    "zircon_runtime_interface/src/resource/resource_event_kind.rs": {
+      "before_sha256": "f73434b1fbef319e6e8fc3c311044e1834ab123cb910a5b7c718779350b4690f",
+      "reviewed_sha256": "f73434b1fbef319e6e8fc3c311044e1834ab123cb910a5b7c718779350b4690f",
+      "bytes": 834,
+      "lines": 23,
+      "full_source_review_spans": [
+        [
+          1,
+          23
+        ]
+      ],
+      "child_object_groups_reviewed": 1,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 23,
+      "lone_lf_count": 0
+    },
+    "zircon_runtime_interface/src/resource/resource_handle.rs": {
+      "before_sha256": "ecf47fb00dea0ab5cc7d4f309e14b4d793120467b47b5501addfa2a724aec76c",
+      "reviewed_sha256": "ecf47fb00dea0ab5cc7d4f309e14b4d793120467b47b5501addfa2a724aec76c",
+      "bytes": 1828,
+      "lines": 53,
+      "full_source_review_spans": [
+        [
+          1,
+          53
+        ]
+      ],
+      "child_object_groups_reviewed": 4,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 52,
+      "lone_lf_count": 1
+    },
+    "zircon_runtime_interface/src/resource/resource_id.rs": {
+      "before_sha256": "aa337d440e48acaefa3ef9ef20bf7f9c51cbc5b9dcb72957a31bc2afa37b7d3b",
+      "reviewed_sha256": "aa337d440e48acaefa3ef9ef20bf7f9c51cbc5b9dcb72957a31bc2afa37b7d3b",
+      "bytes": 4711,
+      "lines": 122,
+      "full_source_review_spans": [
+        [
+          1,
+          122
+        ]
+      ],
+      "child_object_groups_reviewed": 6,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 122
+    },
+    "zircon_runtime_interface/src/resource/resource_record.rs": {
+      "before_sha256": "5626c66e87481086582f32fd4a84f71f7d2b9bcf93eec50534117f2dab831d7c",
+      "reviewed_sha256": "5626c66e87481086582f32fd4a84f71f7d2b9bcf93eec50534117f2dab831d7c",
+      "bytes": 6563,
+      "lines": 173,
+      "full_source_review_spans": [
+        [
+          1,
+          173
+        ]
+      ],
+      "child_object_groups_reviewed": 7,
+      "child_block_groups_reviewed": 2,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 173
+    },
+    "zircon_runtime_interface/src/resource/stable_uuid.rs": {
+      "before_sha256": "7422afc73426b189bb2562603afbb9c57428c775e2a7e5fbc371570f318e5760",
+      "reviewed_sha256": "7422afc73426b189bb2562603afbb9c57428c775e2a7e5fbc371570f318e5760",
+      "bytes": 2754,
+      "lines": 57,
+      "full_source_review_spans": [
+        [
+          1,
+          57
+        ]
+      ],
+      "child_object_groups_reviewed": 6,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 57
+    },
+    "zircon_runtime_interface/src/resource/state.rs": {
+      "before_sha256": "2ad852af1fa6b477c4164311dcbbf235d391761fbf2077776d3cacab04fbe65c",
+      "reviewed_sha256": "2ad852af1fa6b477c4164311dcbbf235d391761fbf2077776d3cacab04fbe65c",
+      "bytes": 1077,
+      "lines": 23,
+      "full_source_review_spans": [
+        [
+          1,
+          23
+        ]
+      ],
+      "child_object_groups_reviewed": 1,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 23,
+      "lone_lf_count": 0
+    },
+    "zircon_runtime_interface/src/resource/tests/locator.rs": {
+      "before_sha256": "298db97622763b52a12b96649bf61bf5afaa1215db9f48ca6b6ac1841e034445",
+      "reviewed_sha256": "298db97622763b52a12b96649bf61bf5afaa1215db9f48ca6b6ac1841e034445",
+      "bytes": 474,
+      "lines": 11,
+      "full_source_review_spans": [
+        [
+          1,
+          11
+        ]
+      ],
+      "child_object_groups_reviewed": 1,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 11
+    },
+    "zircon_runtime_interface/src/resource/tests/stable_uuid.rs": {
+      "before_sha256": "6c67d6db7fe03618c6ad2d47fbacc33347369f2a0443147ab4502eb2f9a1b535",
+      "reviewed_sha256": "6c67d6db7fe03618c6ad2d47fbacc33347369f2a0443147ab4502eb2f9a1b535",
+      "bytes": 876,
+      "lines": 26,
+      "full_source_review_spans": [
+        [
+          1,
+          26
+        ]
+      ],
+      "child_object_groups_reviewed": 3,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 26
+    },
+    "zircon_runtime_interface/src/resource/untyped_handle.rs": {
+      "before_sha256": "039207d0fc4ca08ead2e8c8da2e078a7e5517617f1e81e220501c3d9d89e1c66",
+      "reviewed_sha256": "039207d0fc4ca08ead2e8c8da2e078a7e5517617f1e81e220501c3d9d89e1c66",
+      "bytes": 2112,
+      "lines": 55,
+      "full_source_review_spans": [
+        [
+          1,
+          55
+        ]
+      ],
+      "child_object_groups_reviewed": 3,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 54,
+      "lone_lf_count": 1
+    },
+    "zircon_runtime_interface/src/tests/resource_contracts.rs": {
+      "before_sha256": "c04b88a8cf503f2b447b9ee9aea7b62b1d736888f8ea8e20190a91a07abde84d",
+      "reviewed_sha256": "c04b88a8cf503f2b447b9ee9aea7b62b1d736888f8ea8e20190a91a07abde84d",
+      "bytes": 3144,
+      "lines": 76,
+      "full_source_review_spans": [
+        [
+          1,
+          76
+        ]
+      ],
+      "child_object_groups_reviewed": 4,
+      "child_block_groups_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 76
+    }
+  },
+  "root_actual_validation": {
+    "receipt": {
+      "chunk_id": "80ee37",
+      "exit_code": 0,
+      "initial_native_session": 1794,
+      "launch_chunk_id": "39b9de"
+    },
+    "same_source_pins_reverified_at_booking": true,
+    "raw_reverse_insertion_sources": 17,
+    "raw_reverse_insertion_blocks": 6,
+    "all_original_bytes_restored": true,
+    "normalized_HEAD_match": true,
+    "original_mixed_EOL_and_BOM_preserved": true,
+    "object_groups_range_checked": 73,
+    "block_groups_range_checked": 20,
+    "test_contracts_inspected": 8,
+    "test_contracts_executed": false,
+    "current_context_pins_checked": 10,
+    "unchanged_locator_source_predicates": 11,
+    "distinct_marker_to_kind_mapping": 26,
+    "checks": [
+      {
+        "name": "rustfmt17",
+        "exit_code": 0
+      },
+      {
+        "name": "diff17",
+        "exit_code": 0
+      },
+      {
+        "name": "staged17-empty",
+        "exit_code": 0
+      },
+      {
+        "name": "change-guard17",
+        "exit_code": 0,
+        "errors": 0,
+        "warnings": 0,
+        "changed_paths": 1,
+        "declared_paths": 17,
+        "opened_markers": [],
+        "closed_markers": []
+      }
+    ],
+    "patch_sha256": "0cfbb36170a0d95f6a5ac3d1bd03e72bcdc23da6c2eb8cb5a6c43582f0d48f9c",
+    "patch_bytes": 1201,
+    "Rust_tests_Cargo_build_generators_run": false
+  },
+  "managed_coordinator_format": "pending",
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

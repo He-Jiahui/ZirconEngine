@@ -1,6 +1,7 @@
 use super::{
-    AccountBroker, AccountError, ServiceRequest, oidc,
+    oidc,
     operations::{validate_id, validate_revision},
+    AccountBroker, AccountError, ServiceRequest,
 };
 use openidconnect::OAuth2TokenResponse;
 use serde::{Deserialize, Serialize};

@@ -56,6 +56,10 @@ pub type ZrNativeSystemInvokeFnV1 =
 /// # 返回值与参考
 /// 返回本次注册状态；实际解析、复制及保守访问见 Runtime 的
 /// `plugin/loader/host_api_adapter/ecs_registration/mod.rs::register_system_from_abi`。
+/// # 安全前提
+/// Runtime 的现有包装对空描述指针返回 `InvalidArgument`。非空 `registration` 须对齐并指向已初始化的完整记录。
+/// 被读取的字节和非零计数数组须覆盖声明长度，在本次同步调用期间保持有效、可读且不被并发修改；
+/// 每个切片须位于同一分配区。宿主的形状检查不能证明任意非空地址的存储有效。
 pub type ZrHostRegisterSystemFnV1 =
     unsafe extern "C" fn(ZrRuntimePluginHandle, *const ZrSystemRegistrationV1) -> ZrStatus;
 /// 同步读取 V2 描述，按 V4 策略核对访问 ID、授权及线程亲和后注册。
@@ -74,6 +78,10 @@ pub type ZrHostRegisterSystemFnV2 =
 /// # 参考
 /// Runtime 的 `host_api_adapter/ecs_registration/mod.rs::register_component_from_abi`
 /// 建立组件描述；`plugin/loader/ecs_registration/tests/cases.rs` 核对注册表结果。
+/// # 安全前提
+/// Runtime 的现有包装对空描述指针返回 `InvalidArgument`。非空 `descriptor` 须对齐并指向已初始化的完整记录。
+/// 被读取的 `type_id`、`display_name` 字节须分别位于同一分配区并覆盖声明长度，
+/// 在本次同步调用期间保持有效、可读且不被并发修改。
 pub type ZrHostRegisterComponentFnV1 =
     unsafe extern "C" fn(ZrRuntimePluginHandle, *const ZrComponentDescV1) -> ZrStatus;
 /// 以插件句柄和借用字节提交命令的槽位；当前注册适配器返回不支持且不消费载荷。

@@ -1,6 +1,6 @@
 macro_rules! detail_event_sources {
     ($($path:literal),+ $(,)?) => {
-        &[$(($path, include_str!(concat!("../ui_asset_editor_detail_events/", $path)))),+]
+        &[$(($path, include_str!(concat!("../asset_events/", $path)))),+]
     };
 }
 

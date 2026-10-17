@@ -38,7 +38,9 @@ pub(super) fn route_local_dock_pane<'a>(
         }
     }
     for document in scene.document_surfaces() {
-        if let Some(route) = route_document_dock_pane(presentation, document, x, y, mode, console_scroll_px) {
+        if let Some(route) =
+            route_document_dock_pane(presentation, document, x, y, mode, console_scroll_px)
+        {
             return Some(route);
         }
     }

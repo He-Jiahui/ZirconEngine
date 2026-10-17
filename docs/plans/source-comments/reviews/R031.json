@@ -1,0 +1,5497 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch_id": "R031",
+  "owner": "contracts_luna",
+  "review_role": "scoped-source-audit-and-necessary-comments-only-hub-protocol-and-recent-project-contracts",
+  "model": "gpt-6-luna",
+  "reasoning_effort": "max",
+  "created_at_utc": "2026-10-15T12:25:12.829735+00:00",
+  "status": "local-comments-complete-pending-main-independent-review",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "canonical_checkout": "E:/Git/ZirconEngine",
+  "write_authorization": {
+    "assignment_path": "docs/plans/source-comments/assignments.json",
+    "assignment_sha256_at_source_preflight": "93e8ec733f6a66ba15ab4def1f2e0ceb677f363b80a8ab69ffada6428764fae4",
+    "assignment_sha256_at_metadata_write": "88707155e9405d46864b2daa795a2c380df3a6a4e8f1e54597337f3df2a15dae",
+    "metadata_task": "R031",
+    "write_path": "docs/plans/source-comments/reviews/R031.json",
+    "audited_paths": [
+      "zircon_runtime_interface/src/hub_protocol/focus_ack.rs",
+      "zircon_runtime_interface/src/hub_protocol/focus_signal.rs",
+      "zircon_runtime_interface/src/hub_protocol/focus_signal_path.rs",
+      "zircon_runtime_interface/src/hub_protocol/mailbox.rs",
+      "zircon_runtime_interface/src/hub_protocol/mod.rs",
+      "zircon_runtime_interface/src/hub_protocol/outcome.rs",
+      "zircon_runtime_interface/src/hub_protocol/protocol_version/mod.rs",
+      "zircon_runtime_interface/src/hub_protocol/protocol_version/serde.rs",
+      "zircon_runtime_interface/src/hub_protocol/ready_receipt.rs",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/entry.rs",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/error.rs",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/identity.rs",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/mod.rs",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/registry.rs",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/storage_path.rs",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/store.rs",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/registry_perf.rs",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs",
+      "zircon_runtime_interface/src/hub_protocol/session_token/construct.rs",
+      "zircon_runtime_interface/src/hub_protocol/session_token/error.rs",
+      "zircon_runtime_interface/src/hub_protocol/session_token/format.rs",
+      "zircon_runtime_interface/src/hub_protocol/session_token/mod.rs",
+      "zircon_runtime_interface/src/hub_protocol/session_token/parse.rs",
+      "zircon_runtime_interface/src/hub_protocol/session_token/serde.rs",
+      "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+      "zircon_runtime_interface/src/hub_protocol/tests/ready_receipt.rs"
+    ],
+    "before_sha256": {
+      "zircon_runtime_interface/src/hub_protocol/focus_ack.rs": "562e40b4fc5e49594a698e0f5f0327b4db285339884ecbe9f4ca0eb0667646bd",
+      "zircon_runtime_interface/src/hub_protocol/focus_signal.rs": "9edf546a5df7c9b6e1f4524b99d7dcc54e11c71189d60c1217d51f9f85a88c5b",
+      "zircon_runtime_interface/src/hub_protocol/focus_signal_path.rs": "4c512a859aca33973f46aa37e4afe92307f99f4d502cbbe376e103d92700f3bc",
+      "zircon_runtime_interface/src/hub_protocol/mailbox.rs": "dff5a7c8d80b1585a6bb8b61382c5d67b9ef646e7978e6ba524fdc1fb0d3b78e",
+      "zircon_runtime_interface/src/hub_protocol/mod.rs": "36fb913a4097eb6b78e4ce059357cadcce13af7cb9f4184cd39fc8c9126bd01d",
+      "zircon_runtime_interface/src/hub_protocol/outcome.rs": "e67ff5fe2915b4535c272dd246736dd20142dc24337909da7289f049a17fa437",
+      "zircon_runtime_interface/src/hub_protocol/protocol_version/mod.rs": "78ef732788bc61041328fd277c432e72b641fd4f87a491de4d96707528fc0915",
+      "zircon_runtime_interface/src/hub_protocol/protocol_version/serde.rs": "31d8506374d5ccbc89d598164e17e7180294d7f684e37ee0dea08ff8e8d4a0db",
+      "zircon_runtime_interface/src/hub_protocol/ready_receipt.rs": "8cdd7c8424b0b618dad65f570f98fc456833925874ec1fa3112768eb6a3f00f7",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/entry.rs": "b760020e0d15a9cc3e218da3cb1f17d9c03b345758b54c4c8d9585c1f058db85",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/error.rs": "43dca2dd3f9baa459ed17ddb4c4be360b52bb7f63dfa061e7aa3e03e0c155806",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/identity.rs": "40e280dc5b0e1379925ee606ac641366b2c197dfe067b05623185f66e7f28224",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/mod.rs": "fb30c795b48c696261b55b20319ac284c15fd1ad62b81c701a075f67df609df5",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/registry.rs": "c1de8f37fb7db939bb2370d6a31da2e53ef9c137df12cce7f3d6213e44978ad1",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/storage_path.rs": "4c51ae0f164cadbd9457ad6286cc1eb6322c690a8577b8c017255108faa41397",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/store.rs": "32fab2b7e167a253ac85f4bb416fba46d674dec9c0e779ede6757e95c319d8b0",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/registry_perf.rs": "95e8487223b6a2c50645d504cdf934280138cfd2205c07afd8dbc2b36dc0dc19",
+      "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs": "1789f2733df034ed4c76123ea36b7141ada27c16728e039585cae1b99b33d16f",
+      "zircon_runtime_interface/src/hub_protocol/session_token/construct.rs": "fb495df376cdbbe1cc19f7aec28603678860c5d061b74a94ea9609d5b9066fe2",
+      "zircon_runtime_interface/src/hub_protocol/session_token/error.rs": "babc9d4147439cd572c8ecce028991a8cf94f86a97b953bc581f9c5fbdd11faa",
+      "zircon_runtime_interface/src/hub_protocol/session_token/format.rs": "baad241c37979373bc88ecbaf206d1a010bc9e6c07d717a43d12c5cd62e79df6",
+      "zircon_runtime_interface/src/hub_protocol/session_token/mod.rs": "4249685a1322c55f5266ded3eed823f4c744d196cdd356e9619d5f5e202056f9",
+      "zircon_runtime_interface/src/hub_protocol/session_token/parse.rs": "69395b58dde50d3595fcc95b14615da6934c333def9fc712ce1cd94c774a2568",
+      "zircon_runtime_interface/src/hub_protocol/session_token/serde.rs": "61f88616c05684b05a8d11cc9f51a3d1d740c8208e746b277f29bede3a6dfed6",
+      "zircon_runtime_interface/src/hub_protocol/tests/cases.rs": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+      "zircon_runtime_interface/src/hub_protocol/tests/ready_receipt.rs": "9f7c14df7815b706a0ac785a5a4fc8ac38886817a532ac8d28e4845a44406718"
+    },
+    "source_write_scope": "仅对精确授权源码路径添加解释性中文注释，并只写本审查 JSON。"
+  },
+  "scope": {
+    "source_count": 26,
+    "before_line_count": 2753,
+    "changed_source_count": 20,
+    "comment_insertion_blocks": 50,
+    "inserted_comment_lines": 51,
+    "files": [
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/focus_ack.rs",
+        "before_sha256": "562e40b4fc5e49594a698e0f5f0327b4db285339884ecbe9f4ca0eb0667646bd",
+        "current_sha256": "bf92bb91bb154535112780768481bd52570a3a09429cde50a4fa18aec8a09f51",
+        "before_reconstruction_sha256": "562e40b4fc5e49594a698e0f5f0327b4db285339884ecbe9f4ca0eb0667646bd",
+        "byte_reconstruction_matches": true,
+        "before_lines": 54,
+        "current_lines": 57,
+        "before_bytes": 1964,
+        "current_bytes": 2250,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 54
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 57,
+        "insertions": [
+          {
+            "line_range": [
+              8,
+              8
+            ],
+            "initial_byte_offset": 297,
+            "byte_offset": 297,
+            "byte_length": 92,
+            "sha256": "3b6473608cbe13eed99f8842c9a0deb9e5401b32eef41f3f1b14c096fe9844f0",
+            "exact_text": "/// 聚焦处置结果只描述本次请求终态，不表明目标进程后续仍存活。\n"
+          },
+          {
+            "line_range": [
+              20,
+              20
+            ],
+            "initial_byte_offset": 609,
+            "byte_offset": 701,
+            "byte_length": 101,
+            "sha256": "efb28515d25b19b8f66d646b79d94403d8e9ea76f9e00aa929ecac62f0d48dfc",
+            "exact_text": "/// 应答携带请求标识、目标实例、会话代和序号，供读取方核对关联关系。\n"
+          },
+          {
+            "line_range": [
+              35,
+              35
+            ],
+            "initial_byte_offset": 1056,
+            "byte_offset": 1249,
+            "byte_length": 93,
+            "sha256": "703f64bba127560176e6b32283e7d7ac92f8fb8c82c222f0199d3bbc907888b8",
+            "exact_text": "    /// 按请求关联身份、会话代和序号，由调用方选择应答处置结果。\n"
+          }
+        ],
+        "inserted_line_count": 3,
+        "audited_objects": [
+          "#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+          "#[serde(rename_all = \"snake_case\")]",
+          "pub enum HubEditorFocusAckDispositionV1 {",
+          "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+          "#[serde(deny_unknown_fields)]",
+          "pub struct HubEditorFocusAckV1 {",
+          "impl HubEditorFocusAckV1 {",
+          "pub fn focused(request: &HubEditorFocusSignalV1) -> Self {",
+          "pub fn from_request(",
+          "pub fn matches_request(&self, request: &HubEditorFocusSignalV1) -> bool {"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/focus_signal.rs",
+        "before_sha256": "9edf546a5df7c9b6e1f4524b99d7dcc54e11c71189d60c1217d51f9f85a88c5b",
+        "current_sha256": "06b7f16c0c8494ac98bb7f8f5b33df6cb05bd9e7fe02dd9fce31b5d98f4b704e",
+        "before_reconstruction_sha256": "9edf546a5df7c9b6e1f4524b99d7dcc54e11c71189d60c1217d51f9f85a88c5b",
+        "byte_reconstruction_matches": true,
+        "before_lines": 91,
+        "current_lines": 94,
+        "before_bytes": 3255,
+        "current_bytes": 3523,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 91
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 94,
+        "insertions": [
+          {
+            "line_range": [
+              13,
+              13
+            ],
+            "initial_byte_offset": 524,
+            "byte_offset": 524,
+            "byte_length": 95,
+            "sha256": "252fd08225d30d6353c8c9f26f033b824b09235f2756a0ecd3c7e5a15f4faa66",
+            "exact_text": "/// 携带目标实例、会话代、序号和截止时刻；读取方仍须执行 validate。\n"
+          },
+          {
+            "line_range": [
+              43,
+              43
+            ],
+            "initial_byte_offset": 1384,
+            "byte_offset": 1479,
+            "byte_length": 102,
+            "sha256": "431de36da23800b0cc31ff426ce4a26345ae64b85ce096d6531f9cfd433fb022",
+            "exact_text": "    /// 校验跨进程载荷字段和协议约束；成功反序列化本身不代表请求有效。\n"
+          },
+          {
+            "line_range": [
+              72,
+              72
+            ],
+            "initial_byte_offset": 2444,
+            "byte_offset": 2641,
+            "byte_length": 71,
+            "sha256": "87b81eed10b590b88aaecbbfc2761fbc66e0fa398809d9bea06a217487134536",
+            "exact_text": "/// 聚焦请求校验失败的分类，不携带项目路径诊断。\n"
+          }
+        ],
+        "inserted_line_count": 3,
+        "audited_objects": [
+          "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+          "#[serde(deny_unknown_fields)]",
+          "pub struct HubEditorFocusSignalV1 {",
+          "impl HubEditorFocusSignalV1 {",
+          "pub fn new(",
+          "pub fn validate(&self) -> Result<(), HubEditorFocusSignalError> {",
+          "pub const fn is_expired_at(&self, now_unix_millis: u64) -> bool {",
+          "const MAX_TARGET_INSTANCE_ID_BYTES: usize = 128;",
+          "#[derive(Clone, Copy, Debug, PartialEq, Eq)]",
+          "pub enum HubEditorFocusSignalError {",
+          "impl std::fmt::Display for HubEditorFocusSignalError {",
+          "fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {",
+          "impl std::error::Error for HubEditorFocusSignalError {}"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/focus_signal_path.rs",
+        "before_sha256": "4c512a859aca33973f46aa37e4afe92307f99f4d502cbbe376e103d92700f3bc",
+        "current_sha256": "516c2d08effdbd7657b42d78f1f0cc2db46a8fc0dc7a945506b1ee40eab3ae62",
+        "before_reconstruction_sha256": "4c512a859aca33973f46aa37e4afe92307f99f4d502cbbe376e103d92700f3bc",
+        "byte_reconstruction_matches": true,
+        "before_lines": 107,
+        "current_lines": 112,
+        "before_bytes": 3315,
+        "current_bytes": 3661,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 107
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 112,
+        "insertions": [
+          {
+            "line_range": [
+              1,
+              2
+            ],
+            "initial_byte_offset": 0,
+            "byte_offset": 0,
+            "byte_length": 178,
+            "sha256": "eb3878bd84a48795ce982c2b6eed996829cbf69757dce480e3408fe5f06f315a",
+            "exact_text": "//! 聚焦邮箱路径按项目目录和目标实例确定；辅助函数只拼接路径，不读写文件。\n//! Hub 与 Editor 必须使用相同规则定位请求和确认。\n"
+          },
+          {
+            "line_range": [
+              15,
+              15
+            ],
+            "initial_byte_offset": 361,
+            "byte_offset": 539,
+            "byte_length": 59,
+            "sha256": "b4b51bbcae35417d1bee9e02c9f808762f043dce42dcae585b50bbc2c55a8f9f",
+            "exact_text": "/// 返回目标实例对应的聚焦信号文件路径。\n"
+          },
+          {
+            "line_range": [
+              29,
+              29
+            ],
+            "initial_byte_offset": 810,
+            "byte_offset": 1047,
+            "byte_length": 53,
+            "sha256": "04655b269c555a49b4bd87844c084c535b4db3a45349178e6964879ba7a6df8c",
+            "exact_text": "/// 返回该实例接收顺序化请求的目录。\n"
+          },
+          {
+            "line_range": [
+              41,
+              41
+            ],
+            "initial_byte_offset": 1201,
+            "byte_offset": 1491,
+            "byte_length": 56,
+            "sha256": "0326180b613a89a7e55278ffa74216f67a506122852c87bb066d2f70d98d32a4",
+            "exact_text": "/// 返回与请求序号对应的确认文件路径。\n"
+          }
+        ],
+        "inserted_line_count": 5,
+        "audited_objects": [
+          "const ZIRCON_DIRECTORY: &str = \".zircon\";",
+          "const HUB_DIRECTORY: &str = \"hub\";",
+          "const FOCUS_DIRECTORY: &str = \"focus\";",
+          "const FOCUS_REQUESTS_DIRECTORY: &str = \"requests\";",
+          "const FOCUS_ACKS_DIRECTORY: &str = \"acks\";",
+          "pub fn hub_editor_focus_signal_path(",
+          "pub fn hub_editor_focus_request_directory(",
+          "pub fn hub_editor_focus_ack_path(",
+          "fn hub_editor_focus_instance_directory(",
+          "fn request_file_name(sequence: u64, request_id: HubSessionToken) -> String {",
+          "#[derive(Clone, Debug, PartialEq, Eq)]",
+          "pub struct HubEditorFocusSignalPathError {",
+          "impl HubEditorFocusSignalPathError {",
+          "fn new(instance_id: impl Into<String>) -> Self {",
+          "pub fn instance_id(&self) -> &str {",
+          "impl fmt::Display for HubEditorFocusSignalPathError {",
+          "fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {",
+          "impl std::error::Error for HubEditorFocusSignalPathError {}",
+          "fn validate_instance_id(instance_id: &str) -> Result<(), HubEditorFocusSignalPathError> {"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/mailbox.rs",
+        "before_sha256": "dff5a7c8d80b1585a6bb8b61382c5d67b9ef646e7978e6ba524fdc1fb0d3b78e",
+        "current_sha256": "e1f8d25deb19e2b2debb216c9cd68f7e4bf52961f4d05d9a5440382b7f1b78e6",
+        "before_reconstruction_sha256": "dff5a7c8d80b1585a6bb8b61382c5d67b9ef646e7978e6ba524fdc1fb0d3b78e",
+        "byte_reconstruction_matches": true,
+        "before_lines": 66,
+        "current_lines": 69,
+        "before_bytes": 2228,
+        "current_bytes": 2512,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 66
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 69,
+        "insertions": [
+          {
+            "line_range": [
+              1,
+              1
+            ],
+            "initial_byte_offset": 0,
+            "byte_offset": 0,
+            "byte_length": 112,
+            "sha256": "198a8d9ebf402e447251cf7a8652f7a32f970eaa7401ebc5ddef72c0a8b35986",
+            "exact_text": "//! 启动邮箱将终态结果绑定到一次 Hub 启动会话；文件路径及生命周期由宿主负责。\n"
+          },
+          {
+            "line_range": [
+              14,
+              14
+            ],
+            "initial_byte_offset": 371,
+            "byte_offset": 483,
+            "byte_length": 88,
+            "sha256": "91953ab991963952d14acf3cb682e4ed2da068e688e1018db4ec184941fa8a1f",
+            "exact_text": "/// Hub 读取后还须把 launch_session 与当前受监督启动令牌逐项比对。\n"
+          },
+          {
+            "line_range": [
+              46,
+              46
+            ],
+            "initial_byte_offset": 1472,
+            "byte_offset": 1672,
+            "byte_length": 84,
+            "sha256": "7ed507879775fb7495fd134dede9743886da0fb63d42dd071a0132bae459fb01",
+            "exact_text": "    /// 仅当载荷中的会话令牌与本次启动令牌一致时返回成功。\n"
+          }
+        ],
+        "inserted_line_count": 3,
+        "audited_objects": [
+          "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+          "#[serde(deny_unknown_fields)]",
+          "pub struct HubEditorMailboxV1 {",
+          "impl HubEditorMailboxV1 {",
+          "pub fn ready(launch_session: HubSessionToken, receipt: HubEditorReadyReceiptV1) -> Self {",
+          "pub fn failed(launch_session: HubSessionToken, code: HubEditorStartupFailureCodeV1) -> Self {",
+          "pub fn ready_receipt(&self) -> Option<&HubEditorReadyReceiptV1> {",
+          "pub fn validate_launch_session(",
+          "#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]",
+          "pub struct HubEditorMailboxSessionError;",
+          "impl fmt::Display for HubEditorMailboxSessionError {",
+          "fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {",
+          "impl std::error::Error for HubEditorMailboxSessionError {}"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/mod.rs",
+        "before_sha256": "36fb913a4097eb6b78e4ce059357cadcce13af7cb9f4184cd39fc8c9126bd01d",
+        "current_sha256": "36fb913a4097eb6b78e4ce059357cadcce13af7cb9f4184cd39fc8c9126bd01d",
+        "before_reconstruction_sha256": "36fb913a4097eb6b78e4ce059357cadcce13af7cb9f4184cd39fc8c9126bd01d",
+        "byte_reconstruction_matches": true,
+        "before_lines": 52,
+        "current_lines": 52,
+        "before_bytes": 2104,
+        "current_bytes": 2104,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 52
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 52,
+        "insertions": [],
+        "inserted_line_count": 0,
+        "audited_objects": [
+          "#[path = \"focus_ack.rs\"]",
+          "mod focus_ack;",
+          "#[path = \"focus_signal.rs\"]",
+          "mod focus_signal;",
+          "#[path = \"focus_signal_path.rs\"]",
+          "mod focus_signal_path;",
+          "#[path = \"mailbox.rs\"]",
+          "mod mailbox;",
+          "#[path = \"outcome.rs\"]",
+          "mod outcome;",
+          "#[path = \"protocol_version/mod.rs\"]",
+          "mod protocol_version;",
+          "#[path = \"ready_receipt.rs\"]",
+          "mod ready_receipt;",
+          "#[path = \"recent_projects/mod.rs\"]",
+          "mod recent_projects;",
+          "#[path = \"session_token/mod.rs\"]",
+          "mod session_token;",
+          "#[path = \"tests/cases.rs\"]",
+          "mod tests;"
+        ],
+        "decision": "no-change: 中英双语模块说明已覆盖 Hub/Editor 文件邮箱及启动、聚焦、最近项目协议职责。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/outcome.rs",
+        "before_sha256": "e67ff5fe2915b4535c272dd246736dd20142dc24337909da7289f049a17fa437",
+        "current_sha256": "058ee91451d6f59074fbbcbd9164c853b72e9ea611473d3115ae1170150dc92b",
+        "before_reconstruction_sha256": "e67ff5fe2915b4535c272dd246736dd20142dc24337909da7289f049a17fa437",
+        "byte_reconstruction_matches": true,
+        "before_lines": 24,
+        "current_lines": 26,
+        "before_bytes": 786,
+        "current_bytes": 964,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 24
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 26,
+        "insertions": [
+          {
+            "line_range": [
+              8,
+              8
+            ],
+            "initial_byte_offset": 298,
+            "byte_offset": 298,
+            "byte_length": 92,
+            "sha256": "f506087305e4216874c6dafc2eea1cce50ee850d8a8b909a238b0b4f177d88c9",
+            "exact_text": "/// 终态标签区分成功回执和失败类别，不把中间状态作为启动完成。\n"
+          },
+          {
+            "line_range": [
+              17,
+              17
+            ],
+            "initial_byte_offset": 612,
+            "byte_offset": 704,
+            "byte_length": 86,
+            "sha256": "5b86873e0843e365b4d0069e0a1c9767306ca1c3479f78b62eed36eec4d5f854",
+            "exact_text": "/// 可跨进程传输的失败分类；具体路径和本地诊断留在宿主侧。\n"
+          }
+        ],
+        "inserted_line_count": 2,
+        "audited_objects": [
+          "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+          "#[serde(tag = \"status\", rename_all = \"snake_case\", deny_unknown_fields)]",
+          "pub enum HubEditorLaunchOutcomeV1 {",
+          "#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+          "#[serde(rename_all = \"snake_case\")]",
+          "pub enum HubEditorStartupFailureCodeV1 {"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/protocol_version/mod.rs",
+        "before_sha256": "78ef732788bc61041328fd277c432e72b641fd4f87a491de4d96707528fc0915",
+        "current_sha256": "8fd07480907aba241ec4b2dc085103a3205d41815ca4dc64480ce9becce167fd",
+        "before_reconstruction_sha256": "78ef732788bc61041328fd277c432e72b641fd4f87a491de4d96707528fc0915",
+        "byte_reconstruction_matches": true,
+        "before_lines": 7,
+        "current_lines": 8,
+        "before_bytes": 198,
+        "current_bytes": 286,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 7
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 8,
+        "insertions": [
+          {
+            "line_range": [
+              7,
+              7
+            ],
+            "initial_byte_offset": 154,
+            "byte_offset": 154,
+            "byte_length": 88,
+            "sha256": "9d3d031368fcd10d6bdb815b6019066e7eb793e00cafae894f448373143b3bb9",
+            "exact_text": "/// 文件协议当前唯一接受的版本号；wire 形状变更时须同步升级。\n"
+          }
+        ],
+        "inserted_line_count": 1,
+        "audited_objects": [
+          "#[path = \"serde.rs\"]",
+          "mod serde;",
+          "pub const HUB_PROTOCOL_VERSION_V1: u32 = 1;"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/protocol_version/serde.rs",
+        "before_sha256": "31d8506374d5ccbc89d598164e17e7180294d7f684e37ee0dea08ff8e8d4a0db",
+        "current_sha256": "0d20e511e82664471af9d21d8a2293e1f7376b626d0f0931bcd7299f73d57321",
+        "before_reconstruction_sha256": "31d8506374d5ccbc89d598164e17e7180294d7f684e37ee0dea08ff8e8d4a0db",
+        "byte_reconstruction_matches": true,
+        "before_lines": 31,
+        "current_lines": 32,
+        "before_bytes": 973,
+        "current_bytes": 1060,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 31
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 32,
+        "insertions": [
+          {
+            "line_range": [
+              7,
+              7
+            ],
+            "initial_byte_offset": 248,
+            "byte_offset": 248,
+            "byte_length": 87,
+            "sha256": "aff93d5f3627224af5c4a2ad503ca66dede3ae2276bcc73095af7160a4a09af0",
+            "exact_text": "/// 零字段标记类型通过自定义 Serde 实现固定的协议版本 wire 值。\n"
+          }
+        ],
+        "inserted_line_count": 1,
+        "audited_objects": [
+          "#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]",
+          "pub struct HubProtocolVersionV1;",
+          "impl Serialize for HubProtocolVersionV1 {",
+          "fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>",
+          "impl<'de> Deserialize<'de> for HubProtocolVersionV1 {",
+          "fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/ready_receipt.rs",
+        "before_sha256": "8cdd7c8424b0b618dad65f570f98fc456833925874ec1fa3112768eb6a3f00f7",
+        "current_sha256": "d7c0cee08d06aa1c59169b1596ac5393f47afd8e2e28fae3a68b93c105908150",
+        "before_reconstruction_sha256": "8cdd7c8424b0b618dad65f570f98fc456833925874ec1fa3112768eb6a3f00f7",
+        "byte_reconstruction_matches": true,
+        "before_lines": 158,
+        "current_lines": 161,
+        "before_bytes": 5227,
+        "current_bytes": 5480,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 158
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 161,
+        "insertions": [
+          {
+            "line_range": [
+              12,
+              12
+            ],
+            "initial_byte_offset": 510,
+            "byte_offset": 510,
+            "byte_length": 92,
+            "sha256": "4d136dd678b61b56bc1c64e1c56713ecaedb17f9f3e2600fb01422375cd6fcf9",
+            "exact_text": "/// 启动里程碑使用固定枚举值，回执必须覆盖实现要求的全部阶段。\n"
+          },
+          {
+            "line_range": [
+              37,
+              37
+            ],
+            "initial_byte_offset": 1122,
+            "byte_offset": 1214,
+            "byte_length": 89,
+            "sha256": "2c0d0e399f0470c23d53f8b59aef59b0d61a5ca08085bfdf875e9c7812a26d56",
+            "exact_text": "/// 路径脱敏的完成证明；邮箱位置和会话令牌共同限定所属启动。\n"
+          },
+          {
+            "line_range": [
+              48,
+              48
+            ],
+            "initial_byte_offset": 1516,
+            "byte_offset": 1697,
+            "byte_length": 72,
+            "sha256": "54b44f16fe102f7eceae41cd3dcc1e525ec2ac2c836de96bada4ce39290794e9",
+            "exact_text": "    /// 从首帧呈现后的进程身份和阶段集合构造回执。\n"
+          }
+        ],
+        "inserted_line_count": 3,
+        "audited_objects": [
+          "#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]",
+          "#[serde(rename_all = \"snake_case\")]",
+          "pub enum HubEditorStartupMilestoneV1 {",
+          "impl HubEditorStartupMilestoneV1 {",
+          "const REQUIRED: [Self; 5] = [",
+          "fn required_set() -> BTreeSet<Self> {",
+          "#[derive(Clone, Debug, PartialEq, Eq, Serialize)]",
+          "pub struct HubEditorReadyReceiptV1 {",
+          "impl HubEditorReadyReceiptV1 {",
+          "pub fn after_first_present(",
+          "pub const fn editor_process_id(&self) -> u32 {",
+          "pub fn editor_instance_id(&self) -> &str {",
+          "pub const fn session_generation(&self) -> u64 {",
+          "pub fn milestones(&self) -> &BTreeSet<HubEditorStartupMilestoneV1> {",
+          "fn from_parts(",
+          "const MAX_EDITOR_INSTANCE_ID_BYTES: usize = 128;",
+          "#[derive(Deserialize)]",
+          "#[serde(deny_unknown_fields)]",
+          "struct HubEditorReadyReceiptWireV1 {",
+          "impl<'de> Deserialize<'de> for HubEditorReadyReceiptV1 {",
+          "fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>",
+          "#[derive(Clone, Copy, Debug, PartialEq, Eq)]",
+          "pub enum HubEditorReadyReceiptError {",
+          "impl fmt::Display for HubEditorReadyReceiptError {",
+          "fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {",
+          "impl std::error::Error for HubEditorReadyReceiptError {}",
+          "#[path = \"tests/ready_receipt.rs\"]",
+          "mod tests;"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/entry.rs",
+        "before_sha256": "b760020e0d15a9cc3e218da3cb1f17d9c03b345758b54c4c8d9585c1f058db85",
+        "current_sha256": "0a7305d836526a6728ea1c3fe6917c2105c21ba505bc2831695bf5586d829822",
+        "before_reconstruction_sha256": "b760020e0d15a9cc3e218da3cb1f17d9c03b345758b54c4c8d9585c1f058db85",
+        "byte_reconstruction_matches": true,
+        "before_lines": 39,
+        "current_lines": 41,
+        "before_bytes": 1039,
+        "current_bytes": 1209,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 39
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 41,
+        "insertions": [
+          {
+            "line_range": [
+              12,
+              12
+            ],
+            "initial_byte_offset": 313,
+            "byte_offset": 313,
+            "byte_length": 89,
+            "sha256": "ba4570bfb73105566c21a1515f4c275c4355b50ea2ab196d40cb0f4c2be2e813",
+            "exact_text": "/// 最近项目列表中的展示记录，不承载打开授权或稳定项目身份。\n"
+          },
+          {
+            "line_range": [
+              20,
+              20
+            ],
+            "initial_byte_offset": 472,
+            "byte_offset": 561,
+            "byte_length": 81,
+            "sha256": "5eda810dcc5cba0d38a8ed635af718147b4fd13ad852971e5cb9247b892bb42a",
+            "exact_text": "    /// 以展示名称、词法路径和最近访问逻辑时间创建记录。\n"
+          }
+        ],
+        "inserted_line_count": 2,
+        "audited_objects": [
+          "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+          "#[serde(deny_unknown_fields)]",
+          "pub struct HubRecentProjectV1 {",
+          "impl HubRecentProjectV1 {",
+          "pub fn new(",
+          "pub(crate) fn validate(&self) -> Result<(), HubRecentProjectsError> {"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/error.rs",
+        "before_sha256": "43dca2dd3f9baa459ed17ddb4c4be360b52bb7f63dfa061e7aa3e03e0c155806",
+        "current_sha256": "9020f490ab04d371e630448d8c9a78a40a3ffad7bc1cf3100ac5da64f021f76a",
+        "before_reconstruction_sha256": "43dca2dd3f9baa459ed17ddb4c4be360b52bb7f63dfa061e7aa3e03e0c155806",
+        "byte_reconstruction_matches": true,
+        "before_lines": 30,
+        "current_lines": 31,
+        "before_bytes": 1538,
+        "current_bytes": 1614,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 30
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 31,
+        "insertions": [
+          {
+            "line_range": [
+              5,
+              5
+            ],
+            "initial_byte_offset": 135,
+            "byte_offset": 135,
+            "byte_length": 76,
+            "sha256": "780e33097947ab5d0a3a1b2d5568101eb068c1a4faf03c57a762d3dae5a59428",
+            "exact_text": "/// 最近项目 DTO 的结构、路径键、容量和版本校验错误。\n"
+          }
+        ],
+        "inserted_line_count": 1,
+        "audited_objects": [
+          "#[derive(Clone, Debug, Error, PartialEq, Eq)]",
+          "pub enum HubRecentProjectsError {"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/identity.rs",
+        "before_sha256": "40e280dc5b0e1379925ee606ac641366b2c197dfe067b05623185f66e7f28224",
+        "current_sha256": "40e280dc5b0e1379925ee606ac641366b2c197dfe067b05623185f66e7f28224",
+        "before_reconstruction_sha256": "40e280dc5b0e1379925ee606ac641366b2c197dfe067b05623185f66e7f28224",
+        "byte_reconstruction_matches": true,
+        "before_lines": 36,
+        "current_lines": 36,
+        "before_bytes": 1351,
+        "current_bytes": 1351,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 36
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 36,
+        "insertions": [],
+        "inserted_line_count": 0,
+        "audited_objects": [
+          "pub fn hub_recent_project_path_key(path: impl AsRef<Path>) -> String {",
+          "pub fn windows_hub_recent_projects_mutex_name(recent_projects_path: impl AsRef<Path>) -> String {",
+          "fn looks_like_windows_drive_path(path: &str) -> bool {"
+        ],
+        "decision": "no-change: 已有说明涵盖纯词法路径键及 Windows 锁名规则。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/mod.rs",
+        "before_sha256": "fb30c795b48c696261b55b20319ac284c15fd1ad62b81c701a075f67df609df5",
+        "current_sha256": "fb30c795b48c696261b55b20319ac284c15fd1ad62b81c701a075f67df609df5",
+        "before_reconstruction_sha256": "fb30c795b48c696261b55b20319ac284c15fd1ad62b81c701a075f67df609df5",
+        "byte_reconstruction_matches": true,
+        "before_lines": 40,
+        "current_lines": 40,
+        "before_bytes": 1681,
+        "current_bytes": 1681,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 40
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 40,
+        "insertions": [],
+        "inserted_line_count": 0,
+        "audited_objects": [
+          "#[path = \"entry.rs\"]",
+          "mod entry;",
+          "#[path = \"error.rs\"]",
+          "mod error;",
+          "#[path = \"identity.rs\"]",
+          "mod identity;",
+          "#[path = \"registry.rs\"]",
+          "mod registry;",
+          "#[path = \"storage_path.rs\"]",
+          "mod storage_path;",
+          "#[path = \"store.rs\"]",
+          "mod store;"
+        ],
+        "decision": "no-change: 现有中文模块说明已解释 DTO、词法路径键、Store 事务和宿主身份预检边界。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/registry.rs",
+        "before_sha256": "c1de8f37fb7db939bb2370d6a31da2e53ef9c137df12cce7f3d6213e44978ad1",
+        "current_sha256": "87185a3e3066047c24b5d159a2c6547e05c4bc13fd5ce6f42c85e4e9de8d54ec",
+        "before_reconstruction_sha256": "c1de8f37fb7db939bb2370d6a31da2e53ef9c137df12cce7f3d6213e44978ad1",
+        "byte_reconstruction_matches": true,
+        "before_lines": 293,
+        "current_lines": 301,
+        "before_bytes": 10732,
+        "current_bytes": 11681,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 293
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 301,
+        "insertions": [
+          {
+            "line_range": [
+              19,
+              19
+            ],
+            "initial_byte_offset": 787,
+            "byte_offset": 787,
+            "byte_length": 101,
+            "sha256": "cb41804be98aac172ce8e855d4c2dca09388fd62d32489dd3c593f7b47af72a7",
+            "exact_text": "/// 删除墓碑保存被移除记录的路径键和逻辑时刻，供快照合并压制旧记录。\n"
+          },
+          {
+            "line_range": [
+              45,
+              45
+            ],
+            "initial_byte_offset": 1411,
+            "byte_offset": 1512,
+            "byte_length": 101,
+            "sha256": "fe552c30080675ea1b6d7df64a19933c488dd977683a0a1465f73e0491774283",
+            "exact_text": "/// Hub 与 Editor 共享的有界最近项目投影；项目身份和打开权限由宿主预检。\n"
+          },
+          {
+            "line_range": [
+              69,
+              69
+            ],
+            "initial_byte_offset": 2193,
+            "byte_offset": 2395,
+            "byte_length": 96,
+            "sha256": "56e6f2934f534d902c7c07bf7e01fe33b3bc56cea6dbc59e42b90c0f3e23606f",
+            "exact_text": "    /// 按规范化路径键新增或更新记录，并推进逻辑时间及文档 revision。\n"
+          },
+          {
+            "line_range": [
+              85,
+              85
+            ],
+            "initial_byte_offset": 2876,
+            "byte_offset": 3174,
+            "byte_length": 99,
+            "sha256": "d7f569c78f7a13aeb527946307e1a702a530ae0e8ae67d2988c06104a2aa36a8",
+            "exact_text": "    /// 移除路径并记录墓碑；失败时调用方应留意方法已执行的前置变更。\n"
+          },
+          {
+            "line_range": [
+              110,
+              110
+            ],
+            "initial_byte_offset": 3842,
+            "byte_offset": 4239,
+            "byte_length": 180,
+            "sha256": "324e4a99f3c657fc3a48dee262e2f037f5aff9a0ecaebef2e36f708eab2c0d11",
+            "exact_text": "        // BUG(CR-ZCA-R031-0002): revision 为 u64::MAX 时此处报错前项目和墓碑已修改；直接调用者保留部分变更，Store 克隆事务会丢弃失败副本。\n"
+          },
+          {
+            "line_range": [
+              116,
+              116
+            ],
+            "initial_byte_offset": 4006,
+            "byte_offset": 4583,
+            "byte_length": 105,
+            "sha256": "5996afba4ac2be8e6cfb46570539c30720fade36414c2308507d3772be820066",
+            "exact_text": "    /// 校验版本、容量、排序、时间关系并检查路径键重叠，不访问文件系统。\n"
+          },
+          {
+            "line_range": [
+              163,
+              163
+            ],
+            "initial_byte_offset": 5797,
+            "byte_offset": 6479,
+            "byte_length": 184,
+            "sha256": "6e01b9381bab52dd57bc844ff5558f3ba16094ffeb14fad42aa6ed9ecf2c54fd",
+            "exact_text": "            // BUG(CR-ZCA-R031-0001): 项目键已规范化而墓碑键仍是原文；大小写不同的同路径键可绕过重叠检查，record 的精确删除也会遗留墓碑。\n"
+          },
+          {
+            "line_range": [
+              269,
+              269
+            ],
+            "initial_byte_offset": 9565,
+            "byte_offset": 10431,
+            "byte_length": 83,
+            "sha256": "9d2dae451a7efd1f17997e1c5513f1d5d58ffbbb5ce0b1852d14c25f107f1a92",
+            "exact_text": "/// 合并快照时处理墓碑并确定排序，结果仍受条目上限约束。\n"
+          }
+        ],
+        "inserted_line_count": 8,
+        "audited_objects": [
+          "pub const HUB_RECENT_PROJECT_LIMIT_V1: usize = 8;",
+          "pub const HUB_RECENT_PROJECT_TOMBSTONE_LIMIT_V1: usize = 64;",
+          "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+          "#[serde(deny_unknown_fields)]",
+          "pub struct HubRecentProjectTombstoneV1 {",
+          "impl HubRecentProjectTombstoneV1 {",
+          "fn new(path_key: String, deleted_logical_unix_ms: u64) -> Self {",
+          "pub fn path_key(&self) -> &str {",
+          "pub const fn deleted_logical_unix_ms(&self) -> u64 {",
+          "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+          "#[serde(deny_unknown_fields)]",
+          "pub struct HubRecentProjectsV1 {",
+          "impl HubRecentProjectsV1 {",
+          "pub fn new(projects: impl IntoIterator<Item = HubRecentProjectV1>) -> Self {",
+          "pub const fn revision(&self) -> u64 {",
+          "pub fn record(",
+          "pub fn remove(&mut self, path: impl AsRef<Path>) -> Result<(), HubRecentProjectsError> {",
+          "pub fn validate(&self) -> Result<(), HubRecentProjectsError> {",
+          "fn bump_revision(&mut self) -> Result<(), HubRecentProjectsError> {",
+          "fn next_logical_timestamp(&self, proposed_unix_ms: u64) -> Result<u64, HubRecentProjectsError> {",
+          "fn next_tombstone_timestamp(&self) -> Result<u64, HubRecentProjectsError> {",
+          "fn latest_logical_timestamp(&self) -> Option<u64> {",
+          "fn canonicalize_tombstones(&mut self) {",
+          "fn is_canonical_successor(previous: &HubRecentProjectV1, current: &HubRecentProjectV1) -> bool {",
+          "fn is_canonical_tombstone_successor(",
+          "impl Default for HubRecentProjectsV1 {",
+          "fn default() -> Self {",
+          "pub fn merge_hub_recent_projects<I, J>(left: I, right: J) -> Vec<HubRecentProjectV1>",
+          "#[path = \"tests/registry_perf.rs\"]",
+          "mod performance_tests;"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/storage_path.rs",
+        "before_sha256": "4c51ae0f164cadbd9457ad6286cc1eb6322c690a8577b8c017255108faa41397",
+        "current_sha256": "b12bcabad876df75ddf710a546e70f19533ed00ed36a103110235a627ca5cf0c",
+        "before_reconstruction_sha256": "4c51ae0f164cadbd9457ad6286cc1eb6322c690a8577b8c017255108faa41397",
+        "byte_reconstruction_matches": true,
+        "before_lines": 37,
+        "current_lines": 41,
+        "before_bytes": 1480,
+        "current_bytes": 1811,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 37
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 41,
+        "insertions": [
+          {
+            "line_range": [
+              1,
+              1
+            ],
+            "initial_byte_offset": 0,
+            "byte_offset": 0,
+            "byte_length": 88,
+            "sha256": "0003dc7b1fe2fedcd5ca5d889a3ac4e931d6aae3c13ce8ec8e99536739629c9d",
+            "exact_text": "//! 最近项目文档、home 路径和跨进程写锁 sidecar 共用的路径规则。\n"
+          },
+          {
+            "line_range": [
+              8,
+              8
+            ],
+            "initial_byte_offset": 302,
+            "byte_offset": 390,
+            "byte_length": 71,
+            "sha256": "02b33da9415bd334948d6c079451f70db4b30114447c7b16132f91c50bacc0be",
+            "exact_text": "/// 返回宿主配置根目录下的共享最近项目文档路径。\n"
+          },
+          {
+            "line_range": [
+              24,
+              24
+            ],
+            "initial_byte_offset": 823,
+            "byte_offset": 982,
+            "byte_length": 98,
+            "sha256": "d626f29ef42154f624317c5179bc97294557d00b54f5bfc43f060ae2bb7edeaf",
+            "exact_text": "/// 使用显式 home 根目录构造最近项目文档路径，便于宿主隔离配置位置。\n"
+          },
+          {
+            "line_range": [
+              33,
+              33
+            ],
+            "initial_byte_offset": 1103,
+            "byte_offset": 1360,
+            "byte_length": 74,
+            "sha256": "c526d7ddf557cff9628a77bae9b51817bf604dba629921f4083a6813a00ea641",
+            "exact_text": "/// 返回非 Windows 主机用于独占写事务的 sidecar 锁路径。\n"
+          }
+        ],
+        "inserted_line_count": 4,
+        "audited_objects": [
+          "const HUB_RECENT_PROJECTS_FILE_NAME: &str = \"recent_projects.json\";",
+          "pub fn hub_recent_projects_path() -> PathBuf {",
+          "pub fn hub_recent_projects_path_from_home(home: impl AsRef<Path>) -> PathBuf {",
+          "pub fn hub_recent_projects_lock_path(recent_projects_path: impl AsRef<Path>) -> PathBuf {"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/store.rs",
+        "before_sha256": "32fab2b7e167a253ac85f4bb416fba46d674dec9c0e779ede6757e95c319d8b0",
+        "current_sha256": "a749dbc2744070c84341e39bbd9fe37431aa598a02487012d112b6760471c486",
+        "before_reconstruction_sha256": "32fab2b7e167a253ac85f4bb416fba46d674dec9c0e779ede6757e95c319d8b0",
+        "byte_reconstruction_matches": true,
+        "before_lines": 741,
+        "current_lines": 748,
+        "before_bytes": 26609,
+        "current_bytes": 27251,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 741,
+          "bare_lf": 0
+        },
+        "current_crlf": 748,
+        "current_bare_lf": 0,
+        "insertions": [
+          {
+            "line_range": [
+              1,
+              1
+            ],
+            "initial_byte_offset": 0,
+            "byte_offset": 0,
+            "byte_length": 96,
+            "sha256": "35f70b4e1db9e0710fa9384aa64f86a4ad944769f9d526ff0d6589443078f826",
+            "exact_text": "//! 使用有界平台锁执行最近项目文件的读取、校验、合并和原子替换。\r\n"
+          },
+          {
+            "line_range": [
+              23,
+              23
+            ],
+            "initial_byte_offset": 723,
+            "byte_offset": 819,
+            "byte_length": 86,
+            "sha256": "9249733639009fd4ed0331c73a8d3f9f0966d725d73f2580e7b3936928e0701b",
+            "exact_text": "/// 一次写事务的等待期限及可选取消探针；try-now 策略不排队。\r\n"
+          },
+          {
+            "line_range": [
+              112,
+              112
+            ],
+            "initial_byte_offset": 3316,
+            "byte_offset": 3498,
+            "byte_length": 85,
+            "sha256": "6372c9023de2859d821a9aa2d9d959203b4dcf11a4d8a6fc15d065e4bcd4ef40",
+            "exact_text": "/// Hub 与 Editor 共用的文件事务入口；闭包只修改锁内临时 DTO。\r\n"
+          },
+          {
+            "line_range": [
+              130,
+              130
+            ],
+            "initial_byte_offset": 3824,
+            "byte_offset": 4091,
+            "byte_length": 101,
+            "sha256": "884a167f90e66ea3cbeb02bab8c54adad3d13c336803182cee9880d5a7c55837",
+            "exact_text": "    /// 读取并校验可重建投影，损坏或缺失状态通过 disposition 返回给宿主。\r\n"
+          },
+          {
+            "line_range": [
+              171,
+              171
+            ],
+            "initial_byte_offset": 5903,
+            "byte_offset": 6271,
+            "byte_length": 92,
+            "sha256": "a280a7862631689ae327300335486d234c61529d16057aab37be71607277bebc",
+            "exact_text": "    /// 仅当磁盘 revision 仍匹配读取版本且来源干净时执行比较更新。\r\n"
+          },
+          {
+            "line_range": [
+              182,
+              182
+            ],
+            "initial_byte_offset": 6458,
+            "byte_offset": 6918,
+            "byte_length": 100,
+            "sha256": "2dd9f9cb2bbfd30205468f8a102a4d16e33501a9cf558a110d83139d65b9732a",
+            "exact_text": "    /// 在锁内修改临时副本；仅闭包成功且校验通过后才编码并原子替换。\r\n"
+          },
+          {
+            "line_range": [
+              635,
+              635
+            ],
+            "initial_byte_offset": 22879,
+            "byte_offset": 23439,
+            "byte_length": 82,
+            "sha256": "9bb6bda9d2863b7a7094fc0e2a2d4c2f861197fa04adcaee746d81de52d03876",
+            "exact_text": "/// 文件事务错误区分锁、读写、校验、取消与 revision 冲突。\r\n"
+          }
+        ],
+        "inserted_line_count": 7,
+        "audited_objects": [
+          "pub const HUB_RECENT_PROJECTS_MAX_ENCODED_BYTES_V1: usize = 256 * 1024;",
+          "const LEASE_POLL_INTERVAL: Duration = Duration::from_millis(5);",
+          "pub struct HubRecentProjectsWritePolicy<'a> {",
+          "impl<'a> HubRecentProjectsWritePolicy<'a> {",
+          "pub fn with_timeout(timeout: Duration) -> Self {",
+          "pub fn try_now() -> Self {",
+          "pub fn with_cancellation(mut self, cancellation: &'a dyn Fn() -> bool) -> Self {",
+          "fn cancelled(&self) -> bool {",
+          "#[derive(Clone, Copy, Debug, PartialEq, Eq)]",
+          "pub enum HubRecentProjectsLoadDisposition {",
+          "#[derive(Clone, Debug, PartialEq, Eq)]",
+          "pub struct HubRecentProjectsLoad {",
+          "impl HubRecentProjectsLoad {",
+          "pub fn registry(&self) -> &HubRecentProjectsV1 {",
+          "pub const fn disposition(&self) -> HubRecentProjectsLoadDisposition {",
+          "#[derive(Clone, Debug, PartialEq, Eq)]",
+          "pub struct HubRecentProjectsMutation {",
+          "impl HubRecentProjectsMutation {",
+          "pub fn registry(&self) -> &HubRecentProjectsV1 {",
+          "pub const fn previous_revision(&self) -> u64 {",
+          "pub const fn load_disposition(&self) -> HubRecentProjectsLoadDisposition {",
+          "pub fn quarantined_path(&self) -> Option<&Path> {",
+          "#[derive(Clone, Debug)]",
+          "pub struct HubRecentProjectsStore {",
+          "impl HubRecentProjectsStore {",
+          "pub fn new(registry_path: impl Into<PathBuf>) -> Self {",
+          "pub fn path(&self) -> &Path {",
+          "pub fn load_projection(&self) -> Result<HubRecentProjectsLoad, HubRecentProjectsStoreError> {",
+          "pub fn update(",
+          "pub fn compare_and_update(",
+          "pub fn compare_and_update_if_clean(",
+          "fn update_at_revision(",
+          "fn read_registry(path: &Path) -> Result<HubRecentProjectsV1, HubRecentProjectsStoreError> {",
+          "fn read_bounded(path: &Path) -> Result<Option<Vec<u8>>, HubRecentProjectsStoreError> {",
+          "fn write_registry(",
+          "fn quarantine_registry(path: &Path) -> Result<PathBuf, HubRecentProjectsStoreError> {",
+          "fn replace_file(temporary: &Path, target: &Path) -> io::Result<()> {",
+          "fn replace_file(temporary: &Path, target: &Path) -> io::Result<()> {",
+          "const REPLACEFILE_WRITE_THROUGH: u32 = 1;",
+          "fn wide_path(path: &Path) -> Vec<u16> {",
+          "fn sync_parent_directory(parent: &Path) -> io::Result<()> {",
+          "fn sync_parent_directory(_parent: &Path) -> io::Result<()> {",
+          "#[derive(Debug)]",
+          "struct HubRecentProjectsWriteLease {",
+          "#[derive(Debug)]",
+          "struct WindowsMutexHandle(isize);",
+          "impl Drop for WindowsMutexHandle {",
+          "fn drop(&mut self) {",
+          "impl HubRecentProjectsWriteLease {",
+          "fn acquire(",
+          "fn acquire_windows(",
+          "const WAIT_OBJECT_0: u32 = 0;",
+          "const WAIT_ABANDONED: u32 = 0x0000_0080;",
+          "const WAIT_TIMEOUT: u32 = 0x0000_0102;",
+          "fn acquire_unix(",
+          "const LOCK_EX: i32 = 2;",
+          "const LOCK_NB: i32 = 4;",
+          "fn deadline_remaining(",
+          "impl Drop for HubRecentProjectsWriteLease {",
+          "fn drop(&mut self) {",
+          "impl Drop for HubRecentProjectsWriteLease {",
+          "fn drop(&mut self) {",
+          "const LOCK_UN: i32 = 8;",
+          "#[derive(Debug, Error)]",
+          "pub enum HubRecentProjectsStoreError {",
+          "impl HubRecentProjectsStoreError {",
+          "fn requires_rebuild(&self) -> bool {",
+          "fn rebuild_disposition(&self) -> HubRecentProjectsLoadDisposition {",
+          "fn CreateMutexW(",
+          "fn WaitForSingleObject(handle: isize, milliseconds: u32) -> u32;",
+          "fn ReleaseMutex(handle: isize) -> i32;",
+          "fn CloseHandle(handle: isize) -> i32;",
+          "fn ReplaceFileW(",
+          "fn flock(file_descriptor: i32, operation: i32) -> i32;",
+          "#[path = \"tests/store.rs\"]",
+          "mod tests;"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/registry_perf.rs",
+        "before_sha256": "95e8487223b6a2c50645d504cdf934280138cfd2205c07afd8dbc2b36dc0dc19",
+        "current_sha256": "d7cda8c3c2dea5360f619daca588afdaa5c2e005cbd0c1f1e93b85478aeccd54",
+        "before_reconstruction_sha256": "95e8487223b6a2c50645d504cdf934280138cfd2205c07afd8dbc2b36dc0dc19",
+        "byte_reconstruction_matches": true,
+        "before_lines": 162,
+        "current_lines": 163,
+        "before_bytes": 6092,
+        "current_bytes": 6187,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 162
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 163,
+        "insertions": [
+          {
+            "line_range": [
+              1,
+              1
+            ],
+            "initial_byte_offset": 0,
+            "byte_offset": 0,
+            "byte_length": 95,
+            "sha256": "64ea0351defd677f548a3c01377a858519c60b54f7935b7a2efd431e67e55cc0",
+            "exact_text": "//! 对最近项目合并和有界排序做规模回归检查，不是运行时性能基准。\n"
+          }
+        ],
+        "inserted_line_count": 1,
+        "audited_objects": [
+          "const PERF_NAME_BYTES: usize = 16 * 1024;",
+          "const PERF_SAMPLE_PAIRS: usize = 21;",
+          "const PERF_VALIDATIONS_PER_SAMPLE: usize = 128;",
+          "#[test]",
+          "fn single_pass_validation_preserves_duplicate_error_precedence() {",
+          "#[test]",
+          "fn removal_persists_a_tombstone_and_a_later_open_advances_its_logical_clock() {",
+          "#[test]",
+          "fn canonical_validation_borrows_registry_entries() {",
+          "fn canonical_fixture() -> HubRecentProjectsV1 {",
+          "fn recent_project(name: &str, path: &str, last_opened_unix_ms: u64) -> HubRecentProjectV1 {",
+          "fn legacy_is_valid(registry: &HubRecentProjectsV1) -> bool {",
+          "fn measure_batch(mut measure: impl FnMut() -> bool) -> u64 {",
+          "fn percentile(samples: &[u64], percentile: usize) -> u64 {"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs",
+        "before_sha256": "1789f2733df034ed4c76123ea36b7141ada27c16728e039585cae1b99b33d16f",
+        "current_sha256": "a6decebb35ac7d1c6a1d4cbe68795cd0a54a93b9ebff45fe71120775f73db02f",
+        "before_reconstruction_sha256": "1789f2733df034ed4c76123ea36b7141ada27c16728e039585cae1b99b33d16f",
+        "byte_reconstruction_matches": true,
+        "before_lines": 240,
+        "current_lines": 241,
+        "before_bytes": 8342,
+        "current_bytes": 8432,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 240
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 241,
+        "insertions": [
+          {
+            "line_range": [
+              1,
+              1
+            ],
+            "initial_byte_offset": 0,
+            "byte_offset": 0,
+            "byte_length": 90,
+            "sha256": "b21b1e21741cac443fb0da4ef11b571326f4acd3628242c92e768f1a106852b1",
+            "exact_text": "//! 覆盖 Store 读改写、revision 比较、取消、损坏隔离和锁释放契约。\n"
+          }
+        ],
+        "inserted_line_count": 1,
+        "audited_objects": [
+          "#[test]",
+          "fn corrupted_projection_is_quarantined_and_rebuilt_during_a_bounded_mutation() {",
+          "#[test]",
+          "fn oversized_projection_is_nonblocking_and_reports_a_rebuild_requirement() {",
+          "#[test]",
+          "fn clean_compare_rejects_rebuildable_input_changed_after_observation() {",
+          "#[test]",
+          "fn expired_windows_writer_attempts_release_named_mutex_handles() {",
+          "fn GetCurrentProcess() -> *mut c_void;",
+          "fn GetProcessHandleCount(process: *mut c_void, count: *mut u32) -> i32;",
+          "fn process_handle_count() -> u32 {",
+          "#[test]",
+          "fn cancelled_write_returns_a_typed_terminal_error_before_mutation() {",
+          "#[test]",
+          "fn compare_and_update_rejects_a_stale_projection_revision() {",
+          "fn project() -> HubRecentProjectV1 {",
+          "fn temporary_root(label: &str) -> PathBuf {"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/session_token/construct.rs",
+        "before_sha256": "fb495df376cdbbe1cc19f7aec28603678860c5d061b74a94ea9609d5b9066fe2",
+        "current_sha256": "0a7ac29b5d8ea6a1496cb51befc7480d9ead0f7537a0cca4fb2f6e74d353c909",
+        "before_reconstruction_sha256": "fb495df376cdbbe1cc19f7aec28603678860c5d061b74a94ea9609d5b9066fe2",
+        "byte_reconstruction_matches": true,
+        "before_lines": 9,
+        "current_lines": 10,
+        "before_bytes": 133,
+        "current_bytes": 221,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 9
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 10,
+        "insertions": [
+          {
+            "line_range": [
+              6,
+              6
+            ],
+            "initial_byte_offset": 69,
+            "byte_offset": 69,
+            "byte_length": 88,
+            "sha256": "fafa8923e3d89eefdd2dc81a386627855c0c82275463c756e96fe00c58109a7d",
+            "exact_text": "    /// 生成 UUID v4 会话令牌，用来关联一次 Hub 启动与 Editor 回执。\n"
+          }
+        ],
+        "inserted_line_count": 1,
+        "audited_objects": [
+          "impl HubSessionToken {",
+          "pub fn new() -> Self {"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/session_token/error.rs",
+        "before_sha256": "babc9d4147439cd572c8ecce028991a8cf94f86a97b953bc581f9c5fbdd11faa",
+        "current_sha256": "e323d52ebfdd587ef78e9d9f571a602e0b73b0fff40209e4636615786765d023",
+        "before_reconstruction_sha256": "babc9d4147439cd572c8ecce028991a8cf94f86a97b953bc581f9c5fbdd11faa",
+        "byte_reconstruction_matches": true,
+        "before_lines": 12,
+        "current_lines": 13,
+        "before_bytes": 440,
+        "current_bytes": 511,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 12
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 13,
+        "insertions": [
+          {
+            "line_range": [
+              5,
+              5
+            ],
+            "initial_byte_offset": 130,
+            "byte_offset": 130,
+            "byte_length": 71,
+            "sha256": "3d05ed611fb31523be1038532d2c409529635ca754dd3f378afde49c9856b40e",
+            "exact_text": "/// 令牌文本不符合当前规范表示时返回的解析错误。\n"
+          }
+        ],
+        "inserted_line_count": 1,
+        "audited_objects": [
+          "#[derive(Debug, Error)]",
+          "pub enum HubSessionTokenParseError {"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/session_token/format.rs",
+        "before_sha256": "baad241c37979373bc88ecbaf206d1a010bc9e6c07d717a43d12c5cd62e79df6",
+        "current_sha256": "baad241c37979373bc88ecbaf206d1a010bc9e6c07d717a43d12c5cd62e79df6",
+        "before_reconstruction_sha256": "baad241c37979373bc88ecbaf206d1a010bc9e6c07d717a43d12c5cd62e79df6",
+        "byte_reconstruction_matches": true,
+        "before_lines": 9,
+        "current_lines": 9,
+        "before_bytes": 220,
+        "current_bytes": 220,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 9
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 9,
+        "insertions": [],
+        "inserted_line_count": 0,
+        "audited_objects": [
+          "impl Display for HubSessionToken {",
+          "fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {"
+        ],
+        "decision": "no-change: Display 直接委托 UUID 规范字符串格式，类型、解析和 Serde 说明已覆盖其 wire 关系。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/session_token/mod.rs",
+        "before_sha256": "4249685a1322c55f5266ded3eed823f4c744d196cdd356e9619d5f5e202056f9",
+        "current_sha256": "ec80b711fe128bd2b6c18c411d2296141f8ef3f6e18850c3050a5bc7eab99cc3",
+        "before_reconstruction_sha256": "4249685a1322c55f5266ded3eed823f4c744d196cdd356e9619d5f5e202056f9",
+        "byte_reconstruction_matches": true,
+        "before_lines": 18,
+        "current_lines": 20,
+        "before_bytes": 407,
+        "current_bytes": 589,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 18
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 20,
+        "insertions": [
+          {
+            "line_range": [
+              1,
+              1
+            ],
+            "initial_byte_offset": 0,
+            "byte_offset": 0,
+            "byte_length": 81,
+            "sha256": "9d0e4f6e5b06410ec5a3809e8172a416b926cc6492d2015560f094ebec0d67ef",
+            "exact_text": "//! Hub 启动会话在命令行和邮箱间传递的 UUID v4 不透明令牌。\n"
+          },
+          {
+            "line_range": [
+              19,
+              19
+            ],
+            "initial_byte_offset": 362,
+            "byte_offset": 443,
+            "byte_length": 101,
+            "sha256": "ad5961cfa2bb45602dafb9bac368c56c564db1cebab343878fbf27ae8098366b",
+            "exact_text": "/// 仅通过规范构造和解析入口创建的会话标识，内部 UUID 不向调用方暴露。\n"
+          }
+        ],
+        "inserted_line_count": 2,
+        "audited_objects": [
+          "#[path = \"construct.rs\"]",
+          "mod construct;",
+          "#[path = \"error.rs\"]",
+          "mod error;",
+          "#[path = \"format.rs\"]",
+          "mod format;",
+          "#[path = \"parse.rs\"]",
+          "mod parse;",
+          "#[path = \"serde.rs\"]",
+          "mod serde;",
+          "#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]",
+          "pub struct HubSessionToken(pub(super) Uuid);"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/session_token/parse.rs",
+        "before_sha256": "69395b58dde50d3595fcc95b14615da6934c333def9fc712ce1cd94c774a2568",
+        "current_sha256": "5c76503a625e9148cb07e5fe8e85b9fa87743de239a337dbe6881a5dba4ae15a",
+        "before_reconstruction_sha256": "69395b58dde50d3595fcc95b14615da6934c333def9fc712ce1cd94c774a2568",
+        "byte_reconstruction_matches": true,
+        "before_lines": 21,
+        "current_lines": 22,
+        "before_bytes": 690,
+        "current_bytes": 773,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 21
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 22,
+        "insertions": [
+          {
+            "line_range": [
+              7,
+              7
+            ],
+            "initial_byte_offset": 110,
+            "byte_offset": 110,
+            "byte_length": 83,
+            "sha256": "fb5390c4d384966048464f0b69e85a1234ade84460d09113ea4f9ac7d5baf50b",
+            "exact_text": "/// 只接受规范文本形式，避免同一 UUID 出现多种协议字符串。\n"
+          }
+        ],
+        "inserted_line_count": 1,
+        "audited_objects": [
+          "impl FromStr for HubSessionToken {",
+          "type Err = HubSessionTokenParseError;",
+          "fn from_str(value: &str) -> Result<Self, Self::Err> {"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/session_token/serde.rs",
+        "before_sha256": "61f88616c05684b05a8d11cc9f51a3d1d740c8208e746b277f29bede3a6dfed6",
+        "current_sha256": "1311d760f97131f53f50d3c88e8653b07fbe10603744f43280a1aab1c57ad193",
+        "before_reconstruction_sha256": "61f88616c05684b05a8d11cc9f51a3d1d740c8208e746b277f29bede3a6dfed6",
+        "byte_reconstruction_matches": true,
+        "before_lines": 22,
+        "current_lines": 23,
+        "before_bytes": 579,
+        "current_bytes": 665,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 22
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 23,
+        "insertions": [
+          {
+            "line_range": [
+              5,
+              5
+            ],
+            "initial_byte_offset": 93,
+            "byte_offset": 93,
+            "byte_length": 86,
+            "sha256": "7c01dea80178a9546a14ae8c4ad860655e28bba01d860cacbb3cf3cb89283a78",
+            "exact_text": "/// Serde 使用与 Display 相同的规范 UUID 字符串，不暴露内部表示。\n"
+          }
+        ],
+        "inserted_line_count": 1,
+        "audited_objects": [
+          "impl Serialize for HubSessionToken {",
+          "fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>",
+          "impl<'de> Deserialize<'de> for HubSessionToken {",
+          "fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>"
+        ],
+        "decision": "commented: 为缺少中文说明的 DTO、方法、错误、路径及测试入口补充职责、调用时机和约束；只新增注释。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "before_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "current_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "before_reconstruction_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "byte_reconstruction_matches": true,
+        "before_lines": 430,
+        "current_lines": 430,
+        "before_bytes": 14922,
+        "current_bytes": 14922,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 430
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 430,
+        "insertions": [],
+        "inserted_line_count": 0,
+        "audited_objects": [
+          "#[test]",
+          "fn hub_session_token_round_trips_as_a_uuid_without_path_characters() {",
+          "#[test]",
+          "fn hub_session_token_rejects_noncanonical_or_non_v4_values() {",
+          "#[test]",
+          "fn ready_mailbox_v1_round_trips_with_the_canonical_payload_shape() {",
+          "#[test]",
+          "fn stale_mailbox_protocol_is_rejected_at_the_decode_boundary() {",
+          "#[test]",
+          "fn failed_mailbox_v1_round_trips_with_the_canonical_payload_shape() {",
+          "#[test]",
+          "fn mailbox_v1_rejects_legacy_or_extra_outcome_fields() {",
+          "#[test]",
+          "fn mailbox_v1_rejects_unknown_root_fields() {",
+          "#[test]",
+          "fn focus_signal_v1_round_trips_without_session_lock_fields() {",
+          "#[test]",
+          "fn focus_signal_v1_rejects_unknown_or_legacy_lock_fields() {",
+          "#[test]",
+          "fn focus_ack_v1_binds_the_exact_request_without_project_paths() {",
+          "#[test]",
+          "fn focus_signal_path_is_shared_and_rejects_an_unsafe_instance_id() {",
+          "#[test]",
+          "fn recent_projects_v1_is_versioned_deduplicated_and_bounded() {",
+          "#[test]",
+          "fn recent_projects_v1_assigns_monotonic_revisions_to_effective_mutations() {",
+          "#[test]",
+          "fn recent_projects_v1_preserves_a_new_open_when_wall_clock_moves_backward() {",
+          "#[test]",
+          "fn recent_projects_v1_uses_the_shared_home_path_and_strict_wire_shape() {",
+          "fn recent_project("
+        ],
+        "decision": "no-change: 中文模块说明与测试名已覆盖严格 wire、session 绑定、revision、墓碑、路径规范化和容量。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/ready_receipt.rs",
+        "before_sha256": "9f7c14df7815b706a0ac785a5a4fc8ac38886817a532ac8d28e4845a44406718",
+        "current_sha256": "9f7c14df7815b706a0ac785a5a4fc8ac38886817a532ac8d28e4845a44406718",
+        "before_reconstruction_sha256": "9f7c14df7815b706a0ac785a5a4fc8ac38886817a532ac8d28e4845a44406718",
+        "byte_reconstruction_matches": true,
+        "before_lines": 24,
+        "current_lines": 24,
+        "before_bytes": 1043,
+        "current_bytes": 1043,
+        "current_bom": false,
+        "before_eol": {
+          "crlf": 0,
+          "bare_lf": 24
+        },
+        "current_crlf": 0,
+        "current_bare_lf": 24,
+        "insertions": [],
+        "inserted_line_count": 0,
+        "audited_objects": [
+          "#[test]",
+          "fn receipt_after_first_present_contains_every_required_milestone() {",
+          "#[test]",
+          "fn deserialize_rejects_partial_or_path_bearing_ready_receipts() {"
+        ],
+        "decision": "no-change: 现有中文测试说明已列明反序列化和启动阶段集合契约。"
+      }
+    ],
+    "audit_boundary": "26 个授权文件全文；父模块及 Hub/Editor 调用方和 Serde 实现均为只读上下文。"
+  },
+  "guidance": [
+    {
+      "path": "docs/plans/source-comments/01-standard.md",
+      "sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3",
+      "use": "逐对象与语句块审查；解释以实际调用、trait/Serde 和测试为证据。"
+    },
+    {
+      "path": ".codex/skills/zircon-dev/SKILL.md",
+      "sha256": "2d699cd12492709facc84079838a836356e4f7dd8b7bac475b65d10a804ed957",
+      "use": "范围受限的 Rust 注释和静态验证；本批未构建。"
+    }
+  ],
+  "object_anchors": {
+    "line_semantics": "行段是当前源中声明或属性起始锚点；全文审阅完整 impl 和连续控制分支，单行锚点不冒充完整实现范围。evidence 为实际源行。",
+    "files": [
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/focus_ack.rs",
+        "line_count": 57,
+        "objects": [
+          {
+            "name": "#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+            "line_range": [
+              6,
+              6
+            ],
+            "evidence": "#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]"
+          },
+          {
+            "name": "#[serde(rename_all = \"snake_case\")]",
+            "line_range": [
+              7,
+              7
+            ],
+            "evidence": "#[serde(rename_all = \"snake_case\")]"
+          },
+          {
+            "name": "pub enum HubEditorFocusAckDispositionV1 {",
+            "line_range": [
+              9,
+              9
+            ],
+            "evidence": "pub enum HubEditorFocusAckDispositionV1 {"
+          },
+          {
+            "name": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+            "line_range": [
+              18,
+              18
+            ],
+            "evidence": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]"
+          },
+          {
+            "name": "#[serde(deny_unknown_fields)]",
+            "line_range": [
+              19,
+              19
+            ],
+            "evidence": "#[serde(deny_unknown_fields)]"
+          },
+          {
+            "name": "pub struct HubEditorFocusAckV1 {",
+            "line_range": [
+              21,
+              21
+            ],
+            "evidence": "pub struct HubEditorFocusAckV1 {"
+          },
+          {
+            "name": "impl HubEditorFocusAckV1 {",
+            "line_range": [
+              30,
+              30
+            ],
+            "evidence": "impl HubEditorFocusAckV1 {"
+          },
+          {
+            "name": "pub fn focused(request: &HubEditorFocusSignalV1) -> Self {",
+            "line_range": [
+              31,
+              31
+            ],
+            "evidence": "pub fn focused(request: &HubEditorFocusSignalV1) -> Self {"
+          },
+          {
+            "name": "pub fn from_request(",
+            "line_range": [
+              36,
+              36
+            ],
+            "evidence": "pub fn from_request("
+          },
+          {
+            "name": "pub fn matches_request(&self, request: &HubEditorFocusSignalV1) -> bool {",
+            "line_range": [
+              51,
+              51
+            ],
+            "evidence": "pub fn matches_request(&self, request: &HubEditorFocusSignalV1) -> bool {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/focus_signal.rs",
+        "line_count": 94,
+        "objects": [
+          {
+            "name": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+            "line_range": [
+              11,
+              11
+            ],
+            "evidence": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]"
+          },
+          {
+            "name": "#[serde(deny_unknown_fields)]",
+            "line_range": [
+              12,
+              12
+            ],
+            "evidence": "#[serde(deny_unknown_fields)]"
+          },
+          {
+            "name": "pub struct HubEditorFocusSignalV1 {",
+            "line_range": [
+              14,
+              14
+            ],
+            "evidence": "pub struct HubEditorFocusSignalV1 {"
+          },
+          {
+            "name": "impl HubEditorFocusSignalV1 {",
+            "line_range": [
+              23,
+              23
+            ],
+            "evidence": "impl HubEditorFocusSignalV1 {"
+          },
+          {
+            "name": "pub fn new(",
+            "line_range": [
+              24,
+              24
+            ],
+            "evidence": "pub fn new("
+          },
+          {
+            "name": "pub fn validate(&self) -> Result<(), HubEditorFocusSignalError> {",
+            "line_range": [
+              44,
+              44
+            ],
+            "evidence": "pub fn validate(&self) -> Result<(), HubEditorFocusSignalError> {"
+          },
+          {
+            "name": "pub const fn is_expired_at(&self, now_unix_millis: u64) -> bool {",
+            "line_range": [
+              63,
+              63
+            ],
+            "evidence": "pub const fn is_expired_at(&self, now_unix_millis: u64) -> bool {"
+          },
+          {
+            "name": "const MAX_TARGET_INSTANCE_ID_BYTES: usize = 128;",
+            "line_range": [
+              68,
+              68
+            ],
+            "evidence": "const MAX_TARGET_INSTANCE_ID_BYTES: usize = 128;"
+          },
+          {
+            "name": "#[derive(Clone, Copy, Debug, PartialEq, Eq)]",
+            "line_range": [
+              71,
+              71
+            ],
+            "evidence": "#[derive(Clone, Copy, Debug, PartialEq, Eq)]"
+          },
+          {
+            "name": "pub enum HubEditorFocusSignalError {",
+            "line_range": [
+              73,
+              73
+            ],
+            "evidence": "pub enum HubEditorFocusSignalError {"
+          },
+          {
+            "name": "impl std::fmt::Display for HubEditorFocusSignalError {",
+            "line_range": [
+              80,
+              80
+            ],
+            "evidence": "impl std::fmt::Display for HubEditorFocusSignalError {"
+          },
+          {
+            "name": "fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {",
+            "line_range": [
+              81,
+              81
+            ],
+            "evidence": "fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {"
+          },
+          {
+            "name": "impl std::error::Error for HubEditorFocusSignalError {}",
+            "line_range": [
+              94,
+              94
+            ],
+            "evidence": "impl std::error::Error for HubEditorFocusSignalError {}"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/focus_signal_path.rs",
+        "line_count": 112,
+        "objects": [
+          {
+            "name": "const ZIRCON_DIRECTORY: &str = \".zircon\";",
+            "line_range": [
+              8,
+              8
+            ],
+            "evidence": "const ZIRCON_DIRECTORY: &str = \".zircon\";"
+          },
+          {
+            "name": "const HUB_DIRECTORY: &str = \"hub\";",
+            "line_range": [
+              9,
+              9
+            ],
+            "evidence": "const HUB_DIRECTORY: &str = \"hub\";"
+          },
+          {
+            "name": "const FOCUS_DIRECTORY: &str = \"focus\";",
+            "line_range": [
+              10,
+              10
+            ],
+            "evidence": "const FOCUS_DIRECTORY: &str = \"focus\";"
+          },
+          {
+            "name": "const FOCUS_REQUESTS_DIRECTORY: &str = \"requests\";",
+            "line_range": [
+              11,
+              11
+            ],
+            "evidence": "const FOCUS_REQUESTS_DIRECTORY: &str = \"requests\";"
+          },
+          {
+            "name": "const FOCUS_ACKS_DIRECTORY: &str = \"acks\";",
+            "line_range": [
+              12,
+              12
+            ],
+            "evidence": "const FOCUS_ACKS_DIRECTORY: &str = \"acks\";"
+          },
+          {
+            "name": "pub fn hub_editor_focus_signal_path(",
+            "line_range": [
+              16,
+              16
+            ],
+            "evidence": "pub fn hub_editor_focus_signal_path("
+          },
+          {
+            "name": "pub fn hub_editor_focus_request_directory(",
+            "line_range": [
+              30,
+              30
+            ],
+            "evidence": "pub fn hub_editor_focus_request_directory("
+          },
+          {
+            "name": "pub fn hub_editor_focus_ack_path(",
+            "line_range": [
+              42,
+              42
+            ],
+            "evidence": "pub fn hub_editor_focus_ack_path("
+          },
+          {
+            "name": "fn hub_editor_focus_instance_directory(",
+            "line_range": [
+              55,
+              55
+            ],
+            "evidence": "fn hub_editor_focus_instance_directory("
+          },
+          {
+            "name": "fn request_file_name(sequence: u64, request_id: HubSessionToken) -> String {",
+            "line_range": [
+              68,
+              68
+            ],
+            "evidence": "fn request_file_name(sequence: u64, request_id: HubSessionToken) -> String {"
+          },
+          {
+            "name": "#[derive(Clone, Debug, PartialEq, Eq)]",
+            "line_range": [
+              74,
+              74
+            ],
+            "evidence": "#[derive(Clone, Debug, PartialEq, Eq)]"
+          },
+          {
+            "name": "pub struct HubEditorFocusSignalPathError {",
+            "line_range": [
+              75,
+              75
+            ],
+            "evidence": "pub struct HubEditorFocusSignalPathError {"
+          },
+          {
+            "name": "impl HubEditorFocusSignalPathError {",
+            "line_range": [
+              79,
+              79
+            ],
+            "evidence": "impl HubEditorFocusSignalPathError {"
+          },
+          {
+            "name": "fn new(instance_id: impl Into<String>) -> Self {",
+            "line_range": [
+              80,
+              80
+            ],
+            "evidence": "fn new(instance_id: impl Into<String>) -> Self {"
+          },
+          {
+            "name": "pub fn instance_id(&self) -> &str {",
+            "line_range": [
+              86,
+              86
+            ],
+            "evidence": "pub fn instance_id(&self) -> &str {"
+          },
+          {
+            "name": "impl fmt::Display for HubEditorFocusSignalPathError {",
+            "line_range": [
+              91,
+              91
+            ],
+            "evidence": "impl fmt::Display for HubEditorFocusSignalPathError {"
+          },
+          {
+            "name": "fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {",
+            "line_range": [
+              92,
+              92
+            ],
+            "evidence": "fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {"
+          },
+          {
+            "name": "impl std::error::Error for HubEditorFocusSignalPathError {}",
+            "line_range": [
+              101,
+              101
+            ],
+            "evidence": "impl std::error::Error for HubEditorFocusSignalPathError {}"
+          },
+          {
+            "name": "fn validate_instance_id(instance_id: &str) -> Result<(), HubEditorFocusSignalPathError> {",
+            "line_range": [
+              103,
+              103
+            ],
+            "evidence": "fn validate_instance_id(instance_id: &str) -> Result<(), HubEditorFocusSignalPathError> {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/mailbox.rs",
+        "line_count": 69,
+        "objects": [
+          {
+            "name": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+            "line_range": [
+              12,
+              12
+            ],
+            "evidence": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]"
+          },
+          {
+            "name": "#[serde(deny_unknown_fields)]",
+            "line_range": [
+              13,
+              13
+            ],
+            "evidence": "#[serde(deny_unknown_fields)]"
+          },
+          {
+            "name": "pub struct HubEditorMailboxV1 {",
+            "line_range": [
+              15,
+              15
+            ],
+            "evidence": "pub struct HubEditorMailboxV1 {"
+          },
+          {
+            "name": "impl HubEditorMailboxV1 {",
+            "line_range": [
+              21,
+              21
+            ],
+            "evidence": "impl HubEditorMailboxV1 {"
+          },
+          {
+            "name": "pub fn ready(launch_session: HubSessionToken, receipt: HubEditorReadyReceiptV1) -> Self {",
+            "line_range": [
+              22,
+              22
+            ],
+            "evidence": "pub fn ready(launch_session: HubSessionToken, receipt: HubEditorReadyReceiptV1) -> Self {"
+          },
+          {
+            "name": "pub fn failed(launch_session: HubSessionToken, code: HubEditorStartupFailureCodeV1) -> Self {",
+            "line_range": [
+              30,
+              30
+            ],
+            "evidence": "pub fn failed(launch_session: HubSessionToken, code: HubEditorStartupFailureCodeV1) -> Self {"
+          },
+          {
+            "name": "pub fn ready_receipt(&self) -> Option<&HubEditorReadyReceiptV1> {",
+            "line_range": [
+              38,
+              38
+            ],
+            "evidence": "pub fn ready_receipt(&self) -> Option<&HubEditorReadyReceiptV1> {"
+          },
+          {
+            "name": "pub fn validate_launch_session(",
+            "line_range": [
+              47,
+              47
+            ],
+            "evidence": "pub fn validate_launch_session("
+          },
+          {
+            "name": "#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]",
+            "line_range": [
+              60,
+              60
+            ],
+            "evidence": "#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]"
+          },
+          {
+            "name": "pub struct HubEditorMailboxSessionError;",
+            "line_range": [
+              61,
+              61
+            ],
+            "evidence": "pub struct HubEditorMailboxSessionError;"
+          },
+          {
+            "name": "impl fmt::Display for HubEditorMailboxSessionError {",
+            "line_range": [
+              63,
+              63
+            ],
+            "evidence": "impl fmt::Display for HubEditorMailboxSessionError {"
+          },
+          {
+            "name": "fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {",
+            "line_range": [
+              64,
+              64
+            ],
+            "evidence": "fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {"
+          },
+          {
+            "name": "impl std::error::Error for HubEditorMailboxSessionError {}",
+            "line_range": [
+              69,
+              69
+            ],
+            "evidence": "impl std::error::Error for HubEditorMailboxSessionError {}"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/mod.rs",
+        "line_count": 52,
+        "objects": [
+          {
+            "name": "#[path = \"focus_ack.rs\"]",
+            "line_range": [
+              6,
+              6
+            ],
+            "evidence": "#[path = \"focus_ack.rs\"]"
+          },
+          {
+            "name": "mod focus_ack;",
+            "line_range": [
+              7,
+              7
+            ],
+            "evidence": "mod focus_ack;"
+          },
+          {
+            "name": "#[path = \"focus_signal.rs\"]",
+            "line_range": [
+              8,
+              8
+            ],
+            "evidence": "#[path = \"focus_signal.rs\"]"
+          },
+          {
+            "name": "mod focus_signal;",
+            "line_range": [
+              9,
+              9
+            ],
+            "evidence": "mod focus_signal;"
+          },
+          {
+            "name": "#[path = \"focus_signal_path.rs\"]",
+            "line_range": [
+              10,
+              10
+            ],
+            "evidence": "#[path = \"focus_signal_path.rs\"]"
+          },
+          {
+            "name": "mod focus_signal_path;",
+            "line_range": [
+              11,
+              11
+            ],
+            "evidence": "mod focus_signal_path;"
+          },
+          {
+            "name": "#[path = \"mailbox.rs\"]",
+            "line_range": [
+              12,
+              12
+            ],
+            "evidence": "#[path = \"mailbox.rs\"]"
+          },
+          {
+            "name": "mod mailbox;",
+            "line_range": [
+              13,
+              13
+            ],
+            "evidence": "mod mailbox;"
+          },
+          {
+            "name": "#[path = \"outcome.rs\"]",
+            "line_range": [
+              14,
+              14
+            ],
+            "evidence": "#[path = \"outcome.rs\"]"
+          },
+          {
+            "name": "mod outcome;",
+            "line_range": [
+              15,
+              15
+            ],
+            "evidence": "mod outcome;"
+          },
+          {
+            "name": "#[path = \"protocol_version/mod.rs\"]",
+            "line_range": [
+              16,
+              16
+            ],
+            "evidence": "#[path = \"protocol_version/mod.rs\"]"
+          },
+          {
+            "name": "mod protocol_version;",
+            "line_range": [
+              17,
+              17
+            ],
+            "evidence": "mod protocol_version;"
+          },
+          {
+            "name": "#[path = \"ready_receipt.rs\"]",
+            "line_range": [
+              18,
+              18
+            ],
+            "evidence": "#[path = \"ready_receipt.rs\"]"
+          },
+          {
+            "name": "mod ready_receipt;",
+            "line_range": [
+              19,
+              19
+            ],
+            "evidence": "mod ready_receipt;"
+          },
+          {
+            "name": "#[path = \"recent_projects/mod.rs\"]",
+            "line_range": [
+              20,
+              20
+            ],
+            "evidence": "#[path = \"recent_projects/mod.rs\"]"
+          },
+          {
+            "name": "mod recent_projects;",
+            "line_range": [
+              21,
+              21
+            ],
+            "evidence": "mod recent_projects;"
+          },
+          {
+            "name": "#[path = \"session_token/mod.rs\"]",
+            "line_range": [
+              22,
+              22
+            ],
+            "evidence": "#[path = \"session_token/mod.rs\"]"
+          },
+          {
+            "name": "mod session_token;",
+            "line_range": [
+              23,
+              23
+            ],
+            "evidence": "mod session_token;"
+          },
+          {
+            "name": "#[path = \"tests/cases.rs\"]",
+            "line_range": [
+              26,
+              26
+            ],
+            "evidence": "#[path = \"tests/cases.rs\"]"
+          },
+          {
+            "name": "mod tests;",
+            "line_range": [
+              27,
+              27
+            ],
+            "evidence": "mod tests;"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/outcome.rs",
+        "line_count": 26,
+        "objects": [
+          {
+            "name": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+            "line_range": [
+              6,
+              6
+            ],
+            "evidence": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]"
+          },
+          {
+            "name": "#[serde(tag = \"status\", rename_all = \"snake_case\", deny_unknown_fields)]",
+            "line_range": [
+              7,
+              7
+            ],
+            "evidence": "#[serde(tag = \"status\", rename_all = \"snake_case\", deny_unknown_fields)]"
+          },
+          {
+            "name": "pub enum HubEditorLaunchOutcomeV1 {",
+            "line_range": [
+              9,
+              9
+            ],
+            "evidence": "pub enum HubEditorLaunchOutcomeV1 {"
+          },
+          {
+            "name": "#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+            "line_range": [
+              15,
+              15
+            ],
+            "evidence": "#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]"
+          },
+          {
+            "name": "#[serde(rename_all = \"snake_case\")]",
+            "line_range": [
+              16,
+              16
+            ],
+            "evidence": "#[serde(rename_all = \"snake_case\")]"
+          },
+          {
+            "name": "pub enum HubEditorStartupFailureCodeV1 {",
+            "line_range": [
+              18,
+              18
+            ],
+            "evidence": "pub enum HubEditorStartupFailureCodeV1 {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/protocol_version/mod.rs",
+        "line_count": 8,
+        "objects": [
+          {
+            "name": "#[path = \"serde.rs\"]",
+            "line_range": [
+              1,
+              1
+            ],
+            "evidence": "#[path = \"serde.rs\"]"
+          },
+          {
+            "name": "mod serde;",
+            "line_range": [
+              2,
+              2
+            ],
+            "evidence": "mod serde;"
+          },
+          {
+            "name": "pub const HUB_PROTOCOL_VERSION_V1: u32 = 1;",
+            "line_range": [
+              8,
+              8
+            ],
+            "evidence": "pub const HUB_PROTOCOL_VERSION_V1: u32 = 1;"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/protocol_version/serde.rs",
+        "line_count": 32,
+        "objects": [
+          {
+            "name": "#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]",
+            "line_range": [
+              6,
+              6
+            ],
+            "evidence": "#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]"
+          },
+          {
+            "name": "pub struct HubProtocolVersionV1;",
+            "line_range": [
+              8,
+              8
+            ],
+            "evidence": "pub struct HubProtocolVersionV1;"
+          },
+          {
+            "name": "impl Serialize for HubProtocolVersionV1 {",
+            "line_range": [
+              10,
+              10
+            ],
+            "evidence": "impl Serialize for HubProtocolVersionV1 {"
+          },
+          {
+            "name": "fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>",
+            "line_range": [
+              11,
+              11
+            ],
+            "evidence": "fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>"
+          },
+          {
+            "name": "impl<'de> Deserialize<'de> for HubProtocolVersionV1 {",
+            "line_range": [
+              19,
+              19
+            ],
+            "evidence": "impl<'de> Deserialize<'de> for HubProtocolVersionV1 {"
+          },
+          {
+            "name": "fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>",
+            "line_range": [
+              20,
+              20
+            ],
+            "evidence": "fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/ready_receipt.rs",
+        "line_count": 161,
+        "objects": [
+          {
+            "name": "#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]",
+            "line_range": [
+              10,
+              10
+            ],
+            "evidence": "#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]"
+          },
+          {
+            "name": "#[serde(rename_all = \"snake_case\")]",
+            "line_range": [
+              11,
+              11
+            ],
+            "evidence": "#[serde(rename_all = \"snake_case\")]"
+          },
+          {
+            "name": "pub enum HubEditorStartupMilestoneV1 {",
+            "line_range": [
+              13,
+              13
+            ],
+            "evidence": "pub enum HubEditorStartupMilestoneV1 {"
+          },
+          {
+            "name": "impl HubEditorStartupMilestoneV1 {",
+            "line_range": [
+              21,
+              21
+            ],
+            "evidence": "impl HubEditorStartupMilestoneV1 {"
+          },
+          {
+            "name": "const REQUIRED: [Self; 5] = [",
+            "line_range": [
+              22,
+              22
+            ],
+            "evidence": "const REQUIRED: [Self; 5] = ["
+          },
+          {
+            "name": "fn required_set() -> BTreeSet<Self> {",
+            "line_range": [
+              30,
+              30
+            ],
+            "evidence": "fn required_set() -> BTreeSet<Self> {"
+          },
+          {
+            "name": "#[derive(Clone, Debug, PartialEq, Eq, Serialize)]",
+            "line_range": [
+              36,
+              36
+            ],
+            "evidence": "#[derive(Clone, Debug, PartialEq, Eq, Serialize)]"
+          },
+          {
+            "name": "pub struct HubEditorReadyReceiptV1 {",
+            "line_range": [
+              38,
+              38
+            ],
+            "evidence": "pub struct HubEditorReadyReceiptV1 {"
+          },
+          {
+            "name": "impl HubEditorReadyReceiptV1 {",
+            "line_range": [
+              45,
+              45
+            ],
+            "evidence": "impl HubEditorReadyReceiptV1 {"
+          },
+          {
+            "name": "pub fn after_first_present(",
+            "line_range": [
+              49,
+              49
+            ],
+            "evidence": "pub fn after_first_present("
+          },
+          {
+            "name": "pub const fn editor_process_id(&self) -> u32 {",
+            "line_range": [
+              62,
+              62
+            ],
+            "evidence": "pub const fn editor_process_id(&self) -> u32 {"
+          },
+          {
+            "name": "pub fn editor_instance_id(&self) -> &str {",
+            "line_range": [
+              66,
+              66
+            ],
+            "evidence": "pub fn editor_instance_id(&self) -> &str {"
+          },
+          {
+            "name": "pub const fn session_generation(&self) -> u64 {",
+            "line_range": [
+              70,
+              70
+            ],
+            "evidence": "pub const fn session_generation(&self) -> u64 {"
+          },
+          {
+            "name": "pub fn milestones(&self) -> &BTreeSet<HubEditorStartupMilestoneV1> {",
+            "line_range": [
+              74,
+              74
+            ],
+            "evidence": "pub fn milestones(&self) -> &BTreeSet<HubEditorStartupMilestoneV1> {"
+          },
+          {
+            "name": "fn from_parts(",
+            "line_range": [
+              78,
+              78
+            ],
+            "evidence": "fn from_parts("
+          },
+          {
+            "name": "const MAX_EDITOR_INSTANCE_ID_BYTES: usize = 128;",
+            "line_range": [
+              107,
+              107
+            ],
+            "evidence": "const MAX_EDITOR_INSTANCE_ID_BYTES: usize = 128;"
+          },
+          {
+            "name": "#[derive(Deserialize)]",
+            "line_range": [
+              109,
+              109
+            ],
+            "evidence": "#[derive(Deserialize)]"
+          },
+          {
+            "name": "#[serde(deny_unknown_fields)]",
+            "line_range": [
+              110,
+              110
+            ],
+            "evidence": "#[serde(deny_unknown_fields)]"
+          },
+          {
+            "name": "struct HubEditorReadyReceiptWireV1 {",
+            "line_range": [
+              111,
+              111
+            ],
+            "evidence": "struct HubEditorReadyReceiptWireV1 {"
+          },
+          {
+            "name": "impl<'de> Deserialize<'de> for HubEditorReadyReceiptV1 {",
+            "line_range": [
+              119,
+              119
+            ],
+            "evidence": "impl<'de> Deserialize<'de> for HubEditorReadyReceiptV1 {"
+          },
+          {
+            "name": "fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>",
+            "line_range": [
+              120,
+              120
+            ],
+            "evidence": "fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>"
+          },
+          {
+            "name": "#[derive(Clone, Copy, Debug, PartialEq, Eq)]",
+            "line_range": [
+              137,
+              137
+            ],
+            "evidence": "#[derive(Clone, Copy, Debug, PartialEq, Eq)]"
+          },
+          {
+            "name": "pub enum HubEditorReadyReceiptError {",
+            "line_range": [
+              138,
+              138
+            ],
+            "evidence": "pub enum HubEditorReadyReceiptError {"
+          },
+          {
+            "name": "impl fmt::Display for HubEditorReadyReceiptError {",
+            "line_range": [
+              145,
+              145
+            ],
+            "evidence": "impl fmt::Display for HubEditorReadyReceiptError {"
+          },
+          {
+            "name": "fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {",
+            "line_range": [
+              146,
+              146
+            ],
+            "evidence": "fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {"
+          },
+          {
+            "name": "impl std::error::Error for HubEditorReadyReceiptError {}",
+            "line_range": [
+              157,
+              157
+            ],
+            "evidence": "impl std::error::Error for HubEditorReadyReceiptError {}"
+          },
+          {
+            "name": "#[path = \"tests/ready_receipt.rs\"]",
+            "line_range": [
+              160,
+              160
+            ],
+            "evidence": "#[path = \"tests/ready_receipt.rs\"]"
+          },
+          {
+            "name": "mod tests;",
+            "line_range": [
+              161,
+              161
+            ],
+            "evidence": "mod tests;"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/entry.rs",
+        "line_count": 41,
+        "objects": [
+          {
+            "name": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+            "line_range": [
+              10,
+              10
+            ],
+            "evidence": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]"
+          },
+          {
+            "name": "#[serde(deny_unknown_fields)]",
+            "line_range": [
+              11,
+              11
+            ],
+            "evidence": "#[serde(deny_unknown_fields)]"
+          },
+          {
+            "name": "pub struct HubRecentProjectV1 {",
+            "line_range": [
+              13,
+              13
+            ],
+            "evidence": "pub struct HubRecentProjectV1 {"
+          },
+          {
+            "name": "impl HubRecentProjectV1 {",
+            "line_range": [
+              19,
+              19
+            ],
+            "evidence": "impl HubRecentProjectV1 {"
+          },
+          {
+            "name": "pub fn new(",
+            "line_range": [
+              21,
+              21
+            ],
+            "evidence": "pub fn new("
+          },
+          {
+            "name": "pub(crate) fn validate(&self) -> Result<(), HubRecentProjectsError> {",
+            "line_range": [
+              35,
+              35
+            ],
+            "evidence": "pub(crate) fn validate(&self) -> Result<(), HubRecentProjectsError> {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/error.rs",
+        "line_count": 31,
+        "objects": [
+          {
+            "name": "#[derive(Clone, Debug, Error, PartialEq, Eq)]",
+            "line_range": [
+              4,
+              4
+            ],
+            "evidence": "#[derive(Clone, Debug, Error, PartialEq, Eq)]"
+          },
+          {
+            "name": "pub enum HubRecentProjectsError {",
+            "line_range": [
+              6,
+              6
+            ],
+            "evidence": "pub enum HubRecentProjectsError {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/identity.rs",
+        "line_count": 36,
+        "objects": [
+          {
+            "name": "pub fn hub_recent_project_path_key(path: impl AsRef<Path>) -> String {",
+            "line_range": [
+              7,
+              7
+            ],
+            "evidence": "pub fn hub_recent_project_path_key(path: impl AsRef<Path>) -> String {"
+          },
+          {
+            "name": "pub fn windows_hub_recent_projects_mutex_name(recent_projects_path: impl AsRef<Path>) -> String {",
+            "line_range": [
+              20,
+              20
+            ],
+            "evidence": "pub fn windows_hub_recent_projects_mutex_name(recent_projects_path: impl AsRef<Path>) -> String {"
+          },
+          {
+            "name": "fn looks_like_windows_drive_path(path: &str) -> bool {",
+            "line_range": [
+              33,
+              33
+            ],
+            "evidence": "fn looks_like_windows_drive_path(path: &str) -> bool {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/mod.rs",
+        "line_count": 40,
+        "objects": [
+          {
+            "name": "#[path = \"entry.rs\"]",
+            "line_range": [
+              11,
+              11
+            ],
+            "evidence": "#[path = \"entry.rs\"]"
+          },
+          {
+            "name": "mod entry;",
+            "line_range": [
+              12,
+              12
+            ],
+            "evidence": "mod entry;"
+          },
+          {
+            "name": "#[path = \"error.rs\"]",
+            "line_range": [
+              13,
+              13
+            ],
+            "evidence": "#[path = \"error.rs\"]"
+          },
+          {
+            "name": "mod error;",
+            "line_range": [
+              14,
+              14
+            ],
+            "evidence": "mod error;"
+          },
+          {
+            "name": "#[path = \"identity.rs\"]",
+            "line_range": [
+              15,
+              15
+            ],
+            "evidence": "#[path = \"identity.rs\"]"
+          },
+          {
+            "name": "mod identity;",
+            "line_range": [
+              16,
+              16
+            ],
+            "evidence": "mod identity;"
+          },
+          {
+            "name": "#[path = \"registry.rs\"]",
+            "line_range": [
+              17,
+              17
+            ],
+            "evidence": "#[path = \"registry.rs\"]"
+          },
+          {
+            "name": "mod registry;",
+            "line_range": [
+              18,
+              18
+            ],
+            "evidence": "mod registry;"
+          },
+          {
+            "name": "#[path = \"storage_path.rs\"]",
+            "line_range": [
+              19,
+              19
+            ],
+            "evidence": "#[path = \"storage_path.rs\"]"
+          },
+          {
+            "name": "mod storage_path;",
+            "line_range": [
+              20,
+              20
+            ],
+            "evidence": "mod storage_path;"
+          },
+          {
+            "name": "#[path = \"store.rs\"]",
+            "line_range": [
+              21,
+              21
+            ],
+            "evidence": "#[path = \"store.rs\"]"
+          },
+          {
+            "name": "mod store;",
+            "line_range": [
+              22,
+              22
+            ],
+            "evidence": "mod store;"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/registry.rs",
+        "line_count": 301,
+        "objects": [
+          {
+            "name": "pub const HUB_RECENT_PROJECT_LIMIT_V1: usize = 8;",
+            "line_range": [
+              9,
+              9
+            ],
+            "evidence": "pub const HUB_RECENT_PROJECT_LIMIT_V1: usize = 8;"
+          },
+          {
+            "name": "pub const HUB_RECENT_PROJECT_TOMBSTONE_LIMIT_V1: usize = 64;",
+            "line_range": [
+              10,
+              10
+            ],
+            "evidence": "pub const HUB_RECENT_PROJECT_TOMBSTONE_LIMIT_V1: usize = 64;"
+          },
+          {
+            "name": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+            "line_range": [
+              17,
+              17
+            ],
+            "evidence": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]"
+          },
+          {
+            "name": "#[serde(deny_unknown_fields)]",
+            "line_range": [
+              18,
+              18
+            ],
+            "evidence": "#[serde(deny_unknown_fields)]"
+          },
+          {
+            "name": "pub struct HubRecentProjectTombstoneV1 {",
+            "line_range": [
+              20,
+              20
+            ],
+            "evidence": "pub struct HubRecentProjectTombstoneV1 {"
+          },
+          {
+            "name": "impl HubRecentProjectTombstoneV1 {",
+            "line_range": [
+              25,
+              25
+            ],
+            "evidence": "impl HubRecentProjectTombstoneV1 {"
+          },
+          {
+            "name": "fn new(path_key: String, deleted_logical_unix_ms: u64) -> Self {",
+            "line_range": [
+              26,
+              26
+            ],
+            "evidence": "fn new(path_key: String, deleted_logical_unix_ms: u64) -> Self {"
+          },
+          {
+            "name": "pub fn path_key(&self) -> &str {",
+            "line_range": [
+              33,
+              33
+            ],
+            "evidence": "pub fn path_key(&self) -> &str {"
+          },
+          {
+            "name": "pub const fn deleted_logical_unix_ms(&self) -> u64 {",
+            "line_range": [
+              37,
+              37
+            ],
+            "evidence": "pub const fn deleted_logical_unix_ms(&self) -> u64 {"
+          },
+          {
+            "name": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+            "line_range": [
+              43,
+              43
+            ],
+            "evidence": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]"
+          },
+          {
+            "name": "#[serde(deny_unknown_fields)]",
+            "line_range": [
+              44,
+              44
+            ],
+            "evidence": "#[serde(deny_unknown_fields)]"
+          },
+          {
+            "name": "pub struct HubRecentProjectsV1 {",
+            "line_range": [
+              46,
+              46
+            ],
+            "evidence": "pub struct HubRecentProjectsV1 {"
+          },
+          {
+            "name": "impl HubRecentProjectsV1 {",
+            "line_range": [
+              53,
+              53
+            ],
+            "evidence": "impl HubRecentProjectsV1 {"
+          },
+          {
+            "name": "pub fn new(projects: impl IntoIterator<Item = HubRecentProjectV1>) -> Self {",
+            "line_range": [
+              54,
+              54
+            ],
+            "evidence": "pub fn new(projects: impl IntoIterator<Item = HubRecentProjectV1>) -> Self {"
+          },
+          {
+            "name": "pub const fn revision(&self) -> u64 {",
+            "line_range": [
+              64,
+              64
+            ],
+            "evidence": "pub const fn revision(&self) -> u64 {"
+          },
+          {
+            "name": "pub fn record(",
+            "line_range": [
+              70,
+              70
+            ],
+            "evidence": "pub fn record("
+          },
+          {
+            "name": "pub fn remove(&mut self, path: impl AsRef<Path>) -> Result<(), HubRecentProjectsError> {",
+            "line_range": [
+              86,
+              86
+            ],
+            "evidence": "pub fn remove(&mut self, path: impl AsRef<Path>) -> Result<(), HubRecentProjectsError> {"
+          },
+          {
+            "name": "pub fn validate(&self) -> Result<(), HubRecentProjectsError> {",
+            "line_range": [
+              117,
+              117
+            ],
+            "evidence": "pub fn validate(&self) -> Result<(), HubRecentProjectsError> {"
+          },
+          {
+            "name": "fn bump_revision(&mut self) -> Result<(), HubRecentProjectsError> {",
+            "line_range": [
+              189,
+              189
+            ],
+            "evidence": "fn bump_revision(&mut self) -> Result<(), HubRecentProjectsError> {"
+          },
+          {
+            "name": "fn next_logical_timestamp(&self, proposed_unix_ms: u64) -> Result<u64, HubRecentProjectsError> {",
+            "line_range": [
+              197,
+              197
+            ],
+            "evidence": "fn next_logical_timestamp(&self, proposed_unix_ms: u64) -> Result<u64, HubRecentProjectsError> {"
+          },
+          {
+            "name": "fn next_tombstone_timestamp(&self) -> Result<u64, HubRecentProjectsError> {",
+            "line_range": [
+              207,
+              207
+            ],
+            "evidence": "fn next_tombstone_timestamp(&self) -> Result<u64, HubRecentProjectsError> {"
+          },
+          {
+            "name": "fn latest_logical_timestamp(&self) -> Option<u64> {",
+            "line_range": [
+              215,
+              215
+            ],
+            "evidence": "fn latest_logical_timestamp(&self) -> Option<u64> {"
+          },
+          {
+            "name": "fn canonicalize_tombstones(&mut self) {",
+            "line_range": [
+              227,
+              227
+            ],
+            "evidence": "fn canonicalize_tombstones(&mut self) {"
+          },
+          {
+            "name": "fn is_canonical_successor(previous: &HubRecentProjectV1, current: &HubRecentProjectV1) -> bool {",
+            "line_range": [
+              239,
+              239
+            ],
+            "evidence": "fn is_canonical_successor(previous: &HubRecentProjectV1, current: &HubRecentProjectV1) -> bool {"
+          },
+          {
+            "name": "fn is_canonical_tombstone_successor(",
+            "line_range": [
+              245,
+              245
+            ],
+            "evidence": "fn is_canonical_tombstone_successor("
+          },
+          {
+            "name": "impl Default for HubRecentProjectsV1 {",
+            "line_range": [
+              254,
+              254
+            ],
+            "evidence": "impl Default for HubRecentProjectsV1 {"
+          },
+          {
+            "name": "fn default() -> Self {",
+            "line_range": [
+              255,
+              255
+            ],
+            "evidence": "fn default() -> Self {"
+          },
+          {
+            "name": "pub fn merge_hub_recent_projects<I, J>(left: I, right: J) -> Vec<HubRecentProjectV1>",
+            "line_range": [
+              270,
+              270
+            ],
+            "evidence": "pub fn merge_hub_recent_projects<I, J>(left: I, right: J) -> Vec<HubRecentProjectV1>"
+          },
+          {
+            "name": "#[path = \"tests/registry_perf.rs\"]",
+            "line_range": [
+              300,
+              300
+            ],
+            "evidence": "#[path = \"tests/registry_perf.rs\"]"
+          },
+          {
+            "name": "mod performance_tests;",
+            "line_range": [
+              301,
+              301
+            ],
+            "evidence": "mod performance_tests;"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/storage_path.rs",
+        "line_count": 41,
+        "objects": [
+          {
+            "name": "const HUB_RECENT_PROJECTS_FILE_NAME: &str = \"recent_projects.json\";",
+            "line_range": [
+              4,
+              4
+            ],
+            "evidence": "const HUB_RECENT_PROJECTS_FILE_NAME: &str = \"recent_projects.json\";"
+          },
+          {
+            "name": "pub fn hub_recent_projects_path() -> PathBuf {",
+            "line_range": [
+              9,
+              9
+            ],
+            "evidence": "pub fn hub_recent_projects_path() -> PathBuf {"
+          },
+          {
+            "name": "pub fn hub_recent_projects_path_from_home(home: impl AsRef<Path>) -> PathBuf {",
+            "line_range": [
+              25,
+              25
+            ],
+            "evidence": "pub fn hub_recent_projects_path_from_home(home: impl AsRef<Path>) -> PathBuf {"
+          },
+          {
+            "name": "pub fn hub_recent_projects_lock_path(recent_projects_path: impl AsRef<Path>) -> PathBuf {",
+            "line_range": [
+              34,
+              34
+            ],
+            "evidence": "pub fn hub_recent_projects_lock_path(recent_projects_path: impl AsRef<Path>) -> PathBuf {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/store.rs",
+        "line_count": 748,
+        "objects": [
+          {
+            "name": "pub const HUB_RECENT_PROJECTS_MAX_ENCODED_BYTES_V1: usize = 256 * 1024;",
+            "line_range": [
+              19,
+              19
+            ],
+            "evidence": "pub const HUB_RECENT_PROJECTS_MAX_ENCODED_BYTES_V1: usize = 256 * 1024;"
+          },
+          {
+            "name": "const LEASE_POLL_INTERVAL: Duration = Duration::from_millis(5);",
+            "line_range": [
+              20,
+              20
+            ],
+            "evidence": "const LEASE_POLL_INTERVAL: Duration = Duration::from_millis(5);"
+          },
+          {
+            "name": "pub struct HubRecentProjectsWritePolicy<'a> {",
+            "line_range": [
+              24,
+              24
+            ],
+            "evidence": "pub struct HubRecentProjectsWritePolicy<'a> {"
+          },
+          {
+            "name": "impl<'a> HubRecentProjectsWritePolicy<'a> {",
+            "line_range": [
+              30,
+              30
+            ],
+            "evidence": "impl<'a> HubRecentProjectsWritePolicy<'a> {"
+          },
+          {
+            "name": "pub fn with_timeout(timeout: Duration) -> Self {",
+            "line_range": [
+              31,
+              31
+            ],
+            "evidence": "pub fn with_timeout(timeout: Duration) -> Self {"
+          },
+          {
+            "name": "pub fn try_now() -> Self {",
+            "line_range": [
+              39,
+              39
+            ],
+            "evidence": "pub fn try_now() -> Self {"
+          },
+          {
+            "name": "pub fn with_cancellation(mut self, cancellation: &'a dyn Fn() -> bool) -> Self {",
+            "line_range": [
+              47,
+              47
+            ],
+            "evidence": "pub fn with_cancellation(mut self, cancellation: &'a dyn Fn() -> bool) -> Self {"
+          },
+          {
+            "name": "fn cancelled(&self) -> bool {",
+            "line_range": [
+              52,
+              52
+            ],
+            "evidence": "fn cancelled(&self) -> bool {"
+          },
+          {
+            "name": "#[derive(Clone, Copy, Debug, PartialEq, Eq)]",
+            "line_range": [
+              58,
+              58
+            ],
+            "evidence": "#[derive(Clone, Copy, Debug, PartialEq, Eq)]"
+          },
+          {
+            "name": "pub enum HubRecentProjectsLoadDisposition {",
+            "line_range": [
+              59,
+              59
+            ],
+            "evidence": "pub enum HubRecentProjectsLoadDisposition {"
+          },
+          {
+            "name": "#[derive(Clone, Debug, PartialEq, Eq)]",
+            "line_range": [
+              66,
+              66
+            ],
+            "evidence": "#[derive(Clone, Debug, PartialEq, Eq)]"
+          },
+          {
+            "name": "pub struct HubRecentProjectsLoad {",
+            "line_range": [
+              67,
+              67
+            ],
+            "evidence": "pub struct HubRecentProjectsLoad {"
+          },
+          {
+            "name": "impl HubRecentProjectsLoad {",
+            "line_range": [
+              72,
+              72
+            ],
+            "evidence": "impl HubRecentProjectsLoad {"
+          },
+          {
+            "name": "pub fn registry(&self) -> &HubRecentProjectsV1 {",
+            "line_range": [
+              73,
+              73
+            ],
+            "evidence": "pub fn registry(&self) -> &HubRecentProjectsV1 {"
+          },
+          {
+            "name": "pub const fn disposition(&self) -> HubRecentProjectsLoadDisposition {",
+            "line_range": [
+              77,
+              77
+            ],
+            "evidence": "pub const fn disposition(&self) -> HubRecentProjectsLoadDisposition {"
+          },
+          {
+            "name": "#[derive(Clone, Debug, PartialEq, Eq)]",
+            "line_range": [
+              83,
+              83
+            ],
+            "evidence": "#[derive(Clone, Debug, PartialEq, Eq)]"
+          },
+          {
+            "name": "pub struct HubRecentProjectsMutation {",
+            "line_range": [
+              84,
+              84
+            ],
+            "evidence": "pub struct HubRecentProjectsMutation {"
+          },
+          {
+            "name": "impl HubRecentProjectsMutation {",
+            "line_range": [
+              91,
+              91
+            ],
+            "evidence": "impl HubRecentProjectsMutation {"
+          },
+          {
+            "name": "pub fn registry(&self) -> &HubRecentProjectsV1 {",
+            "line_range": [
+              92,
+              92
+            ],
+            "evidence": "pub fn registry(&self) -> &HubRecentProjectsV1 {"
+          },
+          {
+            "name": "pub const fn previous_revision(&self) -> u64 {",
+            "line_range": [
+              97,
+              97
+            ],
+            "evidence": "pub const fn previous_revision(&self) -> u64 {"
+          },
+          {
+            "name": "pub const fn load_disposition(&self) -> HubRecentProjectsLoadDisposition {",
+            "line_range": [
+              101,
+              101
+            ],
+            "evidence": "pub const fn load_disposition(&self) -> HubRecentProjectsLoadDisposition {"
+          },
+          {
+            "name": "pub fn quarantined_path(&self) -> Option<&Path> {",
+            "line_range": [
+              105,
+              105
+            ],
+            "evidence": "pub fn quarantined_path(&self) -> Option<&Path> {"
+          },
+          {
+            "name": "#[derive(Clone, Debug)]",
+            "line_range": [
+              111,
+              111
+            ],
+            "evidence": "#[derive(Clone, Debug)]"
+          },
+          {
+            "name": "pub struct HubRecentProjectsStore {",
+            "line_range": [
+              113,
+              113
+            ],
+            "evidence": "pub struct HubRecentProjectsStore {"
+          },
+          {
+            "name": "impl HubRecentProjectsStore {",
+            "line_range": [
+              117,
+              117
+            ],
+            "evidence": "impl HubRecentProjectsStore {"
+          },
+          {
+            "name": "pub fn new(registry_path: impl Into<PathBuf>) -> Self {",
+            "line_range": [
+              118,
+              118
+            ],
+            "evidence": "pub fn new(registry_path: impl Into<PathBuf>) -> Self {"
+          },
+          {
+            "name": "pub fn path(&self) -> &Path {",
+            "line_range": [
+              124,
+              124
+            ],
+            "evidence": "pub fn path(&self) -> &Path {"
+          },
+          {
+            "name": "pub fn load_projection(&self) -> Result<HubRecentProjectsLoad, HubRecentProjectsStoreError> {",
+            "line_range": [
+              131,
+              131
+            ],
+            "evidence": "pub fn load_projection(&self) -> Result<HubRecentProjectsLoad, HubRecentProjectsStoreError> {"
+          },
+          {
+            "name": "pub fn update(",
+            "line_range": [
+              147,
+              147
+            ],
+            "evidence": "pub fn update("
+          },
+          {
+            "name": "pub fn compare_and_update(",
+            "line_range": [
+              159,
+              159
+            ],
+            "evidence": "pub fn compare_and_update("
+          },
+          {
+            "name": "pub fn compare_and_update_if_clean(",
+            "line_range": [
+              172,
+              172
+            ],
+            "evidence": "pub fn compare_and_update_if_clean("
+          },
+          {
+            "name": "fn update_at_revision(",
+            "line_range": [
+              183,
+              183
+            ],
+            "evidence": "fn update_at_revision("
+          },
+          {
+            "name": "fn read_registry(path: &Path) -> Result<HubRecentProjectsV1, HubRecentProjectsStoreError> {",
+            "line_range": [
+              236,
+              236
+            ],
+            "evidence": "fn read_registry(path: &Path) -> Result<HubRecentProjectsV1, HubRecentProjectsStoreError> {"
+          },
+          {
+            "name": "fn read_bounded(path: &Path) -> Result<Option<Vec<u8>>, HubRecentProjectsStoreError> {",
+            "line_range": [
+              255,
+              255
+            ],
+            "evidence": "fn read_bounded(path: &Path) -> Result<Option<Vec<u8>>, HubRecentProjectsStoreError> {"
+          },
+          {
+            "name": "fn write_registry(",
+            "line_range": [
+              303,
+              303
+            ],
+            "evidence": "fn write_registry("
+          },
+          {
+            "name": "fn quarantine_registry(path: &Path) -> Result<PathBuf, HubRecentProjectsStoreError> {",
+            "line_range": [
+              356,
+              356
+            ],
+            "evidence": "fn quarantine_registry(path: &Path) -> Result<PathBuf, HubRecentProjectsStoreError> {"
+          },
+          {
+            "name": "fn replace_file(temporary: &Path, target: &Path) -> io::Result<()> {",
+            "line_range": [
+              380,
+              380
+            ],
+            "evidence": "fn replace_file(temporary: &Path, target: &Path) -> io::Result<()> {"
+          },
+          {
+            "name": "fn replace_file(temporary: &Path, target: &Path) -> io::Result<()> {",
+            "line_range": [
+              385,
+              385
+            ],
+            "evidence": "fn replace_file(temporary: &Path, target: &Path) -> io::Result<()> {"
+          },
+          {
+            "name": "const REPLACEFILE_WRITE_THROUGH: u32 = 1;",
+            "line_range": [
+              388,
+              388
+            ],
+            "evidence": "const REPLACEFILE_WRITE_THROUGH: u32 = 1;"
+          },
+          {
+            "name": "fn wide_path(path: &Path) -> Vec<u16> {",
+            "line_range": [
+              390,
+              390
+            ],
+            "evidence": "fn wide_path(path: &Path) -> Vec<u16> {"
+          },
+          {
+            "name": "fn sync_parent_directory(parent: &Path) -> io::Result<()> {",
+            "line_range": [
+              418,
+              418
+            ],
+            "evidence": "fn sync_parent_directory(parent: &Path) -> io::Result<()> {"
+          },
+          {
+            "name": "fn sync_parent_directory(_parent: &Path) -> io::Result<()> {",
+            "line_range": [
+              423,
+              423
+            ],
+            "evidence": "fn sync_parent_directory(_parent: &Path) -> io::Result<()> {"
+          },
+          {
+            "name": "#[derive(Debug)]",
+            "line_range": [
+              427,
+              427
+            ],
+            "evidence": "#[derive(Debug)]"
+          },
+          {
+            "name": "struct HubRecentProjectsWriteLease {",
+            "line_range": [
+              428,
+              428
+            ],
+            "evidence": "struct HubRecentProjectsWriteLease {"
+          },
+          {
+            "name": "#[derive(Debug)]",
+            "line_range": [
+              436,
+              436
+            ],
+            "evidence": "#[derive(Debug)]"
+          },
+          {
+            "name": "struct WindowsMutexHandle(isize);",
+            "line_range": [
+              437,
+              437
+            ],
+            "evidence": "struct WindowsMutexHandle(isize);"
+          },
+          {
+            "name": "impl Drop for WindowsMutexHandle {",
+            "line_range": [
+              440,
+              440
+            ],
+            "evidence": "impl Drop for WindowsMutexHandle {"
+          },
+          {
+            "name": "fn drop(&mut self) {",
+            "line_range": [
+              441,
+              441
+            ],
+            "evidence": "fn drop(&mut self) {"
+          },
+          {
+            "name": "impl HubRecentProjectsWriteLease {",
+            "line_range": [
+              449,
+              449
+            ],
+            "evidence": "impl HubRecentProjectsWriteLease {"
+          },
+          {
+            "name": "fn acquire(",
+            "line_range": [
+              450,
+              450
+            ],
+            "evidence": "fn acquire("
+          },
+          {
+            "name": "fn acquire_windows(",
+            "line_range": [
+              472,
+              472
+            ],
+            "evidence": "fn acquire_windows("
+          },
+          {
+            "name": "const WAIT_OBJECT_0: u32 = 0;",
+            "line_range": [
+              476,
+              476
+            ],
+            "evidence": "const WAIT_OBJECT_0: u32 = 0;"
+          },
+          {
+            "name": "const WAIT_ABANDONED: u32 = 0x0000_0080;",
+            "line_range": [
+              477,
+              477
+            ],
+            "evidence": "const WAIT_ABANDONED: u32 = 0x0000_0080;"
+          },
+          {
+            "name": "const WAIT_TIMEOUT: u32 = 0x0000_0102;",
+            "line_range": [
+              478,
+              478
+            ],
+            "evidence": "const WAIT_TIMEOUT: u32 = 0x0000_0102;"
+          },
+          {
+            "name": "fn acquire_unix(",
+            "line_range": [
+              538,
+              538
+            ],
+            "evidence": "fn acquire_unix("
+          },
+          {
+            "name": "const LOCK_EX: i32 = 2;",
+            "line_range": [
+              544,
+              544
+            ],
+            "evidence": "const LOCK_EX: i32 = 2;"
+          },
+          {
+            "name": "const LOCK_NB: i32 = 4;",
+            "line_range": [
+              545,
+              545
+            ],
+            "evidence": "const LOCK_NB: i32 = 4;"
+          },
+          {
+            "name": "fn deadline_remaining(",
+            "line_range": [
+              595,
+              595
+            ],
+            "evidence": "fn deadline_remaining("
+          },
+          {
+            "name": "impl Drop for HubRecentProjectsWriteLease {",
+            "line_range": [
+              611,
+              611
+            ],
+            "evidence": "impl Drop for HubRecentProjectsWriteLease {"
+          },
+          {
+            "name": "fn drop(&mut self) {",
+            "line_range": [
+              612,
+              612
+            ],
+            "evidence": "fn drop(&mut self) {"
+          },
+          {
+            "name": "impl Drop for HubRecentProjectsWriteLease {",
+            "line_range": [
+              622,
+              622
+            ],
+            "evidence": "impl Drop for HubRecentProjectsWriteLease {"
+          },
+          {
+            "name": "fn drop(&mut self) {",
+            "line_range": [
+              623,
+              623
+            ],
+            "evidence": "fn drop(&mut self) {"
+          },
+          {
+            "name": "const LOCK_UN: i32 = 8;",
+            "line_range": [
+              626,
+              626
+            ],
+            "evidence": "const LOCK_UN: i32 = 8;"
+          },
+          {
+            "name": "#[derive(Debug, Error)]",
+            "line_range": [
+              634,
+              634
+            ],
+            "evidence": "#[derive(Debug, Error)]"
+          },
+          {
+            "name": "pub enum HubRecentProjectsStoreError {",
+            "line_range": [
+              636,
+              636
+            ],
+            "evidence": "pub enum HubRecentProjectsStoreError {"
+          },
+          {
+            "name": "impl HubRecentProjectsStoreError {",
+            "line_range": [
+              691,
+              691
+            ],
+            "evidence": "impl HubRecentProjectsStoreError {"
+          },
+          {
+            "name": "fn requires_rebuild(&self) -> bool {",
+            "line_range": [
+              692,
+              692
+            ],
+            "evidence": "fn requires_rebuild(&self) -> bool {"
+          },
+          {
+            "name": "fn rebuild_disposition(&self) -> HubRecentProjectsLoadDisposition {",
+            "line_range": [
+              699,
+              699
+            ],
+            "evidence": "fn rebuild_disposition(&self) -> HubRecentProjectsLoadDisposition {"
+          },
+          {
+            "name": "fn CreateMutexW(",
+            "line_range": [
+              723,
+              723
+            ],
+            "evidence": "fn CreateMutexW("
+          },
+          {
+            "name": "fn WaitForSingleObject(handle: isize, milliseconds: u32) -> u32;",
+            "line_range": [
+              728,
+              728
+            ],
+            "evidence": "fn WaitForSingleObject(handle: isize, milliseconds: u32) -> u32;"
+          },
+          {
+            "name": "fn ReleaseMutex(handle: isize) -> i32;",
+            "line_range": [
+              729,
+              729
+            ],
+            "evidence": "fn ReleaseMutex(handle: isize) -> i32;"
+          },
+          {
+            "name": "fn CloseHandle(handle: isize) -> i32;",
+            "line_range": [
+              730,
+              730
+            ],
+            "evidence": "fn CloseHandle(handle: isize) -> i32;"
+          },
+          {
+            "name": "fn ReplaceFileW(",
+            "line_range": [
+              731,
+              731
+            ],
+            "evidence": "fn ReplaceFileW("
+          },
+          {
+            "name": "fn flock(file_descriptor: i32, operation: i32) -> i32;",
+            "line_range": [
+              743,
+              743
+            ],
+            "evidence": "fn flock(file_descriptor: i32, operation: i32) -> i32;"
+          },
+          {
+            "name": "#[path = \"tests/store.rs\"]",
+            "line_range": [
+              747,
+              747
+            ],
+            "evidence": "#[path = \"tests/store.rs\"]"
+          },
+          {
+            "name": "mod tests;",
+            "line_range": [
+              748,
+              748
+            ],
+            "evidence": "mod tests;"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/registry_perf.rs",
+        "line_count": 163,
+        "objects": [
+          {
+            "name": "const PERF_NAME_BYTES: usize = 16 * 1024;",
+            "line_range": [
+              13,
+              13
+            ],
+            "evidence": "const PERF_NAME_BYTES: usize = 16 * 1024;"
+          },
+          {
+            "name": "const PERF_SAMPLE_PAIRS: usize = 21;",
+            "line_range": [
+              14,
+              14
+            ],
+            "evidence": "const PERF_SAMPLE_PAIRS: usize = 21;"
+          },
+          {
+            "name": "const PERF_VALIDATIONS_PER_SAMPLE: usize = 128;",
+            "line_range": [
+              15,
+              15
+            ],
+            "evidence": "const PERF_VALIDATIONS_PER_SAMPLE: usize = 128;"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              17,
+              17
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn single_pass_validation_preserves_duplicate_error_precedence() {",
+            "line_range": [
+              18,
+              18
+            ],
+            "evidence": "fn single_pass_validation_preserves_duplicate_error_precedence() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              38,
+              38
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn removal_persists_a_tombstone_and_a_later_open_advances_its_logical_clock() {",
+            "line_range": [
+              39,
+              39
+            ],
+            "evidence": "fn removal_persists_a_tombstone_and_a_later_open_advances_its_logical_clock() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              61,
+              61
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn canonical_validation_borrows_registry_entries() {",
+            "line_range": [
+              63,
+              63
+            ],
+            "evidence": "fn canonical_validation_borrows_registry_entries() {"
+          },
+          {
+            "name": "fn canonical_fixture() -> HubRecentProjectsV1 {",
+            "line_range": [
+              98,
+              98
+            ],
+            "evidence": "fn canonical_fixture() -> HubRecentProjectsV1 {"
+          },
+          {
+            "name": "fn recent_project(name: &str, path: &str, last_opened_unix_ms: u64) -> HubRecentProjectV1 {",
+            "line_range": [
+              116,
+              116
+            ],
+            "evidence": "fn recent_project(name: &str, path: &str, last_opened_unix_ms: u64) -> HubRecentProjectV1 {"
+          },
+          {
+            "name": "fn legacy_is_valid(registry: &HubRecentProjectsV1) -> bool {",
+            "line_range": [
+              132,
+              132
+            ],
+            "evidence": "fn legacy_is_valid(registry: &HubRecentProjectsV1) -> bool {"
+          },
+          {
+            "name": "fn measure_batch(mut measure: impl FnMut() -> bool) -> u64 {",
+            "line_range": [
+              146,
+              146
+            ],
+            "evidence": "fn measure_batch(mut measure: impl FnMut() -> bool) -> u64 {"
+          },
+          {
+            "name": "fn percentile(samples: &[u64], percentile: usize) -> u64 {",
+            "line_range": [
+              154,
+              154
+            ],
+            "evidence": "fn percentile(samples: &[u64], percentile: usize) -> u64 {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs",
+        "line_count": 241,
+        "objects": [
+          {
+            "name": "#[test]",
+            "line_range": [
+              14,
+              14
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn corrupted_projection_is_quarantined_and_rebuilt_during_a_bounded_mutation() {",
+            "line_range": [
+              15,
+              15
+            ],
+            "evidence": "fn corrupted_projection_is_quarantined_and_rebuilt_during_a_bounded_mutation() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              39,
+              39
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn oversized_projection_is_nonblocking_and_reports_a_rebuild_requirement() {",
+            "line_range": [
+              40,
+              40
+            ],
+            "evidence": "fn oversized_projection_is_nonblocking_and_reports_a_rebuild_requirement() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              61,
+              61
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn clean_compare_rejects_rebuildable_input_changed_after_observation() {",
+            "line_range": [
+              62,
+              62
+            ],
+            "evidence": "fn clean_compare_rejects_rebuildable_input_changed_after_observation() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              120,
+              120
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn expired_windows_writer_attempts_release_named_mutex_handles() {",
+            "line_range": [
+              121,
+              121
+            ],
+            "evidence": "fn expired_windows_writer_attempts_release_named_mutex_handles() {"
+          },
+          {
+            "name": "fn GetCurrentProcess() -> *mut c_void;",
+            "line_range": [
+              126,
+              126
+            ],
+            "evidence": "fn GetCurrentProcess() -> *mut c_void;"
+          },
+          {
+            "name": "fn GetProcessHandleCount(process: *mut c_void, count: *mut u32) -> i32;",
+            "line_range": [
+              127,
+              127
+            ],
+            "evidence": "fn GetProcessHandleCount(process: *mut c_void, count: *mut u32) -> i32;"
+          },
+          {
+            "name": "fn process_handle_count() -> u32 {",
+            "line_range": [
+              130,
+              130
+            ],
+            "evidence": "fn process_handle_count() -> u32 {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              161,
+              161
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn cancelled_write_returns_a_typed_terminal_error_before_mutation() {",
+            "line_range": [
+              162,
+              162
+            ],
+            "evidence": "fn cancelled_write_returns_a_typed_terminal_error_before_mutation() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              182,
+              182
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn compare_and_update_rejects_a_stale_projection_revision() {",
+            "line_range": [
+              183,
+              183
+            ],
+            "evidence": "fn compare_and_update_rejects_a_stale_projection_revision() {"
+          },
+          {
+            "name": "fn project() -> HubRecentProjectV1 {",
+            "line_range": [
+              212,
+              212
+            ],
+            "evidence": "fn project() -> HubRecentProjectV1 {"
+          },
+          {
+            "name": "fn temporary_root(label: &str) -> PathBuf {",
+            "line_range": [
+              228,
+              228
+            ],
+            "evidence": "fn temporary_root(label: &str) -> PathBuf {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/session_token/construct.rs",
+        "line_count": 10,
+        "objects": [
+          {
+            "name": "impl HubSessionToken {",
+            "line_range": [
+              5,
+              5
+            ],
+            "evidence": "impl HubSessionToken {"
+          },
+          {
+            "name": "pub fn new() -> Self {",
+            "line_range": [
+              7,
+              7
+            ],
+            "evidence": "pub fn new() -> Self {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/session_token/error.rs",
+        "line_count": 13,
+        "objects": [
+          {
+            "name": "#[derive(Debug, Error)]",
+            "line_range": [
+              4,
+              4
+            ],
+            "evidence": "#[derive(Debug, Error)]"
+          },
+          {
+            "name": "pub enum HubSessionTokenParseError {",
+            "line_range": [
+              6,
+              6
+            ],
+            "evidence": "pub enum HubSessionTokenParseError {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/session_token/format.rs",
+        "line_count": 9,
+        "objects": [
+          {
+            "name": "impl Display for HubSessionToken {",
+            "line_range": [
+              5,
+              5
+            ],
+            "evidence": "impl Display for HubSessionToken {"
+          },
+          {
+            "name": "fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {",
+            "line_range": [
+              6,
+              6
+            ],
+            "evidence": "fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/session_token/mod.rs",
+        "line_count": 20,
+        "objects": [
+          {
+            "name": "#[path = \"construct.rs\"]",
+            "line_range": [
+              2,
+              2
+            ],
+            "evidence": "#[path = \"construct.rs\"]"
+          },
+          {
+            "name": "mod construct;",
+            "line_range": [
+              3,
+              3
+            ],
+            "evidence": "mod construct;"
+          },
+          {
+            "name": "#[path = \"error.rs\"]",
+            "line_range": [
+              4,
+              4
+            ],
+            "evidence": "#[path = \"error.rs\"]"
+          },
+          {
+            "name": "mod error;",
+            "line_range": [
+              5,
+              5
+            ],
+            "evidence": "mod error;"
+          },
+          {
+            "name": "#[path = \"format.rs\"]",
+            "line_range": [
+              6,
+              6
+            ],
+            "evidence": "#[path = \"format.rs\"]"
+          },
+          {
+            "name": "mod format;",
+            "line_range": [
+              7,
+              7
+            ],
+            "evidence": "mod format;"
+          },
+          {
+            "name": "#[path = \"parse.rs\"]",
+            "line_range": [
+              8,
+              8
+            ],
+            "evidence": "#[path = \"parse.rs\"]"
+          },
+          {
+            "name": "mod parse;",
+            "line_range": [
+              9,
+              9
+            ],
+            "evidence": "mod parse;"
+          },
+          {
+            "name": "#[path = \"serde.rs\"]",
+            "line_range": [
+              10,
+              10
+            ],
+            "evidence": "#[path = \"serde.rs\"]"
+          },
+          {
+            "name": "mod serde;",
+            "line_range": [
+              11,
+              11
+            ],
+            "evidence": "mod serde;"
+          },
+          {
+            "name": "#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]",
+            "line_range": [
+              18,
+              18
+            ],
+            "evidence": "#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]"
+          },
+          {
+            "name": "pub struct HubSessionToken(pub(super) Uuid);",
+            "line_range": [
+              20,
+              20
+            ],
+            "evidence": "pub struct HubSessionToken(pub(super) Uuid);"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/session_token/parse.rs",
+        "line_count": 22,
+        "objects": [
+          {
+            "name": "impl FromStr for HubSessionToken {",
+            "line_range": [
+              8,
+              8
+            ],
+            "evidence": "impl FromStr for HubSessionToken {"
+          },
+          {
+            "name": "type Err = HubSessionTokenParseError;",
+            "line_range": [
+              9,
+              9
+            ],
+            "evidence": "type Err = HubSessionTokenParseError;"
+          },
+          {
+            "name": "fn from_str(value: &str) -> Result<Self, Self::Err> {",
+            "line_range": [
+              11,
+              11
+            ],
+            "evidence": "fn from_str(value: &str) -> Result<Self, Self::Err> {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/session_token/serde.rs",
+        "line_count": 23,
+        "objects": [
+          {
+            "name": "impl Serialize for HubSessionToken {",
+            "line_range": [
+              6,
+              6
+            ],
+            "evidence": "impl Serialize for HubSessionToken {"
+          },
+          {
+            "name": "fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>",
+            "line_range": [
+              7,
+              7
+            ],
+            "evidence": "fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>"
+          },
+          {
+            "name": "impl<'de> Deserialize<'de> for HubSessionToken {",
+            "line_range": [
+              15,
+              15
+            ],
+            "evidence": "impl<'de> Deserialize<'de> for HubSessionToken {"
+          },
+          {
+            "name": "fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>",
+            "line_range": [
+              16,
+              16
+            ],
+            "evidence": "fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "line_count": 430,
+        "objects": [
+          {
+            "name": "#[test]",
+            "line_range": [
+              17,
+              17
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn hub_session_token_round_trips_as_a_uuid_without_path_characters() {",
+            "line_range": [
+              18,
+              18
+            ],
+            "evidence": "fn hub_session_token_round_trips_as_a_uuid_without_path_characters() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              39,
+              39
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn hub_session_token_rejects_noncanonical_or_non_v4_values() {",
+            "line_range": [
+              40,
+              40
+            ],
+            "evidence": "fn hub_session_token_rejects_noncanonical_or_non_v4_values() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              61,
+              61
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn ready_mailbox_v1_round_trips_with_the_canonical_payload_shape() {",
+            "line_range": [
+              62,
+              62
+            ],
+            "evidence": "fn ready_mailbox_v1_round_trips_with_the_canonical_payload_shape() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              122,
+              122
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn stale_mailbox_protocol_is_rejected_at_the_decode_boundary() {",
+            "line_range": [
+              123,
+              123
+            ],
+            "evidence": "fn stale_mailbox_protocol_is_rejected_at_the_decode_boundary() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              135,
+              135
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn failed_mailbox_v1_round_trips_with_the_canonical_payload_shape() {",
+            "line_range": [
+              136,
+              136
+            ],
+            "evidence": "fn failed_mailbox_v1_round_trips_with_the_canonical_payload_shape() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              166,
+              166
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn mailbox_v1_rejects_legacy_or_extra_outcome_fields() {",
+            "line_range": [
+              167,
+              167
+            ],
+            "evidence": "fn mailbox_v1_rejects_legacy_or_extra_outcome_fields() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              193,
+              193
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn mailbox_v1_rejects_unknown_root_fields() {",
+            "line_range": [
+              194,
+              194
+            ],
+            "evidence": "fn mailbox_v1_rejects_unknown_root_fields() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              209,
+              209
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn focus_signal_v1_round_trips_without_session_lock_fields() {",
+            "line_range": [
+              210,
+              210
+            ],
+            "evidence": "fn focus_signal_v1_round_trips_without_session_lock_fields() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              243,
+              243
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn focus_signal_v1_rejects_unknown_or_legacy_lock_fields() {",
+            "line_range": [
+              244,
+              244
+            ],
+            "evidence": "fn focus_signal_v1_rejects_unknown_or_legacy_lock_fields() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              258,
+              258
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn focus_ack_v1_binds_the_exact_request_without_project_paths() {",
+            "line_range": [
+              259,
+              259
+            ],
+            "evidence": "fn focus_ack_v1_binds_the_exact_request_without_project_paths() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              287,
+              287
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn focus_signal_path_is_shared_and_rejects_an_unsafe_instance_id() {",
+            "line_range": [
+              288,
+              288
+            ],
+            "evidence": "fn focus_signal_path_is_shared_and_rejects_an_unsafe_instance_id() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              310,
+              310
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn recent_projects_v1_is_versioned_deduplicated_and_bounded() {",
+            "line_range": [
+              311,
+              311
+            ],
+            "evidence": "fn recent_projects_v1_is_versioned_deduplicated_and_bounded() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              342,
+              342
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn recent_projects_v1_assigns_monotonic_revisions_to_effective_mutations() {",
+            "line_range": [
+              343,
+              343
+            ],
+            "evidence": "fn recent_projects_v1_assigns_monotonic_revisions_to_effective_mutations() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              360,
+              360
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn recent_projects_v1_preserves_a_new_open_when_wall_clock_moves_backward() {",
+            "line_range": [
+              361,
+              361
+            ],
+            "evidence": "fn recent_projects_v1_preserves_a_new_open_when_wall_clock_moves_backward() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              374,
+              374
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn recent_projects_v1_uses_the_shared_home_path_and_strict_wire_shape() {",
+            "line_range": [
+              375,
+              375
+            ],
+            "evidence": "fn recent_projects_v1_uses_the_shared_home_path_and_strict_wire_shape() {"
+          },
+          {
+            "name": "fn recent_project(",
+            "line_range": [
+              412,
+              412
+            ],
+            "evidence": "fn recent_project("
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/ready_receipt.rs",
+        "line_count": 24,
+        "objects": [
+          {
+            "name": "#[test]",
+            "line_range": [
+              3,
+              3
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn receipt_after_first_present_contains_every_required_milestone() {",
+            "line_range": [
+              4,
+              4
+            ],
+            "evidence": "fn receipt_after_first_present_contains_every_required_milestone() {"
+          },
+          {
+            "name": "#[test]",
+            "line_range": [
+              14,
+              14
+            ],
+            "evidence": "#[test]"
+          },
+          {
+            "name": "fn deserialize_rejects_partial_or_path_bearing_ready_receipts() {",
+            "line_range": [
+              15,
+              15
+            ],
+            "evidence": "fn deserialize_rejects_partial_or_path_bearing_ready_receipts() {"
+          }
+        ],
+        "review_scope": "全文逐项审阅声明、impl/trait/Serde 属性、测试与控制分支；此锚点定位声明起始，不冒充完整块范围。"
+      }
+    ]
+  },
+  "call_trait_macro_ffi_evidence": {
+    "boundary": "逐项审查 Serde wire shape、自定义 Serialize/Deserialize、模块挂载和 Hub/Editor 直接调用；未发现 FFI 或动态注册入口。跨树路径只作为只读上下文。",
+    "cross_tree_context_files": [
+      {
+        "path": "zircon_editor/src/core/hub_link/handshake.rs",
+        "sha256": "6589647e47530a481a2465e2dc0a2a14e279a35d46bc7b019af1f083881b1690",
+        "role": "Editor 写入启动邮箱",
+        "matched_text": "HubEditorMailboxV1",
+        "evidence": [
+          {
+            "line_range": [
+              7,
+              7
+            ],
+            "text": "    HubEditorMailboxV1, HubEditorReadyReceiptV1, HubEditorStartupFailureCodeV1, HubSessionToken,"
+          },
+          {
+            "line_range": [
+              43,
+              43
+            ],
+            "text": "        self.publish(HubEditorMailboxV1::ready(self.session, receipt))"
+          },
+          {
+            "line_range": [
+              50,
+              50
+            ],
+            "text": "        self.publish(HubEditorMailboxV1::failed(self.session, code))"
+          },
+          {
+            "line_range": [
+              53,
+              53
+            ],
+            "text": "    fn publish(&self, mailbox: HubEditorMailboxV1) -> Result<(), HubHandshakeError> {"
+          }
+        ],
+        "match_count": 4
+      },
+      {
+        "path": "zircon_editor/src/ui/retained/app.rs",
+        "sha256": "6d2100cf22e605247d19fa2174bf7077592da48962656b65ef93277366b2efe5",
+        "role": "Editor 构造 ready receipt",
+        "matched_text": "HubEditorReadyReceiptV1",
+        "evidence": [
+          {
+            "line_range": [
+              17,
+              17
+            ],
+            "text": "    HubEditorReadyReceiptV1, HubEditorStartupFailureCodeV1,"
+          },
+          {
+            "line_range": [
+              459,
+              459
+            ],
+            "text": "                HubEditorReadyReceiptV1::after_first_present("
+          },
+          {
+            "line_range": [
+              665,
+              665
+            ],
+            "text": "    fn report_ready(&self, receipt: HubEditorReadyReceiptV1) -> Result<(), HubHandshakeError> {"
+          }
+        ],
+        "match_count": 3
+      },
+      {
+        "path": "zircon_hub/src/process/editor_handshake/read.rs",
+        "sha256": "28ea383e9fce8cec4084f35d5d1445b1c80f810c15d953a3fe018ca939cd9de7",
+        "role": "Hub 解码并核对启动令牌",
+        "matched_text": "HubEditorMailboxV1",
+        "evidence": [
+          {
+            "line_range": [
+              5,
+              5
+            ],
+            "text": "use zircon_runtime_interface::hub_protocol::{HubEditorMailboxV1, HubSessionToken};"
+          },
+          {
+            "line_range": [
+              13,
+              13
+            ],
+            "text": ") -> Result<Option<HubEditorMailboxV1>, HubError> {"
+          },
+          {
+            "line_range": [
+              16,
+              16
+            ],
+            "text": "            let mailbox = serde_json::from_slice::<HubEditorMailboxV1>(&bytes)?;"
+          }
+        ],
+        "match_count": 3
+      },
+      {
+        "path": "zircon_hub/src/process/editor_focus/publish.rs",
+        "sha256": "f5a90ed8eabf4d13cc0867a6ae76ce684b68a0cf8ddfd416a9240334539f5eaf",
+        "role": "Hub 发布目标实例聚焦请求",
+        "matched_text": "HubEditorFocusSignalV1",
+        "evidence": [
+          {
+            "line_range": [
+              7,
+              7
+            ],
+            "text": "    HubEditorFocusSignalV1, HubSessionToken, hub_editor_focus_request_directory,"
+          },
+          {
+            "line_range": [
+              27,
+              27
+            ],
+            "text": ") -> Result<HubEditorFocusSignalV1, HubError> {"
+          },
+          {
+            "line_range": [
+              44,
+              44
+            ],
+            "text": "    let signal = HubEditorFocusSignalV1::new("
+          },
+          {
+            "line_range": [
+              99,
+              99
+            ],
+            "text": "        let Ok(request) = serde_json::from_slice::<HubEditorFocusSignalV1>(&bytes) else {"
+          }
+        ],
+        "match_count": 4
+      },
+      {
+        "path": "zircon_hub/src/process/editor_focus/ack.rs",
+        "sha256": "9f5fd4a590deea25e5a1928ad1c29ae5bfa139a350639d7d8c47061db7dffe6b",
+        "role": "Hub 读取聚焦确认",
+        "matched_text": "HubEditorFocusAckV1",
+        "evidence": [
+          {
+            "line_range": [
+              8,
+              8
+            ],
+            "text": "    HubEditorFocusAckDispositionV1, HubEditorFocusAckV1, HubEditorFocusSignalV1,"
+          },
+          {
+            "line_range": [
+              53,
+              53
+            ],
+            "text": "                let acknowledgement = serde_json::from_slice::<HubEditorFocusAckV1>(&bytes)?;"
+          },
+          {
+            "line_range": [
+              70,
+              70
+            ],
+            "text": "    acknowledgement: &HubEditorFocusAckV1,"
+          }
+        ],
+        "match_count": 3
+      },
+      {
+        "path": "zircon_editor/src/core/hub_link/focus_watch.rs",
+        "sha256": "9edb32027cf2ab14f47a48969cf154d7cd0038b581cfce2075cf503aa54d904e",
+        "role": "Editor 请求邮箱监听",
+        "matched_text": "hub_editor_focus",
+        "evidence": [
+          {
+            "line_range": [
+              10,
+              10
+            ],
+            "text": "    hub_editor_focus_request_directory, HubEditorFocusSignalV1,"
+          },
+          {
+            "line_range": [
+              30,
+              30
+            ],
+            "text": "        let focus_directory = hub_editor_focus_request_directory(&project_root, &local_instance_id)"
+          }
+        ],
+        "match_count": 2
+      },
+      {
+        "path": "zircon_editor/src/core/hub_link/focus_signal.rs",
+        "sha256": "f072a08139a30fb1d7d25eca31318d9cf0ca1f11fe9a9a876097071f3bafdf12",
+        "role": "Editor 校验信号并形成确认",
+        "matched_text": "HubEditorFocusSignalV1",
+        "evidence": [
+          {
+            "line_range": [
+              9,
+              9
+            ],
+            "text": "    HubEditorFocusAckDispositionV1, HubEditorFocusAckV1, HubEditorFocusSignalV1, HubSessionToken,"
+          },
+          {
+            "line_range": [
+              43,
+              43
+            ],
+            "text": "    let signal = HubEditorFocusSignalV1::new("
+          },
+          {
+            "line_range": [
+              79,
+              79
+            ],
+            "text": ") -> Result<Vec<HubEditorFocusSignalV1>, HubFocusSignalError> {"
+          },
+          {
+            "line_range": [
+              98,
+              98
+            ],
+            "text": "            serde_json::from_slice::<HubEditorFocusSignalV1>(&bytes).map_err(|source| {"
+          },
+          {
+            "line_range": [
+              157,
+              157
+            ],
+            "text": "    request: &HubEditorFocusSignalV1,"
+          }
+        ],
+        "match_count": 5
+      },
+      {
+        "path": "zircon_hub/src/projects/shared_recent_projects.rs",
+        "sha256": "8eaec789a30231e55775db50842de4b896b32467b2972154360c0b064f49676b",
+        "role": "Hub shared recent-project mutations",
+        "matched_text": ".remove(",
+        "evidence": [
+          {
+            "line_range": [
+              191,
+              191
+            ],
+            "text": "                        registry.remove(&previous.path)?;"
+          }
+        ],
+        "match_count": 1
+      },
+      {
+        "path": "zircon_hub/src/tauri_app/runtime_state.rs",
+        "sha256": "add6458e097eb26462a55c4cfc7d03b9a46d2fc150df47922e64224e2b46c981",
+        "role": "Hub 启动时清洁投影 compare-and-update",
+        "matched_text": "compare_and_update_if_clean",
+        "evidence": [
+          {
+            "line_range": [
+              1011,
+              1011
+            ],
+            "text": "        match store.compare_and_update_if_clean("
+          }
+        ],
+        "match_count": 1
+      },
+      {
+        "path": "zircon_editor/src/core/hub_link/recent_writeback.rs",
+        "sha256": "c7ef9648b6bd3f34729f80ecb4bbf630203949476ef3bd782907528ef2655469",
+        "role": "Editor recent-project Store callbacks",
+        "matched_text": ".remove(",
+        "evidence": [
+          {
+            "line_range": [
+              50,
+              50
+            ],
+            "text": "    mutate_recent_projects(|registry| registry.remove(display_path))"
+          }
+        ],
+        "match_count": 1
+      },
+      {
+        "path": "zircon_app/src/entry/cli/launch_args.rs",
+        "sha256": "b76e15a5867889584a0f035ad3e8aaa7b3a191cccb4dfb3764b98f616ebd9d62",
+        "role": "CLI launch session token parser",
+        "matched_text": "HubSessionToken",
+        "evidence": [
+          {
+            "line_range": [
+              12,
+              12
+            ],
+            "text": "    hub_protocol::{HubSessionToken, HUB_PROTOCOL_VERSION_V1},"
+          },
+          {
+            "line_range": [
+              95,
+              95
+            ],
+            "text": "    session: HubSessionToken,"
+          },
+          {
+            "line_range": [
+              99,
+              99
+            ],
+            "text": "    fn new(session: HubSessionToken) -> Self {"
+          },
+          {
+            "line_range": [
+              103,
+              103
+            ],
+            "text": "    pub(crate) fn session(&self) -> HubSessionToken {"
+          },
+          {
+            "line_range": [
+              314,
+              314
+            ],
+            "text": "                    hub_session = Some(HubSessionToken::from_str(&value).map_err(|error| {"
+          }
+        ],
+        "match_count": 5
+      }
+    ],
+    "serde_wire_review": "逐项核对拒绝未知字段的 DTO、手写协议版本/token Serde、Ready receipt Serialize 与私有 Deserialize 形式，以及 Store 读后调用 validate。"
+  },
+  "test_contracts": {
+    "tests": [
+      {
+        "name": "single_pass_validation_preserves_duplicate_error_precedence",
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/registry_perf.rs",
+        "source_sha256": "d7cda8c3c2dea5360f619daca588afdaa5c2e005cbd0c1f1e93b85478aeccd54",
+        "line_range": [
+          17,
+          18
+        ],
+        "evidence": [
+          "#[test]",
+          "fn single_pass_validation_preserves_duplicate_error_precedence() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "removal_persists_a_tombstone_and_a_later_open_advances_its_logical_clock",
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/registry_perf.rs",
+        "source_sha256": "d7cda8c3c2dea5360f619daca588afdaa5c2e005cbd0c1f1e93b85478aeccd54",
+        "line_range": [
+          38,
+          39
+        ],
+        "evidence": [
+          "#[test]",
+          "fn removal_persists_a_tombstone_and_a_later_open_advances_its_logical_clock() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "canonical_validation_borrows_registry_entries",
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/registry_perf.rs",
+        "source_sha256": "d7cda8c3c2dea5360f619daca588afdaa5c2e005cbd0c1f1e93b85478aeccd54",
+        "line_range": [
+          61,
+          63
+        ],
+        "evidence": [
+          "#[test]",
+          "fn canonical_validation_borrows_registry_entries() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "corrupted_projection_is_quarantined_and_rebuilt_during_a_bounded_mutation",
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs",
+        "source_sha256": "a6decebb35ac7d1c6a1d4cbe68795cd0a54a93b9ebff45fe71120775f73db02f",
+        "line_range": [
+          14,
+          15
+        ],
+        "evidence": [
+          "#[test]",
+          "fn corrupted_projection_is_quarantined_and_rebuilt_during_a_bounded_mutation() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "oversized_projection_is_nonblocking_and_reports_a_rebuild_requirement",
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs",
+        "source_sha256": "a6decebb35ac7d1c6a1d4cbe68795cd0a54a93b9ebff45fe71120775f73db02f",
+        "line_range": [
+          39,
+          40
+        ],
+        "evidence": [
+          "#[test]",
+          "fn oversized_projection_is_nonblocking_and_reports_a_rebuild_requirement() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "clean_compare_rejects_rebuildable_input_changed_after_observation",
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs",
+        "source_sha256": "a6decebb35ac7d1c6a1d4cbe68795cd0a54a93b9ebff45fe71120775f73db02f",
+        "line_range": [
+          61,
+          62
+        ],
+        "evidence": [
+          "#[test]",
+          "fn clean_compare_rejects_rebuildable_input_changed_after_observation() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "expired_windows_writer_attempts_release_named_mutex_handles",
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs",
+        "source_sha256": "a6decebb35ac7d1c6a1d4cbe68795cd0a54a93b9ebff45fe71120775f73db02f",
+        "line_range": [
+          120,
+          121
+        ],
+        "evidence": [
+          "#[test]",
+          "fn expired_windows_writer_attempts_release_named_mutex_handles() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "cancelled_write_returns_a_typed_terminal_error_before_mutation",
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs",
+        "source_sha256": "a6decebb35ac7d1c6a1d4cbe68795cd0a54a93b9ebff45fe71120775f73db02f",
+        "line_range": [
+          161,
+          162
+        ],
+        "evidence": [
+          "#[test]",
+          "fn cancelled_write_returns_a_typed_terminal_error_before_mutation() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "compare_and_update_rejects_a_stale_projection_revision",
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs",
+        "source_sha256": "a6decebb35ac7d1c6a1d4cbe68795cd0a54a93b9ebff45fe71120775f73db02f",
+        "line_range": [
+          182,
+          183
+        ],
+        "evidence": [
+          "#[test]",
+          "fn compare_and_update_rejects_a_stale_projection_revision() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "hub_session_token_round_trips_as_a_uuid_without_path_characters",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          17,
+          18
+        ],
+        "evidence": [
+          "#[test]",
+          "fn hub_session_token_round_trips_as_a_uuid_without_path_characters() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "hub_session_token_rejects_noncanonical_or_non_v4_values",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          39,
+          40
+        ],
+        "evidence": [
+          "#[test]",
+          "fn hub_session_token_rejects_noncanonical_or_non_v4_values() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "ready_mailbox_v1_round_trips_with_the_canonical_payload_shape",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          61,
+          62
+        ],
+        "evidence": [
+          "#[test]",
+          "fn ready_mailbox_v1_round_trips_with_the_canonical_payload_shape() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "stale_mailbox_protocol_is_rejected_at_the_decode_boundary",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          122,
+          123
+        ],
+        "evidence": [
+          "#[test]",
+          "fn stale_mailbox_protocol_is_rejected_at_the_decode_boundary() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "failed_mailbox_v1_round_trips_with_the_canonical_payload_shape",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          135,
+          136
+        ],
+        "evidence": [
+          "#[test]",
+          "fn failed_mailbox_v1_round_trips_with_the_canonical_payload_shape() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "mailbox_v1_rejects_legacy_or_extra_outcome_fields",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          166,
+          167
+        ],
+        "evidence": [
+          "#[test]",
+          "fn mailbox_v1_rejects_legacy_or_extra_outcome_fields() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "mailbox_v1_rejects_unknown_root_fields",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          193,
+          194
+        ],
+        "evidence": [
+          "#[test]",
+          "fn mailbox_v1_rejects_unknown_root_fields() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "focus_signal_v1_round_trips_without_session_lock_fields",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          209,
+          210
+        ],
+        "evidence": [
+          "#[test]",
+          "fn focus_signal_v1_round_trips_without_session_lock_fields() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "focus_signal_v1_rejects_unknown_or_legacy_lock_fields",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          243,
+          244
+        ],
+        "evidence": [
+          "#[test]",
+          "fn focus_signal_v1_rejects_unknown_or_legacy_lock_fields() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "focus_ack_v1_binds_the_exact_request_without_project_paths",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          258,
+          259
+        ],
+        "evidence": [
+          "#[test]",
+          "fn focus_ack_v1_binds_the_exact_request_without_project_paths() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "focus_signal_path_is_shared_and_rejects_an_unsafe_instance_id",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          287,
+          288
+        ],
+        "evidence": [
+          "#[test]",
+          "fn focus_signal_path_is_shared_and_rejects_an_unsafe_instance_id() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "recent_projects_v1_is_versioned_deduplicated_and_bounded",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          310,
+          311
+        ],
+        "evidence": [
+          "#[test]",
+          "fn recent_projects_v1_is_versioned_deduplicated_and_bounded() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "recent_projects_v1_assigns_monotonic_revisions_to_effective_mutations",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          342,
+          343
+        ],
+        "evidence": [
+          "#[test]",
+          "fn recent_projects_v1_assigns_monotonic_revisions_to_effective_mutations() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "recent_projects_v1_preserves_a_new_open_when_wall_clock_moves_backward",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          360,
+          361
+        ],
+        "evidence": [
+          "#[test]",
+          "fn recent_projects_v1_preserves_a_new_open_when_wall_clock_moves_backward() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "recent_projects_v1_uses_the_shared_home_path_and_strict_wire_shape",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+        "source_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+        "line_range": [
+          374,
+          375
+        ],
+        "evidence": [
+          "#[test]",
+          "fn recent_projects_v1_uses_the_shared_home_path_and_strict_wire_shape() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "receipt_after_first_present_contains_every_required_milestone",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/ready_receipt.rs",
+        "source_sha256": "9f7c14df7815b706a0ac785a5a4fc8ac38886817a532ac8d28e4845a44406718",
+        "line_range": [
+          3,
+          4
+        ],
+        "evidence": [
+          "#[test]",
+          "fn receipt_after_first_present_contains_every_required_milestone() {"
+        ],
+        "executed": false
+      },
+      {
+        "name": "deserialize_rejects_partial_or_path_bearing_ready_receipts",
+        "path": "zircon_runtime_interface/src/hub_protocol/tests/ready_receipt.rs",
+        "source_sha256": "9f7c14df7815b706a0ac785a5a4fc8ac38886817a532ac8d28e4845a44406718",
+        "line_range": [
+          14,
+          15
+        ],
+        "evidence": [
+          "#[test]",
+          "fn deserialize_rejects_partial_or_path_bearing_ready_receipts() {"
+        ],
+        "executed": false
+      }
+    ],
+    "executed": false,
+    "note": "逐项阅读测试函数体并核对契约；本批没有运行 Cargo 或 Rust tests。"
+  },
+  "issues": {
+    "static_only": true,
+    "candidates": [
+      {
+        "id": "CR-ZCA-R031-0001",
+        "status": "静态路径闭合，主审独立复核通过；未运行 Rust 复现。",
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/registry.rs",
+        "line_evidence": [
+          {
+            "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/registry.rs",
+            "sha256": "87185a3e3066047c24b5d159a2c6547e05c4bc13fd5ce6f42c85e4e9de8d54ec",
+            "evidence": [
+              {
+                "line_range": [
+                  80,
+                  80
+                ],
+                "text": "            .retain(|tombstone| tombstone.path_key != path_key);"
+              },
+              {
+                "line_range": [
+                  96,
+                  96
+                ],
+                "text": "                .any(|tombstone| tombstone.path_key == path_key)"
+              },
+              {
+                "line_range": [
+                  104,
+                  104
+                ],
+                "text": "            .retain(|tombstone| tombstone.path_key != path_key);"
+              },
+              {
+                "line_range": [
+                  160,
+                  160
+                ],
+                "text": "            if tombstone.path_key.is_empty() {"
+              },
+              {
+                "line_range": [
+                  164,
+                  164
+                ],
+                "text": "            if keys.contains_key(&tombstone.path_key) {"
+              },
+              {
+                "line_range": [
+                  166,
+                  166
+                ],
+                "text": "                    path_key: tombstone.path_key.clone(),"
+              },
+              {
+                "line_range": [
+                  169,
+                  169
+                ],
+                "text": "            match tombstone_keys.entry(tombstone.path_key.clone()) {"
+              }
+            ]
+          },
+          {
+            "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/identity.rs",
+            "sha256": "40e280dc5b0e1379925ee606ac641366b2c197dfe067b05623185f66e7f28224",
+            "evidence": [
+              {
+                "line_range": [
+                  7,
+                  7
+                ],
+                "text": "pub fn hub_recent_project_path_key(path: impl AsRef<Path>) -> String {"
+              }
+            ]
+          },
+          {
+            "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/store.rs",
+            "sha256": "a749dbc2744070c84341e39bbd9fe37431aa598a02487012d112b6760471c486",
+            "evidence": [
+              {
+                "line_range": [
+                  240,
+                  240
+                ],
+                "text": "    let registry = serde_json::from_slice::<HubRecentProjectsV1>(&bytes).map_err(|source| {"
+              }
+            ]
+          }
+        ],
+        "trigger": "同一 Windows 盘符路径 E:/Projects/Game 与 e:/projects/game 分别作为项目 path 和反序列化墓碑 path_key；项目键规范化为小写而墓碑键保留 wire 原文。",
+        "path_proof": "Store 的 read_registry 先用 serde_json 解码再调用 validate。validate 把项目路径转成规范键，但墓碑仅检查非空后以原始字符串查重，故上述两种表示通过且重叠。record 只按规范键精确移除墓碑，无法删掉非规范的原始键。",
+        "impact": "最近项目投影可同时保留相同规范路径的项目与墓碑，违反互斥契约；不推断后续宿主或云端行为。",
+        "recommended_follow_up": "修复时规范化或拒绝非规范墓碑键，并加反序列化及 record 回归用例；本批不改行为、不加测试。"
+      },
+      {
+        "id": "CR-ZCA-R031-0002",
+        "status": "静态路径闭合，主审独立复核通过；未运行 Rust 复现。",
+        "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/registry.rs",
+        "line_evidence": [
+          {
+            "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/registry.rs",
+            "sha256": "87185a3e3066047c24b5d159a2c6547e05c4bc13fd5ce6f42c85e4e9de8d54ec",
+            "evidence": [
+              {
+                "line_range": [
+                  77,
+                  77
+                ],
+                "text": "        self.bump_revision()?;"
+              },
+              {
+                "line_range": [
+                  86,
+                  86
+                ],
+                "text": "    pub fn remove(&mut self, path: impl AsRef<Path>) -> Result<(), HubRecentProjectsError> {"
+              },
+              {
+                "line_range": [
+                  105,
+                  105
+                ],
+                "text": "        self.tombstones.push(HubRecentProjectTombstoneV1::new("
+              },
+              {
+                "line_range": [
+                  109,
+                  109
+                ],
+                "text": "        self.canonicalize_tombstones();"
+              },
+              {
+                "line_range": [
+                  111,
+                  111
+                ],
+                "text": "        self.bump_revision()?;"
+              },
+              {
+                "line_range": [
+                  192,
+                  192
+                ],
+                "text": "            .checked_add(1)"
+              },
+              {
+                "line_range": [
+                  200,
+                  200
+                ],
+                "text": "                .checked_add(1)"
+              },
+              {
+                "line_range": [
+                  210,
+                  210
+                ],
+                "text": "                .checked_add(1)"
+              }
+            ]
+          },
+          {
+            "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/store.rs",
+            "sha256": "a749dbc2744070c84341e39bbd9fe37431aa598a02487012d112b6760471c486",
+            "evidence": [
+              {
+                "line_range": [
+                  226,
+                  226
+                ],
+                "text": "        write_registry(&self.registry_path, &registry)?;"
+              },
+              {
+                "line_range": [
+                  303,
+                  303
+                ],
+                "text": "fn write_registry("
+              }
+            ]
+          },
+          {
+            "path": "zircon_hub/src/projects/shared_recent_projects.rs",
+            "sha256": "8eaec789a30231e55775db50842de4b896b32467b2972154360c0b064f49676b",
+            "evidence": [
+              {
+                "line_range": [
+                  191,
+                  191
+                ],
+                "text": "                        registry.remove(&previous.path)?;"
+              },
+              {
+                "line_range": [
+                  195,
+                  195
+                ],
+                "text": "                    registry.record(project.clone())?;"
+              }
+            ]
+          },
+          {
+            "path": "zircon_editor/src/core/hub_link/recent_writeback.rs",
+            "sha256": "c7ef9648b6bd3f34729f80ecb4bbf630203949476ef3bd782907528ef2655469",
+            "evidence": [
+              {
+                "line_range": [
+                  40,
+                  40
+                ],
+                "text": "    mutate_recent_projects(|registry| registry.record(project))"
+              },
+              {
+                "line_range": [
+                  50,
+                  50
+                ],
+                "text": "    mutate_recent_projects(|registry| registry.remove(display_path))"
+              }
+            ]
+          }
+        ],
+        "trigger": "直接调用 remove；有一条通过 validate 的项目记录；revision=u64::MAX；逻辑时钟可递增。",
+        "path_proof": "remove 先从 projects 删除记录、生成并规范化墓碑，再用 checked_add bump revision；revision 溢出后返回 Err。revision 未被 validator 限制；有项目且最大逻辑时间小于 u64::MAX 的状态可达。",
+        "impact": "只限定为持有 &mut DTO 的直接调用者，其内存对象在 Err 前部分修改。Store update_at_revision 在锁内修改 clone，闭包 error 经 ? 退出且写盘在其后；现有 Hub/Editor remove closures 不会持久化失败 clone。",
+        "recommended_follow_up": "行为修复可预检计数并原子提交候选副本；建议分别覆盖 in-memory 状态和 Store 不落盘，本批不改行为、不加测试。"
+      }
+    ]
+  },
+  "validation": {
+    "before_pins_rechecked": true,
+    "all_source_before_reconstruction_matches": true,
+    "non_comment_diff": false,
+    "rustfmt": {
+      "command": "rustfmt --edition 2021 --check --config skip_children=true <exact 26 R031 source paths>",
+      "exit_code": 1,
+      "result": "仅 recent_projects/store.rs 有既存 cfg import 排序差异；新增文档缩进已修正。",
+      "existing_diff": "建议交换 windows mutex import 和 unix lock-path import；本批保留既有字节。"
+    },
+    "git_diff_check": {
+      "command": "git --no-optional-locks diff --check -- <exact 26 R031 source paths>",
+      "exit_code": 0,
+      "result": "通过。Git 提示部分 LF 文件若后续写回会转 CRLF；当前 EOL 均与授予原字节一致。"
+    },
+    "tests_builds_generators": {
+      "cargo_run": false,
+      "rust_tests_run": false,
+      "build_run": false,
+      "generator_run": false
+    },
+    "review_method": "逐文件移除本批所有新增注释行后，原始 SHA256 与精确 before pin 一致；保存注释块的行范围、偏移、长度、哈希和文本。"
+  },
+  "artifact_lifecycle": {
+    "created_build_artifacts": false,
+    "created_temporary_files": false,
+    "created_source_copies": false,
+    "cleanup_required": false,
+    "note": "仅写预登记 reviews/R031.json；无构建产物或临时文件。"
+  },
+  "handoff": {
+    "independent_root_review": "pending",
+    "formal_acceptance": false,
+    "source_owner_released": false,
+    "next_action": "主审复核 26 源对象、51 注释行、两个静态问题、调用上下文和既存 rustfmt 差异。"
+  }
+}

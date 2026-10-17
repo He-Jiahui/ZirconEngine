@@ -3,6 +3,12 @@
 //! 每个测试独占局部队列，区分本帧视图和跨帧仍可消费的请求；实际宿主执行不在此模块中。
 
 use super::*;
+use std::num::NonZeroU64;
+
+use crate::core::framework::input::{
+    GamepadConnectionInfo, GamepadInputRejection, InputEventAdmission, InputEventRecordingConfig,
+    QueuedGamepadRumbleRequest,
+};
 
 // 运行时生成的震动和光标请求由宿主排空；帧快照只呈现本帧新请求。
 #[test]
@@ -19,6 +25,8 @@ use super::*;
 fn gamepad_rumble_requests_are_frame_local_and_drainable() {
     let input = DefaultInputManager::default();
     let gamepad = GamepadId(11);
+    let generation = NonZeroU64::new(1).unwrap();
+    input.submit_event(rumble_connection_event(gamepad, generation, true));
     let add = GamepadRumbleRequest::add(gamepad, GamepadRumbleIntensity::new(1.2, 0.4), 125);
     let stop = GamepadRumbleRequest::stop(gamepad);
 
@@ -33,14 +41,23 @@ fn gamepad_rumble_requests_are_frame_local_and_drainable() {
     let frame = input.frame_snapshot();
     assert_eq!(frame.gamepad_rumble_requests, vec![add, stop]);
 
-    assert_eq!(input.drain_gamepad_rumble_requests(), vec![add, stop]);
+    assert_eq!(
+        input.drain_gamepad_rumble_requests(),
+        vec![
+            QueuedGamepadRumbleRequest::new(add, generation),
+            QueuedGamepadRumbleRequest::new(stop, generation),
+        ],
+    );
     assert!(input.frame_snapshot().gamepad_rumble_requests.is_empty());
 
     input.submit_event(InputEvent::GamepadRumbleRequest(add));
     input.begin_frame();
 
     assert!(input.frame_snapshot().gamepad_rumble_requests.is_empty());
-    assert_eq!(input.drain_gamepad_rumble_requests(), vec![add]);
+    assert_eq!(
+        input.drain_gamepad_rumble_requests(),
+        vec![QueuedGamepadRumbleRequest::new(add, generation)],
+    );
     assert!(input.drain_gamepad_rumble_requests().is_empty());
 }
 
@@ -83,4 +100,87 @@ fn cursor_host_requests_are_frame_local_and_drainable() {
         vec![CursorHostRequest::set_grab_mode(CursorGrabMode::None)]
     );
     assert!(input.drain_cursor_host_requests().is_empty());
+}
+
+fn rumble_connection_event(
+    gamepad: GamepadId,
+    generation: NonZeroU64,
+    connected: bool,
+) -> InputEvent {
+    InputEvent::GamepadConnection(GamepadConnectionInfo {
+        gamepad,
+        generation,
+        connected,
+        name: None,
+        vendor_id: None,
+        product_id: None,
+    })
+}
+
+#[test]
+fn gamepad_rumble_rejects_unobserved_and_closed_targets_without_retention() {
+    let input = DefaultInputManager::default();
+    let gamepad = GamepadId(51);
+    let generation = NonZeroU64::new(1).unwrap();
+    input.set_event_recording_config(InputEventRecordingConfig::enabled(16));
+    let requests = [
+        GamepadRumbleRequest::add(gamepad, GamepadRumbleIntensity::new(0.5, 1.0), 125),
+        GamepadRumbleRequest::stop(gamepad),
+    ];
+    for connected_once in [false, true] {
+        if connected_once {
+            input.submit_event(rumble_connection_event(gamepad, generation, true));
+            input.submit_event(rumble_connection_event(gamepad, generation, false));
+            let _ = input.drain_events();
+            let _ = input.drain_event_records();
+        }
+        for request in requests {
+            assert_eq!(
+                input.submit_event_with_admission(InputEvent::GamepadRumbleRequest(request)),
+                InputEventAdmission::Rejected(
+                    GamepadInputRejection::RumbleTargetUnavailable { gamepad },
+                ),
+            );
+        }
+        assert!(input.frame_snapshot().gamepad_rumble_requests.is_empty());
+        assert!(input.drain_gamepad_rumble_requests().is_empty());
+        assert!(input.drain_events().is_empty());
+        assert!(input.drain_event_records().is_empty());
+    }
+}
+
+#[test]
+fn gamepad_rumble_queue_retains_enqueue_generations_across_reconnects() {
+    let input = DefaultInputManager::default();
+    let gamepad = GamepadId(52);
+    let other = GamepadId(53);
+    let first = NonZeroU64::new(1).unwrap();
+    let second = NonZeroU64::new(2).unwrap();
+    let add = GamepadRumbleRequest::add(gamepad, GamepadRumbleIntensity::new(0.5, 1.0), 125);
+    let stop = GamepadRumbleRequest::stop(gamepad);
+    let other_stop = GamepadRumbleRequest::stop(other);
+    input.submit_event(rumble_connection_event(gamepad, first, true));
+    input.submit_event(InputEvent::GamepadRumbleRequest(add));
+    input.submit_event(InputEvent::GamepadRumbleRequest(stop));
+    assert_eq!(input.frame_snapshot().gamepad_rumble_requests, vec![add, stop]);
+    input.begin_frame();
+    // Same-generation connect is idempotent and cannot discard the accepted FIFO prefix.
+    input.submit_event(rumble_connection_event(gamepad, first, true));
+    input.submit_event(rumble_connection_event(gamepad, first, false));
+    input.submit_event(rumble_connection_event(gamepad, second, true));
+    input.submit_event(rumble_connection_event(other, first, true));
+    input.submit_event(InputEvent::GamepadRumbleRequest(add));
+    input.submit_event(InputEvent::GamepadRumbleRequest(other_stop));
+    assert_eq!(input.frame_snapshot().gamepad_rumble_requests, vec![add, other_stop]);
+    assert_eq!(
+        input.drain_gamepad_rumble_requests(),
+        vec![
+            QueuedGamepadRumbleRequest::new(add, first),
+            QueuedGamepadRumbleRequest::new(stop, first),
+            QueuedGamepadRumbleRequest::new(add, second),
+            QueuedGamepadRumbleRequest::new(other_stop, first),
+        ],
+    );
+    assert!(input.frame_snapshot().gamepad_rumble_requests.is_empty());
+    assert!(input.drain_gamepad_rumble_requests().is_empty());
 }

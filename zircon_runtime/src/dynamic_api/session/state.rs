@@ -13,7 +13,7 @@ use zircon_runtime_interface::{
 
 use crate::builtin::RuntimeModuleCompositionIdentity;
 use crate::core::framework::channel::ChannelWakeCallback;
-use crate::core::framework::input::{InputEvent, InputManager};
+use crate::core::framework::input::{InputEvent, InputEventAdmission, InputManager};
 use crate::core::framework::render::{RenderFrameTiming, RenderViewportSurfaceDescriptor};
 use crate::core::framework::time::ProductTimePolicy;
 use crate::core::manager::{resolve_manager_service, ManagerServiceHandle};
@@ -526,7 +526,7 @@ impl RuntimeDynamicSession {
                 rumble_requests
                     .into_iter()
                     .map(runtime_gamepad_rumble_request)
-                    .map(ZrRuntimeHostRequestV1::gamepad_rumble),
+                    .map(ZrRuntimeHostRequestV1::gamepad_rumble_v2),
             );
             let cursor_requests = input_manager.drain_cursor_host_requests();
             crate::profile_counter!("runtime", "host_request.cursor_rows", cursor_requests.len());
@@ -550,12 +550,25 @@ impl RuntimeDynamicSession {
         resolve_manager_service(&self.runtime.handle(), self.input_manager.clone())
     }
 
+    pub(super) fn submit_input_event_with_admission(
+        &self,
+        event: InputEvent,
+    ) -> Result<InputEventAdmission, crate::core::CoreError> {
+        let input_manager = self.resolve_input_manager()?;
+        let admission = input_manager.submit_event_with_admission(event);
+        if let InputEventAdmission::Rejected(reason) = admission {
+            write_log_lazy("runtime_session", || {
+                format!("runtime_gamepad_event_rejected reason={reason:?}")
+            });
+        }
+        // The service guard and manager state lock end before any UI dispatch.
+        Ok(admission)
+    }
+
     pub(super) fn submit_input_event(&self, event: InputEvent) -> bool {
-        match self.resolve_input_manager() {
-            Ok(input_manager) => {
-                input_manager.submit_event(event);
-                true
-            }
+        match self.submit_input_event_with_admission(event) {
+            Ok(InputEventAdmission::Accepted) => true,
+            Ok(InputEventAdmission::Rejected(_)) => false,
             Err(error) => {
                 write_log_lazy("runtime_session", || {
                     format!("runtime_input_event_dropped_for_stale_manager error={error}")

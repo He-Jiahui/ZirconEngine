@@ -24,13 +24,22 @@ fn is_windows_unsafe_component(component: &str) -> bool {
         return true;
     }
     let normalized = component.trim_end_matches([' ', '.']);
-    let stem = normalized.split('.').next().unwrap_or_default().to_ascii_uppercase();
-    matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$")
-        || ["COM", "LPT"].iter().any(|prefix| {
-            stem.strip_prefix(prefix).is_some_and(|suffix| {
-                matches!(suffix, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³")
-            })
+    let stem = normalized
+        .split('.')
+        .next()
+        .unwrap_or_default()
+        .to_ascii_uppercase();
+    matches!(
+        stem.as_str(),
+        "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$"
+    ) || ["COM", "LPT"].iter().any(|prefix| {
+        stem.strip_prefix(prefix).is_some_and(|suffix| {
+            matches!(
+                suffix,
+                "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³"
+            )
         })
+    })
 }
 
 #[cfg(test)]

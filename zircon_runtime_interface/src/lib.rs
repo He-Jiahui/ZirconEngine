@@ -135,6 +135,9 @@ pub use profiling::{
 };
 pub use runtime_api::ZrRuntimeImeTextRangeV1;
 pub use runtime_api::{
+    ZrRuntimeGamepadGenerationV2, ZrRuntimeGamepadGenerationV2Error,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V2, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V2,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V2, ZR_RUNTIME_GAMEPAD_GENERATION_V2_HEADER_BYTES,
     validate_runtime_api_v8_shape, validate_runtime_frame_rgba_shape, GatewaySessionIdentity,
     ZrHostApiV1, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV8, ZrRuntimeApiV8ShapeError,
     ZrRuntimeAppSessionConfigurationError, ZrRuntimeAppSessionConfigurationV2,
@@ -147,7 +150,8 @@ pub use runtime_api::{
     ZrRuntimeDrainWorldInvalidationsFnV2, ZrRuntimeEditorTransformError,
     ZrRuntimeEditorTransformPhaseV1, ZrRuntimeEditorTransformWriteV1, ZrRuntimeEntityIdSliceV1,
     ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2,
-    ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeGetApiFnV8,
+    ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
+    ZrRuntimeGamepadRumbleRequestV2, ZrRuntimeGetApiFnV8,
     ZrRuntimeHarvestOperationFnV2, ZrRuntimeHighlightRenderAttributesV1, ZrRuntimeHighlightSetV1,
     ZrRuntimeHostFetchFnV1, ZrRuntimeHostFetchRequestV1, ZrRuntimeHostRequestBatchV1,
     ZrRuntimeHostRequestV1, ZrRuntimeImeCandidateRectV2, ZrRuntimeImeCompositionContextV2,
@@ -249,3 +253,6 @@ pub use version::{
 #[cfg(test)]
 #[path = "tests/mod.rs"]
 mod tests;
+
+/// Finite retained-allocation providers for supported history domains.
+pub mod retained_memory;

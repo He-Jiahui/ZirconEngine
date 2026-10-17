@@ -1,4 +1,6 @@
 //! Persisted scene-facing physics schema shared by assets, ECS components, and tooling.
+//!
+//! 持久化物理 DTO 的导出域，这里装配声明与 serde 辅助，不创建后端对象。
 
 #[path = "ccd_mode.rs"]
 mod ccd_mode;

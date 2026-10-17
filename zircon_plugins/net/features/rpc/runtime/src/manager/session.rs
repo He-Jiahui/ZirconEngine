@@ -8,7 +8,7 @@ use zircon_runtime::core::framework::net::{
     NetSessionId, NetSessionInfo,
 };
 
-use super::{NetRpcRuntimeManager, state::NetRpcSessionState};
+use super::{state::NetRpcSessionState, NetRpcRuntimeManager};
 
 impl NetRpcRuntimeManager {
     pub fn begin_handshake(&self) -> NetSessionId {

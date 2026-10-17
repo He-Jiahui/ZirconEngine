@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::io::{self, Write};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use serde::ser::{SerializeSeq, SerializeStruct};
 use serde::{Serialize, Serializer};

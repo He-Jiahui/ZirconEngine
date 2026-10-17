@@ -1,9 +1,13 @@
-use super::*;
 use super::super::{font_request_for_face, runtime_text_style_for_face, HostTextFontFace};
-use zircon_runtime_interface::ui::surface::{UiTextWrap, UiTextOverflow};
+use super::*;
+use zircon_runtime_interface::ui::surface::{UiTextOverflow, UiTextWrap};
 
 fn request(family: &str, weight: u16) -> HostTextFontRequest {
-    HostTextFontRequest { face: HostTextFontFace::Ui, family: family.into(), weight }
+    HostTextFontRequest {
+        face: HostTextFontFace::Ui,
+        family: family.into(),
+        weight,
+    }
 }
 
 #[test]
@@ -17,16 +21,28 @@ fn authored_request_scope_restores_nested_legacy_and_early_return_paths() {
         assert_eq!(font_request_for_face(HostTextFontFace::Ui), first);
         {
             let _inner = HostTextFontRequestScope::enter(Some(&second));
-            let style = runtime_text_style_for_face(HostTextFontFace::Ui, 17.0, 8.0, UiTextWrap::None, UiTextOverflow::Clip);
+            let style = runtime_text_style_for_face(
+                HostTextFontFace::Ui,
+                17.0,
+                8.0,
+                UiTextWrap::None,
+                UiTextOverflow::Clip,
+            );
             assert_eq!(style.font_family.as_deref(), Some("Authored inner"));
-            assert_eq!((style.font_weight, style.font_size, style.line_height), (700, 17.0, 8.0));
+            assert_eq!(
+                (style.font_weight, style.font_size, style.line_height),
+                (700, 17.0, 8.0)
+            );
         }
         assert_eq!(active_authored_font_request(), Some(first.clone()));
         {
             let _legacy = HostTextFontRequestScope::enter(None);
             assert_eq!(font_request_for_face(HostTextFontFace::Ui), fallback);
         }
-        let early = || { let _inner = HostTextFontRequestScope::enter(Some(&second)); return; };
+        let early = || {
+            let _inner = HostTextFontRequestScope::enter(Some(&second));
+            return;
+        };
         early();
         assert_eq!(active_authored_font_request(), Some(first.clone()));
     }
@@ -54,9 +70,16 @@ fn authored_request_scope_restores_after_unwind_and_rejects_invalid_requests() {
 
 #[test]
 fn authored_node_request_preserves_exact_weight_and_missing_legacy_behavior() {
-    let node = TemplatePaneNodeData { font_family: "Fira Sans".into(), font_weight: 550, ..Default::default() };
+    let node = TemplatePaneNodeData {
+        font_family: "Fira Sans".into(),
+        font_weight: 550,
+        ..Default::default()
+    };
     let resolved = authored_font_request_for_node(&node, UiTextRunPaintStyle::default()).unwrap();
     assert_eq!(resolved.family, "Fira Sans");
     assert_eq!(resolved.weight, 550);
-    assert!(authored_font_request_for_node(&Default::default(), UiTextRunPaintStyle::default()).is_none());
+    assert!(
+        authored_font_request_for_node(&Default::default(), UiTextRunPaintStyle::default())
+            .is_none()
+    );
 }

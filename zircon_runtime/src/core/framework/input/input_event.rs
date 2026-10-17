@@ -8,6 +8,8 @@
 //!
 //! # 参考
 //! 参见 [InputEvent](super::InputEvent)、[InputManager::submit_event()](super::InputManager::submit_event)、[InputFrameSnapshot](super::InputFrameSnapshot)、[InputEventRecord](super::InputEventRecord)。
+use std::num::NonZeroU64;
+
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -19,7 +21,7 @@ use super::{
 /// 用共享分支表达已提交的设备输入、窗口通知和反向宿主请求。
 ///
 /// # 使用时机与职责
-/// 宿主适配、调用方或回放构造后交给 InputManager。DefaultInputManager 先更新状态，再按录制开关和容量尝试保留提交事件，最后更新可合并相邻移动的即时队列；快照是处理后的状态视图。
+/// 宿主适配、调用方或回放构造后交给 InputManager。DefaultInputManager 先检查手柄连接代际，拒绝时不改变状态或保留器；准入后更新状态，再按录制开关和容量尝试保留事件，最后更新可合并相邻移动的即时队列；快照是处理后的状态视图。
 ///
 /// # 约束
 /// 拥有型枚举和派生 Deserialize 只表达载荷，不统一验证数值、设备连接、触点阶段顺序、键名映射或请求有效性。宿主 ABI 的验证不覆盖直接构造或反序列化后提交。UI 有独立传播：物理键/按钮通常先提交，文本和 IME 内容可先由聚焦 UI 接管；不能把此事件流称为全部宿主原始事件。
@@ -461,7 +463,7 @@ pub enum InputEvent {
     /// 提交手柄连接/断开通知及描述元数据。
     ///
     /// # 使用时机与职责
-    /// DefaultInputManager连接时加入身份；断开时移除身份及其模拟状态，释放其按钮并可追加非零轴归零变化。
+    /// DefaultInputManager 先验证生产端代际；高代连接先退役旧输入，同代关闭后不可重开。获准断开时移除该身份及模拟状态，释放按钮并可追加非零轴归零变化。
     ///
     /// # 约束
     /// 载荷 .0 为 GamepadConnectionInfo；完整事件保留元数据，而 connected_gamepads 快照只含 id。身份值不拥有或验证活设备。
@@ -475,10 +477,10 @@ pub enum InputEvent {
     /// 提交指定手柄按钮的原始幅值及宿主按下标志。
     ///
     /// # 使用时机与职责
-    /// DefaultInputManager先应用默认幅值映射和变化阈值，再结合宿主 pressed 与滞回决定按钮状态。
+    /// DefaultInputManager 仅接受已观察且仍打开的同代样本，再应用默认幅值映射、变化阈值与宿主 pressed/滞回。
     ///
     /// # 约束
-    /// 幅值过滤为 None 时保持上次幅值和按钮状态；pressed 不是唯一决定因素。类型不验证连接、值域或一致性，启用且保留策略允许时，原始录制仍保存提交值。
+    /// 未连接、过旧、超前或已关闭的代际在改变状态和保留器前被拒绝。幅值过滤为 None 时保持上次幅值和按钮状态；pressed 不是唯一决定因素。获准样本按现有保留策略保存原始值。
     ///
     /// # 生命周期
     /// 事件按值拥有载荷；提交后由实现消费，克隆或录制副本的保留与输入状态更新独立。
@@ -486,13 +488,16 @@ pub enum InputEvent {
     /// # 参考
     /// 参见 [GamepadButtonAxisSettings](super::GamepadButtonAxisSettings)、[GamepadButtonSettings](super::GamepadButtonSettings)、[InputButton](super::InputButton)、[InputFrameSnapshot](super::InputFrameSnapshot)。
     GamepadButton {
+        /// Incarnation captured by the producer before queueing this sample.
+        /// A sample never establishes a connection or inherits the current generation.
+        generation: NonZeroU64,
         /// 本次按钮样本的手柄身份。
         ///
         /// # 使用时机与职责
         /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
         ///
         /// # 约束
-        /// 与 button 一起构成完整状态键；类型及 DefaultInputManager 的按钮路径不验证连接集合中已经有该身份。
+        /// 与 button 一起构成路由状态键；DefaultInputManager 另验证事件 generation 与已观察的打开连接一致。
         ///
         /// # 生命周期
         /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
@@ -549,7 +554,7 @@ pub enum InputEvent {
     /// DefaultInputManager 用默认死区、活区与变化阈值处理。返回 Some 时写入持续值，仅在处理值与先前值（缺省为零）不同的情况下记录帧变化；首次接受零值可以建立持续状态而不产生变化边沿。
     ///
     /// # 约束
-    /// 非有限输入或阈值内变化可以不改变状态；原始记录仍可能保留事件。类型不验证连接、范围或身份，处理后快照值可与原值不同。
+    /// DefaultInputManager 仅接受已观察且打开的同代样本。获准的非有限输入或阈值内变化可以不改变数值状态，原始记录仍可能保留；处理后快照值可与原值不同。
     ///
     /// # 生命周期
     /// 事件按值拥有载荷；提交后由实现消费，克隆或录制副本的保留与输入状态更新独立。
@@ -557,6 +562,9 @@ pub enum InputEvent {
     /// # 参考
     /// 参见 [GamepadAxisSettings](super::GamepadAxisSettings)、[GamepadAxisState](super::GamepadAxisState)、[GamepadAxisTransition](super::GamepadAxisTransition)。
     GamepadAxis {
+        /// Incarnation captured by the producer before queueing this sample.
+        /// A sample never establishes a connection or inherits the current generation.
+        generation: NonZeroU64,
         /// 本次轴样本的手柄身份。
         ///
         /// # 使用时机与职责

@@ -20,6 +20,14 @@ use super::engine::{
 };
 use super::selection::SceneSelection;
 
+#[path = "command/add_component.rs"]
+mod add_component;
+pub(crate) use add_component::{
+    AddComponentCatalog, AddComponentCatalogEntry, AddComponentPayload, AddComponentRequest,
+    AddComponentScope, AddDynamicComponentCommand, AddDynamicComponentFactory, GatewayStamp,
+    ADD_COMPONENT_OPERATION,
+};
+
 #[path = "command/batch_transform.rs"]
 mod batch_transform;
 #[path = "command/play_transform.rs"]
@@ -161,6 +169,94 @@ impl EditorCommand {
 }
 
 impl EditCommand for EditorCommand {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn EditContext,
+        phase: super::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<super::engine::CommandRetentionPlanV1, EditCommandError> {
+        use super::engine::{CommandRetentionPlanV1, RetentionPhaseV1};
+        use zircon_runtime_interface::retained_memory::*;
+        let mut plan = CommandRetentionPlanV1::for_owner(self, context, phase, model, limit)?;
+        let core = context.as_any().downcast_ref::<CoreEditContext>().ok_or(
+            EditCommandError::ContextTypeMismatch {
+                expected: "CoreEditContext",
+            },
+        )?;
+        core.with_scene(|scene| -> Result<(), EditCommandError> {
+            plan.owner_revision = Some(scene.world_generation());
+            if let Self::DeleteNode(command) = self {
+                if !matches!(phase, RetentionPhaseV1::Undo | RetentionPhaseV1::Rollback) {
+                    let mut m =
+                        RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(limit));
+                    scene.detached_subtrees_retention_bound_v1(&[command.root_id], &mut m)?;
+                    plan.add_retained(m.bytes().get())?;
+                    plan.add_peak(m.bytes().get())?;
+                } else if let Some(batch) = &command.batch {
+                    let mut m =
+                        RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(limit));
+                    batch.retained_bound_v1(&mut m)?;
+                    batch.restore_retention_peak_v1(&mut m)?;
+                    plan.add_peak(m.bytes().get())?;
+                }
+            } else if let Self::CreateNode(command) = self {
+                if command.record.is_none() {
+                    let kind = match command.intent {
+                        CreateNodeIntent::Node { kind } => kind,
+                        CreateNodeIntent::Mesh { .. } => NodeKind::Mesh,
+                    };
+                    let quote = scene.create_history_quote_v1(kind, model, limit)?;
+                    plan.add_retained(quote.record_bytes)?;
+                    // Default spawn, replacement mesh/name, callback materialization,
+                    // and final snapshot clone may overlap. Four complete payload
+                    // bounds cover these actual entry-point lifetimes.
+                    plan.add_peak(
+                        quote
+                            .record_bytes
+                            .checked_mul(3)
+                            .ok_or(RetentionContractError::Overflow)?,
+                    )?;
+                    plan.create_quote_v1 = Some(quote);
+                }
+            }
+            // Derived clone operations retain no more child allocation than the
+            // admitted providers: reserve both the live owner and its clone.
+            plan.add_peak(plan.retained_bytes)?;
+            Ok(())
+        })??;
+        Ok(plan)
+    }
+    fn prepare_retention_v1(
+        &mut self,
+        context: &mut dyn EditContext,
+        phase: super::engine::RetentionPhaseV1,
+        permit: &mut super::engine::RetentionMaterializationV1,
+    ) -> Result<(), CommandExecutionError> {
+        permit.consume(self, phase).map_err(unchanged)?;
+        let core = core_context(context)?;
+        let generation = core
+            .with_scene(|scene| scene.world_generation())
+            .map_err(unchanged)?;
+        if permit.plan().owner_revision != Some(generation) {
+            return Err(unchanged(
+                zircon_runtime_interface::retained_memory::RetentionContractError::Stale.into(),
+            ));
+        }
+        if let Self::DeleteNode(command) = self {
+            command.prepared_generation_v1 = Some(generation);
+        }
+        if let Self::CreateNode(command) = self {
+            if let Some(quote) = &permit.plan().create_quote_v1 {
+                core.with_scene(|scene| scene.validate_create_history_quote_v1(quote))
+                    .map_err(unchanged)?
+                    .map_err(|error| unchanged(error.into()))?;
+            }
+            command.prepared_history_v1 = permit.plan().create_quote_v1.clone();
+        }
+        Ok(())
+    }
+
     fn label(&self) -> &str {
         match self {
             Self::CreateNode(_) => "Create scene node",
@@ -274,6 +370,8 @@ fn execute_scene_write<T>(
 pub(crate) struct CreateNodeCommand {
     intent: CreateNodeIntent,
     record: Option<NodeRecord>,
+    prepared_history_v1:
+        Option<zircon_runtime::core::framework::retained_memory::RetainedCreateQuoteV1>,
 }
 
 impl CreateNodeCommand {
@@ -281,6 +379,7 @@ impl CreateNodeCommand {
         Self {
             intent,
             record: None,
+            prepared_history_v1: None,
         }
     }
 
@@ -293,6 +392,7 @@ impl CreateNodeCommand {
         Ok(Self {
             intent: payload.intent,
             record: Some(payload.record),
+            prepared_history_v1: None,
         })
     }
 
@@ -317,7 +417,30 @@ impl CreateNodeCommand {
         }
 
         let intent = self.intent.clone();
+        let prepared = self.prepared_history_v1.clone();
+        let mut provider_breach = false;
         let completion = execute_scene_write(context, |scene| {
+            use zircon_runtime::core::framework::retained_memory::verified_std_model_v1;
+            let quote = match &prepared {
+                Some(quote) => {
+                    scene.validate_create_history_quote_v1(quote)?;
+                    quote.clone()
+                }
+                None => {
+                    // Standalone EditCommand callers have no history ledger. They
+                    // still use the same pure producer and pre-clone proof; engine
+                    // callers always transfer their already reserved preparation.
+                    let kind = match intent {
+                        CreateNodeIntent::Node { kind } => kind,
+                        CreateNodeIntent::Mesh { .. } => NodeKind::Mesh,
+                    };
+                    scene.create_history_quote_v1(
+                        kind,
+                        verified_std_model_v1()?,
+                        super::engine::HistoryRetentionBudgetV1::default().record_bytes,
+                    )?
+                }
+            };
             let node_id = match intent {
                 CreateNodeIntent::Node { kind } => scene
                     .spawn_node(kind)
@@ -326,6 +449,14 @@ impl CreateNodeCommand {
                     .spawn_mesh_node(model, material)
                     .map_err(|error| scene_error("import mesh node", error))?,
             };
+            // Includes spawn_mesh_node's final display Name and renderer inserts.
+            // Reject a violated provider before allocating the snapshot clone.
+            scene
+                .check_created_node_retention_v1(node_id, &quote)
+                .map_err(|error| {
+                    provider_breach = true;
+                    EditCommandError::from(error)
+                })?;
             match scene.node_record(node_id) {
                 Some(record) => Ok(record),
                 None => {
@@ -339,7 +470,12 @@ impl CreateNodeCommand {
                     })
                 }
             }
-        })?;
+        });
+        let completion = match completion {
+            Ok(value) => value,
+            Err(error) if provider_breach => return Err(applied(error.source)),
+            Err(error) => return Err(error),
+        };
         let record = match completion {
             SceneWriteCompletion::Completed(record) => record,
             SceneWriteCompletion::AppliedThenGatewayFailed { value, error } => {
@@ -399,6 +535,7 @@ pub(crate) struct DeleteNodeCommand {
     batch: Option<DetachedEntityBatch>,
     fallback_selection: Option<NodeId>,
     journal: DeleteNodeJournalPayload,
+    prepared_generation_v1: Option<u64>,
 }
 
 impl DeleteNodeCommand {
@@ -421,6 +558,7 @@ impl DeleteNodeCommand {
         Ok(Self {
             root_id: node_id,
             batch: None,
+            prepared_generation_v1: None,
             fallback_selection,
             journal: DeleteNodeJournalPayload {
                 root_id: node_id,
@@ -433,6 +571,7 @@ impl DeleteNodeCommand {
         Self {
             root_id: payload.root_id,
             batch: None,
+            prepared_generation_v1: None,
             fallback_selection: payload.fallback_selection,
             journal: payload,
         }
@@ -449,9 +588,25 @@ impl DeleteNodeCommand {
         let fallback = self.fallback_selection;
         let mut retained = None;
         let completion = execute_scene_write(context, |scene| {
+            if self
+                .prepared_generation_v1
+                .is_some_and(|generation| generation != scene.world_generation())
+            {
+                return Err(
+                    zircon_runtime_interface::retained_memory::RetentionContractError::Stale.into(),
+                );
+            }
             let prepared = scene
                 .prepare_entity_subtrees([root_id])
                 .map_err(|error| scene_error("prepare scene subtree detach", error))?;
+            if self
+                .prepared_generation_v1
+                .is_some_and(|generation| generation != prepared.world_generation())
+            {
+                return Err(
+                    zircon_runtime_interface::retained_memory::RetentionContractError::Stale.into(),
+                );
+            }
             if prepared.affected_camera_count() >= prepared.world_camera_count() {
                 return Err(EditCommandError::InvariantViolation {
                     invariant: "cannot delete the last remaining camera",
@@ -554,15 +709,17 @@ pub(crate) struct NodeEditState {
 
 impl NodeEditState {
     pub(crate) fn capture(scene: &Scene, node_id: NodeId) -> Result<Self, EditCommandError> {
-        let node = scene
-            .find_node(node_id)
+        let name = scene
+            .get::<zircon_runtime::scene::components::Name>(node_id)
+            .filter(|_| scene.contains_scene_node(node_id))
             .ok_or_else(|| EditCommandError::TargetMissing {
                 target: format!("scene node {node_id}"),
             })?;
+        // Capture only the three retained fields; find_node also clones unrelated component payloads.
         Ok(Self {
-            name: node.name.clone(),
-            parent: node.parent,
-            transform: node.transform,
+            name: name.0.clone(),
+            parent: scene.parent_of(node_id),
+            transform: scene.local_transform(node_id).unwrap_or_default(),
         })
     }
 }
@@ -1013,3 +1170,32 @@ fn reflect_error(message: String) -> EditCommandError {
 #[cfg(test)]
 #[path = "tests/command_performance_source_guards.rs"]
 mod performance_source_guards;
+
+zircon_runtime_interface::impl_retained_owner_v1!(NodeEditState { name });
+zircon_runtime_interface::impl_retained_owner_v1!(CreateNodeCommand {
+    record,
+    prepared_history_v1
+});
+zircon_runtime_interface::impl_retained_owner_v1!(UpdateNodeCommand { before, after });
+zircon_runtime_interface::impl_retained_owner_v1!(DeleteNodeCommand { batch });
+zircon_runtime_interface::impl_retained_owner_v1!(SetReflectedSceneFieldCommand {
+    component_type_path,
+    before,
+    after
+});
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for EditorCommand {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        use zircon_runtime_interface::retained_memory::RetainedOwnerV1;
+        match self {
+            Self::CreateNode(v) => v.retained_bound_v1(m),
+            Self::DeleteNode(v) => v.retained_bound_v1(m),
+            Self::UpdateNode(v) => v.retained_bound_v1(m),
+            Self::BatchTransform(v) => v.retained_bound_v1(m),
+            Self::PlayTransform(v) => v.retained_bound_v1(m),
+            Self::SetReflectedSceneField(v) => v.retained_bound_v1(m),
+        }
+    }
+}

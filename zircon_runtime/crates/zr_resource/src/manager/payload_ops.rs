@@ -51,7 +51,7 @@ impl ResourceManager {
         TData: ResourceData,
     {
         let authority = self.lock_authority_read();
-        if authority.registry.get(handle.id())?.kind != TMarker::KIND {
+        if authority.active.row(handle.id())?.record.kind != TMarker::KIND {
             return None;
         }
         let payload = authority.payloads.get(&handle.id())?.clone();
@@ -68,7 +68,12 @@ impl ResourceManager {
         TData: ResourceData,
     {
         let authority = self.lock_authority_read();
-        let record = authority.registry.get(handle.id())?.clone();
+        let record = if matches!(TMarker::KIND, crate::ResourceKind::Model | crate::ResourceKind::Mesh) {
+            authority.active.row(handle.id())?.record.as_ref().clone()
+        } else {
+            // Nongeometry callers retain their existing current-catalog snapshot contract.
+            authority.registry.get(handle.id())?.clone()
+        };
         if record.kind != TMarker::KIND {
             return None;
         }
@@ -76,4 +81,27 @@ impl ResourceManager {
         let resource = Arc::downcast::<TData>(payload.into_any_arc()).ok()?;
         Some(ResourceSnapshot::new(record, resource))
     }
+    /// Validate identity, marker, actual payload type and record under the same authority lock.
+    pub fn snapshot_expected<TMarker, TData>(
+        &self,
+        handle: ResourceHandle<TMarker>,
+        expected: &crate::ResourceActiveVersionKey,
+    ) -> Result<ResourceSnapshot<TData>, crate::ResourceActiveSnapshotError>
+    where
+        TMarker: ResourceMarker,
+        TData: ResourceData,
+    {
+        use crate::ResourceActiveSnapshotError;
+        let authority = self.lock_authority_read();
+        let row = authority.active.row(handle.id()).ok_or(ResourceActiveSnapshotError::Stale)?;
+        if &row.key != expected { return Err(ResourceActiveSnapshotError::Stale); }
+        if row.record.kind != TMarker::KIND {
+            return Err(ResourceActiveSnapshotError::KindConflict);
+        }
+        let payload = authority.payloads.get(&handle.id()).ok_or(ResourceActiveSnapshotError::Stale)?.clone();
+        let resource = Arc::downcast::<TData>(payload.into_any_arc())
+            .map_err(|_| ResourceActiveSnapshotError::KindConflict)?;
+        Ok(ResourceSnapshot::new(row.record.as_ref().clone(), resource))
+    }
+
 }

@@ -6,9 +6,10 @@ use super::insert_workbench_module_bindings;
 
 #[test]
 fn assets_workspace_authored_routes_match_installed_bindings() {
-    let source = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(
-        "assets/ui/editor/modules/core/assets/assets_workspace.zui",
-    ))
+    let source = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("assets/ui/editor/modules/core/assets/assets_workspace.zui"),
+    )
     .expect("Assets workspace asset should be readable");
     let mut bindings = BTreeMap::new();
     insert_workbench_module_bindings(&mut bindings);
@@ -68,9 +69,10 @@ fn assets_workspace_authored_routes_match_installed_bindings() {
 
 #[test]
 fn assets_workspace_uses_shared_density_and_responsive_side_panes() {
-    let source = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(
-        "assets/ui/editor/modules/core/assets/assets_workspace.zui",
-    ))
+    let source = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("assets/ui/editor/modules/core/assets/assets_workspace.zui"),
+    )
     .expect("Assets workspace asset should be readable");
 
     for required in [

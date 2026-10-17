@@ -1,0 +1,5820 @@
+{
+  "schema": "zircon-source-comment-root-validation-v4",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R098",
+  "owner": "root",
+  "created_at_utc": "2026-10-17T13:11:40.431383+00:00",
+  "formal_acceptance": false,
+  "grant_canonical_sha256": "dbeb01ab22f8417c522fd4bff729f495e089b4090a5ce5818a62cf3a164da528",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R098.json",
+    "sha256": "70d529c25a6bc2312b46b99a11273065e0656668ace0f9ccfee54c1de28cd913",
+    "bytes": 79147
+  },
+  "sources": [
+    {
+      "id": "F1",
+      "path": "zircon_runtime/src/text/model/font/database.rs",
+      "sha256": "0e88df2ef295315637e0dc67db8c7260aaff42041239aa4f4f3f004f49125c86",
+      "bytes": 2234,
+      "lines": 52,
+      "before_sha256": "3c209651f17be365c0659303a7ff04ee04fd1a1a5dec6476608696c3ba2c6acc",
+      "before_bytes": 1810,
+      "before_lines": 44,
+      "changed": true,
+      "inserted_groups": 2,
+      "inserted_lines": 8,
+      "inserted_bytes": 424,
+      "deleted_lines": 0,
+      "original_byte_inverse_equal_raw_HEAD": true
+    },
+    {
+      "id": "F2",
+      "path": "zircon_runtime/src/text/model/font/face.rs",
+      "sha256": "0a1eace5660db1ef066a3f0a532d3f492007175e06071f2163e093bca339cd71",
+      "bytes": 3779,
+      "lines": 91,
+      "before_sha256": "2311c2c0783238c526fafa2a4098ecf0e2265c5d7931e326e769b591cdc91f98",
+      "before_bytes": 2755,
+      "before_lines": 73,
+      "changed": true,
+      "inserted_groups": 5,
+      "inserted_lines": 18,
+      "inserted_bytes": 1024,
+      "deleted_lines": 0,
+      "original_byte_inverse_equal_raw_HEAD": true
+    },
+    {
+      "id": "F3",
+      "path": "zircon_runtime/src/text/model/font/family.rs",
+      "sha256": "32d679bf4c71469b4023bb016f0ab5dc2c61ce22dee6902f33a40191adf084be",
+      "bytes": 490,
+      "lines": 14,
+      "before_sha256": "32d679bf4c71469b4023bb016f0ab5dc2c61ce22dee6902f33a40191adf084be",
+      "before_bytes": 490,
+      "before_lines": 14,
+      "changed": false,
+      "inserted_groups": 0,
+      "inserted_lines": 0,
+      "inserted_bytes": 0,
+      "deleted_lines": 0,
+      "original_byte_inverse_equal_raw_HEAD": true
+    }
+  ],
+  "counts": {
+    "files": 3,
+    "changed_files": 2,
+    "unchanged_files": 1,
+    "object_groups": 25,
+    "types": 11,
+    "members": 20,
+    "variants": 3,
+    "enum_payloads": 1,
+    "constants": 3,
+    "impls": 4,
+    "functions": 4,
+    "normal_tests": 0,
+    "ignored_tests": 0,
+    "semantic_blocks": 18,
+    "attributes": 13,
+    "macro_calls": 1,
+    "parameters": 4,
+    "assertion_sites": 0,
+    "inserted_groups": 7,
+    "inserted_lines": 26,
+    "inserted_bytes": 1448,
+    "deleted_lines": 0,
+    "physical_ranges": 214,
+    "tests_executed": 0,
+    "new_issues": 0,
+    "preexisting_open_TODOs": 1
+  },
+  "ranges": {
+    "convention": "span_sha256 is [before,after]; a single hash means both spans contain identical bytes. Ranges are 1-based inclusive physical lines with original EOL.",
+    "proof": [
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "1",
+        "before": [
+          1,
+          1
+        ],
+        "current": [
+          4,
+          4
+        ],
+        "before_sha256": "a63cac226fa7ac9150e016e86b836a5b289cc1658c3fa07b25a7acd9431569a9",
+        "current_sha256": "a63cac226fa7ac9150e016e86b836a5b289cc1658c3fa07b25a7acd9431569a9"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "2",
+        "before": [
+          2,
+          2
+        ],
+        "current": [
+          5,
+          5
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "3",
+        "before": [
+          3,
+          3
+        ],
+        "current": [
+          6,
+          6
+        ],
+        "before_sha256": "cd05b3f82cba714db16b66ca86ce24f8843b209d8eefd363922f8b04da09a7e3",
+        "current_sha256": "cd05b3f82cba714db16b66ca86ce24f8843b209d8eefd363922f8b04da09a7e3"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "4",
+        "before": [
+          4,
+          4
+        ],
+        "current": [
+          7,
+          7
+        ],
+        "before_sha256": "352406eb926c72e53b892d1d7b063b9fac188da3ed3abe9f53e50ec820fa884b",
+        "current_sha256": "352406eb926c72e53b892d1d7b063b9fac188da3ed3abe9f53e50ec820fa884b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "5",
+        "before": [
+          5,
+          5
+        ],
+        "current": [
+          8,
+          8
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "6",
+        "before": [
+          6,
+          6
+        ],
+        "current": [
+          9,
+          9
+        ],
+        "before_sha256": "8c11ce00bdadf61ef07eb99bf5d5348872476950058d5a7981e5f2073d4a08b6",
+        "current_sha256": "8c11ce00bdadf61ef07eb99bf5d5348872476950058d5a7981e5f2073d4a08b6"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "7",
+        "before": [
+          7,
+          7
+        ],
+        "current": [
+          10,
+          10
+        ],
+        "before_sha256": "7308c7860fa4bacac310d31936b9a38296baa83dba9458c86fae2beb1b572a96",
+        "current_sha256": "7308c7860fa4bacac310d31936b9a38296baa83dba9458c86fae2beb1b572a96"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "8",
+        "before": [
+          8,
+          8
+        ],
+        "current": [
+          11,
+          11
+        ],
+        "before_sha256": "b674601b1104d6b246890b8c9bc8bde2001d9ca1f01176c4d3ffe96ec2fd0da7",
+        "current_sha256": "b674601b1104d6b246890b8c9bc8bde2001d9ca1f01176c4d3ffe96ec2fd0da7"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "9",
+        "before": [
+          9,
+          9
+        ],
+        "current": [
+          12,
+          12
+        ],
+        "before_sha256": "ce994783e501ccffc395bf5ab26134cbea49c6f5da54d12da86ad701c37c4017",
+        "current_sha256": "ce994783e501ccffc395bf5ab26134cbea49c6f5da54d12da86ad701c37c4017"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "10",
+        "before": [
+          10,
+          10
+        ],
+        "current": [
+          13,
+          13
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "11",
+        "before": [
+          11,
+          11
+        ],
+        "current": [
+          14,
+          14
+        ],
+        "before_sha256": "cbb6fb6f5c22d4ce337bb5c813e6d49a115c54ce1851a52367606b18dcabaa61",
+        "current_sha256": "cbb6fb6f5c22d4ce337bb5c813e6d49a115c54ce1851a52367606b18dcabaa61"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "12",
+        "before": [
+          12,
+          12
+        ],
+        "current": [
+          15,
+          15
+        ],
+        "before_sha256": "abd58a351b07ae19a26e1854fbb9a305d754f0391b6dfe0072831c2a82b0478b",
+        "current_sha256": "abd58a351b07ae19a26e1854fbb9a305d754f0391b6dfe0072831c2a82b0478b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "13",
+        "before": [
+          13,
+          13
+        ],
+        "current": [
+          16,
+          16
+        ],
+        "before_sha256": "b674601b1104d6b246890b8c9bc8bde2001d9ca1f01176c4d3ffe96ec2fd0da7",
+        "current_sha256": "b674601b1104d6b246890b8c9bc8bde2001d9ca1f01176c4d3ffe96ec2fd0da7"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "14",
+        "before": [
+          14,
+          14
+        ],
+        "current": [
+          17,
+          17
+        ],
+        "before_sha256": "a4d70438bc553fa49d68266984428438ea4f975c58c99e8fed619f02bf797c9c",
+        "current_sha256": "a4d70438bc553fa49d68266984428438ea4f975c58c99e8fed619f02bf797c9c"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "15",
+        "before": [
+          15,
+          15
+        ],
+        "current": [
+          18,
+          18
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "16",
+        "before": [
+          16,
+          16
+        ],
+        "current": [
+          19,
+          19
+        ],
+        "before_sha256": "41c84f3b1bfa36b4aab36485a3d9e8f56b0cb5a11cede586cc5faba0c8e0898c",
+        "current_sha256": "41c84f3b1bfa36b4aab36485a3d9e8f56b0cb5a11cede586cc5faba0c8e0898c"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "17",
+        "before": [
+          17,
+          17
+        ],
+        "current": [
+          20,
+          20
+        ],
+        "before_sha256": "86ad8e9a31a585576e86774d5adc9843f5d0fe6cf63a0a85c88941c2f4c1079e",
+        "current_sha256": "86ad8e9a31a585576e86774d5adc9843f5d0fe6cf63a0a85c88941c2f4c1079e"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "18",
+        "before": [
+          18,
+          18
+        ],
+        "current": [
+          21,
+          21
+        ],
+        "before_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10",
+        "current_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "19",
+        "before": [
+          19,
+          19
+        ],
+        "current": [
+          22,
+          22
+        ],
+        "before_sha256": "99a0f24bc5009cb9cf3310d00682065a957df7964e9a22ac073cb88748ade61d",
+        "current_sha256": "99a0f24bc5009cb9cf3310d00682065a957df7964e9a22ac073cb88748ade61d"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "20",
+        "before": [
+          20,
+          20
+        ],
+        "current": [
+          23,
+          23
+        ],
+        "before_sha256": "9da21c9206cfdfe4fdec54909143198f5b1c325c73889bbf204045968d3436ae",
+        "current_sha256": "9da21c9206cfdfe4fdec54909143198f5b1c325c73889bbf204045968d3436ae"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "21",
+        "before": [
+          21,
+          21
+        ],
+        "current": [
+          24,
+          24
+        ],
+        "before_sha256": "3ea82fd5057d2f994f5225e65254d44cef9971c444cf49c7ef891bc79791a8d2",
+        "current_sha256": "3ea82fd5057d2f994f5225e65254d44cef9971c444cf49c7ef891bc79791a8d2"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "22",
+        "before": [
+          22,
+          22
+        ],
+        "current": [
+          25,
+          25
+        ],
+        "before_sha256": "b00ca854188d4d4e905ca69faf2f85a60afb83e41d21fd4d3d6e1f4d73800eec",
+        "current_sha256": "b00ca854188d4d4e905ca69faf2f85a60afb83e41d21fd4d3d6e1f4d73800eec"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "23",
+        "before": [
+          23,
+          23
+        ],
+        "current": [
+          26,
+          26
+        ],
+        "before_sha256": "d267f69d706e1ccda124293d982578db59674afae3de3d98d733fc51c207fef2",
+        "current_sha256": "d267f69d706e1ccda124293d982578db59674afae3de3d98d733fc51c207fef2"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "24",
+        "before": [
+          24,
+          24
+        ],
+        "current": [
+          27,
+          27
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "25",
+        "before": [
+          25,
+          25
+        ],
+        "current": [
+          28,
+          28
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "26",
+        "before": [
+          26,
+          26
+        ],
+        "current": [
+          29,
+          29
+        ],
+        "before_sha256": "77bfc8dec1d11bcd285063936415f1825e740c5ee211938801ee1934d2ea0a1d",
+        "current_sha256": "77bfc8dec1d11bcd285063936415f1825e740c5ee211938801ee1934d2ea0a1d"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "27",
+        "before": [
+          27,
+          27
+        ],
+        "current": [
+          35,
+          35
+        ],
+        "before_sha256": "d9a90b71d40184d4b0db091313ecc9cb7e6b8b0f15eca386117e7c2ebdc02a0b",
+        "current_sha256": "d9a90b71d40184d4b0db091313ecc9cb7e6b8b0f15eca386117e7c2ebdc02a0b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "28",
+        "before": [
+          28,
+          28
+        ],
+        "current": [
+          36,
+          36
+        ],
+        "before_sha256": "945825724b7dfd68823819ff1552c3a1695d2271677f2fe4c372c6c5ebc4b6a7",
+        "current_sha256": "945825724b7dfd68823819ff1552c3a1695d2271677f2fe4c372c6c5ebc4b6a7"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "29",
+        "before": [
+          29,
+          29
+        ],
+        "current": [
+          37,
+          37
+        ],
+        "before_sha256": "d694a4bfdec7a1745260fc327935e183795c642bac8bea5301538ad4c226fedb",
+        "current_sha256": "d694a4bfdec7a1745260fc327935e183795c642bac8bea5301538ad4c226fedb"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "30",
+        "before": [
+          30,
+          30
+        ],
+        "current": [
+          38,
+          38
+        ],
+        "before_sha256": "bd94f7f09fcde4722ee195df62eb33f3d5e7eeb3c2d8d19eb456523adc8f1f60",
+        "current_sha256": "bd94f7f09fcde4722ee195df62eb33f3d5e7eeb3c2d8d19eb456523adc8f1f60"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "31",
+        "before": [
+          31,
+          31
+        ],
+        "current": [
+          39,
+          39
+        ],
+        "before_sha256": "d9748abc0b878e130d0cf9e54177256c72681a0727621bf35c1ef1d56e16eab5",
+        "current_sha256": "d9748abc0b878e130d0cf9e54177256c72681a0727621bf35c1ef1d56e16eab5"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "32",
+        "before": [
+          32,
+          32
+        ],
+        "current": [
+          40,
+          40
+        ],
+        "before_sha256": "676590ec9f5d7383abe7a5af75be2d4c4754694635f1eb535eda270abfd6c8c4",
+        "current_sha256": "676590ec9f5d7383abe7a5af75be2d4c4754694635f1eb535eda270abfd6c8c4"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "33",
+        "before": [
+          33,
+          33
+        ],
+        "current": [
+          41,
+          41
+        ],
+        "before_sha256": "e6b04491469722e8363a94e4044538e013a2a217e36b1e568ba60acb7b4c8f2e",
+        "current_sha256": "e6b04491469722e8363a94e4044538e013a2a217e36b1e568ba60acb7b4c8f2e"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "34",
+        "before": [
+          34,
+          34
+        ],
+        "current": [
+          42,
+          42
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "35",
+        "before": [
+          35,
+          35
+        ],
+        "current": [
+          43,
+          43
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "36",
+        "before": [
+          36,
+          36
+        ],
+        "current": [
+          44,
+          44
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "37",
+        "before": [
+          37,
+          37
+        ],
+        "current": [
+          45,
+          45
+        ],
+        "before_sha256": "29b7fc5d5af8300054a1ef5fc7cbf4af2171eba6b9585bcba4fda64a7689ca7d",
+        "current_sha256": "29b7fc5d5af8300054a1ef5fc7cbf4af2171eba6b9585bcba4fda64a7689ca7d"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "38",
+        "before": [
+          38,
+          38
+        ],
+        "current": [
+          46,
+          46
+        ],
+        "before_sha256": "a6a829dde87d801327c7c8ae40fc879e7ff4d5e899d50eb40466dfeb42bd6b65",
+        "current_sha256": "a6a829dde87d801327c7c8ae40fc879e7ff4d5e899d50eb40466dfeb42bd6b65"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "39",
+        "before": [
+          39,
+          39
+        ],
+        "current": [
+          47,
+          47
+        ],
+        "before_sha256": "eceaab0c6778e229e74af0542e7413dda6ad2d356ec0ca9796feacf88bc2e302",
+        "current_sha256": "eceaab0c6778e229e74af0542e7413dda6ad2d356ec0ca9796feacf88bc2e302"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "40",
+        "before": [
+          40,
+          40
+        ],
+        "current": [
+          48,
+          48
+        ],
+        "before_sha256": "052abf4c2fe975967f54068de8166c410272b5f8eea76046e829093fd836d763",
+        "current_sha256": "052abf4c2fe975967f54068de8166c410272b5f8eea76046e829093fd836d763"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "41",
+        "before": [
+          41,
+          41
+        ],
+        "current": [
+          49,
+          49
+        ],
+        "before_sha256": "f10a1e37b10e74638a7c5889603da2f53e1b0e2eee98633e2c77011717bce9e6",
+        "current_sha256": "f10a1e37b10e74638a7c5889603da2f53e1b0e2eee98633e2c77011717bce9e6"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "42",
+        "before": [
+          42,
+          42
+        ],
+        "current": [
+          50,
+          50
+        ],
+        "before_sha256": "cbcc73f263e8ef587a1fc34e19831ed24d0b525318f991466a3f477911ca3e0e",
+        "current_sha256": "cbcc73f263e8ef587a1fc34e19831ed24d0b525318f991466a3f477911ca3e0e"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "43",
+        "before": [
+          43,
+          43
+        ],
+        "current": [
+          51,
+          51
+        ],
+        "before_sha256": "88a5ee869169256cca83e2a14a4019e53b5225e9986c5c2a98ed3facf31a47a1",
+        "current_sha256": "88a5ee869169256cca83e2a14a4019e53b5225e9986c5c2a98ed3facf31a47a1"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line",
+        "label": "44",
+        "before": [
+          44,
+          44
+        ],
+        "current": [
+          52,
+          52
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F1",
+        "kind": "object",
+        "label": "serde and font-value imports",
+        "before": [
+          1,
+          5
+        ],
+        "current": [
+          4,
+          8
+        ],
+        "before_sha256": "990395ec458416c646c2bc24246a629762a781d5ad9e8ab31f20e85f67f79bee",
+        "current_sha256": "990395ec458416c646c2bc24246a629762a781d5ad9e8ab31f20e85f67f79bee"
+      },
+      {
+        "source": "F1",
+        "kind": "object",
+        "label": "FontFaceId",
+        "before": [
+          6,
+          9
+        ],
+        "current": [
+          9,
+          12
+        ],
+        "before_sha256": "2256fc65b2abb8fc3a6f427a78283417c4180be35d00d361965514412ac726f9",
+        "current_sha256": "2256fc65b2abb8fc3a6f427a78283417c4180be35d00d361965514412ac726f9"
+      },
+      {
+        "source": "F1",
+        "kind": "field",
+        "label": "FontFaceId.0",
+        "before": [
+          9,
+          9
+        ],
+        "current": [
+          12,
+          12
+        ],
+        "before_sha256": "ce994783e501ccffc395bf5ab26134cbea49c6f5da54d12da86ad701c37c4017",
+        "current_sha256": "ce994783e501ccffc395bf5ab26134cbea49c6f5da54d12da86ad701c37c4017"
+      },
+      {
+        "source": "F1",
+        "kind": "object",
+        "label": "InstancedFaceId",
+        "before": [
+          11,
+          14
+        ],
+        "current": [
+          14,
+          17
+        ],
+        "before_sha256": "897151523655396ef9c55cafe374a4e66fd72368ef8199add197fc4c455f103c",
+        "current_sha256": "897151523655396ef9c55cafe374a4e66fd72368ef8199add197fc4c455f103c"
+      },
+      {
+        "source": "F1",
+        "kind": "field",
+        "label": "InstancedFaceId.0",
+        "before": [
+          14,
+          14
+        ],
+        "current": [
+          17,
+          17
+        ],
+        "before_sha256": "a4d70438bc553fa49d68266984428438ea4f975c58c99e8fed619f02bf797c9c",
+        "current_sha256": "a4d70438bc553fa49d68266984428438ea4f975c58c99e8fed619f02bf797c9c"
+      },
+      {
+        "source": "F1",
+        "kind": "object",
+        "label": "FontQuery",
+        "before": [
+          16,
+          24
+        ],
+        "current": [
+          19,
+          27
+        ],
+        "before_sha256": "70fb76b93ff7fb60ebc608bfa409c800b1df6010d038a1b9c782fb71f7096d3a",
+        "current_sha256": "70fb76b93ff7fb60ebc608bfa409c800b1df6010d038a1b9c782fb71f7096d3a"
+      },
+      {
+        "source": "F1",
+        "kind": "field",
+        "label": "FontQuery.families",
+        "before": [
+          20,
+          20
+        ],
+        "current": [
+          23,
+          23
+        ],
+        "before_sha256": "9da21c9206cfdfe4fdec54909143198f5b1c325c73889bbf204045968d3436ae",
+        "current_sha256": "9da21c9206cfdfe4fdec54909143198f5b1c325c73889bbf204045968d3436ae"
+      },
+      {
+        "source": "F1",
+        "kind": "field",
+        "label": "FontQuery.weight",
+        "before": [
+          21,
+          21
+        ],
+        "current": [
+          24,
+          24
+        ],
+        "before_sha256": "3ea82fd5057d2f994f5225e65254d44cef9971c444cf49c7ef891bc79791a8d2",
+        "current_sha256": "3ea82fd5057d2f994f5225e65254d44cef9971c444cf49c7ef891bc79791a8d2"
+      },
+      {
+        "source": "F1",
+        "kind": "field",
+        "label": "FontQuery.style",
+        "before": [
+          22,
+          22
+        ],
+        "current": [
+          25,
+          25
+        ],
+        "before_sha256": "b00ca854188d4d4e905ca69faf2f85a60afb83e41d21fd4d3d6e1f4d73800eec",
+        "current_sha256": "b00ca854188d4d4e905ca69faf2f85a60afb83e41d21fd4d3d6e1f4d73800eec"
+      },
+      {
+        "source": "F1",
+        "kind": "field",
+        "label": "FontQuery.stretch",
+        "before": [
+          23,
+          23
+        ],
+        "current": [
+          26,
+          26
+        ],
+        "before_sha256": "d267f69d706e1ccda124293d982578db59674afae3de3d98d733fc51c207fef2",
+        "current_sha256": "d267f69d706e1ccda124293d982578db59674afae3de3d98d733fc51c207fef2"
+      },
+      {
+        "source": "F1",
+        "kind": "object",
+        "label": "impl FontQuery",
+        "before": [
+          26,
+          35
+        ],
+        "current": [
+          29,
+          43
+        ],
+        "before_sha256": "3916526b76bd55ecaa6567b8dea3db28f4ff6bbb5dc8a80504b06157a8a24a09",
+        "current_sha256": "2ea75544c875499664f3f247496404563e468de86306d26e9d6f621532837513"
+      },
+      {
+        "source": "F1",
+        "kind": "object",
+        "label": "FontQuery::single_family",
+        "before": [
+          27,
+          34
+        ],
+        "current": [
+          30,
+          42
+        ],
+        "before_sha256": "eb9659abb2e442b1d4e3241e83f59b6f8fbbcb94aefd6d95e6260d302fd2f316",
+        "current_sha256": "d5ba2c172f981430d4d75a4aaefeff07d4e0d531f058cde4103b9a636d89456d"
+      },
+      {
+        "source": "F1",
+        "kind": "parameter",
+        "label": "FontQuery::single_family.family",
+        "before": [
+          27,
+          27
+        ],
+        "current": [
+          35,
+          35
+        ],
+        "before_sha256": "d9a90b71d40184d4b0db091313ecc9cb7e6b8b0f15eca386117e7c2ebdc02a0b",
+        "current_sha256": "d9a90b71d40184d4b0db091313ecc9cb7e6b8b0f15eca386117e7c2ebdc02a0b"
+      },
+      {
+        "source": "F1",
+        "kind": "object",
+        "label": "FontMatch",
+        "before": [
+          37,
+          44
+        ],
+        "current": [
+          45,
+          52
+        ],
+        "before_sha256": "1fa94d06da3bb4e4f1739591abe37c8375168fa3c1799db71d6603e8fd9103ba",
+        "current_sha256": "1fa94d06da3bb4e4f1739591abe37c8375168fa3c1799db71d6603e8fd9103ba"
+      },
+      {
+        "source": "F1",
+        "kind": "field",
+        "label": "FontMatch.face",
+        "before": [
+          41,
+          41
+        ],
+        "current": [
+          49,
+          49
+        ],
+        "before_sha256": "f10a1e37b10e74638a7c5889603da2f53e1b0e2eee98633e2c77011717bce9e6",
+        "current_sha256": "f10a1e37b10e74638a7c5889603da2f53e1b0e2eee98633e2c77011717bce9e6"
+      },
+      {
+        "source": "F1",
+        "kind": "field",
+        "label": "FontMatch.synthetic_bold",
+        "before": [
+          42,
+          42
+        ],
+        "current": [
+          50,
+          50
+        ],
+        "before_sha256": "cbcc73f263e8ef587a1fc34e19831ed24d0b525318f991466a3f477911ca3e0e",
+        "current_sha256": "cbcc73f263e8ef587a1fc34e19831ed24d0b525318f991466a3f477911ca3e0e"
+      },
+      {
+        "source": "F1",
+        "kind": "field",
+        "label": "FontMatch.synthetic_oblique",
+        "before": [
+          43,
+          43
+        ],
+        "current": [
+          51,
+          51
+        ],
+        "before_sha256": "88a5ee869169256cca83e2a14a4019e53b5225e9986c5c2a98ed3facf31a47a1",
+        "current_sha256": "88a5ee869169256cca83e2a14a4019e53b5225e9986c5c2a98ed3facf31a47a1"
+      },
+      {
+        "source": "F1",
+        "kind": "semantic-block",
+        "label": "imports and module contract",
+        "before": [
+          1,
+          5
+        ],
+        "current": [
+          1,
+          8
+        ],
+        "before_sha256": "990395ec458416c646c2bc24246a629762a781d5ad9e8ab31f20e85f67f79bee",
+        "current_sha256": "754a75c062aeaeb7d329432dd9ce096711c517f82864b250d39266cd7346a6b5"
+      },
+      {
+        "source": "F1",
+        "kind": "semantic-block",
+        "label": "font face identity",
+        "before": [
+          6,
+          10
+        ],
+        "current": [
+          9,
+          13
+        ],
+        "before_sha256": "6bfb8dba998b9e30166f8cd944db5043988160a160bba3e8bb8810c60da05056",
+        "current_sha256": "6bfb8dba998b9e30166f8cd944db5043988160a160bba3e8bb8810c60da05056"
+      },
+      {
+        "source": "F1",
+        "kind": "semantic-block",
+        "label": "instanced face identity",
+        "before": [
+          11,
+          15
+        ],
+        "current": [
+          14,
+          18
+        ],
+        "before_sha256": "85840aa34efe114876c7083a242cd3db97aaf6bd35ea05df23cf7fa06a119847",
+        "current_sha256": "85840aa34efe114876c7083a242cd3db97aaf6bd35ea05df23cf7fa06a119847"
+      },
+      {
+        "source": "F1",
+        "kind": "semantic-block",
+        "label": "font query value",
+        "before": [
+          16,
+          25
+        ],
+        "current": [
+          19,
+          28
+        ],
+        "before_sha256": "1c0a32aac6a860ad1b5e21e6bc297e4ee0497437e7ca369efa792a21b0e6ffa0",
+        "current_sha256": "1c0a32aac6a860ad1b5e21e6bc297e4ee0497437e7ca369efa792a21b0e6ffa0"
+      },
+      {
+        "source": "F1",
+        "kind": "semantic-block",
+        "label": "single-family query assembly",
+        "before": [
+          26,
+          36
+        ],
+        "current": [
+          29,
+          44
+        ],
+        "before_sha256": "79ab0c207048e1914f1b25e645d7197d72c01263d0092afbbac4ee680c89c9ed",
+        "current_sha256": "9936506c0deb15a589b7981d6a08fe55975b20dda873c2ae7ef77dd970c2b403"
+      },
+      {
+        "source": "F1",
+        "kind": "semantic-block",
+        "label": "font matching value",
+        "before": [
+          37,
+          44
+        ],
+        "current": [
+          45,
+          52
+        ],
+        "before_sha256": "1fa94d06da3bb4e4f1739591abe37c8375168fa3c1799db71d6603e8fd9103ba",
+        "current_sha256": "1fa94d06da3bb4e4f1739591abe37c8375168fa3c1799db71d6603e8fd9103ba"
+      },
+      {
+        "source": "F1",
+        "kind": "attribute",
+        "label": "FontFaceId derive",
+        "before": [
+          8,
+          8
+        ],
+        "current": [
+          11,
+          11
+        ],
+        "before_sha256": "b674601b1104d6b246890b8c9bc8bde2001d9ca1f01176c4d3ffe96ec2fd0da7",
+        "current_sha256": "b674601b1104d6b246890b8c9bc8bde2001d9ca1f01176c4d3ffe96ec2fd0da7"
+      },
+      {
+        "source": "F1",
+        "kind": "attribute",
+        "label": "InstancedFaceId derive",
+        "before": [
+          13,
+          13
+        ],
+        "current": [
+          16,
+          16
+        ],
+        "before_sha256": "b674601b1104d6b246890b8c9bc8bde2001d9ca1f01176c4d3ffe96ec2fd0da7",
+        "current_sha256": "b674601b1104d6b246890b8c9bc8bde2001d9ca1f01176c4d3ffe96ec2fd0da7"
+      },
+      {
+        "source": "F1",
+        "kind": "attribute",
+        "label": "FontQuery derive",
+        "before": [
+          18,
+          18
+        ],
+        "current": [
+          21,
+          21
+        ],
+        "before_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10",
+        "current_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10"
+      },
+      {
+        "source": "F1",
+        "kind": "attribute",
+        "label": "FontMatch derive",
+        "before": [
+          39,
+          39
+        ],
+        "current": [
+          47,
+          47
+        ],
+        "before_sha256": "eceaab0c6778e229e74af0542e7413dda6ad2d356ec0ca9796feacf88bc2e302",
+        "current_sha256": "eceaab0c6778e229e74af0542e7413dda6ad2d356ec0ca9796feacf88bc2e302"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "1",
+        "before": [
+          1,
+          1
+        ],
+        "current": [
+          4,
+          4
+        ],
+        "before_sha256": "a63cac226fa7ac9150e016e86b836a5b289cc1658c3fa07b25a7acd9431569a9",
+        "current_sha256": "a63cac226fa7ac9150e016e86b836a5b289cc1658c3fa07b25a7acd9431569a9"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "2",
+        "before": [
+          2,
+          2
+        ],
+        "current": [
+          5,
+          5
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "3",
+        "before": [
+          3,
+          3
+        ],
+        "current": [
+          6,
+          6
+        ],
+        "before_sha256": "352406eb926c72e53b892d1d7b063b9fac188da3ed3abe9f53e50ec820fa884b",
+        "current_sha256": "352406eb926c72e53b892d1d7b063b9fac188da3ed3abe9f53e50ec820fa884b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "4",
+        "before": [
+          4,
+          4
+        ],
+        "current": [
+          7,
+          7
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "5",
+        "before": [
+          5,
+          5
+        ],
+        "current": [
+          8,
+          8
+        ],
+        "before_sha256": "2454e1fdd9746b5dca3f1a8a4cdfe5ee08c759ce63a5c27c9368ab791a2dae13",
+        "current_sha256": "2454e1fdd9746b5dca3f1a8a4cdfe5ee08c759ce63a5c27c9368ab791a2dae13"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "6",
+        "before": [
+          6,
+          6
+        ],
+        "current": [
+          9,
+          9
+        ],
+        "before_sha256": "01c8e6695c4c19462d59e7f4ac9a5602ab5b46df4321e1a0c7d20d7afd7ed850",
+        "current_sha256": "01c8e6695c4c19462d59e7f4ac9a5602ab5b46df4321e1a0c7d20d7afd7ed850"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "7",
+        "before": [
+          7,
+          7
+        ],
+        "current": [
+          10,
+          10
+        ],
+        "before_sha256": "8cd163e2aeb9f9b2dc68a5a450525a2c3c0bce677871dad3614ad07451b39d1f",
+        "current_sha256": "8cd163e2aeb9f9b2dc68a5a450525a2c3c0bce677871dad3614ad07451b39d1f"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "8",
+        "before": [
+          8,
+          8
+        ],
+        "current": [
+          11,
+          11
+        ],
+        "before_sha256": "32d05477d4c3cd1df7cf3f8b2ed5f0065d6e2c64ea6e2a83172672af136cd679",
+        "current_sha256": "32d05477d4c3cd1df7cf3f8b2ed5f0065d6e2c64ea6e2a83172672af136cd679"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "9",
+        "before": [
+          9,
+          9
+        ],
+        "current": [
+          12,
+          12
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "10",
+        "before": [
+          10,
+          10
+        ],
+        "current": [
+          13,
+          13
+        ],
+        "before_sha256": "1132b5449e3579ffb64989ab25a704e5736b3ad9ffd44ee553fbd488147f0a16",
+        "current_sha256": "1132b5449e3579ffb64989ab25a704e5736b3ad9ffd44ee553fbd488147f0a16"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "11",
+        "before": [
+          11,
+          11
+        ],
+        "current": [
+          14,
+          14
+        ],
+        "before_sha256": "fee9a45dbbc1ad6768541ccab89471d33411c533bb112638bb2da3305b271e93",
+        "current_sha256": "fee9a45dbbc1ad6768541ccab89471d33411c533bb112638bb2da3305b271e93"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "12",
+        "before": [
+          12,
+          12
+        ],
+        "current": [
+          15,
+          15
+        ],
+        "before_sha256": "d1e4ed3735d5dd425dc2835fcf2df78b6ec8ac91096d4b8f45e3d446cea74097",
+        "current_sha256": "d1e4ed3735d5dd425dc2835fcf2df78b6ec8ac91096d4b8f45e3d446cea74097"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "13",
+        "before": [
+          13,
+          13
+        ],
+        "current": [
+          16,
+          16
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "14",
+        "before": [
+          14,
+          14
+        ],
+        "current": [
+          21,
+          21
+        ],
+        "before_sha256": "76d226f861cca03f1f64d8c7da21218abd8f4c8a3cda86e4266924a74369b7be",
+        "current_sha256": "76d226f861cca03f1f64d8c7da21218abd8f4c8a3cda86e4266924a74369b7be"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "15",
+        "before": [
+          15,
+          15
+        ],
+        "current": [
+          22,
+          22
+        ],
+        "before_sha256": "8de979b80362fbdcaa2bf4bb9a317d70a437fee4e7bbf503e3f6e6f20fd7d3ec",
+        "current_sha256": "8de979b80362fbdcaa2bf4bb9a317d70a437fee4e7bbf503e3f6e6f20fd7d3ec"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "16",
+        "before": [
+          16,
+          16
+        ],
+        "current": [
+          23,
+          23
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "17",
+        "before": [
+          17,
+          17
+        ],
+        "current": [
+          24,
+          24
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "18",
+        "before": [
+          18,
+          18
+        ],
+        "current": [
+          25,
+          25
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "19",
+        "before": [
+          19,
+          19
+        ],
+        "current": [
+          26,
+          26
+        ],
+        "before_sha256": "9a5d3bb3fbf0ed0f8a24c8b330b6d0de47fb671ced0db7ace05d8aa9ead8e8cc",
+        "current_sha256": "9a5d3bb3fbf0ed0f8a24c8b330b6d0de47fb671ced0db7ace05d8aa9ead8e8cc"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "20",
+        "before": [
+          20,
+          20
+        ],
+        "current": [
+          27,
+          27
+        ],
+        "before_sha256": "5a00a701446e125ff42075d5e785ebc8de7c784b12e4d54c9d53443d81fe8e25",
+        "current_sha256": "5a00a701446e125ff42075d5e785ebc8de7c784b12e4d54c9d53443d81fe8e25"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "21",
+        "before": [
+          21,
+          21
+        ],
+        "current": [
+          28,
+          28
+        ],
+        "before_sha256": "a6ffcbb3c43b2f2d67b430057364bc0cc96050061fc1b6dfb1575441e7a02f12",
+        "current_sha256": "a6ffcbb3c43b2f2d67b430057364bc0cc96050061fc1b6dfb1575441e7a02f12"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "22",
+        "before": [
+          22,
+          22
+        ],
+        "current": [
+          29,
+          29
+        ],
+        "before_sha256": "a8bcae9a62c89394a34c8c6d8b954ac82ba51a091e2c1ca72aef540ed0ab40f5",
+        "current_sha256": "a8bcae9a62c89394a34c8c6d8b954ac82ba51a091e2c1ca72aef540ed0ab40f5"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "23",
+        "before": [
+          23,
+          23
+        ],
+        "current": [
+          30,
+          30
+        ],
+        "before_sha256": "81f71a5ad35e23dd8a4912d33a8b7a61e2eca36d8d421e20023d7910bd778a9a",
+        "current_sha256": "81f71a5ad35e23dd8a4912d33a8b7a61e2eca36d8d421e20023d7910bd778a9a"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "24",
+        "before": [
+          24,
+          24
+        ],
+        "current": [
+          31,
+          31
+        ],
+        "before_sha256": "0467091b2e7758a595e959a0b1e169edafb6788672ada5f693b696f31592601a",
+        "current_sha256": "0467091b2e7758a595e959a0b1e169edafb6788672ada5f693b696f31592601a"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "25",
+        "before": [
+          25,
+          25
+        ],
+        "current": [
+          32,
+          32
+        ],
+        "before_sha256": "d6541499548e5c06cb507af545b2fe1643c79b94b5a6e59d803f674a90671903",
+        "current_sha256": "d6541499548e5c06cb507af545b2fe1643c79b94b5a6e59d803f674a90671903"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "26",
+        "before": [
+          26,
+          26
+        ],
+        "current": [
+          33,
+          33
+        ],
+        "before_sha256": "7d7d5773049e06788ff9c3673e216acb5cef357011ead9f8375fd734b8c09d98",
+        "current_sha256": "7d7d5773049e06788ff9c3673e216acb5cef357011ead9f8375fd734b8c09d98"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "27",
+        "before": [
+          27,
+          27
+        ],
+        "current": [
+          34,
+          34
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "28",
+        "before": [
+          28,
+          28
+        ],
+        "current": [
+          35,
+          35
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "29",
+        "before": [
+          29,
+          29
+        ],
+        "current": [
+          36,
+          36
+        ],
+        "before_sha256": "0fa33533200c08e7b1215b249ad99588c9903e087e1f7be1e0750f36528c494b",
+        "current_sha256": "0fa33533200c08e7b1215b249ad99588c9903e087e1f7be1e0750f36528c494b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "30",
+        "before": [
+          30,
+          30
+        ],
+        "current": [
+          39,
+          39
+        ],
+        "before_sha256": "8cd163e2aeb9f9b2dc68a5a450525a2c3c0bce677871dad3614ad07451b39d1f",
+        "current_sha256": "8cd163e2aeb9f9b2dc68a5a450525a2c3c0bce677871dad3614ad07451b39d1f"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "31",
+        "before": [
+          31,
+          31
+        ],
+        "current": [
+          40,
+          40
+        ],
+        "before_sha256": "2302a31f367d1dd3e3a75e08de2268e5d9c84367642100f9113fc81b6db4c223",
+        "current_sha256": "2302a31f367d1dd3e3a75e08de2268e5d9c84367642100f9113fc81b6db4c223"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "32",
+        "before": [
+          32,
+          32
+        ],
+        "current": [
+          41,
+          41
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "33",
+        "before": [
+          33,
+          33
+        ],
+        "current": [
+          42,
+          42
+        ],
+        "before_sha256": "7698b05ca4719f453bc55fec6a65ab7a6b522da16d0fcf98c325a7ed40950bcf",
+        "current_sha256": "7698b05ca4719f453bc55fec6a65ab7a6b522da16d0fcf98c325a7ed40950bcf"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "34",
+        "before": [
+          34,
+          34
+        ],
+        "current": [
+          43,
+          43
+        ],
+        "before_sha256": "d90eb2c4c9e1f21a73af8a89fbcd1baa53199c35d7c5c3e7c5c262ef3e18f8eb",
+        "current_sha256": "d90eb2c4c9e1f21a73af8a89fbcd1baa53199c35d7c5c3e7c5c262ef3e18f8eb"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "35",
+        "before": [
+          35,
+          35
+        ],
+        "current": [
+          44,
+          44
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "36",
+        "before": [
+          36,
+          36
+        ],
+        "current": [
+          49,
+          49
+        ],
+        "before_sha256": "76d226f861cca03f1f64d8c7da21218abd8f4c8a3cda86e4266924a74369b7be",
+        "current_sha256": "76d226f861cca03f1f64d8c7da21218abd8f4c8a3cda86e4266924a74369b7be"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "37",
+        "before": [
+          37,
+          37
+        ],
+        "current": [
+          50,
+          50
+        ],
+        "before_sha256": "b726ebc2215bcbabae70a5cd9da6ffe1b1c4b03d2ca59e8a6056821ef45601ae",
+        "current_sha256": "b726ebc2215bcbabae70a5cd9da6ffe1b1c4b03d2ca59e8a6056821ef45601ae"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "38",
+        "before": [
+          38,
+          38
+        ],
+        "current": [
+          51,
+          51
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "39",
+        "before": [
+          39,
+          39
+        ],
+        "current": [
+          52,
+          52
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "40",
+        "before": [
+          40,
+          40
+        ],
+        "current": [
+          53,
+          53
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "41",
+        "before": [
+          41,
+          41
+        ],
+        "current": [
+          54,
+          54
+        ],
+        "before_sha256": "093905a31516d9cf6010f751da9228e14693544ffabc37561b8fd479faed97af",
+        "current_sha256": "093905a31516d9cf6010f751da9228e14693544ffabc37561b8fd479faed97af"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "42",
+        "before": [
+          42,
+          42
+        ],
+        "current": [
+          55,
+          55
+        ],
+        "before_sha256": "58b23f888cf4c87d26cbd754134b2323d7e194033e55c5162c8368f80a8805d6",
+        "current_sha256": "58b23f888cf4c87d26cbd754134b2323d7e194033e55c5162c8368f80a8805d6"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "43",
+        "before": [
+          43,
+          43
+        ],
+        "current": [
+          56,
+          56
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "44",
+        "before": [
+          44,
+          44
+        ],
+        "current": [
+          57,
+          57
+        ],
+        "before_sha256": "2994655b48b1ec1ad1fe76f3ff6dddf6b0d2f2ff9c36fc046f370c0bdac4b3af",
+        "current_sha256": "2994655b48b1ec1ad1fe76f3ff6dddf6b0d2f2ff9c36fc046f370c0bdac4b3af"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "45",
+        "before": [
+          45,
+          45
+        ],
+        "current": [
+          58,
+          58
+        ],
+        "before_sha256": "2c6c447934cfb94550df4190114414f91d86cf5d22a483ea42df2560e0e52612",
+        "current_sha256": "2c6c447934cfb94550df4190114414f91d86cf5d22a483ea42df2560e0e52612"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "46",
+        "before": [
+          46,
+          46
+        ],
+        "current": [
+          59,
+          59
+        ],
+        "before_sha256": "7a33bb54e8b19cb2d382a245f155acb088dd93fe20a83cbb2acd46b1e7f7b72d",
+        "current_sha256": "7a33bb54e8b19cb2d382a245f155acb088dd93fe20a83cbb2acd46b1e7f7b72d"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "47",
+        "before": [
+          47,
+          47
+        ],
+        "current": [
+          60,
+          60
+        ],
+        "before_sha256": "90a4f47fad320a69cba37b321c383db85e3af0b346b01d17bd14f8deafed3735",
+        "current_sha256": "90a4f47fad320a69cba37b321c383db85e3af0b346b01d17bd14f8deafed3735"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "48",
+        "before": [
+          48,
+          48
+        ],
+        "current": [
+          61,
+          61
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "49",
+        "before": [
+          49,
+          49
+        ],
+        "current": [
+          62,
+          62
+        ],
+        "before_sha256": "654ab64551a93b9235d999922797d2132fcfb33b6ab15c119bf5df98c1f8216e",
+        "current_sha256": "654ab64551a93b9235d999922797d2132fcfb33b6ab15c119bf5df98c1f8216e"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "50",
+        "before": [
+          50,
+          50
+        ],
+        "current": [
+          63,
+          63
+        ],
+        "before_sha256": "f1f9548bf6dd609ce2f0418ffc46b45f1d91c3eda292d560c6bbb06c3d3aad99",
+        "current_sha256": "f1f9548bf6dd609ce2f0418ffc46b45f1d91c3eda292d560c6bbb06c3d3aad99"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "51",
+        "before": [
+          51,
+          51
+        ],
+        "current": [
+          64,
+          64
+        ],
+        "before_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10",
+        "current_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "52",
+        "before": [
+          52,
+          52
+        ],
+        "current": [
+          65,
+          65
+        ],
+        "before_sha256": "320ce33a4a0edff2d3290921e502f3f5cb35b463bec17e304ef9dbeeaec14fa0",
+        "current_sha256": "320ce33a4a0edff2d3290921e502f3f5cb35b463bec17e304ef9dbeeaec14fa0"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "53",
+        "before": [
+          53,
+          53
+        ],
+        "current": [
+          66,
+          66
+        ],
+        "before_sha256": "52b3da46d7bb429834f2aec5704e87e5ec41bd19d77d1ab5ec289a2b291093aa",
+        "current_sha256": "52b3da46d7bb429834f2aec5704e87e5ec41bd19d77d1ab5ec289a2b291093aa"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "54",
+        "before": [
+          54,
+          54
+        ],
+        "current": [
+          67,
+          67
+        ],
+        "before_sha256": "3ea82fd5057d2f994f5225e65254d44cef9971c444cf49c7ef891bc79791a8d2",
+        "current_sha256": "3ea82fd5057d2f994f5225e65254d44cef9971c444cf49c7ef891bc79791a8d2"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "55",
+        "before": [
+          55,
+          55
+        ],
+        "current": [
+          68,
+          68
+        ],
+        "before_sha256": "b00ca854188d4d4e905ca69faf2f85a60afb83e41d21fd4d3d6e1f4d73800eec",
+        "current_sha256": "b00ca854188d4d4e905ca69faf2f85a60afb83e41d21fd4d3d6e1f4d73800eec"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "56",
+        "before": [
+          56,
+          56
+        ],
+        "current": [
+          69,
+          69
+        ],
+        "before_sha256": "d267f69d706e1ccda124293d982578db59674afae3de3d98d733fc51c207fef2",
+        "current_sha256": "d267f69d706e1ccda124293d982578db59674afae3de3d98d733fc51c207fef2"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "57",
+        "before": [
+          57,
+          57
+        ],
+        "current": [
+          70,
+          70
+        ],
+        "before_sha256": "cd0de34d6c1612286cd571d50a6ca2a06b1d7f411a6a4c02f5f73e0273759946",
+        "current_sha256": "cd0de34d6c1612286cd571d50a6ca2a06b1d7f411a6a4c02f5f73e0273759946"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "58",
+        "before": [
+          58,
+          58
+        ],
+        "current": [
+          71,
+          71
+        ],
+        "before_sha256": "c9c2d2ffd63676be787670e732ada2f47a45e805ca7a7f3092e1b537fc2ae182",
+        "current_sha256": "c9c2d2ffd63676be787670e732ada2f47a45e805ca7a7f3092e1b537fc2ae182"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "59",
+        "before": [
+          59,
+          59
+        ],
+        "current": [
+          72,
+          72
+        ],
+        "before_sha256": "23ee4078131b99e50034dce75370d9ef6fbaad89196c21df3885debc6eb77e44",
+        "current_sha256": "23ee4078131b99e50034dce75370d9ef6fbaad89196c21df3885debc6eb77e44"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "60",
+        "before": [
+          60,
+          60
+        ],
+        "current": [
+          73,
+          73
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "61",
+        "before": [
+          61,
+          61
+        ],
+        "current": [
+          74,
+          74
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "62",
+        "before": [
+          62,
+          62
+        ],
+        "current": [
+          75,
+          75
+        ],
+        "before_sha256": "345e4756e227e6d61458b4b1a36b5fd840326dd13d0b6f135bb7d03b09723d32",
+        "current_sha256": "345e4756e227e6d61458b4b1a36b5fd840326dd13d0b6f135bb7d03b09723d32"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "63",
+        "before": [
+          63,
+          63
+        ],
+        "current": [
+          81,
+          81
+        ],
+        "before_sha256": "0ae1482876d0d5e819ccc2b9771f2317c1f1b75efcd35d44cb6dd29dec5373f4",
+        "current_sha256": "0ae1482876d0d5e819ccc2b9771f2317c1f1b75efcd35d44cb6dd29dec5373f4"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "64",
+        "before": [
+          64,
+          64
+        ],
+        "current": [
+          82,
+          82
+        ],
+        "before_sha256": "945825724b7dfd68823819ff1552c3a1695d2271677f2fe4c372c6c5ebc4b6a7",
+        "current_sha256": "945825724b7dfd68823819ff1552c3a1695d2271677f2fe4c372c6c5ebc4b6a7"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "65",
+        "before": [
+          65,
+          65
+        ],
+        "current": [
+          83,
+          83
+        ],
+        "before_sha256": "d04c2a63b495e5cfec06618352ab2b3365541a3ced85f058501ccb22af565581",
+        "current_sha256": "d04c2a63b495e5cfec06618352ab2b3365541a3ced85f058501ccb22af565581"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "66",
+        "before": [
+          66,
+          66
+        ],
+        "current": [
+          84,
+          84
+        ],
+        "before_sha256": "bd94f7f09fcde4722ee195df62eb33f3d5e7eeb3c2d8d19eb456523adc8f1f60",
+        "current_sha256": "bd94f7f09fcde4722ee195df62eb33f3d5e7eeb3c2d8d19eb456523adc8f1f60"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "67",
+        "before": [
+          67,
+          67
+        ],
+        "current": [
+          85,
+          85
+        ],
+        "before_sha256": "d9748abc0b878e130d0cf9e54177256c72681a0727621bf35c1ef1d56e16eab5",
+        "current_sha256": "d9748abc0b878e130d0cf9e54177256c72681a0727621bf35c1ef1d56e16eab5"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "68",
+        "before": [
+          68,
+          68
+        ],
+        "current": [
+          86,
+          86
+        ],
+        "before_sha256": "676590ec9f5d7383abe7a5af75be2d4c4754694635f1eb535eda270abfd6c8c4",
+        "current_sha256": "676590ec9f5d7383abe7a5af75be2d4c4754694635f1eb535eda270abfd6c8c4"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "69",
+        "before": [
+          69,
+          69
+        ],
+        "current": [
+          87,
+          87
+        ],
+        "before_sha256": "e3e1602dbc0926b313abde8d35aa6aaf07610123a11ae874035bba629ec0e6e4",
+        "current_sha256": "e3e1602dbc0926b313abde8d35aa6aaf07610123a11ae874035bba629ec0e6e4"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "70",
+        "before": [
+          70,
+          70
+        ],
+        "current": [
+          88,
+          88
+        ],
+        "before_sha256": "a86677fcaf76a29c975082c94a246da395261d29279001466a5cbec431cec8c0",
+        "current_sha256": "a86677fcaf76a29c975082c94a246da395261d29279001466a5cbec431cec8c0"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "71",
+        "before": [
+          71,
+          71
+        ],
+        "current": [
+          89,
+          89
+        ],
+        "before_sha256": "e6b04491469722e8363a94e4044538e013a2a217e36b1e568ba60acb7b4c8f2e",
+        "current_sha256": "e6b04491469722e8363a94e4044538e013a2a217e36b1e568ba60acb7b4c8f2e"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "72",
+        "before": [
+          72,
+          72
+        ],
+        "current": [
+          90,
+          90
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line",
+        "label": "73",
+        "before": [
+          73,
+          73
+        ],
+        "current": [
+          91,
+          91
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "serde and family imports",
+        "before": [
+          1,
+          4
+        ],
+        "current": [
+          4,
+          7
+        ],
+        "before_sha256": "dc5b13a765dd0fb3630abc3a623d55dcb678ca2b794356f7c24985ab5d1e618a",
+        "current_sha256": "dc5b13a765dd0fb3630abc3a623d55dcb678ca2b794356f7c24985ab5d1e618a"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "FontWeight",
+        "before": [
+          5,
+          8
+        ],
+        "current": [
+          8,
+          11
+        ],
+        "before_sha256": "bc7a150197bc3d7772b7d8ae49dbc017afa71fe8a4fa5a532b541bec94e70439",
+        "current_sha256": "bc7a150197bc3d7772b7d8ae49dbc017afa71fe8a4fa5a532b541bec94e70439"
+      },
+      {
+        "source": "F2",
+        "kind": "field",
+        "label": "FontWeight.0",
+        "before": [
+          8,
+          8
+        ],
+        "current": [
+          11,
+          11
+        ],
+        "before_sha256": "32d05477d4c3cd1df7cf3f8b2ed5f0065d6e2c64ea6e2a83172672af136cd679",
+        "current_sha256": "32d05477d4c3cd1df7cf3f8b2ed5f0065d6e2c64ea6e2a83172672af136cd679"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "impl FontWeight",
+        "before": [
+          10,
+          17
+        ],
+        "current": [
+          13,
+          24
+        ],
+        "before_sha256": "c93caaf5ed575e3b5fd16a606f05174f4a42cc6a0d178c3bfd48197568c34dfd",
+        "current_sha256": "c55863070f07bc0c008c3fad8dfee8ee1ba339b021c051e67190882928bf5c50"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "FontWeight::NORMAL",
+        "before": [
+          11,
+          11
+        ],
+        "current": [
+          14,
+          14
+        ],
+        "before_sha256": "fee9a45dbbc1ad6768541ccab89471d33411c533bb112638bb2da3305b271e93",
+        "current_sha256": "fee9a45dbbc1ad6768541ccab89471d33411c533bb112638bb2da3305b271e93"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "FontWeight::BOLD",
+        "before": [
+          12,
+          12
+        ],
+        "current": [
+          15,
+          15
+        ],
+        "before_sha256": "d1e4ed3735d5dd425dc2835fcf2df78b6ec8ac91096d4b8f45e3d446cea74097",
+        "current_sha256": "d1e4ed3735d5dd425dc2835fcf2df78b6ec8ac91096d4b8f45e3d446cea74097"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "FontWeight::clamped",
+        "before": [
+          14,
+          16
+        ],
+        "current": [
+          17,
+          23
+        ],
+        "before_sha256": "a3353724f623aba6efd5c0c49ddb7cdcb22ba691c8f3a872dc111047c1a9163c",
+        "current_sha256": "c763d5f9018ca72e6b57603ef856f8424978913915c4eb35f0dc37a90e007f4f"
+      },
+      {
+        "source": "F2",
+        "kind": "parameter",
+        "label": "FontWeight::clamped.value",
+        "before": [
+          14,
+          14
+        ],
+        "current": [
+          21,
+          21
+        ],
+        "before_sha256": "76d226f861cca03f1f64d8c7da21218abd8f4c8a3cda86e4266924a74369b7be",
+        "current_sha256": "76d226f861cca03f1f64d8c7da21218abd8f4c8a3cda86e4266924a74369b7be"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "FontStyle",
+        "before": [
+          19,
+          27
+        ],
+        "current": [
+          26,
+          34
+        ],
+        "before_sha256": "9cd273ff1afa197231d4fe1667fcff711507a548693f55d2ee69eea6a97e9681",
+        "current_sha256": "9cd273ff1afa197231d4fe1667fcff711507a548693f55d2ee69eea6a97e9681"
+      },
+      {
+        "source": "F2",
+        "kind": "enum-variant",
+        "label": "FontStyle::Normal",
+        "before": [
+          24,
+          24
+        ],
+        "current": [
+          31,
+          31
+        ],
+        "before_sha256": "0467091b2e7758a595e959a0b1e169edafb6788672ada5f693b696f31592601a",
+        "current_sha256": "0467091b2e7758a595e959a0b1e169edafb6788672ada5f693b696f31592601a"
+      },
+      {
+        "source": "F2",
+        "kind": "enum-variant",
+        "label": "FontStyle::Italic",
+        "before": [
+          25,
+          25
+        ],
+        "current": [
+          32,
+          32
+        ],
+        "before_sha256": "d6541499548e5c06cb507af545b2fe1643c79b94b5a6e59d803f674a90671903",
+        "current_sha256": "d6541499548e5c06cb507af545b2fe1643c79b94b5a6e59d803f674a90671903"
+      },
+      {
+        "source": "F2",
+        "kind": "enum-variant",
+        "label": "FontStyle::Oblique",
+        "before": [
+          26,
+          26
+        ],
+        "current": [
+          33,
+          33
+        ],
+        "before_sha256": "7d7d5773049e06788ff9c3673e216acb5cef357011ead9f8375fd734b8c09d98",
+        "current_sha256": "7d7d5773049e06788ff9c3673e216acb5cef357011ead9f8375fd734b8c09d98"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "FontStretch",
+        "before": [
+          29,
+          31
+        ],
+        "current": [
+          36,
+          40
+        ],
+        "before_sha256": "4bb4d6dfe89d2526652c81e6d3eff038d892e2fab5c60764670f1af5688316c7",
+        "current_sha256": "93fd2657e9edd323a0be3fe54af20a687ab6201f165edebb9e429a8f0578e25f"
+      },
+      {
+        "source": "F2",
+        "kind": "field",
+        "label": "FontStretch.0",
+        "before": [
+          31,
+          31
+        ],
+        "current": [
+          40,
+          40
+        ],
+        "before_sha256": "2302a31f367d1dd3e3a75e08de2268e5d9c84367642100f9113fc81b6db4c223",
+        "current_sha256": "2302a31f367d1dd3e3a75e08de2268e5d9c84367642100f9113fc81b6db4c223"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "impl FontStretch",
+        "before": [
+          33,
+          39
+        ],
+        "current": [
+          42,
+          52
+        ],
+        "before_sha256": "e4efbc5e4e50615b253824be6885c37d060bd7695caa2a7d0698f163ae063678",
+        "current_sha256": "5b1695c7bff5b167f4d3e816ee5dd071face7c3cd032590857d30fd5609ab1bb"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "FontStretch::NORMAL",
+        "before": [
+          34,
+          34
+        ],
+        "current": [
+          43,
+          43
+        ],
+        "before_sha256": "d90eb2c4c9e1f21a73af8a89fbcd1baa53199c35d7c5c3e7c5c262ef3e18f8eb",
+        "current_sha256": "d90eb2c4c9e1f21a73af8a89fbcd1baa53199c35d7c5c3e7c5c262ef3e18f8eb"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "FontStretch::clamped",
+        "before": [
+          36,
+          38
+        ],
+        "current": [
+          45,
+          51
+        ],
+        "before_sha256": "be573382f0c20bf0bb1a5e0a1f0429baaa1c8149ddbafca7279b3a1bb10829c0",
+        "current_sha256": "e2fae36ae9d2120277c14ecd03720688c594043ad6e16fbda98ea0749fd5cb9d"
+      },
+      {
+        "source": "F2",
+        "kind": "parameter",
+        "label": "FontStretch::clamped.value",
+        "before": [
+          36,
+          36
+        ],
+        "current": [
+          49,
+          49
+        ],
+        "before_sha256": "76d226f861cca03f1f64d8c7da21218abd8f4c8a3cda86e4266924a74369b7be",
+        "current_sha256": "76d226f861cca03f1f64d8c7da21218abd8f4c8a3cda86e4266924a74369b7be"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "FaceIndex",
+        "before": [
+          41,
+          42
+        ],
+        "current": [
+          54,
+          55
+        ],
+        "before_sha256": "494cc775cb99c6b4859c20b51000a675b14439b0b41302aa52e952b2d545bf7c",
+        "current_sha256": "494cc775cb99c6b4859c20b51000a675b14439b0b41302aa52e952b2d545bf7c"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "VariationCoords",
+        "before": [
+          44,
+          47
+        ],
+        "current": [
+          57,
+          60
+        ],
+        "before_sha256": "42f4d8499a17b69b1be4c92a38f6bf3b7f253defb1f7a79f7b328606db74f1ae",
+        "current_sha256": "42f4d8499a17b69b1be4c92a38f6bf3b7f253defb1f7a79f7b328606db74f1ae"
+      },
+      {
+        "source": "F2",
+        "kind": "field",
+        "label": "VariationCoords.0",
+        "before": [
+          47,
+          47
+        ],
+        "current": [
+          60,
+          60
+        ],
+        "before_sha256": "90a4f47fad320a69cba37b321c383db85e3af0b346b01d17bd14f8deafed3735",
+        "current_sha256": "90a4f47fad320a69cba37b321c383db85e3af0b346b01d17bd14f8deafed3735"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "FontFaceDescriptor",
+        "before": [
+          49,
+          60
+        ],
+        "current": [
+          62,
+          73
+        ],
+        "before_sha256": "e6efb3c8d1705aa536e48b82a5b5011ba05b45d5d2e3e9dc282dbf0b8857315e",
+        "current_sha256": "e6efb3c8d1705aa536e48b82a5b5011ba05b45d5d2e3e9dc282dbf0b8857315e"
+      },
+      {
+        "source": "F2",
+        "kind": "field",
+        "label": "FontFaceDescriptor.family",
+        "before": [
+          53,
+          53
+        ],
+        "current": [
+          66,
+          66
+        ],
+        "before_sha256": "52b3da46d7bb429834f2aec5704e87e5ec41bd19d77d1ab5ec289a2b291093aa",
+        "current_sha256": "52b3da46d7bb429834f2aec5704e87e5ec41bd19d77d1ab5ec289a2b291093aa"
+      },
+      {
+        "source": "F2",
+        "kind": "field",
+        "label": "FontFaceDescriptor.weight",
+        "before": [
+          54,
+          54
+        ],
+        "current": [
+          67,
+          67
+        ],
+        "before_sha256": "3ea82fd5057d2f994f5225e65254d44cef9971c444cf49c7ef891bc79791a8d2",
+        "current_sha256": "3ea82fd5057d2f994f5225e65254d44cef9971c444cf49c7ef891bc79791a8d2"
+      },
+      {
+        "source": "F2",
+        "kind": "field",
+        "label": "FontFaceDescriptor.style",
+        "before": [
+          55,
+          55
+        ],
+        "current": [
+          68,
+          68
+        ],
+        "before_sha256": "b00ca854188d4d4e905ca69faf2f85a60afb83e41d21fd4d3d6e1f4d73800eec",
+        "current_sha256": "b00ca854188d4d4e905ca69faf2f85a60afb83e41d21fd4d3d6e1f4d73800eec"
+      },
+      {
+        "source": "F2",
+        "kind": "field",
+        "label": "FontFaceDescriptor.stretch",
+        "before": [
+          56,
+          56
+        ],
+        "current": [
+          69,
+          69
+        ],
+        "before_sha256": "d267f69d706e1ccda124293d982578db59674afae3de3d98d733fc51c207fef2",
+        "current_sha256": "d267f69d706e1ccda124293d982578db59674afae3de3d98d733fc51c207fef2"
+      },
+      {
+        "source": "F2",
+        "kind": "field",
+        "label": "FontFaceDescriptor.face_index",
+        "before": [
+          57,
+          57
+        ],
+        "current": [
+          70,
+          70
+        ],
+        "before_sha256": "cd0de34d6c1612286cd571d50a6ca2a06b1d7f411a6a4c02f5f73e0273759946",
+        "current_sha256": "cd0de34d6c1612286cd571d50a6ca2a06b1d7f411a6a4c02f5f73e0273759946"
+      },
+      {
+        "source": "F2",
+        "kind": "field",
+        "label": "FontFaceDescriptor.variations",
+        "before": [
+          59,
+          59
+        ],
+        "current": [
+          72,
+          72
+        ],
+        "before_sha256": "23ee4078131b99e50034dce75370d9ef6fbaad89196c21df3885debc6eb77e44",
+        "current_sha256": "23ee4078131b99e50034dce75370d9ef6fbaad89196c21df3885debc6eb77e44"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "impl FontFaceDescriptor",
+        "before": [
+          62,
+          73
+        ],
+        "current": [
+          75,
+          91
+        ],
+        "before_sha256": "3bee4b36c3bf4157d4bd512bc4c96d759518428f81529a777797614f35c82269",
+        "current_sha256": "0ea8615bffa888a4293a9d0655313e8838700fda2431fb269ddd18525b53dba8"
+      },
+      {
+        "source": "F2",
+        "kind": "object",
+        "label": "FontFaceDescriptor::regular",
+        "before": [
+          63,
+          72
+        ],
+        "current": [
+          76,
+          90
+        ],
+        "before_sha256": "e6fa18f90e1f78ac8bd8358a1adc09d0ae6098117c87cd272c5b282392191b6c",
+        "current_sha256": "c3627258de345b2e9ca406f021dd7cfd2412e80c24fb3febc0a12809f0dc2585"
+      },
+      {
+        "source": "F2",
+        "kind": "parameter",
+        "label": "FontFaceDescriptor::regular.family",
+        "before": [
+          63,
+          63
+        ],
+        "current": [
+          81,
+          81
+        ],
+        "before_sha256": "0ae1482876d0d5e819ccc2b9771f2317c1f1b75efcd35d44cb6dd29dec5373f4",
+        "current_sha256": "0ae1482876d0d5e819ccc2b9771f2317c1f1b75efcd35d44cb6dd29dec5373f4"
+      },
+      {
+        "source": "F2",
+        "kind": "semantic-block",
+        "label": "imports and model boundary",
+        "before": [
+          1,
+          4
+        ],
+        "current": [
+          1,
+          7
+        ],
+        "before_sha256": "dc5b13a765dd0fb3630abc3a623d55dcb678ca2b794356f7c24985ab5d1e618a",
+        "current_sha256": "aef4696ad4f63a3834d26198e77e9cab39ac86b00e915134e914724f9675a799"
+      },
+      {
+        "source": "F2",
+        "kind": "semantic-block",
+        "label": "font weight value",
+        "before": [
+          5,
+          9
+        ],
+        "current": [
+          8,
+          12
+        ],
+        "before_sha256": "d8394a6128cefef5b1288af89773f036ecb55f44c350cadeee1c7b7af3311cd7",
+        "current_sha256": "d8394a6128cefef5b1288af89773f036ecb55f44c350cadeee1c7b7af3311cd7"
+      },
+      {
+        "source": "F2",
+        "kind": "semantic-block",
+        "label": "font weight helpers",
+        "before": [
+          10,
+          18
+        ],
+        "current": [
+          13,
+          25
+        ],
+        "before_sha256": "e933ce50d84d6e373dba00659c0faeec9e1ab570a388bc12f289fdc05da44361",
+        "current_sha256": "7a125b794d9cf42adcf082401ad029a6e67f9e5e50b71660ec79c235c5521970"
+      },
+      {
+        "source": "F2",
+        "kind": "semantic-block",
+        "label": "style variants and existing intent gap",
+        "before": [
+          19,
+          28
+        ],
+        "current": [
+          26,
+          35
+        ],
+        "before_sha256": "0f1673129fcfe42c1b32867711f4929630d1761eb91c3ebd3219735ffae0a2e0",
+        "current_sha256": "0f1673129fcfe42c1b32867711f4929630d1761eb91c3ebd3219735ffae0a2e0"
+      },
+      {
+        "source": "F2",
+        "kind": "semantic-block",
+        "label": "font stretch value",
+        "before": [
+          29,
+          32
+        ],
+        "current": [
+          36,
+          41
+        ],
+        "before_sha256": "03bffeac70cf4d5f1b7a0767ac783c4a489e23cc1e670d57cc2ee4d05538df15",
+        "current_sha256": "d384941ecf4f207c7b4e6a6c97c8330fd4517e138f6ffa8e10b69d9a0cdfbb86"
+      },
+      {
+        "source": "F2",
+        "kind": "semantic-block",
+        "label": "font stretch helpers",
+        "before": [
+          33,
+          40
+        ],
+        "current": [
+          42,
+          53
+        ],
+        "before_sha256": "e9bbe5ffb94f7783775dffa20be30e8a7023eda39a30963424b9685389c660a4",
+        "current_sha256": "cf7649a815af46a3df08c0786b3eb68f172353eb9b53a85eb72007ee13e8ac2d"
+      },
+      {
+        "source": "F2",
+        "kind": "semantic-block",
+        "label": "collection face index",
+        "before": [
+          41,
+          43
+        ],
+        "current": [
+          54,
+          56
+        ],
+        "before_sha256": "eec4e828d36647566984a526338ff6deb80fdfc2cac211d24616c4c4d5e0d782",
+        "current_sha256": "eec4e828d36647566984a526338ff6deb80fdfc2cac211d24616c4c4d5e0d782"
+      },
+      {
+        "source": "F2",
+        "kind": "semantic-block",
+        "label": "variation declaration",
+        "before": [
+          44,
+          48
+        ],
+        "current": [
+          57,
+          61
+        ],
+        "before_sha256": "fa262492b3ced76c1b06e262d7a89dd7e098baca4e3f74f72c2edea9e2a697fb",
+        "current_sha256": "fa262492b3ced76c1b06e262d7a89dd7e098baca4e3f74f72c2edea9e2a697fb"
+      },
+      {
+        "source": "F2",
+        "kind": "semantic-block",
+        "label": "face descriptor and serde default",
+        "before": [
+          49,
+          61
+        ],
+        "current": [
+          62,
+          74
+        ],
+        "before_sha256": "636c60a461423caa4dde57ab94117a78872ba16f8055488cb69b4fb918f4f6bc",
+        "current_sha256": "636c60a461423caa4dde57ab94117a78872ba16f8055488cb69b4fb918f4f6bc"
+      },
+      {
+        "source": "F2",
+        "kind": "semantic-block",
+        "label": "regular descriptor assembly",
+        "before": [
+          62,
+          73
+        ],
+        "current": [
+          75,
+          91
+        ],
+        "before_sha256": "3bee4b36c3bf4157d4bd512bc4c96d759518428f81529a777797614f35c82269",
+        "current_sha256": "0ea8615bffa888a4293a9d0655313e8838700fda2431fb269ddd18525b53dba8"
+      },
+      {
+        "source": "F2",
+        "kind": "attribute",
+        "label": "FontWeight derive",
+        "before": [
+          7,
+          7
+        ],
+        "current": [
+          10,
+          10
+        ],
+        "before_sha256": "8cd163e2aeb9f9b2dc68a5a450525a2c3c0bce677871dad3614ad07451b39d1f",
+        "current_sha256": "8cd163e2aeb9f9b2dc68a5a450525a2c3c0bce677871dad3614ad07451b39d1f"
+      },
+      {
+        "source": "F2",
+        "kind": "attribute",
+        "label": "FontStyle derive",
+        "before": [
+          21,
+          21
+        ],
+        "current": [
+          28,
+          28
+        ],
+        "before_sha256": "a6ffcbb3c43b2f2d67b430057364bc0cc96050061fc1b6dfb1575441e7a02f12",
+        "current_sha256": "a6ffcbb3c43b2f2d67b430057364bc0cc96050061fc1b6dfb1575441e7a02f12"
+      },
+      {
+        "source": "F2",
+        "kind": "attribute",
+        "label": "FontStyle default variant",
+        "before": [
+          23,
+          23
+        ],
+        "current": [
+          30,
+          30
+        ],
+        "before_sha256": "81f71a5ad35e23dd8a4912d33a8b7a61e2eca36d8d421e20023d7910bd778a9a",
+        "current_sha256": "81f71a5ad35e23dd8a4912d33a8b7a61e2eca36d8d421e20023d7910bd778a9a"
+      },
+      {
+        "source": "F2",
+        "kind": "attribute",
+        "label": "FontStretch derive",
+        "before": [
+          30,
+          30
+        ],
+        "current": [
+          39,
+          39
+        ],
+        "before_sha256": "8cd163e2aeb9f9b2dc68a5a450525a2c3c0bce677871dad3614ad07451b39d1f",
+        "current_sha256": "8cd163e2aeb9f9b2dc68a5a450525a2c3c0bce677871dad3614ad07451b39d1f"
+      },
+      {
+        "source": "F2",
+        "kind": "attribute",
+        "label": "VariationCoords derive",
+        "before": [
+          46,
+          46
+        ],
+        "current": [
+          59,
+          59
+        ],
+        "before_sha256": "7a33bb54e8b19cb2d382a245f155acb088dd93fe20a83cbb2acd46b1e7f7b72d",
+        "current_sha256": "7a33bb54e8b19cb2d382a245f155acb088dd93fe20a83cbb2acd46b1e7f7b72d"
+      },
+      {
+        "source": "F2",
+        "kind": "attribute",
+        "label": "FontFaceDescriptor derive",
+        "before": [
+          51,
+          51
+        ],
+        "current": [
+          64,
+          64
+        ],
+        "before_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10",
+        "current_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10"
+      },
+      {
+        "source": "F2",
+        "kind": "attribute",
+        "label": "FontFaceDescriptor variations default",
+        "before": [
+          58,
+          58
+        ],
+        "current": [
+          71,
+          71
+        ],
+        "before_sha256": "c9c2d2ffd63676be787670e732ada2f47a45e805ca7a7f3092e1b537fc2ae182",
+        "current_sha256": "c9c2d2ffd63676be787670e732ada2f47a45e805ca7a7f3092e1b537fc2ae182"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "1",
+        "before": [
+          1,
+          1
+        ],
+        "current": [
+          1,
+          1
+        ],
+        "before_sha256": "a63cac226fa7ac9150e016e86b836a5b289cc1658c3fa07b25a7acd9431569a9",
+        "current_sha256": "a63cac226fa7ac9150e016e86b836a5b289cc1658c3fa07b25a7acd9431569a9"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "2",
+        "before": [
+          2,
+          2
+        ],
+        "current": [
+          2,
+          2
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "3",
+        "before": [
+          3,
+          3
+        ],
+        "current": [
+          3,
+          3
+        ],
+        "before_sha256": "352406eb926c72e53b892d1d7b063b9fac188da3ed3abe9f53e50ec820fa884b",
+        "current_sha256": "352406eb926c72e53b892d1d7b063b9fac188da3ed3abe9f53e50ec820fa884b"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "4",
+        "before": [
+          4,
+          4
+        ],
+        "current": [
+          4,
+          4
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "5",
+        "before": [
+          5,
+          5
+        ],
+        "current": [
+          5,
+          5
+        ],
+        "before_sha256": "3e660fecc45f8b5b03f79a260b162dc578d20f98e953b9bc6ffce012ccb5aeb1",
+        "current_sha256": "3e660fecc45f8b5b03f79a260b162dc578d20f98e953b9bc6ffce012ccb5aeb1"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "6",
+        "before": [
+          6,
+          6
+        ],
+        "current": [
+          6,
+          6
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "7",
+        "before": [
+          7,
+          7
+        ],
+        "current": [
+          7,
+          7
+        ],
+        "before_sha256": "4d8136b334dad0d06ea40f7317b6233e859482b6947e81c4ce0a95b1dddaa6ed",
+        "current_sha256": "4d8136b334dad0d06ea40f7317b6233e859482b6947e81c4ce0a95b1dddaa6ed"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "8",
+        "before": [
+          8,
+          8
+        ],
+        "current": [
+          8,
+          8
+        ],
+        "before_sha256": "9320bf77878a814cd1f11715afe712bf49d823331163bad1e1c7f4195fd2adb2",
+        "current_sha256": "9320bf77878a814cd1f11715afe712bf49d823331163bad1e1c7f4195fd2adb2"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "9",
+        "before": [
+          9,
+          9
+        ],
+        "current": [
+          9,
+          9
+        ],
+        "before_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10",
+        "current_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "10",
+        "before": [
+          10,
+          10
+        ],
+        "current": [
+          10,
+          10
+        ],
+        "before_sha256": "bdaff62001ea69e1658756970ae78943403e292c9364cb1055be6f0b3fc5b28b",
+        "current_sha256": "bdaff62001ea69e1658756970ae78943403e292c9364cb1055be6f0b3fc5b28b"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "11",
+        "before": [
+          11,
+          11
+        ],
+        "current": [
+          11,
+          11
+        ],
+        "before_sha256": "0b40cb02e9f6d8a3e907f8faac7ccee50de947df38ca8e2cab275c7b7bc10208",
+        "current_sha256": "0b40cb02e9f6d8a3e907f8faac7ccee50de947df38ca8e2cab275c7b7bc10208"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "12",
+        "before": [
+          12,
+          12
+        ],
+        "current": [
+          12,
+          12
+        ],
+        "before_sha256": "c9c2d2ffd63676be787670e732ada2f47a45e805ca7a7f3092e1b537fc2ae182",
+        "current_sha256": "c9c2d2ffd63676be787670e732ada2f47a45e805ca7a7f3092e1b537fc2ae182"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "13",
+        "before": [
+          13,
+          13
+        ],
+        "current": [
+          13,
+          13
+        ],
+        "before_sha256": "435b7ac2f2c2e62e8dc81ca06a6176039f3d1de9c1e8bf4926687899af8f2188",
+        "current_sha256": "435b7ac2f2c2e62e8dc81ca06a6176039f3d1de9c1e8bf4926687899af8f2188"
+      },
+      {
+        "source": "F3",
+        "kind": "original-line",
+        "label": "14",
+        "before": [
+          14,
+          14
+        ],
+        "current": [
+          14,
+          14
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F3",
+        "kind": "object",
+        "label": "serde, family and descriptor imports",
+        "before": [
+          1,
+          6
+        ],
+        "current": [
+          1,
+          6
+        ],
+        "before_sha256": "edac4366319873fbf21a3745a6215d79c246ee64d875055c73b67f957763cc69",
+        "current_sha256": "edac4366319873fbf21a3745a6215d79c246ee64d875055c73b67f957763cc69"
+      },
+      {
+        "source": "F3",
+        "kind": "object",
+        "label": "FontFamilyDescriptor",
+        "before": [
+          7,
+          14
+        ],
+        "current": [
+          7,
+          14
+        ],
+        "before_sha256": "258916cd26e3865648e5b4d8acb60bd3e8bf5b49474e2f2d68bdff3a09239800",
+        "current_sha256": "258916cd26e3865648e5b4d8acb60bd3e8bf5b49474e2f2d68bdff3a09239800"
+      },
+      {
+        "source": "F3",
+        "kind": "field",
+        "label": "FontFamilyDescriptor.name",
+        "before": [
+          11,
+          11
+        ],
+        "current": [
+          11,
+          11
+        ],
+        "before_sha256": "0b40cb02e9f6d8a3e907f8faac7ccee50de947df38ca8e2cab275c7b7bc10208",
+        "current_sha256": "0b40cb02e9f6d8a3e907f8faac7ccee50de947df38ca8e2cab275c7b7bc10208"
+      },
+      {
+        "source": "F3",
+        "kind": "field",
+        "label": "FontFamilyDescriptor.faces",
+        "before": [
+          13,
+          13
+        ],
+        "current": [
+          13,
+          13
+        ],
+        "before_sha256": "435b7ac2f2c2e62e8dc81ca06a6176039f3d1de9c1e8bf4926687899af8f2188",
+        "current_sha256": "435b7ac2f2c2e62e8dc81ca06a6176039f3d1de9c1e8bf4926687899af8f2188"
+      },
+      {
+        "source": "F3",
+        "kind": "semantic-block",
+        "label": "family descriptor imports",
+        "before": [
+          1,
+          6
+        ],
+        "current": [
+          1,
+          6
+        ],
+        "before_sha256": "edac4366319873fbf21a3745a6215d79c246ee64d875055c73b67f957763cc69",
+        "current_sha256": "edac4366319873fbf21a3745a6215d79c246ee64d875055c73b67f957763cc69"
+      },
+      {
+        "source": "F3",
+        "kind": "semantic-block",
+        "label": "family aggregate and serde default",
+        "before": [
+          7,
+          14
+        ],
+        "current": [
+          7,
+          14
+        ],
+        "before_sha256": "258916cd26e3865648e5b4d8acb60bd3e8bf5b49474e2f2d68bdff3a09239800",
+        "current_sha256": "258916cd26e3865648e5b4d8acb60bd3e8bf5b49474e2f2d68bdff3a09239800"
+      },
+      {
+        "source": "F3",
+        "kind": "attribute",
+        "label": "FontFamilyDescriptor derive",
+        "before": [
+          9,
+          9
+        ],
+        "current": [
+          9,
+          9
+        ],
+        "before_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10",
+        "current_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10"
+      },
+      {
+        "source": "F3",
+        "kind": "attribute",
+        "label": "FontFamilyDescriptor faces default",
+        "before": [
+          12,
+          12
+        ],
+        "current": [
+          12,
+          12
+        ],
+        "before_sha256": "c9c2d2ffd63676be787670e732ada2f47a45e805ca7a7f3092e1b537fc2ae182",
+        "current_sha256": "c9c2d2ffd63676be787670e732ada2f47a45e805ca7a7f3092e1b537fc2ae182"
+      }
+    ],
+    "canonical_sha256": "1c199a12f44f695f00b104d79fe0806341d27da8e5a9e9144ad95640a1f21f23"
+  },
+  "insertions": [
+    {
+      "source": "F1",
+      "before_line": 1,
+      "before_offset": 0,
+      "after_offset": 0,
+      "sha256": "aeb778e141855f1cc60f39471848c7ab11ac82b167c3a289a5ca5e3f8e9d7de3",
+      "bytes": 137,
+      "LF": 3
+    },
+    {
+      "source": "F1",
+      "before_line": 27,
+      "before_offset": 1188,
+      "after_offset": 1325,
+      "sha256": "bdc18a7b7d460052fbbb578811d758a0891115de13e0e9428768b2238a036ee7",
+      "bytes": 287,
+      "LF": 5
+    },
+    {
+      "source": "F2",
+      "before_line": 1,
+      "before_offset": 0,
+      "after_offset": 0,
+      "sha256": "9d60be60af0b7f7080ac19f7a68dc1423ba73cef269a8e98dc95335f19604cd5",
+      "bytes": 152,
+      "LF": 3
+    },
+    {
+      "source": "F2",
+      "before_line": 14,
+      "before_offset": 477,
+      "after_offset": 629,
+      "sha256": "c1d7e9c65c1aa331d339ec54b96cb0d432aa7a40e311cac20f12cf97fda49ec1",
+      "bytes": 190,
+      "LF": 4
+    },
+    {
+      "source": "F2",
+      "before_line": 30,
+      "before_offset": 1137,
+      "after_offset": 1479,
+      "sha256": "be2af7db3682427777995172a6c1f4efad0d3ca5819f42b1e93935b6d5b6307b",
+      "bytes": 151,
+      "LF": 2
+    },
+    {
+      "source": "F2",
+      "before_line": 36,
+      "before_offset": 1323,
+      "after_offset": 1816,
+      "sha256": "ca46f3d6da5515e2a2033e3d3839692a10a615601830578e131cf6a2bd22836d",
+      "bytes": 199,
+      "LF": 4
+    },
+    {
+      "source": "F2",
+      "before_line": 63,
+      "before_offset": 2424,
+      "after_offset": 3116,
+      "sha256": "a964fd1f54dd2960f2ae5badccb100a2c5c204e9e0175a7692a7d302472642a8",
+      "bytes": 332,
+      "LF": 5
+    }
+  ],
+  "attributes": [
+    {
+      "source": "F1",
+      "name": "FontFaceId derive",
+      "before_line": 8,
+      "traits": [
+        "Clone",
+        "Copy",
+        "Debug",
+        "PartialEq",
+        "Eq",
+        "Hash",
+        "Serialize",
+        "Deserialize"
+      ],
+      "after_line": 11,
+      "exact_input": "#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]",
+      "raw_line_sha256": "b674601b1104d6b246890b8c9bc8bde2001d9ca1f01176c4d3ffe96ec2fd0da7"
+    },
+    {
+      "source": "F1",
+      "name": "InstancedFaceId derive",
+      "before_line": 13,
+      "traits": [
+        "Clone",
+        "Copy",
+        "Debug",
+        "PartialEq",
+        "Eq",
+        "Hash",
+        "Serialize",
+        "Deserialize"
+      ],
+      "after_line": 16,
+      "exact_input": "#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]",
+      "raw_line_sha256": "b674601b1104d6b246890b8c9bc8bde2001d9ca1f01176c4d3ffe96ec2fd0da7"
+    },
+    {
+      "source": "F1",
+      "name": "FontQuery derive",
+      "before_line": 18,
+      "traits": [
+        "Clone",
+        "Debug",
+        "PartialEq",
+        "Serialize",
+        "Deserialize"
+      ],
+      "after_line": 21,
+      "exact_input": "#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]",
+      "raw_line_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10"
+    },
+    {
+      "source": "F1",
+      "name": "FontMatch derive",
+      "before_line": 39,
+      "traits": [
+        "Clone",
+        "Copy",
+        "Debug",
+        "PartialEq",
+        "Eq",
+        "Serialize",
+        "Deserialize"
+      ],
+      "after_line": 47,
+      "exact_input": "#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]",
+      "raw_line_sha256": "eceaab0c6778e229e74af0542e7413dda6ad2d356ec0ca9796feacf88bc2e302"
+    },
+    {
+      "source": "F2",
+      "name": "FontWeight derive",
+      "before_line": 7,
+      "traits": [
+        "Clone",
+        "Copy",
+        "Debug",
+        "PartialEq",
+        "Eq",
+        "PartialOrd",
+        "Ord",
+        "Hash",
+        "Serialize",
+        "Deserialize"
+      ],
+      "after_line": 10,
+      "exact_input": "#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]",
+      "raw_line_sha256": "8cd163e2aeb9f9b2dc68a5a450525a2c3c0bce677871dad3614ad07451b39d1f"
+    },
+    {
+      "source": "F2",
+      "name": "FontStyle derive",
+      "before_line": 21,
+      "traits": [
+        "Clone",
+        "Copy",
+        "Debug",
+        "Default",
+        "PartialEq",
+        "Serialize",
+        "Deserialize"
+      ],
+      "after_line": 28,
+      "exact_input": "#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]",
+      "raw_line_sha256": "a6ffcbb3c43b2f2d67b430057364bc0cc96050061fc1b6dfb1575441e7a02f12"
+    },
+    {
+      "source": "F2",
+      "name": "FontStyle default variant",
+      "before_line": 23,
+      "attribute": "#[default]",
+      "target": "FontStyle::Normal",
+      "after_line": 30,
+      "exact_input": "#[default]",
+      "raw_line_sha256": "81f71a5ad35e23dd8a4912d33a8b7a61e2eca36d8d421e20023d7910bd778a9a"
+    },
+    {
+      "source": "F2",
+      "name": "FontStretch derive",
+      "before_line": 30,
+      "traits": [
+        "Clone",
+        "Copy",
+        "Debug",
+        "PartialEq",
+        "Eq",
+        "PartialOrd",
+        "Ord",
+        "Hash",
+        "Serialize",
+        "Deserialize"
+      ],
+      "after_line": 39,
+      "exact_input": "#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]",
+      "raw_line_sha256": "8cd163e2aeb9f9b2dc68a5a450525a2c3c0bce677871dad3614ad07451b39d1f"
+    },
+    {
+      "source": "F2",
+      "name": "VariationCoords derive",
+      "before_line": 46,
+      "traits": [
+        "Clone",
+        "Debug",
+        "Default",
+        "PartialEq",
+        "Serialize",
+        "Deserialize"
+      ],
+      "after_line": 59,
+      "exact_input": "#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]",
+      "raw_line_sha256": "7a33bb54e8b19cb2d382a245f155acb088dd93fe20a83cbb2acd46b1e7f7b72d"
+    },
+    {
+      "source": "F2",
+      "name": "FontFaceDescriptor derive",
+      "before_line": 51,
+      "traits": [
+        "Clone",
+        "Debug",
+        "PartialEq",
+        "Serialize",
+        "Deserialize"
+      ],
+      "after_line": 64,
+      "exact_input": "#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]",
+      "raw_line_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10"
+    },
+    {
+      "source": "F2",
+      "name": "FontFaceDescriptor variations default",
+      "before_line": 58,
+      "attribute": "#[serde(default)]",
+      "target": "variations -> VariationCoords::default()",
+      "after_line": 71,
+      "exact_input": "#[serde(default)]",
+      "raw_line_sha256": "c9c2d2ffd63676be787670e732ada2f47a45e805ca7a7f3092e1b537fc2ae182"
+    },
+    {
+      "source": "F3",
+      "name": "FontFamilyDescriptor derive",
+      "before_line": 9,
+      "traits": [
+        "Clone",
+        "Debug",
+        "PartialEq",
+        "Serialize",
+        "Deserialize"
+      ],
+      "after_line": 9,
+      "exact_input": "#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]",
+      "raw_line_sha256": "d8d0afaf46c0e27b8a893eb9a69ff3be373d5eb3a28c0fb5a65b5dd0292dec10"
+    },
+    {
+      "source": "F3",
+      "name": "FontFamilyDescriptor faces default",
+      "before_line": 12,
+      "attribute": "#[serde(default)]",
+      "target": "faces -> Vec::default()",
+      "after_line": 12,
+      "exact_input": "#[serde(default)]",
+      "raw_line_sha256": "c9c2d2ffd63676be787670e732ada2f47a45e805ca7a7f3092e1b537fc2ae182"
+    }
+  ],
+  "macros": [
+    {
+      "source": "F1",
+      "name": "vec",
+      "complete_original_current_input": "vec![family.into()]",
+      "input_sha256": "d86e8bbfa52ffa1fcc1a36bf71ca1fcddfd027a0fd59170c65c248f64221925c",
+      "original_current_count": 1,
+      "executed": false
+    }
+  ],
+  "fields": [
+    {
+      "source": "F1",
+      "owner": "FontFaceId",
+      "name": "0",
+      "type": "u64",
+      "before_line": 9,
+      "role": "数据库内字体面身份值",
+      "documentation_decision": "type-doc-covers",
+      "tuple": true,
+      "after_line": 12
+    },
+    {
+      "source": "F1",
+      "owner": "InstancedFaceId",
+      "name": "0",
+      "type": "u64",
+      "before_line": 14,
+      "role": "数据库内字体实例身份值",
+      "documentation_decision": "type-doc-covers",
+      "tuple": true,
+      "after_line": 17
+    },
+    {
+      "source": "F1",
+      "owner": "FontQuery",
+      "name": "families",
+      "type": "Vec<FontFamilyName>",
+      "before_line": 20,
+      "role": "有序家族偏好",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 23
+    },
+    {
+      "source": "F1",
+      "owner": "FontQuery",
+      "name": "weight",
+      "type": "FontWeight",
+      "before_line": 21,
+      "role": "字重偏好",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 24
+    },
+    {
+      "source": "F1",
+      "owner": "FontQuery",
+      "name": "style",
+      "type": "FontStyle",
+      "before_line": 22,
+      "role": "样式分类",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 25
+    },
+    {
+      "source": "F1",
+      "owner": "FontQuery",
+      "name": "stretch",
+      "type": "FontStretch",
+      "before_line": 23,
+      "role": "宽度偏好",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 26
+    },
+    {
+      "source": "F1",
+      "owner": "FontMatch",
+      "name": "face",
+      "type": "FontFaceId",
+      "before_line": 41,
+      "role": "选中的数据库字体面身份",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 49
+    },
+    {
+      "source": "F1",
+      "owner": "FontMatch",
+      "name": "synthetic_bold",
+      "type": "bool",
+      "before_line": 42,
+      "role": "合成粗体标志",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 50
+    },
+    {
+      "source": "F1",
+      "owner": "FontMatch",
+      "name": "synthetic_oblique",
+      "type": "bool",
+      "before_line": 43,
+      "role": "合成倾斜标志",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 51
+    },
+    {
+      "source": "F2",
+      "owner": "FontWeight",
+      "name": "0",
+      "type": "u16",
+      "before_line": 8,
+      "role": "字体字重偏好数值",
+      "documentation_decision": "type-doc-covers",
+      "tuple": true,
+      "after_line": 11
+    },
+    {
+      "source": "F2",
+      "owner": "FontStretch",
+      "name": "0",
+      "type": "u16",
+      "before_line": 31,
+      "role": "宽度偏好数值",
+      "documentation_decision": "type-doc-covers",
+      "tuple": true,
+      "after_line": 40
+    },
+    {
+      "source": "F2",
+      "owner": "VariationCoords",
+      "name": "0",
+      "type": "Vec<(u32, f32)>",
+      "before_line": 47,
+      "role": "拥有的轴标签/坐标序列",
+      "documentation_decision": "type-doc-covers",
+      "tuple": true,
+      "after_line": 60
+    },
+    {
+      "source": "F2",
+      "owner": "FontFaceDescriptor",
+      "name": "family",
+      "type": "FontFamilyName",
+      "before_line": 53,
+      "role": "声明的家族值",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 66
+    },
+    {
+      "source": "F2",
+      "owner": "FontFaceDescriptor",
+      "name": "weight",
+      "type": "FontWeight",
+      "before_line": 54,
+      "role": "字重声明",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 67
+    },
+    {
+      "source": "F2",
+      "owner": "FontFaceDescriptor",
+      "name": "style",
+      "type": "FontStyle",
+      "before_line": 55,
+      "role": "样式声明",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 68
+    },
+    {
+      "source": "F2",
+      "owner": "FontFaceDescriptor",
+      "name": "stretch",
+      "type": "FontStretch",
+      "before_line": 56,
+      "role": "宽度声明",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 69
+    },
+    {
+      "source": "F2",
+      "owner": "FontFaceDescriptor",
+      "name": "face_index",
+      "type": "FaceIndex",
+      "before_line": 57,
+      "role": "源文件集合索引",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 70
+    },
+    {
+      "source": "F2",
+      "owner": "FontFaceDescriptor",
+      "name": "variations",
+      "type": "VariationCoords",
+      "before_line": 59,
+      "role": "默认轴声明",
+      "documentation_decision": "type-doc-covers",
+      "serde_default_before": 58,
+      "after_line": 72,
+      "serde_default_after": 71
+    },
+    {
+      "source": "F3",
+      "owner": "FontFamilyDescriptor",
+      "name": "name",
+      "type": "FontFamilyName",
+      "before_line": 11,
+      "role": "家族描述名",
+      "documentation_decision": "type-doc-covers",
+      "after_line": 11
+    },
+    {
+      "source": "F3",
+      "owner": "FontFamilyDescriptor",
+      "name": "faces",
+      "type": "Vec<FontFaceDescriptor>",
+      "before_line": 13,
+      "role": "拥有的各字体面声明",
+      "documentation_decision": "type-doc-covers",
+      "serde_default_before": 12,
+      "after_line": 13,
+      "serde_default_after": 12
+    }
+  ],
+  "variants": [
+    {
+      "source": "F2",
+      "owner": "FontStyle",
+      "name": "Normal",
+      "before_line": 24,
+      "payload": [],
+      "role": "默认常规样式",
+      "documentation_decision": "名称及#[default]明确，无新增",
+      "after_line": 31
+    },
+    {
+      "source": "F2",
+      "owner": "FontStyle",
+      "name": "Italic",
+      "before_line": 25,
+      "payload": [],
+      "role": "斜体分类",
+      "documentation_decision": "分类名明确，无新增",
+      "after_line": 32
+    },
+    {
+      "source": "F2",
+      "owner": "FontStyle",
+      "name": "Oblique",
+      "before_line": 26,
+      "payload": [
+        {
+          "type": "f32",
+          "role": "语义/单位尚未闭合的参数"
+        }
+      ],
+      "role": "带参数的倾斜分类",
+      "documentation_decision": "单位和意图由既有CR-TEXT-LAYOUT-0001保留，不写事实",
+      "after_line": 33
+    }
+  ],
+  "parameters": [
+    {
+      "source": "F1",
+      "owner": "FontQuery::single_family",
+      "name": "family",
+      "type": "impl Into<FontFamilyName>",
+      "role": "转成唯一家族偏好项"
+    },
+    {
+      "source": "F2",
+      "owner": "FontWeight::clamped",
+      "name": "value",
+      "type": "u16",
+      "role": "待限幅字重"
+    },
+    {
+      "source": "F2",
+      "owner": "FontStretch::clamped",
+      "name": "value",
+      "type": "u16",
+      "role": "正常宽度100基准的偏好数值"
+    },
+    {
+      "source": "F2",
+      "owner": "FontFaceDescriptor::regular",
+      "name": "family",
+      "type": "impl Into<FontFamilyName>",
+      "role": "声明的家族值"
+    }
+  ],
+  "assertions": [],
+  "contexts": [
+    {
+      "id": "C1",
+      "path": "zircon_runtime/src/text/model/font/mod.rs",
+      "sha256": "0da7f02ee67af5a676d66823a6b614535ff4c7f85ce30291c83b941570e57886",
+      "bytes": 460,
+      "lines": 16,
+      "root_selected_spans": [
+        {
+          "lines": [
+            1,
+            16
+          ],
+          "sha256": "0da7f02ee67af5a676d66823a6b614535ff4c7f85ce30291c83b941570e57886"
+        }
+      ],
+      "root_receipt": "root958/ad875d exit0/PID16764"
+    },
+    {
+      "id": "C2",
+      "path": "zircon_runtime/src/text/model/mod.rs",
+      "pin": "65930050e4fb75c674a6993e8f0fd800fa3ef009d9730fe676066903e0d22b73",
+      "root_reuse": "C2 root932/a6a139 complete41LF unchanged;C10 rootR094/R095 andR097 selected reader actual reused unchanged;no new fullbody claim",
+      "root_receipt": "root958/ad875d exit0/PID16764",
+      "sha256": "65930050e4fb75c674a6993e8f0fd800fa3ef009d9730fe676066903e0d22b73",
+      "bytes": 1787,
+      "lines": 41,
+      "root_selected_spans": []
+    },
+    {
+      "id": "C3",
+      "path": "zircon_runtime/src/text/font/database/face_matching.rs",
+      "sha256": "9b7a18c4e88cbf28b439510de5675768a4ce121f4be28ecfdda7646b24378551",
+      "bytes": 11405,
+      "lines": 329,
+      "root_selected_spans": [
+        {
+          "lines": [
+            76,
+            135
+          ],
+          "sha256": "31976e01c9f775395e49bb53ca95a9f26863cde083334ac4041785f94abc4a28"
+        },
+        {
+          "lines": [
+            306,
+            329
+          ],
+          "sha256": "aa4a802e2f22245694f8efd7e3922bce71f4886ea159221779921f4c98eb86c7"
+        }
+      ],
+      "root_receipt": "root958/ad875d exit0/PID16764"
+    },
+    {
+      "id": "C4",
+      "path": "zircon_runtime/src/text/font/database/instances.rs",
+      "sha256": "28daf254495dfb5b144c1c98adf270baf9cd6f29cfab5c7f6a001e03246154be",
+      "bytes": 4240,
+      "lines": 131,
+      "root_selected_spans": [
+        {
+          "lines": [
+            10,
+            44
+          ],
+          "sha256": "42ce947d7ac1bbd33574169927cf42df382074ffd6568a7fb9744fed12ffe967"
+        }
+      ],
+      "root_receipt": "root958/ad875d exit0/PID16764"
+    },
+    {
+      "id": "C5",
+      "path": "zircon_runtime/src/text/font/descriptors.rs",
+      "sha256": "682f76347624b8980232477151de64651a45783068c031ed0cb6910b30008ee1",
+      "bytes": 2834,
+      "lines": 89,
+      "root_selected_spans": [
+        {
+          "lines": [
+            1,
+            75
+          ],
+          "sha256": "cfce12d3790919ccb2ddc23234a758a0a91733a9ebf1c65b360089d07824d905"
+        }
+      ],
+      "root_receipt": "root958/ad875d exit0/PID16764"
+    },
+    {
+      "id": "C6",
+      "path": "zircon_runtime/src/text/font/face_metadata.rs",
+      "sha256": "b4ce8e466ad6a56618a77a979b3de070ab014f260052450e5ad0130dc737e297",
+      "bytes": 11341,
+      "lines": 347,
+      "root_selected_spans": [
+        {
+          "lines": [
+            64,
+            80
+          ],
+          "sha256": "f09c6584b9c06981b51b5f175934b7b31ad4ab15dc92f01465fb84cf3e890cea"
+        },
+        {
+          "lines": [
+            153,
+            194
+          ],
+          "sha256": "fbec2adec66843c94940b1e1ea4f87bb5d8949d8067c4ad8d9bc315ed53ecba0"
+        }
+      ],
+      "root_receipt": "root958/ad875d exit0/PID16764"
+    },
+    {
+      "id": "C7",
+      "path": "zircon_runtime/src/text/font/database.rs",
+      "sha256": "19a7c1a25afed96ca3330b78ce57d316c54056f963bf0476d8b49c2ffdccfbf9",
+      "bytes": 26437,
+      "lines": 746,
+      "root_selected_spans": [
+        {
+          "lines": [
+            738,
+            746
+          ],
+          "sha256": "d3dba7a69639fa48da63755a5dc2b36fc73bba6ee85110d323796a67c363157f"
+        }
+      ],
+      "root_receipt": "root958/ad875d exit0/PID16764"
+    },
+    {
+      "id": "C8",
+      "path": "zircon_runtime/src/text/font/database/tests/cases.rs",
+      "sha256": "645e6fb9aac81dd61b8c69e353f105cff8ae60a7093f0b165636b3637009b148",
+      "bytes": 869,
+      "lines": 32,
+      "root_selected_spans": [
+        {
+          "lines": [
+            30,
+            32
+          ],
+          "sha256": "3bca492a5d159d679a3864273667fe5784fd32048da87501317b5695219928d6"
+        }
+      ],
+      "root_receipt": "root958/ad875d exit0/PID16764"
+    },
+    {
+      "id": "C9",
+      "path": "zircon_runtime/src/text/font/database/tests/variations.rs",
+      "sha256": "1b920b54e60ce1f420348f1d36b045e83975dbede2345c2ace5bc33e4aedaa83",
+      "bytes": 7364,
+      "lines": 197,
+      "root_selected_spans": [
+        {
+          "lines": [
+            1,
+            27
+          ],
+          "sha256": "7d2b81a63b5f9a4e0a87a6010eba14b45293fab7cd18ec299c690f2ed8c2ec2c"
+        }
+      ],
+      "root_receipt": "root958/ad875d exit0/PID16764"
+    },
+    {
+      "id": "C10",
+      "path": ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py",
+      "pin": "bbf991fdfc3caf46478c0372d511d27e346803fec1add372e8a95ee17e19100a",
+      "root_reuse": "C2 root932/a6a139 complete41LF unchanged;C10 rootR094/R095 andR097 selected reader actual reused unchanged;no new fullbody claim",
+      "root_receipt": "root958/ad875d exit0/PID16764",
+      "sha256": "bbf991fdfc3caf46478c0372d511d27e346803fec1add372e8a95ee17e19100a",
+      "bytes": 36537,
+      "lines": 953,
+      "root_selected_spans": []
+    },
+    {
+      "id": "EXTRA-matching.rs",
+      "path": "zircon_runtime/src/text/font/matching.rs",
+      "sha256": "4b4131ab29b2cc60229d5fb7bd6395e56dbb01f9661cd81fb8a5ef75111d1877",
+      "bytes": 3770,
+      "lines": 108,
+      "root_selected_spans": [
+        {
+          "lines": [
+            80,
+            106
+          ],
+          "sha256": "c4c3871a3e4b772c1f36f1fa575bd7c6f98d1c94baa66a4712cd6a78cb374ba2"
+        }
+      ],
+      "root_receipt": "root958/ad875d exit0/PID16764"
+    },
+    {
+      "id": "EXTRA-instance.rs",
+      "path": "zircon_runtime/src/text/font/instance.rs",
+      "sha256": "1bc81fdf2853b30ca95a7bce1f80658586ed1494d6cde5f15b6fafed4260d6e0",
+      "bytes": 12471,
+      "lines": 384,
+      "root_selected_spans": [
+        {
+          "lines": [
+            260,
+            304
+          ],
+          "sha256": "dfa5a03ece7c3cbd50c56d8dd30252d07c318a96b33e93f3f5bbfccf35486aef"
+        }
+      ],
+      "root_receipt": "root958/ad875d exit0/PID16764"
+    }
+  ],
+  "reviewed_model": {
+    "objects": [
+      {
+        "source": "F1",
+        "name": "serde and font-value imports",
+        "kind": "import-group",
+        "before_lines": [
+          1,
+          5
+        ],
+        "audit": "导入派生宏、选面属性与FontFamilyName值类型，无运行期注册。",
+        "documentation_decision": "新增模块职责说明；导入本身无需注释。",
+        "after_lines": [
+          4,
+          8
+        ],
+        "span_sha256": [
+          "990395ec458416c646c2bc24246a629762a781d5ad9e8ab31f20e85f67f79bee"
+        ]
+      },
+      {
+        "source": "F1",
+        "name": "FontFaceId",
+        "kind": "public-tuple-struct",
+        "before_lines": [
+          6,
+          9
+        ],
+        "audit": "u64数据库内身份；Copy值不持有数据库、字体字节或版本，也不延长这些对象生命期。已有文档禁止跨独立数据库按数值视为同一资源。",
+        "documentation_decision": "现有两行身份/数据库约束充分，不新增。",
+        "declaration_before": 9,
+        "members": [
+          {
+            "name": "0",
+            "type": "u64",
+            "before_line": 9,
+            "role": "数据库内字体面身份值",
+            "documentation_decision": "type-doc-covers",
+            "tuple": true,
+            "after_line": 12
+          }
+        ],
+        "evidence": [
+          "E2",
+          "E3"
+        ],
+        "after_lines": [
+          9,
+          12
+        ],
+        "declaration_after": 12,
+        "span_sha256": [
+          "2256fc65b2abb8fc3a6f427a78283417c4180be35d00d361965514412ac726f9"
+        ]
+      },
+      {
+        "source": "F1",
+        "name": "InstancedFaceId",
+        "kind": "public-tuple-struct",
+        "before_lines": [
+          11,
+          14
+        ],
+        "audit": "字体面和有效轴坐标的实例标识；值不能恢复文件，不能替代所属字库版本检查，也不自行保活实例。",
+        "documentation_decision": "现有身份/有效实例约束充分，保留。",
+        "declaration_before": 14,
+        "members": [
+          {
+            "name": "0",
+            "type": "u64",
+            "before_line": 14,
+            "role": "数据库内字体实例身份值",
+            "documentation_decision": "type-doc-covers",
+            "tuple": true,
+            "after_line": 17
+          }
+        ],
+        "evidence": [
+          "E3"
+        ],
+        "after_lines": [
+          14,
+          17
+        ],
+        "declaration_after": 17,
+        "span_sha256": [
+          "897151523655396ef9c55cafe374a4e66fd72368ef8199add197fc4c455f103c"
+        ]
+      },
+      {
+        "source": "F1",
+        "name": "FontQuery",
+        "kind": "public-struct",
+        "before_lines": [
+          16,
+          24
+        ],
+        "audit": "家族偏好与字重/样式/宽度组成查询快照；derived Serde不执行匹配或验证资源存在；family顺序的消费由数据库决定。",
+        "documentation_decision": "原职责及家族顺序说明充分；方法补默认值/返回边界。",
+        "declaration_before": 19,
+        "members": [
+          {
+            "name": "families",
+            "type": "Vec<FontFamilyName>",
+            "before_line": 20,
+            "role": "有序家族偏好",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 23
+          },
+          {
+            "name": "weight",
+            "type": "FontWeight",
+            "before_line": 21,
+            "role": "字重偏好",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 24
+          },
+          {
+            "name": "style",
+            "type": "FontStyle",
+            "before_line": 22,
+            "role": "样式分类",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 25
+          },
+          {
+            "name": "stretch",
+            "type": "FontStretch",
+            "before_line": 23,
+            "role": "宽度偏好",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 26
+          }
+        ],
+        "evidence": [
+          "E2"
+        ],
+        "after_lines": [
+          19,
+          27
+        ],
+        "declaration_after": 22,
+        "span_sha256": [
+          "70fb76b93ff7fb60ebc608bfa409c800b1df6010d038a1b9c782fb71f7096d3a"
+        ]
+      },
+      {
+        "source": "F1",
+        "name": "impl FontQuery",
+        "kind": "inherent-impl",
+        "before_lines": [
+          26,
+          35
+        ],
+        "audit": "只包含single_family组装方法；没有查询执行或注册状态。",
+        "documentation_decision": "由方法文档解释参数和默认值，不重复impl标题。",
+        "after_lines": [
+          29,
+          43
+        ],
+        "span_sha256": [
+          "3916526b76bd55ecaa6567b8dea3db28f4ff6bbb5dc8a80504b06157a8a24a09",
+          "2ea75544c875499664f3f247496404563e468de86306d26e9d6f621532837513"
+        ]
+      },
+      {
+        "source": "F1",
+        "name": "FontQuery::single_family",
+        "kind": "public-fn",
+        "before_lines": [
+          27,
+          34
+        ],
+        "audit": "将family.into()写成Vec唯一项，使用400、Normal、100默认属性，返回独立拥有家族值的查询。它不进行数据库匹配、字体存在性或字符覆盖检查。",
+        "documentation_decision": "新增summary及Markdown参数/返回，说明组装时机与默认值。",
+        "declaration_before": 27,
+        "parameters": [
+          {
+            "name": "family",
+            "type": "impl Into<FontFamilyName>",
+            "role": "转成唯一家族偏好项"
+          }
+        ],
+        "returns": "Self",
+        "control_points": [
+          {
+            "before_lines": [
+              28,
+              33
+            ],
+            "effect": "Self literal: families=vec![family.into()], weight=NORMAL, style=Normal, stretch=NORMAL；无条件分支",
+            "after_lines": [
+              36,
+              41
+            ]
+          }
+        ],
+        "evidence": [
+          "E2"
+        ],
+        "after_lines": [
+          30,
+          42
+        ],
+        "declaration_after": 35,
+        "span_sha256": [
+          "eb9659abb2e442b1d4e3241e83f59b6f8fbbcb94aefd6d95e6260d302fd2f316",
+          "d5ba2c172f981430d4d75a4aaefeff07d4e0d531f058cde4103b9a636d89456d"
+        ]
+      },
+      {
+        "source": "F1",
+        "name": "FontMatch",
+        "kind": "public-struct",
+        "before_lines": [
+          37,
+          44
+        ],
+        "audit": "选面结果是字体面ID和两项合成样式元数据；不含字体源所有权，不能承诺字符全覆盖。",
+        "documentation_decision": "已有类型两行明确覆盖由后续整形解析，字段名与调用可理解，无新增。",
+        "declaration_before": 40,
+        "members": [
+          {
+            "name": "face",
+            "type": "FontFaceId",
+            "before_line": 41,
+            "role": "选中的数据库字体面身份",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 49
+          },
+          {
+            "name": "synthetic_bold",
+            "type": "bool",
+            "before_line": 42,
+            "role": "合成粗体标志",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 50
+          },
+          {
+            "name": "synthetic_oblique",
+            "type": "bool",
+            "before_line": 43,
+            "role": "合成倾斜标志",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 51
+          }
+        ],
+        "evidence": [
+          "E2"
+        ],
+        "after_lines": [
+          45,
+          52
+        ],
+        "declaration_after": 48,
+        "span_sha256": [
+          "1fa94d06da3bb4e4f1739591abe37c8375168fa3c1799db71d6603e8fd9103ba"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "serde and family imports",
+        "kind": "import-group",
+        "before_lines": [
+          1,
+          4
+        ],
+        "audit": "Serde派生和FontFamilyName值类型导入，无运行期注册。",
+        "documentation_decision": "新增模块职责与消费方归一边界；导入无需逐项注释。",
+        "after_lines": [
+          4,
+          7
+        ],
+        "span_sha256": [
+          "dc5b13a765dd0fb3630abc3a623d55dcb678ca2b794356f7c24985ab5d1e618a"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "FontWeight",
+        "kind": "public-tuple-struct",
+        "before_lines": [
+          5,
+          8
+        ],
+        "audit": "公开u16包装；只有调用clamped才截断至100..=900。直接构造或derived Serde不自动调用该方法。",
+        "documentation_decision": "原类型doc已明确这一边界，保留。",
+        "declaration_before": 8,
+        "members": [
+          {
+            "name": "0",
+            "type": "u16",
+            "before_line": 8,
+            "role": "字体字重偏好数值",
+            "documentation_decision": "type-doc-covers",
+            "tuple": true,
+            "after_line": 11
+          }
+        ],
+        "evidence": [
+          "E4"
+        ],
+        "after_lines": [
+          8,
+          11
+        ],
+        "declaration_after": 11,
+        "span_sha256": [
+          "bc7a150197bc3d7772b7d8ae49dbc017afa71fe8a4fa5a532b541bec94e70439"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "impl FontWeight",
+        "kind": "inherent-impl",
+        "before_lines": [
+          10,
+          17
+        ],
+        "audit": "两个常量和一限幅构造方法，无字体查找。",
+        "documentation_decision": "方法补参数/返回；impl不重复。",
+        "after_lines": [
+          13,
+          24
+        ],
+        "span_sha256": [
+          "c93caaf5ed575e3b5fd16a606f05174f4a42cc6a0d178c3bfd48197568c34dfd",
+          "c55863070f07bc0c008c3fad8dfee8ee1ba339b021c051e67190882928bf5c50"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "FontWeight::NORMAL",
+        "kind": "associated-constant",
+        "before_lines": [
+          11,
+          11
+        ],
+        "audit": "Self(400)常规字重值，无资源解析。",
+        "documentation_decision": "常量名及字面值明确，不新增。",
+        "declaration_before": 11,
+        "value": "Self(400)",
+        "after_lines": [
+          14,
+          14
+        ],
+        "declaration_after": 14,
+        "span_sha256": [
+          "fee9a45dbbc1ad6768541ccab89471d33411c533bb112638bb2da3305b271e93"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "FontWeight::BOLD",
+        "kind": "associated-constant",
+        "before_lines": [
+          12,
+          12
+        ],
+        "audit": "Self(700)粗体字重值，无资源解析。",
+        "documentation_decision": "常量名及字面值明确，不新增。",
+        "declaration_before": 12,
+        "value": "Self(700)",
+        "after_lines": [
+          15,
+          15
+        ],
+        "declaration_after": 15,
+        "span_sha256": [
+          "d1e4ed3735d5dd425dc2835fcf2df78b6ec8ac91096d4b8f45e3d446cea74097"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "FontWeight::clamped",
+        "kind": "public-fn",
+        "before_lines": [
+          14,
+          16
+        ],
+        "audit": "value:u16经标准clamp(100,900)后包装；无Result，所有u16输入均可产生范围内值，不检查字体。",
+        "documentation_decision": "新增方法职责/参数/闭区间返回。",
+        "declaration_before": 14,
+        "parameters": [
+          {
+            "name": "value",
+            "type": "u16",
+            "role": "待限幅字重"
+          }
+        ],
+        "returns": "Self",
+        "control_points": [
+          {
+            "before_lines": [
+              15,
+              15
+            ],
+            "effect": "Self(value.clamp(100,900))；低于100取100，高于900取900，区间内保持原值",
+            "after_lines": [
+              22,
+              22
+            ]
+          }
+        ],
+        "evidence": [
+          "E4"
+        ],
+        "after_lines": [
+          17,
+          23
+        ],
+        "declaration_after": 21,
+        "span_sha256": [
+          "a3353724f623aba6efd5c0c49ddb7cdcb22ba691c8f3a872dc111047c1a9163c",
+          "c763d5f9018ca72e6b57603ef856f8424978913915c4eb35f0dc37a90e007f4f"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "FontStyle",
+        "kind": "public-enum",
+        "before_lines": [
+          19,
+          27
+        ],
+        "audit": "Normal/Italic/Oblique(f32)分类，Default选择Normal；Oblique参数单位及选面缓存/距离意图仍由既有TODO跟进。派生不执行选面。",
+        "documentation_decision": "保留原TODO和类型doc，不用新标签或猜测角度单位。",
+        "declaration_before": 22,
+        "variants": [
+          {
+            "name": "Normal",
+            "before_line": 24,
+            "payload": [],
+            "role": "默认常规样式",
+            "documentation_decision": "名称及#[default]明确，无新增",
+            "after_line": 31
+          },
+          {
+            "name": "Italic",
+            "before_line": 25,
+            "payload": [],
+            "role": "斜体分类",
+            "documentation_decision": "分类名明确，无新增",
+            "after_line": 32
+          },
+          {
+            "name": "Oblique",
+            "before_line": 26,
+            "payload": [
+              {
+                "type": "f32",
+                "role": "语义/单位尚未闭合的参数"
+              }
+            ],
+            "role": "带参数的倾斜分类",
+            "documentation_decision": "单位和意图由既有CR-TEXT-LAYOUT-0001保留，不写事实",
+            "after_line": 33
+          }
+        ],
+        "existing_issue": "CR-TEXT-LAYOUT-0001",
+        "after_lines": [
+          26,
+          34
+        ],
+        "declaration_after": 29,
+        "span_sha256": [
+          "9cd273ff1afa197231d4fe1667fcff711507a548693f55d2ee69eea6a97e9681"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "FontStretch",
+        "kind": "public-tuple-struct",
+        "before_lines": [
+          29,
+          31
+        ],
+        "audit": "以正常宽度100为基准的选面宽度偏好，不是布局缩放倍率；公开u16/derived Serde不会自动限幅。",
+        "documentation_decision": "保留原宽度距离说明，补显式clamped准入边界及方法链接。",
+        "declaration_before": 31,
+        "members": [
+          {
+            "name": "0",
+            "type": "u16",
+            "before_line": 31,
+            "role": "宽度偏好数值",
+            "documentation_decision": "type-doc-covers",
+            "tuple": true,
+            "after_line": 40
+          }
+        ],
+        "evidence": [
+          "E4"
+        ],
+        "after_lines": [
+          36,
+          40
+        ],
+        "declaration_after": 40,
+        "span_sha256": [
+          "4bb4d6dfe89d2526652c81e6d3eff038d892e2fab5c60764670f1af5688316c7",
+          "93fd2657e9edd323a0be3fe54af20a687ab6201f165edebb9e429a8f0578e25f"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "impl FontStretch",
+        "kind": "inherent-impl",
+        "before_lines": [
+          33,
+          39
+        ],
+        "audit": "正常宽度常量及clamped方法，未执行布局。",
+        "documentation_decision": "方法说明足够，不加impl机械文案。",
+        "after_lines": [
+          42,
+          52
+        ],
+        "span_sha256": [
+          "e4efbc5e4e50615b253824be6885c37d060bd7695caa2a7d0698f163ae063678",
+          "5b1695c7bff5b167f4d3e816ee5dd071face7c3cd032590857d30fd5609ab1bb"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "FontStretch::NORMAL",
+        "kind": "associated-constant",
+        "before_lines": [
+          34,
+          34
+        ],
+        "audit": "Self(100)正常宽度偏好。",
+        "documentation_decision": "常量名/字面值明确，不新增。",
+        "declaration_before": 34,
+        "value": "Self(100)",
+        "after_lines": [
+          43,
+          43
+        ],
+        "declaration_after": 43,
+        "span_sha256": [
+          "d90eb2c4c9e1f21a73af8a89fbcd1baa53199c35d7c5c3e7c5c262ef3e18f8eb"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "FontStretch::clamped",
+        "kind": "public-fn",
+        "before_lines": [
+          36,
+          38
+        ],
+        "audit": "value:u16经clamp(50,200)后包装，无Result或布局计算。",
+        "documentation_decision": "补参数单位、返回闭区间和不执行布局缩放。",
+        "declaration_before": 36,
+        "parameters": [
+          {
+            "name": "value",
+            "type": "u16",
+            "role": "正常宽度100基准的偏好数值"
+          }
+        ],
+        "returns": "Self",
+        "control_points": [
+          {
+            "before_lines": [
+              37,
+              37
+            ],
+            "effect": "Self(value.clamp(50,200))；低于50取50，高于200取200，区间内保持原值",
+            "after_lines": [
+              50,
+              50
+            ]
+          }
+        ],
+        "evidence": [
+          "E4"
+        ],
+        "after_lines": [
+          45,
+          51
+        ],
+        "declaration_after": 49,
+        "span_sha256": [
+          "be573382f0c20bf0bb1a5e0a1f0429baaa1c8149ddbafca7279b3a1bb10829c0",
+          "e2fae36ae9d2120277c14ecd03720688c594043ad6e16fbda98ea0749fd5cb9d"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "FaceIndex",
+        "kind": "public-type-alias",
+        "before_lines": [
+          41,
+          42
+        ],
+        "audit": "u32集合内部字体面索引，区别于数据库身份；类型别名不校验索引是否存在于实际文件。",
+        "documentation_decision": "已有字体源/集合定位说明充分，不新增。",
+        "declaration_before": 42,
+        "target": "u32",
+        "after_lines": [
+          54,
+          55
+        ],
+        "declaration_after": 55,
+        "span_sha256": [
+          "494cc775cb99c6b4859c20b51000a675b14439b0b41302aa52e952b2d545bf7c"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "VariationCoords",
+        "kind": "public-tuple-struct",
+        "before_lines": [
+          44,
+          47
+        ],
+        "audit": "拥有Vec<(u32,f32)>轴标签与设计坐标声明；Default为空Vec，derived Deserialize不调用有效实例归一。实际归一发生于数据库/metadata消费。",
+        "documentation_decision": "现有两行顺序/重复/有限值及整形栅格同实例说明充分，保留。",
+        "declaration_before": 47,
+        "members": [
+          {
+            "name": "0",
+            "type": "Vec<(u32, f32)>",
+            "before_line": 47,
+            "role": "拥有的轴标签/坐标序列",
+            "documentation_decision": "type-doc-covers",
+            "tuple": true,
+            "after_line": 60
+          }
+        ],
+        "evidence": [
+          "E3"
+        ],
+        "after_lines": [
+          57,
+          60
+        ],
+        "declaration_after": 60,
+        "span_sha256": [
+          "42f4d8499a17b69b1be4c92a38f6bf3b7f253defb1f7a79f7b328606db74f1ae"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "FontFaceDescriptor",
+        "kind": "public-struct",
+        "before_lines": [
+          49,
+          60
+        ],
+        "audit": "拥有family及选择/源索引/轴声明值；不拥有字体源字节，不自动证明覆盖。缺失variations字段经serde(default)使用VariationCoords::default空序列，不登记或归一实例。",
+        "documentation_decision": "现有职责/索引/坐标doc充分；regular补默认值与登记时机。",
+        "declaration_before": 52,
+        "members": [
+          {
+            "name": "family",
+            "type": "FontFamilyName",
+            "before_line": 53,
+            "role": "声明的家族值",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 66
+          },
+          {
+            "name": "weight",
+            "type": "FontWeight",
+            "before_line": 54,
+            "role": "字重声明",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 67
+          },
+          {
+            "name": "style",
+            "type": "FontStyle",
+            "before_line": 55,
+            "role": "样式声明",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 68
+          },
+          {
+            "name": "stretch",
+            "type": "FontStretch",
+            "before_line": 56,
+            "role": "宽度声明",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 69
+          },
+          {
+            "name": "face_index",
+            "type": "FaceIndex",
+            "before_line": 57,
+            "role": "源文件集合索引",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 70
+          },
+          {
+            "name": "variations",
+            "type": "VariationCoords",
+            "before_line": 59,
+            "role": "默认轴声明",
+            "documentation_decision": "type-doc-covers",
+            "serde_default_before": 58,
+            "after_line": 72,
+            "serde_default_after": 71
+          }
+        ],
+        "evidence": [
+          "E3",
+          "E4",
+          "E5"
+        ],
+        "after_lines": [
+          62,
+          73
+        ],
+        "declaration_after": 65,
+        "span_sha256": [
+          "e6efb3c8d1705aa536e48b82a5b5011ba05b45d5d2e3e9dc282dbf0b8857315e"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "impl FontFaceDescriptor",
+        "kind": "inherent-impl",
+        "before_lines": [
+          62,
+          73
+        ],
+        "audit": "只含regular默认声明组装，无源文件读取/注册动作。",
+        "documentation_decision": "方法解释参数/返回，impl不重复。",
+        "after_lines": [
+          75,
+          91
+        ],
+        "span_sha256": [
+          "3bee4b36c3bf4157d4bd512bc4c96d759518428f81529a777797614f35c82269",
+          "0ea8615bffa888a4293a9d0655313e8838700fda2431fb269ddd18525b53dba8"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "FontFaceDescriptor::regular",
+        "kind": "public-fn",
+        "before_lines": [
+          63,
+          72
+        ],
+        "audit": "family.into()及NORMAL/Normal/NORMAL、face_index0、VariationCoords::default组成Self；无字体源IO或数据库注册，也不验证索引存在。",
+        "documentation_decision": "新增summary与Markdown参数/返回/默认值及资源存在性边界。",
+        "declaration_before": 63,
+        "parameters": [
+          {
+            "name": "family",
+            "type": "impl Into<FontFamilyName>",
+            "role": "声明的家族值"
+          }
+        ],
+        "returns": "Self",
+        "control_points": [
+          {
+            "before_lines": [
+              64,
+              71
+            ],
+            "effect": "Self字面量存family.into、400/Normal/100、index0、空VariationCoords；无条件分支",
+            "after_lines": [
+              82,
+              89
+            ]
+          }
+        ],
+        "evidence": [
+          "E6"
+        ],
+        "after_lines": [
+          76,
+          90
+        ],
+        "declaration_after": 81,
+        "span_sha256": [
+          "e6fa18f90e1f78ac8bd8358a1adc09d0ae6098117c87cd272c5b282392191b6c",
+          "c3627258de345b2e9ca406f021dd7cfd2412e80c24fb3febc0a12809f0dc2585"
+        ]
+      },
+      {
+        "source": "F3",
+        "name": "serde, family and descriptor imports",
+        "kind": "import-group",
+        "before_lines": [
+          1,
+          6
+        ],
+        "audit": "Serde、FontFamilyName和FontFaceDescriptor导入；不执行字体源或数据库操作。",
+        "documentation_decision": "三条导入边清楚，不需要新模块doc来重复唯一类型职责。",
+        "after_lines": [
+          1,
+          6
+        ],
+        "span_sha256": [
+          "edac4366319873fbf21a3745a6215d79c246ee64d875055c73b67f957763cc69"
+        ]
+      },
+      {
+        "source": "F3",
+        "name": "FontFamilyDescriptor",
+        "kind": "public-struct",
+        "before_lines": [
+          7,
+          14
+        ],
+        "audit": "拥有家族名与字体面声明Vec；缺faces字段默认空Vec，不能据此证明实际注册、源字节或可用实例。",
+        "documentation_decision": "原两行已完整说明值用途及不登记/不含字体字节，完全不改源码。",
+        "declaration_before": 10,
+        "members": [
+          {
+            "name": "name",
+            "type": "FontFamilyName",
+            "before_line": 11,
+            "role": "家族描述名",
+            "documentation_decision": "type-doc-covers",
+            "after_line": 11
+          },
+          {
+            "name": "faces",
+            "type": "Vec<FontFaceDescriptor>",
+            "before_line": 13,
+            "role": "拥有的各字体面声明",
+            "documentation_decision": "type-doc-covers",
+            "serde_default_before": 12,
+            "after_line": 13,
+            "serde_default_after": 12
+          }
+        ],
+        "evidence": [
+          "E1",
+          "S1"
+        ],
+        "after_lines": [
+          7,
+          14
+        ],
+        "declaration_after": 10,
+        "span_sha256": [
+          "258916cd26e3865648e5b4d8acb60bd3e8bf5b49474e2f2d68bdff3a09239800"
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "source": "F1",
+        "name": "imports and module contract",
+        "before_lines": [
+          1,
+          5
+        ],
+        "entry": "编译模块/导入",
+        "effect": "Serde和字体值类型导入，不注册数据库对象。",
+        "next": "身份和查询声明",
+        "documentation_decision": "模块职责新增",
+        "after_lines": [
+          1,
+          8
+        ],
+        "span_sha256": [
+          "990395ec458416c646c2bc24246a629762a781d5ad9e8ab31f20e85f67f79bee",
+          "754a75c062aeaeb7d329432dd9ce096711c517f82864b250d39266cd7346a6b5"
+        ]
+      },
+      {
+        "source": "F1",
+        "name": "font face identity",
+        "before_lines": [
+          6,
+          10
+        ],
+        "entry": "构造/复制/Serde身份值",
+        "effect": "仅保存u64；数据库与版本由消费者约束。",
+        "next": "数据库选面/实例消费",
+        "documentation_decision": "已有两行文档充分",
+        "after_lines": [
+          9,
+          13
+        ],
+        "span_sha256": [
+          "6bfb8dba998b9e30166f8cd944db5043988160a160bba3e8bb8810c60da05056"
+        ]
+      },
+      {
+        "source": "F1",
+        "name": "instanced face identity",
+        "before_lines": [
+          11,
+          15
+        ],
+        "entry": "构造/复制/Serde实例标识",
+        "effect": "仅保存u64；无字体文件或数据库所有权。",
+        "next": "实例表解析",
+        "documentation_decision": "已有文档充分",
+        "after_lines": [
+          14,
+          18
+        ],
+        "span_sha256": [
+          "85840aa34efe114876c7083a242cd3db97aaf6bd35ea05df23cf7fa06a119847"
+        ]
+      },
+      {
+        "source": "F1",
+        "name": "font query value",
+        "before_lines": [
+          16,
+          25
+        ],
+        "entry": "持有查询各属性",
+        "effect": "Vec家族顺序及三个属性只表达偏好，无匹配分支。",
+        "next": "single_family或数据库match_face",
+        "documentation_decision": "已有类型说明充分",
+        "after_lines": [
+          19,
+          28
+        ],
+        "span_sha256": [
+          "1c0a32aac6a860ad1b5e21e6bc297e4ee0497437e7ca369efa792a21b0e6ffa0"
+        ]
+      },
+      {
+        "source": "F1",
+        "name": "single-family query assembly",
+        "before_lines": [
+          26,
+          36
+        ],
+        "entry": "family参数进入",
+        "effect": "into转换、单项Vec、三个固定默认值；返回Self，未查询数据库。",
+        "next": "调用方传入match_face等消费者",
+        "documentation_decision": "新增参数/返回及不执行选面约束",
+        "after_lines": [
+          29,
+          44
+        ],
+        "span_sha256": [
+          "79ab0c207048e1914f1b25e645d7197d72c01263d0092afbbac4ee680c89c9ed",
+          "9936506c0deb15a589b7981d6a08fe55975b20dda873c2ae7ef77dd970c2b403"
+        ]
+      },
+      {
+        "source": "F1",
+        "name": "font matching value",
+        "before_lines": [
+          37,
+          44
+        ],
+        "entry": "数据库给出结果或值反序列化",
+        "effect": "面ID和两个合成标志，没有覆盖证明或字体资源pin。",
+        "next": "后续整形/绘制消费",
+        "documentation_decision": "既有说明充分",
+        "after_lines": [
+          45,
+          52
+        ],
+        "span_sha256": [
+          "1fa94d06da3bb4e4f1739591abe37c8375168fa3c1799db71d6603e8fd9103ba"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "imports and model boundary",
+        "before_lines": [
+          1,
+          4
+        ],
+        "entry": "模块编译",
+        "effect": "值属性导入，模块doc限定解析/归一在消费方。",
+        "next": "字重声明",
+        "documentation_decision": "模块职责新增",
+        "after_lines": [
+          1,
+          7
+        ],
+        "span_sha256": [
+          "dc5b13a765dd0fb3630abc3a623d55dcb678ca2b794356f7c24985ab5d1e618a",
+          "aef4696ad4f63a3834d26198e77e9cab39ac86b00e915134e914724f9675a799"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "font weight value",
+        "before_lines": [
+          5,
+          9
+        ],
+        "entry": "公开tuple/Serde构造",
+        "effect": "保存u16；不是隐式clamp路径。",
+        "next": "显式常量与clamped",
+        "documentation_decision": "已有类型doc充分",
+        "after_lines": [
+          8,
+          12
+        ],
+        "span_sha256": [
+          "d8394a6128cefef5b1288af89773f036ecb55f44c350cadeee1c7b7af3311cd7"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "font weight helpers",
+        "before_lines": [
+          10,
+          18
+        ],
+        "entry": "常量访问或u16参数",
+        "effect": "400/700常量；clamp100..900后包装，不查字体。",
+        "next": "返回FontWeight",
+        "documentation_decision": "方法参数/返回新增",
+        "after_lines": [
+          13,
+          25
+        ],
+        "span_sha256": [
+          "e933ce50d84d6e373dba00659c0faeec9e1ab570a388bc12f289fdc05da44361",
+          "7a125b794d9cf42adcf082401ad029a6e67f9e5e50b71660ec79c235c5521970"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "style variants and existing intent gap",
+        "before_lines": [
+          19,
+          28
+        ],
+        "entry": "Default或分类值构造",
+        "effect": "Default Normal；Italic/Oblique(f32)仅分类载荷，原TODO保持待确认。",
+        "next": "选面与缓存消费",
+        "documentation_decision": "既有TODO/doc保留，不新增问题",
+        "after_lines": [
+          26,
+          35
+        ],
+        "span_sha256": [
+          "0f1673129fcfe42c1b32867711f4929630d1761eb91c3ebd3219735ffae0a2e0"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "font stretch value",
+        "before_lines": [
+          29,
+          32
+        ],
+        "entry": "公开tuple/Serde构造",
+        "effect": "保存u16偏好；不会自动clamp，不是布局倍率。",
+        "next": "正常宽度与clamped",
+        "documentation_decision": "补直接构造/Serde边界",
+        "after_lines": [
+          36,
+          41
+        ],
+        "span_sha256": [
+          "03bffeac70cf4d5f1b7a0767ac783c4a489e23cc1e670d57cc2ee4d05538df15",
+          "d384941ecf4f207c7b4e6a6c97c8330fd4517e138f6ffa8e10b69d9a0cdfbb86"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "font stretch helpers",
+        "before_lines": [
+          33,
+          40
+        ],
+        "entry": "常量访问或u16参数",
+        "effect": "100常量；clamp50..200后包装，不执行布局缩放。",
+        "next": "返回FontStretch",
+        "documentation_decision": "方法参数/返回新增",
+        "after_lines": [
+          42,
+          53
+        ],
+        "span_sha256": [
+          "e9bbe5ffb94f7783775dffa20be30e8a7023eda39a30963424b9685389c660a4",
+          "cf7649a815af46a3df08c0786b3eb68f172353eb9b53a85eb72007ee13e8ac2d"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "collection face index",
+        "before_lines": [
+          41,
+          43
+        ],
+        "entry": "u32索引值",
+        "effect": "别名不校验实际字体集合边界。",
+        "next": "字体源解析消费者",
+        "documentation_decision": "已有doc充分",
+        "after_lines": [
+          54,
+          56
+        ],
+        "span_sha256": [
+          "eec4e828d36647566984a526338ff6deb80fdfc2cac211d24616c4c4d5e0d782"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "variation declaration",
+        "before_lines": [
+          44,
+          48
+        ],
+        "entry": "Vec轴坐标或Default",
+        "effect": "拥有序列但未规范化/登记实例；Default空序列。",
+        "next": "数据库effective_variations/实例表",
+        "documentation_decision": "已有doc充分",
+        "after_lines": [
+          57,
+          61
+        ],
+        "span_sha256": [
+          "fa262492b3ced76c1b06e262d7a89dd7e098baca4e3f74f72c2edea9e2a697fb"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "face descriptor and serde default",
+        "before_lines": [
+          49,
+          61
+        ],
+        "entry": "声明组装/派生解码",
+        "effect": "保存6字段；缺variations时默认空坐标，无源字节或覆盖证明。",
+        "next": "regular或字体登记消费者",
+        "documentation_decision": "已有职责doc充分",
+        "after_lines": [
+          62,
+          74
+        ],
+        "span_sha256": [
+          "636c60a461423caa4dde57ab94117a78872ba16f8055488cb69b4fb918f4f6bc"
+        ]
+      },
+      {
+        "source": "F2",
+        "name": "regular descriptor assembly",
+        "before_lines": [
+          62,
+          73
+        ],
+        "entry": "family参数",
+        "effect": "into转换及固定默认属性/index0/空轴坐标，不读文件、不注册。",
+        "next": "返回独立值，由外部register_stored_face消费",
+        "documentation_decision": "参数/返回默认值和存在性边界新增",
+        "after_lines": [
+          75,
+          91
+        ],
+        "span_sha256": [
+          "3bee4b36c3bf4157d4bd512bc4c96d759518428f81529a777797614f35c82269",
+          "0ea8615bffa888a4293a9d0655313e8838700fda2431fb269ddd18525b53dba8"
+        ]
+      },
+      {
+        "source": "F3",
+        "name": "family descriptor imports",
+        "before_lines": [
+          1,
+          6
+        ],
+        "entry": "模块编译",
+        "effect": "仅导入类型/派生，无外部状态。",
+        "next": "唯一family声明",
+        "documentation_decision": "导入清楚无需新增",
+        "after_lines": [
+          1,
+          6
+        ],
+        "span_sha256": [
+          "edac4366319873fbf21a3745a6215d79c246ee64d875055c73b67f957763cc69"
+        ]
+      },
+      {
+        "source": "F3",
+        "name": "family aggregate and serde default",
+        "before_lines": [
+          7,
+          14
+        ],
+        "entry": "值构造/派生解码",
+        "effect": "name和faces值集合；缺faces时空Vec，不读取/登记字体或产生实例。",
+        "next": "父模块重导，限定搜索未见生产调用",
+        "documentation_decision": "既有说明充分，所有源码字节不变",
+        "after_lines": [
+          7,
+          14
+        ],
+        "span_sha256": [
+          "258916cd26e3865648e5b4d8acb60bd3e8bf5b49474e2f2d68bdff3a09239800"
+        ]
+      }
+    ],
+    "call_edges": [
+      {
+        "id": "E1",
+        "context": "C1",
+        "lines": [
+          1,
+          16
+        ],
+        "from": "text::model::font",
+        "to": "database/face/family and public reexports",
+        "contract": "Three direct leaf mounts; no owned #[cfg(test)] module in the entire three leaves or full font parent. Model parent C2:1-2 mounts font."
+      },
+      {
+        "id": "E2",
+        "context": "C3",
+        "lines": [
+          93,
+          131
+        ],
+        "from": "FontDatabase::match_face",
+        "to": "&FontQuery -> Option<FontMatch>",
+        "contract": "Cache lookup then requested-family order105, project/runtime fallback chains106-125; synth flags in fallback result114-118. Query is data; this consumer performs selection, not query constructor or derived Serde."
+      },
+      {
+        "id": "E3",
+        "context": "C4",
+        "lines": [
+          12,
+          25
+        ],
+        "from": "FontDatabase::instance",
+        "to": "FontFaceId + &VariationCoords -> Result<InstancedFaceId,...>",
+        "contract": "Unknown face rejected17-18; metadata.effective_variations20-22 then instances.resolve_or_insert23-25. IDs alone do not hold the database or face bytes; model value declaration does not run this path."
+      },
+      {
+        "id": "E4",
+        "context": "C5",
+        "lines": [
+          44,
+          69
+        ],
+        "from": "descriptor metadata/fontdb conversion",
+        "to": "FontStretch::clamped and FontWeight::clamped",
+        "contract": "Width class is translated45-56 then explicitly clamped57; fontdb metadata explicit weight64 and stretch66 calls. This demonstrates clamp is a consumer call, not a serde hook."
+      },
+      {
+        "id": "E5",
+        "context": "C5",
+        "lines": [
+          22,
+          41
+        ],
+        "from": "descriptor_from_font_metadata",
+        "to": "FontFaceDescriptor value literal",
+        "contract": "Family source priority28-33, copied metadata attributes/face_index34-40 and empty variations. This assembles metadata, does not itself register a face."
+      },
+      {
+        "id": "E6",
+        "context": "C9",
+        "lines": [
+          5,
+          24
+        ],
+        "from": "text_font_variations_hash_stable",
+        "to": "FontFaceDescriptor::regular and VariationCoords",
+        "contract": "regular('Inter') passed to register_stored_face with synthetic byte payload; database.instance compares resulting IDs for same/different coordinate sequences. Test context only."
+      },
+      {
+        "id": "E7",
+        "context": "C6",
+        "lines": [
+          69,
+          80
+        ],
+        "from": "FontFaceMetadata parse path",
+        "to": "FontWeight::clamped",
+        "contract": "Weight from parsed face is explicitly clamped73; no implicit guarantee for direct tuple/Serde paths."
+      }
+    ]
+  },
+  "context_test_contracts": [
+    {
+      "name": "text_font_variations_hash_stable",
+      "context": "C9",
+      "lines": [
+        3,
+        25
+      ],
+      "owned": false,
+      "normal": true,
+      "executed": false,
+      "mount": [
+        {
+          "context": "C7",
+          "lines": [
+            744,
+            746
+          ]
+        },
+        {
+          "context": "C8",
+          "lines": [
+            31,
+            32
+          ]
+        }
+      ],
+      "assertions": [
+        {
+          "lines": [
+            17,
+            20
+          ],
+          "proves": "same face with equal wght650 declaration yields equal instance ID in this synthetic fixture"
+        },
+        {
+          "lines": [
+            21,
+            24
+          ],
+          "proves": "same face with wght650 versus700 yields unequal instance IDs in this fixture"
+        }
+      ],
+      "limits": "No execution. Synthetic register_stored_face input is not real-font variation output, allocator behavior, angle semantics, full glyph coverage or cross-database/global ID stability. Other external tests remain context only and are not claimed covered."
+    }
+  ],
+  "root_manual_evidence": {
+    "source_full": "root956/bd14da exit0/PID50040 full exact3 final157LF plus legacy issue752; original131LF root883/827be6 exit0/PID20976",
+    "models": "root957/8fe090 exit0/PID39732 full database/family models and all contexts/calls/counts/traits/issues/core.4e04d7 exit0/PID29584 face object model shown; face block/attribute middle display897tokens truncated, not counted full until958 recovery.",
+    "context_and_recovery": "root958/ad875d exit0/PID16764 all10faceblocks/7attributes and current selected12contexts including2extras; duplicated readers/parent pins reuse only",
+    "core": "core_timer_sol gpt-6.1-sol/max821c25 exit0/PID8924 all7added blocks/inverse, no must-fix/newissue; bounded only",
+    "child_final": "adfc27 exit0/PID18012 final;cee1fd exit1/PID33948 false placeholder rejection of real fieldname name, no writes;corrected c10576 exit0/PID23792 full nodups/models/ranges/inverse/raw/pins",
+    "agent_issue_crosscheck": "reflection outer91/c8861e native52679->5398d6 exit0/PID41448;7ab632 exit0/PID42840;f94364 exit0/PID2768 unchanged current tag/LEGACY key/coverage/child and bounded matching/metadata paths",
+    "R096_book": "root956 independent CreateProcess spawn_ready rejected before native, no PID/session/body; root957/aa16d4 exit0/PID41640 recovery all604reviewed current/42historical/5candidates+notice",
+    "all_owned_objects_members_and_gapfree_blocks_manually_read": true,
+    "context_coverage_expansion": false
+  },
+  "manual_findings": [
+    "Nine structs, one enum and one alias carry numeric identities/owned family and coordinate declarations. IDs do not own the font database or pin resources, and FaceIndex is a collection-source index distinct from FontFaceId.",
+    "single_family and regular construct owned values and fixed400/Normal/100 defaults; regular also uses index0 and empty axes. Actual consumers perform matching, registration, source validity and coverage checks later.",
+    "Only clamped explicitly constrains FontWeight100..=900 and FontStretch50..=200. Direct tuple construction and derived Deserialize do not call these functions. Stretch is selection preference, not layout scale; TextStyle helper has a separate1..=1000 policy.",
+    "VariationCoords owns an unchecked Vec of axis declarations. Actual database.instance validates face then effective_variations and registry.resolve_or_insert canonicalization; normalization/instance identity is a consumer boundary, not a Serde hook or angle-unit contract.",
+    "All10derive,2serde-default and1default-variant attributes and the ownedvec macro input are byte-preserved. Missing variations/faces select empty defaults; FontStyle Default is Normal. Floating variants do not acquire Eq/finite guarantees.",
+    "Family descriptor original two-line type documentation is adequate; its14LF stay byte-identical. This is a reviewed unchanged source, not an unreviewed omission.",
+    "One preexisting TODO remains exactly once. Root confirms angle bits in cache key versus payload-ignoring score; this establishes the recorded question, not a proven functional defect or the intended angle unit. Reuse existing LEGACY key and preserve initial pin/line.",
+    "Owned tests0. One external synthetic stored-face test compares equal/different axis instance IDs through2assertions; static only and does not prove real-font rendering, global ID stability, angle behavior or coverage."
+  ],
+  "raw_consumers": {
+    "local_zero_proofs": [
+      {
+        "source": "F1",
+        "term": "editor",
+        "before": [],
+        "current": [],
+        "new_comments": [],
+        "new_contribution": 0
+      },
+      {
+        "source": "F1",
+        "term": "legacy",
+        "before": [],
+        "current": [],
+        "new_comments": [],
+        "new_contribution": 0
+      },
+      {
+        "source": "F2",
+        "term": "editor",
+        "before": [],
+        "current": [],
+        "new_comments": [],
+        "new_contribution": 0
+      },
+      {
+        "source": "F2",
+        "term": "legacy",
+        "before": [],
+        "current": [],
+        "new_comments": [],
+        "new_contribution": 0
+      },
+      {
+        "source": "F3",
+        "term": "editor",
+        "before": [],
+        "current": [],
+        "new_comments": [],
+        "new_contribution": 0
+      },
+      {
+        "source": "F3",
+        "term": "legacy",
+        "before": [],
+        "current": [],
+        "new_comments": [],
+        "new_contribution": 0
+      }
+    ],
+    "actual_reader_contract": [
+      {
+        "context": "C10",
+        "domain": "Runtime src/**/*.rs including these three leaves; classification follows raw token detection.",
+        "read_operators": "UTF8 errors=replace at268-269; source glob282-286; _decisions_for_term876-915 splitlines then per-line regex.finditer then unique tokens; comments are not removed first.",
+        "regexes": [
+          "\\b[A-Za-z0-9_]*editor[A-Za-z0-9_]*\\b",
+          "\\b[A-Za-z0-9_]*legacy[A-Za-z0-9_]*\\b"
+        ],
+        "flags": "IGNORECASE",
+        "vectors": [
+          {
+            "path": "zircon_runtime/src/text/model/font/database.rs",
+            "term": "editor",
+            "before": [],
+            "current": [],
+            "new": []
+          },
+          {
+            "path": "zircon_runtime/src/text/model/font/database.rs",
+            "term": "legacy",
+            "before": [],
+            "current": [],
+            "new": []
+          },
+          {
+            "path": "zircon_runtime/src/text/model/font/face.rs",
+            "term": "editor",
+            "before": [],
+            "current": [],
+            "new": []
+          },
+          {
+            "path": "zircon_runtime/src/text/model/font/face.rs",
+            "term": "legacy",
+            "before": [],
+            "current": [],
+            "new": []
+          },
+          {
+            "path": "zircon_runtime/src/text/model/font/family.rs",
+            "term": "editor",
+            "before": [],
+            "current": [],
+            "new": []
+          },
+          {
+            "path": "zircon_runtime/src/text/model/font/family.rs",
+            "term": "legacy",
+            "before": [],
+            "current": [],
+            "new": []
+          }
+        ],
+        "new_contribution": 0,
+        "limits": "Only actual editor/legacy operands were re-evaluated; no complete naming audit, Rust test or external test runner execution."
+      }
+    ],
+    "full_aggregate_tests_run": false,
+    "new_comment_cfg_selectors_fences_braces": 0
+  },
+  "validation": {
+    "commands": [
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "rev-parse",
+          "HEAD"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 41,
+        "stdout_sha256": "9e081f5f8a63a86bdd04ba5c520aee327cc6c3f734afb3948aea0ccc31961786",
+        "stderr": "",
+        "stdout": "9568f1a95453abacdef00ef409ae7ec8eff8045d\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "ls-files",
+          "--stage",
+          "--",
+          "zircon_runtime/src/text/model/font/database.rs",
+          "zircon_runtime/src/text/model/font/face.rs",
+          "zircon_runtime/src/text/model/font/family.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 285,
+        "stdout_sha256": "767abac4215c08feefb89db86856ba6893d9a6d3084702deff135bc6d021c23f",
+        "stderr": "",
+        "stdout": "100644 79bcd5a05b62ef8c50859a24d767d2f70da0a10f 0\tzircon_runtime/src/text/model/font/database.rs\n100644 ccb14f52a2f701fec72981d377ce9b6e5deb3cfd 0\tzircon_runtime/src/text/model/font/face.rs\n100644 2cc318a13fd6fe5031ddc8f7fb4a2b3c6ef2f0db 0\tzircon_runtime/src/text/model/font/family.rs\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/model/font/database.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 1810,
+        "stdout_sha256": "3c209651f17be365c0659303a7ff04ee04fd1a1a5dec6476608696c3ba2c6acc",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/model/font/face.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 2755,
+        "stdout_sha256": "2311c2c0783238c526fafa2a4098ecf0e2265c5d7931e326e769b591cdc91f98",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/model/font/family.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 490,
+        "stdout_sha256": "32d679bf4c71469b4023bb016f0ab5dc2c61ce22dee6902f33a40191adf084be",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--check",
+          "--",
+          "zircon_runtime/src/text/model/font/database.rs",
+          "zircon_runtime/src/text/model/font/face.rs",
+          "zircon_runtime/src/text/model/font/family.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/model/font/database.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/model/font/face.rs.\nThe file will have its original line endings in your working directory\n",
+        "stdout": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--numstat",
+          "--",
+          "zircon_runtime/src/text/model/font/database.rs",
+          "zircon_runtime/src/text/model/font/face.rs",
+          "zircon_runtime/src/text/model/font/family.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 99,
+        "stdout_sha256": "1b1c63dac372eedc5df03ac2d1747031fe6dd24aa13747f3864d879b0d7121f9",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/model/font/database.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/model/font/face.rs.\nThe file will have its original line endings in your working directory\n",
+        "stdout": "8\t0\tzircon_runtime/src/text/model/font/database.rs\n18\t0\tzircon_runtime/src/text/model/font/face.rs\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "zircon_runtime/src/text/model/font/database.rs",
+          "zircon_runtime/src/text/model/font/face.rs",
+          "zircon_runtime/src/text/model/font/family.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--unified=3",
+          "--",
+          "zircon_runtime/src/text/model/font/database.rs",
+          "zircon_runtime/src/text/model/font/face.rs",
+          "zircon_runtime/src/text/model/font/family.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 3210,
+        "stdout_sha256": "e8bcb26af2c4fa6774221da408302b3e0e6fa1ca701728cb73e4bfd2c757aebf",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/model/font/database.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/model/font/face.rs.\nThe file will have its original line endings in your working directory\n",
+        "stdout": "diff --git a/zircon_runtime/src/text/model/font/database.rs b/zircon_runtime/src/text/model/font/database.rs\nindex 79bcd5a05..a734bedd6 100644\n--- a/zircon_runtime/src/text/model/font/database.rs\n+++ b/zircon_runtime/src/text/model/font/database.rs\n@@ -1,3 +1,6 @@\n+//! 字体查询、匹配结果与数据库内身份的值模型。\n+//! 组装这些值不执行选面、字体登记或实例解析。\n+\n use serde::{Deserialize, Serialize};\n \n use super::face::{FontStretch, FontStyle, FontWeight};\n@@ -24,6 +27,11 @@ pub struct FontQuery {\n }\n \n impl FontQuery {\n+    /// 组装只有一个家族偏好的常规选面查询。\n+    ///\n+    /// # 参数与返回\n+    /// `family` 转为 `FontFamilyName` 并写入唯一家族项。\n+    /// 返回字重 `400`、`Normal` 样式、正常宽度 `100` 的查询；尚未执行选面或字符覆盖检查。\n     pub fn single_family(family: impl Into<FontFamilyName>) -> Self {\n         Self {\n             families: vec![family.into()],\ndiff --git a/zircon_runtime/src/text/model/font/face.rs b/zircon_runtime/src/text/model/font/face.rs\nindex ccb14f52a..3b4869bab 100644\n--- a/zircon_runtime/src/text/model/font/face.rs\n+++ b/zircon_runtime/src/text/model/font/face.rs\n@@ -1,3 +1,6 @@\n+//! 字体面的选择属性、源索引与可变轴声明值。\n+//! 限幅方法只处理数值；字体源解析和实例归一由消费方负责。\n+\n use serde::{Deserialize, Serialize};\n \n use crate::asset::assets::FontFamilyName;\n@@ -11,6 +14,10 @@ impl FontWeight {\n     pub const NORMAL: Self = Self(400);\n     pub const BOLD: Self = Self(700);\n \n+    /// 按本模型的字重范围组装包装值。\n+    ///\n+    /// # 参数与返回\n+    /// `value` 为待截断的字重；返回 `100..=900` 内的值，不查找或验证字体面。\n     pub fn clamped(value: u16) -> Self {\n         Self(value.clamp(100, 900))\n     }\n@@ -27,12 +34,18 @@ pub enum FontStyle {\n }\n \n /// 以正常宽度为 100 的字体宽度偏好；选面按宽度距离排序，不是布局阶段的缩放倍率。\n+/// 公开字段直接构造和派生反序列化不会调用 [`Self::clamped`]；\n+/// 只有显式调用该方法时才按本模块的范围截断。\n #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]\n pub struct FontStretch(pub u16);\n \n impl FontStretch {\n     pub const NORMAL: Self = Self(100);\n \n+    /// 按本模型的宽度范围组装包装值。\n+    ///\n+    /// # 参数与返回\n+    /// `value` 以正常宽度 `100` 为基准；返回截断到 `50..=200` 的值，不执行布局缩放。\n     pub fn clamped(value: u16) -> Self {\n         Self(value.clamp(50, 200))\n     }\n@@ -60,6 +73,11 @@ pub struct FontFaceDescriptor {\n }\n \n impl FontFaceDescriptor {\n+    /// 组装常规样式的字体面声明。\n+    ///\n+    /// # 参数与返回\n+    /// `family` 转为 `FontFamilyName`；返回字重 `400`、`Normal` 样式、正常宽度 `100`、集合索引 `0` 及空轴坐标。\n+    /// 返回值未读取字体源或登记字体面，也不证明该集合索引在实际文件中存在。\n     pub fn regular(family: impl Into<FontFamilyName>) -> Self {\n         Self {\n             family: family.into(),\n"
+      },
+      {
+        "argv": [
+          "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          ".codex/skills/zircon-change-guard/scripts/change_guard.py",
+          "--json",
+          "patch",
+          "--git",
+          "--base",
+          "HEAD",
+          "--path",
+          "zircon_runtime/src/text/model/font/database.rs",
+          "--path",
+          "zircon_runtime/src/text/model/font/face.rs",
+          "--path",
+          "zircon_runtime/src/text/model/font/family.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 893,
+        "stdout_sha256": "f5926912aaf03cd7bb63117951106c45c29a1ccc0cacb6270ac7e4da339ea52f",
+        "stderr": "",
+        "stdout": "{\r\n  \"tool\": \"zircon-change-guard\",\r\n  \"version\": 2,\r\n  \"mode\": \"patch\",\r\n  \"status\": \"passed\",\r\n  \"input\": {\r\n    \"patchDigest\": \"e8bcb26af2c4fa6774221da408302b3e0e6fa1ca701728cb73e4bfd2c757aebf\",\r\n    \"base\": \"9568f1a95453abacdef00ef409ae7ec8eff8045d\",\r\n    \"files\": [\r\n      \"zircon_runtime/src/text/model/font/database.rs\",\r\n      \"zircon_runtime/src/text/model/font/face.rs\"\r\n    ],\r\n    \"declaredPaths\": [\r\n      \"zircon_runtime/src/text/model/font/database.rs\",\r\n      \"zircon_runtime/src/text/model/font/face.rs\",\r\n      \"zircon_runtime/src/text/model/font/family.rs\"\r\n    ],\r\n    \"writeGrantCheck\": true,\r\n    \"permissionRoot\": \"E:/Git/ZirconEngine\",\r\n    \"contributor\": false\r\n  },\r\n  \"summary\": {\r\n    \"errors\": 0,\r\n    \"warnings\": 0,\r\n    \"suppressed\": 0\r\n  },\r\n  \"markers\": {\r\n    \"closed\": [],\r\n    \"opened\": [],\r\n    \"moved\": []\r\n  },\r\n  \"findings\": [],\r\n  \"suppressed\": []\r\n}\r\n"
+      }
+    ],
+    "change_guard": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "e8bcb26af2c4fa6774221da408302b3e0e6fa1ca701728cb73e4bfd2c757aebf",
+        "base": "9568f1a95453abacdef00ef409ae7ec8eff8045d",
+        "files": [
+          "zircon_runtime/src/text/model/font/database.rs",
+          "zircon_runtime/src/text/model/font/face.rs"
+        ],
+        "declaredPaths": [
+          "zircon_runtime/src/text/model/font/database.rs",
+          "zircon_runtime/src/text/model/font/face.rs",
+          "zircon_runtime/src/text/model/font/family.rs"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": []
+    },
+    "guard_script_sha256": "bb9bf97836c3af3779447f5404c8afe39621356b2ad15ff4de3316d61b599734",
+    "config_sha256": "f54913846b1bbc8e203eddc734e9ba85a10069cc5cd743d3bcf0a3f9d4d07868",
+    "rustfmt": {
+      "reused_same_final_pins": true,
+      "actual": "R09807a63a exit0/PID27004 exact3; finalc10576 exit0/PID23792 confirms unchanged final pins; no relevant source changes",
+      "args": [
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true"
+      ],
+      "tests_or_builds": 0
+    },
+    "head_observed": "9568f1a95453abacdef00ef409ae7ec8eff8045d",
+    "index": {
+      "bytes": 7483177,
+      "sha256": "412bc2e200d5ab2bb735fd3bb918c43e7ead9d2fa8964e476a6e2b2f9e5b5949"
+    },
+    "index_lock": {
+      "exists": true,
+      "touched": false,
+      "owner_or_release_inferred": false,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mtime_ns_text": "1792234027711111500"
+    }
+  },
+  "issues": {
+    "new": [],
+    "preexisting": [
+      {
+        "id": "CR-TEXT-LAYOUT-0001",
+        "coverage_issue": "LEGACY:zircon_runtime/src/text/model/font/face.rs:19:TODO",
+        "source": "zircon_runtime/src/text/model/font/face.rs",
+        "before_line": 19,
+        "current_line": 26,
+        "current_sha256": "0a1eace5660db1ef066a3f0a532d3f492007175e06071f2163e093bca339cd71",
+        "status": "open-TODO-intent-unresolved",
+        "source_tag": "TODO: [CR-TEXT-LAYOUT-0001] 确认 Oblique 参数的单位及选面意图；style_distance 忽略角度而选面缓存按浮点位区分，缺少角度行为测试；下一步核对字体元数据与斜体合成消费端。",
+        "issue_ledger_initial_line": 752,
+        "evidence": [
+          {
+            "path": "zircon_runtime/src/text/font/matching.rs",
+            "sha256": "4b4131ab29b2cc60229d5fb7bd6395e56dbb01f9661cd81fb8a5ef75111d1877",
+            "lines": [
+              94,
+              103
+            ],
+            "fact": "Oblique/Oblique score0 ignores f32 payload."
+          },
+          {
+            "path": "zircon_runtime/src/text/font/database/face_matching.rs",
+            "sha256": "9b7a18c4e88cbf28b439510de5675768a4ce121f4be28ecfdda7646b24378551",
+            "lines": [
+              81,
+              88
+            ],
+            "fact": "Oblique cache key uses angle.to_bits();match_score313-321 calls style_distance."
+          }
+        ],
+        "next_action": "Keep TODO open; trace font metadata and synthetic-oblique consumers and find/add authorized angle-contract evidence later. Current selected tests do not establish angle units or intent; no exhaustive test absence claim."
+      }
+    ],
+    "reserved_unused": [
+      "CR-ZCA-R098-0001"
+    ],
+    "external_closures": []
+  },
+  "external_drift_boundary": {
+    "withdrawal": ".jenkins/records/source-comments-20261014-01a13a81-reviewed-source-drift-20261017.md",
+    "sha256": "f22e2dd4b796089f659245eced7d05f5f76436b46a4c18e61d4ee41c2d3e2961",
+    "needs_recheck": 42,
+    "scope_release_claimed": false
+  },
+  "artifact_lifecycle": {
+    "helpers": 0,
+    "temporary_files": 0,
+    "source_copies": 0,
+    "builds": 0,
+    "generated_fixtures": 0,
+    "released_bytes": 0,
+    "retained": "Canonical source/child/main/post/handoff and necessary failure evidence"
+  },
+  "writer": {
+    "pid": 24828,
+    "write_set": [
+      "docs/plans/source-comments/reviews/R098-post-validation.json"
+    ],
+    "source_writes": [],
+    "terminal_bound_externally": true
+  }
+}

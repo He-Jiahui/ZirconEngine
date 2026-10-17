@@ -2,11 +2,11 @@ use super::{apply, authorize_admin, gc, pending};
 use crate::service::{
     cloud::BlobStore,
     error::ServiceError,
-    identity::{Principal, now_seconds},
+    identity::{now_seconds, Principal},
     organization,
     storage::receipt,
 };
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Deserialize)]

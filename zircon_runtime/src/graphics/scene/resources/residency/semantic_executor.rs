@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::ops::Bound::{Excluded, Unbounded};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::asset::artifact::{
     RenderArtifactBlockLoadStage, RenderArtifactBlockLoader, RenderArtifactIoPriority,

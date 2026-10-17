@@ -1,8 +1,7 @@
 #[test]
 fn review_f8_texture_import_settings_use_fallible_apply_not_with() {
     let descriptor = include_str!("../../../asset/assets/texture/descriptor.rs");
-    let descriptor_settings =
-        include_str!("../../../asset/assets/texture/descriptor/settings.rs");
+    let descriptor_settings = include_str!("../../../asset/assets/texture/descriptor/settings.rs");
     let texture_asset = include_str!("../../../asset/assets/texture/texture_asset.rs");
     let import_context = include_str!("../../../asset/importer/contract.rs");
     let runtime_importer = include_str!("../../../asset/importer/ingest/import_texture.rs");
@@ -15,12 +14,9 @@ fn review_f8_texture_import_settings_use_fallible_apply_not_with() {
     let runtime_04_plan = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
     );
-    let runtime_index =
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
-        include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
-    let importer_doc =
-        include_str!("../../../../../docs/crates/zircon_runtime/asset/importer.md");
+    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let importer_doc = include_str!("../../../../../docs/crates/zircon_runtime/asset/importer.md");
     let render_asset_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/asset/render-assets.md");
 

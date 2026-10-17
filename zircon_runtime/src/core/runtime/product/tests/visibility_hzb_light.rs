@@ -240,6 +240,42 @@ fn render_product_diagnostics_record_hzb_stats() {
         24.0,
         "count",
     );
+    assert_series(
+        &store,
+        "render.hzb.occlusion.params_buffer_create_count",
+        1.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.hzb.occlusion.params_upload_byte_count",
+        32.0,
+        "bytes",
+    );
+    assert_series(
+        &store,
+        "render.hzb.occlusion.bind_group_create_count",
+        1.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.hzb.occlusion.readback_pending_count",
+        3.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.hzb.occlusion.readback_dropped_count",
+        1.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.hzb.occlusion.readback_oldest_pending_age_frames",
+        4.0,
+        "count",
+    );
 }
 
 #[test]
@@ -293,42 +329,6 @@ fn render_product_diagnostics_record_light_grid_stats() {
         &store,
         "render.light_grid.average_lights_per_cluster",
         0.375,
-        "count",
-    );
-    assert_series(
-        &store,
-        "render.hzb.occlusion.params_buffer_create_count",
-        1.0,
-        "count",
-    );
-    assert_series(
-        &store,
-        "render.hzb.occlusion.params_upload_byte_count",
-        32.0,
-        "bytes",
-    );
-    assert_series(
-        &store,
-        "render.hzb.occlusion.bind_group_create_count",
-        1.0,
-        "count",
-    );
-    assert_series(
-        &store,
-        "render.hzb.occlusion.readback_pending_count",
-        3.0,
-        "count",
-    );
-    assert_series(
-        &store,
-        "render.hzb.occlusion.readback_dropped_count",
-        1.0,
-        "count",
-    );
-    assert_series(
-        &store,
-        "render.hzb.occlusion.readback_oldest_pending_age_frames",
-        4.0,
         "count",
     );
 }

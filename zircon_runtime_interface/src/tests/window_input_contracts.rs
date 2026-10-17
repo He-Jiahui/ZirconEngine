@@ -1,3 +1,6 @@
+//! 共用窗口/输入元数据与 JSON 往返夹具，并挂载 IME、窗口通知子测试。
+//! 平台构造矩阵使用显式数值，宿主事件循环与坐标换算由各适配器另行负责。
+
 use crate::ui::{
     accessibility::{UiAccessibilityAction, UiAccessibilityActionRequest},
     component::{UiDragPayload, UiDragPayloadKind},
@@ -20,6 +23,7 @@ use crate::ui::{
     },
 };
 
+/// 为父模块及子测试提供可克隆的固定窗口身份、微秒时间戳和事件序号。
 fn sample_window_metadata() -> UiWindowEventMetadata {
     UiWindowEventMetadata::for_window(
         UiWindowId::new("editor.main"),
@@ -28,6 +32,7 @@ fn sample_window_metadata() -> UiWindowEventMetadata {
     )
 }
 
+/// 为直接构造的共享输入提供同一窗口、独立时间与序号的元数据。
 fn sample_input_metadata() -> UiInputEventMetadata {
     let mut metadata =
         UiInputEventMetadata::new(UiInputTimestamp::from_micros(124), UiInputSequence::new(8));
@@ -35,6 +40,11 @@ fn sample_input_metadata() -> UiInputEventMetadata {
     metadata
 }
 
+/// 通过 JSON 字符串往返一个拥有数据的测试值。
+///
+/// # 参数与返回
+/// `value` 以共享借用序列化；返回独立反序列化的 `T`，失败即使测试 panic。
+/// `DeserializeOwned` 使结果不借用函数内临时 JSON 字符串。
 fn round_trip<T>(value: &T) -> T
 where
     T: serde::Serialize + serde::de::DeserializeOwned,
@@ -47,6 +57,8 @@ mod ime;
 #[path = "window_input_contracts/window_events.rs"]
 mod window_events;
 
+/// 以同一上下文覆盖平台事件构造与规范化矩阵，核对身份继承、字段和便捷入口。
+/// 触摸用例另查指针身份覆盖；坐标预期来自夹具，不依赖宿主 DPI 或事件循环。
 #[test]
 fn ui_window_platform_input_normalizes_generic_application_style_events() {
     let metadata = sample_window_metadata().synthetic(true);
@@ -853,6 +865,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
     ));
 }
 
+/// 把光标移动、离开和关闭通知接入共享指针输入，并核对进入通知不生成移动。
 #[test]
 fn ui_window_cursor_events_can_enter_the_unified_pointer_pipeline() {
     let metadata = sample_window_metadata();

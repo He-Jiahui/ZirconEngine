@@ -18,6 +18,9 @@ base-runtime-plugins = [
     "dep:zircon_plugin_net_runtime",
     "dep:zircon_plugin_particles_runtime",
     "dep:zircon_plugin_rendering_runtime",
+    "dep:zircon_plugin_rendering_baked_lighting_runtime",
+    "dep:zircon_plugin_rendering_post_process_runtime",
+    "dep:zircon_plugin_rendering_reflection_probes_runtime",
     "dep:zircon_plugin_shader_wgsl_importer_runtime",
     "dep:zircon_plugin_sound_runtime",
     "dep:zircon_plugin_texture_runtime",
@@ -50,6 +53,9 @@ zircon_plugin_obj_importer_runtime = { path = "../obj_importer/runtime", optiona
 zircon_plugin_physics_runtime = { path = "../physics/runtime", optional = true }
 zircon_plugin_particles_runtime = { path = "../particles/runtime", optional = true }
 zircon_plugin_rendering_runtime = { path = "../rendering/runtime", optional = true }
+zircon_plugin_rendering_baked_lighting_runtime = { path = "../rendering/features/baked_lighting/runtime", optional = true }
+zircon_plugin_rendering_post_process_runtime = { path = "../rendering/features/post_process/runtime", optional = true }
+zircon_plugin_rendering_reflection_probes_runtime = { path = "../rendering/features/reflection_probes/runtime", optional = true }
 zircon_plugin_shader_wgsl_importer_runtime = { path = "../shader_wgsl_importer/runtime", optional = true }
 zircon_plugin_solari_runtime = { path = "../solari/runtime", optional = true }
 zircon_plugin_sound_runtime = { path = "../sound/runtime", optional = true }

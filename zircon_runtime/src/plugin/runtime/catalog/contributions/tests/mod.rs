@@ -295,9 +295,15 @@ fn normal_catalog_compiled_plan_consumes_scene_codec_after_project_drop_and_retr
     let restored = World::from_scene_asset(&project, &scene_asset).expect("scene restore");
     assert_eq!(restored.dynamic_component(entity, TYPE_ID), Some(&payload));
     let scene_uri = AssetUri::parse(SCENE_URI).expect("scene URI");
+    let source_revision = World::load_scene_document(&project, &scene_uri)
+        .expect("fixture source")
+        .into_parts()
+        .1;
     world
-        .save_scene_to_project(&project, &scene_uri)
-        .expect("scene save");
+        .save_scene_to_project(&project, &scene_uri, &source_revision)
+        .expect("scene save")
+        .ensure_durable()
+        .expect("scene publication must be durable");
     project.scan_and_import().expect("scene import");
     let loaded = World::load_scene_from_uri(&project, &scene_uri).expect("scene load");
     assert_eq!(loaded.dynamic_component(entity, TYPE_ID), Some(&payload));

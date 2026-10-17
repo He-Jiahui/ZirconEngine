@@ -1,3 +1,5 @@
+//! 验证请求汇总的顺序、空路径与稀疏后缀容量，再以固定夹具对比策略。
+
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -15,6 +17,7 @@ const SAMPLE_PAIRS: usize = 17;
 const BATCHES_PER_SAMPLE: usize = 1_024;
 const RESULTS_PER_BATCH: usize = 4_096;
 
+/// 容量准备不得改变请求顺序，且应覆盖当前剩余结果数的下界。
 #[test]
 fn runtime_hotpath_batch_runtime820_dispatch_host_request_capacity_preserves_order() {
     let mut first = dispatch_result(1);
@@ -36,6 +39,7 @@ fn runtime_hotpath_batch_runtime820_dispatch_host_request_capacity_preserves_ord
     assert!(requests.capacity() >= results.len());
 }
 
+/// 没有请求时必须保持零容量，不能仅因存在结果而预分配。
 #[test]
 fn runtime_hotpath_batch_runtime820_dispatch_host_request_capacity_keeps_empty_path_empty() {
     let results = vec![dispatch_result(1), dispatch_result(2), dispatch_result(3)];
@@ -47,6 +51,7 @@ fn runtime_hotpath_batch_runtime820_dispatch_host_request_capacity_keeps_empty_p
     assert!(!redraw_requested);
 }
 
+/// 首次请求在后缀出现时，只要求覆盖当时剩余的结果数。
 #[test]
 fn runtime_hotpath_batch_runtime820_dispatch_host_request_capacity_reserves_sparse_suffix() {
     let mut results = vec![dispatch_result(1), dispatch_result(2)];
@@ -61,6 +66,7 @@ fn runtime_hotpath_batch_runtime820_dispatch_host_request_capacity_reserves_spar
     assert!(requests.capacity() >= 2);
 }
 
+/// 忽略夹具中的优化增长次数是策略推导值，不是运行时分配器采样。
 #[test]
 #[ignore = "managed Windows release performance evidence"]
 fn runtime_hotpath_batch_runtime820_dispatch_host_request_capacity_bench() {
@@ -126,6 +132,7 @@ fn dispatch_fixture() -> Vec<UiInputDispatchResult> {
     results
 }
 
+/// 对照实现保持旧的收集策略，仅服务于此文件的性能夹具。
 fn legacy_collect_dispatch_metadata(
     results: &[UiInputDispatchResult],
 ) -> (Vec<UiDispatchHostRequest>, bool) {
@@ -166,6 +173,7 @@ fn measure_optimized(results: &[UiInputDispatchResult]) -> u128 {
     started.elapsed().as_nanos().max(1)
 }
 
+/// 按夹具定义的倍增规则计算对照增长次数，不观测真实分配器。
 fn growth_events(item_count: usize) -> usize {
     let mut capacity = 0usize;
     let mut events = 0usize;

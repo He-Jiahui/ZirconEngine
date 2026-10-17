@@ -44,6 +44,7 @@ mod messages;
 mod observers;
 #[path = "performance_diagnostics.rs"]
 mod performance_diagnostics;
+#[cfg(feature = "native-host")]
 #[path = "project_io.rs"]
 mod project_io;
 #[path = "property_access/mod.rs"]
@@ -86,11 +87,19 @@ pub use compiled_binding::{
 pub use component_type_registry::ComponentTypeRegistry;
 pub(crate) use deferred_structural_segment::DeferredStructuralBatch;
 pub(in crate::scene) use dynamic_components::json_from_scene_property_value;
-pub use dynamic_components::DynamicComponentInstance;
+pub use dynamic_components::{
+    DynamicComponentCreationError, DynamicComponentCreationSpec, DynamicComponentCreationTemplate,
+    DynamicComponentInstance,
+};
 pub use error::{SceneError, SceneResult};
+#[cfg(feature = "native-host")]
 pub use project_io::SceneComponentSerializer;
+#[cfg(feature = "native-host")]
 pub(crate) use project_io::SceneComponentSerializerRegistry;
-pub use project_io::SceneProjectError;
+#[cfg(feature = "native-host")]
+pub use project_io::{
+    LoadedSceneDocument, SceneProjectError, ScenePublicationReceipt, SceneSourceRevision,
+};
 pub(crate) use query_order::{StableQueryLocationIter, StableWorldEntityIter};
 pub(crate) use render_dirty_journal::{RenderDirtyEntityJournal, RenderDirtyWorldId};
 pub(crate) use transaction::DetachPreparationOwner;
@@ -99,4 +108,5 @@ pub use transaction::{
     PreparedEntitySubtrees,
 };
 pub(in crate::scene) use transaction::{PreflightComponentRow, PreflightDynamicComponent};
+pub use typed_api::DynamicComponentCreationId;
 pub use world::World;

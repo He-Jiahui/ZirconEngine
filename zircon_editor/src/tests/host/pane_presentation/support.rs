@@ -245,6 +245,7 @@ pub(super) fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
     };
 
     RuntimeDiagnosticsSnapshot {
+        identities: Default::default(),
         render: RuntimeRenderDiagnostics {
             available: true,
             stats: Some(RenderStats {
@@ -419,6 +420,7 @@ pub(super) fn module_plugins_fixture() -> ModulePluginsPaneViewData {
             hot_reload_action_id: "workbench.plugin.hot_reload.physics".into(),
         }]),
         diagnostics: "plugin catalog ready".into(),
+        ..ModulePluginsPaneViewData::default()
     }
 }
 

@@ -45,13 +45,14 @@ impl EditorPluginManager {
         discoveries: BTreeMap<String, EditorPluginDiscovery>,
     ) -> Result<Arc<EditorPluginCatalogSnapshot>, EditorPluginDiscoveryError> {
         let previous = self.state_snapshot();
+        let mut previous_catalog = previous.catalog_snapshot().clone_catalog();
+        catalog.inherit_lifecycle_state_from(&previous_catalog);
         let mut entries = entries_for_catalog(
             &catalog,
             previous.entries(),
             &discoveries,
             previous.reached_loading_phase,
         );
-        let mut previous_catalog = previous.catalog_snapshot().clone_catalog();
         if let Some(package_id) = active_package_retracted(&previous, &entries) {
             return Err(EditorPluginDiscoveryError::PhaseRetractionRequiresDisable { package_id });
         }

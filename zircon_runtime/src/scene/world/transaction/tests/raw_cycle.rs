@@ -169,10 +169,12 @@ fn detached_parent_cycle_preserves_existing_deferred_flush_boundary() {
 
 #[derive(Debug, PartialEq, Eq)]
 struct TableValue(String);
+zircon_runtime_interface::impl_retained_owner_v1!(TableValue { 0 });
 impl Component for TableValue {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct SparseValue(u64);
+zircon_runtime_interface::impl_retained_owner_v1!(SparseValue { 0 });
 impl Component for SparseValue {
     const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }

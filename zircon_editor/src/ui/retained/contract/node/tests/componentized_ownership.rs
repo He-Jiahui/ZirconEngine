@@ -79,8 +79,10 @@ fn componentized_workbench_hit_test_skips_template_controls_outside_painted_regi
     assert_eq!(pane.module_workspace.unwrap().node_id, root.node_id);
     assert_eq!(root.parent_node_id, viewport.node_id);
     assert_eq!(root.source_node_id.as_str(), "blend_space_workspace");
-    assert_eq!(root.source_path.as_str().replace('\\', "/"),
-        "zircon_editor/assets/ui/editor/animation/extension_blend_space_workspace.zui");
+    assert_eq!(
+        root.source_path.as_str().replace('\\', "/"),
+        "zircon_editor/assets/ui/editor/animation/extension_blend_space_workspace.zui"
+    );
     assert!(Arc::ptr_eq(
         root.source_surface_frame.as_ref().unwrap(),
         &current

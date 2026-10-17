@@ -1,0 +1,901 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R031",
+  "reviewer": "root",
+  "reviewed_at_utc": "2026-10-15T14:13:54.974212+00:00",
+  "status": "independently-reviewed-and-scoped-static-validated",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R031.json",
+    "sha256": "1793d0eb38f6e1eefc661fc8be0a14eceb40a9bb68df663589310006a18d505b",
+    "bytes": 195793
+  },
+  "comment_amendment": {
+    "path": "docs/plans/source-comments/reviews/R031-comment-amendment.json",
+    "sha256": "cb2ac57848f883edeabf62af486fd97c9e52102bdc8e3980410c6a0d6f8703da",
+    "bytes": 10248
+  },
+  "audit_supplement": {
+    "path": "docs/plans/source-comments/reviews/R031-audit-supplement.json",
+    "sha256": "3622992f0ae691ba8345001e202363e39ce7e7f5fe28fa5c622fc49aa6794ed0",
+    "bytes": 225617
+  },
+  "files": {
+    "zircon_runtime_interface/src/hub_protocol/focus_ack.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/focus_ack.rs",
+      "before_sha256": "562e40b4fc5e49594a698e0f5f0327b4db285339884ecbe9f4ca0eb0667646bd",
+      "current_sha256": "bf92bb91bb154535112780768481bd52570a3a09429cde50a4fa18aec8a09f51",
+      "before_reconstruction_sha256": "562e40b4fc5e49594a698e0f5f0327b4db285339884ecbe9f4ca0eb0667646bd",
+      "byte_reconstruction_matches": true,
+      "before_lines": 54,
+      "current_lines": 57,
+      "before_bytes": 1964,
+      "current_bytes": 2250,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 54
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 57,
+      "current_bom": false,
+      "inserted_line_count": 3
+    },
+    "zircon_runtime_interface/src/hub_protocol/focus_signal.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/focus_signal.rs",
+      "before_sha256": "9edf546a5df7c9b6e1f4524b99d7dcc54e11c71189d60c1217d51f9f85a88c5b",
+      "current_sha256": "06b7f16c0c8494ac98bb7f8f5b33df6cb05bd9e7fe02dd9fce31b5d98f4b704e",
+      "before_reconstruction_sha256": "9edf546a5df7c9b6e1f4524b99d7dcc54e11c71189d60c1217d51f9f85a88c5b",
+      "byte_reconstruction_matches": true,
+      "before_lines": 91,
+      "current_lines": 94,
+      "before_bytes": 3255,
+      "current_bytes": 3523,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 91
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 94,
+      "current_bom": false,
+      "inserted_line_count": 3
+    },
+    "zircon_runtime_interface/src/hub_protocol/focus_signal_path.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/focus_signal_path.rs",
+      "before_sha256": "4c512a859aca33973f46aa37e4afe92307f99f4d502cbbe376e103d92700f3bc",
+      "current_sha256": "516c2d08effdbd7657b42d78f1f0cc2db46a8fc0dc7a945506b1ee40eab3ae62",
+      "before_reconstruction_sha256": "4c512a859aca33973f46aa37e4afe92307f99f4d502cbbe376e103d92700f3bc",
+      "byte_reconstruction_matches": true,
+      "before_lines": 107,
+      "current_lines": 112,
+      "before_bytes": 3315,
+      "current_bytes": 3661,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 107
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 112,
+      "current_bom": false,
+      "inserted_line_count": 5
+    },
+    "zircon_runtime_interface/src/hub_protocol/mailbox.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/mailbox.rs",
+      "before_sha256": "dff5a7c8d80b1585a6bb8b61382c5d67b9ef646e7978e6ba524fdc1fb0d3b78e",
+      "current_sha256": "e1f8d25deb19e2b2debb216c9cd68f7e4bf52961f4d05d9a5440382b7f1b78e6",
+      "before_reconstruction_sha256": "dff5a7c8d80b1585a6bb8b61382c5d67b9ef646e7978e6ba524fdc1fb0d3b78e",
+      "byte_reconstruction_matches": true,
+      "before_lines": 66,
+      "current_lines": 69,
+      "before_bytes": 2228,
+      "current_bytes": 2512,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 66
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 69,
+      "current_bom": false,
+      "inserted_line_count": 3
+    },
+    "zircon_runtime_interface/src/hub_protocol/mod.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/mod.rs",
+      "before_sha256": "36fb913a4097eb6b78e4ce059357cadcce13af7cb9f4184cd39fc8c9126bd01d",
+      "current_sha256": "36fb913a4097eb6b78e4ce059357cadcce13af7cb9f4184cd39fc8c9126bd01d",
+      "before_reconstruction_sha256": "36fb913a4097eb6b78e4ce059357cadcce13af7cb9f4184cd39fc8c9126bd01d",
+      "byte_reconstruction_matches": true,
+      "before_lines": 52,
+      "current_lines": 52,
+      "before_bytes": 2104,
+      "current_bytes": 2104,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 52
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 52,
+      "current_bom": false,
+      "inserted_line_count": 0
+    },
+    "zircon_runtime_interface/src/hub_protocol/outcome.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/outcome.rs",
+      "before_sha256": "e67ff5fe2915b4535c272dd246736dd20142dc24337909da7289f049a17fa437",
+      "current_sha256": "058ee91451d6f59074fbbcbd9164c853b72e9ea611473d3115ae1170150dc92b",
+      "before_reconstruction_sha256": "e67ff5fe2915b4535c272dd246736dd20142dc24337909da7289f049a17fa437",
+      "byte_reconstruction_matches": true,
+      "before_lines": 24,
+      "current_lines": 26,
+      "before_bytes": 786,
+      "current_bytes": 964,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 24
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 26,
+      "current_bom": false,
+      "inserted_line_count": 2
+    },
+    "zircon_runtime_interface/src/hub_protocol/protocol_version/mod.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/protocol_version/mod.rs",
+      "before_sha256": "78ef732788bc61041328fd277c432e72b641fd4f87a491de4d96707528fc0915",
+      "current_sha256": "8fd07480907aba241ec4b2dc085103a3205d41815ca4dc64480ce9becce167fd",
+      "before_reconstruction_sha256": "78ef732788bc61041328fd277c432e72b641fd4f87a491de4d96707528fc0915",
+      "byte_reconstruction_matches": true,
+      "before_lines": 7,
+      "current_lines": 8,
+      "before_bytes": 198,
+      "current_bytes": 286,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 7
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 8,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/protocol_version/serde.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/protocol_version/serde.rs",
+      "before_sha256": "31d8506374d5ccbc89d598164e17e7180294d7f684e37ee0dea08ff8e8d4a0db",
+      "current_sha256": "0d20e511e82664471af9d21d8a2293e1f7376b626d0f0931bcd7299f73d57321",
+      "before_reconstruction_sha256": "31d8506374d5ccbc89d598164e17e7180294d7f684e37ee0dea08ff8e8d4a0db",
+      "byte_reconstruction_matches": true,
+      "before_lines": 31,
+      "current_lines": 32,
+      "before_bytes": 973,
+      "current_bytes": 1060,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 31
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 32,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/ready_receipt.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/ready_receipt.rs",
+      "before_sha256": "8cdd7c8424b0b618dad65f570f98fc456833925874ec1fa3112768eb6a3f00f7",
+      "current_sha256": "d7c0cee08d06aa1c59169b1596ac5393f47afd8e2e28fae3a68b93c105908150",
+      "before_reconstruction_sha256": "8cdd7c8424b0b618dad65f570f98fc456833925874ec1fa3112768eb6a3f00f7",
+      "byte_reconstruction_matches": true,
+      "before_lines": 158,
+      "current_lines": 161,
+      "before_bytes": 5227,
+      "current_bytes": 5480,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 158
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 161,
+      "current_bom": false,
+      "inserted_line_count": 3
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/entry.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/entry.rs",
+      "before_sha256": "b760020e0d15a9cc3e218da3cb1f17d9c03b345758b54c4c8d9585c1f058db85",
+      "current_sha256": "0a7305d836526a6728ea1c3fe6917c2105c21ba505bc2831695bf5586d829822",
+      "before_reconstruction_sha256": "b760020e0d15a9cc3e218da3cb1f17d9c03b345758b54c4c8d9585c1f058db85",
+      "byte_reconstruction_matches": true,
+      "before_lines": 39,
+      "current_lines": 41,
+      "before_bytes": 1039,
+      "current_bytes": 1209,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 39
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 41,
+      "current_bom": false,
+      "inserted_line_count": 2
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/error.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/error.rs",
+      "before_sha256": "43dca2dd3f9baa459ed17ddb4c4be360b52bb7f63dfa061e7aa3e03e0c155806",
+      "current_sha256": "9020f490ab04d371e630448d8c9a78a40a3ffad7bc1cf3100ac5da64f021f76a",
+      "before_reconstruction_sha256": "43dca2dd3f9baa459ed17ddb4c4be360b52bb7f63dfa061e7aa3e03e0c155806",
+      "byte_reconstruction_matches": true,
+      "before_lines": 30,
+      "current_lines": 31,
+      "before_bytes": 1538,
+      "current_bytes": 1614,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 30
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 31,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/identity.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/identity.rs",
+      "before_sha256": "40e280dc5b0e1379925ee606ac641366b2c197dfe067b05623185f66e7f28224",
+      "current_sha256": "40e280dc5b0e1379925ee606ac641366b2c197dfe067b05623185f66e7f28224",
+      "before_reconstruction_sha256": "40e280dc5b0e1379925ee606ac641366b2c197dfe067b05623185f66e7f28224",
+      "byte_reconstruction_matches": true,
+      "before_lines": 36,
+      "current_lines": 36,
+      "before_bytes": 1351,
+      "current_bytes": 1351,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 36
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 36,
+      "current_bom": false,
+      "inserted_line_count": 0
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/mod.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/mod.rs",
+      "before_sha256": "fb30c795b48c696261b55b20319ac284c15fd1ad62b81c701a075f67df609df5",
+      "current_sha256": "fb30c795b48c696261b55b20319ac284c15fd1ad62b81c701a075f67df609df5",
+      "before_reconstruction_sha256": "fb30c795b48c696261b55b20319ac284c15fd1ad62b81c701a075f67df609df5",
+      "byte_reconstruction_matches": true,
+      "before_lines": 40,
+      "current_lines": 40,
+      "before_bytes": 1681,
+      "current_bytes": 1681,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 40
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 40,
+      "current_bom": false,
+      "inserted_line_count": 0
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/registry.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/registry.rs",
+      "before_sha256": "c1de8f37fb7db939bb2370d6a31da2e53ef9c137df12cce7f3d6213e44978ad1",
+      "current_sha256": "534ac827ac2a7d89e22b5a7997b4796b562b31443da863046bd98dcd9f606cac",
+      "before_reconstruction_sha256": "c1de8f37fb7db939bb2370d6a31da2e53ef9c137df12cce7f3d6213e44978ad1",
+      "byte_reconstruction_matches": true,
+      "before_lines": 293,
+      "current_lines": 357,
+      "before_bytes": 10732,
+      "current_bytes": 14681,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 293
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 357,
+      "current_bom": false,
+      "inserted_line_count": 64
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/storage_path.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/storage_path.rs",
+      "before_sha256": "4c51ae0f164cadbd9457ad6286cc1eb6322c690a8577b8c017255108faa41397",
+      "current_sha256": "b12bcabad876df75ddf710a546e70f19533ed00ed36a103110235a627ca5cf0c",
+      "before_reconstruction_sha256": "4c51ae0f164cadbd9457ad6286cc1eb6322c690a8577b8c017255108faa41397",
+      "byte_reconstruction_matches": true,
+      "before_lines": 37,
+      "current_lines": 41,
+      "before_bytes": 1480,
+      "current_bytes": 1811,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 37
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 41,
+      "current_bom": false,
+      "inserted_line_count": 4
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/store.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/store.rs",
+      "before_sha256": "32fab2b7e167a253ac85f4bb416fba46d674dec9c0e779ede6757e95c319d8b0",
+      "current_sha256": "a749dbc2744070c84341e39bbd9fe37431aa598a02487012d112b6760471c486",
+      "before_reconstruction_sha256": "32fab2b7e167a253ac85f4bb416fba46d674dec9c0e779ede6757e95c319d8b0",
+      "byte_reconstruction_matches": true,
+      "before_lines": 741,
+      "current_lines": 748,
+      "before_bytes": 26609,
+      "current_bytes": 27251,
+      "before_eol": {
+        "crlf": 741,
+        "bare_lf": 0
+      },
+      "current_crlf": 748,
+      "current_bare_lf": 0,
+      "current_bom": false,
+      "inserted_line_count": 7
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/registry_perf.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/registry_perf.rs",
+      "before_sha256": "95e8487223b6a2c50645d504cdf934280138cfd2205c07afd8dbc2b36dc0dc19",
+      "current_sha256": "d7cda8c3c2dea5360f619daca588afdaa5c2e005cbd0c1f1e93b85478aeccd54",
+      "before_reconstruction_sha256": "95e8487223b6a2c50645d504cdf934280138cfd2205c07afd8dbc2b36dc0dc19",
+      "byte_reconstruction_matches": true,
+      "before_lines": 162,
+      "current_lines": 163,
+      "before_bytes": 6092,
+      "current_bytes": 6187,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 162
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 163,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs",
+      "before_sha256": "1789f2733df034ed4c76123ea36b7141ada27c16728e039585cae1b99b33d16f",
+      "current_sha256": "a6decebb35ac7d1c6a1d4cbe68795cd0a54a93b9ebff45fe71120775f73db02f",
+      "before_reconstruction_sha256": "1789f2733df034ed4c76123ea36b7141ada27c16728e039585cae1b99b33d16f",
+      "byte_reconstruction_matches": true,
+      "before_lines": 240,
+      "current_lines": 241,
+      "before_bytes": 8342,
+      "current_bytes": 8432,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 240
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 241,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/session_token/construct.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/session_token/construct.rs",
+      "before_sha256": "fb495df376cdbbe1cc19f7aec28603678860c5d061b74a94ea9609d5b9066fe2",
+      "current_sha256": "0a7ac29b5d8ea6a1496cb51befc7480d9ead0f7537a0cca4fb2f6e74d353c909",
+      "before_reconstruction_sha256": "fb495df376cdbbe1cc19f7aec28603678860c5d061b74a94ea9609d5b9066fe2",
+      "byte_reconstruction_matches": true,
+      "before_lines": 9,
+      "current_lines": 10,
+      "before_bytes": 133,
+      "current_bytes": 221,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 9
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 10,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/session_token/error.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/session_token/error.rs",
+      "before_sha256": "babc9d4147439cd572c8ecce028991a8cf94f86a97b953bc581f9c5fbdd11faa",
+      "current_sha256": "e323d52ebfdd587ef78e9d9f571a602e0b73b0fff40209e4636615786765d023",
+      "before_reconstruction_sha256": "babc9d4147439cd572c8ecce028991a8cf94f86a97b953bc581f9c5fbdd11faa",
+      "byte_reconstruction_matches": true,
+      "before_lines": 12,
+      "current_lines": 13,
+      "before_bytes": 440,
+      "current_bytes": 511,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 12
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 13,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/session_token/format.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/session_token/format.rs",
+      "before_sha256": "baad241c37979373bc88ecbaf206d1a010bc9e6c07d717a43d12c5cd62e79df6",
+      "current_sha256": "baad241c37979373bc88ecbaf206d1a010bc9e6c07d717a43d12c5cd62e79df6",
+      "before_reconstruction_sha256": "baad241c37979373bc88ecbaf206d1a010bc9e6c07d717a43d12c5cd62e79df6",
+      "byte_reconstruction_matches": true,
+      "before_lines": 9,
+      "current_lines": 9,
+      "before_bytes": 220,
+      "current_bytes": 220,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 9
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 9,
+      "current_bom": false,
+      "inserted_line_count": 0
+    },
+    "zircon_runtime_interface/src/hub_protocol/session_token/mod.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/session_token/mod.rs",
+      "before_sha256": "4249685a1322c55f5266ded3eed823f4c744d196cdd356e9619d5f5e202056f9",
+      "current_sha256": "ec80b711fe128bd2b6c18c411d2296141f8ef3f6e18850c3050a5bc7eab99cc3",
+      "before_reconstruction_sha256": "4249685a1322c55f5266ded3eed823f4c744d196cdd356e9619d5f5e202056f9",
+      "byte_reconstruction_matches": true,
+      "before_lines": 18,
+      "current_lines": 20,
+      "before_bytes": 407,
+      "current_bytes": 589,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 18
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 20,
+      "current_bom": false,
+      "inserted_line_count": 2
+    },
+    "zircon_runtime_interface/src/hub_protocol/session_token/parse.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/session_token/parse.rs",
+      "before_sha256": "69395b58dde50d3595fcc95b14615da6934c333def9fc712ce1cd94c774a2568",
+      "current_sha256": "5c76503a625e9148cb07e5fe8e85b9fa87743de239a337dbe6881a5dba4ae15a",
+      "before_reconstruction_sha256": "69395b58dde50d3595fcc95b14615da6934c333def9fc712ce1cd94c774a2568",
+      "byte_reconstruction_matches": true,
+      "before_lines": 21,
+      "current_lines": 22,
+      "before_bytes": 690,
+      "current_bytes": 773,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 21
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 22,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/session_token/serde.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/session_token/serde.rs",
+      "before_sha256": "61f88616c05684b05a8d11cc9f51a3d1d740c8208e746b277f29bede3a6dfed6",
+      "current_sha256": "1311d760f97131f53f50d3c88e8653b07fbe10603744f43280a1aab1c57ad193",
+      "before_reconstruction_sha256": "61f88616c05684b05a8d11cc9f51a3d1d740c8208e746b277f29bede3a6dfed6",
+      "byte_reconstruction_matches": true,
+      "before_lines": 22,
+      "current_lines": 23,
+      "before_bytes": 579,
+      "current_bytes": 665,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 22
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 23,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/tests/cases.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+      "before_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+      "current_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+      "before_reconstruction_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+      "byte_reconstruction_matches": true,
+      "before_lines": 430,
+      "current_lines": 430,
+      "before_bytes": 14922,
+      "current_bytes": 14922,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 430
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 430,
+      "current_bom": false,
+      "inserted_line_count": 0
+    },
+    "zircon_runtime_interface/src/hub_protocol/tests/ready_receipt.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/tests/ready_receipt.rs",
+      "before_sha256": "9f7c14df7815b706a0ac785a5a4fc8ac38886817a532ac8d28e4845a44406718",
+      "current_sha256": "9f7c14df7815b706a0ac785a5a4fc8ac38886817a532ac8d28e4845a44406718",
+      "before_reconstruction_sha256": "9f7c14df7815b706a0ac785a5a4fc8ac38886817a532ac8d28e4845a44406718",
+      "byte_reconstruction_matches": true,
+      "before_lines": 24,
+      "current_lines": 24,
+      "before_bytes": 1043,
+      "current_bytes": 1043,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 24
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 24,
+      "current_bom": false,
+      "inserted_line_count": 0
+    }
+  },
+  "all_owned_source_objects_and_blocks_reviewed": true,
+  "object_start_anchors": 342,
+  "anchor_semantics": "Declaration/attribute anchors,not distinct API count;fields/variants and full bodies independently read.",
+  "consecutive_blocks": 135,
+  "test_declarations_read": 26,
+  "changed_source_count": 20,
+  "unchanged_source_count": 6,
+  "insertion_blocks": 51,
+  "added_comment_lines": 107,
+  "inserted_bytes": 7653,
+  "root_actual_read_receipts": [
+    "9098ba",
+    "5f6090",
+    "f200c9",
+    "eabc72",
+    "cd362d",
+    "980eea"
+  ],
+  "selected_context_read_receipts": [
+    "3405bd (middle publish text truncated;recovered below)",
+    "bec457 (registry/ready partly truncated;prior full source receipts retained;publish recovery)",
+    "34caf2 (middle shared/runtime truncated;recovered below)",
+    "bb13cb (shared165..256/runtime955..1040/publish1..141/app478..507;selected source tail additionally236757)",
+    "236757"
+  ],
+  "context_files_formal_coverage": false,
+  "context_files": [
+    {
+      "path": "zircon_editor/src/core/hub_link/handshake.rs",
+      "sha256": "6589647e47530a481a2465e2dc0a2a14e279a35d46bc7b019af1f083881b1690",
+      "role": "Editor 写入启动邮箱",
+      "matched_text": "HubEditorMailboxV1",
+      "evidence": [
+        {
+          "line_range": [
+            7,
+            7
+          ],
+          "text": "    HubEditorMailboxV1, HubEditorReadyReceiptV1, HubEditorStartupFailureCodeV1, HubSessionToken,"
+        },
+        {
+          "line_range": [
+            43,
+            43
+          ],
+          "text": "        self.publish(HubEditorMailboxV1::ready(self.session, receipt))"
+        },
+        {
+          "line_range": [
+            50,
+            50
+          ],
+          "text": "        self.publish(HubEditorMailboxV1::failed(self.session, code))"
+        },
+        {
+          "line_range": [
+            53,
+            53
+          ],
+          "text": "    fn publish(&self, mailbox: HubEditorMailboxV1) -> Result<(), HubHandshakeError> {"
+        }
+      ],
+      "match_count": 4
+    },
+    {
+      "path": "zircon_editor/src/ui/retained/app.rs",
+      "sha256": "6d2100cf22e605247d19fa2174bf7077592da48962656b65ef93277366b2efe5",
+      "role": "Editor 构造 ready receipt",
+      "matched_text": "HubEditorReadyReceiptV1",
+      "evidence": [
+        {
+          "line_range": [
+            17,
+            17
+          ],
+          "text": "    HubEditorReadyReceiptV1, HubEditorStartupFailureCodeV1,"
+        },
+        {
+          "line_range": [
+            459,
+            459
+          ],
+          "text": "                HubEditorReadyReceiptV1::after_first_present("
+        },
+        {
+          "line_range": [
+            665,
+            665
+          ],
+          "text": "    fn report_ready(&self, receipt: HubEditorReadyReceiptV1) -> Result<(), HubHandshakeError> {"
+        }
+      ],
+      "match_count": 3
+    },
+    {
+      "path": "zircon_hub/src/process/editor_handshake/read.rs",
+      "sha256": "28ea383e9fce8cec4084f35d5d1445b1c80f810c15d953a3fe018ca939cd9de7",
+      "role": "Hub 解码并核对启动令牌",
+      "matched_text": "HubEditorMailboxV1",
+      "evidence": [
+        {
+          "line_range": [
+            5,
+            5
+          ],
+          "text": "use zircon_runtime_interface::hub_protocol::{HubEditorMailboxV1, HubSessionToken};"
+        },
+        {
+          "line_range": [
+            13,
+            13
+          ],
+          "text": ") -> Result<Option<HubEditorMailboxV1>, HubError> {"
+        },
+        {
+          "line_range": [
+            16,
+            16
+          ],
+          "text": "            let mailbox = serde_json::from_slice::<HubEditorMailboxV1>(&bytes)?;"
+        }
+      ],
+      "match_count": 3
+    },
+    {
+      "path": "zircon_hub/src/process/editor_focus/publish.rs",
+      "sha256": "f5a90ed8eabf4d13cc0867a6ae76ce684b68a0cf8ddfd416a9240334539f5eaf",
+      "role": "Hub 发布目标实例聚焦请求",
+      "matched_text": "HubEditorFocusSignalV1",
+      "evidence": [
+        {
+          "line_range": [
+            7,
+            7
+          ],
+          "text": "    HubEditorFocusSignalV1, HubSessionToken, hub_editor_focus_request_directory,"
+        },
+        {
+          "line_range": [
+            27,
+            27
+          ],
+          "text": ") -> Result<HubEditorFocusSignalV1, HubError> {"
+        },
+        {
+          "line_range": [
+            44,
+            44
+          ],
+          "text": "    let signal = HubEditorFocusSignalV1::new("
+        },
+        {
+          "line_range": [
+            99,
+            99
+          ],
+          "text": "        let Ok(request) = serde_json::from_slice::<HubEditorFocusSignalV1>(&bytes) else {"
+        }
+      ],
+      "match_count": 4
+    },
+    {
+      "path": "zircon_hub/src/process/editor_focus/ack.rs",
+      "sha256": "9f5fd4a590deea25e5a1928ad1c29ae5bfa139a350639d7d8c47061db7dffe6b",
+      "role": "Hub 读取聚焦确认",
+      "matched_text": "HubEditorFocusAckV1",
+      "evidence": [
+        {
+          "line_range": [
+            8,
+            8
+          ],
+          "text": "    HubEditorFocusAckDispositionV1, HubEditorFocusAckV1, HubEditorFocusSignalV1,"
+        },
+        {
+          "line_range": [
+            53,
+            53
+          ],
+          "text": "                let acknowledgement = serde_json::from_slice::<HubEditorFocusAckV1>(&bytes)?;"
+        },
+        {
+          "line_range": [
+            70,
+            70
+          ],
+          "text": "    acknowledgement: &HubEditorFocusAckV1,"
+        }
+      ],
+      "match_count": 3
+    },
+    {
+      "path": "zircon_editor/src/core/hub_link/focus_watch.rs",
+      "sha256": "9edb32027cf2ab14f47a48969cf154d7cd0038b581cfce2075cf503aa54d904e",
+      "role": "Editor 请求邮箱监听",
+      "matched_text": "hub_editor_focus",
+      "evidence": [
+        {
+          "line_range": [
+            10,
+            10
+          ],
+          "text": "    hub_editor_focus_request_directory, HubEditorFocusSignalV1,"
+        },
+        {
+          "line_range": [
+            30,
+            30
+          ],
+          "text": "        let focus_directory = hub_editor_focus_request_directory(&project_root, &local_instance_id)"
+        }
+      ],
+      "match_count": 2
+    },
+    {
+      "path": "zircon_editor/src/core/hub_link/focus_signal.rs",
+      "sha256": "f072a08139a30fb1d7d25eca31318d9cf0ca1f11fe9a9a876097071f3bafdf12",
+      "role": "Editor 校验信号并形成确认",
+      "matched_text": "HubEditorFocusSignalV1",
+      "evidence": [
+        {
+          "line_range": [
+            9,
+            9
+          ],
+          "text": "    HubEditorFocusAckDispositionV1, HubEditorFocusAckV1, HubEditorFocusSignalV1, HubSessionToken,"
+        },
+        {
+          "line_range": [
+            43,
+            43
+          ],
+          "text": "    let signal = HubEditorFocusSignalV1::new("
+        },
+        {
+          "line_range": [
+            79,
+            79
+          ],
+          "text": ") -> Result<Vec<HubEditorFocusSignalV1>, HubFocusSignalError> {"
+        },
+        {
+          "line_range": [
+            98,
+            98
+          ],
+          "text": "            serde_json::from_slice::<HubEditorFocusSignalV1>(&bytes).map_err(|source| {"
+        },
+        {
+          "line_range": [
+            157,
+            157
+          ],
+          "text": "    request: &HubEditorFocusSignalV1,"
+        }
+      ],
+      "match_count": 5
+    },
+    {
+      "path": "zircon_hub/src/projects/shared_recent_projects.rs",
+      "sha256": "8eaec789a30231e55775db50842de4b896b32467b2972154360c0b064f49676b",
+      "role": "Hub shared recent-project mutations",
+      "matched_text": ".remove(",
+      "evidence": [
+        {
+          "line_range": [
+            191,
+            191
+          ],
+          "text": "                        registry.remove(&previous.path)?;"
+        }
+      ],
+      "match_count": 1
+    },
+    {
+      "path": "zircon_hub/src/tauri_app/runtime_state.rs",
+      "sha256": "add6458e097eb26462a55c4cfc7d03b9a46d2fc150df47922e64224e2b46c981",
+      "role": "Hub 启动时清洁投影 compare-and-update",
+      "matched_text": "compare_and_update_if_clean",
+      "evidence": [
+        {
+          "line_range": [
+            1011,
+            1011
+          ],
+          "text": "        match store.compare_and_update_if_clean("
+        }
+      ],
+      "match_count": 1
+    },
+    {
+      "path": "zircon_editor/src/core/hub_link/recent_writeback.rs",
+      "sha256": "c7ef9648b6bd3f34729f80ecb4bbf630203949476ef3bd782907528ef2655469",
+      "role": "Editor recent-project Store callbacks",
+      "matched_text": ".remove(",
+      "evidence": [
+        {
+          "line_range": [
+            50,
+            50
+          ],
+          "text": "    mutate_recent_projects(|registry| registry.remove(display_path))"
+        }
+      ],
+      "match_count": 1
+    },
+    {
+      "path": "zircon_app/src/entry/cli/launch_args.rs",
+      "sha256": "b76e15a5867889584a0f035ad3e8aaa7b3a191cccb4dfb3764b98f616ebd9d62",
+      "role": "CLI launch session token parser",
+      "matched_text": "HubSessionToken",
+      "evidence": [
+        {
+          "line_range": [
+            12,
+            12
+          ],
+          "text": "    hub_protocol::{HubSessionToken, HUB_PROTOCOL_VERSION_V1},"
+        },
+        {
+          "line_range": [
+            95,
+            95
+          ],
+          "text": "    session: HubSessionToken,"
+        },
+        {
+          "line_range": [
+            99,
+            99
+          ],
+          "text": "    fn new(session: HubSessionToken) -> Self {"
+        },
+        {
+          "line_range": [
+            103,
+            103
+          ],
+          "text": "    pub(crate) fn session(&self) -> HubSessionToken {"
+        },
+        {
+          "line_range": [
+            314,
+            314
+          ],
+          "text": "                    hub_session = Some(HubSessionToken::from_str(&value).map_err(|error| {"
+        }
+      ],
+      "match_count": 5
+    }
+  ],
+  "review_conclusions": [
+    "Mailbox/session/UUID/protocol DTO contracts matched to Hub reader,Editor publication,CLI parsing and focus watch/ack consumers;mailboxes do not establish SessionGuard liveness.",
+    "Ready factory validates identity and complete milestone shape;retained app installs report_ready at first-present callback,DTO construction itself does not query OS state.",
+    "Registry timestamps and canonical orders matched to helpers/tests;merge accepts project lists only and does not merge tombstones.",
+    "Store owns the bounded platform write lease and clone-before-update;clean/revision rejection precedes quarantine.Closure errors discard clone,but failure can occur after quarantine or after replace before directory sync,so no blanket rollback promise.",
+    "SAFETY review includes actual kernel32/flock and Windows test FFI,correcting historical child no-FFI claim.",
+    "Existing comments remain byte-for-byte,including historical recent_projects/mod.rs8;new public registry docs include meaningful parameters,returns,preconditions,lifecycle and public references.",
+    "Ignored performance fixture remains ignored;stale protocol fixture rejects whole malformed payload and does not isolate version error;direct version Deserialize branch proves rejection."
+  ],
+  "child_evidence_amendments": [
+    "Historical child no-FFI claim rejected:store.rs kernel32 and Unix flock plus Windows handle-count test FFI reviewed.",
+    "91 child anchor evidence strings omit indentation;actual line text stored here.",
+    "Ignored performance test child61..63 evidence omitted ignore attribute;full3actual lines preserved here;no performance execution claimed.",
+    "Existing recent_projects/mod.rs line8 was present before R031 and remains untouched.",
+    "Final registry docs describe only actual project merge,version/clock validation boundaries,and user BUG tag format;public references avoid pub(crate) function."
+  ],
+  "issues": [
+    "CR-ZCA-R031-0001",
+    "CR-ZCA-R031-0002"
+  ],
+  "new_issue_markers": [
+    "CR-ZCA-R031-0001",
+    "CR-ZCA-R031-0002"
+  ],
+  "all_original_bytes_and_comments_preserved": true,
+  "EOL": "Mixed LF/CRLF retained per final supplement inverse;not globally normalized.",
+  "builds_or_Rust_tests_executed": false,
+  "validation_record": "docs/plans/source-comments/reviews/R031-post-validation.json",
+  "formal_acceptance": false,
+  "coordinator_commit": "pending exact coordinator intake/managed validation/original index-native release;B008 public entry refusal does not accept this batch",
+  "owner_release_claim": "Only R031 own source writers terminal and contracts_luna scoped handoff;no foreign/index/native-owner release inferred."
+}

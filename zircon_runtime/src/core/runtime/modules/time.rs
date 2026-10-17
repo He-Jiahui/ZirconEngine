@@ -1,8 +1,10 @@
 use crate::core::{InitLevel, ModuleDescriptor};
 use crate::engine_module::EngineModule;
 
+/// Kernel 时间声明节点的注册名称，也是依赖图引用的身份。
 pub const TIME_MODULE_NAME: &str = "TimeModule";
 
+/// 内建时间模块的无状态声明器；描述符纳入 Kernel 图，时钟状态由 Runtime 与各 Level 持有。
 #[derive(Clone, Copy, Debug, Default)]
 pub struct TimeModule;
 
@@ -17,6 +19,7 @@ impl EngineModule for TimeModule {
         "Core frame timing descriptor for runtime-owned real, virtual, and fixed clocks"
     }
 
+    /// 生成 Kernel 层描述符；调用只构造声明，注册、激活及外帧驱动由调用方完成。
     fn descriptor(&self) -> ModuleDescriptor {
         ModuleDescriptor::new(TIME_MODULE_NAME, self.module_description())
             .with_init_level(InitLevel::Kernel)

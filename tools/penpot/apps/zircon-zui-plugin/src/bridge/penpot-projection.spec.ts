@@ -43,6 +43,16 @@ describe('Penpot projection bridge', () => {
     },
   );
 
+  it('keeps the PopupMenu semantic host hidden while its overlay is closed or open', () => {
+    const { document } = parseZuiDocument(
+      '[asset]\nkind = "component"\nid = "res://review/popup-menu.zui"\nversion = 2\n\n[components.ReviewPopup]\nroot = "popup"\n\n[nodes.popup]\ncomponent = "PopupMenu"\nprops = { menu_items = ["New Level|action=menu.item.new_scene"] }\n',
+    );
+    const popup = zuiNodes(document)['popup'];
+    expect(projectZuiDocument(document).rootNodes[0].previewHidden).toBe(true);
+    popup.state = { open: true, popup_open: true };
+    expect(projectZuiDocument(document).rootNodes[0].previewHidden).toBe(true);
+  });
+
   it('keeps layout-group state values as metadata while painting the child label', () => {
     const { document } = parseZuiDocument(fixtureSource);
     const root = zuiNodes(document)['root'];
@@ -414,35 +424,64 @@ describe('Penpot projection bridge', () => {
     expect(responsiveChild.previewHidden).toBe(true);
   });
 
-  it('hides descendants of a clipped zero-sized dynamic host in the visual projection', () => {
-    const { document } = parseZuiDocument(fixtureSource);
-    const nodes = zuiNodes(document);
-    nodes['zero_host'] = {
-      component: 'Overlay',
-      layout: {
-        clip: true,
-        container: { kind: 'Overlay' },
-        width: { min: 0, preferred: 0, max: 0, stretch: 'Fixed' },
-        height: { min: 0, preferred: 0, max: 0, stretch: 'Fixed' },
-      },
-      children: [{ node: 'zero_child' }],
-    };
-    nodes['zero_child'] = {
-      component: 'Label',
-      props: { text: 'Deferred host content' },
-    };
-    nodes['root'].children!.push({ node: 'zero_host' });
+  it.each(['both', 'width', 'height'] as const)(
+    'hides a clipped dynamic host with zero %s while preserving its source',
+    (axis) => {
+      const { document } = parseZuiDocument(fixtureSource);
+      const nodes = zuiNodes(document);
+      nodes['zero_host'] = {
+        component: 'Overlay',
+        layout: {
+          clip: true,
+          container: { kind: 'Overlay' },
+          width:
+            axis === 'height'
+              ? { stretch: 'Stretch' }
+              : { min: 0, preferred: 0, max: 0, stretch: 'Fixed' },
+          height:
+            axis === 'width'
+              ? { stretch: 'Stretch' }
+              : { min: 0, preferred: 0, max: 0, stretch: 'Fixed' },
+        },
+        children: [{ node: 'zero_child' }],
+      };
+      nodes['zero_child'] = {
+        component: 'Label',
+        props: { text: 'Deferred host content' },
+      };
+      nodes['root'].children!.push({ node: 'zero_host' });
+      const original = JSON.stringify(document);
+      const hidden = (projection: ReturnType<typeof projectZuiDocument>) =>
+        ['zero_host', 'zero_child'].map(
+          (nodeId) =>
+            projection.shapes.find((node) => node.nodeId === nodeId)
+              ?.previewHidden,
+        );
 
-    const projection = projectZuiDocument(document);
-    expect(
-      projection.shapes.find(({ nodeId }) => nodeId === 'zero_host')
-        ?.previewHidden,
-    ).toBe(true);
-    expect(
-      projection.shapes.find(({ nodeId }) => nodeId === 'zero_child')
-        ?.previewHidden,
-    ).toBe(true);
-  });
+      const projection = projectZuiDocument(document);
+      expect(hidden(projection)).toEqual([true, true]);
+      const reconciled = reconcileZuiDocument(
+        document,
+        cloneProjectionSnapshot(projection),
+      );
+      expect(reconciled.document).toEqual(document);
+      expect(reconciled.changes).toEqual([]);
+      expect(JSON.stringify(document)).toBe(original);
+
+      // An unclipped zero-sized host can still paint its descendants.
+      nodes['zero_host'].layout!['clip'] = false;
+      expect(hidden(projectZuiDocument(document))).toEqual([false, false]);
+      nodes['zero_host'].layout!['clip'] = true;
+      for (const dimension of ['width', 'height'] as const) {
+        if (axis !== 'both' && axis !== dimension) continue;
+        nodes['zero_host'].layout![dimension] = {
+          min: 24, preferred: 24, max: 24, stretch: 'Fixed',
+        };
+      }
+      // A positive axis with the other stretched must remain visible.
+      expect(hidden(projectZuiDocument(document))).toEqual([false, false]);
+    },
+  );
 
   it('leaves the source semantic document unchanged when no shape changed', () => {
     const { document } = parseZuiDocument(fixtureSource);

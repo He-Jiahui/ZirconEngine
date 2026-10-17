@@ -296,6 +296,7 @@ fn translated(x: f32) -> Transform {
 #[derive(Debug)]
 struct RagdollPayloadDropProbe(Arc<AtomicUsize>);
 
+zircon_runtime_interface::impl_retained_owner_v1!(RagdollPayloadDropProbe { 0 });
 impl Component for RagdollPayloadDropProbe {}
 
 impl Drop for RagdollPayloadDropProbe {
@@ -341,12 +342,28 @@ fn observe_ragdoll_body_events(
     body_adds: Arc<AtomicUsize>,
     removals: Arc<Mutex<Vec<EntityId>>>,
 ) {
-    world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |_, _| {
-        body_adds.fetch_add(1, Ordering::SeqCst);
-    });
-    world.observe_component_lifecycle::<Name>(LifecycleEventKind::Remove, move |_, event| {
-        removals.lock().unwrap().push(event.entity());
-    });
+    world.observe_component_lifecycle::<Name>(
+        LifecycleEventKind::Add,
+        // SAFETY: Only an external atomic counter changes; retained World payload and dynamic
+        // JSON are untouched.
+        unsafe {
+            use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                body_adds.fetch_add(1, Ordering::SeqCst);
+            })
+        },
+    );
+    world.observe_component_lifecycle::<Name>(
+        LifecycleEventKind::Remove,
+        // SAFETY: Only the external observation log changes after optional World reads;
+        // retained World payload is untouched.
+        unsafe {
+            use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, event| {
+                removals.lock().unwrap().push(event.entity());
+            })
+        },
+    );
 }
 
 fn ragdoll_replacement_world(
@@ -377,16 +394,26 @@ fn install_ragdoll_target_change<T: Component>(
     calls: Arc<AtomicUsize>,
 ) {
     let replacement = Mutex::new(Some(replacement));
-    world.observe_component_lifecycle::<T>(kind, move |world, event| {
-        if event.entity() != body {
-            return;
-        }
-        calls.fetch_add(1, Ordering::SeqCst);
-        match cause {
-            LifecycleTargetChange::World => *world = replacement.lock().unwrap().take().unwrap(),
-            LifecycleTargetChange::Schedule => *world.schedule_mut() = Default::default(),
-        }
-    });
+    world.observe_component_lifecycle::<T>(
+        kind,
+        // SAFETY: This retires the current World or schedule. Remaining work is counter-only
+        // scheduling; replacement history is never adopted.
+        unsafe {
+            use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                if event.entity() != body {
+                    return;
+                }
+                calls.fetch_add(1, Ordering::SeqCst);
+                match cause {
+                    LifecycleTargetChange::World => {
+                        *world = replacement.lock().unwrap().take().unwrap()
+                    }
+                    LifecycleTargetChange::Schedule => *world.schedule_mut() = Default::default(),
+                }
+            })
+        },
+    );
 }
 
 fn assert_ragdoll_primary_cancellation(error: &RagdollSpawnError, cause: LifecycleTargetChange) {
@@ -595,10 +622,15 @@ fn fail_ragdoll_configuration_by_removing_body(world: &mut World, body: EntityId
     // set_collider MissingEntity error; it does not test same-World reentry repair.
     world.observe_component_lifecycle::<RigidBodyComponent>(
         LifecycleEventKind::Add,
-        move |world, event| {
-            if event.entity() == body {
-                drop(world.remove_entity_recursive(body).unwrap());
-            }
+        // SAFETY: This only removes entities. Recursive callbacks in this fixture only observe,
+        // remove, or retire; no history payload grows.
+        unsafe {
+            use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                if event.entity() == body {
+                    drop(world.remove_entity_recursive(body).unwrap());
+                }
+            })
         },
     );
 }
@@ -622,12 +654,17 @@ fn ragdoll_ordinary_error_keeps_the_cancelled_cleanup_batch_and_stops_tail() {
         let probe_drops = drops.clone();
         world.observe_component_lifecycle::<RigidBodyComponent>(
             LifecycleEventKind::Add,
-            move |world, event| {
-                if event.entity() == c {
-                    world
-                        .insert(c, RagdollPayloadDropProbe(probe_drops.clone()))
-                        .unwrap();
-                }
+            // SAFETY: The inserted probe is only an Arc<AtomicUsize> in typed storage; it
+            // cannot alter NodeRecord or dynamic JSON.
+            unsafe {
+                use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                    if event.entity() == c {
+                        world
+                            .insert(c, RagdollPayloadDropProbe(probe_drops.clone()))
+                            .unwrap();
+                    }
+                })
             },
         );
         fail_ragdoll_configuration_by_removing_body(&mut world, d);
@@ -722,12 +759,17 @@ fn ragdoll_ordinary_rejected_cleanup_continues_the_remaining_prefix() {
     observe_ragdoll_body_events(&mut world, body_adds, removals.clone());
     world.observe_component_lifecycle::<RigidBodyComponent>(
         LifecycleEventKind::Add,
-        move |world, event| {
-            if event.entity() == d {
-                // B is already absent when reverse-prefix cleanup reaches it.
-                drop(world.remove_entity_recursive(b).unwrap());
-                drop(world.remove_entity_recursive(d).unwrap());
-            }
+        // SAFETY: This only removes entities. Recursive callbacks in this fixture only observe,
+        // remove, or retire; no history payload grows.
+        unsafe {
+            use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                if event.entity() == d {
+                    // B is already absent when reverse-prefix cleanup reaches it.
+                    drop(world.remove_entity_recursive(b).unwrap());
+                    drop(world.remove_entity_recursive(d).unwrap());
+                }
+            })
         },
     );
     let error = profile.spawn(&mut world, skeleton).unwrap_err();

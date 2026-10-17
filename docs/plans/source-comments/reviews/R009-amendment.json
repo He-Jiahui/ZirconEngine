@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R009F",
+  "parent_batch": "R009",
+  "reviewer": "root",
+  "created_at_utc": "2026-10-14T23:19:37.290697+00:00",
+  "source_path": "zircon_runtime_interface/src/reflect/schema_catalog/mod.rs",
+  "before_sha256": "3cff3b1f6a7237c88c84c8a00cc76149b1f65ab9f2f62e0ce6a24e7ce0db1914",
+  "after_sha256": "a7a8d3168ef6c4d29371fcd5b2f6f489156fc2fd302c5fa299c00d2a71f9c121",
+  "deletions": [
+    {
+      "before_byte_offset": 1196,
+      "after_byte_offset": 1196,
+      "byte_length": 2,
+      "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "exact_removed_bytes_hex": "0d0a",
+      "original_line": 31
+    },
+    {
+      "before_byte_offset": 1334,
+      "after_byte_offset": 1332,
+      "byte_length": 2,
+      "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "exact_removed_bytes_hex": "0d0a",
+      "original_line": 34
+    }
+  ],
+  "deleted_content_only_blank_CRLF": true,
+  "all_original_nonempty_lines_and_comments_preserved": true,
+  "exact_prior_source_reconstruction": true,
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R009.json",
+    "sha256": "15548756bdf5c720efbeb512fadae3326270b0c8302ff80aadde2103bf340cee"
+  },
+  "reason": "Remove precisely two empty CRLF lines between unchanged export docs and pub use, as required by actual rustfmt. No syntax tokens, strings, original comments, public exports or tests changed.",
+  "before_edit_check": {
+    "physical_path_rustfmt_exit_code": 1,
+    "proposed_exact_two_removal_stdin_rustfmt_exit_code": 0,
+    "prior_actual_tool_chunk_id": "d9598b"
+  },
+  "validation_status": "pending-new-physical-source-checks",
+  "formal_acceptance": false
+}

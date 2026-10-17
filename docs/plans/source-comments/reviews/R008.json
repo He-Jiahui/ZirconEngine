@@ -1,0 +1,977 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R008",
+  "reviewer": "core_sol",
+  "model": "gpt-6.1-sol",
+  "reasoning_effort": "max",
+  "created_at_utc": "2026-10-14 22:05:22 UTC",
+  "status": "reviewed-local-implementation-complete-main-review-pending",
+  "scope": {
+    "formal_source_paths": ["zircon_runtime/src/scene/reflect/runtime_type_registration.rs", "zircon_runtime/src/scene/reflect/reflect_component.rs", "zircon_runtime/src/scene/reflect/reflect_resource.rs", "zircon_runtime/src/scene/reflect/derived/component_adapter.rs", "zircon_runtime/src/scene/reflect/dynamic_component.rs", "zircon_runtime/src/scene/reflect/vm_type_backing.rs", "zircon_runtime/src/scene/reflect/derived/tests/cases.rs", "zircon_runtime/src/scene/reflect/tests/vm_type_backing.rs"],
+    "only_metadata_write_path": "docs/plans/source-comments/reviews/R008.json",
+    "source_and_test_behavior_changed": false,
+    "source_edit_boundary": "八个精确授权独立canonical文件，只增加必要中文doc/comment；DSL、原注释和所有原始字节保留。",
+    "grant_sha256_at_eight_file_expansion": "faa75504933875f7400fbe854469fda0a959e24de5f3cb6bc6c6b6ee696b8450",
+    "grant_sha256_at_source_writes": "308de754925953802e2c43f3acf73a6aa2c1227a9d893d96c2321ffef510ff19",
+    "formal_jenkins_acceptance": false,
+    "external_ownership_release": false,
+    "git_write": false,
+    "cargo_build_or_test": false,
+    "source_copies_or_temporary_scripts": false,
+    "grant_sha256_at_metadata_write": "968d3cfcc9601fdd2e9f87aa55c5e7945906196a338a9c25dbf50e26b27993a1"
+  },
+  "guidance": [
+    {"path": ".codex/skills/zircon-dev/SKILL.md", "sha256": "2d699cd12492709facc84079838a836356e4f7dd8b7bac475b65d10a804ed957", "read_spans": [[1, 35]]},
+    {"path": "docs/plans/source-comments/01-standard.md", "sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3", "read_spans": [[1, 25]]}
+  ],
+  "evidence_sources": [
+    {"id": "mounts", "path": "zircon_runtime/src/scene/reflect/mod.rs", "sha256": "c0649a9d0fad09a4a69aee0a1fbc63ba3896ef6b0bfe8d2fd91ee462e669a558", "read_spans": [[1, 56]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "derived_mount", "path": "zircon_runtime/src/scene/reflect/derived/mod.rs", "sha256": "904fbd2804b6f55b3eb92ae07cb0143fab8c7251d3ba92bfac95c3ff3ca4de43", "read_spans": [[1, 11]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "registry", "path": "zircon_runtime/src/scene/reflect/type_registry.rs", "sha256": "eae2abb018182c9f0f49a28fcd219bf8c5999ec1806fb8fd691180cc5b44c705", "read_spans": [[50, 125], [180, 285], [425, 470], [495, 605], [650, 750], [1000, 1131]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "facade", "path": "zircon_runtime/src/scene/reflect/world_reflection.rs", "sha256": "764d991f0dacd964ef45584e0b9fca316e22725bee354f7e54aa49b2863b255f", "read_spans": [[175, 280], [490, 530]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "admission", "path": "zircon_runtime/src/scene/reflect/value_admission.rs", "sha256": "7c82399bcfc1861ee3f45b0e5947fbc3d6f15c0e91c6c2c1840643143ee3ef7e", "read_spans": [[1, 114]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖", "read_basis": "复用已固定R005全文审查与当前同SHA；本批只重核pin，不宣告重新全文阅读。"},
+    {"id": "dynamic_world", "path": "zircon_runtime/src/scene/world/dynamic_components.rs", "sha256": "6236caeab79eb50fc5ec7bcf9d19c9d2fb7fb942be9704c83bdeaaefccb211ee", "read_spans": [[1, 450], [525, 615]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "component_directory", "path": "zircon_runtime/src/scene/world/component_type_registry.rs", "sha256": "744465ca9abf19b8fee6a28d02c4e9d3da99ebfaf00e5e640fd4da0a8d32bfb8", "read_spans": [[1, 135]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "typed", "path": "zircon_runtime/src/scene/world/typed_api.rs", "sha256": "03c6592c29c6eed3bc7d3b7e861ab81f330e441aaebf6c0d781a79e43ac79a8b", "read_spans": [[115, 230], [392, 480], [604, 650]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "staging", "path": "zircon_runtime/src/scene/world/transaction.rs", "sha256": "2bfad6e41823ebda7cf7e7a11d404e1cad473ae13f056b6c4ce9f0732a3af76c", "read_spans": [[1, 135]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "hierarchy", "path": "zircon_runtime/src/scene/world/hierarchy.rs", "sha256": "ccbcc9c0a009164706e4dfd7771cd8ac35967826fd1e438e4bae026e76e980a1", "read_spans": [[125, 175]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "query", "path": "zircon_runtime/src/scene/world/query.rs", "sha256": "06a9e954a37d87fd25d24267e4a9a31d1535aacfd212c0e3dc53356f310c93ee", "read_spans": [[640, 663]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "resource", "path": "zircon_runtime/src/scene/dynamic/scene/spawn/resource.rs", "sha256": "37d57859d45d89dfab5b453d8d710b38567f5e12e1eeaa3ece48c2b92564752a", "read_spans": [[150, 298]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "resource_fixture", "path": "zircon_runtime/src/scene/tests/dynamic_scene.rs", "sha256": "17fb63ef4c9b083f89b599d6f4d5ff8e98383d3cee40d3c231c1ecb66847e33c", "read_spans": [[1, 180]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "trait", "path": "zircon_runtime_interface/src/reflect/zr_reflect.rs", "sha256": "6eeb0e0f3e53014a566b69bd8d5f848ca3f82464bf49fd549a422864c1600f47", "read_spans": [[1, 32]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "macro", "path": "zircon_reflect_derive/src/derive.rs", "sha256": "7351e19214f9ff5fcdd539503cd94de8aebcc8c2113b030be151e51ec1da5a55", "read_spans": [[1, 220]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "macro_fields", "path": "zircon_reflect_derive/src/fields.rs", "sha256": "faad588c0123f1c6af93020bf91aee886926ca4ea0b7d1c3f76d9791c63bacee", "read_spans": [[1, 190], [210, 335]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "declared", "path": "zircon_runtime/src/scene/reflect/declared_value_type.rs", "sha256": "b289e0d721854de5a7d7c5eef1f8c1ca977cf8d64d0d6d6554f1ca6a3e1fd0df", "read_spans": [[1, 297]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖", "historical_context_sha256": "fbbbfa73265e90ae0045ffbdf785b84ad7e30883ce7e4673e4605ef3007fdb52", "drift_note": "父审提示R005旧context漂移；R008已实际全文读当前b289...，不改固定R005记录。"},
+    {"id": "json", "path": "zircon_runtime/src/scene/reflect/dynamic_json.rs", "sha256": "e5191d5508325adbcc697368c491d1c48590c774d2c80fd4b8022321f3a11642", "read_spans": [[1, 120]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "descriptor", "path": "zircon_runtime/src/core/framework/scene/component_type_desc/desc.rs", "sha256": "1d3f29fea7626567a3923e26360ab985763fad84f242a6adbbc02bea30f1f4b0", "read_spans": [[1, 13]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "descriptor_constructors", "path": "zircon_runtime/src/core/framework/scene/component_type_desc/constructors.rs", "sha256": "84ddc59b14d92de881c79b3f71263c645097c5bc17b53ac1072fdcf950451c3d", "read_spans": [[1, 37]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "descriptor_exports", "path": "zircon_runtime/src/core/framework/scene/component_type_descriptor/mod.rs", "sha256": "404b8a640cff1c4e3b44eddfa282597c698e90736502ec232e65b0a2d03cc89c", "read_spans": [[1, 9]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "property_path", "path": "zircon_runtime/src/core/framework/scene/entity_path.rs", "sha256": "076ae9e217dec67d88f3be810964b2a0439f1ff09368df530c7f9e44ac60f022", "read_spans": [[1, 135]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "dynamic_tests", "path": "zircon_runtime/src/scene/reflect/tests/dynamic_component.rs", "sha256": "eb46f4f7b3f813bdbe5161bee161becc46cd21c059f29b4a0e2162f4e25aebf9", "read_spans": [[1, 120]], "coverage": "context-only", "read_receipt": "ee7e49", "current_pin_rechecked": true, "attribution": "跨文件证据，不计本批完整覆盖"},
+    {"id": "builtin_registration", "path": "zircon_runtime/src/scene/reflect/builtin_reflection/registration.rs", "sha256": "97b9e7d955597fd14c8008f1db688c8ac7471af65747e0e4109921a83927709c", "lines": 28, "read_spans": [[1, 28]], "read_receipt": "ee7e49", "coverage": "context-only", "attribution": "主审/其它批归属；R008不修改或计入覆盖"},
+    {"id": "builtin_hierarchy", "path": "zircon_runtime/src/scene/reflect/builtin_reflection/hierarchy.rs", "sha256": "e0992639cb83bb8d64264c2219611eb3cb945fca03eab29ba65d7a55e99c3187", "lines": 133, "read_spans": [[1, 55]], "read_receipt": "ee7e49", "coverage": "context-only", "attribution": "主审/其它批归属；R008不修改或计入覆盖"},
+    {"id": "builtin_active", "path": "zircon_runtime/src/scene/reflect/builtin_reflection/active_in_hierarchy.rs", "sha256": "0bdbf15f0468d20d72f1492c499596a13460164dd86bdbb6f99f17f45be3be2b", "lines": 121, "read_spans": [[1, 50]], "read_receipt": "ee7e49", "coverage": "context-only", "attribution": "主审/其它批归属；R008不修改或计入覆盖"},
+    {"id": "scene_exports", "path": "zircon_runtime/src/scene/mod.rs", "sha256": "eb9f55d7dcb7a73c5f48b8eb6d1e43773f31c85db55d992c6bfda6f5dd4141d4", "lines": 168, "read_spans": [[116, 140]], "read_receipt": "ee7e49", "coverage": "context-only", "attribution": "主审/其它批归属；R008不修改或计入覆盖"},
+    {"id": "scene_batch_consumer", "path": "zircon_runtime/src/scene/dynamic/scene/spawn/transaction.rs", "sha256": "c7f914d9a6c2c0ccf94d1969b58beadeccae9cffca9c8b6153e55225f080f001", "lines": 747, "read_spans": [[655, 710]], "read_receipt": "ee7e49", "coverage": "context-only", "attribution": "主审/其它批归属；R008不修改或计入覆盖"},
+    {"id": "structure", "path": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs", "sha256": "2545b670140933dead71c86b6c19597c8429258f7a9430aced731ba8a7c4f850", "lines": 439, "read_spans": [[388, 425]], "read_receipt": "ee7e49", "coverage": "context-only", "attribution": "主审/其它批归属；R008不修改或计入覆盖"},
+    {"id": "r002_issue_record", "path": "docs/plans/source-comments/reviews/R002-issue-followup.json", "sha256": "5db82914a5d4a08b341133f3e7baaaa8da07cccdfbcd1bdc91df07ce27910864", "lines": 62, "read_spans": [[1, 62]], "read_receipt": "ee7e49", "coverage": "context-only", "attribution": "主审/其它批归属；R008不修改或计入覆盖"},
+    {"id": "owned:derived/tests/cases.rs", "path": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs", "sha256": "0e719152b1f813c952b9122115afb281e4e351c7eed38f1a7fbcc3a14ede3231", "read_spans": [[1, 193]], "coverage": "formal-R008-source", "basis": "全文before审查、插入后保全证明；仅新doc增加。"},
+    {"id": "owned:tests/vm_type_backing.rs", "path": "zircon_runtime/src/scene/reflect/tests/vm_type_backing.rs", "sha256": "7eda5da5af4ba5d2277d3ce36e4e977d8a223f8f1d6651a462bfcea37c96dba9", "read_spans": [[1, 173]], "coverage": "formal-R008-source", "basis": "全文before审查、插入后保全证明；断言/DSL原字节保留。"}
+  ],
+  "evidence_bindings": {
+    "mounts": ["mounts", "derived_mount", "scene_exports"],
+    "derived_mount": ["derived_mount"],
+    "registry": ["registry"],
+    "facade": ["facade"],
+    "admission": ["admission"],
+    "typed": ["typed", "hierarchy", "query"],
+    "hierarchy": ["hierarchy"],
+    "query": ["query"],
+    "staging": ["staging"],
+    "resource": ["resource"],
+    "resource_fixture": ["resource_fixture"],
+    "trait": ["trait"],
+    "macro": ["macro", "macro_fields"],
+    "macro_fields": ["macro_fields"],
+    "builtin": ["builtin_registration", "builtin_hierarchy", "builtin_active"],
+    "dynamic_world": ["dynamic_world", "component_directory"],
+    "json": ["json"],
+    "declared": ["declared"],
+    "descriptor": ["descriptor", "descriptor_constructors", "descriptor_exports"],
+    "property_path": ["property_path"],
+    "dynamic_tests": ["dynamic_tests"],
+    "derived_tests": ["owned:derived/tests/cases.rs"],
+    "vm_tests": ["owned:tests/vm_type_backing.rs"],
+    "scene_batch_consumer": ["scene_batch_consumer"],
+    "structure": ["structure"],
+    "r002_issue_record": ["r002_issue_record"]
+  },
+  "coverage_basis": {
+    "formal_file_count": 8,
+    "original_lines": 1407,
+    "current_lines": 1720,
+    "object_records": 132,
+    "manual_block_records": 59,
+    "insertion_blocks": 91,
+    "new_comment_lines": 313,
+    "removed_lines": 0,
+    "all_original_nonblank_lines_manually_accounted": true,
+    "context_files_complete_coverage_claimed": false,
+    "review_of_tests": "五个derived fixtures与四个VM backing fixtures逐断言静态审查，未执行。",
+    "documentation_decisions": "公开候选/函数表/能力/返回/借用边界补充有证据说明；小guard、简单转发和明示fixture断言保留，逐对象写明理由。"
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/src/scene/reflect/runtime_type_registration.rs",
+      "source_only_read_sha256": "dfca70c771d95b9922b0a70d91f23909dabaa02739101544318585ebbe292d86",
+      "before_sha256": "dfca70c771d95b9922b0a70d91f23909dabaa02739101544318585ebbe292d86",
+      "current_sha256": "f91280527650182b0e3c283f7c07ae06004ee4287296f848dcf665109dfa8e99",
+      "before_bytes": 1353,
+      "current_bytes": 2891,
+      "before_lines": 42,
+      "current_lines": 66,
+      "newline_counts": {
+        "before": {
+          "crlf": 0,
+          "lf": 42
+        },
+        "current": {
+          "crlf": 0,
+          "lf": 66
+        }
+      },
+      "before_state": "授予时与每次源码写入前精确staged/unstaged diff均空；每次匹配before SHA，无外来增量归本批。",
+      "whole_file_review": {
+        "read_all_original_lines": true,
+        "nonblank_original_lines_mapped_to_manual_blocks": true,
+        "objects_include_fields_variants_aliases_impls_and_cfg_mounts": true,
+        "basis": "先全文逐对象/分支阅读，再跨文件追踪；自动声明列表只核对遗漏。跨仓上下文不算本文件之外的覆盖。"
+      },
+      "objects": [
+        {"name": "module", "kind": "module", "span_before": [1, 42], "documentation_decision": "added", "audit": "候选仅拥有中立元数据和可选访问表；注册/发布与World存储分离。", "evidence": ["mounts", "registry", "facade"], "branches": [], "id": "R008-F01-O001", "span_current": [4, 66]},
+        {"name": "imports: fmt, ReflectTypeRegistration, ReflectComponent, ReflectResource", "kind": "imports", "span_before": [1, 5], "documentation_decision": "retain", "audit": "来源分别为std、Interface DTO及Runtime访问表；没有导出或副作用。", "evidence": ["trait", "mounts"], "branches": [], "id": "R008-F01-O002", "span_current": [4, 8]},
+        {"name": "RuntimeTypeRegistration", "kind": "struct+derive(Clone)", "span_before": [7, 13], "documentation_decision": "added", "audit": "原目录发布说明保留并限定为Runtime本地catalog；Clone复制候选内容，不复制World存储。", "evidence": ["registry", "facade"], "branches": [], "id": "R008-F01-O003", "span_current": [10, 29]},
+        {"name": "RuntimeTypeRegistration::registration", "kind": "field", "span_before": [10, 10], "documentation_decision": "added", "audit": "拥有型候选DTO；register校验和catalog准入先于类型目录插入。", "evidence": ["registry"], "branches": [], "id": "R008-F01-O004", "span_current": [24, 24]},
+        {"name": "RuntimeTypeRegistration::component", "kind": "field", "span_before": [11, 11], "documentation_decision": "added", "audit": "Option表示组件访问能力存在性，metadata-only可合法发布；实际访问/暂存另检查。", "evidence": ["facade", "staging", "derived_tests"], "branches": [], "id": "R008-F01-O005", "span_current": [26, 26]},
+        {"name": "RuntimeTypeRegistration::resource", "kind": "field", "span_before": [12, 12], "documentation_decision": "added", "audit": "Option表示资源访问表；复制表不会创建或复制World资源。", "evidence": ["resource", "facade"], "branches": [], "id": "R008-F01-O006", "span_current": [28, 28]},
+        {"name": "impl RuntimeTypeRegistration", "kind": "impl", "span_before": [15, 23], "documentation_decision": "retain", "audit": "单一metadata构造器；无额外生命周期或行为。", "evidence": ["registry"], "branches": [], "id": "R008-F01-O007", "span_current": [31, 43]},
+        {"name": "RuntimeTypeRegistration::metadata", "kind": "associated-function", "span_before": [16, 22], "documentation_decision": "added", "audit": "消费registration，component/resource均None；不准入、不发布、无实例。", "evidence": ["registry", "derived_tests"], "branches": [], "id": "R008-F01-O008", "span_current": [36, 42]},
+        {"name": "impl fmt::Debug for RuntimeTypeRegistration", "kind": "trait-impl", "span_before": [25, 34], "documentation_decision": "retain", "audit": "仅由格式化器呈现元数据和两种能力是否存在；不访问World，trait签名和链式代码足够。", "evidence": ["registry"], "branches": [], "id": "R008-F01-O009", "span_current": [45, 54]},
+        {"name": "RuntimeTypeRegistration::fmt", "kind": "trait-method", "span_before": [26, 33], "documentation_decision": "retain", "audit": "debug_struct依次写registration和两个is_some，最后finish原样传播fmt::Result；不输出函数地址。", "evidence": [], "branches": [], "id": "R008-F01-O010", "span_current": [46, 53]},
+        {"name": "impl PartialEq for RuntimeTypeRegistration", "kind": "trait-impl", "span_before": [36, 42], "documentation_decision": "added", "audit": "相等仅比较DTO及两表Option存在性；upsert据此识别元数据相等候选。未推断回调相等或访问计划版本。", "evidence": ["registry"], "branches": [], "id": "R008-F01-O011", "span_current": [60, 66]},
+        {"name": "RuntimeTypeRegistration::eq", "kind": "trait-method", "span_before": [37, 41], "documentation_decision": "covered-by-added-impl-doc", "audit": "三个&&表达式：DTO相等、组件存在性相等、资源存在性相等；忽略组件表路径和回调地址是当前比较事实。", "evidence": ["registry"], "branches": [], "id": "R008-F01-O012", "span_current": [61, 65]}
+      ],
+      "block_audit": [
+        {"span_before": [1, 6], "checked": "三组依赖与空白，无可执行初始化。", "id": "R008-F01-B001", "span_current": [4, 9], "object_ids": ["R008-F01-O002"]},
+        {"span_before": [7, 14], "checked": "derive、既有summary、三拥有字段。", "id": "R008-F01-B002", "span_current": [10, 30], "object_ids": ["R008-F01-O003", "R008-F01-O004", "R008-F01-O005", "R008-F01-O006"]},
+        {"span_before": [15, 24], "checked": "候选字面量把DTO移入、两能力置None。", "id": "R008-F01-B003", "span_current": [31, 44], "object_ids": ["R008-F01-O007", "R008-F01-O008"]},
+        {"span_before": [25, 35], "checked": "格式化链各项与错误结果。", "id": "R008-F01-B004", "span_current": [45, 55], "object_ids": ["R008-F01-O009", "R008-F01-O010"]},
+        {"span_before": [36, 42], "checked": "全部三项短路比较。", "id": "R008-F01-B005", "span_current": [60, 66], "object_ids": ["R008-F01-O011", "R008-F01-O012"]}
+      ],
+      "callers_traits_macros_registration_ffi_test_contracts": {
+        "callers": ["registry:63-125 register, 207-285 VM register/upsert", "builtin_registration:11-26"],
+        "traits": ["Clone", "Debug", "PartialEq"],
+        "macros": ["derive(Clone)"],
+        "registration": ["registry:669-734 validate before catalog publication"],
+        "ffi": "仅Rust候选数据，不是ABI结构；本文件无extern/unsafe导出。",
+        "test_contracts": ["derived_tests:130-153 metadata-only注册可接纳但不能暂存", "vm_tests:55-68 相同VM元数据upsert不增加schema generation"]
+      },
+      "insertions": [
+        {"object": "module", "kind": "module-doc", "before_line": 1, "before_byte_offset": 0, "after_byte_offset": 0, "byte_length": 193, "sha256": "86fdb16ddf0f99b1fe4aa294ed856850f7eac7c4dc6af1ab0fdb999d6065ee09", "after_line_span": [1, 3], "inserted_line_count": 3, "id": "R008-F01-I001", "object_ids": ["R008-F01-O001"], "exact_text": "//! Runtime 注册候选把中立反射元数据与 World 操作表配对。\n//! 候选由工厂或调用方构造，交给 `TypeRegistry` 准入和发布；本对象不拥有 World 实例。\n\n", "evidence": ["mounts"], "line_ending": "LF"},
+        {"object": "RuntimeTypeRegistration", "kind": "rustdoc", "before_line": 9, "before_byte_offset": 269, "after_byte_offset": 462, "byte_length": 475, "sha256": "239afdc438c023dd24009301f92bc6a26c31f5df467db26cecb5c1ab0f639fc2", "after_line_span": [12, 21], "inserted_line_count": 10, "id": "R008-F01-I002", "object_ids": ["R008-F01-O003"], "exact_text": "///\n/// # 约束与生命周期\n///\n/// 目录发布由 `TypeRegistry` 更新 Runtime 本地 catalog，对外模式读取见 `WorldReflection`。\n/// 构造候选与发布目录是两个步骤。`Clone` 复制元数据和适配器表，不复制 World 中的组件或资源。\n/// 适配器的路径及字段槽位须与对应元数据配对，实时访问门面再检查角色与能力是否存在。\n///\n/// # 参考\n///\n/// `TypeRegistry::register`、`WorldReflection`。\n", "evidence": ["registry", "facade"], "line_ending": "LF"},
+        {"object": "RuntimeTypeRegistration::registration", "kind": "rustdoc", "before_line": 10, "before_byte_offset": 306, "after_byte_offset": 974, "byte_length": 99, "sha256": "c2fb8d688005100ad8a0c69be0891735dce63588234f6e14597e08d9f1023fb6", "after_line_span": [23, 23], "inserted_line_count": 1, "id": "R008-F01-I003", "object_ids": ["R008-F01-O004"], "exact_text": "    /// 候选的拥有型元数据；注册表接纳后以 catalog 中规范化的版本保存。\n", "evidence": ["registry"], "line_ending": "LF"},
+        {"object": "RuntimeTypeRegistration::component", "kind": "rustdoc", "before_line": 11, "before_byte_offset": 353, "after_byte_offset": 1120, "byte_length": 114, "sha256": "d679df4d05f954094791d6c8350e6d546d0cae375af72871943954633257b390", "after_line_span": [25, 25], "inserted_line_count": 1, "id": "R008-F01-I004", "object_ids": ["R008-F01-O005"], "exact_text": "    /// 可选组件访问能力；仅注册元数据时可缺省，组件访问和暂存入口会另行检查。\n", "evidence": ["facade", "staging"], "line_ending": "LF"},
+        {"object": "RuntimeTypeRegistration::resource", "kind": "rustdoc", "before_line": 12, "before_byte_offset": 398, "after_byte_offset": 1279, "byte_length": 78, "sha256": "7a2eb010a247e2618dcb5d84595a86336b1082f9c681319e6162e3c779e4da2a", "after_line_span": [27, 27], "inserted_line_count": 1, "id": "R008-F01-I005", "object_ids": ["R008-F01-O006"], "exact_text": "    /// 可选资源访问能力；复制该函数表不复制资源实例。\n", "evidence": ["facade", "resource"], "line_ending": "LF"},
+        {"object": "RuntimeTypeRegistration::metadata", "kind": "rustdoc", "before_line": 16, "before_byte_offset": 475, "after_byte_offset": 1434, "byte_length": 298, "sha256": "cf241c7061e5837550f63dfa1007863aa6d9888772642715fb598e83922cb3cb", "after_line_span": [32, 35], "inserted_line_count": 4, "id": "R008-F01-I006", "object_ids": ["R008-F01-O008"], "exact_text": "    /// 建立两类 World 适配器均缺省的元数据候选。\n    ///\n    /// `registration` 的所有权移入返回对象；这里不执行目录准入或发布，也不创建实例。\n    /// 后续调用 `TypeRegistry::register`；实时访问或预检暂存仍须具备相应适配器。\n", "evidence": ["registry", "derived_tests"], "line_ending": "LF"},
+        {"object": "impl PartialEq for RuntimeTypeRegistration", "kind": "rustdoc", "before_line": 36, "before_byte_offset": 1075, "after_byte_offset": 2332, "byte_length": 281, "sha256": "4a8729f33a676510194f023d4e7e8be186108ff566ec27fb04a634373aade16a", "after_line_span": [56, 59], "inserted_line_count": 4, "id": "R008-F01-I007", "object_ids": ["R008-F01-O011"], "exact_text": "/// 比较元数据以及组件、资源适配器的存在性。\n///\n/// 不比较函数地址或组件表内的路径。`TypeRegistry::upsert_vm_type` 据此判断同元数据候选是否无需替换；\n/// 相等结果不能单独用来确认回调身份或访问计划版本。\n", "evidence": ["registry"], "line_ending": "LF"}
+      ],
+      "original_bytes_reconstruction": {
+        "removing_insertions_reconstructs_all_before_bytes": true,
+        "reconstructed_sha256": "dfca70c771d95b9922b0a70d91f23909dabaa02739101544318585ebbe292d86",
+        "reconstructed_bytes": 1353,
+        "original_bytes_retained": true,
+        "comment_and_whitespace_only": true,
+        "staged_and_unstaged_clean_before_write": true,
+        "algorithm": "从current按after_byte_offset倒序去掉每段byte_length；剩余所有字节长度及SHA须等于before，不依赖HEAD或源副本。"
+      },
+      "write_grant_sha256_at_source_write": "308de754925953802e2c43f3acf73a6aa2c1227a9d893d96c2321ffef510ff19",
+      "validation_receipt": "0ba582",
+      "issues": [],
+      "status": "reviewed-and-commented-local-awaiting-main-independent-review"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/reflect_component.rs",
+      "source_only_read_sha256": "155e156f1036c0ac031512c6d7497ea47270605fd12bda90ea74e08b7fc8ad33",
+      "before_sha256": "155e156f1036c0ac031512c6d7497ea47270605fd12bda90ea74e08b7fc8ad33",
+      "current_sha256": "651620991a524096a9185cff8e3e9aacfa6f6658324c75080386bd6b4e95d3d3",
+      "before_bytes": 8074,
+      "current_bytes": 14241,
+      "before_lines": 228,
+      "current_lines": 315,
+      "newline_counts": {
+        "before": {
+          "crlf": 228,
+          "lf": 228
+        },
+        "current": {
+          "crlf": 315,
+          "lf": 315
+        }
+      },
+      "before_state": "授予时与每次源码写入前精确staged/unstaged diff均空；每次匹配before SHA，无外来增量归本批。",
+      "whole_file_review": {
+        "read_all_original_lines": true,
+        "nonblank_original_lines_mapped_to_manual_blocks": true,
+        "objects_include_fields_variants_aliases_impls_and_cfg_mounts": true,
+        "basis": "先全文逐对象/分支阅读，再跨文件追踪；自动声明列表只核对遗漏。跨仓上下文不算本文件之外的覆盖。"
+      },
+      "objects": [
+        {"name": "module", "kind": "module", "span_before": [1, 228], "documentation_decision": "added", "audit": "同步Rust回调表，不保存World引用；字段准入/预算与具体存储提交分工。", "evidence": ["mounts", "facade"], "branches": [], "id": "R008-F02-O001", "span_current": [8, 315]},
+        {"name": "ReflectComponentReadFieldBySlot", "kind": "function-pointer-alias", "span_before": [1, 9], "documentation_decision": "added", "audit": "参数顺序&World、EntityId、完整路径、u32当前槽位；返回拥有值/ReflectError。稳定字段身份先由catalog解析为本次槽位。", "evidence": ["registry", "facade"], "branches": [], "id": "R008-F02-O002", "span_current": [8, 16]},
+        {"name": "ReflectComponentWriteFieldBySlot", "kind": "function-pointer-alias", "span_before": [11, 18], "documentation_decision": "added", "audit": "&mut World、EntityId、路径、当前槽位及拥有ReflectedValue；返回提供方变更标记/错误。", "evidence": ["facade", "typed", "dynamic_world"], "branches": [], "id": "R008-F02-O003", "span_current": [22, 29]},
+        {"name": "ReflectComponentWriteFieldsBySlot", "kind": "function-pointer-alias", "span_before": [20, 26], "documentation_decision": "added", "audit": "拥有Vec<(slot,value)>按输入次序传给提供方；重复槽位/提交失败边界由适配器实现。", "evidence": ["scene_batch_consumer", "dynamic_tests"], "branches": [], "id": "R008-F02-O004", "span_current": [35, 41]},
+        {"name": "ReflectComponentStageClone", "kind": "function-pointer-alias", "span_before": [28, 34], "documentation_decision": "added", "audit": "共享源、稳定实体/路径、独占目标；目标身份及必要schema先准备。成功()只是本次暂存执行。", "evidence": ["staging", "derived_tests", "dynamic_tests"], "branches": [], "id": "R008-F02-O005", "span_current": [48, 54]},
+        {"name": "ReflectComponent", "kind": "struct+derive(Clone)", "span_before": [36, 66], "documentation_decision": "added", "audit": "原summary保留；拥有String和fn指针/Option，不持有World借用，Clone复制表/路径。目录准入和图预算不会由表补做。", "evidence": ["registry", "facade"], "branches": [], "id": "R008-F02-O006", "span_current": [56, 106]},
+        {"name": "ReflectComponent::type_path", "kind": "field", "span_before": [39, 39], "documentation_decision": "added", "audit": "拥有路径传入每个回调；完整路径必须与配对元数据一致。", "evidence": ["registry"], "branches": [], "id": "R008-F02-O007", "span_current": [71, 71]},
+        {"name": "ReflectComponent::contains", "kind": "field", "span_before": [40, 40], "documentation_decision": "added", "audit": "共享World/实体/路径的存在性回调；不由表统一生成错误。", "evidence": ["typed"], "branches": [], "id": "R008-F02-O008", "span_current": [73, 73]},
+        {"name": "ReflectComponent::read_field", "kind": "field", "span_before": [41, 49], "documentation_decision": "added", "audit": "按规范名返回拥有型ReflectedValue或提供方错误；共享借用不外泄。", "evidence": ["trait", "typed"], "branches": [], "id": "R008-F02-O009", "span_current": [75, 83]},
+        {"name": "ReflectComponent::write_field", "kind": "field", "span_before": [50, 56], "documentation_decision": "added", "audit": "独占World与拥有值由提供方消费；bool为提供方变更结果。", "evidence": ["typed", "dynamic_world"], "branches": [], "id": "R008-F02-O010", "span_current": [85, 91]},
+        {"name": "ReflectComponent::read_field_by_slot", "kind": "field", "span_before": [57, 57], "documentation_decision": "added", "audit": "Option槽位读取能力；缺省入口立即报InvalidRegistration。", "evidence": ["facade"], "branches": [], "id": "R008-F02-O011", "span_current": [93, 93]},
+        {"name": "ReflectComponent::write_field_by_slot", "kind": "field", "span_before": [58, 58], "documentation_decision": "added", "audit": "Option槽位写入能力；缺省不回退按名入口。", "evidence": ["facade"], "branches": [], "id": "R008-F02-O012", "span_current": [95, 95]},
+        {"name": "ReflectComponent::write_fields_by_slot", "kind": "field", "span_before": [59, 59], "documentation_decision": "added", "audit": "Option批量能力；缺省不自动拆分单写。", "evidence": ["scene_batch_consumer"], "branches": [], "id": "R008-F02-O013", "span_current": [97, 97]},
+        {"name": "ReflectComponent::stage_clone", "kind": "field", "span_before": [60, 60], "documentation_decision": "added", "audit": "Option暂存能力，与组件是否存在是独立状态。", "evidence": ["staging"], "branches": [], "id": "R008-F02-O014", "span_current": [99, 99]},
+        {"name": "ReflectComponent::remove", "kind": "field", "span_before": [61, 65], "documentation_decision": "added", "audit": "独占World移除回调；保护和存储错误由具体提供方解释。", "evidence": ["typed"], "branches": [], "id": "R008-F02-O015", "span_current": [101, 105]},
+        {"name": "impl ReflectComponent", "kind": "impl", "span_before": [68, 218], "documentation_decision": "retain", "audit": "构建器安装能力，操作方法转发回调；每个方法单独检查。", "evidence": ["facade", "staging"], "branches": [], "id": "R008-F02-O016", "span_current": [108, 305]},
+        {"name": "ReflectComponent::new", "kind": "associated-function", "span_before": [69, 105], "documentation_decision": "added", "audit": "type_path.into拥有路径；存四必需回调，四Option能力为None；不执行回调、路径校验、注册或实例创建。", "evidence": ["registry"], "branches": [{"span_before": [94, 104], "audit": "所有初始化字段及四None均核对。", "span_current": [145, 155]}], "id": "R008-F02-O017", "span_current": [120, 156]},
+        {"name": "ReflectComponent::with_dense_field_slots", "kind": "builder-method", "span_before": [107, 115], "documentation_decision": "added", "audit": "消费self，读/写槽位回调同时置Some，返回同表；必须与当前元数据字段次序配对。", "evidence": ["macro", "registry"], "branches": [], "id": "R008-F02-O018", "span_current": [161, 169]},
+        {"name": "ReflectComponent::with_dense_field_batch_write", "kind": "builder-method", "span_before": [117, 123], "documentation_decision": "added", "audit": "消费self，将批量指针置Some，返回表；无执行或自动事务。", "evidence": ["scene_batch_consumer"], "branches": [], "id": "R008-F02-O019", "span_current": [174, 180]},
+        {"name": "ReflectComponent::with_stage_clone", "kind": "builder-method", "span_before": [125, 130], "documentation_decision": "added", "audit": "保留原English说明；消费self安装暂存fn，不克隆World或组件。", "evidence": ["staging"], "branches": [], "id": "R008-F02-O020", "span_current": [182, 190]},
+        {"name": "ReflectComponent::contains", "kind": "method", "span_before": [132, 134], "documentation_decision": "added", "audit": "把World/entity及本表路径交给存在性fn，直接返回bool。", "evidence": ["typed"], "branches": [], "id": "R008-F02-O021", "span_current": [193, 195]},
+        {"name": "ReflectComponent::read_field", "kind": "method", "span_before": [136, 146], "documentation_decision": "added", "audit": "按名转发；共有World和字符串只借用本次，输出值/错误由回调拥有。", "evidence": ["trait", "typed"], "branches": [], "id": "R008-F02-O022", "span_current": [200, 210]},
+        {"name": "ReflectComponent::write_field", "kind": "method", "span_before": [148, 156], "documentation_decision": "added", "audit": "独占World、拥有value移入按名fn，原样返回bool/错误；此层无预算或类型检查。", "evidence": ["facade", "typed"], "branches": [], "id": "R008-F02-O023", "span_current": [215, 223]},
+        {"name": "ReflectComponent::read_field_by_slot", "kind": "method", "span_before": [158, 171], "documentation_decision": "added", "audit": "None先构造missing_dense_slot_adapter(read)错误；Some按本表路径及当期槽位转发。", "evidence": ["registry", "facade"], "branches": [{"span_before": [167, 169], "audit": "缺省能力分支，无按名fallback。", "span_current": [238, 240]}, {"span_before": [170, 170], "audit": "存在回调后直接执行。", "span_current": [241, 241]}], "id": "R008-F02-O024", "span_current": [229, 242]},
+        {"name": "ReflectComponent::write_field_by_slot", "kind": "method", "span_before": [173, 184], "documentation_decision": "added", "audit": "None报缺省write槽位能力；Some消费value转发，不自动按名写入或补准入。", "evidence": ["facade"], "branches": [{"span_before": [180, 182], "audit": "缺省能力错误先于回调。", "span_current": [255, 257]}, {"span_before": [183, 183], "audit": "Some调用原样返回。", "span_current": [258, 258]}], "id": "R008-F02-O025", "span_current": [248, 259]},
+        {"name": "ReflectComponent::write_fields_by_slot", "kind": "method", "span_before": [186, 196], "documentation_decision": "added", "audit": "None报batch write能力错误；Some移入整批Vec，不拆分、不添加通用回滚。", "evidence": ["scene_batch_consumer", "dynamic_tests"], "branches": [{"span_before": [192, 194], "audit": "缺省整批能力错误。", "span_current": [271, 273]}, {"span_before": [195, 195], "audit": "整批交给提供方。", "span_current": [274, 274]}], "id": "R008-F02-O026", "span_current": [265, 275]},
+        {"name": "ReflectComponent::stage_clone", "kind": "method", "span_before": [198, 209], "documentation_decision": "added", "audit": "None→Ok(false)，Some回调?错误传播，成功→Ok(true)。bool为能力执行状态；World上层把false升级为特定缺能力错误。", "evidence": ["staging", "derived_tests"], "branches": [{"span_before": [204, 206], "audit": "缺省回调分支。", "span_current": [288, 290]}, {"span_before": [207, 208], "audit": "回调结果?与成功true。", "span_current": [291, 292]}], "id": "R008-F02-O027", "span_current": [282, 293]},
+        {"name": "ReflectComponent::remove", "kind": "method", "span_before": [211, 217], "documentation_decision": "added", "audit": "按本表路径转发独占World移除；变更与保护错误不在本表归一化。", "evidence": ["typed"], "branches": [], "id": "R008-F02-O028", "span_current": [298, 304]},
+        {"name": "missing_dense_slot_adapter", "kind": "private-function", "span_before": [220, 228], "documentation_decision": "retain", "audit": "小helper仅将type_path与operation拥有化组装InvalidRegistration；字符串已明确错误，不增加重复说明。", "evidence": ["facade"], "branches": [], "id": "R008-F02-O029", "span_current": [307, 315]}
+      ],
+      "block_audit": [
+        {"span_before": [1, 35], "checked": "四safe Rust fn类型参数、借用和拥有结果；不存在extern/ABI装箱。", "id": "R008-F02-B001", "span_current": [8, 55], "object_ids": ["R008-F02-O002", "R008-F02-O003", "R008-F02-O004", "R008-F02-O005"]},
+        {"span_before": [36, 67], "checked": "Clone、原summary和全部九字段逐项。", "id": "R008-F02-B002", "span_current": [56, 107], "object_ids": ["R008-F02-O006", "R008-F02-O007", "R008-F02-O008", "R008-F02-O009", "R008-F02-O010", "R008-F02-O011", "R008-F02-O012", "R008-F02-O013", "R008-F02-O014", "R008-F02-O015"]},
+        {"span_before": [68, 106], "checked": "构造参数及所有字面量字段。", "id": "R008-F02-B003", "span_current": [108, 157], "object_ids": ["R008-F02-O016", "R008-F02-O017"]},
+        {"span_before": [107, 131], "checked": "消费self、置Some、返回；保留原英文doc。", "id": "R008-F02-B004", "span_current": [161, 191], "object_ids": ["R008-F02-O018", "R008-F02-O019", "R008-F02-O020"]},
+        {"span_before": [132, 157], "checked": "全部转发实参、所有权与原样返回。", "id": "R008-F02-B005", "span_current": [193, 224], "object_ids": ["R008-F02-O021", "R008-F02-O022", "R008-F02-O023"]},
+        {"span_before": [158, 197], "checked": "三None错误/Some调用分支。", "id": "R008-F02-B006", "span_current": [229, 276], "object_ids": ["R008-F02-O024", "R008-F02-O025", "R008-F02-O026"]},
+        {"span_before": [198, 218], "checked": "暂存缺省false/错误/true、移除直接转发。", "id": "R008-F02-B007", "span_current": [282, 305], "object_ids": ["R008-F02-O027", "R008-F02-O028"]},
+        {"span_before": [219, 228], "checked": "拥有错误上下文。", "id": "R008-F02-B008", "span_current": [306, 315], "object_ids": ["R008-F02-O029"]}
+      ],
+      "callers_traits_macros_registration_ffi_test_contracts": {
+        "callers": ["facade:190-223 单字段写入，245-261组件批读", "staging:74-96 暂存能力复查", "scene_batch_consumer:685-695 场景整批访问"],
+        "traits": ["Clone；safe Rust fn pointer调用"],
+        "macros": ["derive(Clone)"],
+        "registration": ["registry:669-734 角色/路径/密集槽位能力准入", "derived_adapter and dynamic_component factories"],
+        "ffi": "四alias与表字段均safe Rust fn，不是extern C ABI；Runtime动态API有界检索无这些直接导出名。",
+        "test_contracts": ["derived_tests:130-188 两种缺省暂存能力错误", "dynamic_tests:10-50动态整批一次World变更"]
+      },
+      "insertions": [
+        {"object": "module", "kind": "module-doc", "before_line": 1, "before_byte_offset": 0, "after_byte_offset": 0, "byte_length": 243, "sha256": "ad3376a5c1745792492dce946e55bfbebeeef8675b1923fad23ab2720553182b", "after_line_span": [1, 3], "inserted_line_count": 3, "id": "R008-F02-I001", "object_ids": ["R008-F02-O001"], "exact_text": "//! 组件反射的同步 Rust 回调表，供 World 门面和动态场景预检调用。\r\n//! 表持有自己的类型路径，World 存储由调用方按本次操作借用；字段准入和提交策略由门面及具体适配器负责。\r\n\r\n", "evidence": ["mounts"], "line_ending": "CRLF"},
+        {"object": "ReflectComponentReadFieldBySlot", "kind": "rustdoc", "before_line": 1, "before_byte_offset": 0, "after_byte_offset": 243, "byte_length": 321, "sha256": "3a0af76ca646ffed18fae689e6ead5512396bef3f079b13c31f6bb1ec41cb992", "after_line_span": [4, 7], "inserted_line_count": 4, "id": "R008-F02-I002", "object_ids": ["R008-F02-O002"], "exact_text": "/// 按当前注册字段顺序读取一个组件字段的回调。\r\n///\r\n/// 参数依次为共享 World、稳定实体 ID、完整类型路径和零基槽位；成功结果拥有字段值。\r\n/// 槽位须与本次 schema 配对，持久引用使用稳定字段 ID；参见 `TypeRegistry::resolve_field_slot_by_id`。\r\n", "evidence": ["registry", "facade"], "line_ending": "CRLF"},
+        {"object": "ReflectComponentWriteFieldBySlot", "kind": "rustdoc", "before_line": 11, "before_byte_offset": 255, "after_byte_offset": 819, "byte_length": 309, "sha256": "130697a7826cb13f88587d93f84924fab24254064f13054b30e0da86c47f6008", "after_line_span": [18, 21], "inserted_line_count": 4, "id": "R008-F02-I003", "object_ids": ["R008-F02-O003"], "exact_text": "/// 按当前槽位消费一个字段值的组件写回调。\r\n///\r\n/// 参数依次为独占 World、稳定实体 ID、完整类型路径、槽位和拥有型值；返回值作为变更标记传给调用者。\r\n/// 具体适配器负责值转换和 World 提交；参见 `WorldReflection::reflect_write`。\r\n", "evidence": ["facade", "typed", "dynamic_world"], "line_ending": "CRLF"},
+        {"object": "ReflectComponentWriteFieldsBySlot", "kind": "rustdoc", "before_line": 20, "before_byte_offset": 541, "after_byte_offset": 1414, "byte_length": 286, "sha256": "8dabcb19229e0d709c705a90384acb78e21eb15155481ce41ba81ad8c92c3095", "after_line_span": [31, 34], "inserted_line_count": 4, "id": "R008-F02-I004", "object_ids": ["R008-F02-O004"], "exact_text": "/// 消费有序槽位/值列表的组件批量写回调。\r\n///\r\n/// World 独占借用和实体/路径定位仅持续本次调用；列表的所有权交给回调。\r\n/// 返回整批的变更标记；输入次序、重复槽位和失败时的提交边界由具体适配器规定。\r\n", "evidence": ["typed", "dynamic_tests"], "line_ending": "CRLF"},
+        {"object": "ReflectComponentStageClone", "kind": "rustdoc", "before_line": 28, "before_byte_offset": 826, "after_byte_offset": 1985, "byte_length": 395, "sha256": "356fd7726079cc76df6bdf0147b2aa1d9f57a5dcdaba45fdd3605f38d5dc83f1", "after_line_span": [43, 47], "inserted_line_count": 5, "id": "R008-F02-I005", "object_ids": ["R008-F02-O005"], "exact_text": "/// 把一个组件的克隆值暂存到独立预检 World 的回调。\r\n///\r\n/// 参数依次为共享源 World、稳定实体 ID、完整类型路径和独占目标 World；成功返回 `()`。\r\n/// 调用方先在目标恢复对应实体身份，并准备所需 schema；克隆范围和资源共享行为由具体组件实现决定。\r\n/// 参见 `World::stage_reflected_component_clone`。\r\n", "evidence": ["staging", "derived_tests", "dynamic_tests"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent", "kind": "rustdoc", "before_line": 38, "before_byte_offset": 1214, "after_byte_offset": 2768, "byte_length": 603, "sha256": "a4a75532d0fc54d81031907fb503ddfc9c2508dcec0df92324a4041d759e7a07", "after_line_span": [58, 68], "inserted_line_count": 11, "id": "R008-F02-I006", "object_ids": ["R008-F02-O006"], "exact_text": "///\r\n/// # 约束与生命周期\r\n///\r\n/// 本表只持有路径和函数指针，调用期间才借用 World。读结果拥有数据，写入值由回调消费。\r\n/// 槽位依据对应注册的当前字段顺序；本表不重新执行目录准入或值树预算。\r\n/// `WorldReflection` 在进入写回调前检查字段身份、可编辑性及预算，具体转换和提交由适配器承担。\r\n/// `Clone` 复制表与路径，用于结束目录借用后访问 World。\r\n///\r\n/// # 参考\r\n///\r\n/// `WorldReflection::reflect_write`、`derived_component_registration`、动态组件适配器。\r\n", "evidence": ["registry", "facade"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::type_path", "kind": "rustdoc", "before_line": 39, "before_byte_offset": 1245, "after_byte_offset": 3402, "byte_length": 79, "sha256": "879a8bf12b49738180a0d9b2b8aa91faf20ee063dae9ae06fcc23e8f349906ca", "after_line_span": [70, 70], "inserted_line_count": 1, "id": "R008-F02-I007", "object_ids": ["R008-F02-O007"], "exact_text": "    /// 传给回调的拥有型完整路径，须与配对元数据一致。\r\n", "evidence": ["registry"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::contains", "kind": "rustdoc", "before_line": 40, "before_byte_offset": 1273, "after_byte_offset": 3509, "byte_length": 82, "sha256": "ce3ea52754e81b2738fe2d718f9de0b450d5b32133cf73e7a8a43ee738d79bff", "after_line_span": [72, 72], "inserted_line_count": 1, "id": "R008-F02-I008", "object_ids": ["R008-F02-O008"], "exact_text": "    /// 由提供方判断给定 World、实体和路径是否有组件实例。\r\n", "evidence": ["typed"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::read_field", "kind": "rustdoc", "before_line": 41, "before_byte_offset": 1356, "after_byte_offset": 3674, "byte_length": 76, "sha256": "d47be8922e0098decd105cd5c9c982c1498135eb84bb19511342a7530e40d5e8", "after_line_span": [74, 74], "inserted_line_count": 1, "id": "R008-F02-I009", "object_ids": ["R008-F02-O009"], "exact_text": "    /// 按规范字段名读取拥有型值；错误由提供方返回。\r\n", "evidence": ["typed"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::write_field", "kind": "rustdoc", "before_line": 50, "before_byte_offset": 1619, "after_byte_offset": 4013, "byte_length": 73, "sha256": "d1e32656c1a4f21e48725373eee7d9b92e328029be8df33acdf87236e03260ae", "after_line_span": [84, 84], "inserted_line_count": 1, "id": "R008-F02-I010", "object_ids": ["R008-F02-O010"], "exact_text": "    /// 消费按名写入的值，并返回提供方的变更标记。\r\n", "evidence": ["typed"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::read_field_by_slot", "kind": "rustdoc", "before_line": 57, "before_byte_offset": 1876, "after_byte_offset": 4343, "byte_length": 89, "sha256": "5867d645d2179bcd7d52abf094d6ad286f7a5444c32570ece0c9e648cb74044a", "after_line_span": [92, 92], "inserted_line_count": 1, "id": "R008-F02-I011", "object_ids": ["R008-F02-O011"], "exact_text": "    /// 可选槽位读取能力；缺省时槽位入口返回 `InvalidRegistration`。\r\n", "evidence": ["facade"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::write_field_by_slot", "kind": "rustdoc", "before_line": 58, "before_byte_offset": 1946, "after_byte_offset": 4502, "byte_length": 76, "sha256": "f8fe70a38ed97475a82fd12d03aba26851099bf882768973d20010d924906c26", "after_line_span": [94, 94], "inserted_line_count": 1, "id": "R008-F02-I012", "object_ids": ["R008-F02-O012"], "exact_text": "    /// 可选槽位写入能力；槽位入口不回退到按名回调。\r\n", "evidence": ["facade"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::write_fields_by_slot", "kind": "rustdoc", "before_line": 59, "before_byte_offset": 2018, "after_byte_offset": 4650, "byte_length": 85, "sha256": "4f47bb9960a53facdb704ad52993d9b4b0d3bf6363af9c8b77db486bdfabf09a", "after_line_span": [96, 96], "inserted_line_count": 1, "id": "R008-F02-I013", "object_ids": ["R008-F02-O013"], "exact_text": "    /// 可选整批槽位写入能力；缺省时不拆成多次单字段写入。\r\n", "evidence": ["typed"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::stage_clone", "kind": "rustdoc", "before_line": 60, "before_byte_offset": 2092, "after_byte_offset": 4809, "byte_length": 88, "sha256": "c75015f6c9c8e76e6ff30345c823077aa55a31ebfd462537916efb7ee0dfaf9c", "after_line_span": [98, 98], "inserted_line_count": 1, "id": "R008-F02-I014", "object_ids": ["R008-F02-O014"], "exact_text": "    /// 可选组件暂存能力；是否安装与是否存在组件是不同检查。\r\n", "evidence": ["staging"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::remove", "kind": "rustdoc", "before_line": 61, "before_byte_offset": 2150, "after_byte_offset": 4955, "byte_length": 79, "sha256": "e4a15bc9d6e77c81b2c44b7e22420da745c173dae07881e90933b800404b6922", "after_line_span": [100, 100], "inserted_line_count": 1, "id": "R008-F02-I015", "object_ids": ["R008-F02-O015"], "exact_text": "    /// 由提供方移除组件，并解释受保护类型或存储错误。\r\n", "evidence": ["typed"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::new", "kind": "rustdoc", "before_line": 69, "before_byte_offset": 2357, "after_byte_offset": 5241, "byte_length": 545, "sha256": "0b2cc20e4ddba32d114ba112ca058b4bc69b283c4980893ae4d2720028c824ea", "after_line_span": [109, 119], "inserted_line_count": 11, "id": "R008-F02-I016", "object_ids": ["R008-F02-O017"], "exact_text": "    /// 组装按名访问和移除回调的候选表。\r\n    ///\r\n    /// # 参数\r\n    ///\r\n    /// `type_path` 的所有权归本表；其余参数为对应组件的存在性、读、写、移除函数。\r\n    /// 调用方负责与注册元数据配对。\r\n    ///\r\n    /// # 返回值与约束\r\n    ///\r\n    /// 返回未安装槽位读写、批量写入或暂存回调的表；这里不校验路径、不注册类型、不执行回调。\r\n    /// 需要这些能力时使用下方构建方法，参见 `derived_component_registration`。\r\n", "evidence": ["typed", "registry"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::with_dense_field_slots", "kind": "rustdoc", "before_line": 107, "before_byte_offset": 3607, "after_byte_offset": 7036, "byte_length": 202, "sha256": "ac354e0db77652d05282ae25ea3fd5337630ffd7ca3380c65f5c1e25edca45ad", "after_line_span": [158, 160], "inserted_line_count": 3, "id": "R008-F02-I017", "object_ids": ["R008-F02-O018"], "exact_text": "    /// 消费本表并安装成对的当前槽位读写回调，返回更新后的表。\r\n    ///\r\n    /// 两个回调的槽位须对应配对 schema 的字段顺序；这里只保存函数指针。\r\n", "evidence": ["macro", "typed"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::with_dense_field_batch_write", "kind": "rustdoc", "before_line": 117, "before_byte_offset": 3952, "after_byte_offset": 7583, "byte_length": 212, "sha256": "7f3132eb737a00bdb214f41ede80efee74e8666f6ce63840f19607c6f7d243f7", "after_line_span": [171, 173], "inserted_line_count": 3, "id": "R008-F02-I018", "object_ids": ["R008-F02-O019"], "exact_text": "    /// 消费本表并安装批量槽位写入回调，返回更新后的表。\r\n    ///\r\n    /// 批量转换、次序和提交边界由该回调实现；本方法不把单字段回调包装成批量操作。\r\n", "evidence": ["typed", "dynamic_tests"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::with_stage_clone", "kind": "rustdoc", "before_line": 127, "before_byte_offset": 4324, "after_byte_offset": 8167, "byte_length": 187, "sha256": "344720ecc50f68293915dc5242ae9aabebd03a5d3a63d76b688ff8cb4ac1ef82", "after_line_span": [184, 186], "inserted_line_count": 3, "id": "R008-F02-I019", "object_ids": ["R008-F02-O020"], "exact_text": "    ///\r\n    /// 消费本表并保存暂存回调，返回更新后的表；不在构建时克隆数据。\r\n    /// 调用协议与目标实体前提见 `ReflectComponentStageClone`。\r\n", "evidence": ["staging"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::contains", "kind": "rustdoc", "before_line": 132, "before_byte_offset": 4484, "after_byte_offset": 8514, "byte_length": 107, "sha256": "8abcb4df6f259415577f1dc6b32c9c720142e29e385d6beda733458339ba097b", "after_line_span": [192, 192], "inserted_line_count": 1, "id": "R008-F02-I020", "object_ids": ["R008-F02-O021"], "exact_text": "    /// 把共享 World、稳定实体 ID 和本表路径交给存在性回调，并原样返回结果。\r\n", "evidence": ["typed"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::read_field", "kind": "rustdoc", "before_line": 136, "before_byte_offset": 4649, "after_byte_offset": 8786, "byte_length": 218, "sha256": "84344ee09130c8baa3f0b1039253a49d69a88f18757733a478721ff77d04e128", "after_line_span": [197, 199], "inserted_line_count": 3, "id": "R008-F02-I021", "object_ids": ["R008-F02-O022"], "exact_text": "    /// 按规范字段名转发读取，成功结果拥有其数据，World 借用仅持续本次调用。\r\n    ///\r\n    /// `entity` 与本表路径定位组件；字段名和读取错误的解释由回调负责。\r\n", "evidence": ["typed"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::write_field", "kind": "rustdoc", "before_line": 148, "before_byte_offset": 5020, "after_byte_offset": 9375, "byte_length": 241, "sha256": "6852617e43f4c15c456669dcc5c93d979a33aa8d6416bfa070dc4b6173c601cb", "after_line_span": [212, 214], "inserted_line_count": 3, "id": "R008-F02-I022", "object_ids": ["R008-F02-O023"], "exact_text": "    /// 把按名写入的拥有型 `value` 交给回调，原样返回变更标记或错误。\r\n    ///\r\n    /// `world` 为本次操作的独占借用；本方法不追加字段准入或回滚，参见 `WorldReflection::reflect_write`。\r\n", "evidence": ["facade", "typed"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::read_field_by_slot", "kind": "rustdoc", "before_line": 158, "before_byte_offset": 5400, "after_byte_offset": 9996, "byte_length": 299, "sha256": "15b29c90ff2a9c196a624481ceafea6f06e9b480be85b1a1f53b1338b00637a7", "after_line_span": [225, 228], "inserted_line_count": 4, "id": "R008-F02-I023", "object_ids": ["R008-F02-O024"], "exact_text": "    /// 按当前注册的零基槽位读取拥有型值。\r\n    ///\r\n    /// 未安装槽位读取回调时返回 `InvalidRegistration`；已安装时由回调解释槽位和存储错误。\r\n    /// 调用方须将槽位与当前 schema 配对，参见 `TypeRegistry::resolve_field_slot_by_id`。\r\n", "evidence": ["registry", "facade"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::write_field_by_slot", "kind": "rustdoc", "before_line": 173, "before_byte_offset": 5940, "after_byte_offset": 10835, "byte_length": 289, "sha256": "89160888b8d6878bce6664db70b3b455d0cdb8e5dbecd89c720db22a74c88ac7", "after_line_span": [244, 247], "inserted_line_count": 4, "id": "R008-F02-I024", "object_ids": ["R008-F02-O025"], "exact_text": "    /// 消费当前槽位的字段值，原样返回写回调的变更标记或错误。\r\n    ///\r\n    /// 缺省回调先返回 `InvalidRegistration`；本方法不通过字段名补做写入。\r\n    /// 调用方负责当前槽位及准入，参见 `WorldReflection::reflect_write`。\r\n", "evidence": ["facade"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::write_fields_by_slot", "kind": "rustdoc", "before_line": 186, "before_byte_offset": 6492, "after_byte_offset": 11676, "byte_length": 293, "sha256": "47a2d4d30e737fae88c91312a2798afb9ef2d0990f6d64714ca0c4b69593cb9e", "after_line_span": [261, 264], "inserted_line_count": 4, "id": "R008-F02-I025", "object_ids": ["R008-F02-O026"], "exact_text": "    /// 把有序 `fields` 列表交给批量回调，原样返回整批变更标记或错误。\r\n    ///\r\n    /// 缺省回调返回 `InvalidRegistration`；本层不追加逐项准入或通用事务保证。\r\n    /// 派生组件和动态组件分别实现自己的候选与提交策略。\r\n", "evidence": ["typed", "dynamic_tests"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::stage_clone", "kind": "rustdoc", "before_line": 198, "before_byte_offset": 7030, "after_byte_offset": 12507, "byte_length": 462, "sha256": "8da54466743eb379cdeafe57174366374aca4c886559252921019576905c0e89", "after_line_span": [277, 281], "inserted_line_count": 5, "id": "R008-F02-I026", "object_ids": ["R008-F02-O027"], "exact_text": "    /// 按组件暂存协议调用可选回调。\r\n    ///\r\n    /// `source` 为共享源 World，`entity` 是待暂存的稳定身份，`target` 为已准备身份的独占预检 World。\r\n    /// 缺省回调返回 `Ok(false)`；回调成功返回 `Ok(true)`，错误原样传播。\r\n    /// 这里的布尔值表示暂存能力已执行，不表示目标数据是否变化；上层 `World::stage_reflected_component_clone` 会把缺省能力转成错误。\r\n", "evidence": ["staging", "derived_tests"], "line_ending": "CRLF"},
+        {"object": "ReflectComponent::remove", "kind": "rustdoc", "before_line": 211, "before_byte_offset": 7459, "after_byte_offset": 13398, "byte_length": 228, "sha256": "dacc0264913371f6b9826102bd2fe61515957693867091fac9fb044bcac1eb96", "after_line_span": [295, 297], "inserted_line_count": 3, "id": "R008-F02-I027", "object_ids": ["R008-F02-O028"], "exact_text": "    /// 把独占 World、实体与本表路径交给移除回调，原样返回其变更标记或错误。\r\n    ///\r\n    /// 可移除性与保护类型错误由具体适配器决定，参见派生组件的 `remove` 回调。\r\n", "evidence": ["typed"], "line_ending": "CRLF"}
+      ],
+      "original_bytes_reconstruction": {
+        "removing_insertions_reconstructs_all_before_bytes": true,
+        "reconstructed_sha256": "155e156f1036c0ac031512c6d7497ea47270605fd12bda90ea74e08b7fc8ad33",
+        "reconstructed_bytes": 8074,
+        "original_bytes_retained": true,
+        "comment_and_whitespace_only": true,
+        "staged_and_unstaged_clean_before_write": true,
+        "algorithm": "从current按after_byte_offset倒序去掉每段byte_length；剩余所有字节长度及SHA须等于before，不依赖HEAD或源副本。"
+      },
+      "write_grant_sha256_at_source_write": "308de754925953802e2c43f3acf73a6aa2c1227a9d893d96c2321ffef510ff19",
+      "validation_receipt": "0ba582",
+      "issues": [],
+      "status": "reviewed-and-commented-local-awaiting-main-independent-review"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/reflect_resource.rs",
+      "source_only_read_sha256": "453fbbbc7f7115be7ee11a741f51e3eacd195cac85230cb463d7168dcaeaf6a1",
+      "before_sha256": "453fbbbc7f7115be7ee11a741f51e3eacd195cac85230cb463d7168dcaeaf6a1",
+      "current_sha256": "c759b1f6d1dc24205df129c27c81647c6861247f87f0865914c09d060673de03",
+      "before_bytes": 4837,
+      "current_bytes": 9518,
+      "before_lines": 143,
+      "current_lines": 206,
+      "newline_counts": {
+        "before": {
+          "crlf": 120,
+          "lf": 143
+        },
+        "current": {
+          "crlf": 169,
+          "lf": 206
+        }
+      },
+      "before_state": "授予时与每次源码写入前精确staged/unstaged diff均空；每次匹配before SHA，无外来增量归本批。",
+      "whole_file_review": {
+        "read_all_original_lines": true,
+        "nonblank_original_lines_mapped_to_manual_blocks": true,
+        "objects_include_fields_variants_aliases_impls_and_cfg_mounts": true,
+        "basis": "先全文逐对象/分支阅读，再跨文件追踪；自动声明列表只核对遗漏。跨仓上下文不算本文件之外的覆盖。"
+      },
+      "objects": [
+        {"name": "module", "kind": "module", "span_before": [1, 143], "documentation_decision": "added", "audit": "Copy回调表与World资源存储分离；资源创建、估算、克隆、转移各自能力。", "evidence": ["mounts", "resource"], "branches": [], "id": "R008-F03-O001", "span_current": [7, 206]},
+        {"name": "ReflectResourceReadFieldBySlot", "kind": "function-pointer-alias", "span_before": [1, 7], "documentation_decision": "added", "audit": "共享World+当前u32槽位→拥有ReflectedValue/错误；按资源表配对schema。", "evidence": ["facade"], "branches": [], "id": "R008-F03-O002", "span_current": [7, 13]},
+        {"name": "ReflectResourceWriteFieldBySlot", "kind": "function-pointer-alias", "span_before": [9, 14], "documentation_decision": "added", "audit": "独占World+槽位+拥有value→提供方bool/错误；不由类型签名承诺回滚。", "evidence": ["facade", "resource_fixture"], "branches": [], "id": "R008-F03-O003", "span_current": [18, 23]},
+        {"name": "ReflectResourceWriteFieldsBySlot", "kind": "function-pointer-alias", "span_before": [16, 20], "documentation_decision": "added", "audit": "独占World与拥有有序Vec→整批bool/错误；次序/重复槽位/提交由提供方负责。", "evidence": ["resource", "resource_fixture"], "branches": [], "id": "R008-F03-O004", "span_current": [28, 32]},
+        {"name": "ReflectResourcePreflightTransfer", "kind": "function-pointer-alias", "span_before": [22, 26], "documentation_decision": "added", "audit": "两个独占World依次为预检source与artifact，回调在live发布前执行；成功()，失败由调用方处理。", "evidence": ["resource", "staging", "resource_fixture"], "branches": [], "id": "R008-F03-O005", "span_current": [38, 42]},
+        {"name": "ReflectResource", "kind": "struct+derive(Clone,Copy)", "span_before": [28, 59], "documentation_decision": "added", "audit": "原summary保留；表本身无World借用/资源值，复制fn指针不复制资源。当前槽位与元数据配对。", "evidence": ["facade", "resource"], "branches": [], "id": "R008-F03-O006", "span_current": [44, 95]},
+        {"name": "ReflectResource::estimate_stage_clone_bytes", "kind": "field", "span_before": [31, 33], "documentation_decision": "added", "audit": "可选usize字节估算，单次查询不累计全局预算。", "evidence": ["resource"], "branches": [], "id": "R008-F03-O007", "span_current": [58, 60]},
+        {"name": "ReflectResource::stage_clone", "kind": "field", "span_before": [34, 39], "documentation_decision": "added", "audit": "可选共享源→独占目标资源克隆；有界场景协议还要求估算。", "evidence": ["resource", "resource_fixture"], "branches": [], "id": "R008-F03-O008", "span_current": [62, 67]},
+        {"name": "ReflectResource::transfer_preflight", "kind": "field", "span_before": [40, 42], "documentation_decision": "added", "audit": "必需预检→artifact转移fn；原English时机说明保留，live发布前执行。", "evidence": ["resource", "staging"], "branches": [], "id": "R008-F03-O009", "span_current": [68, 72]},
+        {"name": "ReflectResource::ensure", "kind": "field", "span_before": [43, 47], "documentation_decision": "added", "audit": "可选资源创建fn，false可表示已存在；调用方复查contains。", "evidence": ["resource", "resource_fixture"], "branches": [], "id": "R008-F03-O010", "span_current": [74, 78]},
+        {"name": "ReflectResource::contains", "kind": "field", "span_before": [48, 48], "documentation_decision": "added", "audit": "共享World中的资源实例存在性。", "evidence": ["resource_fixture"], "branches": [], "id": "R008-F03-O011", "span_current": [80, 80]},
+        {"name": "ReflectResource::read_field", "kind": "field", "span_before": [49, 55], "documentation_decision": "added", "audit": "规范名读取拥有值；资源/名称/转换错误由提供方实现。", "evidence": ["resource_fixture"], "branches": [], "id": "R008-F03-O012", "span_current": [82, 88]},
+        {"name": "ReflectResource::read_field_by_slot", "kind": "field", "span_before": [56, 56], "documentation_decision": "added", "audit": "必需当期槽位读fn；稳定ID由门面解析。", "evidence": ["facade"], "branches": [], "id": "R008-F03-O013", "span_current": [90, 90]},
+        {"name": "ReflectResource::write_field_by_slot", "kind": "field", "span_before": [57, 57], "documentation_decision": "added", "audit": "必需当期槽位写fn，拥有value，bool回传。", "evidence": ["facade"], "branches": [], "id": "R008-F03-O014", "span_current": [92, 92]},
+        {"name": "ReflectResource::write_fields_by_slot", "kind": "field", "span_before": [58, 58], "documentation_decision": "added", "audit": "必需整批fn，表不自动逐项拆分。", "evidence": ["resource"], "branches": [], "id": "R008-F03-O015", "span_current": [94, 94]},
+        {"name": "impl ReflectResource", "kind": "impl", "span_before": [61, 143], "documentation_decision": "retain", "audit": "逐方法操作都只包装相应回调，已逐项审查。", "evidence": ["resource"], "branches": [], "id": "R008-F03-O016", "span_current": [97, 206]},
+        {"name": "ReflectResource::estimate_stage_clone_bytes", "kind": "method", "span_before": [62, 69], "documentation_decision": "added", "audit": "Option.map回调再transpose：缺省Ok(None)、成功Some(bytes)、Err传播；预算累计及克隆顺序在调用方。", "evidence": ["resource", "resource_fixture"], "branches": [], "id": "R008-F03-O017", "span_current": [102, 109]},
+        {"name": "ReflectResource::stage_clone", "kind": "method", "span_before": [71, 81], "documentation_decision": "added", "audit": "None→Ok(false)，Some执行?再Ok(true)；bool仅为能力执行，不能推断目标是否改变。", "evidence": ["resource", "resource_fixture"], "branches": [{"span_before": [76, 78], "audit": "能力缺省分支。", "span_current": [120, 122]}, {"span_before": [79, 80], "audit": "提供方错误传播/成功true。", "span_current": [123, 124]}], "id": "R008-F03-O018", "span_current": [115, 125]},
+        {"name": "ReflectResource::transfer_preflight", "kind": "method", "span_before": [83, 89], "documentation_decision": "added", "audit": "source/artifact独占借用原样转发；不复校字段、恢复/复制源。具体回调从预检中移出到artifact，上层稍后发布。", "evidence": ["resource", "staging"], "branches": [], "id": "R008-F03-O019", "span_current": [131, 137]},
+        {"name": "ReflectResource::ensure", "kind": "method", "span_before": [91, 99], "documentation_decision": "added", "audit": "None返回false；Some直接返回提供方bool，不能单凭false判断资源存在或创建失败。场景ensure在后复查contains。", "evidence": ["resource", "resource_fixture"], "branches": [{"span_before": [95, 97], "audit": "缺省返回false。", "span_current": [147, 149]}, {"span_before": [98, 98], "audit": "已安装回调直接执行。", "span_current": [150, 150]}], "id": "R008-F03-O020", "span_current": [143, 151]},
+        {"name": "ReflectResource::contains", "kind": "method", "span_before": [101, 103], "documentation_decision": "added", "audit": "共享World→fn原样bool。", "evidence": ["resource_fixture"], "branches": [], "id": "R008-F03-O021", "span_current": [154, 156]},
+        {"name": "ReflectResource::read_field", "kind": "method", "span_before": [105, 114], "documentation_decision": "added", "audit": "共享World与规范名只借用本次，原样拥有值/错误。", "evidence": ["resource_fixture"], "branches": [], "id": "R008-F03-O022", "span_current": [159, 168]},
+        {"name": "ReflectResource::read_field_by_slot", "kind": "method", "span_before": [116, 125], "documentation_decision": "added", "audit": "必需fn按当前槽位转发读取，门面将持久字段身份解析为当期槽位。", "evidence": ["facade"], "branches": [], "id": "R008-F03-O023", "span_current": [173, 182]},
+        {"name": "ReflectResource::write_fields_by_slot", "kind": "method", "span_before": [127, 133], "documentation_decision": "added", "audit": "拥有Vec交给必需批量fn，原样结果；不补准入、拆分或回滚。", "evidence": ["resource", "resource_fixture"], "branches": [], "id": "R008-F03-O024", "span_current": [187, 193]},
+        {"name": "ReflectResource::write_field_by_slot", "kind": "method", "span_before": [135, 142], "documentation_decision": "added", "audit": "拥有value交给必需槽位fn，表层不补字段/预算准入。", "evidence": ["facade"], "branches": [], "id": "R008-F03-O025", "span_current": [198, 205]}
+      ],
+      "block_audit": [
+        {"span_before": [1, 27], "checked": "四fn alias全部参数、返回、两World可变借用。", "id": "R008-F03-B001", "span_current": [7, 43], "object_ids": ["R008-F03-O002", "R008-F03-O003", "R008-F03-O004", "R008-F03-O005"]},
+        {"span_before": [28, 60], "checked": "Clone/Copy、原summary和九字段，包括原transfer English doc。", "id": "R008-F03-B002", "span_current": [44, 96], "object_ids": ["R008-F03-O006", "R008-F03-O007", "R008-F03-O008", "R008-F03-O009", "R008-F03-O010", "R008-F03-O011", "R008-F03-O012", "R008-F03-O013", "R008-F03-O014", "R008-F03-O015"]},
+        {"span_before": [61, 90], "checked": "Option map/transpose、缺省false与成功true、转移实参。", "id": "R008-F03-B003", "span_current": [97, 138], "object_ids": ["R008-F03-O016", "R008-F03-O017", "R008-F03-O018", "R008-F03-O019"]},
+        {"span_before": [91, 104], "checked": "None=false、Some执行及存在性转发。", "id": "R008-F03-B004", "span_current": [143, 157], "object_ids": ["R008-F03-O020", "R008-F03-O021"]},
+        {"span_before": [105, 126], "checked": "按名和当前槽位所有读取实参与拥有结果。", "id": "R008-F03-B005", "span_current": [159, 183], "object_ids": ["R008-F03-O022", "R008-F03-O023"]},
+        {"span_before": [127, 143], "checked": "拥有Vec/value写入、原样bool/错误、impl闭合。", "id": "R008-F03-B006", "span_current": [187, 206], "object_ids": ["R008-F03-O024", "R008-F03-O025"]}
+      ],
+      "callers_traits_macros_registration_ffi_test_contracts": {
+        "callers": ["facade:190-223资源字段写入", "resource:170-196 ensure→批写→artifact转移；202-298预算/克隆/创建协议", "staging:102-131 transfer concrete resource"],
+        "traits": ["Clone,Copy；safe Rust fn pointer"],
+        "macros": ["derive(Clone,Copy)"],
+        "registration": ["RuntimeTypeRegistration.resource为Option；门面检查角色/访问表"],
+        "ffi": "本表fn均Rust ABI且无World借用存储；本文件无extern或unsafe。",
+        "test_contracts": ["resource_fixture:87-142 FrameCounter估算/clone/transfer/ensure/contains具体能力", "本批没有完整审查该上下文测试文件或运行测试"]
+      },
+      "insertions": [
+        {"object": "module", "kind": "module-doc", "before_line": 1, "before_byte_offset": 0, "after_byte_offset": 0, "byte_length": 217, "sha256": "aa4ad725aed684cd014b0a6f2d5368a1491d0dba707209cc87bf78b49dce4818", "after_line_span": [1, 3], "inserted_line_count": 3, "id": "R008-F03-I001", "object_ids": ["R008-F03-O001"], "exact_text": "//! 资源反射的同步 Rust 回调表，供 World 访问和动态场景资源预检使用。\n//! 表复制仅复制函数指针；资源值由各 World 持有，暂存、创建与转移是分别提供的能力。\n\n", "evidence": ["mounts"], "line_ending": "LF"},
+        {"object": "ReflectResourceReadFieldBySlot", "kind": "rustdoc", "before_line": 1, "before_byte_offset": 0, "after_byte_offset": 217, "byte_length": 164, "sha256": "0da77d7d97c438cff7fd18aa14dce7f1b7e55ba154a41509ddea62ab1385dd32", "after_line_span": [4, 6], "inserted_line_count": 3, "id": "R008-F03-I002", "object_ids": ["R008-F03-O002"], "exact_text": "/// 按当前资源注册的零基槽位读取拥有型字段值的回调。\n///\n/// 共享 World 只在本次调用中借用；槽位须与配对 schema 一致。\n", "evidence": ["facade", "resource_fixture"], "line_ending": "LF"},
+        {"object": "ReflectResourceWriteFieldBySlot", "kind": "rustdoc", "before_line": 9, "before_byte_offset": 206, "after_byte_offset": 587, "byte_length": 179, "sha256": "7c2bc6db9052d80bb46a88ca888be6078eb451d79df98aaa96bb047ee53d557f", "after_line_span": [15, 17], "inserted_line_count": 3, "id": "R008-F03-I003", "object_ids": ["R008-F03-O003"], "exact_text": "/// 消费当前槽位的拥有型值并返回变更标记的资源写回调。\n///\n/// World 为独占借用；具体值转换、资源变更和错误边界由提供方实现。\n", "evidence": ["facade", "resource_fixture"], "line_ending": "LF"},
+        {"object": "ReflectResourceWriteFieldsBySlot", "kind": "rustdoc", "before_line": 16, "before_byte_offset": 442, "after_byte_offset": 1002, "byte_length": 210, "sha256": "cd2a1c31411e32789cdf2009e42a8ec32d06a77caf4890d8f73457d79cdc25c7", "after_line_span": [25, 27], "inserted_line_count": 3, "id": "R008-F03-I004", "object_ids": ["R008-F03-O004"], "exact_text": "/// 消费有序槽位/值列表的资源批量回调，返回整批变更标记。\r\n///\r\n/// 输入次序、重复槽位和提交策略由提供方负责；调用者不能仅由此签名推导通用回滚。\r\n", "evidence": ["resource_fixture", "resource"], "line_ending": "CRLF"},
+        {"object": "ReflectResourcePreflightTransfer", "kind": "rustdoc", "before_line": 22, "before_byte_offset": 678, "after_byte_offset": 1448, "byte_length": 374, "sha256": "92c72e966d85eb2a12dbe7a075ad1f68ac19c83771e5a1ee89c66b846cbc7b7d", "after_line_span": [34, 37], "inserted_line_count": 4, "id": "R008-F03-I005", "object_ids": ["R008-F03-O005"], "exact_text": "/// 把已在预检 World 验证和写入的资源转移到专用 artifact World 的回调。\r\n///\r\n/// 两个参数分别为独占源预检 World 和独占 artifact World；成功返回 `()`，错误交给预检调用方。\r\n/// 调用发生在 live target 发布前，参见动态场景的 `transfer_preflight_resource_writes` 和 `World::transfer_preflight_resource`。\r\n", "evidence": ["resource", "staging", "resource_fixture"], "line_ending": "CRLF"},
+        {"object": "ReflectResource", "kind": "rustdoc", "before_line": 30, "before_byte_offset": 1041, "after_byte_offset": 2185, "byte_length": 510, "sha256": "9e9e42d718ef50a5371c5d0b5ee4526e4f47a65cd9679f67cc2b2018a1bf2568", "after_line_span": [46, 55], "inserted_line_count": 10, "id": "R008-F03-I006", "object_ids": ["R008-F03-O006"], "exact_text": "///\r\n/// # 约束与生命周期\r\n///\r\n/// 本表可 `Copy`，不持有 World 借用或资源值；调用期间按读写需求借用 World。\r\n/// 字段槽位须与配对元数据的当前顺序对应，返回字段值拥有其数据。\r\n/// 预算统计、资源是否存在及缺省能力的错误处理由调用方负责；具体回调决定转换和提交策略。\r\n///\r\n/// # 参考\r\n///\r\n/// `WorldReflection`；动态场景的 `stage_existing_resource_bounded`、`ensure_reflected_resource_exists`。\r\n", "evidence": ["resource", "facade"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::estimate_stage_clone_bytes", "kind": "rustdoc", "before_line": 31, "before_byte_offset": 1071, "after_byte_offset": 2725, "byte_length": 97, "sha256": "6c149ceb5e07769e925ce628b02b6db2755b897063e2ed60c3264e523c03615d", "after_line_span": [57, 57], "inserted_line_count": 1, "id": "R008-F03-I007", "object_ids": ["R008-F03-O007"], "exact_text": "    /// 可选暂存字节估算，单位为字节；回调本身不累计或强制总预算。\r\n", "evidence": ["resource"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::stage_clone", "kind": "rustdoc", "before_line": 34, "before_byte_offset": 1225, "after_byte_offset": 2976, "byte_length": 115, "sha256": "d70d422809c09ee63171927899880cc3bad0f90874a3154c6ef1883ac2264ae4", "after_line_span": [61, 61], "inserted_line_count": 1, "id": "R008-F03-I008", "object_ids": ["R008-F03-O008"], "exact_text": "    /// 可选从共享源到预检目标的资源克隆能力，有界场景预检还要求提供估算能力。\r\n", "evidence": ["resource", "resource_fixture"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::transfer_preflight", "kind": "rustdoc", "before_line": 42, "before_byte_offset": 1562, "after_byte_offset": 3428, "byte_length": 108, "sha256": "8a81c41ee26e54a9b9198206c3d3e001665baa245cb97306b0a566f0df5150eb", "after_line_span": [70, 71], "inserted_line_count": 2, "id": "R008-F03-I009", "object_ids": ["R008-F03-O009"], "exact_text": "    ///\r\n    /// 转移的是预检中已经接纳的资源；调用方在最终 target 发布前执行。\r\n", "evidence": ["resource"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::ensure", "kind": "rustdoc", "before_line": 43, "before_byte_offset": 1625, "after_byte_offset": 3599, "byte_length": 123, "sha256": "68d51f93eb81acd7649bc7261659ac40388ee518ff26c1dd9d7bf10e1c9b1568", "after_line_span": [73, 73], "inserted_line_count": 1, "id": "R008-F03-I010", "object_ids": ["R008-F03-O010"], "exact_text": "    /// 可选资源创建能力；返回 `false` 也可能表示资源已经存在，调用方另行检查 `contains`。\r\n", "evidence": ["resource", "resource_fixture"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::contains", "kind": "rustdoc", "before_line": 48, "before_byte_offset": 1787, "after_byte_offset": 3884, "byte_length": 62, "sha256": "ee9f07ccee8af279f53f8d084f952fd7c8f815e9ff2246b0fb7a160490e488ae", "after_line_span": [79, 79], "inserted_line_count": 1, "id": "R008-F03-I011", "object_ids": ["R008-F03-O011"], "exact_text": "    /// 检查本次 World 中的资源实例是否存在。\r\n", "evidence": ["resource_fixture"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::read_field", "kind": "rustdoc", "before_line": 49, "before_byte_offset": 1840, "after_byte_offset": 3999, "byte_length": 96, "sha256": "b57c1666392904f5ff4f5bc733af5369e978d1538b8898cce60110907919987a", "after_line_span": [81, 81], "inserted_line_count": 1, "id": "R008-F03-I012", "object_ids": ["R008-F03-O012"], "exact_text": "    /// 按规范字段名读取拥有型值；名称、资源和转换错误由回调解释。\n", "evidence": ["resource_fixture"], "line_ending": "LF"},
+        {"object": "ReflectResource::read_field_by_slot", "kind": "rustdoc", "before_line": 56, "before_byte_offset": 2052, "after_byte_offset": 4307, "byte_length": 91, "sha256": "e1756efcd9f18dd1e3474824fcc580dcc8b17e57984fe65faa2bf9df0f99d1ce", "after_line_span": [89, 89], "inserted_line_count": 1, "id": "R008-F03-I013", "object_ids": ["R008-F03-O013"], "exact_text": "    /// 必需的当前槽位读取回调，供稳定字段 ID 解析后的访问使用。\n", "evidence": ["facade"], "line_ending": "LF"},
+        {"object": "ReflectResource::write_field_by_slot", "kind": "rustdoc", "before_line": 57, "before_byte_offset": 2112, "after_byte_offset": 4458, "byte_length": 76, "sha256": "30c2836d91d8758cc93e1633ba42d6e3b7c88f4acdcc30de971fe150851824bb", "after_line_span": [91, 91], "inserted_line_count": 1, "id": "R008-F03-I014", "object_ids": ["R008-F03-O014"], "exact_text": "    /// 必需的当前槽位写回调，消费字段值并报告变更。\r\n", "evidence": ["facade"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::write_fields_by_slot", "kind": "rustdoc", "before_line": 58, "before_byte_offset": 2175, "after_byte_offset": 4597, "byte_length": 91, "sha256": "a069f4f574d6e99755a61bf7ac88260abdb9d915e28bd1156c45431afa06e711", "after_line_span": [93, 93], "inserted_line_count": 1, "id": "R008-F03-I015", "object_ids": ["R008-F03-O015"], "exact_text": "    /// 必需的批量槽位写回调；不由本表自动拆成多次单字段写入。\r\n", "evidence": ["resource"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::estimate_stage_clone_bytes", "kind": "rustdoc", "before_line": 62, "before_byte_offset": 2269, "after_byte_offset": 4782, "byte_length": 345, "sha256": "ee0c6f46d139e83f2e2db3763fa76fceaee45b979317e6bdea5354039d599709", "after_line_span": [98, 101], "inserted_line_count": 4, "id": "R008-F03-I016", "object_ids": ["R008-F03-O017"], "exact_text": "    /// 向可选估算回调查询本次暂存所需的字节数。\r\n    ///\r\n    /// `source` 为共享借用。成功时 `Some(bytes)` 表示提供方估算，`None` 表示没有估算能力；回调错误传播。\r\n    /// 本方法不累计预算或克隆资源；动态场景调用方先累计并检查上限，才进入 `stage_clone`。\r\n", "evidence": ["resource", "resource_fixture"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::stage_clone", "kind": "rustdoc", "before_line": 71, "before_byte_offset": 2570, "after_byte_offset": 5428, "byte_length": 327, "sha256": "b1e42de8ca50679f6d44130c1385c4ebba96057f80f3e33db660f6b0168f9a36", "after_line_span": [111, 114], "inserted_line_count": 4, "id": "R008-F03-I017", "object_ids": ["R008-F03-O018"], "exact_text": "    /// 调用可选资源克隆回调，把共享源值暂存到独占预检 World。\r\n    ///\r\n    /// 缺省回调返回 `Ok(false)`；执行成功返回 `Ok(true)`，错误原样传播。\r\n    /// 布尔值表示能力已执行，资源存在性与预算由调用方先检查；参见 `stage_existing_resource_bounded`。\r\n", "evidence": ["resource", "resource_fixture"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::transfer_preflight", "kind": "rustdoc", "before_line": 83, "before_byte_offset": 2933, "after_byte_offset": 6118, "byte_length": 355, "sha256": "7ccf0ad1f6ae4b4ba70211ec912f2f33fd7b905befb76c5eb916d865ed2ef076", "after_line_span": [127, 130], "inserted_line_count": 4, "id": "R008-F03-I018", "object_ids": ["R008-F03-O019"], "exact_text": "    /// 把两个独占 World 借用交给转移回调，并原样返回结果。\r\n    ///\r\n    /// `source` 是已完成资源验证/写入的预检 World，`artifact` 接管该资源，供后续发布。\r\n    /// 本包装不重新校验字段，也不复制或恢复源资源；实际转移由 `ReflectResourcePreflightTransfer` 的提供方实现。\r\n", "evidence": ["resource", "staging", "resource_fixture"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::ensure", "kind": "rustdoc", "before_line": 91, "before_byte_offset": 3203, "after_byte_offset": 6743, "byte_length": 296, "sha256": "9d1732973a6644790d2d6281697cb36ea17b56e560588992d2dce82351584049", "after_line_span": [139, 142], "inserted_line_count": 4, "id": "R008-F03-I019", "object_ids": ["R008-F03-O020"], "exact_text": "    /// 尝试调用可选资源创建回调，原样返回其变更标记或错误。\r\n    ///\r\n    /// 没有回调时返回 `Ok(false)`；该结果不能单独表示资源已存在或创建失败。\r\n    /// 动态场景的 `ensure_reflected_resource_exists` 在调用后复查 `contains`。\r\n", "evidence": ["resource", "resource_fixture"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::contains", "kind": "rustdoc", "before_line": 101, "before_byte_offset": 3477, "after_byte_offset": 7313, "byte_length": 80, "sha256": "be68aef4082e2d08e0afdfb88483f9ae0b8a5d5e261f3c1286fb843584515230", "after_line_span": [153, 153], "inserted_line_count": 1, "id": "R008-F03-I020", "object_ids": ["R008-F03-O021"], "exact_text": "    /// 把共享 World 交给资源存在性回调，并原样返回结果。\r\n", "evidence": ["resource_fixture"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::read_field", "kind": "rustdoc", "before_line": 105, "before_byte_offset": 3585, "after_byte_offset": 7501, "byte_length": 118, "sha256": "4305b30cfb885756a86cd425b0f3fb8d6137ff96d77d4d47a2e76151276f875d", "after_line_span": [158, 158], "inserted_line_count": 1, "id": "R008-F03-I021", "object_ids": ["R008-F03-O022"], "exact_text": "    /// 按规范字段名转发读取，返回拥有型值或提供方错误；World 借用仅持续本次调用。\r\n", "evidence": ["resource_fixture"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::read_field_by_slot", "kind": "rustdoc", "before_line": 116, "before_byte_offset": 3890, "after_byte_offset": 7924, "byte_length": 197, "sha256": "b22c4c7500358cc312f28e01ff329f3091fae87c0d6f3379ce379d99c6851d1e", "after_line_span": [170, 172], "inserted_line_count": 3, "id": "R008-F03-I022", "object_ids": ["R008-F03-O023"], "exact_text": "    /// 按配对注册的当前零基槽位转发读取，返回拥有型值或回调错误。\n    ///\n    /// 持久字段引用先由 catalog 解析为当前槽位，参见 `WorldReflection`。\n", "evidence": ["facade"], "line_ending": "LF"},
+        {"object": "ReflectResource::write_fields_by_slot", "kind": "rustdoc", "before_line": 127, "before_byte_offset": 4200, "after_byte_offset": 8431, "byte_length": 232, "sha256": "f29bcab3b6a8d4a133b0c50c8f9190a1fe1cd1e08c678a3e849959061b725102", "after_line_span": [184, 186], "inserted_line_count": 3, "id": "R008-F03-I023", "object_ids": ["R008-F03-O024"], "exact_text": "    /// 把独占 World 和有序 `fields` 的所有权交给批量回调，原样返回整批变更标记或错误。\r\n    ///\r\n    /// 本层不追加准入、逐项回调或通用回滚；场景调用方先确保资源存在。\r\n", "evidence": ["resource", "resource_fixture"], "line_ending": "CRLF"},
+        {"object": "ReflectResource::write_field_by_slot", "kind": "rustdoc", "before_line": 135, "before_byte_offset": 4507, "after_byte_offset": 8970, "byte_length": 218, "sha256": "bc5bce932e7091bc208bfb22b7ff429444e5861f53023ec9651f2ff60a559c22", "after_line_span": [195, 197], "inserted_line_count": 3, "id": "R008-F03-I024", "object_ids": ["R008-F03-O025"], "exact_text": "    /// 把独占 World、当前槽位和拥有型值交给回调，原样返回变更标记或错误。\r\n    ///\r\n    /// 本层不追加值预算或字段准入；门面路径见 `WorldReflection::reflect_write`。\r\n", "evidence": ["facade"], "line_ending": "CRLF"}
+      ],
+      "original_bytes_reconstruction": {
+        "removing_insertions_reconstructs_all_before_bytes": true,
+        "reconstructed_sha256": "453fbbbc7f7115be7ee11a741f51e3eacd195cac85230cb463d7168dcaeaf6a1",
+        "reconstructed_bytes": 4837,
+        "original_bytes_retained": true,
+        "comment_and_whitespace_only": true,
+        "staged_and_unstaged_clean_before_write": true,
+        "algorithm": "从current按after_byte_offset倒序去掉每段byte_length；剩余所有字节长度及SHA须等于before，不依赖HEAD或源副本。"
+      },
+      "write_grant_sha256_at_source_write": "308de754925953802e2c43f3acf73a6aa2c1227a9d893d96c2321ffef510ff19",
+      "validation_receipt": "0ba582",
+      "issues": [],
+      "status": "reviewed-and-commented-local-awaiting-main-independent-review"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs",
+      "source_only_read_sha256": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+      "before_sha256": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+      "current_sha256": "4400454f408405059fa16db038391455aebc479c81522bb13e721c66b36d38b7",
+      "before_bytes": 7574,
+      "current_bytes": 11475,
+      "before_lines": 252,
+      "current_lines": 311,
+      "newline_counts": {
+        "before": {
+          "crlf": 0,
+          "lf": 252
+        },
+        "current": {
+          "crlf": 0,
+          "lf": 311
+        }
+      },
+      "before_state": "授予时与每次源码写入前精确staged/unstaged diff均空；每次匹配before SHA，无外来增量归本批。",
+      "whole_file_review": {
+        "read_all_original_lines": true,
+        "nonblank_original_lines_mapped_to_manual_blocks": true,
+        "objects_include_fields_variants_aliases_impls_and_cfg_mounts": true,
+        "basis": "先全文逐对象/分支阅读，再跨文件追踪；自动声明列表只核对遗漏。跨仓上下文不算本文件之外的覆盖。"
+      },
+      "objects": [
+        {"name": "module", "kind": "module", "span_before": [1, 252], "documentation_decision": "added", "audit": "把ZrReflect元数据和类型化fn组成候选；T clone字段候选再进入World writer，authored特殊入口与普通insert分开。", "evidence": ["trait", "macro", "typed"], "branches": [], "id": "R008-F04-O001", "span_current": [4, 311]},
+        {"name": "imports: Any, ReflectError, ReflectTypeRegistration, ReflectedValue, ZrReflect, LocalTransform, Mobility, Component, EntityId, SceneError, World, ReflectComponent, RuntimeTypeRegistration", "kind": "imports", "span_before": [1, 11], "documentation_decision": "retain", "audit": "std Any用于两类authored组件分支；Interface trait/DTO/error与Runtime ECS/World/表按实际来源关联。", "evidence": ["trait", "typed", "mounts"], "branches": [], "id": "R008-F04-O002", "span_current": [4, 14]},
+        {"name": "derived_component_registration", "kind": "public-generic-function", "span_before": [13, 33], "documentation_decision": "added", "audit": "T:Component+ZrReflect+Clone。元数据恰构造一次、拥有full path；装按名/槽位/整批/暂存/移除fn，再共同组件角色验证；成功只是candidate。宏以同序字段生成元数据与slot writer。", "evidence": ["macro", "trait", "registry", "builtin", "derived_tests"], "branches": [{"span_before": [18, 19], "audit": "trait元数据?先于任何候选安装；借用type_path后拥有化。", "span_current": [35, 36]}, {"span_before": [20, 32], "audit": "必需fn与四扩展能力组合；finish?返回候选，不发布目录。", "span_current": [37, 49]}], "id": "R008-F04-O003", "span_current": [16, 50]},
+        {"name": "derived_component_registration_with_adapter", "kind": "public-generic-function", "span_before": [35, 43], "documentation_decision": "added", "audit": "仅T:ZrReflect；消费调用方component，元数据恰构造一次，交finish；不验证T存储与回调身份/槽位。Hierarchy和ActiveInHierarchy用此安装专用访问。", "evidence": ["trait", "registry", "builtin"], "branches": [], "id": "R008-F04-O004", "span_current": [67, 75]},
+        {"name": "finish_component_registration", "kind": "private-function", "span_before": [45, 55], "documentation_decision": "retain", "audit": "已有清楚的小assembly：validate?先执行，再拥有registration+Some(component)+None(resource)。完整catalog准入在下游，已由两个公共入口doc说明，无重复文档。", "evidence": ["registry"], "branches": [], "id": "R008-F04-O005", "span_current": [77, 87]},
+        {"name": "validate_component_registration", "kind": "private-function", "span_before": [57, 67], "documentation_decision": "retain", "audit": "唯一角色分支：is_component=true直接Ok，false构造InvalidRegistration和拥有路径。没有field/callback/catalog验证；公共工厂新增说明已限定此事实。", "evidence": ["registry"], "branches": [{"span_before": [60, 62], "audit": "组件角色成功返回。", "span_current": [92, 94]}, {"span_before": [63, 66], "audit": "失败拥有错误路径/reason。", "span_current": [95, 98]}], "id": "R008-F04-O006", "span_current": [89, 99]},
+        {"name": "contains", "kind": "private-generic-function", "span_before": [69, 74], "documentation_decision": "retain", "audit": "World.get<T>(entity).is_some直接判断；_type_path仅签名配合，没有隐含目录查询。类型化查找清楚且module/field doc已说明回调职责。", "evidence": ["typed"], "branches": [], "id": "R008-F04-O007", "span_current": [101, 106]},
+        {"name": "stage_clone", "kind": "private-generic-function", "span_before": [76, 93], "documentation_decision": "added", "audit": "源component<T>?取得共享引用后clone；Any区分LocalTransform/Mobility走prevalidated authored clone，其他insert；错误带staged component clone上下文映射。目标稳定身份由上层预先恢复，Clone共享语义不承诺深隔离。", "evidence": ["typed", "staging", "derived_tests"], "branches": [{"span_before": [85, 85], "audit": "缺实体/组件或clone取得失败先返回。", "span_current": [121, 121]}, {"span_before": [86, 91], "audit": "两authored类vs一般T目标写入分支。", "span_current": [122, 127]}, {"span_before": [92, 92], "audit": "World错误上下文映射。", "span_current": [128, 128]}], "id": "R008-F04-O008", "span_current": [112, 129]},
+        {"name": "read_field", "kind": "private-generic-function", "span_before": [95, 105], "documentation_decision": "retain", "audit": "component<T>?再调用trait按名getter，拥有结果不带World引用；单行转发足够，module/trait证据可复核。", "evidence": ["trait", "macro"], "branches": [], "id": "R008-F04-O009", "span_current": [131, 141]},
+        {"name": "write_field", "kind": "private-generic-function", "span_before": [107, 122], "documentation_decision": "added", "audit": "克隆next；trait按名setter错误传播、false立即返回，true才commit。value消费遵循trait实现，Clone内部共享不可由函数承诺回滚。", "evidence": ["trait", "macro", "typed"], "branches": [{"span_before": [117, 120], "audit": "取得next→转换错误?或无变化false；尚未调用World writer。", "span_current": [156, 159]}, {"span_before": [121, 121], "audit": "变化后单次commit。", "span_current": [160, 160]}], "id": "R008-F04-O010", "span_current": [146, 161]},
+        {"name": "read_field_by_slot", "kind": "private-generic-function", "span_before": [124, 134], "documentation_decision": "retain", "audit": "component<T>?再trait当前slot getter，无回退/slot身份缓存；一次转发已清楚。", "evidence": ["trait", "macro"], "branches": [], "id": "R008-F04-O011", "span_current": [163, 173]},
+        {"name": "write_field_by_slot", "kind": "private-generic-function", "span_before": [136, 151], "documentation_decision": "added", "audit": "当前slot和owned value作用于clone候选；错误/无变化不调用World writer，true才commit；slot与T当前metadata配对。", "evidence": ["trait", "macro", "typed"], "branches": [{"span_before": [146, 149], "audit": "clone、trait slot setter、无变化提前返回。", "span_current": [188, 191]}, {"span_before": [150, 150], "audit": "单次commit入口。", "span_current": [192, 192]}], "id": "R008-F04-O012", "span_current": [178, 193]},
+        {"name": "write_fields_by_slot", "kind": "private-generic-function", "span_before": [153, 171], "documentation_decision": "added", "audit": "一次clone，ordered loop消费所有slot/value，OR累积changed；任何字段错误在World writer调用前返回。空/全false=false；true才一次commit。重复slot依序，最终返回World commit的bool，未承诺最终值比较或深隔离。", "evidence": ["trait", "macro", "typed", "scene_batch_consumer"], "branches": [{"span_before": [162, 166], "audit": "next一次clone；for loop依次trait setter?及changed OR。", "span_current": [209, 213]}, {"span_before": [167, 169], "audit": "empty/all no-change提前false。", "span_current": [214, 216]}, {"span_before": [170, 170], "audit": "所有字段成功后唯一commit。", "span_current": [217, 217]}], "id": "R008-F04-O013", "span_current": [200, 218]},
+        {"name": "commit_component", "kind": "private-generic-function", "span_before": [173, 199], "documentation_decision": "added", "audit": "Any downcast LocalTransform→update_transform、Mobility→set_mobility，原样领域结果bool；其他T insert成功映射true。World错误以target.into_reflect_error，保留原authored English comment。", "evidence": ["typed", "hierarchy", "query"], "branches": [{"span_before": [182, 194], "audit": "两种authored downcast→各writer的Ok(changed)/Err映射。", "span_current": [234, 246]}, {"span_before": [195, 198], "audit": "普通T insert→成功true/上下文错误。", "span_current": [247, 250]}], "id": "R008-F04-O014", "span_current": [225, 251]},
+        {"name": "remove", "kind": "private-generic-function", "span_before": [201, 223], "documentation_decision": "added", "audit": "先ensure_entity和get<T>存在性；World remove Some→true，ProtectedDerived/Authored→NonRemovableComponent，None及其他错误→MissingComponent，LifecycleTargetChange保留专门映射。没有泛化所有错误原样传播。", "evidence": ["typed"], "branches": [{"span_before": [205, 208], "audit": "实体/组件前置检查。", "span_current": [261, 264]}, {"span_before": [209, 222], "audit": "所有remove Result/Option模式：Some、两protected、None、lifecycle及其他Err。", "span_current": [265, 278]}], "id": "R008-F04-O015", "span_current": [257, 279]},
+        {"name": "component", "kind": "private-generic-function-with-lifetime", "span_before": [225, 238], "documentation_decision": "added", "audit": "返回&'a T借用World 'a；先ensure实体，再get<T>或拥有MissingComponent。type_path只作错误上下文，查找键为T。", "evidence": ["typed"], "branches": [{"span_before": [233, 236], "audit": "实体检查后类型化get<T>，None返回拥有MissingComponent。", "span_current": [292, 295]}, {"span_before": [237, 237], "audit": "Some共享引用返回绑定World生命周期。", "span_current": [296, 296]}], "id": "R008-F04-O016", "span_current": [284, 297]},
+        {"name": "ensure_entity", "kind": "private-function", "span_before": [240, 245], "documentation_decision": "retain", "audit": "if contains_entity返回Ok(())，否则拥有MissingEntity；两结果已直观，小helper不重复补注。", "evidence": ["typed"], "branches": [], "id": "R008-F04-O017", "span_current": [299, 304]},
+        {"name": "missing_component", "kind": "private-function", "span_before": [247, 252], "documentation_decision": "retain", "audit": "EntityId+拥有type_path构造MissingComponent，已由component/remove文档说明。", "evidence": [], "branches": [], "id": "R008-F04-O018", "span_current": [306, 311]}
+      ],
+      "block_audit": [
+        {"span_before": [1, 12], "checked": "全部依赖与类型化/错误来源。", "id": "R008-F04-B001", "span_current": [4, 15], "object_ids": ["R008-F04-O002"]},
+        {"span_before": [13, 34], "checked": "旧summary保留；trait构造一次、路径拥有化、七访问/暂存能力组合、共同finish。", "id": "R008-F04-B002", "span_current": [16, 51], "object_ids": ["R008-F04-O003"]},
+        {"span_before": [35, 56], "checked": "自定义表拥有迁入；角色检查先于候选字面量。", "id": "R008-F04-B003", "span_current": [67, 88], "object_ids": ["R008-F04-O004", "R008-F04-O005"]},
+        {"span_before": [57, 75], "checked": "组件角色两分支、World类型化存在性。", "id": "R008-F04-B004", "span_current": [89, 107], "object_ids": ["R008-F04-O006", "R008-F04-O007"]},
+        {"span_before": [76, 106], "checked": "clone与两类authored分支/普通insert、错误映射、按名只读。", "id": "R008-F04-B005", "span_current": [112, 142], "object_ids": ["R008-F04-O008", "R008-F04-O009"]},
+        {"span_before": [107, 135], "checked": "候选按名写入错误/false/commit，当前slot只读。", "id": "R008-F04-B006", "span_current": [146, 174], "object_ids": ["R008-F04-O010", "R008-F04-O011"]},
+        {"span_before": [136, 172], "checked": "单slot候选、一次clone整批ordered loop、OR标记和early false、单次commit。", "id": "R008-F04-B007", "span_current": [178, 219], "object_ids": ["R008-F04-O012", "R008-F04-O013"]},
+        {"span_before": [173, 200], "checked": "原English保留；两种downcast、受检writer结果及普通insert成功true。", "id": "R008-F04-B008", "span_current": [225, 252], "object_ids": ["R008-F04-O014"]},
+        {"span_before": [201, 224], "checked": "完整Result/Option match、实体/组件准入与保护/生命周期错误。", "id": "R008-F04-B009", "span_current": [257, 280], "object_ids": ["R008-F04-O015"]},
+        {"span_before": [225, 252], "checked": "World借用生命周期、所有缺失返回路径。", "id": "R008-F04-B010", "span_current": [284, 311], "object_ids": ["R008-F04-O016", "R008-F04-O017", "R008-F04-O018"]}
+      ],
+      "callers_traits_macros_registration_ffi_test_contracts": {
+        "callers": ["builtin_registration:11-26内建安装", "builtin_hierarchy:14-19，builtin_active:14-19自定义表", "derived_tests:27-188"],
+        "traits": ["T:Component+ZrReflect+Clone（default callbacks）", "custom factory仅T:ZrReflect", "Any downcast 两authored types"],
+        "macros": ["macro:81-101/113-203同一字段序列元数据/按名/槽位accessors", "macro_fields:242-329 editable/custom-write/type conversion/changed gates"],
+        "registration": ["factory无目录mutation；registry:63-125后续完整准入/发布"],
+        "ffi": "普通generic Rust fn实例化成表内fn；没有C ABI/unsafe lifetime转移。",
+        "test_contracts": ["derived_tests 五test逐个正式覆盖；仅数值Health夹具不证明任意Clone深隔离", "structure词法谓词由父审CR-ZCA-R002-0001记录，保持[1,1,false,true]，非Rust测试运行"]
+      },
+      "insertions": [
+        {"object": "module", "kind": "module-doc", "before_line": 1, "before_byte_offset": 0, "after_byte_offset": 0, "byte_length": 220, "sha256": "dbff29bd84b16e4ff37082de13c0a6a2a56538761bf8d14f08bc82eb00d52ebf", "after_line_span": [1, 3], "inserted_line_count": 3, "id": "R008-F04-I001", "object_ids": ["R008-F04-O001"], "exact_text": "//! 把 `ZrReflect` 元数据与类型化 ECS 回调组成 Runtime 注册候选。\n//! 字段写入先作用于 `T::clone` 候选，再进入 World writer；LocalTransform 与 Mobility 使用各自的受检写入口。\n\n", "evidence": ["trait", "typed"], "line_ending": "LF"},
+        {"object": "derived_component_registration", "kind": "rustdoc", "before_line": 14, "before_byte_offset": 478, "after_byte_offset": 698, "byte_length": 738, "sha256": "119a0222e5e18f21ec36c6ae5c3addca1de4751f54084ca697d54bb7c5e5ad23", "after_line_span": [17, 30], "inserted_line_count": 14, "id": "R008-F04-I002", "object_ids": ["R008-F04-O003"], "exact_text": "///\n/// # 使用时机与返回值\n///\n/// 为 `T: Component + ZrReflect + Clone` 构造组件角色候选，包含按名/槽位读写、批量写入、移除及预检克隆。\n/// 元数据构造或组件角色检查失败时返回错误；成功不会自动发布目录，调用方再交给 `TypeRegistry::register`。\n///\n/// # 约束与生命周期\n///\n/// 槽位顺序由 `T` 的反射实现与元数据配对；派生宏从同一字段序列生成二者。\n/// 回调按调用参数借用 World，不保存组件引用。候选克隆遵循 `T::clone`，共享资源的隔离程度由 `T` 决定。\n///\n/// # 参考\n///\n/// `ZrReflect`、`finish_component_registration`、`commit_component`；内建反射注册与本模块测试。\n", "evidence": ["trait", "macro", "registry", "builtin", "derived_tests"], "line_ending": "LF"},
+        {"object": "derived_component_registration_with_adapter", "kind": "rustdoc", "before_line": 35, "before_byte_offset": 1174, "after_byte_offset": 2132, "byte_length": 703, "sha256": "ec4627e5b7d0e336c0bf25e018f95839ff111a7eb231cb9e5f3ccf6b7c71a1d5", "after_line_span": [52, 66], "inserted_line_count": 15, "id": "R008-F04-I003", "object_ids": ["R008-F04-O004"], "exact_text": "/// 把 `T` 的反射元数据与调用方提供的组件表组成候选。\n///\n/// # 参数与返回值\n///\n/// `component` 的所有权移入候选；`T` 只须提供 `ZrReflect` 元数据。\n/// 成功返回含组件表、无资源表的注册；元数据构造或组件角色检查失败时返回错误。\n///\n/// # 约束\n///\n/// 本工厂只检查组件角色，不校验回调与 `T` 的存储、路径或槽位是否相符，调用方须完成配对。\n/// 候选的完整准入与发布另由 `TypeRegistry` 执行；受保护的内建类型据此安装专用 World 访问器。\n///\n/// # 参考\n///\n/// `finish_component_registration`；内建 Hierarchy、ActiveInHierarchy 的注册工厂。\n", "evidence": ["trait", "registry", "builtin"], "line_ending": "LF"},
+        {"object": "stage_clone", "kind": "rustdoc", "before_line": 76, "before_byte_offset": 2352, "after_byte_offset": 4013, "byte_length": 362, "sha256": "07b3799b7d7c3b7d7473a0e6af23e86165aa5c5b74496c016ce13218d714a449", "after_line_span": [108, 111], "inserted_line_count": 4, "id": "R008-F04-I004", "object_ids": ["R008-F04-O008"], "exact_text": "/// 把源组件的 `T::clone` 结果移入目标预检 World。\n///\n/// 目标须先恢复同一稳定实体身份。LocalTransform/Mobility 通过预检 authored clone 入口暂存，其余类型走 `World::insert`。\n/// 源组件借用仅用于克隆；World 错误转为带暂存上下文的反射错误，参见 `World::stage_reflected_component_clone`。\n", "evidence": ["staging", "typed", "derived_tests"], "line_ending": "LF"},
+        {"object": "write_field", "kind": "rustdoc", "before_line": 107, "before_byte_offset": 3241, "after_byte_offset": 5264, "byte_length": 251, "sha256": "0e6c8f7d782eafd132502937a34b7ec549ff43e6a062b62b2a5c48e65868e5fa", "after_line_span": [143, 145], "inserted_line_count": 3, "id": "R008-F04-I005", "object_ids": ["R008-F04-O010"], "exact_text": "/// 在组件克隆候选上按名写入，字段转换成功且报告变化后才进入 `commit_component`。\n///\n/// `value` 由反射实现消费；错误或无变化在调用 World writer 前返回。`Clone` 的内部共享行为由 `T` 负责。\n", "evidence": ["trait", "macro", "typed"], "line_ending": "LF"},
+        {"object": "write_field_by_slot", "kind": "rustdoc", "before_line": 136, "before_byte_offset": 3981, "after_byte_offset": 6255, "byte_length": 219, "sha256": "9a0ed24d662be6fe5e26e571dd53d647efdd1869464ba50307bc7a1532dfc516", "after_line_span": [175, 177], "inserted_line_count": 3, "id": "R008-F04-I006", "object_ids": ["R008-F04-O012"], "exact_text": "/// 在克隆候选上消费当前槽位的字段值；槽位须对应 `T` 的当期反射字段顺序。\n///\n/// 字段错误或无变化时不调用 World writer；成功且报告变化后交给 `commit_component`。\n", "evidence": ["trait", "macro", "typed"], "line_ending": "LF"},
+        {"object": "write_fields_by_slot", "kind": "rustdoc", "before_line": 153, "before_byte_offset": 4450, "after_byte_offset": 6943, "byte_length": 451, "sha256": "fae8dc49279099b963c3b2a73d7a2761193aaa2c4afbb3db6c595939fa0d5f2d", "after_line_span": [195, 199], "inserted_line_count": 5, "id": "R008-F04-I007", "object_ids": ["R008-F04-O013"], "exact_text": "/// 在同一个组件克隆候选上按输入顺序消费整批字段值。\n///\n/// 各槽位写入成功后才进入一次 `commit_component`；中途字段错误返回时尚未调用 World writer。\n/// 重复槽位依次作用于候选，变化标记为各字段结果的累积；最终返回值采用提交入口的结果。\n/// 空列表或所有字段均报告无变化时返回 `false`；候选的共享资源语义仍由 `T::clone` 决定。\n", "evidence": ["trait", "macro", "typed"], "line_ending": "LF"},
+        {"object": "commit_component", "kind": "rustdoc", "before_line": 173, "before_byte_offset": 5008, "after_byte_offset": 7952, "byte_length": 426, "sha256": "ce37ad74e4438c6d483f23231ae5669b07e530a58a82bdf07a5e482b35c82a86", "after_line_span": [220, 224], "inserted_line_count": 5, "id": "R008-F04-I008", "object_ids": ["R008-F04-O014"], "exact_text": "/// 把已经完成字段转换的拥有型候选交给对应 World 写入口。\n///\n/// LocalTransform 使用 `World::update_transform`，Mobility 使用 `World::set_mobility`，保留领域验证及各自的变化标记。\n/// 其余类型通过 `World::insert` 提交，插入成功返回 `true`；错误按 `target` 上下文映射。\n/// 因此本层不另做通用的最终值相等比较，参见上述 World writer。\n", "evidence": ["typed"], "line_ending": "LF"},
+        {"object": "remove", "kind": "rustdoc", "before_line": 201, "before_byte_offset": 5956, "after_byte_offset": 9326, "byte_length": 304, "sha256": "b6857c1053122e18d6f25cd1da17104e32d9a3f3654807ff7b819735046aefb4", "after_line_span": [253, 256], "inserted_line_count": 4, "id": "R008-F04-I009", "object_ids": ["R008-F04-O015"], "exact_text": "/// 检查实体与组件后，通过 `World::remove` 移除类型化组件。\n///\n/// 成功取出组件返回 `true`；受保护 authored/derived 类型返回 `NonRemovableComponent`。\n/// 生命周期目标改变错误保留对应映射，其余失败按本适配器现有规则归为组件缺失。\n", "evidence": ["typed"], "line_ending": "LF"},
+        {"object": "component", "kind": "rustdoc", "before_line": 225, "before_byte_offset": 6856, "after_byte_offset": 10530, "byte_length": 227, "sha256": "e086fa367d8687af5755defe3640bce4e265b38610b057245847da332dfa5a44", "after_line_span": [281, 283], "inserted_line_count": 3, "id": "R008-F04-I010", "object_ids": ["R008-F04-O016"], "exact_text": "/// 借用指定 World 中的类型化组件，返回引用的有效期随该 World 共享借用。\n///\n/// 先区分实体不存在与组件不存在；`type_path` 只用于缺失错误上下文，实际存储查找按 `T`。\n", "evidence": ["typed"], "line_ending": "LF"}
+      ],
+      "original_bytes_reconstruction": {
+        "removing_insertions_reconstructs_all_before_bytes": true,
+        "reconstructed_sha256": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+        "reconstructed_bytes": 7574,
+        "original_bytes_retained": true,
+        "comment_and_whitespace_only": true,
+        "staged_and_unstaged_clean_before_write": true,
+        "algorithm": "从current按after_byte_offset倒序去掉每段byte_length；剩余所有字节长度及SHA须等于before，不依赖HEAD或源副本。"
+      },
+      "write_grant_sha256_at_source_write": "308de754925953802e2c43f3acf73a6aa2c1227a9d893d96c2321ffef510ff19",
+      "validation_receipt": "0ba582",
+      "issues": [],
+      "status": "reviewed-and-commented-local-awaiting-main-independent-review"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/dynamic_component.rs",
+      "source_only_read_sha256": "fef7bc43f25c2e61dc12ae2dcbbb2293a662c916b47f7d0abea577aab0815890",
+      "before_sha256": "fef7bc43f25c2e61dc12ae2dcbbb2293a662c916b47f7d0abea577aab0815890",
+      "current_sha256": "cb27b21d9b5b0a992b706f851805d3e6389d85bac815d28f96e57e7e5a43a346",
+      "before_bytes": 12410,
+      "current_bytes": 16904,
+      "before_lines": 377,
+      "current_lines": 437,
+      "newline_counts": {
+        "before": {
+          "crlf": 0,
+          "lf": 377
+        },
+        "current": {
+          "crlf": 0,
+          "lf": 437
+        }
+      },
+      "before_state": "授予时与每次源码写入前精确staged/unstaged diff均空；每次匹配before SHA，无外来增量归本批。",
+      "whole_file_review": {
+        "read_all_original_lines": true,
+        "nonblank_original_lines_mapped_to_manual_blocks": true,
+        "objects_include_fields_variants_aliases_impls_and_cfg_mounts": true,
+        "basis": "先全文逐对象/分支阅读，再跨文件追踪；自动声明列表只核对遗漏。跨仓上下文不算本文件之外的覆盖。"
+      },
+      "objects": [
+        {"name": "module", "kind": "module", "span_before": [1, 377], "documentation_decision": "added", "audit": "描述符→元数据和JSON World表；回调动态取得当前schema，VM声明型转换与兼容Scene值转换分支。", "evidence": ["registry", "dynamic_world", "json"], "branches": [], "id": "R008-F05-O001", "span_current": [4, 437]},
+        {"name": "imports: ComponentPropertyPath, ComponentPropertyDescriptor, ComponentTypeDescriptor, ReflectComponent, EntityId, World, ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration, ReflectedValue", "kind": "imports", "span_before": [1, 7], "documentation_decision": "retain", "audit": "Framework描述符/结构化路径、中立DTO/value、Runtime World回调来源全部核对；无静态注册副作用。", "evidence": ["descriptor", "property_path", "mounts"], "branches": [], "id": "R008-F05-O002", "span_current": [4, 10]},
+        {"name": "registration_from_component_descriptor", "kind": "public-function", "span_before": [9, 35], "documentation_decision": "added", "audit": "保留原summary；遍历有序properties，以full type ID+property name建立stable ID；拥有JSON metadata与pluginID。路径/short/plugin builder错误?传播，component/serializable/editor/remote flags为true。无World注册；field全面校验稍后TypeRegistry。", "evidence": ["descriptor", "registry", "dynamic_world"], "branches": [{"span_before": [13, 19], "audit": "capacity与properties ordered loop，稳定owner为descriptor.type_id。", "span_current": [30, 36]}, {"span_before": [21, 35], "audit": "ReflectTypePath?与JSON typeinfo，再各可见/角色flags/plugin result。", "span_current": [38, 52]}], "id": "R008-F05-O003", "span_current": [12, 52]},
+        {"name": "reflect_component_for_dynamic_descriptor", "kind": "public-function", "span_before": [37, 50], "documentation_decision": "added", "audit": "表仅拥有type_id；静态fn不捕获descriptor properties；安装按名、当前slot、batch、stage/remove，后续从World当前registration解释字段。", "evidence": ["registry", "dynamic_world"], "branches": [], "id": "R008-F05-O004", "span_current": [58, 71]},
+        {"name": "field_from_property_descriptor", "kind": "private-function", "span_before": [52, 64], "documentation_decision": "added", "audit": "from_stable_keys(owner_key, descriptor.name)，保留name/value_type，HintNone及editable；字段顺序另外决定current slot。", "evidence": ["descriptor", "registry"], "branches": [], "id": "R008-F05-O005", "span_current": [76, 88]},
+        {"name": "short_type_path", "kind": "private-function", "span_before": [66, 72], "documentation_decision": "retain", "audit": "最后一个'.'之后的借用短串或输入全串；helper不验证，后续ReflectTypePath负责。分支直观，不从名称猜测DSL合同。", "evidence": ["descriptor"], "branches": [{"span_before": [67, 69], "audit": "有dot分隔返回尾段。", "span_current": [91, 93]}, {"span_before": [71, 71], "audit": "无dot返回原借用。", "span_current": [95, 95]}], "id": "R008-F05-O006", "span_current": [90, 96]},
+        {"name": "contains", "kind": "private-function", "span_before": [74, 76], "documentation_decision": "retain", "audit": "entity存在&&指定动态JSON实例存在的短路谓词；无其他schema访问，小helper清楚。", "evidence": ["dynamic_world"], "branches": [], "id": "R008-F05-O007", "span_current": [98, 100]},
+        {"name": "stage_clone", "kind": "private-function", "span_before": [78, 92], "documentation_decision": "added", "audit": "源JSON取得?后clone，目标set_dynamic_component；目标identity/schema由预检上层准备。忽略目标changed映射()；任何World error→带staged上下文UnsupportedConversion。", "evidence": ["dynamic_world", "staging", "dynamic_tests"], "branches": [], "id": "R008-F05-O008", "span_current": [106, 120]},
+        {"name": "read_field", "kind": "private-function", "span_before": [94, 103], "documentation_decision": "retain", "audit": "当前registration?、精确规范name helper?、共享字段交read_declared；三步短转发由reader/helper新增doc覆盖。", "evidence": ["registry", "dynamic_world"], "branches": [], "id": "R008-F05-O009", "span_current": [122, 131]},
+        {"name": "read_dense_slot", "kind": "private-function", "span_before": [105, 114], "documentation_decision": "retain", "audit": "当前registration?、slot索引helper?、read_declared；不缓存旧slot或按名fallback，helper新doc够用。", "evidence": ["registry"], "branches": [], "id": "R008-F05-O010", "span_current": [133, 142]},
+        {"name": "read_declared_field", "kind": "private-function", "span_before": [116, 153], "documentation_decision": "added", "audit": "先动态实例/object/key存在检查；legacy !is_vm经structured property path→ScenePropertyValue→ReflectedValue。VM要求对象与实际键，再声明value_type JSON转换。没有从schema/default填补缺键。", "evidence": ["dynamic_world", "declared", "json", "property_path"], "branches": [{"span_before": [122, 123], "audit": "先ensure实例与JSON object/key。", "span_current": [154, 155]}, {"span_before": [124, 133], "audit": "legacy属性路径、SceneValue读取/转换或missing UnsupportedConversion。", "span_current": [156, 165]}, {"span_before": [135, 152], "audit": "VM object/key guard与typed JSON converter。", "span_current": [167, 184]}], "id": "R008-F05-O011", "span_current": [148, 185]},
+        {"name": "write_field", "kind": "private-function", "span_before": [155, 167], "documentation_decision": "added", "audit": "scope内借用当前registration并clone精确字段，结束共享目录借用后mut World写入；未知name先返回。", "evidence": ["registry", "dynamic_world"], "branches": [], "id": "R008-F05-O012", "span_current": [190, 202]},
+        {"name": "write_dense_slot", "kind": "private-function", "span_before": [169, 181], "documentation_decision": "added", "audit": "scope内current slot resolve+字段clone，然后mutable write；slot是本次schema索引，不是持久身份。", "evidence": ["registry", "dynamic_world"], "branches": [], "id": "R008-F05-O013", "span_current": [207, 219]},
+        {"name": "write_dense_slots", "kind": "private-function", "span_before": [183, 240], "documentation_decision": "added", "audit": "独立JSON candidate，object guard；当前registration/VM标志；ordered loop检查slot、editable，VM ensureDeclared+JSON或legacy Scene转换，比较后插candidate并ORchanged。字段错误前尚未调用World setter，empty/all false early false，最后一次setDynamic决定最终bool（候选恢复原值可false）。没有本地tree budget。", "evidence": ["registry", "dynamic_world", "declared", "json", "dynamic_tests", "scene_batch_consumer"], "branches": [{"span_before": [189, 199], "audit": "候选clone、object guard、当前registration/VM flag/changed初始化。", "span_current": [233, 243]}, {"span_before": [200, 229], "audit": "ordered loop全部slot/editable/VM/compat/compare/insert分支。", "span_current": [244, 273]}, {"span_before": [230, 232], "audit": "无中间变化false。", "span_current": [274, 276]}, {"span_before": [234, 239], "audit": "唯一World setter及error映射。", "span_current": [278, 283]}], "id": "R008-F05-O014", "span_current": [227, 284]},
+        {"name": "write_declared_field", "kind": "private-function", "span_before": [242, 280], "documentation_decision": "added", "audit": "editable gate先于component ensure；结构化path；legacy scene conversion→checked scene writer，VM ensure field type→json→checked property JSON writer。值树预算在facade，World错误变UnsupportedConversion并含path上下文。", "evidence": ["facade", "dynamic_world", "declared", "json", "property_path"], "branches": [{"span_before": [249, 256], "audit": "editable、component存在与结构化path。", "span_current": [297, 304]}, {"span_before": [257, 265], "audit": "legacy转换、Scene setter与error映射。", "span_current": [305, 313]}, {"span_before": [267, 279], "audit": "VM声明匹配、JSON转换、完整candidate property setter/error。", "span_current": [315, 327]}], "id": "R008-F05-O015", "span_current": [290, 328]},
+        {"name": "remove", "kind": "private-function", "span_before": [282, 290], "documentation_decision": "retain", "audit": "先动态实例存在?再World.remove_dynamic_component；原bool或UnsupportedConversion context，简单delegate，不加重复doc。", "evidence": ["dynamic_world"], "branches": [], "id": "R008-F05-O016", "span_current": [330, 338]},
+        {"name": "ensure_dynamic_component", "kind": "private-function-with-lifetime", "span_before": [292, 309], "documentation_decision": "added", "audit": "返回JSON &'a绑定World &'a；先MissingEntity，存在实体无指定JSON则MissingComponent(type_path拥有化)。", "evidence": ["dynamic_world"], "branches": [{"span_before": [297, 299], "audit": "MissingEntity分支。", "span_current": [348, 350]}, {"span_before": [301, 306], "audit": "类型路径lookup缺失→MissingComponent。", "span_current": [352, 357]}, {"span_before": [308, 308], "audit": "共享JSON引用返回。", "span_current": [359, 359]}], "id": "R008-F05-O017", "span_current": [343, 360]},
+        {"name": "ensure_declared_field", "kind": "private-function-with-lifetime", "span_before": [311, 325], "documentation_decision": "added", "audit": "顺序遍历当前fields，规范name相等返回借用字段；循环结束UnknownField保存path/name。内部不解析alias；稳定/兼容ID由catalog门面先解析。", "evidence": ["registry"], "branches": [], "id": "R008-F05-O018", "span_current": [365, 379]},
+        {"name": "ensure_json_field_present", "kind": "private-function", "span_before": [327, 345], "documentation_decision": "retain", "audit": "json非object→UnsupportedConversion；object.contains_key true→Ok(())，false→UnknownField。read_declared新增doc已逐明两guard，小helper保留。", "evidence": ["json"], "branches": [{"span_before": [332, 337], "audit": "object结构错误。", "span_current": [386, 391]}, {"span_before": [338, 345], "audit": "键存在/缺失分支。", "span_current": [392, 399]}], "id": "R008-F05-O019", "span_current": [381, 399]},
+        {"name": "tests", "kind": "cfg(test)+path-module", "span_before": [347, 349], "documentation_decision": "retain", "audit": "仅挂载tests/dynamic_component.rs；上下文两个tests已完整读但不算R008正式覆盖，不新增重复module注释。", "evidence": ["dynamic_tests"], "branches": [], "id": "R008-F05-O020", "span_current": [401, 403]},
+        {"name": "declared_field_by_slot", "kind": "private-function", "span_before": [351, 362], "documentation_decision": "added", "audit": "fields.get(u32 as usize)索引当前registration，越界UnknownField以#slot诊断；引用借用registration，不当作稳定身份。", "evidence": ["registry"], "branches": [], "id": "R008-F05-O021", "span_current": [408, 419]},
+        {"name": "dynamic_property_path", "kind": "private-function", "span_before": [364, 377], "documentation_decision": "added", "audit": "ComponentPropertyPath::new(full type, vec![owned exact field])直接保留结构化段；construction error→InvalidRegistration。这不依赖existing textual parse/roundtrip假设。", "evidence": ["property_path", "dynamic_world"], "branches": [], "id": "R008-F05-O022", "span_current": [424, 437]}
+      ],
+      "block_audit": [
+        {"span_before": [1, 8], "checked": "全部import、DTO/value/World与路径来源。", "id": "R008-F05-B001", "span_current": [4, 11], "object_ids": ["R008-F05-O002"]},
+        {"span_before": [9, 36], "checked": "保留old summary；属性ordered loop、stable keys、path/plugin失败、JSON metadata/flags完整builder链。", "id": "R008-F05-B002", "span_current": [12, 53], "object_ids": ["R008-F05-O003"]},
+        {"span_before": [37, 65], "checked": "完整fn表组合、ownedtypeid、field identity/type/editable。", "id": "R008-F05-B003", "span_current": [58, 89], "object_ids": ["R008-F05-O004", "R008-F05-O005"]},
+        {"span_before": [66, 77], "checked": "借用字符串两分支、World/entity短路存在性。", "id": "R008-F05-B004", "span_current": [90, 101], "object_ids": ["R008-F05-O006", "R008-F05-O007"]},
+        {"span_before": [78, 115], "checked": "JSON clone/targetset/error、name与slot取当前registration后读取。", "id": "R008-F05-B005", "span_current": [106, 143], "object_ids": ["R008-F05-O008", "R008-F05-O009", "R008-F05-O010"]},
+        {"span_before": [116, 154], "checked": "原key结构检查、legacy和VM两读取转换路径，全部缺失/转换返回。", "id": "R008-F05-B006", "span_current": [148, 186], "object_ids": ["R008-F05-O011"]},
+        {"span_before": [155, 182], "checked": "字段clone scope结束借用后可变writer。", "id": "R008-F05-B007", "span_current": [190, 220], "object_ids": ["R008-F05-O012", "R008-F05-O013"]},
+        {"span_before": [183, 241], "checked": "candidate所有object/slot/editable/typed/compat分支、orderedloop/nochange/单World提交错误。", "id": "R008-F05-B008", "span_current": [227, 285], "object_ids": ["R008-F05-O014"]},
+        {"span_before": [242, 281], "checked": "editable和实例guard、legacy Scene setter与VM类型/JSON候选setter两路径。", "id": "R008-F05-B009", "span_current": [290, 329], "object_ids": ["R008-F05-O015"]},
+        {"span_before": [282, 310], "checked": "World移除error映射；实体/JSON实例区分与借用生命周期。", "id": "R008-F05-B010", "span_current": [330, 361], "object_ids": ["R008-F05-O016", "R008-F05-O017"]},
+        {"span_before": [311, 350], "checked": "name精确find、JSON结构/键各失败、cfg/test path实际挂载。", "id": "R008-F05-B011", "span_current": [365, 404], "object_ids": ["R008-F05-O018", "R008-F05-O019", "R008-F05-O020"]},
+        {"span_before": [351, 377], "checked": "当前slot bounds、结构化path及构造error。", "id": "R008-F05-B012", "span_current": [408, 437], "object_ids": ["R008-F05-O021", "R008-F05-O022"]}
+      ],
+      "callers_traits_macros_registration_ffi_test_contracts": {
+        "callers": ["dynamic_world:72-118 descriptor校验两目录预检/发布", "registry:207-285 VM candidate生成/upsert", "facade:190-261字段写/批读", "staging:74-96 clone能力", "scene_batch_consumer:685-695批写"],
+        "traits": ["Clone serde_json::Value与FieldInfo（不保存descriptor借用）"],
+        "macros": ["cfg(test)/path仅挂载context测试"],
+        "registration": ["dynamic_world:28-49VM两目录clone+retained payload验证后统一更新", "registry:1059-1131声明类型准入/匹配"],
+        "ffi": "本模块只有Rust fn/拥有JSON与短借用；无extern或unsafe直接导出。",
+        "test_contracts": ["vm_tests:14-132 stable field ID roundtrip/duplicate name/type error", "dynamic_tests:10-120 single publication及selected JSON staging"]
+      },
+      "insertions": [
+        {"object": "module", "kind": "module-doc", "before_line": 1, "before_byte_offset": 0, "after_byte_offset": 0, "byte_length": 234, "sha256": "64ab89e0c23f895947ee55f4ba07d77f165c338fe291ebf9017dc3ef5a0696ca", "after_line_span": [1, 3], "inserted_line_count": 3, "id": "R008-F05-I001", "object_ids": ["R008-F05-O001"], "exact_text": "//! 把插件组件描述符接入反射元数据，并为 World 的 JSON 动态组件提供操作表。\n//! 回调按 World 当前目录取得字段；VM 路径按声明类型转换，兼容路径沿用 ScenePropertyValue 转换。\n\n", "evidence": ["registry", "dynamic_world", "json"], "line_ending": "LF"},
+        {"object": "registration_from_component_descriptor", "kind": "rustdoc", "before_line": 10, "before_byte_offset": 557, "after_byte_offset": 791, "byte_length": 688, "sha256": "6a09feda36505403ac1fd87e0212496325d740a6c7ea7b494e65dbfbca2ae745", "after_line_span": [13, 26], "inserted_line_count": 14, "id": "R008-F05-I002", "object_ids": ["R008-F05-O003"], "exact_text": "///\n/// # 参数与返回值\n///\n/// `descriptor` 为共享借用；返回拥有型 JSON 组件元数据，保留属性顺序、可编辑标记和插件归属。\n/// 字段 ID 取完整类型 ID 与属性名两个稳定键；完整路径、短名或插件 ID 无效时返回错误。\n///\n/// # 约束与生命周期\n///\n/// 这里只转换声明，不安装适配器或创建实例；字段元数据的完整准入由 `TypeRegistry` 完成。\n/// `World::register_component_type` 将描述符、该候选和动态操作表一起预检后发布。\n///\n/// # 参考\n///\n/// `field_from_property_descriptor`、`reflect_component_for_dynamic_descriptor`、`World::register_component_type`。\n", "evidence": ["descriptor", "registry", "dynamic_world"], "line_ending": "LF"},
+        {"object": "reflect_component_for_dynamic_descriptor", "kind": "rustdoc", "before_line": 37, "before_byte_offset": 1424, "after_byte_offset": 2346, "byte_length": 388, "sha256": "9612eeae0bb0ff102000102e197f870f2690596800dae31cc617ef0891bd3535", "after_line_span": [54, 57], "inserted_line_count": 4, "id": "R008-F05-I003", "object_ids": ["R008-F05-O004"], "exact_text": "/// 构造包含槽位读写、批量写入和暂存克隆的动态组件操作表。\n///\n/// `descriptor` 只借用到构建结束，表拥有其完整类型 ID；回调不捕获属性列表，而在调用时读取 World 的当前注册。\n/// 调用方须将表与对应描述符/元数据一起安装，参见 `World::register_component_type` 与 `TypeRegistry` 的 VM 注册路径。\n", "evidence": ["registry", "dynamic_world"], "line_ending": "LF"},
+        {"object": "field_from_property_descriptor", "kind": "rustdoc", "before_line": 52, "before_byte_offset": 1837, "after_byte_offset": 3147, "byte_length": 255, "sha256": "5200adec290293fd32f9e6755121c4cd7059c8da8347713360fc2d5ab8b52db0", "after_line_span": [73, 75], "inserted_line_count": 3, "id": "R008-F05-I004", "object_ids": ["R008-F05-O005"], "exact_text": "/// 用类型身份键与规范属性名建立稳定字段 ID，并保留声明类型及可编辑标记。\n///\n/// 本模块的调用方以完整类型 ID 作为 `owner_key`；属性次序另决定当期槽位，改变次序不改变这里的稳定键。\n", "evidence": ["descriptor", "registry"], "line_ending": "LF"},
+        {"object": "stage_clone", "kind": "rustdoc", "before_line": 78, "before_byte_offset": 2518, "after_byte_offset": 4083, "byte_length": 350, "sha256": "25104d5970fa7b6563079707016c6c2749d202abf70722489c2d9b8a49579e19", "after_line_span": [102, 105], "inserted_line_count": 4, "id": "R008-F05-I005", "object_ids": ["R008-F05-O008"], "exact_text": "/// 克隆源 JSON 组件并通过 `World::set_dynamic_component` 暂存到目标。\n///\n/// 目标须已恢复实体身份并准备对应动态类型目录；源值借用随源 World，返回前由目标接管克隆值。\n/// 目标写入错误映射为暂存上下文的 `UnsupportedConversion`，参见 `World::stage_reflected_component_clone`。\n", "evidence": ["staging", "dynamic_world", "dynamic_tests"], "line_ending": "LF"},
+        {"object": "read_declared_field", "kind": "rustdoc", "before_line": 116, "before_byte_offset": 3698, "after_byte_offset": 5613, "byte_length": 303, "sha256": "79ad6e103dfaf0b17c4da95c3876d783593d7a1ab1b0d3428f5009e803c922bd", "after_line_span": [144, 147], "inserted_line_count": 4, "id": "R008-F05-I006", "object_ids": ["R008-F05-O011"], "exact_text": "/// 读取当前声明字段，先要求组件 JSON 是对象且实际包含该字段。\n///\n/// VM 分支按 `value_type_path` 解析为拥有型反射值；兼容分支经现有动态属性/ScenePropertyValue 转换。\n/// 本路径不会因 schema 声明或默认值而自动补齐缺失 JSON 键。\n", "evidence": ["dynamic_world", "json", "declared"], "line_ending": "LF"},
+        {"object": "write_field", "kind": "rustdoc", "before_line": 155, "before_byte_offset": 5123, "after_byte_offset": 7341, "byte_length": 209, "sha256": "67e3ca79a4a3000eac7fee5faf74dbfc8013da82dc645bbf0c943d90cf0d5232", "after_line_span": [187, 189], "inserted_line_count": 3, "id": "R008-F05-I007", "object_ids": ["R008-F05-O012"], "exact_text": "/// 从当前注册克隆字段元数据，再结束目录共享借用并进入可变 World 写入。\n///\n/// 按规范名解析的字段交给 `write_declared_field`；未知字段在写入前返回错误。\n", "evidence": ["registry", "dynamic_world"], "line_ending": "LF"},
+        {"object": "write_dense_slot", "kind": "rustdoc", "before_line": 169, "before_byte_offset": 5522, "after_byte_offset": 7949, "byte_length": 198, "sha256": "ff90d97a2430d6a6aed0048217f052c1ed3a6710c030f79e2ab4669d9830e958", "after_line_span": [204, 206], "inserted_line_count": 3, "id": "R008-F05-I008", "object_ids": ["R008-F05-O013"], "exact_text": "/// 按当前注册的零基槽位克隆字段元数据，结束目录借用后交给 `write_declared_field`。\n///\n/// 槽位须与当前 schema 配对；本层不把它作为持久字段身份。\n", "evidence": ["registry", "dynamic_world"], "line_ending": "LF"},
+        {"object": "write_dense_slots", "kind": "rustdoc", "before_line": 183, "before_byte_offset": 5926, "after_byte_offset": 8551, "byte_length": 598, "sha256": "4f7d941ed96ded384b8b35ac1bb68748d0eac4008dc1ffebf23cc7973574fc63", "after_line_span": [221, 226], "inserted_line_count": 6, "id": "R008-F05-I009", "object_ids": ["R008-F05-O014"], "exact_text": "/// 在独立 JSON 候选上按输入顺序完成字段转换，再调用一次 World 写入口。\n///\n/// 槽位存在且字段可编辑后，VM 分支检查声明类型并转 JSON；兼容分支经 ScenePropertyValue 转 JSON。\n/// 字段或转换错误返回时尚未调用 `World::set_dynamic_component`；最终提交和变更标记由该 World 入口决定。\n/// 重复槽位依次更新候选；无中间变化时直接返回 `false`，最终候选恢复原值时 World 也可返回 `false`。\n/// 此回调本身不追加值树预算，门面准入见 `WorldReflection::reflect_write`。\n", "evidence": ["registry", "dynamic_world", "json", "dynamic_tests"], "line_ending": "LF"},
+        {"object": "write_declared_field", "kind": "rustdoc", "before_line": 242, "before_byte_offset": 8107, "after_byte_offset": 11330, "byte_length": 378, "sha256": "b3e2c404627956b105d5031d1724936090a15a49b4eaf60b33eea56147451513", "after_line_span": [286, 289], "inserted_line_count": 4, "id": "R008-F05-I010", "object_ids": ["R008-F05-O015"], "exact_text": "/// 检查可编辑性和现有组件后，按 World 的 VM 类型标识选择字段写入路径。\n///\n/// VM 分支先匹配声明反射类型、转换 JSON，再交给 World 的完整候选验证/提交入口；兼容分支沿用 ScenePropertyValue 转换。\n/// World 错误映射为目标属性上下文的 `UnsupportedConversion`；值预算由上层门面另行检查。\n", "evidence": ["facade", "dynamic_world", "json", "declared"], "line_ending": "LF"},
+        {"object": "ensure_dynamic_component", "kind": "rustdoc", "before_line": 292, "before_byte_offset": 9929, "after_byte_offset": 13530, "byte_length": 235, "sha256": "9fa6ab9c5d82ce9f213acb1b3372d0d6492c76df7dd9f0f76e340c6372d42bd9", "after_line_span": [340, 342], "inserted_line_count": 3, "id": "R008-F05-I011", "object_ids": ["R008-F05-O017"], "exact_text": "/// 返回借用当前 World 的 JSON 组件，引用有效期随 World 共享借用。\n///\n/// 实体不存在与组件不存在分别返回 `MissingEntity` 和 `MissingComponent`，类型路径用于组件查找与错误上下文。\n", "evidence": ["dynamic_world"], "line_ending": "LF"},
+        {"object": "ensure_declared_field", "kind": "rustdoc", "before_line": 311, "before_byte_offset": 10420, "after_byte_offset": 14256, "byte_length": 216, "sha256": "bf430fbd5871e77b71d425e4f9b25211136920a0c9ff91a882abc1af51438073", "after_line_span": [362, 364], "inserted_line_count": 3, "id": "R008-F05-I012", "object_ids": ["R008-F05-O018"], "exact_text": "/// 在当前注册中按规范字段名精确查找，返回随注册借用有效的字段元数据。\n///\n/// 此内部按名回调不解析别名；稳定 ID 和兼容身份先由 catalog 解析为当前槽位。\n", "evidence": ["registry"], "line_ending": "LF"},
+        {"object": "declared_field_by_slot", "kind": "rustdoc", "before_line": 351, "before_byte_offset": 11515, "after_byte_offset": 15567, "byte_length": 209, "sha256": "c4067b026749198b45b2a845242c7d03a85de9dbba1e5964e7befae61fd4769b", "after_line_span": [405, 407], "inserted_line_count": 3, "id": "R008-F05-I013", "object_ids": ["R008-F05-O021"], "exact_text": "/// 把当前注册的零基槽位解释为字段序列索引；返回引用借用该注册。\n///\n/// 越界以 `#<slot>` 上下文返回 `UnknownField`；schema 顺序变化后不能继续沿用旧槽位。\n", "evidence": ["registry"], "line_ending": "LF"},
+        {"object": "dynamic_property_path", "kind": "rustdoc", "before_line": 364, "before_byte_offset": 11943, "after_byte_offset": 16204, "byte_length": 233, "sha256": "3583ff46700ef75fbceeeda7f0dca9ae1002a12d1f7da634d496f9e1be2d97be", "after_line_span": [421, 423], "inserted_line_count": 3, "id": "R008-F05-I014", "object_ids": ["R008-F05-O022"], "exact_text": "/// 构造完整组件 ID 加单个规范字段段的结构化属性路径。\n///\n/// 直接保存两个结构化部分，供 World setter 使用；构造错误映射为 `InvalidRegistration`，参见 `ComponentPropertyPath::new`。\n", "evidence": ["property_path", "dynamic_world"], "line_ending": "LF"}
+      ],
+      "original_bytes_reconstruction": {
+        "removing_insertions_reconstructs_all_before_bytes": true,
+        "reconstructed_sha256": "fef7bc43f25c2e61dc12ae2dcbbb2293a662c916b47f7d0abea577aab0815890",
+        "reconstructed_bytes": 12410,
+        "original_bytes_retained": true,
+        "comment_and_whitespace_only": true,
+        "staged_and_unstaged_clean_before_write": true,
+        "algorithm": "从current按after_byte_offset倒序去掉每段byte_length；剩余所有字节长度及SHA须等于before，不依赖HEAD或源副本。"
+      },
+      "write_grant_sha256_at_source_write": "308de754925953802e2c43f3acf73a6aa2c1227a9d893d96c2321ffef510ff19",
+      "validation_receipt": "0ba582",
+      "issues": [],
+      "status": "reviewed-and-commented-local-awaiting-main-independent-review"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/vm_type_backing.rs",
+      "source_only_read_sha256": "971474003050e51466f4ad526c93a838b6b8085d6f4a54df17d760ddfdd8b021",
+      "before_sha256": "971474003050e51466f4ad526c93a838b6b8085d6f4a54df17d760ddfdd8b021",
+      "current_sha256": "e86f39886c8772d9f00113f75fda76222d85755f453b57be0a8eebda49a43dcd",
+      "before_bytes": 254,
+      "current_bytes": 810,
+      "before_lines": 11,
+      "current_lines": 19,
+      "newline_counts": {
+        "before": {
+          "crlf": 0,
+          "lf": 11
+        },
+        "current": {
+          "crlf": 0,
+          "lf": 19
+        }
+      },
+      "before_state": "授予时与每次源码写入前精确staged/unstaged diff均空；每次匹配before SHA，无外来增量归本批。",
+      "whole_file_review": {
+        "read_all_original_lines": true,
+        "nonblank_original_lines_mapped_to_manual_blocks": true,
+        "objects_include_fields_variants_aliases_impls_and_cfg_mounts": true,
+        "basis": "先全文逐对象/分支阅读，再跨文件追踪；自动声明列表只核对遗漏。跨仓上下文不算本文件之外的覆盖。"
+      },
+      "objects": [
+        {"name": "module", "kind": "module", "span_before": [1, 11], "documentation_decision": "added", "audit": "VM声明承载选择参与Runtime目录角色/严格字段声明检查。", "evidence": ["registry", "dynamic_world"], "branches": [], "id": "R008-F06-O001", "span_current": [4, 19]},
+        {"name": "imports: Deserialize, Serialize", "kind": "imports", "span_before": [1, 1], "documentation_decision": "retain", "audit": "serde derives所需trait导入；无其他数据/初始化。", "evidence": [], "branches": [], "id": "R008-F06-O002", "span_current": [4, 4]},
+        {"name": "VmTypeBacking", "kind": "enum+derive+serde-attribute", "span_before": [3, 7], "documentation_decision": "added", "audit": "Clone/Copy/Debug/Eq及Serialize/Deserialize；rename_all snake_case作用于唯一variant。值本身不拥有World/实例，TypeRegistry构造描述符/表，World入口另同步目录/VM标识。", "evidence": ["registry", "dynamic_world"], "branches": [], "id": "R008-F06-O003", "span_current": [10, 15]},
+        {"name": "VmTypeBacking::DynamicComponent", "kind": "enum-variant", "span_before": [6, 6], "documentation_decision": "added", "audit": "唯一variant线名dynamic_component，JSON动态存储要求component角色；在World.register_vm_type分支实际消费。", "evidence": ["registry", "dynamic_world"], "branches": [], "id": "R008-F06-O004", "span_current": [14, 14]},
+        {"name": "tests", "kind": "cfg(test)+path-module", "span_before": [9, 11], "documentation_decision": "retain", "audit": "显式挂载tests/vm_type_backing.rs，该文件是R008正式8源之一；保持mount text字节不变。", "evidence": ["vm_tests"], "branches": [], "id": "R008-F06-O005", "span_current": [17, 19]}
+      ],
+      "block_audit": [
+        {"span_before": [1, 2], "checked": "导入serde traits。", "id": "R008-F06-B001", "span_current": [4, 5], "object_ids": ["R008-F06-O002"]},
+        {"span_before": [3, 8], "checked": "全部derive、rename_all、唯一variant。", "id": "R008-F06-B002", "span_current": [10, 16], "object_ids": ["R008-F06-O003", "R008-F06-O004"]},
+        {"span_before": [9, 11], "checked": "cfg/path的实际正式test挂载。", "id": "R008-F06-B003", "span_current": [17, 19], "object_ids": ["R008-F06-O005"]}
+      ],
+      "callers_traits_macros_registration_ffi_test_contracts": {
+        "callers": ["registry:207-285 VM register/upsert/sync", "dynamic_world:28-49 VM registration"],
+        "traits": ["Clone,Copy,Debug,PartialEq,Eq,Serialize,Deserialize"],
+        "macros": ["derive and serde(rename_all=\"snake_case\")"],
+        "registration": ["registry backing match DynamicComponent → descriptor/table", "World registry+VM marker entry separate"],
+        "ffi": "serde token仅进程内声明选择，未作为本批C ABI枚举暴露。",
+        "test_contracts": ["vm_tests 4tests及2fixture helpers正式覆盖"]
+      },
+      "insertions": [
+        {"object": "module", "kind": "module-doc", "before_line": 1, "before_byte_offset": 0, "after_byte_offset": 0, "byte_length": 159, "sha256": "43a2a733b1a0b46f7d17571efbe4b2d893d7b9434b5ddd5d4e5033a148a72881", "after_line_span": [1, 3], "inserted_line_count": 3, "id": "R008-F06-I001", "object_ids": ["R008-F06-O001"], "exact_text": "//! 选择 VM 反射元数据在 Runtime 场景中的承载方式。\n//! 承载类型参与注册时的角色、字段语法和动态组件描述符检查。\n\n", "evidence": ["registry"], "line_ending": "LF"},
+        {"object": "VmTypeBacking", "kind": "rustdoc", "before_line": 3, "before_byte_offset": 38, "after_byte_offset": 197, "byte_length": 298, "sha256": "0ccf17a359b5c9f8940184dc0e49e5b4e2cf6c065e0102f331667dcb69e3a967", "after_line_span": [6, 9], "inserted_line_count": 4, "id": "R008-F06-I002", "object_ids": ["R008-F06-O003"], "exact_text": "/// VM 类型注册的承载选择；序列化名称采用 `snake_case`。\n///\n/// 由 `TypeRegistry` 构造动态描述符和操作表，`World::register_vm_type` 另同步 World 的目录与 VM 类型标识。\n/// 枚举值本身不拥有实例、目录或 World；参见这两个注册入口。\n", "evidence": ["registry", "dynamic_world"], "line_ending": "LF"},
+        {"object": "VmTypeBacking::DynamicComponent", "kind": "rustdoc", "before_line": 6, "before_byte_offset": 168, "after_byte_offset": 625, "byte_length": 99, "sha256": "894003b2a99daee7a35385431478f7fb9a092605c4227805d05b5de3b9e89249", "after_line_span": [13, 13], "inserted_line_count": 1, "id": "R008-F06-I003", "object_ids": ["R008-F06-O004"], "exact_text": "    /// 以 World 的 JSON 动态组件存储承载组件角色；线名为 `dynamic_component`。\n", "evidence": ["registry", "dynamic_world"], "line_ending": "LF"}
+      ],
+      "original_bytes_reconstruction": {
+        "removing_insertions_reconstructs_all_before_bytes": true,
+        "reconstructed_sha256": "971474003050e51466f4ad526c93a838b6b8085d6f4a54df17d760ddfdd8b021",
+        "reconstructed_bytes": 254,
+        "original_bytes_retained": true,
+        "comment_and_whitespace_only": true,
+        "staged_and_unstaged_clean_before_write": true,
+        "algorithm": "从current按after_byte_offset倒序去掉每段byte_length；剩余所有字节长度及SHA须等于before，不依赖HEAD或源副本。"
+      },
+      "write_grant_sha256_at_source_write": "308de754925953802e2c43f3acf73a6aa2c1227a9d893d96c2321ffef510ff19",
+      "validation_receipt": "0ba582",
+      "issues": [],
+      "status": "reviewed-and-commented-local-awaiting-main-independent-review"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs",
+      "source_only_read_sha256": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+      "before_sha256": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+      "current_sha256": "0e719152b1f813c952b9122115afb281e4e351c7eed38f1a7fbcc3a14ede3231",
+      "before_bytes": 6702,
+      "current_bytes": 7126,
+      "before_lines": 188,
+      "current_lines": 193,
+      "newline_counts": {
+        "before": {
+          "crlf": 0,
+          "lf": 188
+        },
+        "current": {
+          "crlf": 0,
+          "lf": 193
+        }
+      },
+      "before_state": "授予时与每次源码写入前精确staged/unstaged diff均空；每次匹配before SHA，无外来增量归本批。",
+      "whole_file_review": {
+        "read_all_original_lines": true,
+        "nonblank_original_lines_mapped_to_manual_blocks": true,
+        "objects_include_fields_variants_aliases_impls_and_cfg_mounts": true,
+        "basis": "先全文逐对象/分支阅读，再跨文件追踪；自动声明列表只核对遗漏。跨仓上下文不算本文件之外的覆盖。"
+      },
+      "objects": [
+        {"name": "module", "kind": "module", "span_before": [1, 188], "documentation_decision": "added", "audit": "正式覆盖derive元数据、可编辑/readonly、selected component stage及缺省能力两error fixtures；只读理解现有断言，不运行或改变assertion。", "evidence": ["derived_tests", "macro", "staging"], "branches": [], "id": "R008-F07-O001", "span_current": [4, 193]},
+        {"name": "imports: ReflectError, ReflectScriptVisibility, ReflectTypeKind, ReflectedValue, Component, NodeKind, RuntimeTypeRegistration, World, derived_component_registration, ZrReflect", "kind": "imports", "span_before": [1, 8], "documentation_decision": "retain", "audit": "Interface DTO/error与Runtime factory/World/testtrait来源明确；由derived tests module cfg挂载。", "evidence": ["trait", "derived_mount"], "branches": [], "id": "R008-F07-O002", "span_current": [4, 11]},
+        {"name": "Health", "kind": "fixture-struct+derive+zr_reflect-attributes", "span_before": [10, 17], "documentation_decision": "added", "audit": "Clone/Debug/PartialEq/ZrReflect derive；component/public script/display_name=Health；仅两个f32测试字段，元数据和accessor同源。", "evidence": ["macro", "macro_fields"], "branches": [], "id": "R008-F07-O003", "span_current": [14, 21]},
+        {"name": "Health::current", "kind": "fixture-field+attribute", "span_before": [13, 14], "documentation_decision": "retain", "audit": "f32 Scalar hint，默认可编辑；测试明确Scalar读写和same-value false，attribute已完整说明。", "evidence": ["macro_fields"], "branches": [], "id": "R008-F07-O004", "span_current": [17, 18]},
+        {"name": "Health::maximum", "kind": "fixture-field+attribute", "span_before": [15, 16], "documentation_decision": "retain", "audit": "f32 Scalar hint且readonly；元数据editable=false与setter NonEditableField两断言闭合，无需重复doc。", "evidence": ["macro_fields"], "branches": [], "id": "R008-F07-O005", "span_current": [19, 20]},
+        {"name": "impl Component for Health", "kind": "empty-marker-impl", "span_before": [19, 19], "documentation_decision": "retain", "audit": "把fixture纳入ECS Component marker，无方法或额外行为。", "evidence": [], "branches": [], "id": "R008-F07-O006", "span_current": [23, 23]},
+        {"name": "UnselectedStagingSentinel", "kind": "unit-fixture+derive", "span_before": [21, 22], "documentation_decision": "added", "audit": "Clone/Debug/PartialEq marker，仅用来证明selected预检未复制未选组件；未派生反射。", "evidence": ["staging"], "branches": [], "id": "R008-F07-O007", "span_current": [26, 27]},
+        {"name": "impl Component for UnselectedStagingSentinel", "kind": "empty-marker-impl", "span_before": [24, 24], "documentation_decision": "retain", "audit": "unit sentinel是ECS组件，无方法。", "evidence": [], "branches": [], "id": "R008-F07-O008", "span_current": [29, 29]},
+        {"name": "derive_round_trips_reflect_type_info", "kind": "test-function+test-attribute", "span_before": [26, 49], "documentation_decision": "retain", "audit": "assert短路径/display/Struct/组件/remote=false/public script与两field名称顺序、editable标记，再构建Runtime表assertSome。既有名称、attrs和断言可直接复核。", "evidence": ["macro", "macro_fields"], "branches": [{"span_before": [28, 44], "audit": "DTO构造与全部元数据断言。", "span_current": [33, 49]}, {"span_before": [46, 48], "audit": "Runtime工厂成功且component Some。", "span_current": [51, 53]}], "id": "R008-F07-O009", "span_current": [31, 54]},
+        {"name": "derive_generated_field_accessors_round_trip_values", "kind": "test-function+test-attribute", "span_before": [51, 80], "documentation_decision": "retain", "audit": "Health数字fixture：getter Scalar25、setter40=true、实际current40、再次40=false、readonly maximum=NonEditableField精确路径/name。", "evidence": ["trait", "macro_fields"], "branches": [{"span_before": [53, 70], "audit": "初值、getter、变化和same-value no-op全部断言。", "span_current": [58, 75]}, {"span_before": [71, 79], "audit": "readonly字段错误完整比对。", "span_current": [76, 84]}], "id": "R008-F07-O010", "span_current": [56, 85]},
+        {"name": "derived_component_stage_clone_moves_an_owned_value_into_preflight_world", "kind": "test-function+test-attribute", "span_before": [82, 127], "documentation_decision": "retain", "audit": "source entity+Health+sentinel，先注册Health反射；selected preflight先恢复node身份，再stage clone。assertHealth值一致且sentinel None，证明此fixture选择性克隆，不泛化T Clone深隔离。", "evidence": ["staging", "typed"], "branches": [{"span_before": [84, 107], "audit": "source entity/typed rows与type注册。", "span_current": [89, 112]}, {"span_before": [109, 114], "audit": "preflight选择类型并恢复稳定node身份。", "span_current": [114, 119]}, {"span_before": [116, 126], "audit": "实际stage调用及两目标值断言。", "span_current": [121, 131]}], "id": "R008-F07-O011", "span_current": [87, 132]},
+        {"name": "reflected_component_stage_clone_rejects_registration_without_adapter", "kind": "test-function+test-attribute", "span_before": [129, 153], "documentation_decision": "retain", "audit": "metadata-only RuntimeTypeRegistration可register成功；World.stage_reflected...报精确InvalidRegistration/no component staging adapter。测试没有误把候选发布等同访问能力。", "evidence": ["registry", "staging"], "branches": [{"span_before": [131, 141], "audit": "源实体、metadata构造和合法None adapter注册。", "span_current": [136, 146]}, {"span_before": [143, 152], "audit": "stage调用与完整错误期望。", "span_current": [148, 157]}], "id": "R008-F07-O012", "span_current": [134, 158]},
+        {"name": "reflected_component_stage_clone_rejects_adapter_without_callback", "kind": "test-function+test-attribute", "span_before": [155, 188], "documentation_decision": "retain", "audit": "从合法factory表移除stage callback但保留Some adapter，register合法；stage报affected-row clone missing能力错误。与前test None整个adapter不同。", "evidence": ["registry", "staging"], "branches": [{"span_before": [157, 176], "audit": "factory解构、callback None、重组并注册。", "span_current": [162, 181]}, {"span_before": [178, 187], "audit": "缺callback精确错误。", "span_current": [183, 192]}], "id": "R008-F07-O013", "span_current": [160, 193]}
+      ],
+      "block_audit": [
+        {"span_before": [1, 9], "checked": "全部fixture依赖/mount。", "id": "R008-F07-B001", "span_current": [4, 12], "object_ids": ["R008-F07-O002"]},
+        {"span_before": [10, 20], "checked": "derive、zr_reflect类型/字段attributes、两字段和empty marker。", "id": "R008-F07-B002", "span_current": [14, 24], "object_ids": ["R008-F07-O003", "R008-F07-O004", "R008-F07-O005", "R008-F07-O006"]},
+        {"span_before": [21, 25], "checked": "unit type/derives/empty marker。", "id": "R008-F07-B003", "span_current": [26, 30], "object_ids": ["R008-F07-O007", "R008-F07-O008"]},
+        {"span_before": [26, 50], "checked": "全元数据/顺序/editability/Some adapter断言。", "id": "R008-F07-B004", "span_current": [31, 55], "object_ids": ["R008-F07-O009"]},
+        {"span_before": [51, 81], "checked": "getter/changed/no-op/readonly全部输入输出。", "id": "R008-F07-B005", "span_current": [56, 86], "object_ids": ["R008-F07-O010"]},
+        {"span_before": [82, 128], "checked": "fixture setup、selected类型和身份恢复、stage及Health/sentinel断言。", "id": "R008-F07-B006", "span_current": [87, 133], "object_ids": ["R008-F07-O011"]},
+        {"span_before": [129, 154], "checked": "metadata-only合法注册→缺适配器stage error。", "id": "R008-F07-B007", "span_current": [134, 159], "object_ids": ["R008-F07-O012"]},
+        {"span_before": [155, 188], "checked": "Some表但callback None合法注册→不同stage error。", "id": "R008-F07-B008", "span_current": [160, 193], "object_ids": ["R008-F07-O013"]}
+      ],
+      "callers_traits_macros_registration_ffi_test_contracts": {
+        "callers": ["derived_mount:9-11 cfg(test)/path直接挂载tests/cases.rs", "formal8-source scope includes this complete file"],
+        "traits": ["Health: Clone+Debug+PartialEq+ZrReflect+Component", "sentinel: Clone+Debug+PartialEq+Component"],
+        "macros": ["ZrReflect derive, zr_reflect component/public/display/hint/readonly, test"],
+        "registration": ["each factory/register setup explicitly read"],
+        "ffi": "单元Rust fixtures，无FFI导出。",
+        "test_contracts": ["5 existing test bodies statically reviewed, not executed", "逐断言文案保留，fixture不证明任意Clone深隔离"]
+      },
+      "insertions": [
+        {"object": "module", "kind": "module-doc", "before_line": 1, "before_byte_offset": 0, "after_byte_offset": 0, "byte_length": 206, "sha256": "754e5d85f5d8d36097b0b00816fbc36a36a985db35b192cac714c9f9694707c3", "after_line_span": [1, 3], "inserted_line_count": 3, "id": "R008-F07-I001", "object_ids": ["R008-F07-O001"], "exact_text": "//! 派生组件的元数据、字段读写与选择性预检暂存夹具。\n//! 暂存测试先恢复目标实体身份，并分别检查元数据缺少组件表、表缺少暂存回调的错误边界。\n\n", "evidence": ["derived_tests", "staging"], "line_ending": "LF"},
+        {"object": "Health", "kind": "rustdoc", "before_line": 10, "before_byte_offset": 275, "after_byte_offset": 481, "byte_length": 122, "sha256": "cbad54d292b23e15538f11a81d9e2e401849918f1a09f1ed50c6ddb440e305fe", "after_line_span": [13, 13], "inserted_line_count": 1, "id": "R008-F07-I002", "object_ids": ["R008-F07-O003"], "exact_text": "/// 同时含可写字段和只读字段的派生组件，用来核对元数据与生成访问器共用的字段声明。\n", "evidence": ["macro"], "line_ending": "LF"},
+        {"object": "UnselectedStagingSentinel", "kind": "rustdoc", "before_line": 21, "before_byte_offset": 603, "after_byte_offset": 931, "byte_length": 96, "sha256": "73618affd20f1733f47527d8338b058582aa83009f20f469473c3ba2d874a41d", "after_line_span": [25, 25], "inserted_line_count": 1, "id": "R008-F07-I003", "object_ids": ["R008-F07-O007"], "exact_text": "/// 未纳入暂存选择集的源组件，用来检查预检 World 没有复制无关组件。\n", "evidence": ["derived_tests"], "line_ending": "LF"}
+      ],
+      "original_bytes_reconstruction": {
+        "removing_insertions_reconstructs_all_before_bytes": true,
+        "reconstructed_sha256": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+        "reconstructed_bytes": 6702,
+        "original_bytes_retained": true,
+        "comment_and_whitespace_only": true,
+        "staged_and_unstaged_clean_before_write": true,
+        "algorithm": "从current按after_byte_offset倒序去掉每段byte_length；剩余所有字节长度及SHA须等于before，不依赖HEAD或源副本。"
+      },
+      "write_grant_sha256_at_source_write": "308de754925953802e2c43f3acf73a6aa2c1227a9d893d96c2321ffef510ff19",
+      "validation_receipt": "0ba582",
+      "issues": [],
+      "status": "reviewed-and-commented-local-awaiting-main-independent-review"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/tests/vm_type_backing.rs",
+      "source_only_read_sha256": "9fce37ef2862d04b440f67c6c9f982b7ea715d3fcefe246263c9668f06555004",
+      "before_sha256": "9fce37ef2862d04b440f67c6c9f982b7ea715d3fcefe246263c9668f06555004",
+      "current_sha256": "7eda5da5af4ba5d2277d3ce36e4e977d8a223f8f1d6651a462bfcea37c96dba9",
+      "before_bytes": 5827,
+      "current_bytes": 6376,
+      "before_lines": 166,
+      "current_lines": 173,
+      "newline_counts": {
+        "before": {
+          "crlf": 0,
+          "lf": 166
+        },
+        "current": {
+          "crlf": 0,
+          "lf": 173
+        }
+      },
+      "before_state": "授予时与每次源码写入前精确staged/unstaged diff均空；每次匹配before SHA，无外来增量归本批。",
+      "whole_file_review": {
+        "read_all_original_lines": true,
+        "nonblank_original_lines_mapped_to_manual_blocks": true,
+        "objects_include_fields_variants_aliases_impls_and_cfg_mounts": true,
+        "basis": "先全文逐对象/分支阅读，再跨文件追踪；自动声明列表只核对遗漏。跨仓上下文不算本文件之外的覆盖。"
+      },
+      "objects": [
+        {"name": "module", "kind": "module", "span_before": [1, 166], "documentation_decision": "added", "audit": "VM承载在World注册/JSON存储/稳定ID读写与准入失败fixtures；仅现有四tests的静态合同。", "evidence": ["vm_tests", "dynamic_world", "registry"], "branches": [], "id": "R008-F08-O001", "span_current": [4, 173]},
+        {"name": "imports: json, ReflectEditorHint, ReflectError, ReflectFieldId, ReflectFieldInfo, ReflectObjectAddress, ReflectReadRequest, ReflectScriptVisibility, ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration, ReflectWriteRequest, ReflectedValue, TypeRegistry, NodeKind, SceneError, World, VmTypeBacking", "kind": "imports", "span_before": [1, 11], "documentation_decision": "retain", "audit": "JSON宏、Interface request/value/schemaDTO、Runtime register/backing全部具体来源；cfg test入口由owned enum模块挂载。", "evidence": ["mounts"], "branches": [], "id": "R008-F08-O002", "span_current": [4, 14]},
+        {"name": "vm_type_round_trips_as_dynamic_component", "kind": "test-function+test-attribute", "span_before": [13, 52], "documentation_decision": "retain", "audit": "World production register_vm_type→spawn→JSON set→component address→stable ID read Scalar25，再write Scalar40；assert changed与完整JSON current40/maximum100。证明fixture的目录/值访问链。", "evidence": ["dynamic_world", "facade", "registry"], "branches": [{"span_before": [15, 30], "audit": "注册、实体/实例创建、对象地址。", "span_current": [18, 33]}, {"span_before": [32, 38], "audit": "stableID读取及拥有Scalar值断言。", "span_current": [35, 41]}, {"span_before": [40, 51], "audit": "写入、changed及全部JSON值断言。", "span_current": [43, 54]}], "id": "R008-F08-O003", "span_current": [16, 55]},
+        {"name": "identical_vm_type_upsert_preserves_schema_catalog_generation", "kind": "test-function+test-attribute", "span_before": [54, 68], "documentation_decision": "retain", "audit": "TypeRegistry同一个DTO clone+原值两次upsert，对比catalog generation；只证明此registry no-op，不把它当作World双目录同步测试。", "evidence": ["registry"], "branches": [], "id": "R008-F08-O004", "span_current": [57, 71]},
+        {"name": "vm_registration_rejects_duplicate_reflected_field_names", "kind": "test-function+test-attribute", "span_before": [70, 94], "documentation_decision": "retain", "audit": "stable key current-duplicate不同但公开name仍current；生产World入口报SceneError::Reflect InvalidFieldRegistration，reason含duplicate name。区别稳定键与规范name唯一性。", "evidence": ["registry", "dynamic_world"], "branches": [{"span_before": [72, 82], "audit": "向fixture有序fields追加不同stable key/相同公开name。", "span_current": [75, 85]}, {"span_before": [83, 93], "audit": "register错误路径与matches guard。", "span_current": [86, 96]}], "id": "R008-F08-O005", "span_current": [73, 97]},
+        {"name": "vm_dynamic_component_write_rejects_schema_type_mismatch", "kind": "test-function+test-attribute", "span_before": [96, 132], "documentation_decision": "retain", "audit": "生产World注册/附实例后，stable currentID写String到Scalar字段→精确TypeMismatch(path,name,expected,actual)。只断言错误，不虚构本test已有World unchanged断言。", "evidence": ["facade", "registry", "dynamic_world"], "branches": [{"span_before": [98, 113], "audit": "正常register/entity/JSON/address setup。", "span_current": [101, 116]}, {"span_before": [115, 131], "audit": "不匹配写请求和完整TypeMismatch比对。", "span_current": [118, 134]}], "id": "R008-F08-O006", "span_current": [99, 135]},
+        {"name": "vm_health_registration", "kind": "fixture-helper", "span_before": [134, 162], "documentation_decision": "added", "audit": "拥有JSON component DTO：gameplay.Component.Health/Health、两Scalar field按current/maximum顺序，stable owner tests.vm-health，maximum readonly；plugin gameplay、public script。stable owner和type path是独立身份输入。", "evidence": ["registry", "vm_tests"], "branches": [], "id": "R008-F08-O007", "span_current": [138, 166]},
+        {"name": "vm_health_field_id", "kind": "fixture-helper", "span_before": [164, 166], "documentation_decision": "added", "audit": "from_stable_keys同一个tests.vm-health owner+传入field_key；返回拥有稳定ID，与fixture定义配对，不返回dense slot。", "evidence": ["registry", "vm_tests"], "branches": [], "id": "R008-F08-O008", "span_current": [171, 173]}
+      ],
+      "block_audit": [
+        {"span_before": [1, 12], "checked": "全部request/value/World/backing import及JSON macro来源。", "id": "R008-F08-B001", "span_current": [4, 15], "object_ids": ["R008-F08-O002"]},
+        {"span_before": [13, 53], "checked": "生产注册和稳定ID读写全链、changed与JSON断言。", "id": "R008-F08-B002", "span_current": [16, 56], "object_ids": ["R008-F08-O003"]},
+        {"span_before": [54, 69], "checked": "两次相同DTO upsert及generation相等。", "id": "R008-F08-B003", "span_current": [57, 72], "object_ids": ["R008-F08-O004"]},
+        {"span_before": [70, 95], "checked": "不同stable key但同公开name的唯一性错误。", "id": "R008-F08-B004", "span_current": [73, 98], "object_ids": ["R008-F08-O005"]},
+        {"span_before": [96, 133], "checked": "World正常setup、不匹配写请求与全部错误field比对。", "id": "R008-F08-B005", "span_current": [99, 136], "object_ids": ["R008-F08-O006"]},
+        {"span_before": [134, 163], "checked": "所有路径/stable键/字段顺序/editability/serialization/role/plugin/script builder。", "id": "R008-F08-B006", "span_current": [138, 167], "object_ids": ["R008-F08-O007"]},
+        {"span_before": [164, 166], "checked": "fixture owner一致且返回拥有stable ID。", "id": "R008-F08-B007", "span_current": [171, 173], "object_ids": ["R008-F08-O008"]}
+      ],
+      "callers_traits_macros_registration_ffi_test_contracts": {
+        "callers": ["vm_type_backing.rs cfg(test)/path直接挂载"],
+        "traits": ["Interface DTO/value持有数据；场景register fixture"],
+        "macros": ["test、serde_json::json!"],
+        "registration": ["World.register_vm_type实际入口与TypeRegistry.upsert两层fixture区别"],
+        "ffi": "仅Rust单元fixtures，无ABI入口。",
+        "test_contracts": ["4 tests、2fixture helpers全文正式覆盖，未运行", "type mismatch fixture缺少World unchanged断言，未将其当作回滚证明"]
+      },
+      "insertions": [
+        {"object": "module", "kind": "module-doc", "before_line": 1, "before_byte_offset": 0, "after_byte_offset": 0, "byte_length": 236, "sha256": "455604aabed62fefd160e10eaec4700bb9afdb03e053c54ae1fa84c7f53d7d1c", "after_line_span": [1, 3], "inserted_line_count": 3, "id": "R008-F08-I001", "object_ids": ["R008-F08-O001"], "exact_text": "//! VM 动态组件通过生产 World 注册入口的反射访问与错误夹具。\n//! 相同元数据 upsert 用例直接检查 TypeRegistry 代数；其余用例检查 World 目录接入、字段名唯一性和声明类型写入。\n\n", "evidence": ["vm_tests", "dynamic_world", "registry"], "line_ending": "LF"},
+        {"object": "vm_health_registration", "kind": "rustdoc", "before_line": 134, "before_byte_offset": 4719, "after_byte_offset": 4955, "byte_length": 122, "sha256": "af13c95f59a9ab2060e9d4bb5c9718e138cb78dba03693eff411d35681a287c8", "after_line_span": [137, 137], "inserted_line_count": 1, "id": "R008-F08-I002", "object_ids": ["R008-F08-O007"], "exact_text": "/// 构造插件拥有的 JSON 组件 schema；`current` 可写、`maximum` 只读，字段顺序对应本夹具槽位。\n", "evidence": ["vm_tests"], "line_ending": "LF"},
+        {"object": "vm_health_field_id", "kind": "rustdoc", "before_line": 164, "before_byte_offset": 5699, "after_byte_offset": 6057, "byte_length": 191, "sha256": "4e860fda3119fb712a24e346dd23b26cfabd1642fe56b0872f60d9af6e86840a", "after_line_span": [168, 170], "inserted_line_count": 3, "id": "R008-F08-I003", "object_ids": ["R008-F08-O008"], "exact_text": "/// 沿用 schema 的 `tests.vm-health` 身份键构造请求字段 ID。\n///\n/// 该键独立于完整类型路径和插件 ID，须与上方字段元数据使用的稳定键保持一致。\n", "evidence": ["vm_tests"], "line_ending": "LF"}
+      ],
+      "original_bytes_reconstruction": {
+        "removing_insertions_reconstructs_all_before_bytes": true,
+        "reconstructed_sha256": "9fce37ef2862d04b440f67c6c9f982b7ea715d3fcefe246263c9668f06555004",
+        "reconstructed_bytes": 5827,
+        "original_bytes_retained": true,
+        "comment_and_whitespace_only": true,
+        "staged_and_unstaged_clean_before_write": true,
+        "algorithm": "从current按after_byte_offset倒序去掉每段byte_length；剩余所有字节长度及SHA须等于before，不依赖HEAD或源副本。"
+      },
+      "write_grant_sha256_at_source_write": "308de754925953802e2c43f3acf73a6aa2c1227a9d893d96c2321ffef510ff19",
+      "validation_receipt": "0ba582",
+      "issues": [],
+      "status": "reviewed-and-commented-local-awaiting-main-independent-review"
+    }
+  ],
+  "issues": [],
+  "context_findings": [
+    {
+      "id": "CR-ZCA-R002-0001",
+      "kind": "BUG",
+      "owner": "main/R002F",
+      "status": "confirmed-by-static-path-open-not-fixed",
+      "formal_R008_coverage": false,
+      "source_path": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs",
+      "current_source_sha256": "2545b670140933dead71c86b6c19597c8429258f7a9430aced731ba8a7c4f850",
+      "source_span_current": [389, 421],
+      "source_label_line": 414,
+      "include_str_literal": "../../reflect/derived/component_adapter.rs",
+      "included_owned_source_before_sha256": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+      "included_owned_source_current_sha256": "4400454f408405059fa16db038391455aebc479c81522bb13e721c66b36d38b7",
+      "trigger": "编译当前include_str fixture并执行此test时，默认工厂函数名和registration实参之间实际有换行，连续contains谓词为false。",
+      "effect": "assert!第三合取为false；另外两个matches均1，custom contains为true。",
+      "static_evidence": {
+        "test_source": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs",
+        "test_source_sha256": "2545b670140933dead71c86b6c19597c8429258f7a9430aced731ba8a7c4f850",
+        "test_fn_line_current": 389,
+        "included_source": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs",
+        "included_source_before_sha256": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+        "included_source_after_sha256": "4400454f408405059fa16db038391455aebc479c81522bb13e721c66b36d38b7",
+        "exact_literals": {
+          "default_start": "pub fn derived_component_registration<T>()",
+          "default_end_and_custom_start": "pub fn derived_component_registration_with_adapter<T>(",
+          "custom_end": "fn finish_component_registration(",
+          "matches": "T::reflect_type_registration()?",
+          "default_contains": "finish_component_registration(registration,",
+          "custom_contains": "finish_component_registration(registration, component)"
+        },
+        "before": {
+          "default_region_sha256": "6369e1992cc476796fc91692aea874625970c954bfef1802395440188f7d4dd2",
+          "custom_region_sha256": "6579a0a9a837016ec1a9e79afa1fff6658f533db40f31ebeb03c509aff126c8e",
+          "default_metadata_call_matches": 1,
+          "custom_metadata_call_matches": 1,
+          "default_continuous_factory_call_contains": false,
+          "custom_continuous_factory_call_contains": true
+        },
+        "after": {
+          "default_region_sha256": "4f26a08bac6653a3fa8823d3f382eacf677539d0aa3b0d1edd04a8ef530d45e4",
+          "custom_region_sha256": "6579a0a9a837016ec1a9e79afa1fff6658f533db40f31ebeb03c509aff126c8e",
+          "default_metadata_call_matches": 1,
+          "custom_metadata_call_matches": 1,
+          "default_continuous_factory_call_contains": false,
+          "custom_continuous_factory_call_contains": true
+        },
+        "all_four_predicate_results_preserved": true,
+        "classification": "read-only-source-string-predicate-check-not-Rust-test-execution"
+      },
+      "r002_followup_record": {
+        "path": "docs/plans/source-comments/reviews/R002-issue-followup.json",
+        "sha256": "5db82914a5d4a08b341133f3e7baaaa8da07cccdfbcd1bdc91df07ce27910864"
+      },
+      "action": "主审在出错contains旁加两行BUG并保留assertion；R008保持include源四谓词不变，不塞入搜索串，不修测试，不计其它文件覆盖。",
+      "next_action": "单独授权修复时选择不依赖formatter换行的结构/token证据。",
+      "rust_test_executed": false
+    }
+  ],
+  "validation": {
+    "at_utc": "2026-10-14T21:39:09.114974+00:00",
+    "receipt": {
+      "chunk_id": "0ba582",
+      "exit_code": 0,
+      "wall_time_seconds": 3.9977728
+    },
+    "scoped_checks": [
+      {"label": "rustfmt", "command": ["rustfmt", "--check", "--edition", "2021", "--config", "skip_children=true", "zircon_runtime/src/scene/reflect/runtime_type_registration.rs", "zircon_runtime/src/scene/reflect/reflect_component.rs", "zircon_runtime/src/scene/reflect/reflect_resource.rs", "zircon_runtime/src/scene/reflect/derived/component_adapter.rs", "zircon_runtime/src/scene/reflect/dynamic_component.rs", "zircon_runtime/src/scene/reflect/vm_type_backing.rs", "zircon_runtime/src/scene/reflect/derived/tests/cases.rs", "zircon_runtime/src/scene/reflect/tests/vm_type_backing.rs"], "exit_code": 0, "stdout": "", "stderr": ""},
+      {"label": "diff_check", "command": ["git", "--no-optional-locks", "diff", "--check", "--", "zircon_runtime/src/scene/reflect/runtime_type_registration.rs", "zircon_runtime/src/scene/reflect/reflect_component.rs", "zircon_runtime/src/scene/reflect/reflect_resource.rs", "zircon_runtime/src/scene/reflect/derived/component_adapter.rs", "zircon_runtime/src/scene/reflect/dynamic_component.rs", "zircon_runtime/src/scene/reflect/vm_type_backing.rs", "zircon_runtime/src/scene/reflect/derived/tests/cases.rs", "zircon_runtime/src/scene/reflect/tests/vm_type_backing.rs"], "exit_code": 0, "stdout": "", "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/scene/reflect/derived/component_adapter.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/scene/reflect/derived/tests/cases.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/scene/reflect/dynamic_component.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/scene/reflect/reflect_resource.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/scene/reflect/runtime_type_registration.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/scene/reflect/tests/vm_type_backing.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/scene/reflect/vm_type_backing.rs.\nThe file will have its original line endings in your working directory\n"},
+      {"label": "staged_diff", "command": ["git", "--no-optional-locks", "diff", "--cached", "--", "zircon_runtime/src/scene/reflect/runtime_type_registration.rs", "zircon_runtime/src/scene/reflect/reflect_component.rs", "zircon_runtime/src/scene/reflect/reflect_resource.rs", "zircon_runtime/src/scene/reflect/derived/component_adapter.rs", "zircon_runtime/src/scene/reflect/dynamic_component.rs", "zircon_runtime/src/scene/reflect/vm_type_backing.rs", "zircon_runtime/src/scene/reflect/derived/tests/cases.rs", "zircon_runtime/src/scene/reflect/tests/vm_type_backing.rs"], "exit_code": 0, "stdout": "", "stderr": ""},
+      {"label": "status", "command": ["git", "--no-optional-locks", "status", "--porcelain=v1", "--", "zircon_runtime/src/scene/reflect/runtime_type_registration.rs", "zircon_runtime/src/scene/reflect/reflect_component.rs", "zircon_runtime/src/scene/reflect/reflect_resource.rs", "zircon_runtime/src/scene/reflect/derived/component_adapter.rs", "zircon_runtime/src/scene/reflect/dynamic_component.rs", "zircon_runtime/src/scene/reflect/vm_type_backing.rs", "zircon_runtime/src/scene/reflect/derived/tests/cases.rs", "zircon_runtime/src/scene/reflect/tests/vm_type_backing.rs"], "exit_code": 0, "stdout": " M zircon_runtime/src/scene/reflect/derived/component_adapter.rs\n M zircon_runtime/src/scene/reflect/derived/tests/cases.rs\n M zircon_runtime/src/scene/reflect/dynamic_component.rs\n M zircon_runtime/src/scene/reflect/reflect_component.rs\n M zircon_runtime/src/scene/reflect/reflect_resource.rs\n M zircon_runtime/src/scene/reflect/runtime_type_registration.rs\n M zircon_runtime/src/scene/reflect/tests/vm_type_backing.rs\n M zircon_runtime/src/scene/reflect/vm_type_backing.rs\n", "stderr": "warning: unable to access 'C:\\Users\\HeJiahui/.config/git/ignore': Permission denied\n"},
+      {"label": "head", "command": ["git", "--no-optional-locks", "rev-parse", "HEAD"], "exit_code": 0, "stdout": "f28ba39a5095f4964c046ecc702778627f80cfd5\n", "stderr": ""}
+    ],
+    "patch": {
+      "sha256": "622828a3838a92210493605ca9ff377c234c7ceac1b8cfbc2047ac40b56b8c20",
+      "bytes": 40043,
+      "added_lines": 313,
+      "removed_lines": 0,
+      "comment_and_whitespace_only": true
+    },
+    "source_proof_rechecks": [
+      {"path": "zircon_runtime/src/scene/reflect/runtime_type_registration.rs", "current_sha256": "f91280527650182b0e3c283f7c07ae06004ee4287296f848dcf665109dfa8e99", "reconstructed_before_sha256": "dfca70c771d95b9922b0a70d91f23909dabaa02739101544318585ebbe292d86", "original_bytes_retained": true},
+      {"path": "zircon_runtime/src/scene/reflect/reflect_component.rs", "current_sha256": "651620991a524096a9185cff8e3e9aacfa6f6658324c75080386bd6b4e95d3d3", "reconstructed_before_sha256": "155e156f1036c0ac031512c6d7497ea47270605fd12bda90ea74e08b7fc8ad33", "original_bytes_retained": true},
+      {"path": "zircon_runtime/src/scene/reflect/reflect_resource.rs", "current_sha256": "c759b1f6d1dc24205df129c27c81647c6861247f87f0865914c09d060673de03", "reconstructed_before_sha256": "453fbbbc7f7115be7ee11a741f51e3eacd195cac85230cb463d7168dcaeaf6a1", "original_bytes_retained": true},
+      {"path": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs", "current_sha256": "4400454f408405059fa16db038391455aebc479c81522bb13e721c66b36d38b7", "reconstructed_before_sha256": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461", "original_bytes_retained": true},
+      {"path": "zircon_runtime/src/scene/reflect/dynamic_component.rs", "current_sha256": "cb27b21d9b5b0a992b706f851805d3e6389d85bac815d28f96e57e7e5a43a346", "reconstructed_before_sha256": "fef7bc43f25c2e61dc12ae2dcbbb2293a662c916b47f7d0abea577aab0815890", "original_bytes_retained": true},
+      {"path": "zircon_runtime/src/scene/reflect/vm_type_backing.rs", "current_sha256": "e86f39886c8772d9f00113f75fda76222d85755f453b57be0a8eebda49a43dcd", "reconstructed_before_sha256": "971474003050e51466f4ad526c93a838b6b8085d6f4a54df17d760ddfdd8b021", "original_bytes_retained": true},
+      {"path": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs", "current_sha256": "0e719152b1f813c952b9122115afb281e4e351c7eed38f1a7fbcc3a14ede3231", "reconstructed_before_sha256": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc", "original_bytes_retained": true},
+      {"path": "zircon_runtime/src/scene/reflect/tests/vm_type_backing.rs", "current_sha256": "7eda5da5af4ba5d2277d3ce36e4e977d8a223f8f1d6651a462bfcea37c96dba9", "reconstructed_before_sha256": "9fce37ef2862d04b440f67c6c9f982b7ea715d3fcefe246263c9668f06555004", "original_bytes_retained": true}
+    ],
+    "fixed_prior_deliveries": [
+      {"path": "docs/plans/source-comments/reviews/R005.json", "sha256": "df40a422894bdb0c819de0bdf6e4e11359f9975526e1f0479a4edc5f3d0af005"},
+      {"path": "docs/plans/source-comments/reviews/R005-implementation.json", "sha256": "9e545f9e8b6ac44bfdc84ac377d75ccc083f62a492eecf76a872976b1244886a"},
+      {"path": "docs/plans/source-comments/reviews/R003-independent.json", "sha256": "c29a06dd0f18aabddca08b15cc4754fdac6712ad172d620e147e3d87f5de93c1"}
+    ],
+    "warnings_interpretation": "diffcheck的Git autocrlf提示没有修改工作区换行；status的全局ignore权限提示未阻止精确路径检查。源LF/CRLF/既有混合字节均由完整重建证明保留。",
+    "baseline_format_evidence": {
+      "path": "zircon_runtime/src/scene/reflect/reflect_resource.rs",
+      "source_sha256": "453fbbbc7f7115be7ee11a741f51e3eacd195cac85230cb463d7168dcaeaf6a1",
+      "command": ["rustfmt", "--check", "--edition", "2021", "--config", "skip_children=true", "zircon_runtime/src/scene/reflect/reflect_resource.rs"],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "reason": "先确认原文件mixed newline未引起既有格式失败；保留原字节，没有全文件规范化。"
+    },
+    "not_run": ["Cargo compilation", "Rust tests", "whole-workspace format or generation", "source change-guard output generation", "Git staging/commit/push"],
+    "attempts_not_counted_as_checks": [
+      {
+        "receipt": "43cd41",
+        "scope": "source insertion guard",
+        "result": "前五文件各自完成完整proof；第六枚举variant anchor不满足过窄的声明前缀guard，安全退出在第六写入前。",
+        "followup": "仅允许该精确已审variant anchor，按最新before和clean diff重新guard后继续后三文件；receipt e63ff4 exit0。"
+      },
+      {
+        "scope": "oversized validation command",
+        "result": "CreateProcessAsUserW 206，进程未创建；随后compact validation receipt0ba582真正执行并通过。"
+      },
+      {
+        "scope": "optional additional declaration read",
+        "result": "runner spawn_ready拒绝进程启动，未计检查；声明从已完成全文原始读取内存核对，无新源副本。"
+      },
+      {
+        "receipt": "ee7e49",
+        "scope": "context rehash/read",
+        "result": "native exit0且23pin均未变，7额外context实际读到；输出返回后的JS对undefined.then读取报错，未影响native证据。不存在的猜测VM schema路径已排除，未用作引用。"
+      },
+      {
+        "receipt": "7feed8",
+        "scope": "metadata writer input transport",
+        "result": "默认非TTY输入立即EOF，JSON解析在任何metadata创建前退出；改用有界TTY stdin传入数据，不创建临时文件。"
+      }
+    ],
+    "final_source_and_evidence_pin_verification": {
+      "at_utc": "2026-10-14T22:16:10.921219+00:00",
+      "source_files": 8,
+      "evidence_sources": 32,
+      "all_match": true,
+      "original_bytes_reconstruction": "all-eight-pass",
+      "json_structure": "all-eight-manual-block-and-object-checks-pass"
+    }
+  },
+  "limitations": ["Rust tests未执行，已证明context词法断言失败仅标静态路径，不标已运行复现。", "任意T::clone的共享资源隔离不由这些factory保证。", "回调表不提供通用写入回滚/隐式回读或统一changed推导。", "Jenkins正式接纳、提交和主审最终覆盖门槛仍待处理。"],
+  "artifact_lifecycle": {
+    "build_or_cache_outputs_created": false,
+    "temporary_source_or_script_files_created": false,
+    "own_background_processes_after_delivery": 0,
+    "cleanup_needed": false,
+    "space_released_bytes": 0,
+    "retained_items": ["八个canonical源comment增量", "本R008固定审查metadata"]
+  },
+  "handoff": {
+    "main_independent_review_required": true,
+    "formal_jenkins_acceptance": false,
+    "write_more_source": false,
+    "next_batch_candidates_read_only_pending_exact_grant": true
+  }
+}

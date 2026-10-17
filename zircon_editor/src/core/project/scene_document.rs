@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use zircon_runtime::asset::{project::ProjectManager, AssetUri};
+use zircon_runtime::scene::world::SceneSourceRevision;
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::resource::ResourceScheme;
 
@@ -51,9 +52,14 @@ pub struct ProjectSceneDocument {
     scene_uri: AssetUri,
     source_path: PathBuf,
     world: Scene,
+    source_revision: SceneSourceRevision,
 }
 
 impl ProjectSceneDocument {
+    pub fn source_revision(&self) -> &SceneSourceRevision {
+        &self.source_revision
+    }
+
     pub fn scene_uri(&self) -> &AssetUri {
         &self.scene_uri
     }
@@ -177,11 +183,13 @@ impl ProjectAuthority {
     ) -> Result<ProjectSceneDocument, ProjectAuthorityError> {
         let source_path = existing_scene_source_path(project, request.scene_uri())?;
         let _path_guard = protect_scene_path(project.paths().root(), &source_path, true)?;
-        let world = Scene::load_scene_from_uri(project, request.scene_uri())?;
+        let (world, source_revision) =
+            Scene::load_scene_document(project, request.scene_uri())?.into_parts();
         Ok(ProjectSceneDocument {
             scene_uri: request.scene_uri,
             source_path,
             world,
+            source_revision,
         })
     }
 
@@ -235,15 +243,21 @@ impl ProjectAuthority {
         let world = Scene::default();
         let staging_uri = scene_staging_uri(request.scene_uri());
         let staging_path = project.primary_project_source_path_for_uri(&staging_uri)?;
-        if let Err(error) = world.save_scene_to_project(project, &staging_uri) {
-            let _ = fs::remove_file(&staging_path);
-            return Err(error.into());
-        }
+        let receipt =
+            match world.save_scene_to_project(project, &staging_uri, &SceneSourceRevision::Missing)
+            {
+                Ok(receipt) => receipt,
+                Err(error) => return Err(error.into()),
+            };
+        receipt.ensure_durable()?;
+        // The final create-only hard link publishes this exact staged object.
+        let source_revision = receipt.source_revision().clone();
         Ok(PreparedSceneCreation {
             document: Some(ProjectSceneDocument {
                 scene_uri: request.scene_uri,
                 source_path,
                 world,
+                source_revision,
             }),
             staging_path,
             _path_guard: path_guard,

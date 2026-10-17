@@ -156,11 +156,8 @@ fn unknown_or_nonterminal_status_is_fail_closed() {
 #[test]
 fn every_mesh_ready_lookup_records_the_exact_pipeline_target() {
     let base = include_str!("../../overlay/passes/base_scene_pass.rs");
-    let gbuffer =
-        include_str!("../../../deferred/resources/record_gbuffer_geometry.rs");
-    let graph_mesh = include_str!(
-        "../../context/gpu/mesh_recording.rs"
-    );
+    let gbuffer = include_str!("../../../deferred/resources/record_gbuffer_geometry.rs");
+    let graph_mesh = include_str!("../../context/gpu/mesh_recording.rs");
     let oit = include_str!("../../execution/context/gpu/oit.rs");
     let shadow = include_str!("../../shadow/shadow_map_renderer.rs");
     let velocity = include_str!("../../../temporal/velocity/execute_velocity_object.rs");
@@ -222,8 +219,7 @@ fn direct_and_compiled_paths_bind_usage_after_their_scene_submit() {
     assert!(direct_record < direct_submit);
     assert!(direct_submit < direct_bind);
 
-    let compiled =
-        include_str!("../../core/render/render/render.rs");
+    let compiled = include_str!("../../core/render/render/render.rs");
     let compiled_begin = compiled
         .find("begin_submission_usage_recording()")
         .expect("compiled recording begin");
@@ -232,9 +228,7 @@ fn direct_and_compiled_paths_bind_usage_after_their_scene_submit() {
         .expect("compiled mesh graph recording");
     assert!(compiled_begin < compiled_execute);
 
-    let compiled_submit = include_str!(
-        "../../../core/render/submit_compiled_scene_frame.rs"
-    );
+    let compiled_submit = include_str!("../../../core/render/submit_compiled_scene_frame.rs");
     let submit = compiled_submit
         .find("let submission_ticket = backend.submit_graphics_command_buffers")
         .expect("compiled scene submit");

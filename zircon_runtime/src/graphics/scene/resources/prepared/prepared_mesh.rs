@@ -11,9 +11,12 @@ use crate::graphics::RuntimePrepareMeshSdfSeed;
 /// 绘制提取只在修订仍有效时借用这组数据。
 pub(in crate::graphics::scene::resources) struct PreparedMesh {
     pub(in crate::graphics::scene::resources) revision: u64,
+    pub(in crate::graphics::scene::resources) source_key: crate::core::resource::ResourceActiveVersionKey,
     pub(in crate::graphics::scene::resources) local_bounds: RenderMeshBounds,
     pub(in crate::graphics::scene::resources) deformation: PreparedGeometryDeformation,
     pub(in crate::graphics::scene::resources) mesh_sdf: RuntimePrepareMeshSdfSeed,
     pub(in crate::graphics::scene::resources) asset: Arc<MeshAsset>,
-    pub(in crate::graphics::scene::resources) resource: Arc<GpuMeshResource>,
+    pub(in crate::graphics::scene::resources) resource: Option<Arc<GpuMeshResource>>,
+    pub(in crate::graphics::scene::resources) admission:
+        Arc<crate::graphics::VirtualGeometrySourceAdmission>,
 }

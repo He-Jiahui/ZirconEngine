@@ -169,12 +169,31 @@ mod lifecycle_interruption {
         dropped: AtomicUsize,
     }
 
+    impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for Probe {
+        fn retained_bound_v1(
+            &self,
+            m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+        ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+            // record() privately enforces both maxima before allocation; clear never raises them.
+            m.array::<String>(256)?;
+            m.array::<u8>(256 * 128)
+        }
+    }
+    unsafe impl zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1 for Probe {}
+
     impl Probe {
         fn record(&self, label: &str, operation: &str) {
-            self.calls
-                .lock()
-                .unwrap()
-                .push(format!("{label}.{operation}"));
+            assert!(
+                label.len() + operation.len() + 1 <= 128,
+                "bounded fixture message"
+            );
+            let mut calls = self.calls.lock().unwrap();
+            assert!(calls.len() < 256, "bounded fixture trace");
+            let mut message = String::with_capacity(128);
+            message.push_str(label);
+            message.push('.');
+            message.push_str(operation);
+            calls.push(message);
         }
 
         fn calls(&self) -> Vec<String> {
@@ -232,6 +251,14 @@ mod lifecycle_interruption {
             _world_domain: WorldDomain,
         ) -> Result<(), EditCommandError> {
             Ok(())
+        }
+
+        fn selection_retention_bound_v1(
+            &self,
+            model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+            limit: u64,
+        ) -> Result<u64, EditCommandError> {
+            SelectionSnapshot::scalar_retention_bound_v1(model, limit)
         }
 
         fn selection_snapshot(&self) -> SelectionSnapshot {
@@ -342,7 +369,42 @@ mod lifecycle_interruption {
         }
     }
 
+    impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for Command {
+        fn retained_bound_v1(
+            &self,
+            m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+        ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+            m.owned(&self.probe)?;
+            m.owned(&self._payload.0)?;
+            Ok(())
+        }
+    }
     impl EditCommand for Command {
+        fn retention_plan_v1(
+            &self,
+            context: &dyn crate::core::editing::engine::EditContext,
+            phase: crate::core::editing::engine::RetentionPhaseV1,
+            model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+            limit: u64,
+        ) -> Result<
+            crate::core::editing::engine::CommandRetentionPlanV1,
+            crate::core::editing::engine::EditCommandError,
+        > {
+            crate::core::editing::engine::CommandRetentionPlanV1::for_owner(
+                self, context, phase, model, limit,
+            )
+        }
+        fn prepare_retention_v1(
+            &mut self,
+            _: &mut dyn crate::core::editing::engine::EditContext,
+            phase: crate::core::editing::engine::RetentionPhaseV1,
+            permit: &mut crate::core::editing::engine::RetentionMaterializationV1,
+        ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+            permit
+                .consume(self, phase)
+                .map_err(crate::core::editing::engine::CommandExecutionError::unchanged)
+        }
+
         fn label(&self) -> &str {
             self.label
         }
@@ -946,4 +1008,158 @@ mod lifecycle_interruption {
         drop(engine);
         assert_eq!(probe.dropped.load(Ordering::SeqCst), 1);
     }
+}
+
+struct BudgetRecoveryCommandV1 {
+    payload: Vec<u8>,
+    apply_count: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    dropped: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+}
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for BudgetRecoveryCommandV1 {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        use zircon_runtime_interface::retained_memory::RetainedOwnerV1;
+        self.payload.retained_bound_v1(m)?;
+        self.apply_count.retained_bound_v1(m)?;
+        self.dropped.retained_bound_v1(m)
+    }
+}
+impl Drop for BudgetRecoveryCommandV1 {
+    fn drop(&mut self) {
+        self.dropped.fetch_add(1, Ordering::SeqCst);
+    }
+}
+impl crate::core::editing::engine::EditCommand for BudgetRecoveryCommandV1 {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<crate::core::editing::engine::CommandRetentionPlanV1, EditCommandError> {
+        crate::core::editing::engine::CommandRetentionPlanV1::for_owner(
+            self, context, phase, model, limit,
+        )
+    }
+    fn prepare_retention_v1(
+        &mut self,
+        _: &mut dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        permit: &mut crate::core::editing::engine::RetentionMaterializationV1,
+    ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+        permit
+            .consume(self, phase)
+            .map_err(crate::core::editing::engine::CommandExecutionError::unchanged)
+    }
+    fn label(&self) -> &str {
+        "budget recovery"
+    }
+    fn apply(
+        &mut self,
+        context: &mut dyn crate::core::editing::engine::EditContext,
+    ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+        if self.apply_count.fetch_add(1, Ordering::SeqCst) != 0 {
+            return Err(
+                crate::core::editing::engine::CommandExecutionError::unchanged(
+                    EditCommandError::InvariantViolation {
+                        invariant: "recovery replay refused",
+                    },
+                ),
+            );
+        }
+        context
+            .as_any_mut()
+            .downcast_mut::<FixtureContext>()
+            .unwrap()
+            .value += 1;
+        Ok(())
+    }
+    fn revert(
+        &mut self,
+        context: &mut dyn crate::core::editing::engine::EditContext,
+    ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+        context
+            .as_any_mut()
+            .downcast_mut::<FixtureContext>()
+            .unwrap()
+            .value -= 1;
+        Err(
+            crate::core::editing::engine::CommandExecutionError::applied(
+                EditCommandError::InvariantViolation {
+                    invariant: "revert failed after mutation",
+                },
+            ),
+        )
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+fn budget_recovery_fixture_v1() -> (
+    EditorTransactionEngine,
+    crate::core::editing::engine::HistoryRetentionDomainV1,
+    BudgetRecoveryCommandV1,
+    std::sync::Arc<std::sync::atomic::AtomicUsize>,
+) {
+    use crate::core::editing::engine::{HistoryRetentionBudgetV1, HistoryRetentionDomainV1};
+    let domain = HistoryRetentionDomainV1::try_new(HistoryRetentionBudgetV1::default()).unwrap();
+    let engine = EditorTransactionEngine::with_retention_domain_v1(
+        FixtureContext::default(),
+        128,
+        domain.clone(),
+    )
+    .unwrap();
+    let dropped = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let command = BudgetRecoveryCommandV1 {
+        payload: Vec::with_capacity(8192),
+        apply_count: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        dropped: dropped.clone(),
+    };
+    (engine, domain, command, dropped)
+}
+#[test]
+fn failed_recovery_keeps_exact_payload_charge_until_drop() {
+    let (engine, domain, command, dropped) = budget_recovery_fixture_v1();
+    let mut scope = engine
+        .begin("failed recovery owner", HistoryContextId::Global)
+        .unwrap();
+    scope.push(command).unwrap();
+    scope.commit().unwrap();
+    let before = domain.snapshot().unwrap();
+    let error = engine.undo(HistoryContextId::Global).unwrap_err();
+    let faulted = domain.snapshot().unwrap();
+    assert!(matches!(error, EditCommandError::RollbackFailed { .. }));
+    assert_eq!(dropped.load(Ordering::SeqCst), 0);
+    assert!(faulted.committed_bytes >= before.committed_bytes);
+    assert!(faulted.staging_bytes >= 8192);
+    drop(engine);
+    assert_eq!(dropped.load(Ordering::SeqCst), 1);
+    let after = domain.snapshot().unwrap();
+    assert_eq!(after.staging_bytes, 0);
+    assert_eq!(after.retiring_bytes, 0);
+}
+#[test]
+fn scope_drop_retains_a_bounded_typed_failure_report() {
+    let (engine, domain, command, dropped) = budget_recovery_fixture_v1();
+    let mut scope = engine
+        .begin("drop recovery owner", HistoryContextId::Global)
+        .unwrap();
+    scope.push(command).unwrap();
+    drop(scope);
+    let report = engine.take_drop_error();
+    let charged = domain.snapshot().unwrap();
+    assert!(matches!(
+        report,
+        Some(EditCommandError::RetainedFailureReport {
+            recovery_failed: true,
+            ..
+        })
+    ));
+    assert!(charged.staging_bytes >= 8192);
+    assert_eq!(dropped.load(Ordering::SeqCst), 0);
+    drop(engine);
+    assert_eq!(dropped.load(Ordering::SeqCst), 1);
+    assert_eq!(domain.snapshot().unwrap().staging_bytes, 0);
 }

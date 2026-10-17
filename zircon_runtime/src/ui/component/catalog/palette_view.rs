@@ -8,6 +8,7 @@ use zircon_runtime_interface::ui::component::{
 };
 
 /// 编写调色板的交换记录；default_node 携带创建新节点的模板，component_id 连接注册表中的结构契约。
+/// 各字段及模板独立拥有；Serde 只读写记录形状，不调用组件目录的准入校验。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiComponentPaletteEntry {
     pub component_id: String,
@@ -15,10 +16,17 @@ pub struct UiComponentPaletteEntry {
     pub category: UiComponentCategory,
     #[serde(default)]
     pub icon: Option<String>,
+    /// 同类条目的编写排序键；排序还会比较展示名和组件 ID。
     pub sort_key: String,
+    /// 可复用的创建模板；本记录不持有已创建节点或其交互状态。
     pub default_node: UiDefaultNodeTemplate,
 }
 
+/// 按本次宿主能力筛选声明，再复制其调色板字段形成拥有式快照。
+///
+/// # 参数与返回
+/// `registry` 提供已注册声明，`host_capabilities` 仅用于本次过滤；两者都不被结果借用。
+/// 返回值只含具有调色板元数据的匹配项，不创建节点，也不确认实际渲染端支持。
 pub(super) fn palette_entries_for_host(
     registry: &UiComponentDescriptorRegistry,
     host_capabilities: &UiHostCapabilitySet,

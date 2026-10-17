@@ -201,12 +201,12 @@ fn runtime_15_ui_v2_asset_tests_are_folder_backed() {
 fn runtime_15_ui_v2_style_runtime_tests_are_folder_backed() {
     let route = read_runtime_src("ui/tests/v2_asset/style_runtime.rs");
     let child_sources = style_runtime_child_source_blob();
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert_contains_all(
         "UI v2 style runtime route mounts child test owners",

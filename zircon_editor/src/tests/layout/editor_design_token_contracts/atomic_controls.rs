@@ -5,15 +5,15 @@ use toml::Value;
 /// 为本文件测试嵌入真实资产字节，路径相对此测试源定位；不加载运行时资源目录。
 macro_rules! workbench_asset {
     ($path:literal) => {
-        include_str!(concat!(
-            "../../../../assets/ui/editor/",
-            $path
-        ))
+        include_str!(concat!("../../../../assets/ui/editor/", $path))
     };
 }
 macro_rules! unreal_asset {
     ($path:literal) => {
-        include_str!(concat!("../../../../assets/ui/editor/unreal/components/", $path))
+        include_str!(concat!(
+            "../../../../assets/ui/editor/unreal/components/",
+            $path
+        ))
     };
 }
 

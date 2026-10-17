@@ -66,27 +66,24 @@ fn node_and_cluster_cull_pass_splits_over_budget_child_nodes_into_enqueue_child_
         }),
     );
     assert!(
-        output
-            .traversal_records()
-            .iter()
-            .any(|record| *record
-                == VirtualGeometryNodeAndClusterCullTraversalRecord {
-                    op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
-                    child_source:
-                        VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy,
-                    instance_index: 0,
-                    entity: 7,
-                    cluster_array_index: 70,
-                    hierarchy_node_id: Some(7),
-                    node_cluster_start: 70,
-                    node_cluster_count: 3,
-                    child_base: 1,
-                    child_count: 2,
-                    traversal_index: 5,
-                    cluster_budget: 1,
-                    page_budget: 2,
-                    forced_mip: Some(6),
-                }),
+        output.traversal_records().iter().any(|record| *record
+            == VirtualGeometryNodeAndClusterCullTraversalRecord {
+                op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
+                child_source:
+                    VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy,
+                instance_index: 0,
+                entity: 7,
+                cluster_array_index: 70,
+                hierarchy_node_id: Some(7),
+                node_cluster_start: 70,
+                node_cluster_count: 3,
+                child_base: 1,
+                child_count: 2,
+                traversal_index: 5,
+                cluster_budget: 1,
+                page_budget: 2,
+                forced_mip: Some(6),
+            }),
         "expected an over-budget authored child node with its own children to split into a follow-up AuthoredHierarchy EnqueueChild record instead of storing all child clusters immediately"
     );
 }
@@ -281,22 +278,18 @@ fn node_and_cluster_cull_pass_feeds_split_child_nodes_into_next_traversal_wave()
     );
 
     assert!(
-        output
-            .traversal_records()
-            .iter()
-            .any(|record| record.op == VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode
-                && record.hierarchy_node_id == Some(70)
-                && record.node_cluster_start == 100
-                && record.node_cluster_count == 1),
+        output.traversal_records().iter().any(|record| record.op
+            == VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode
+            && record.hierarchy_node_id == Some(70)
+            && record.node_cluster_start == 100
+            && record.node_cluster_count == 1),
         "expected a child decision EnqueueChild record for node 7 to feed a second traversal wave that visits authored grandchild node 70"
     );
     assert!(
-        output
-            .traversal_records()
-            .iter()
-            .any(|record| record.op == VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster
-                && record.hierarchy_node_id == Some(70)
-                && record.cluster_array_index == 100),
+        output.traversal_records().iter().any(|record| record.op
+            == VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster
+            && record.hierarchy_node_id == Some(70)
+            && record.cluster_array_index == 100),
         "expected the second traversal wave to resolve grandchild node 70 and store its mip-matching leaf cluster"
     );
 }
@@ -375,27 +368,24 @@ fn node_and_cluster_cull_pass_splits_child_nodes_when_cluster_sse_exceeds_thresh
     );
 
     assert!(
-        output
-            .traversal_records()
-            .iter()
-            .any(|record| *record
-                == VirtualGeometryNodeAndClusterCullTraversalRecord {
-                    op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
-                    child_source:
-                        VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy,
-                    instance_index: 0,
-                    entity: 7,
-                    cluster_array_index: 70,
-                    hierarchy_node_id: Some(7),
-                    node_cluster_start: 70,
-                    node_cluster_count: 1,
-                    child_base: 1,
-                    child_count: 2,
-                    traversal_index: 5,
-                    cluster_budget: 1,
-                    page_budget: 2,
-                    forced_mip: Some(6),
-                }),
+        output.traversal_records().iter().any(|record| *record
+            == VirtualGeometryNodeAndClusterCullTraversalRecord {
+                op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
+                child_source:
+                    VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy,
+                instance_index: 0,
+                entity: 7,
+                cluster_array_index: 70,
+                hierarchy_node_id: Some(7),
+                node_cluster_start: 70,
+                node_cluster_count: 1,
+                child_base: 1,
+                child_count: 2,
+                traversal_index: 5,
+                cluster_budget: 1,
+                page_budget: 2,
+                forced_mip: Some(6),
+            }),
         "expected an authored child node whose represented cluster exceeds the baseline SSE threshold to split even when it remains within the cluster budget"
     );
 }
@@ -483,7 +473,10 @@ fn node_and_cluster_cull_child_decision_uses_global_state_sse_threshold() {
             .iter()
             .map(|record| (record.op, record.cluster_array_index))
             .collect::<Vec<_>>(),
-        vec![(VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster, 70)],
+        vec![(
+            VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster,
+            70
+        )],
         "expected child decision to keep/store a child node when its cluster SSE is below the policy value carried by NodeAndClusterCull global state"
     );
 }
@@ -601,7 +594,10 @@ fn node_and_cluster_cull_child_decision_limits_resident_store_records_to_cluster
             .iter()
             .map(|record| (record.op, record.cluster_array_index))
             .collect::<Vec<_>>(),
-        vec![(VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster, 70)],
+        vec![(
+            VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster,
+            70
+        )],
         "expected child decision StoreCluster output to respect the carried cluster budget instead of publishing every resident leaf cluster"
     );
 }
@@ -1053,7 +1049,10 @@ fn node_and_cluster_cull_child_decision_stores_resident_parent_when_child_page_i
             .iter()
             .map(|record| (record.op, record.cluster_array_index))
             .collect::<Vec<_>>(),
-        vec![(VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster, 70)],
+        vec![(
+            VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster,
+            70
+        )],
         "expected child decision to keep drawing the nearest resident parent cluster while the requested child page is missing"
     );
     assert_eq!(
@@ -1257,7 +1256,10 @@ fn node_and_cluster_cull_child_decision_stores_shared_resident_parent_fallback_o
             .iter()
             .map(|record| (record.op, record.cluster_array_index))
             .collect::<Vec<_>>(),
-        vec![(VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster, 70)],
+        vec![(
+            VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster,
+            70
+        )],
         "expected two missing child clusters that share a resident parent to store that fallback parent only once"
     );
     assert_eq!(

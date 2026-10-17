@@ -7,7 +7,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use serde::de::DeserializeOwned;
 use serde_json::Value;

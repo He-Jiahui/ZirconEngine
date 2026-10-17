@@ -76,12 +76,7 @@ pub(super) fn window_bounds(presentation: &HostWindowPresentationData) -> FrameR
     frame(node(presentation, "WorkbenchWindowRoot"))
 }
 
-fn trace_window_menu_native_click(
-    harness: &ChildWindowHostHarness,
-    stage: &str,
-    x: f32,
-    y: f32,
-) {
+fn trace_window_menu_native_click(harness: &ChildWindowHostHarness, stage: &str, x: f32, y: f32) {
     let presentation = harness.root_ui.get_host_presentation();
     let current = harness
         .host
@@ -213,10 +208,11 @@ fn assert_mounted_source_closure(harness: &ChildWindowHostHarness, root: &Templa
     let mut cache = zircon_runtime::ui::v2::UiV2PrototypeStoreFileCache::new();
     assert!(cache.persistent_store().is_none());
     let asset_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
-    let theme_path = zircon_runtime::asset::runtime_asset_path_with_dev_asset_root(
-        "/assets/ui/theme/editor_workbench_strict.zui",
-        &asset_root,
-    );
+    let theme_relative =
+        zircon_runtime::asset::AssetRelativePath::parse("ui/theme/editor_workbench_strict.zui")
+            .unwrap();
+    let theme_path =
+        zircon_runtime::asset::runtime_asset_path_with_dev_asset_root(&theme_relative, &asset_root);
     let loaded = cache
         .load_store([selected.physical_path.clone(), theme_path])
         .expect("validate the actual selected physical source and the production strict theme");
@@ -236,8 +232,13 @@ pub(super) fn open(harness: &ChildWindowHostHarness, case: &MenuCase) {
     let spec = crate::ui::retained_host::host_contract::componentized_workbench_regions::module_tools_menu_spec(case.menu).unwrap();
     type Step = zircon_runtime_interface::ui::v2::UiTemplateNodeInstancePathStep;
     let root_instance_path: Vec<Step> = serde_json::from_str(root.instance_path.as_str()).unwrap();
-    let trigger_instance_path: Vec<Step> = serde_json::from_str(trigger.instance_path.as_str()).unwrap();
-    assert_eq!(trigger.source_node_id.as_str(), "root", "the original primitive leaf is preserved");
+    let trigger_instance_path: Vec<Step> =
+        serde_json::from_str(trigger.instance_path.as_str()).unwrap();
+    assert_eq!(
+        trigger.source_node_id.as_str(),
+        "root",
+        "the original primitive leaf is preserved"
+    );
     let root_source_path = root.source_path.as_str().replace('\\', "/");
     assert!(root_source_path.ends_with(case.source_suffix));
     let source_prefix = root_source_path.strip_suffix(spec.source_suffix).unwrap();
@@ -251,8 +252,11 @@ pub(super) fn open(harness: &ChildWindowHostHarness, case: &MenuCase) {
     assert_eq!(caller.source_path, root.source_path.as_str());
     assert_eq!(caller.source_node_id, case.trigger_source);
     assert!(spec.trigger_source_is_owned(
-        root.source_path.as_str(), Some(&root_instance_path),
-        trigger.source_path.as_str(), trigger.source_node_id.as_str(), Some(&trigger_instance_path),
+        root.source_path.as_str(),
+        Some(&root_instance_path),
+        trigger.source_path.as_str(),
+        trigger.source_node_id.as_str(),
+        Some(&trigger_instance_path),
     ));
     assert!(Arc::ptr_eq(
         trigger.source_surface_frame.as_ref().unwrap(),

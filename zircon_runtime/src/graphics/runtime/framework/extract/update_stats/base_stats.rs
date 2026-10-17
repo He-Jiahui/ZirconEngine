@@ -729,8 +729,7 @@ fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusi
             indirect_args_readback.remaining_instance_count as usize;
         #[cfg(feature = "test-support")]
         {
-            stats.last_hzb_occlusion_first_instances =
-                indirect_args_readback.first_instances;
+            stats.last_hzb_occlusion_first_instances = indirect_args_readback.first_instances;
             stats.last_hzb_occlusion_first_instance_count =
                 indirect_args_readback.first_instance_count;
             stats.last_hzb_occlusion_first_instances_truncated =

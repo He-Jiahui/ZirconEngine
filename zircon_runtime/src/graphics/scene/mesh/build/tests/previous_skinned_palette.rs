@@ -18,15 +18,20 @@ fn previous_skinned_joint_palette_requires_matching_signature_and_joint_count() 
     let mismatched_joint_count = test_palette_state(7, &[2.0, 3.0]);
 
     assert_eq!(
-        previous_skinned_gpu_state_for_states(false, Some(current), Some(previous), None)
-            .joint_palette,
-        Some(previous.storage)
+        previous_skinned_gpu_state_for_states(
+            false,
+            Some(current.clone()),
+            Some(previous.clone()),
+            None
+        )
+        .joint_palette,
+        Some(previous.storage.clone())
     );
     assert_eq!(
         previous_skinned_gpu_state_for_states(
             false,
-            Some(current),
-            Some(mismatched_signature),
+            Some(current.clone()),
+            Some(mismatched_signature.clone()),
             None,
         )
         .joint_palette,
@@ -35,8 +40,8 @@ fn previous_skinned_joint_palette_requires_matching_signature_and_joint_count() 
     assert_eq!(
         previous_skinned_gpu_state_for_states(
             false,
-            Some(current),
-            Some(mismatched_joint_count),
+            Some(current.clone()),
+            Some(mismatched_joint_count.clone()),
             None,
         )
         .joint_palette,
@@ -53,25 +58,30 @@ fn previous_skinned_joint_palette_requires_matching_cpu_morphed_shape_or_source(
     let previous_different_shape = test_palette_state_with_morph_shape(7, 12, &[2.0]);
 
     assert_eq!(
-        previous_skinned_gpu_state_for_states(true, Some(current), Some(previous), None)
-            .joint_palette,
+        previous_skinned_gpu_state_for_states(
+            true,
+            Some(current.clone()),
+            Some(previous.clone()),
+            None
+        )
+        .joint_palette,
         None
     );
     assert_eq!(
         previous_skinned_gpu_state_for_states(
             true,
-            Some(current_shape),
-            Some(previous_same_shape),
+            Some(current_shape.clone()),
+            Some(previous_same_shape.clone()),
             None,
         )
         .joint_palette,
-        Some(previous_same_shape.storage)
+        Some(previous_same_shape.storage.clone())
     );
     assert_eq!(
         previous_skinned_gpu_state_for_states(
             true,
-            Some(current_shape),
-            Some(previous_different_shape),
+            Some(current_shape.clone()),
+            Some(previous_different_shape.clone()),
             None,
         )
         .joint_palette,
@@ -93,12 +103,12 @@ fn previous_skinned_joint_palette_accepts_changed_cpu_morphed_shape_with_previou
 
     let selected = previous_skinned_gpu_state_for_states(
         true,
-        Some(current_shape),
-        Some(previous_shape),
+        Some(current_shape.clone()),
+        Some(previous_shape.clone()),
         Some(previous_source.clone()),
     );
 
-    assert_eq!(selected.joint_palette, Some(previous_shape.storage));
+    assert_eq!(selected.joint_palette, Some(previous_shape.storage.clone()));
     assert!(Arc::ptr_eq(
         &selected.source.expect("previous source"),
         &previous_source.mesh
@@ -120,8 +130,8 @@ fn previous_skinned_joint_palette_rejects_changed_cpu_morphed_shape_without_matc
     assert_eq!(
         previous_skinned_gpu_state_for_states(
             true,
-            Some(current_shape),
-            Some(previous_shape),
+            Some(current_shape.clone()),
+            Some(previous_shape.clone()),
             Some(wrong_source),
         )
         .joint_palette,
@@ -130,8 +140,8 @@ fn previous_skinned_joint_palette_rejects_changed_cpu_morphed_shape_without_matc
     assert_eq!(
         previous_skinned_gpu_state_for_states(
             true,
-            Some(current_shape),
-            Some(previous_shape),
+            Some(current_shape.clone()),
+            Some(previous_shape.clone()),
             None,
         )
         .joint_palette,
@@ -172,7 +182,8 @@ fn test_palette_state_with_optional_morph_shape(
         signature,
         morph_shape_signature,
         storage: SkinnedMeshJointPaletteStorage::from_matrices(&matrices)
-            .expect("test palette fits fixed storage ABI"),
+            .map(Arc::new)
+            .expect("test palette fits storage joint limit"),
     }
 }
 
@@ -185,7 +196,7 @@ fn test_backend() -> Option<crate::graphics::backend::RenderBackend> {
 fn test_source(device: &wgpu::Device, x: f32) -> Arc<GpuMeshResource> {
     Arc::new(GpuMeshResource::from_asset(
         device,
-        ModelPrimitiveAsset {
+        &ModelPrimitiveAsset {
             vertices: vec![
                 MeshVertex::new(Vec3::new(x, 0.0, 0.0), Vec3::Z, Vec2::ZERO),
                 MeshVertex::new(Vec3::new(x + 1.0, 0.0, 0.0), Vec3::Z, Vec2::ZERO),

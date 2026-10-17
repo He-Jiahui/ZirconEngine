@@ -1,0 +1,618 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R031",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T14:13:54.974212+00:00",
+  "status": "scoped-static-passed-with-preexisting-format-limit",
+  "files": {
+    "zircon_runtime_interface/src/hub_protocol/focus_ack.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/focus_ack.rs",
+      "before_sha256": "562e40b4fc5e49594a698e0f5f0327b4db285339884ecbe9f4ca0eb0667646bd",
+      "current_sha256": "bf92bb91bb154535112780768481bd52570a3a09429cde50a4fa18aec8a09f51",
+      "before_reconstruction_sha256": "562e40b4fc5e49594a698e0f5f0327b4db285339884ecbe9f4ca0eb0667646bd",
+      "byte_reconstruction_matches": true,
+      "before_lines": 54,
+      "current_lines": 57,
+      "before_bytes": 1964,
+      "current_bytes": 2250,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 54
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 57,
+      "current_bom": false,
+      "inserted_line_count": 3
+    },
+    "zircon_runtime_interface/src/hub_protocol/focus_signal.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/focus_signal.rs",
+      "before_sha256": "9edf546a5df7c9b6e1f4524b99d7dcc54e11c71189d60c1217d51f9f85a88c5b",
+      "current_sha256": "06b7f16c0c8494ac98bb7f8f5b33df6cb05bd9e7fe02dd9fce31b5d98f4b704e",
+      "before_reconstruction_sha256": "9edf546a5df7c9b6e1f4524b99d7dcc54e11c71189d60c1217d51f9f85a88c5b",
+      "byte_reconstruction_matches": true,
+      "before_lines": 91,
+      "current_lines": 94,
+      "before_bytes": 3255,
+      "current_bytes": 3523,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 91
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 94,
+      "current_bom": false,
+      "inserted_line_count": 3
+    },
+    "zircon_runtime_interface/src/hub_protocol/focus_signal_path.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/focus_signal_path.rs",
+      "before_sha256": "4c512a859aca33973f46aa37e4afe92307f99f4d502cbbe376e103d92700f3bc",
+      "current_sha256": "516c2d08effdbd7657b42d78f1f0cc2db46a8fc0dc7a945506b1ee40eab3ae62",
+      "before_reconstruction_sha256": "4c512a859aca33973f46aa37e4afe92307f99f4d502cbbe376e103d92700f3bc",
+      "byte_reconstruction_matches": true,
+      "before_lines": 107,
+      "current_lines": 112,
+      "before_bytes": 3315,
+      "current_bytes": 3661,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 107
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 112,
+      "current_bom": false,
+      "inserted_line_count": 5
+    },
+    "zircon_runtime_interface/src/hub_protocol/mailbox.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/mailbox.rs",
+      "before_sha256": "dff5a7c8d80b1585a6bb8b61382c5d67b9ef646e7978e6ba524fdc1fb0d3b78e",
+      "current_sha256": "e1f8d25deb19e2b2debb216c9cd68f7e4bf52961f4d05d9a5440382b7f1b78e6",
+      "before_reconstruction_sha256": "dff5a7c8d80b1585a6bb8b61382c5d67b9ef646e7978e6ba524fdc1fb0d3b78e",
+      "byte_reconstruction_matches": true,
+      "before_lines": 66,
+      "current_lines": 69,
+      "before_bytes": 2228,
+      "current_bytes": 2512,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 66
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 69,
+      "current_bom": false,
+      "inserted_line_count": 3
+    },
+    "zircon_runtime_interface/src/hub_protocol/mod.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/mod.rs",
+      "before_sha256": "36fb913a4097eb6b78e4ce059357cadcce13af7cb9f4184cd39fc8c9126bd01d",
+      "current_sha256": "36fb913a4097eb6b78e4ce059357cadcce13af7cb9f4184cd39fc8c9126bd01d",
+      "before_reconstruction_sha256": "36fb913a4097eb6b78e4ce059357cadcce13af7cb9f4184cd39fc8c9126bd01d",
+      "byte_reconstruction_matches": true,
+      "before_lines": 52,
+      "current_lines": 52,
+      "before_bytes": 2104,
+      "current_bytes": 2104,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 52
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 52,
+      "current_bom": false,
+      "inserted_line_count": 0
+    },
+    "zircon_runtime_interface/src/hub_protocol/outcome.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/outcome.rs",
+      "before_sha256": "e67ff5fe2915b4535c272dd246736dd20142dc24337909da7289f049a17fa437",
+      "current_sha256": "058ee91451d6f59074fbbcbd9164c853b72e9ea611473d3115ae1170150dc92b",
+      "before_reconstruction_sha256": "e67ff5fe2915b4535c272dd246736dd20142dc24337909da7289f049a17fa437",
+      "byte_reconstruction_matches": true,
+      "before_lines": 24,
+      "current_lines": 26,
+      "before_bytes": 786,
+      "current_bytes": 964,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 24
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 26,
+      "current_bom": false,
+      "inserted_line_count": 2
+    },
+    "zircon_runtime_interface/src/hub_protocol/protocol_version/mod.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/protocol_version/mod.rs",
+      "before_sha256": "78ef732788bc61041328fd277c432e72b641fd4f87a491de4d96707528fc0915",
+      "current_sha256": "8fd07480907aba241ec4b2dc085103a3205d41815ca4dc64480ce9becce167fd",
+      "before_reconstruction_sha256": "78ef732788bc61041328fd277c432e72b641fd4f87a491de4d96707528fc0915",
+      "byte_reconstruction_matches": true,
+      "before_lines": 7,
+      "current_lines": 8,
+      "before_bytes": 198,
+      "current_bytes": 286,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 7
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 8,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/protocol_version/serde.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/protocol_version/serde.rs",
+      "before_sha256": "31d8506374d5ccbc89d598164e17e7180294d7f684e37ee0dea08ff8e8d4a0db",
+      "current_sha256": "0d20e511e82664471af9d21d8a2293e1f7376b626d0f0931bcd7299f73d57321",
+      "before_reconstruction_sha256": "31d8506374d5ccbc89d598164e17e7180294d7f684e37ee0dea08ff8e8d4a0db",
+      "byte_reconstruction_matches": true,
+      "before_lines": 31,
+      "current_lines": 32,
+      "before_bytes": 973,
+      "current_bytes": 1060,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 31
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 32,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/ready_receipt.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/ready_receipt.rs",
+      "before_sha256": "8cdd7c8424b0b618dad65f570f98fc456833925874ec1fa3112768eb6a3f00f7",
+      "current_sha256": "d7c0cee08d06aa1c59169b1596ac5393f47afd8e2e28fae3a68b93c105908150",
+      "before_reconstruction_sha256": "8cdd7c8424b0b618dad65f570f98fc456833925874ec1fa3112768eb6a3f00f7",
+      "byte_reconstruction_matches": true,
+      "before_lines": 158,
+      "current_lines": 161,
+      "before_bytes": 5227,
+      "current_bytes": 5480,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 158
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 161,
+      "current_bom": false,
+      "inserted_line_count": 3
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/entry.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/entry.rs",
+      "before_sha256": "b760020e0d15a9cc3e218da3cb1f17d9c03b345758b54c4c8d9585c1f058db85",
+      "current_sha256": "0a7305d836526a6728ea1c3fe6917c2105c21ba505bc2831695bf5586d829822",
+      "before_reconstruction_sha256": "b760020e0d15a9cc3e218da3cb1f17d9c03b345758b54c4c8d9585c1f058db85",
+      "byte_reconstruction_matches": true,
+      "before_lines": 39,
+      "current_lines": 41,
+      "before_bytes": 1039,
+      "current_bytes": 1209,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 39
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 41,
+      "current_bom": false,
+      "inserted_line_count": 2
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/error.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/error.rs",
+      "before_sha256": "43dca2dd3f9baa459ed17ddb4c4be360b52bb7f63dfa061e7aa3e03e0c155806",
+      "current_sha256": "9020f490ab04d371e630448d8c9a78a40a3ffad7bc1cf3100ac5da64f021f76a",
+      "before_reconstruction_sha256": "43dca2dd3f9baa459ed17ddb4c4be360b52bb7f63dfa061e7aa3e03e0c155806",
+      "byte_reconstruction_matches": true,
+      "before_lines": 30,
+      "current_lines": 31,
+      "before_bytes": 1538,
+      "current_bytes": 1614,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 30
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 31,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/identity.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/identity.rs",
+      "before_sha256": "40e280dc5b0e1379925ee606ac641366b2c197dfe067b05623185f66e7f28224",
+      "current_sha256": "40e280dc5b0e1379925ee606ac641366b2c197dfe067b05623185f66e7f28224",
+      "before_reconstruction_sha256": "40e280dc5b0e1379925ee606ac641366b2c197dfe067b05623185f66e7f28224",
+      "byte_reconstruction_matches": true,
+      "before_lines": 36,
+      "current_lines": 36,
+      "before_bytes": 1351,
+      "current_bytes": 1351,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 36
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 36,
+      "current_bom": false,
+      "inserted_line_count": 0
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/mod.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/mod.rs",
+      "before_sha256": "fb30c795b48c696261b55b20319ac284c15fd1ad62b81c701a075f67df609df5",
+      "current_sha256": "fb30c795b48c696261b55b20319ac284c15fd1ad62b81c701a075f67df609df5",
+      "before_reconstruction_sha256": "fb30c795b48c696261b55b20319ac284c15fd1ad62b81c701a075f67df609df5",
+      "byte_reconstruction_matches": true,
+      "before_lines": 40,
+      "current_lines": 40,
+      "before_bytes": 1681,
+      "current_bytes": 1681,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 40
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 40,
+      "current_bom": false,
+      "inserted_line_count": 0
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/registry.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/registry.rs",
+      "before_sha256": "c1de8f37fb7db939bb2370d6a31da2e53ef9c137df12cce7f3d6213e44978ad1",
+      "current_sha256": "534ac827ac2a7d89e22b5a7997b4796b562b31443da863046bd98dcd9f606cac",
+      "before_reconstruction_sha256": "c1de8f37fb7db939bb2370d6a31da2e53ef9c137df12cce7f3d6213e44978ad1",
+      "byte_reconstruction_matches": true,
+      "before_lines": 293,
+      "current_lines": 357,
+      "before_bytes": 10732,
+      "current_bytes": 14681,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 293
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 357,
+      "current_bom": false,
+      "inserted_line_count": 64
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/storage_path.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/storage_path.rs",
+      "before_sha256": "4c51ae0f164cadbd9457ad6286cc1eb6322c690a8577b8c017255108faa41397",
+      "current_sha256": "b12bcabad876df75ddf710a546e70f19533ed00ed36a103110235a627ca5cf0c",
+      "before_reconstruction_sha256": "4c51ae0f164cadbd9457ad6286cc1eb6322c690a8577b8c017255108faa41397",
+      "byte_reconstruction_matches": true,
+      "before_lines": 37,
+      "current_lines": 41,
+      "before_bytes": 1480,
+      "current_bytes": 1811,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 37
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 41,
+      "current_bom": false,
+      "inserted_line_count": 4
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/store.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/store.rs",
+      "before_sha256": "32fab2b7e167a253ac85f4bb416fba46d674dec9c0e779ede6757e95c319d8b0",
+      "current_sha256": "a749dbc2744070c84341e39bbd9fe37431aa598a02487012d112b6760471c486",
+      "before_reconstruction_sha256": "32fab2b7e167a253ac85f4bb416fba46d674dec9c0e779ede6757e95c319d8b0",
+      "byte_reconstruction_matches": true,
+      "before_lines": 741,
+      "current_lines": 748,
+      "before_bytes": 26609,
+      "current_bytes": 27251,
+      "before_eol": {
+        "crlf": 741,
+        "bare_lf": 0
+      },
+      "current_crlf": 748,
+      "current_bare_lf": 0,
+      "current_bom": false,
+      "inserted_line_count": 7
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/registry_perf.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/registry_perf.rs",
+      "before_sha256": "95e8487223b6a2c50645d504cdf934280138cfd2205c07afd8dbc2b36dc0dc19",
+      "current_sha256": "d7cda8c3c2dea5360f619daca588afdaa5c2e005cbd0c1f1e93b85478aeccd54",
+      "before_reconstruction_sha256": "95e8487223b6a2c50645d504cdf934280138cfd2205c07afd8dbc2b36dc0dc19",
+      "byte_reconstruction_matches": true,
+      "before_lines": 162,
+      "current_lines": 163,
+      "before_bytes": 6092,
+      "current_bytes": 6187,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 162
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 163,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/recent_projects/tests/store.rs",
+      "before_sha256": "1789f2733df034ed4c76123ea36b7141ada27c16728e039585cae1b99b33d16f",
+      "current_sha256": "a6decebb35ac7d1c6a1d4cbe68795cd0a54a93b9ebff45fe71120775f73db02f",
+      "before_reconstruction_sha256": "1789f2733df034ed4c76123ea36b7141ada27c16728e039585cae1b99b33d16f",
+      "byte_reconstruction_matches": true,
+      "before_lines": 240,
+      "current_lines": 241,
+      "before_bytes": 8342,
+      "current_bytes": 8432,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 240
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 241,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/session_token/construct.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/session_token/construct.rs",
+      "before_sha256": "fb495df376cdbbe1cc19f7aec28603678860c5d061b74a94ea9609d5b9066fe2",
+      "current_sha256": "0a7ac29b5d8ea6a1496cb51befc7480d9ead0f7537a0cca4fb2f6e74d353c909",
+      "before_reconstruction_sha256": "fb495df376cdbbe1cc19f7aec28603678860c5d061b74a94ea9609d5b9066fe2",
+      "byte_reconstruction_matches": true,
+      "before_lines": 9,
+      "current_lines": 10,
+      "before_bytes": 133,
+      "current_bytes": 221,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 9
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 10,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/session_token/error.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/session_token/error.rs",
+      "before_sha256": "babc9d4147439cd572c8ecce028991a8cf94f86a97b953bc581f9c5fbdd11faa",
+      "current_sha256": "e323d52ebfdd587ef78e9d9f571a602e0b73b0fff40209e4636615786765d023",
+      "before_reconstruction_sha256": "babc9d4147439cd572c8ecce028991a8cf94f86a97b953bc581f9c5fbdd11faa",
+      "byte_reconstruction_matches": true,
+      "before_lines": 12,
+      "current_lines": 13,
+      "before_bytes": 440,
+      "current_bytes": 511,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 12
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 13,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/session_token/format.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/session_token/format.rs",
+      "before_sha256": "baad241c37979373bc88ecbaf206d1a010bc9e6c07d717a43d12c5cd62e79df6",
+      "current_sha256": "baad241c37979373bc88ecbaf206d1a010bc9e6c07d717a43d12c5cd62e79df6",
+      "before_reconstruction_sha256": "baad241c37979373bc88ecbaf206d1a010bc9e6c07d717a43d12c5cd62e79df6",
+      "byte_reconstruction_matches": true,
+      "before_lines": 9,
+      "current_lines": 9,
+      "before_bytes": 220,
+      "current_bytes": 220,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 9
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 9,
+      "current_bom": false,
+      "inserted_line_count": 0
+    },
+    "zircon_runtime_interface/src/hub_protocol/session_token/mod.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/session_token/mod.rs",
+      "before_sha256": "4249685a1322c55f5266ded3eed823f4c744d196cdd356e9619d5f5e202056f9",
+      "current_sha256": "ec80b711fe128bd2b6c18c411d2296141f8ef3f6e18850c3050a5bc7eab99cc3",
+      "before_reconstruction_sha256": "4249685a1322c55f5266ded3eed823f4c744d196cdd356e9619d5f5e202056f9",
+      "byte_reconstruction_matches": true,
+      "before_lines": 18,
+      "current_lines": 20,
+      "before_bytes": 407,
+      "current_bytes": 589,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 18
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 20,
+      "current_bom": false,
+      "inserted_line_count": 2
+    },
+    "zircon_runtime_interface/src/hub_protocol/session_token/parse.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/session_token/parse.rs",
+      "before_sha256": "69395b58dde50d3595fcc95b14615da6934c333def9fc712ce1cd94c774a2568",
+      "current_sha256": "5c76503a625e9148cb07e5fe8e85b9fa87743de239a337dbe6881a5dba4ae15a",
+      "before_reconstruction_sha256": "69395b58dde50d3595fcc95b14615da6934c333def9fc712ce1cd94c774a2568",
+      "byte_reconstruction_matches": true,
+      "before_lines": 21,
+      "current_lines": 22,
+      "before_bytes": 690,
+      "current_bytes": 773,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 21
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 22,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/session_token/serde.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/session_token/serde.rs",
+      "before_sha256": "61f88616c05684b05a8d11cc9f51a3d1d740c8208e746b277f29bede3a6dfed6",
+      "current_sha256": "1311d760f97131f53f50d3c88e8653b07fbe10603744f43280a1aab1c57ad193",
+      "before_reconstruction_sha256": "61f88616c05684b05a8d11cc9f51a3d1d740c8208e746b277f29bede3a6dfed6",
+      "byte_reconstruction_matches": true,
+      "before_lines": 22,
+      "current_lines": 23,
+      "before_bytes": 579,
+      "current_bytes": 665,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 22
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 23,
+      "current_bom": false,
+      "inserted_line_count": 1
+    },
+    "zircon_runtime_interface/src/hub_protocol/tests/cases.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/tests/cases.rs",
+      "before_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+      "current_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+      "before_reconstruction_sha256": "77dc7783d41f245f7e674e0bf630b8683e69e839b81d6ce4bf5a7f2eb4bfdb38",
+      "byte_reconstruction_matches": true,
+      "before_lines": 430,
+      "current_lines": 430,
+      "before_bytes": 14922,
+      "current_bytes": 14922,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 430
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 430,
+      "current_bom": false,
+      "inserted_line_count": 0
+    },
+    "zircon_runtime_interface/src/hub_protocol/tests/ready_receipt.rs": {
+      "path": "zircon_runtime_interface/src/hub_protocol/tests/ready_receipt.rs",
+      "before_sha256": "9f7c14df7815b706a0ac785a5a4fc8ac38886817a532ac8d28e4845a44406718",
+      "current_sha256": "9f7c14df7815b706a0ac785a5a4fc8ac38886817a532ac8d28e4845a44406718",
+      "before_reconstruction_sha256": "9f7c14df7815b706a0ac785a5a4fc8ac38886817a532ac8d28e4845a44406718",
+      "byte_reconstruction_matches": true,
+      "before_lines": 24,
+      "current_lines": 24,
+      "before_bytes": 1043,
+      "current_bytes": 1043,
+      "before_eol": {
+        "crlf": 0,
+        "bare_lf": 24
+      },
+      "current_crlf": 0,
+      "current_bare_lf": 24,
+      "current_bom": false,
+      "inserted_line_count": 0
+    }
+  },
+  "main_review": {
+    "path": "docs/plans/source-comments/reviews/R031-main.json",
+    "sha256": "9d2780aef9887c58e8191e9c478ff926e34160d3c1b347f9559ed5552366ba99"
+  },
+  "audit_supplement": {
+    "path": "docs/plans/source-comments/reviews/R031-audit-supplement.json",
+    "sha256": "3622992f0ae691ba8345001e202363e39ce7e7f5fe28fa5c622fc49aa6794ed0",
+    "bytes": 225617
+  },
+  "root_actual_validation": {
+    "final_inverse_patch_and_evidence": {
+      "native_chunk": "2f6627",
+      "exit_code": 0,
+      "result": {
+        "raw_byte_inverse_all_files": true,
+        "normalized_HEAD_before_proof_reused_from": "f1287b partial validator:all26 inverse and Git HEAD bytes passed before unrelated indentation assertion;allfinalbefore pins identical.",
+        "anchor_evidence_checked": 342,
+        "test_declarations_checked": 26,
+        "context_pins_checked": 11,
+        "continuous_blocks": 135,
+        "files": 26,
+        "before_lines": 2753,
+        "current_lines": 2860,
+        "insertion_blocks": 51,
+        "added_comment_lines": 107,
+        "inserted_bytes": 7653,
+        "removed_lines": 0,
+        "patch_bytes": 28012,
+        "patch_sha256": "57a3716d73f93e28efc52534045b43ac957a5058f8f1ff89ede214e18cd849ce",
+        "git_diff_check_exit": 0,
+        "scoped_staged_empty": true,
+        "diff_stderr_bytes": 3362,
+        "diff_stderr_sha256": "95701d7f298363816e0481fc60cb11d88245d544002cb26a9e6fde631a3bbf3e",
+        "Rust_tests_or_builds_run": false
+      }
+    },
+    "all26_rustfmt": {
+      "native_chunk": "86df7b",
+      "command": "rustfmt --check --edition 2021 --config skip_children=true <exact26>",
+      "process_exit": 0,
+      "rustfmt_exit": 1,
+      "passed_source_count": 25,
+      "preexisting_only_difference": "recent_projects/store.rs windows/unix cfg import ordering;all original bytes retained,not a full rustfmt pass."
+    },
+    "final_registry_fmt": {
+      "native_chunk": "1ee345",
+      "process_exit": 0,
+      "rustfmt_exit": 0,
+      "reason": "Last public-only doc reference edit affected only registry;unchanged other25 reused from86df7b."
+    }
+  },
+  "change_guard": {
+    "native_initial_chunk": "1ee345",
+    "exit_code": 0,
+    "errors": 0,
+    "warnings": 0,
+    "declared_paths": 26,
+    "changed_paths": 20,
+    "patch_sha256": "57a3716d73f93e28efc52534045b43ac957a5058f8f1ff89ede214e18cd849ce",
+    "opened_markers": [
+      "CR-ZCA-R031-0001",
+      "CR-ZCA-R031-0002"
+    ]
+  },
+  "reused_validation": {
+    "normalized_before_HEAD_all26": "f1287b completed all26 exact raw inverse/normalized HEAD checks before indentation evidence assertion;before pins identical in final supplement.",
+    "source_context_pin_checks": "2f6627 all11 actual current raw pins match;selected contexts only,not formal coverage.",
+    "source_text_probe": "5c9925 rg direct integration path references exit1,no matches;owned tests are direct code;no Rust assertions or fixture strings changed."
+  },
+  "rejected_readonly_validator_attempts": [
+    {
+      "chunk": "f1287b",
+      "exit": 1,
+      "reason": "Assumed child anchor evidence retained indentation;91 strings are stripped.7ad3d6 proves semantic matches;final supplement stores actual text."
+    },
+    {
+      "chunk": "42c844",
+      "exit": 1,
+      "reason": "Ignored performance test61..63 child evidence omits ignore attribute;1ee345 diagnostic and final supplement preserve all3 actual lines."
+    },
+    {
+      "native_initial": "434516",
+      "session": 50395,
+      "terminal": "31d4c3",
+      "exit": 1,
+      "reason": "Intermediate amended-comment byte offsets used after10-byte reference narrowing;rejected,no source write.2f6627 reconstructs current full insertion metadata and passes exact inverse."
+    }
+  ],
+  "final_diff_evidence": {
+    "raw_byte_inverse_all_files": true,
+    "normalized_HEAD_before_proof_reused_from": "f1287b partial validator:all26 inverse and Git HEAD bytes passed before unrelated indentation assertion;allfinalbefore pins identical.",
+    "anchor_evidence_checked": 342,
+    "test_declarations_checked": 26,
+    "context_pins_checked": 11,
+    "continuous_blocks": 135,
+    "files": 26,
+    "before_lines": 2753,
+    "current_lines": 2860,
+    "insertion_blocks": 51,
+    "added_comment_lines": 107,
+    "inserted_bytes": 7653,
+    "removed_lines": 0,
+    "patch_bytes": 28012,
+    "patch_sha256": "57a3716d73f93e28efc52534045b43ac957a5058f8f1ff89ede214e18cd849ce",
+    "git_diff_check_exit": 0,
+    "scoped_staged_empty": true,
+    "diff_stderr_bytes": 3362,
+    "diff_stderr_sha256": "95701d7f298363816e0481fc60cb11d88245d544002cb26a9e6fde631a3bbf3e",
+    "Rust_tests_or_builds_run": false
+  },
+  "Rust_tests_or_builds_run": false,
+  "managed_coordinator_validation": "pending;local static evidence is not Jenkins or milestone acceptance",
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

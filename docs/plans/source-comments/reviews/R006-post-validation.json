@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R006",
+  "reviewer": "main",
+  "created_at_utc": "2026-10-14T21:10:07.411894+00:00",
+  "status": "passed-local-scoped-static-validation",
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/reflect/field_id.rs",
+      "before_sha256": "92653007b099df4e6ddc861e8f33170d0bf95d7cc1958c63078241b786f8098d",
+      "after_sha256": "92653007b099df4e6ddc861e8f33170d0bf95d7cc1958c63078241b786f8098d",
+      "original_lines": 71,
+      "current_lines": 71,
+      "objects_reviewed": 7,
+      "block_groups_reviewed": 2,
+      "main_full_manual_read": true,
+      "changed": false,
+      "comment_decision": "existing explanation sufficient; no forced comments",
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/field_info.rs",
+      "before_sha256": "8824d277465d382ec001afe65b465eae433ab516eba1c6a00cfb1c48fac5e8c9",
+      "after_sha256": "96b7c2205f0cb13f0748a99338cca15740bab62d397a0f009f54309e400bba65",
+      "original_lines": 138,
+      "current_lines": 152,
+      "objects_reviewed": 25,
+      "block_groups_reviewed": 2,
+      "main_full_manual_read": true,
+      "changed": true,
+      "comment_decision": "two boundary clarifications accepted",
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/reflect_contracts.rs",
+      "before_sha256": "384eb1061f0ae15131109362978628c6011ad4498f665f516de18de8432a0647",
+      "after_sha256": "384eb1061f0ae15131109362978628c6011ad4498f665f516de18de8432a0647",
+      "original_lines": 706,
+      "current_lines": 706,
+      "objects_reviewed": 16,
+      "block_groups_reviewed": 2,
+      "main_full_manual_read": true,
+      "changed": false,
+      "comment_decision": "existing explanation sufficient; no forced comments",
+      "formal_acceptance": false
+    }
+  ],
+  "checks": {
+    "rustfmt": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "guard": {
+      "exit_code": 0,
+      "actual_receipt": {
+        "tool": "zircon-change-guard",
+        "version": 2,
+        "mode": "patch",
+        "status": "passed",
+        "input": {
+          "patchDigest": "d825d6a6c05909f760b639a8b95f3a981526379aadee10200d5fe5e6ff642d34",
+          "base": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+          "files": [
+            "zircon_runtime_interface/src/reflect/field_info.rs"
+          ],
+          "declaredPaths": [
+            "zircon_runtime_interface/src/reflect/field_info.rs"
+          ],
+          "writeGrantCheck": true,
+          "permissionRoot": "E:/Git/ZirconEngine",
+          "contributor": false
+        },
+        "summary": {
+          "errors": 0,
+          "warnings": 0,
+          "suppressed": 0
+        },
+        "markers": {
+          "closed": [],
+          "opened": [],
+          "moved": []
+        },
+        "findings": [],
+        "suppressed": []
+      }
+    },
+    "diff_check": {
+      "exit_code": 0,
+      "output": ""
+    }
+  },
+  "scoped_diff": {
+    "sha256": "d825d6a6c05909f760b639a8b95f3a981526379aadee10200d5fe5e6ff642d34",
+    "bytes": 1938,
+    "added": 14,
+    "removed": 0,
+    "comments_only": true
+  },
+  "all_original_bytes_and_comments_preserved": true,
+  "builds_or_rust_tests_executed": false,
+  "formal_acceptance": false
+}

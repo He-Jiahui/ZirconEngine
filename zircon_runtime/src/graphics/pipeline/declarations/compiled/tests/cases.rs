@@ -141,6 +141,61 @@ fn execution_packet_carries_exact_access_ids_in_compiled_order() {
 }
 
 #[test]
+fn execution_packet_accepts_matching_unresolved_external_transition_scope() {
+    let mut builder = RenderGraphBuilder::new("execution-packet-unresolved-external-transition");
+    let color = builder.import_present_external_resource("viewport-color");
+    let producer = builder.add_pass("async-external-writer", QueueLane::AsyncCompute);
+    let consumer = builder.add_pass("graphics-external-reader", QueueLane::Graphics);
+    builder.write_external(producer, color).unwrap();
+    builder.read_external(consumer, color).unwrap();
+    builder.add_dependency(producer, consumer).unwrap();
+    builder
+        .set_pass_flags(
+            consumer,
+            crate::render_graph::PassFlags {
+                has_side_effects: true,
+                ..crate::render_graph::PassFlags::default()
+            },
+        )
+        .unwrap();
+
+    let graph = builder.compile().unwrap();
+    let packet = super::execution_packet::RenderGraphExecutionPacket::new(
+        graph.clone(),
+        vec![
+            super::execution_packet::RenderGraphExecutionPassMetadata::new(
+                producer,
+                super::RenderPassStage::DepthPrepass,
+            ),
+            super::execution_packet::RenderGraphExecutionPassMetadata::new(
+                consumer,
+                super::RenderPassStage::PostProcess,
+            ),
+        ],
+    )
+    .expect("matching external identity and unresolved scope should admit transition");
+    let consumer_index = graph.indexed_pass(consumer).unwrap().0;
+    assert_eq!(
+        packet
+            .execution_pass_at(consumer_index)
+            .unwrap()
+            .device_transitions_before[0]
+            .range,
+        RenderGraphResourceAccessRange::UnresolvedExternal
+    );
+    assert!(!super::execution_packet::access_ranges_overlap(
+        RenderGraphResourceAccessRange::UnresolvedExternal,
+        RenderGraphResourceAccessRange::Buffer(RenderGraphBufferRange::new(0, Some(16))),
+    ));
+    assert!(!super::execution_packet::access_ranges_overlap(
+        RenderGraphResourceAccessRange::UnresolvedExternal,
+        RenderGraphResourceAccessRange::Texture(
+            crate::render_graph::RenderGraphTextureSubresourceRange::full()
+        ),
+    ));
+}
+
+#[test]
 fn execution_packet_carries_exact_device_ranges_and_queue_transitions() {
     let mut builder = RenderGraphBuilder::new("execution-packet-device-plan");
     let buffer = builder.create_buffer(BufferDesc::new(
@@ -227,6 +282,107 @@ fn execution_packet_carries_exact_device_ranges_and_queue_transitions() {
     assert_eq!(transition.from_queue, QueueLane::AsyncCompute);
     assert_eq!(transition.to_queue, QueueLane::Graphics);
     assert!(transition.crosses_queue());
+}
+
+#[test]
+fn execution_packet_accepts_transitions_between_texture_view_alias_accesses() {
+    use crate::render_graph::{
+        RenderGraphResourceAccessIntent, RenderGraphTextureSubresourceRange,
+    };
+    use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
+
+    let mut builder = RenderGraphBuilder::new("execution-packet-texture-view-transition");
+    let pyramid = builder.create_texture(
+        TextureDesc::new(
+            "pyramid",
+            32,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        )
+        .with_mip_levels(2),
+    );
+    let mip_view = builder
+        .create_texture_view_alias(
+            "pyramid-mip-view",
+            pyramid,
+            RenderGraphTextureSubresourceRange::single_mip(1),
+        )
+        .expect("mip view should point at the parent texture");
+    // Declare the consumer first so the producer dependency must reorder the
+    // compiled execution plan ahead of RenderPassId storage order.
+    let reader = builder.add_pass("sample-mip", QueueLane::Graphics);
+    let writer = builder.add_pass("write-mip", QueueLane::Graphics);
+    let mip = RenderGraphTextureSubresourceRange::single_mip(0);
+    let written = builder
+        .write_texture_with_access_versioned(
+            writer,
+            mip_view,
+            mip,
+            RenderGraphResourceAccessIntent::ColorAttachment,
+            Some(crate::render_graph::RenderGraphAttachmentOps::clear_store()),
+        )
+        .expect("writer should produce the aliased mip");
+    builder
+        .read_texture_with_access_from_version(
+            reader,
+            written,
+            mip,
+            RenderGraphResourceAccessIntent::sampled_texture(
+                crate::render_graph::RenderGraphShaderStages::FRAGMENT,
+            ),
+        )
+        .expect("reader should consume the aliased mip");
+    builder
+        .set_pass_flags(
+            reader,
+            PassFlags {
+                has_side_effects: true,
+                ..PassFlags::default()
+            },
+        )
+        .expect("reader should remain live");
+
+    let graph = builder.compile().expect("graph should compile");
+    let writer_access = graph.access_id_at(writer, 0).expect("writer access ID");
+    let reader_access = graph.access_id_at(reader, 0).expect("reader access ID");
+    let transition = graph
+        .resource_state_plan()
+        .transitions()
+        .iter()
+        .find(|transition| {
+            transition.from_access == writer_access && transition.to_access == reader_access
+        })
+        .copied()
+        .expect("state plan should retain the alias transition");
+    assert_eq!(
+        transition.resource,
+        crate::render_graph::RenderGraphResource::TransientTexture(pyramid)
+    );
+
+    let packet = super::RenderGraphExecutionPacket::new(
+        graph.clone(),
+        vec![
+            super::RenderGraphExecutionPassMetadata::new(
+                writer,
+                super::RenderPassStage::DepthPrepass,
+            ),
+            super::RenderGraphExecutionPassMetadata::new(
+                reader,
+                super::RenderPassStage::PostProcess,
+            ),
+        ],
+    )
+    .expect("physical parent transition should validate for both logical view accesses");
+    let reader_index = graph.indexed_pass(reader).expect("reader compiled index").0;
+    assert_eq!(
+        packet
+            .execution_pass_at(reader_index)
+            .unwrap()
+            .device_transitions_before
+            .as_ref(),
+        [transition].as_slice()
+    );
 }
 
 #[test]

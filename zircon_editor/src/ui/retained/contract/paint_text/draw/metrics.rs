@@ -12,8 +12,11 @@ pub(super) fn clamped_text_metrics(
 ) -> (f32, f32) {
     // Authored line advance and glyph size are independent; clip handles ink overflow.
     if super::super::font::active_authored_font_request().is_some()
-        && font_size.is_finite() && font_size > 0.0
-        && line_height.is_finite() && line_height > 0.0 {
+        && font_size.is_finite()
+        && font_size > 0.0
+        && line_height.is_finite()
+        && line_height > 0.0
+    {
         return (font_size, line_height);
     }
     let max_text_height = frame_height.max(MIN_TEXT_METRIC_PX);

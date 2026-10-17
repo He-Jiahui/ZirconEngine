@@ -211,3 +211,118 @@ fn native_registration_replay_rejects_worker_access_without_host_grant() {
         } if plugin_id == "physics" && system_id == "physics.runtime_tick"
     ));
 }
+
+fn registry_with_late_replay_collision(finalized: bool) -> RuntimeExtensionRegistry {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let owner = registry
+        .intern_plugin_module("sentinel.runtime")
+        .expect("sentinel owner should be valid");
+    registry
+        .register_native_system::<(), _>(owner, "physics.runtime_tick", SystemStage::Update, || {
+            |(): ()| {}
+        })
+        .register()
+        .expect("sentinel system should register before replay");
+    if finalized {
+        registry.finalize();
+    }
+    registry
+}
+
+fn assert_late_replay_preserves_registry(
+    registry: &RuntimeExtensionRegistry,
+    before: &RuntimeExtensionRegistry,
+) {
+    let rows = |registry: &RuntimeExtensionRegistry| {
+        registry
+            .plugin_systems()
+            .map(|(owner, system)| (owner, format!("{system:?}")))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(rows(registry), rows(before));
+    assert_eq!(registry.plugin_systems().count(), 1);
+    let (owner, system) = registry.plugin_systems().next().expect("sentinel remains");
+    assert_eq!(registry.plugin_module_name(owner), Some("sentinel.runtime"));
+    assert_eq!(system.id, "physics.runtime_tick");
+    assert!(!registry
+        .plugin_systems()
+        .any(|(_, system)| system.id == "physics.bootstrap" || system.id == "physics.render"));
+    assert_eq!(registry.is_finalized(), before.is_finalized());
+
+    let mut actual_probe = registry.clone();
+    let mut expected_probe = before.clone();
+    assert_eq!(
+        actual_probe
+            .intern_plugin_module("atomic_replay.probe")
+            .unwrap(),
+        expected_probe
+            .intern_plugin_module("atomic_replay.probe")
+            .unwrap(),
+        "failed replay must not consume an owner ID"
+    );
+    assert_eq!(
+        actual_probe
+            .intern_system_set("atomic_replay.probe")
+            .unwrap(),
+        expected_probe
+            .intern_system_set("atomic_replay.probe")
+            .unwrap(),
+        "failed replay must not retain bootstrap or tick sets"
+    );
+}
+
+#[test]
+fn native_registration_replay_late_duplicate_leaves_registry_unchanged() {
+    for finalized in [false, true] {
+        let host = NativePluginLiveHost::default();
+        host.load_reported_plugins(
+            NativePluginLoadReport::from_loaded(vec![native_live_host_ordered_systems_plugin()]),
+            PluginModuleKind::Runtime,
+        )
+        .expect("ordered native plugin should load");
+        let lifecycle = native_live_host_bridge_lifecycle_state(false);
+        let mut registry = registry_with_late_replay_collision(finalized);
+        let before = registry.clone();
+        let error = host
+            .replay_runtime_plugin_registration_manifest_via_bridge_result(
+                &mut registry,
+                &lifecycle,
+                "physics",
+            )
+            .expect_err("the second system must collide after bootstrap registration");
+        assert!(matches!(
+            error,
+            NativePluginRegistrationReplayError::RegisterNativeSystem {
+                plugin_id,
+                system_id,
+                source: RuntimeExtensionRegistryError::DuplicatePluginSystem(source_system_id),
+            } if plugin_id == "physics"
+                && system_id == "physics.runtime_tick"
+                && source_system_id == "physics.runtime_tick"
+        ));
+        assert_late_replay_preserves_registry(&registry, &before);
+    }
+}
+
+#[test]
+fn native_registration_replay_skipped_plugin_leaves_no_partial_contributions() {
+    for finalized in [false, true] {
+        let host = NativePluginLiveHost::default();
+        host.load_reported_plugins(
+            NativePluginLoadReport::from_loaded(vec![native_live_host_ordered_systems_plugin()]),
+            PluginModuleKind::Runtime,
+        )
+        .expect("ordered native plugin should load");
+        let lifecycle = native_live_host_bridge_lifecycle_state(false);
+        let mut registry = registry_with_late_replay_collision(finalized);
+        let before = registry.clone();
+        let report = host
+            .replay_runtime_registration_manifests_via_bridge(&mut registry, &lifecycle)
+            .expect("batch replay should retain typed plugin rejection as a diagnostic");
+        assert!(report.registered_systems.is_empty());
+        assert_eq!(report.skipped_plugin_ids, vec!["physics".to_string()]);
+        assert_eq!(report.diagnostics.len(), 1);
+        assert!(report.diagnostics[0].contains("physics.runtime_tick"));
+        assert_late_replay_preserves_registry(&registry, &before);
+    }
+}

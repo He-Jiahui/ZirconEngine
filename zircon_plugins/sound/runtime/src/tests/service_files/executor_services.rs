@@ -12,17 +12,17 @@ fn dynamic_event_executor_behavior_stays_in_focused_service_files() {
     );
     assert_source_contains(
         &src,
-        "service_types/dynamic_event_executors/registration.rs",
+        "service_types/registration.rs",
         &["register_dynamic_event_executor"],
     );
     assert_source_contains(
         &src,
-        "service_types/dynamic_event_executors/unregistration.rs",
+        "service_types/unregistration.rs",
         &["unregister_dynamic_event_executor"],
     );
     assert_source_contains(
         &src,
-        "service_types/dynamic_event_executors/execution.rs",
+        "service_types/execution.rs",
         &[
             "execute_dynamic_events_impl",
             "SoundDynamicEventExecutionReport",

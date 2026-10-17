@@ -37,7 +37,8 @@ impl RetainedEditorHost {
 
     pub(in crate::ui::retained_host::app) fn editor_asset_manager_at_use_point(
         &self,
-    ) -> Result<ServiceCallGuard<dyn EditorAssetManagerContract>, zircon_runtime::core::CoreError> {
+    ) -> Result<ServiceCallGuard<dyn EditorAssetManagerContract>, zircon_runtime::core::CoreError>
+    {
         self.asset_runtime_access.editor_asset_manager()
     }
 

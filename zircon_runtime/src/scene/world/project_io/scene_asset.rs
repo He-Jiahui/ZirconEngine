@@ -11,7 +11,6 @@ use crate::asset::project::{
     ProjectManager, ProjectReferenceDiagnostic, ProjectReferenceDiagnosticPhase,
 };
 use crate::asset::{AssetImportError, ReferenceResolutionError};
-use crate::core::resource::io::atomic_write;
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, PhysicsMaterialMarker, ResourceLocator,
@@ -709,29 +708,16 @@ impl World {
         &self,
         project: &ProjectManager,
         uri: &ResourceLocator,
-    ) -> Result<(), SceneProjectError> {
-        let registry = project.scene_component_serializer_registry();
-        self.save_scene_to_project_with_component_registry(project, uri, &registry)
-    }
-
-    pub(crate) fn save_scene_to_project_with_component_registry(
-        &self,
-        project: &ProjectManager,
-        uri: &ResourceLocator,
-        component_registry: &SceneComponentSerializerRegistry,
-    ) -> Result<(), SceneProjectError> {
+        expected: &super::SceneSourceRevision,
+    ) -> Result<super::ScenePublicationReceipt, SceneProjectError> {
         let result = (|| {
-            let scene = self.to_scene_asset_with_component_registry(project, component_registry)?;
-            let resolved_path =
-                project.resolve_existing_or_primary_project_source_path_for_uri(uri)?;
-            let document = scene
-                .to_project_toml_string(|reference| project.persist_runtime_reference(reference))?;
-            // Recheck the physical destination immediately before publication. A junction or
-            // symlink can be replaced after URI selection and before serialization completes;
-            // never let that race redirect an otherwise admitted scene write outside the roots.
-            project.validate_project_source_path_for_write(&resolved_path)?;
-            atomic_write(resolved_path.operation_path(), document.as_bytes())?;
-            Ok(())
+            let scope = crate::asset::project::EditorDocumentScope::new(
+                project.paths().root(),
+                project.catalog_input_generation().sequence(),
+            );
+            project
+                .scoped_editor_document(&scope)?
+                .commit_scene_source(uri, self, expected)
         })();
         publish_scene_reference_diagnostics(
             project,
@@ -743,7 +729,7 @@ impl World {
     }
 }
 
-fn publish_scene_reference_diagnostics(
+pub(super) fn publish_scene_reference_diagnostics(
     project: &ProjectManager,
     document: &ResourceLocator,
     phase: ProjectReferenceDiagnosticPhase,

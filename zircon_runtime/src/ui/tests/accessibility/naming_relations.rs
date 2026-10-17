@@ -413,3 +413,65 @@ fn hidden_excluded_containers_block_descendant_promotion() {
     assert!(snapshot.node(id(3)).is_none());
     assert!(!snapshot.node(id(1)).unwrap().children.contains(&id(3)));
 }
+
+#[test]
+fn secure_text_relation_targets_redact_plain_metadata_but_keep_explicit_labels() {
+    for key in ["text", "label", "value"] {
+        for safe_label in [None, Some("Password label")] {
+            let mut surface = root_surface();
+            let attributes = format!("{key} = 'private credential'\ninput_kind = 'password'");
+            surface
+                .tree
+                .insert_child(
+                    id(1),
+                    UiTreeNode::new(id(2), UiNodePath::new("root/secure-target"))
+                        .with_frame(UiFrame::new(4.0, 4.0, 120.0, 24.0))
+                        .with_state_flags(state(false, true))
+                        .with_template_metadata(UiTemplateNodeMetadata {
+                            component: "TextField".to_string(),
+                            attributes: toml::from_str(&attributes).unwrap(),
+                            a11y: UiAccessibilityContract {
+                                name: safe_label.map(str::to_string),
+                                ..UiAccessibilityContract::default()
+                            },
+                            widget: UiWidgetContract {
+                                behavior: UiWidgetBehavior::TextInput,
+                                ..UiWidgetContract::default()
+                            },
+                            ..UiTemplateNodeMetadata::default()
+                        }),
+                )
+                .unwrap();
+            surface
+                .tree
+                .insert_child(
+                    id(1),
+                    UiTreeNode::new(id(3), UiNodePath::new("root/relation-owner"))
+                        .with_frame(UiFrame::new(4.0, 32.0, 120.0, 24.0))
+                        .with_state_flags(state(true, true))
+                        .with_template_metadata(UiTemplateNodeMetadata {
+                            component: "Button".to_string(),
+                            a11y: UiAccessibilityContract {
+                                labelled_by: Some("2".to_string()),
+                                description: Some("#2".to_string()),
+                                ..UiAccessibilityContract::default()
+                            },
+                            ..UiTemplateNodeMetadata::default()
+                        }),
+                )
+                .unwrap();
+            surface.rebuild();
+            let snapshot = surface.accessibility_snapshot();
+            let target = snapshot
+                .node(id(2))
+                .expect("secure target remains discoverable");
+            let owner = snapshot
+                .node(id(3))
+                .expect("relation owner remains discoverable");
+            assert_eq!(target.name.as_deref(), safe_label);
+            assert_eq!(target.state.value, None);
+            assert_eq!(owner.name.as_deref(), safe_label);
+            assert_eq!(owner.description.as_deref(), safe_label);
+        }
+    }
+}

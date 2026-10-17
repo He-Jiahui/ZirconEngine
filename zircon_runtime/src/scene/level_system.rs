@@ -19,7 +19,10 @@ use crate::core::{CoreError, CoreHandle, FrameTimeSnapshot};
 use crate::scene::world_publication::{WorldPublicationOwner, WorldPublicationSource};
 use crate::scene::world_time::{
     FixedInterpolationContext, WorldFixedStep, WorldFixedStepError, WorldTimeAdvanceError,
-    WorldTimeControlError, WorldTimeController, WorldTimeSnapshot,
+    WorldReplacementCheckpoint, WorldReplacementCommit, WorldReplacementError,
+    WorldReplacementExpectation, WorldReplacementIdentity, WorldReplacementReason,
+    WorldReplacementReceipt, WorldReplacementRejected, WorldReplacementRequest,
+    WorldReplacementTimePolicy, WorldTimeControlError, WorldTimeController, WorldTimeSnapshot,
 };
 use crate::scene::{
     dynamic_scene::{CompiledSceneSpawn, DynamicScene, DynamicSceneError},
@@ -205,6 +208,27 @@ impl LevelSystem {
         outer: FrameTimeSnapshot,
     ) -> Result<WorldTimeSnapshot, WorldTimeAdvanceError> {
         lock_poison_recovered(&self.world_time).advance(outer)
+    }
+
+    /// Derives time and captures the execution owner under the same World lane.
+    /// The time guard ends before schedule preparation can reclaim resources.
+    pub(crate) fn begin_world_frame(
+        &self,
+        outer: FrameTimeSnapshot,
+    ) -> Result<
+        (WorldTimeSnapshot, u64, crate::scene::ecs::ScheduleExecution),
+        WorldTimeAdvanceError,
+    > {
+        let mut world = self.lock_world();
+        let time = {
+            let mut controller = lock_poison_recovered(&self.world_time);
+            controller.advance(outer)?
+        };
+        let generation = world.world_generation();
+        let execution = world.begin_schedule_execution();
+        world.reclaim_dropped_runtime_event_mirrors();
+        world.reset_ecs_frame_performance_diagnostics();
+        Ok((time, generation, execution))
     }
 
     pub(crate) fn begin_fixed_step(
@@ -450,25 +474,220 @@ impl LevelSystem {
         }
     }
 
+    /// Captures a whole-World replacement target. A handle or copied clock alone
+    /// is not authority, and a later World mutation makes this target stale.
+    pub fn capture_world_replacement_expectation(&self) -> WorldReplacementExpectation {
+        let world = self.lock_world();
+        WorldReplacementExpectation {
+            owner: Arc::downgrade(&self.publication_owner),
+            identity: WorldReplacementIdentity {
+                world_generation: world.world_generation(),
+                replacement_epoch: self.world_replacement_epoch.load(Ordering::Acquire),
+            },
+        }
+    }
+
+    /// Atomically replaces the whole World and its local clocks at a quiet
+    /// fixed-step boundary. Failure returns the original owned request.
+    ///
+    /// Restore accepts only an actual retired pair from this Level. It restores
+    /// local clock values, but advances their epochs and retains the live outer
+    /// frame watermark. This in-memory operation does not restore an archive,
+    /// staged scene, metadata, or external resources shared by the two Worlds.
+    pub fn replace_world_with_time_policy(
+        &self,
+        expected: &WorldReplacementExpectation,
+        request: WorldReplacementRequest,
+        reason: WorldReplacementReason,
+    ) -> Result<WorldReplacementCommit, WorldReplacementRejected> {
+        self.commit_world_replacement(Some(expected), request, reason, true)
+    }
+
+    /// Compatibility entry: preserves clocks, debt, pause and rate. In-flight
+    /// fixed work retains its old token for the existing driver's abort path.
+    /// World generation keeps its original saturating continuation. Exhausting
+    /// the separate replacement epoch retains the existing panic boundary.
     pub fn replace_world_and_reset_runtime_state(&self, world: World) {
-        let retired = {
+        match self.commit_world_replacement(
+            None,
+            WorldReplacementRequest::preserve(world),
+            WorldReplacementReason::LegacyCompatibility,
+            false,
+        ) {
+            Ok(commit) => drop(commit),
+            Err(rejected) => panic!("legacy World replacement rejected: {rejected}"),
+        }
+    }
+
+    fn commit_world_replacement(
+        &self,
+        expected: Option<&WorldReplacementExpectation>,
+        request: WorldReplacementRequest,
+        reason: WorldReplacementReason,
+        require_quiet: bool,
+    ) -> Result<WorldReplacementCommit, WorldReplacementRejected> {
+        // Owning escrows precede both guards. On Err or unwind a caller's World,
+        // restore token, and any retired World are destroyed only after guards.
+        let mut request = Some(request);
+        let mut retired = None;
+        let result = {
             let mut current = self.lock_world();
-            let replacement_epoch = self.advance_world_replacement_epoch();
-            let mut world = world;
-            world.advance_dynamic_component_generations_after(&current);
-            world.advance_scene_binding_generations_after(&current);
-            world.advance_world_generation_after(current.world_generation());
-            let retired = std::mem::replace(&mut *current, world);
-            current.attach_world_sync_subscriptions(Arc::clone(&self.world_subscriptions));
-            self.reset_runtime_state_after_world_replacement(&mut current);
-            current.record_world_fact(WorldFact::WorldReplaced { replacement_epoch });
-            retired
+            let mut controller = lock_poison_recovered(&self.world_time);
+            (|| {
+                let previous = WorldReplacementIdentity {
+                    world_generation: current.world_generation(),
+                    replacement_epoch: self.world_replacement_epoch.load(Ordering::Acquire),
+                };
+                if let Some(expected) = expected {
+                    if !std::sync::Weak::ptr_eq(
+                        &expected.owner,
+                        &Arc::downgrade(&self.publication_owner),
+                    ) {
+                        return Err(WorldReplacementError::TargetOwnerChanged);
+                    }
+                    if expected.identity != previous {
+                        return Err(WorldReplacementError::TargetChanged {
+                            expected: expected.identity,
+                            actual: previous,
+                        });
+                    }
+                }
+
+                let candidate = request.as_mut().expect("unconsumed replacement request");
+                let restored_checkpoint = match candidate {
+                    WorldReplacementRequest::Restore { checkpoint } => {
+                        if !std::sync::Weak::ptr_eq(
+                            &checkpoint.owner,
+                            &Arc::downgrade(&self.publication_owner),
+                        ) {
+                            return Err(WorldReplacementError::CheckpointOwnerChanged);
+                        }
+                        Some(checkpoint.identity)
+                    }
+                    _ => None,
+                };
+                previous.replacement_epoch.checked_add(1).ok_or(
+                    WorldReplacementError::ReplacementEpochExhausted {
+                        current: previous.replacement_epoch,
+                    },
+                )?;
+                let generation = if require_quiet {
+                    let incoming_generation = candidate.incoming_world().world_generation();
+                    Some(
+                        candidate
+                            .incoming_world()
+                            .prepare_world_generation_after(previous.world_generation)
+                            .ok_or(WorldReplacementError::WorldGenerationExhausted {
+                                current: previous.world_generation,
+                                incoming: incoming_generation,
+                            })?,
+                    )
+                } else {
+                    // Legacy callers have no typed failure return. Keep their
+                    // original saturating generation continuation, even at MAX.
+                    None
+                };
+                let time_policy = candidate.time_policy();
+                let prepared = controller
+                    .prepare_world_replacement(candidate.time_disposition(), require_quiet)?;
+                let before = prepared.before();
+                let after = prepared.after();
+
+                // All typed rejection paths ended above. These concrete revision
+                // operations prepare the owned candidate without callbacks, then
+                // publication consumes it. No fallible clock/reset step follows.
+                let incoming = candidate.incoming_world_mut();
+                incoming.advance_dynamic_component_generations_after(&current);
+                incoming.advance_scene_binding_generations_after(&current);
+                let world_generation = match generation {
+                    Some(generation) => {
+                        let effective = generation.generation();
+                        incoming.commit_prepared_world_generation(generation);
+                        effective
+                    }
+                    None => {
+                        incoming.advance_world_generation_after(previous.world_generation);
+                        incoming.world_generation()
+                    }
+                };
+                let replacement_epoch = self.advance_world_replacement_epoch();
+                retired = Some(std::mem::replace(
+                    &mut *current,
+                    request
+                        .take()
+                        .expect("checked replacement request remains owned")
+                        .into_world(),
+                ));
+                controller.commit_world_replacement(prepared);
+                drop(controller);
+
+                current.attach_world_sync_subscriptions(Arc::clone(&self.world_subscriptions));
+                self.reset_runtime_state_without_time_after_world_replacement(&mut current);
+                current.record_world_fact(WorldFact::WorldReplaced { replacement_epoch });
+                let identity = WorldReplacementIdentity {
+                    world_generation,
+                    replacement_epoch,
+                };
+                let old_debt = before.fixed_time().overstep();
+                let new_debt = after.fixed_time().overstep();
+                let (preserved_debt, discarded_debt, restored_debt) = match time_policy {
+                    WorldReplacementTimePolicy::Preserve => {
+                        (old_debt, std::time::Duration::ZERO, std::time::Duration::ZERO)
+                    }
+                    WorldReplacementTimePolicy::Reset => {
+                        (std::time::Duration::ZERO, old_debt, std::time::Duration::ZERO)
+                    }
+                    WorldReplacementTimePolicy::Restore => {
+                        (std::time::Duration::ZERO, old_debt, new_debt)
+                    }
+                };
+                Ok(WorldReplacementReceipt {
+                    previous,
+                    current: identity,
+                    time_policy,
+                    reason,
+                    before,
+                    after,
+                    preserved_debt,
+                    discarded_debt,
+                    restored_debt,
+                    restored_checkpoint,
+                })
+            })()
         };
-        drop(retired);
+
+        match result {
+            Ok(receipt) => Ok(WorldReplacementCommit {
+                receipt,
+                checkpoint: WorldReplacementCheckpoint {
+                    owner: Arc::downgrade(&self.publication_owner),
+                    world: retired.expect("a successful replacement retired one actual World"),
+                    time: receipt.before(),
+                    identity: receipt.previous(),
+                },
+            }),
+            Err(error) => Err(WorldReplacementRejected {
+                error,
+                request: request.expect("a rejected replacement did not consume its request"),
+            }),
+        }
     }
 
     /// Resets World-coupled state while the replacement caller still owns the World lane.
     fn reset_runtime_state_after_world_replacement(&self, current: &mut World) {
+        self.reset_world_frame_after_replacement(current);
+        lock_poison_recovered(&self.world_time).reset_after_world_replacement();
+        self.reset_runtime_domains_after_replacement();
+    }
+
+    // Whole-World pair publication already committed time. Do not reacquire it
+    // here: Reset/Restore must not run a second, implicit time reset.
+    fn reset_runtime_state_without_time_after_world_replacement(&self, current: &mut World) {
+        self.reset_world_frame_after_replacement(current);
+        self.reset_runtime_domains_after_replacement();
+    }
+
+    fn reset_world_frame_after_replacement(&self, current: &mut World) {
         physics_runtime::clear_retained_pose_resources(current);
         let world_generation = current.world_generation();
         let mut frame_state = self.lock_frame_state();
@@ -485,7 +704,9 @@ impl LevelSystem {
             *frame_state = Arc::new(LevelFrameStateSnapshot::new(world_generation));
         }
         drop(frame_state);
-        lock_poison_recovered(&self.world_time).reset_after_world_replacement();
+    }
+
+    fn reset_runtime_domains_after_replacement(&self) {
         self.lock_physics_state().reset_after_world_replacement();
         #[cfg(feature = "animation")]
         {
@@ -549,8 +770,13 @@ impl LevelSystem {
         core: &CoreHandle,
         snapshot: FrameTimeSnapshot,
     ) -> Result<(), LevelTickError> {
+        #[cfg(feature = "animation")]
+        let animation_frame = self.begin_animation_evaluation_frame();
         let driver = core.resolve_driver::<WorldDriver>(WORLD_DRIVER_NAME)?;
-        driver.tick_level(core, self, snapshot)
+        driver.tick_level(core, self, snapshot)?;
+        #[cfg(feature = "animation")]
+        animation_frame.commit();
+        Ok(())
     }
 
     pub(crate) fn run_runtime_scene_system(
@@ -669,3 +895,7 @@ mod tests;
 #[cfg(test)]
 #[path = "level_system/tests/subsystem_snapshot_tests.rs"]
 mod subsystem_snapshot_tests;
+
+#[cfg(test)]
+#[path = "level_system/tests/world_time_replacement.rs"]
+mod world_time_replacement_tests;

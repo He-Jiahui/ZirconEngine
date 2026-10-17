@@ -1,6 +1,6 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::Instant;
+use web_time::Instant;
 
 use super::JobExecutionOutcome;
 use crate::core::runtime::tasks::{

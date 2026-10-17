@@ -59,16 +59,12 @@ fn host_document_tab_drop_uses_componentized_workbench_layout_frames() {
 
 #[test]
 fn host_shell_drag_uses_componentized_workbench_layout_frames() {
-    let componentized_window = source(
-        "src/ui/retained/dispatch/workbench/componentized_window.rs",
-    );
-    let recompute_viewport =
-        source("src/ui/retained/app/host_lifecycle/recompute_viewport.rs");
+    let componentized_window = source("src/ui/retained/dispatch/workbench/componentized_window.rs");
+    let recompute_viewport = source("src/ui/retained/app/host_lifecycle/recompute_viewport.rs");
     let shell_template_bridges =
         source("src/ui/retained/app/host_lifecycle/recompute/shell/bridges.rs");
     let helpers = source("src/ui/retained/app/helpers.rs");
-    let drawer_layout =
-        source("src/ui/retained/dispatch/templates/workbench/drawer_layout.rs");
+    let drawer_layout = source("src/ui/retained/dispatch/templates/workbench/drawer_layout.rs");
     let shell_pointer_bridge = source("src/ui/retained/shell_pointer/bridge.rs");
     let drag_surface = source("src/ui/retained/shell_pointer/drag_surface.rs");
 

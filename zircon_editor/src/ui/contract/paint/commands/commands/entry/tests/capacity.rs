@@ -31,7 +31,8 @@ fn optimization_batch_20260826fk_editor152_capacity_preserves_group_command_orde
 
 #[test]
 fn optimization_batch_20260826fk_editor152_host_command_output_reserves_input_count() {
-    let source = include_str!("../../../../../../retained/contract/paint/commands/commands/entry.rs");
+    let source =
+        include_str!("../../../../../../retained/contract/paint/commands/commands/entry.rs");
     assert!(source.contains("let mut host_commands = Vec::with_capacity(commands.len());"));
     assert!(!source.contains("let mut host_commands = Vec::new();"));
 }

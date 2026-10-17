@@ -1,3 +1,6 @@
+//! 极值坐标的轴映射夹具，只断言生成原点有限及一个竖排抵消结果。
+//! 不据此证明几何预算、容器包含关系或完整表格布局。
+
 use super::TableAxes;
 use zircon_runtime_interface::ui::layout::UiFrame;
 

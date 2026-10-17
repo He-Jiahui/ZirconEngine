@@ -2,7 +2,8 @@
 const PARENT_SOURCE: &str = include_str!("../core_spine_root_generated.rs");
 const INVENTORY_SOURCE: &str = include_str!("inventory.rs");
 const MIRROR_DOCS_SOURCE: &str = include_str!("mirror_docs.rs");
-const GENERATED_BEHAVIOR_SOURCE: &str = include_str!("../../core_spine_root_generated/generated_behavior.rs");
+const GENERATED_BEHAVIOR_SOURCE: &str =
+    include_str!("../../core_spine_root_generated/generated_behavior.rs");
 const SOURCE_HELPERS_SOURCE: &str = include_str!("source_helpers.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 

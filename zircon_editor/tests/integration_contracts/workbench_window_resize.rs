@@ -12,8 +12,7 @@ fn workbench_shell_window_resize_contract_is_owned_by_rust_host_contract() {
     let host_window_contract = source("src/ui/retained/contract/window.rs");
     let host_window_handle = source("src/ui/retained/contract/window/handle.rs");
     let host_window_lifecycle = source("src/ui/retained/contract/window/lifecycle.rs");
-    let host_window_snapshot =
-        source("src/ui/retained/contract/window/presentation/snapshot.rs");
+    let host_window_snapshot = source("src/ui/retained/contract/window/presentation/snapshot.rs");
     let shell_window_test = source("src/tests/host/retained_window/shell_window.rs");
 
     let generated_include = [

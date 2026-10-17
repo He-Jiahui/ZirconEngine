@@ -45,6 +45,34 @@ pub(crate) struct PreparedTargetedGeneration {
 }
 
 impl PreparedTargetedGeneration {
+    pub(super) fn take_watch_source(
+        &mut self, geometry_demand: &crate::core::resource::ResourceActiveGeneration,
+    ) -> super::WatchSourceCandidate {
+        use crate::core::resource::{ResourceKind, ResourceSourceMember, ResourceSourceOutcome};
+        let owner = self.imported.iter().find(|record| record.primary_locator.label().is_none())
+            .expect("a targeted source has an explicit root").id;
+        let mut previous_members = self.meta_precondition.as_ref().map(|meta| {
+            std::iter::once(AssetId::from_asset_uuid(meta.uuid))
+                .chain(meta.entries.iter().map(|entry| AssetId::from_asset_uuid(entry.uuid))).collect()
+        }).unwrap_or_else(Vec::new);
+        previous_members.sort_unstable();
+        previous_members.dedup();
+        let payloads = self.take_ready_payloads().into_iter()
+            .filter(|(record, _)| !matches!(record.kind, ResourceKind::Model | ResourceKind::Mesh)
+                || geometry_demand.row(record.id).is_some())
+            .map(|(record, asset)| (record.id, asset.into_resource_data()))
+            .collect::<HashMap<_, _>>();
+        let outcome = if self.imported.iter().any(|record| record.state == ResourceState::Error) {
+            ResourceSourceOutcome::Failed
+        } else { ResourceSourceOutcome::CompleteSuccess };
+        super::WatchSourceCandidate {
+            owner, previous_members, outcome,
+            members: self.imported.iter().map(|record| ResourceSourceMember {
+                record: record.clone(), payload: payloads.get(&record.id).cloned(),
+            }).collect(),
+        }
+    }
+
     pub(crate) fn imported(&self) -> &[ResourceRecord] {
         &self.imported
     }

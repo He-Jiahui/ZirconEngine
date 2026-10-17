@@ -25,7 +25,8 @@ fn optimization_batch_20260826hc_editor195_preserves_asset_relative_path_contrac
 
 #[test]
 fn optimization_batch_20260826hc_editor195_borrows_forward_slash_paths() {
-    let source = include_str!("../../../../retained/contract/paint/visual_assets/candidates/paths.rs");
+    let source =
+        include_str!("../../../../retained/contract/paint/visual_assets/candidates/paths.rs");
     let start = source
         .find("fn normalized_asset_relative_path(")
         .expect("normalized_asset_relative_path function");

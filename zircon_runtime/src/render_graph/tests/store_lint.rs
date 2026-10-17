@@ -81,9 +81,8 @@ fn render_perf_store_lint_and_bandwidth_reads_use_compiled_artifacts() {
     assert!(graph_source
         .contains("let attachment_bandwidth_ledger = build_attachment_bandwidth_ledger(&graph);"));
 
-    let update_stats_source = include_str!(
-        "../../graphics/runtime/framework/extract/update_stats/update.rs"
-    );
+    let update_stats_source =
+        include_str!("../../graphics/runtime/framework/extract/update_stats/update.rs");
     assert!(update_stats_source.contains(".store_lint_count()"));
     assert!(!update_stats_source.contains(".store_lint_report().count()"));
 }

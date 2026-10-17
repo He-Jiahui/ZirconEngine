@@ -103,7 +103,7 @@ impl RetainedEditorHost {
                 );
             }
         }
-        if !events.asset_changes.is_empty() {
+        if !events.asset_changes.is_empty() || events.resource_generation_lagged {
             zircon_runtime::profile_scope!(
                 "editor",
                 "retained_host",
@@ -129,7 +129,7 @@ impl RetainedEditorHost {
             .map(|identity| identity.scene_uri().to_owned());
         let mut plan = plan_asset_backend_refresh(
             active_scene_uri.as_deref(),
-            &events.asset_changes,
+            events.asset_changes.iter().map(AsRef::as_ref),
             &events.editor_asset_changes,
             &events.resource_changes,
         );

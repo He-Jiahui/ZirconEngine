@@ -100,7 +100,8 @@ fn asset_open_event_opens_the_indexed_registry_toolkit() {
     assert!(record.effects.contains(&EditorEventEffect::LayoutChanged));
     let toolkit_view = runtime
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset.integration")
@@ -160,7 +161,8 @@ props = { text = "Non-ZUI" }
     assert!(!record.effects.contains(&EditorEventEffect::LayoutChanged));
     assert!(!runtime
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .any(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset")));
     assert_eq!(

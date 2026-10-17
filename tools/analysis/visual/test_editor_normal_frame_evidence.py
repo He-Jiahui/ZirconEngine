@@ -227,4 +227,170 @@ class CaseContractValidation(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate_capture_method(method)
 
+
+class CanonicalCasePublicationValidation(unittest.TestCase):
+    def case_and_held_frame(self):
+        # Full toolbar schema/provenance is checked by the canonical producer.
+        # These fixtures isolate immutable seed-to-held joins, not GPU acceptance.
+        hold, readback, profile = fixtures()
+        counters = {key: 1 for key in
+                    ('structure', 'geometry', 'interaction', 'viewport', 'hitTest', 'theme', 'diagnostics')}
+        dto = {'stateFingerprint': 'a' * 64, 'activeLocale': 'en', 'selected': False}
+        managed = {'projectRoot': 'D:/actual', 'sources': []}
+        business = {'authority': 'normal-retained-workbench-projection', 'observed': True,
+                    'presentationCursor': copy.deepcopy(counters), 'presentedFrameCount': 4,
+                    'workbenchPresentation': copy.deepcopy(dto), 'managedSceneFingerprint': copy.deepcopy(managed)}
+        node = {'nodeId': 'choice', 'parentNodeId': 'row',
+                'sourcePath': 'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui',
+                'sourceNodeId': 'Perspective', 'instancePath': '[]',
+                'parentSourcePath': 'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui',
+                'parentSourceNodeId': 'ToolbarRow', 'parentInstancePath': '[]',
+                'controlId': 'perspective', 'component': 'Dropdown', 'visible': True,
+                'bounds': {'x': 0, 'y': 0, 'width': 100, 'height': 28},
+                'clip': {'x': 0, 'y': 0, 'width': 100, 'height': 28},
+                'state': {'selected': None, 'checked': None, 'popupOpen': False,
+                          'value': 'perspective', 'text': None, 'valueText': 'Perspective', 'disabled': False},
+                'scroll': None, 'desiredSize': {'width': 100, 'height': 28, 'coordinateSpace': 'logical-pixels'}}
+        toolbar = {'schema': 'dev.zircon.editor.viewport-toolbar-publication', 'version': 1,
+                   'authority': 'normal-prepared-source-surface', 'observed': True,
+                   'coordinateSpace': 'physical-pixels', 'surfaceGeneration': 1, 'surfaceTreeId': 'test-surface',
+                   'rootNodeId': 'root', 'rowNodeId': 'row', 'moreNodeId': 'more', 'popupNodeId': 'popup',
+                   'groupNodeIds': ['group'], 'nodes': [node],
+                   'presentationCursor': copy.deepcopy(counters), 'presentedFrameCount': 4}
+        seed = {'workbenchStatePublication': business, 'presentationCursor': copy.deepcopy(counters),
+                'presentedFrameCount': 4, 'viewportToolbarPublication': toolbar}
+        case = {'data': {'workbenchPresentation': dto, 'managedSceneFingerprint': managed,
+                         'normal_window_evidence': copy.deepcopy(seed)}}
+        hold['presentedFrameCount'] = 9
+        readback['presentedFrameCount'] = 9
+        normal = profile['normal_window_evidence']
+        normal.update(copy.deepcopy(seed))
+        normal['captureSequence'] = 5
+        normal['captureHold'] = copy.deepcopy(hold)
+        normal['presentedFrameCount'] = 9
+        normal['workbenchStatePublication']['presentedFrameCount'] = 9
+        normal['viewportToolbarPublication']['presentedFrameCount'] = 9
+        profile['submitted_gpu_text']['presentedFrameCount'] = 9
+        return hold, readback, profile, case
+
+    def test_full_seed_allows_later_matching_held_frame(self):
+        hold, readback, profile, case = self.case_and_held_frame()
+        validate_case_publication(profile, case)
+        validate_hold(hold, 'test', 7, 'a' * 64, (1, 1), 20)
+        validate_readback(readback, hold, 9, (1, 1))
+        validate_profile(profile, hold, (1, 1), 1.0)
+
+    def test_legacy_case_keeps_its_exact_keys_even_when_semantics_match(self):
+        _, _, profile, case = self.case_and_held_frame()
+        seed = case['data']['normal_window_evidence']
+        for key in ('presentationCursor', 'presentedFrameCount', 'viewportToolbarPublication'):
+            seed.pop(key)
+        seed['workbenchStatePublication'].pop('presentedFrameCount')
+        validate_case_publication(profile, case)
+        semantics = [{'nodeId': 'choice', 'visible': True}]
+        seed['semanticNodes'] = copy.deepcopy(semantics)
+        profile['normal_window_evidence']['semanticNodes'] = copy.deepcopy(semantics)
+        with self.assertRaises(ValueError):
+            validate_case_publication(profile, case)
+
+    def test_partial_and_unknown_canonical_shapes_are_rejected(self):
+        _, _, profile, case = self.case_and_held_frame()
+        seed = case['data']['normal_window_evidence']
+        for key in ('workbenchStatePublication', 'presentationCursor', 'presentedFrameCount', 'viewportToolbarPublication'):
+            with self.subTest(missing=key):
+                changed = copy.deepcopy(case)
+                changed['data']['normal_window_evidence'].pop(key)
+                with self.assertRaises(ValueError):
+                    validate_case_publication(profile, changed)
+        for scope in ('normal', 'business'):
+            with self.subTest(extra=scope):
+                changed = copy.deepcopy(case)
+                target = changed['data']['normal_window_evidence']
+                if scope == 'business':
+                    target = target['workbenchStatePublication']
+                target['captureSequence'] = 5
+                with self.assertRaises(ValueError):
+                    validate_case_publication(profile, changed)
+        self.assertEqual(seed['presentedFrameCount'], 4)
+
+    def test_all_seven_seed_and_held_cursor_joins_are_required(self):
+        _, _, profile, case = self.case_and_held_frame()
+        for location in ('outer', 'workbenchStatePublication', 'viewportToolbarPublication'):
+            for counter in case['data']['normal_window_evidence']['presentationCursor']:
+                with self.subTest(location=location, counter=counter):
+                    changed = copy.deepcopy(case)
+                    target = changed['data']['normal_window_evidence']
+                    if location != 'outer':
+                        target = target[location]
+                    target['presentationCursor'][counter] = 2
+                    with self.assertRaises(ValueError):
+                        validate_case_publication(profile, changed)
+                    changed_profile = copy.deepcopy(profile)
+                    actual = changed_profile['normal_window_evidence']
+                    if location != 'outer':
+                        actual = actual[location]
+                    actual['presentationCursor'][counter] = 2
+                    with self.assertRaises(ValueError):
+                        validate_case_publication(changed_profile, case)
+
+    def test_seed_counts_are_safe_positive_and_held_toolbar_is_current(self):
+        _, _, profile, case = self.case_and_held_frame()
+        for location in ('outer', 'workbenchStatePublication', 'viewportToolbarPublication'):
+            for count in (0, -1, True, 5, 2**53):
+                with self.subTest(location=location, count=count):
+                    changed = copy.deepcopy(case)
+                    target = changed['data']['normal_window_evidence']
+                    if location != 'outer':
+                        target = target[location]
+                    target['presentedFrameCount'] = count
+                    with self.assertRaises(ValueError):
+                        validate_case_publication(profile, changed)
+        for count in (4, 10, True):
+            changed = copy.deepcopy(profile)
+            changed['normal_window_evidence']['viewportToolbarPublication']['presentedFrameCount'] = count
+            with self.assertRaises(ValueError):
+                validate_case_publication(changed, case)
+
+    def test_full_toolbar_source_geometry_and_state_remain_immutable(self):
+        _, _, profile, case = self.case_and_held_frame()
+        for path, value in ((('sourcePath',), 'other.zui'), (('parentSourceNodeId',), 'other-parent'),
+                            (('state', 'popupOpen'), True), (('state', 'disabled'), 0),
+                            (('bounds', 'x'), 1), (('clip', 'width'), 99),
+                            (('desiredSize', 'width'), 99)):
+            with self.subTest(path=path):
+                changed = copy.deepcopy(profile)
+                target = changed['normal_window_evidence']['viewportToolbarPublication']['nodes'][0]
+                for key in path[:-1]:
+                    target = target[key]
+                target[path[-1]] = value
+                with self.assertRaises(ValueError):
+                    validate_case_publication(changed, case)
+        changed = copy.deepcopy(profile)
+        changed['normal_window_evidence']['viewportToolbarPublication']['unknown'] = True
+        with self.assertRaises(ValueError):
+            validate_case_publication(changed, case)
+
+    def test_optional_semantics_and_focus_preserve_presence_and_json_identity(self):
+        _, _, profile, case = self.case_and_held_frame()
+        for key, value in (('semanticNodes', [{'nodeId': 'choice', 'visible': True}]),
+                           ('focusPublication', {'authority': 'normal-native-pane-interaction',
+                                                 'observed': True, 'focusedNativeControlId': None})):
+            with self.subTest(key=key):
+                bound_case = copy.deepcopy(case)
+                bound_profile = copy.deepcopy(profile)
+                bound_case['data']['normal_window_evidence'][key] = copy.deepcopy(value)
+                bound_profile['normal_window_evidence'][key] = copy.deepcopy(value)
+                validate_case_publication(bound_profile, bound_case)
+                with self.assertRaises(ValueError):
+                    validate_case_publication(profile, bound_case)
+                with self.assertRaises(ValueError):
+                    validate_case_publication(bound_profile, case)
+                target = bound_profile['normal_window_evidence'][key]
+                if isinstance(target, list):
+                    target[0]['visible'] = 1
+                else:
+                    target['focusedNativeControlId'] = 'choice'
+                with self.assertRaises(ValueError):
+                    validate_case_publication(bound_profile, bound_case)
+
 if __name__=='__main__':unittest.main()

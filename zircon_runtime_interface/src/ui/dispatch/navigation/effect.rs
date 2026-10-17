@@ -14,10 +14,12 @@ pub enum UiNavigationDispatchEffect {
 }
 
 impl UiNavigationDispatchEffect {
+    /// 返回停止当前导航处理器链的 Handled 决议。
     pub const fn handled() -> Self {
         Self::Handled
     }
 
+    /// 请求 Runtime/UiSurface 验证并提交目标焦点。
     pub const fn focus(node_id: UiNodeId) -> Self {
         Self::Focus(node_id)
     }

@@ -10,7 +10,7 @@ use crate::graphics::{
 };
 use std::collections::HashSet;
 use std::sync::Arc;
-use std::time::Instant;
+use web_time::Instant;
 
 use super::super::super::wgpu_render_framework::WgpuRenderFrameworkAccess;
 pub(super) fn submit_camera_loop(

@@ -243,11 +243,13 @@ impl NativePluginLiveHost {
                 source: "non-empty registration manifest has no replay bridge context".to_string(),
             }
         })?;
-        // BUG: [CR-PLUGIN-NATIVE-0302] 后续系统注册失败会使本插件报告为 skipped，
-        // 但先前系统已留在传入的 registry；证据：逐项 register 后用 ? 提前返回。
+        // Register every system in a candidate clone, preserving the caller registry on error.
+        // Publish its registry, owners, sets and frozen state only after every registration succeeds.
+        // Duplicate and skipped-plugin regressions verify that earlier contributions never leak.
+        let mut candidate = registry.clone();
         for (system, prepared) in manifest.systems.iter().zip(&generation.prepared_systems) {
             let system_report = self.replay_runtime_registration_system(
-                registry,
+                &mut candidate,
                 plugin_id,
                 system,
                 prepared,
@@ -256,6 +258,7 @@ impl NativePluginLiveHost {
             )?;
             report.registered_systems.push(system_report);
         }
+        *registry = candidate;
         Ok(report)
     }
 

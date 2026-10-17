@@ -19,7 +19,15 @@ pub(in crate::builtin::runtime_modules) fn assemble_compiled_project_plugin_plan
     plan: &CompiledProjectPluginPlan,
     profile_id: Option<RuntimeProfileId>,
 ) -> RuntimeModuleLoadReport {
-    let profile = profile_id.map(RuntimeProfileDescriptor::for_id);
+    let profile = profile_id.map(|id| {
+        let mut profile = RuntimeProfileDescriptor::for_id(id);
+        if let Some((applied_id, minimum)) = plan.runtime_profile_admission() {
+            if applied_id == id {
+                profile = profile.with_minimum_maturity(minimum);
+            }
+        }
+        profile
+    });
     if let Some(profile) = profile.as_ref() {
         if profile.target_mode != plan.target_mode() {
             return RuntimeModuleLoadReport::from_core_error(CoreError::Initialization(

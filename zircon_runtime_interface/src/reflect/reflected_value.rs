@@ -5,6 +5,18 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "value")]
 /// 反射读写传输使用的带标签值；此枚举描述形状，不单独实施运行时深度、大小或字段类型预算。
+///
+/// # 使用时机与生命周期
+/// 在反射字段读写、持久化和 VM 状态迁移之间传递拥有型值树；文本和容器由值持有。
+/// `Entity` 携带可选实体 ID，不持有实体对象或保证它仍存在；`Resource` 的文本解析由使用方负责。
+///
+/// # 约束
+/// 构造和派生 serde 只描述值形状，不代替运行时预算、字段类型或访问策略检查。
+/// 值的准入方负责选择预算并调用校验，再按字段合同处理引用。
+/// 派生 serde 使用 `kind`/`value` 标签；运行时持久化文档的版本由文档层管理。
+///
+/// # 参考
+/// [`Self::validate_with_budget`]；[`super::ZrReflectValue`] 的字段转换合同。
 pub enum ReflectedValue {
     /// 无载荷的空值。
     Null,
@@ -63,3 +75,29 @@ impl ReflectedValue {
         }
     }
 }
+
+impl crate::retained_memory::RetainedOwnerV1 for ReflectedValue {
+    fn retained_bound_v1(
+        &self,
+        m: &mut crate::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), crate::retained_memory::RetentionContractError> {
+        use crate::retained_memory::RetainedOwnerV1;
+        m.nest(|m| match self {
+            Self::String(v) | Self::Enum(v) | Self::Resource(v) => v.retained_bound_v1(m),
+            Self::List(v) => v.retained_bound_v1(m),
+            Self::Map(v) => v.retained_bound_v1(m),
+            Self::Json(v) => v.retained_bound_v1(m),
+            Self::Null
+            | Self::Bool(_)
+            | Self::Integer(_)
+            | Self::Unsigned(_)
+            | Self::Scalar(_)
+            | Self::Vec2(_)
+            | Self::Vec3(_)
+            | Self::Vec4(_)
+            | Self::Quaternion(_)
+            | Self::Entity(_) => Ok(()),
+        })
+    }
+}
+unsafe impl crate::retained_memory::ImmutableRetainedOwnerV1 for ReflectedValue {}

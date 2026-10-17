@@ -1,6 +1,6 @@
-use super::support::{Files, digest, principal, seed};
+use super::support::{digest, principal, seed, Files};
 use crate::service::{
-    cloud::{BlobStore, CloudConfig, upload},
+    cloud::{upload, BlobStore, CloudConfig},
     error::ServiceError,
     storage::Database,
 };

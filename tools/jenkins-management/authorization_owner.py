@@ -120,9 +120,20 @@ def boot(capsule):
     return config, user, repo, State(repo / ".jenkins/state/coordination.sqlite3")
 
 
+def authorization_actions(grant):
+    profile = grant.get("profile")
+    expected = (["implementation", "validation"] if profile == "managed-worktree-writer-v1"
+                else ["validation"])
+    if (profile not in (None, "managed-worktree-writer-v1", "managed-worktree-reader-v1")
+            or grant.get("actions") != expected):
+        raise ValueError("authorization_catalog_scope_invalid")
+    return expected
+
+
 def scope_plan(grant, state, repo):
     from tools.jenkins.state import _relative_path
-    if (grant.get("actions") != ["validation"] or not grant.get("task")
+    authorization_actions(grant)
+    if (not grant.get("task")
             or not ID.fullmatch(grant.get("sessionId", ""))
             or not grant.get("principal")
             or not SHA.fullmatch(grant.get("handoff", {}).get("sha256", ""))):
@@ -130,6 +141,36 @@ def scope_plan(grant, state, repo):
     paths = [_relative_path(path) for path in grant["paths"]]
     if not paths or len(paths) != len(set(paths)):
         raise ValueError("authorization_catalog_paths_invalid")
+    profile = grant.get("profile")
+    if profile is not None:
+        owned = [_relative_path(path) for path in grant.get("ownedPaths", [])]
+        if (not owned or len(owned) != len(set(owned)) or not set(owned) <= set(paths)
+                or grant.get("predecessor") or grant.get("addedPaths")
+                or any(physical(repo / path).is_dir() for path in paths)):
+            raise ValueError("authorization_worktree_scope_invalid")
+        if profile == "managed-worktree-writer-v1":
+            if sorted(owned) != sorted(paths) or grant.get("writer") is not None:
+                raise ValueError("authorization_writer_scope_invalid")
+        else:
+            binding = grant.get("writer")
+            if (not isinstance(binding, dict)
+                    or set(binding) != {"sessionId", "snapshotDigest", "ownedPaths"}
+                    or not ID.fullmatch(binding.get("sessionId", ""))
+                    or binding["sessionId"] == grant["sessionId"]
+                    or not SHA.fullmatch(binding.get("snapshotDigest", ""))):
+                raise ValueError("authorization_reader_writer_invalid")
+            declared = [_relative_path(path) for path in binding["ownedPaths"]]
+            writer = state.check_authorization(grant["repositoryId"], binding["sessionId"],
+                                               "implementation", owned)
+            writer_validation = state.check_authorization(grant["repositoryId"], binding["sessionId"],
+                                                          "validation", owned)
+            if (writer["snapshotDigest"] != binding["snapshotDigest"]
+                    or writer_validation["snapshotDigest"] != writer["snapshotDigest"]
+                    or writer["principal"] != grant["principal"]
+                    or writer["actions"] != ["implementation", "validation"]
+                    or sorted(writer["paths"]) != sorted(owned)
+                    or sorted(declared) != sorted(owned) or len(declared) != len(set(declared))):
+                raise ValueError("authorization_reader_writer_mismatch")
     predecessor = grant.get("predecessor")
     if predecessor:
         old = state.check_authorization(grant["repositoryId"], predecessor["sessionId"], "validation")
@@ -194,15 +235,19 @@ def execute(config, user, repo, state, task_key, *, check_only=False):
             state.put("record_intake_receipt", key, result)
             write_json(bounded_path(repo, grant["responsePath"], ".jenkins/records"), result)
         return result
+    actions = authorization_actions(grant)
     prior = state.get("authorization_owner_result", key)
     if prior:
         result = prior["payload"]
         if (result.get("catalogDigest") != sha(encoded(grant))
                 or result.get("userGrant") != config["userGrant"]):
             raise ValueError("authorization_operation_input_conflict")
-        actual = state.check_authorization(grant["repositoryId"], grant["sessionId"], "validation", grant["paths"])
-        if actual["snapshotDigest"] != result["snapshotDigest"]:
-            raise ValueError("authorization_completed_snapshot_changed")
+        if grant.get("profile") is not None:
+            scope_plan(grant, state, repo)
+        for action in actions:
+            actual = state.check_authorization(grant["repositoryId"], grant["sessionId"], action, grant["paths"])
+            if actual["snapshotDigest"] != result["snapshotDigest"]:
+                raise ValueError("authorization_completed_snapshot_changed")
         if check_only:
             return result
         response_path = bounded_path(repo, grant["responsePath"], ".jenkins/records")
@@ -217,17 +262,19 @@ def execute(config, user, repo, state, task_key, *, check_only=False):
         raise ValueError("authorization_handoff_changed")
     if check_only:
         return {"status": "ready", "operationId": key, "sessionId": grant["sessionId"],
-                "paths": paths, "actions": ["validation"], "authorizationWritten": False}
+                "paths": paths, "actions": actions, "authorizationWritten": False}
     evidence = {"source": "user", "task": grant["task"], "rootThreadId": config["rootThreadId"],
                 "issuedFromCurrentUserGoal": True, "objectiveSha256": user["objectiveSha256"],
                 "userGrantRef": config["userGrant"], "handoffRef": grant["handoff"],
                 "predecessor": grant.get("predecessor"), "operationId": key}
+    if grant.get("profile") is not None:
+        evidence.update(authorizationProfile=grant["profile"], writer=grant.get("writer"))
     authorization = state.authorize_session(grant["repositoryId"], grant["sessionId"],
-                                            grant["principal"], paths, ["validation"], evidence)
+                                            grant["principal"], paths, actions, evidence)
     result = {"status": "completed", "operationId": key, "repositoryId": grant["repositoryId"],
               "sessionId": grant["sessionId"], "principal": grant["principal"],
               "snapshotDigest": authorization["snapshotDigest"], "authorizationStatus": authorization["status"],
-              "paths": paths, "actions": ["validation"], "predecessor": grant.get("predecessor"),
+              "paths": paths, "actions": actions, "predecessor": grant.get("predecessor"),
               "userGrant": config["userGrant"], "catalogDigest": sha(encoded(grant)),
               "handoffRef": grant["handoff"], "handoffText": handoff_bytes.decode("utf-8"),
               "handoffConsumed": False, "removedBytes": 0, "driverDigest": config["driverDigest"],

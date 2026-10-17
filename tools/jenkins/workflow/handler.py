@@ -409,16 +409,39 @@ def _ensure_execution_job(state: State, *, identity: dict, source_ref: str,
                     "attemptId": str(identity["attemptId"]), "submissionRequestId": submission_id,
                     "executionId": execution_id},
     )
+    # Preserve the immutable typed identity on this secondary delivery.  The
+    # source/coverage and attempt/generation above still come from the caller
+    # and are checked by submission.submit against the original request.
+    original = state.get_request(repository, session, request_id)
+    if original is not None:
+        from ..submission import _submission_fields
+        bound = original["payload"]
+        if original.get("payloadDigest") != digest(bound):
+            raise JenkinsError("submission_identity_mismatch", "Registered request payload is corrupt")
+        fields = _submission_fields(bound)
+        supplied_driver = identity.get("stageImplementationDigest") or identity.get("driverDigest")
+        if fields.get("STAGE_IMPLEMENTATION_DIGEST") and str(supplied_driver) != fields["STAGE_IMPLEMENTATION_DIGEST"]:
+            raise JenkinsError("submission_identity_mismatch", "Submission driver differs from registered request")
+        for name in ("CURRENT_SOURCE_REF", "SOURCE_PREPARATION_REF", "PATCH_REQUEST_REF",
+                     "PATCH_OPERATION_REF", "STAGE_IMPLEMENTATION_DIGEST", "RUNTIME_OPERATION_ID", "BUILD_ROOT"):
+            if name in fields:
+                request["parameters"][name] = fields[name]
+        if "RUNTIME_OPERATION_ID" not in fields and fields.get("SOURCE_PREPARATION_REF"):
+            preparation = state.get_operation(fields["SOURCE_PREPARATION_REF"])
+            if (preparation and preparation["kind"] == "source_preparation"
+                    and preparation["status"] == "complete"
+                    and preparation["payloadDigest"] == digest(preparation["payload"])
+                    and preparation["payload"].get("runtimeOperationId")):
+                request["parameters"]["RUNTIME_OPERATION_ID"] = preparation["payload"]["runtimeOperationId"]
+        if "RUNTIME_OPERATION_ID" not in request["parameters"] and fields.get("PATCH_REQUEST_REF"):
+            intent = state.get("patch_intent", fields["PATCH_REQUEST_REF"])
+            if (intent and digest(intent["payload"]) == fields["PATCH_REQUEST_REF"]
+                    and intent["payload"].get("runtimeOperationId")):
+                request["parameters"]["RUNTIME_OPERATION_ID"] = intent["payload"]["runtimeOperationId"]
     # State.submit_request is deliberately called by submit() before HTTP.
     # A caller can disable network delivery while provisioning a flow; the
     # pending request remains durable and reconcile can safely retry it.
-    marker = f"{repository}:{session}:{request_id}:{submission_id}"
-    previous = state.get("jenkins_submission", marker)
-    if previous is not None:
-        if previous["payload"].get("delivery") in {"dispatching", "unknown"}:
-            raise JenkinsError("delivery_unknown", "Existing Jenkins dispatch must be reconciled", retryable=True)
-        return {"request": state.get_request(repository, session, request_id),
-                **previous["payload"], "reused": True}
+    # submit() verifies the full original request and marker even on replay.
     # Reaching this helper is itself the controlled dispatch authorization:
     # the workflow has already validated source ownership, generation, driver,
     # and recipe identity.  Always persist then submit through the adapter.

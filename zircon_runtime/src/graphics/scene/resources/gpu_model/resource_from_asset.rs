@@ -7,6 +7,22 @@ use super::super::GpuMeshResource;
 use super::GpuModelResource;
 
 impl GpuModelResource {
+    pub(in crate::graphics::scene::resources) fn from_source_admission(
+        device: &wgpu::Device,
+        id: ResourceId,
+        source: &Arc<crate::graphics::VirtualGeometrySourceAdmission>,
+    ) -> Self {
+        let meshes = (0..source.primitives().len())
+            .map(|index| {
+                let primitive = source
+                    .primitive(index)
+                    .expect("admitted primitive index is in range");
+                Arc::new(GpuMeshResource::from_admitted_primitive(device, primitive))
+            })
+            .collect();
+        Self { id, meshes }
+    }
+
     pub(in crate::graphics::scene::resources) fn from_primitives(
         device: &wgpu::Device,
         id: ResourceId,
@@ -14,7 +30,7 @@ impl GpuModelResource {
     ) -> Self {
         let mut meshes = Vec::with_capacity(primitives.len());
         for primitive in primitives {
-            meshes.push(Arc::new(GpuMeshResource::from_asset(device, primitive)));
+            meshes.push(Arc::new(GpuMeshResource::from_asset(device, &primitive)));
         }
         Self { id, meshes }
     }

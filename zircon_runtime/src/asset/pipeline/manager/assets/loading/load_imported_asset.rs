@@ -1,7 +1,7 @@
 use crate::core::CoreError;
 
-use super::super::super::errors::asset_error_message;
 use super::super::ProjectAssetManager;
+use crate::asset::runtime::asset_error_message;
 use crate::asset::{AssetId, AssetKind, ImportedAsset};
 
 impl ProjectAssetManager {

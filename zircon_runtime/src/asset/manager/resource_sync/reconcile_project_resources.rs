@@ -38,6 +38,8 @@ pub(in crate::asset::pipeline::manager) fn reconcile_project_resources(
     previous_identities: &[ProjectResourceIdentity],
     candidate: &ProjectManager,
 ) -> ResourceMutationBatch {
+    // Source-unit membership protects failed active-only members and retires real deletions.
+    batch = batch.reconcile_sources(candidate.registry().values().map(|record| record.id()));
     let mut previous_identities = previous_identities.iter().collect::<Vec<_>>();
     previous_identities.sort_by(|left, right| resource_identity_order(left, right));
     for previous in previous_identities {

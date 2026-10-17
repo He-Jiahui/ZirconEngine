@@ -47,9 +47,8 @@ fn runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cach
     let product_live_registry = read_repo(&format!("{product_dir}/live_registry_bridge.rs"));
     let product_live_records = read_repo(&format!("{product_dir}/live_registry_records.rs"));
     let product_second_launch = read_repo(&format!("{product_dir}/second_launch.rs"));
-    let prewarm_pipeline_validation = read_repo(
-        "zircon_runtime/src/graphics/mesh_pipeline_cache/prewarm_pipeline_validate.rs",
-    );
+    let prewarm_pipeline_validation =
+        read_repo("zircon_runtime/src/graphics/mesh_pipeline_cache/prewarm_pipeline_validate.rs");
     let project_record_export =
         read_repo("zircon_runtime/src/asset/project/shader_resource_records.rs");
     let parent_mod = read_repo("zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs");

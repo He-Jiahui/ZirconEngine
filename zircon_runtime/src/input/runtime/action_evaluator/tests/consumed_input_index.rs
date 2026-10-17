@@ -101,12 +101,7 @@ fn runtime56_recovery_batch_reused_consumed_input_permutation_preserves_queries_
 #[test]
 fn runtime56_recovery_batch_reused_consumed_input_permutation_source_contract() {
     let source = include_str!("../consumed_input_index.rs");
-    // BUG: [CR-INPUT-INDEX-0002] 执行此源码形状测试时，生产模块的 cfg 与 mod 之间包含 path 属性；
-    // include_str! 原文中相邻 cfg→mod 分隔符出现零次，下面 expect 必然先 panic，后续形状断言不可达。
-    let production = source
-        .split_once("\n#[cfg(test)]\nmod tests")
-        .expect("production module end")
-        .0;
+    let production = crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section(source);
     let loader = production
         .split_once("fn refresh_sorted_indices")
         .expect("shared sorted-index loader")

@@ -14,7 +14,11 @@ fn runtime_12_gamepad_bridge_keeps_runtime_abi_path() {
     let app_polling =
         include_str!("../../../../../zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs");
     let session = include_str!("../../../dynamic_api/session.rs");
-    let session_events = include_str!("../../../dynamic_api/session/events.rs");
+    let session_events = concat!(
+        include_str!("../../../dynamic_api/session/events.rs"),
+        include_str!("../../../dynamic_api/session/events/gamepad.rs"),
+        include_str!("../../../dynamic_api/session/state.rs"),
+    );
 
     for required_contract_anchor in [
         "GamepadConnectionInfo",
@@ -43,9 +47,9 @@ fn runtime_12_gamepad_bridge_keeps_runtime_abi_path() {
     }
 
     for required_bridge_anchor in [
-        "ZrRuntimeEventV1::gamepad_connection_with_ids",
-        "ZrRuntimeEventV1::gamepad_button",
-        "ZrRuntimeEventV1::gamepad_axis",
+        "ZrRuntimeEventV1::gamepad_connection_v2",
+        "ZrRuntimeEventV1::gamepad_button_v2",
+        "ZrRuntimeEventV1::gamepad_axis_v2",
         "EventType::Connected",
         "EventType::Disconnected",
         "handle_gamepad_connection",

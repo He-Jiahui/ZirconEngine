@@ -1,4 +1,7 @@
 //! 锁定模板构造归属、旧资产迁移入口退役和领域命名空间；否定检查不能替代新目录存在性及明确导出断言。
+//!
+//! 每个测试独立读取检出文本，读错时使用空串；联合否定条件按从左到右短路求值。
+//! 本组不加载文档、构造模板树或执行布局；退役判定只覆盖下方列出的路径与片段。
 #[test]
 fn runtime_ui_template_builders_live_under_build_namespace_without_bridge_folder() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

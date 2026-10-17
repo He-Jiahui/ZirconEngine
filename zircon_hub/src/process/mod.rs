@@ -19,8 +19,8 @@ pub(crate) use child_supervisor::SupervisedChild;
 pub(crate) use editor_child_reaper::EditorChildReaper;
 pub(crate) use editor_launch::launch_editor;
 pub use editor_launch::{
-    EditorLaunchCommand, EditorLaunchRequest, staged_editor_executable,
-    staged_editor_executable_exists,
+    staged_editor_executable, staged_editor_executable_exists, EditorLaunchCommand,
+    EditorLaunchRequest,
 };
-pub use folder_picker::{FolderPickerRequest, pick_folder};
-pub use open_folder::{OpenFolderCommand, open_folder};
+pub use folder_picker::{pick_folder, FolderPickerRequest};
+pub use open_folder::{open_folder, OpenFolderCommand};

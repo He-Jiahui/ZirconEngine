@@ -12,10 +12,15 @@ pub(crate) struct RenderBackend {
     pub(super) diagnostic_delivery_router:
         Arc<Mutex<super::product_diagnostic_delivery_router::ProductDiagnosticDeliveryRouter>>,
     pub(crate) device: wgpu::Device,
-    #[cfg(test)]
+    #[cfg(all(test, not(target_arch = "wasm32")))]
     pub(crate) queue: wgpu::Queue,
     pub(crate) backend_name: String,
     pub(crate) config: RenderBackendConfig,
+    #[cfg(target_arch = "wasm32")]
+    pub(super) canvas: Option<(
+        zr_rhi_wgpu::CanvasSurfaceRegistration,
+        Mutex<Option<zr_rhi::SurfaceSessionReceipt>>,
+    )>,
 }
 
 impl RenderBackend {
@@ -63,6 +68,11 @@ impl RenderBackend {
         self.render_device.device_fault_gate()
     }
 
+    pub(crate) fn native_fragment_writable_storage_supported(&self) -> bool {
+        self.render_device
+            .native_fragment_writable_storage_supported()
+    }
+
     pub(crate) fn caps(&self) -> RenderBackendCaps {
         self.render_device.caps().clone()
     }
@@ -71,3 +81,12 @@ impl RenderBackend {
 #[cfg(test)]
 #[path = "tests/backend.rs"]
 mod tests;
+
+#[cfg(target_arch = "wasm32")]
+impl Drop for RenderBackend {
+    fn drop(&mut self) {
+        crate::graphics::validation_scope::cancel(&self.device);
+        // Release the owned browser device while JS wrappers await garbage collection.
+        self.device.destroy();
+    }
+}

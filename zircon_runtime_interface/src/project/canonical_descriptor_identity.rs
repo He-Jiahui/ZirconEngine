@@ -52,6 +52,7 @@ impl CanonicalDescriptorIdentity {
 }
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
+/// 物理描述符身份的输入为空、非绝对路径或含点段时返回的词法校验错误。
 pub enum CanonicalDescriptorIdentityError {
     #[error("canonical project descriptor identity cannot be empty")]
     Empty,

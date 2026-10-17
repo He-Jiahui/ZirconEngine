@@ -432,17 +432,14 @@ fn product_plugin_external_binding_packet_is_device_epoch_qualified() {
         .split("\n#[cfg(test)]")
         .next()
         .unwrap_or_default();
-    let readbacks = include_str!(
-        "../../../core/core/readbacks/advanced_plugin_readbacks.rs"
-    )
-    .split("\n#[cfg(test)]")
-    .next()
-    .unwrap_or_default();
-    let dispatcher =
-        include_str!("../core/resources/runtime_prepare.rs")
-            .split("\n#[cfg(test)]")
-            .next()
-            .unwrap_or_default();
+    let readbacks = include_str!("../../../core/core/readbacks/advanced_plugin_readbacks.rs")
+        .split("\n#[cfg(test)]")
+        .next()
+        .unwrap_or_default();
+    let dispatcher = include_str!("../core/resources/runtime_prepare.rs")
+        .split("\n#[cfg(test)]")
+        .next()
+        .unwrap_or_default();
     let compiled = include_str!("../../../core/render/prepare_compiled_scene_graph_frame.rs")
         .split("\n#[cfg(test)]")
         .next()

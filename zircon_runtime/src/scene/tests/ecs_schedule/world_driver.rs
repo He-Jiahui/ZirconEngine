@@ -15,6 +15,7 @@ struct PausedFrameMaintenanceEvent;
 #[derive(Debug)]
 struct PausedFrameMaintenanceComponent;
 
+zircon_runtime_interface::impl_retained_owner_v1!(PausedFrameMaintenanceComponent {});
 impl crate::scene::ecs::Component for PausedFrameMaintenanceComponent {}
 
 #[test]

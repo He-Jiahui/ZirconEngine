@@ -76,7 +76,9 @@ impl EditorHostRuntimeServices {
         })
     }
 
-    pub(super) fn config_manager(&self) -> Result<ServiceCallGuard<dyn ConfigManager>, EditorError> {
+    pub(super) fn config_manager(
+        &self,
+    ) -> Result<ServiceCallGuard<dyn ConfigManager>, EditorError> {
         let core = self.core()?;
         Ok(resolve_manager_service(
             &core,
@@ -92,7 +94,9 @@ impl EditorHostRuntimeServices {
         )?)
     }
 
-    pub(super) fn editor_asset_manager(&self) -> Result<ServiceCallGuard<dyn EditorAssetManager>, EditorError> {
+    pub(super) fn editor_asset_manager(
+        &self,
+    ) -> Result<ServiceCallGuard<dyn EditorAssetManager>, EditorError> {
         let core = self.core()?;
         Ok(resolve_manager_service(
             &core,
@@ -121,7 +125,9 @@ impl EditorHostRuntimeServices {
         Ok(EditorVmHostCapabilityAccess { driver })
     }
 
-    pub(super) fn vm_plugin_manager(&self) -> Result<ServiceCallGuard<VmPluginManager>, EditorError> {
+    pub(super) fn vm_plugin_manager(
+        &self,
+    ) -> Result<ServiceCallGuard<VmPluginManager>, EditorError> {
         Ok(self
             .core()?
             .resolve_manager::<VmPluginManager>(VM_PLUGIN_MANAGER_NAME)?)
@@ -140,8 +146,12 @@ impl EditorHostRuntimeServices {
         ))
     }
 
-    pub(super) fn editor_manager_handle(&self) -> Result<ServiceHandle<EditorManager>, EditorError> {
-        Ok(self.core()?.resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)?)
+    pub(super) fn editor_manager_handle(
+        &self,
+    ) -> Result<ServiceHandle<EditorManager>, EditorError> {
+        Ok(self
+            .core()?
+            .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)?)
     }
 
     pub(super) fn editor_manager(&self) -> Result<ServiceCallGuard<EditorManager>, EditorError> {
@@ -175,12 +185,16 @@ impl EditorProjectAssetRuntimeAccess {
         })
     }
 
-    pub(super) fn asset_manager_identity(&self) -> Result<(CoreWeak, ManagerServiceHandle<dyn AssetManager>), CoreError> {
+    pub(super) fn asset_manager_identity(
+        &self,
+    ) -> Result<(CoreWeak, ManagerServiceHandle<dyn AssetManager>), CoreError> {
         let core = self.core()?;
         Ok((core.downgrade(), asset_manager_handle(&core)?))
     }
 
-    pub(super) fn project_asset_manager(&self) -> Result<ServiceCallGuard<ProjectAssetManager>, CoreError> {
+    pub(super) fn project_asset_manager(
+        &self,
+    ) -> Result<ServiceCallGuard<ProjectAssetManager>, CoreError> {
         let core = self.core()?;
         resolve_manager_service(&core, self.handle.clone())
     }

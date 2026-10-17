@@ -1,3 +1,6 @@
+//! 分类用例检查固定枚举次序、去重和空输入；源码守卫仅约束预留容量的实现形状。
+//! 忽略的容量证据使用独立向量模型统计扩容，不执行真实目录查询或证明端到端耗时。
+
 use super::{unique_component_categories, UiComponentCategory};
 
 #[test]

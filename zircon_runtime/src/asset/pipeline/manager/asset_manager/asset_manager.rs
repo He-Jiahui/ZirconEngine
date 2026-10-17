@@ -1,4 +1,4 @@
-use crate::core::framework::channel::{ChannelReceiver, ChannelWakeCallback};
+use crate::core::framework::channel::ChannelWakeCallback;
 use crate::core::CoreError;
 
 use crate::asset::project::ProjectManager;
@@ -39,14 +39,14 @@ pub trait AssetManager: Send + Sync {
     fn current_project(&self) -> Option<ProjectInfo>;
     fn asset_status(&self, uri: &str) -> Option<AssetStatusRecord>;
     fn list_assets(&self) -> Vec<AssetStatusRecord>;
-    fn subscribe_asset_changes(&self) -> ChannelReceiver<AssetChange>;
+    fn subscribe_asset_changes(&self) -> crate::asset::watch::AssetChangeSubscription;
     fn subscribe_asset_changes_with_wake(
         &self,
         _wake: ChannelWakeCallback,
-    ) -> ChannelReceiver<AssetChange> {
+    ) -> crate::asset::watch::AssetChangeSubscription {
         self.subscribe_asset_changes()
     }
-    fn subscribe_asset_watch_errors(&self) -> ChannelReceiver<AssetWatchError>;
+    fn subscribe_asset_watch_errors(&self) -> crate::asset::watch::AssetWatchErrorSubscription;
     fn relocate_project_source(
         &self,
         source_uuid: AssetUuid,

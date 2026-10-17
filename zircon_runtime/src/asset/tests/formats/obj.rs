@@ -119,10 +119,19 @@ fn obj_decode_rejects_non_finite_position_uv_and_normal_scalars_with_source_line
 }
 
 #[test]
-fn obj_face_parser_does_not_collect_a_second_token_buffer() {
-    let source = include_str!("../../formats/obj/decode_obj_file.rs");
+fn obj_face_parser_consumes_every_vertex_of_a_polygon() {
+    let root = unique_temp_project_root("obj_polygon_vertex_stream");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("pentagon.obj");
+    fs::write(
+        &path,
+        "v 0.0 0.0 0.0\nv 2.0 0.0 0.0\nv 3.0 1.0 0.0\nv 1.0 3.0 0.0\nv -1.0 1.0 0.0\nf 1 2 3 4 5\n",
+    )
+    .unwrap();
 
-    assert!(!source.contains("let tokens: Vec<_> = parts.collect()"));
-    // BUG: [CR-ASSET-COOK-0001] 此断言把‘不收集第二份面顶点缓冲区’的约束误绑到旧链式迭代写法；当前解码器直接消费 parts，仍满足约束，故结构测试必败。
-    assert!(source.contains(".into_iter().chain(parts)"));
+    let payload = decode_obj_file(path.to_str().unwrap()).unwrap();
+    let _ = fs::remove_dir_all(&root);
+
+    assert_eq!(payload.vertices.len(), 5);
+    assert_eq!(payload.indices, vec![0, 1, 2, 0, 2, 3, 0, 3, 4]);
 }

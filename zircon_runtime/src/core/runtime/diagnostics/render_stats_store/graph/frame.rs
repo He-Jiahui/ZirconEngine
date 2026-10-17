@@ -219,11 +219,11 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         &["render", "taa", "reactive_mask"],
     );
     // BUG: [CR-RENDER-STATS-0004] TAA 反应遮罩写入字节数通过 record_count 标成 count，诊断消费者得到错误单位；证据：record_count 的固定单位。
-    record_count(
+    record_bytes(
         store,
         "render.taa.reactive_mask_encoded_write_bytes",
         frame_index,
-        stats.last_taa_reactive_mask_encoded_write_bytes as usize,
+        stats.last_taa_reactive_mask_encoded_write_bytes,
         &["render", "taa", "reactive_mask"],
     );
     record_count(

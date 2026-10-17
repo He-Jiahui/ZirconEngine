@@ -13,7 +13,7 @@ pub(super) const MAX_ASSET_REFRESH_DEFERRAL: Duration = Duration::from_millis(25
 
 #[derive(Default)]
 pub(super) struct AssetRefreshEvents {
-    pub(super) asset_changes: Vec<AssetChange>,
+    pub(super) asset_changes: Vec<std::sync::Arc<AssetChange>>,
     pub(super) editor_asset_changes: Vec<EditorAssetChange>,
     pub(super) resource_changes: Vec<ResourceEvent>,
     pub(super) resource_generation_lagged: bool,
@@ -33,6 +33,7 @@ pub(in crate::ui::retained_host::app) struct AssetRefreshAccumulator {
     deferred_since: Option<Instant>,
     last_event_at: Option<Instant>,
     resource_sequence_exhausted: bool,
+    asset_sequence_exhausted: bool,
 }
 
 #[derive(Default)]
@@ -98,6 +99,19 @@ impl AssetRefreshEvents {
 }
 
 impl AssetRefreshAccumulator {
+    pub(super) fn asset_sequence_exhausted(&self) -> bool {
+        self.asset_sequence_exhausted
+    }
+
+    pub(super) fn latch_asset_sequence_exhaustion(&mut self) -> bool {
+        !std::mem::replace(&mut self.asset_sequence_exhausted, true)
+    }
+
+    pub(super) fn request_asset_reconciliation(&mut self, now: Instant) {
+        self.events.resource_generation_lagged = true;
+        self.request_active_scene_reload(now);
+    }
+
     pub(super) fn resource_sequence_exhausted(&self) -> bool {
         self.resource_sequence_exhausted
     }

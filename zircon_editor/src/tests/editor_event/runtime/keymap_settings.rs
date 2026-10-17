@@ -67,7 +67,8 @@ fn host_and_manager_service_share_the_user_settings_keymap() {
     assert_eq!(
         harness
             .runtime
-            .keymap().unwrap()
+            .keymap()
+            .unwrap()
             .chord_for_command("file.project.open")
             .unwrap()
             .to_string(),

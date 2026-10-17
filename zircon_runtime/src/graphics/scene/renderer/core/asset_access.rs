@@ -1,4 +1,4 @@
-use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::asset::ProjectAssetManager;
 use crate::graphics::GraphicsError;
 
 use super::scene_renderer::SceneRenderer;
@@ -9,5 +9,24 @@ impl SceneRenderer {
         &self,
     ) -> Result<crate::core::runtime::ServiceCallGuard<ProjectAssetManager>, GraphicsError> {
         self.streamer.asset_manager()
+    }
+}
+
+impl SceneRenderer {
+    pub(crate) fn admit_virtual_geometry_sources(
+        &mut self,
+        mesh: &crate::core::framework::render::RenderMeshSnapshot,
+    ) -> Result<Vec<crate::graphics::VirtualGeometryPrimitiveAdmission>, GraphicsError> {
+        let source = match mesh.mesh {
+            Some(handle) => self.streamer.admit_mesh_for_virtual_geometry(handle)?,
+            None => self.streamer.admit_model_for_virtual_geometry(mesh.model)?,
+        };
+        Ok((0..source.primitives().len())
+            .map(|index| {
+                source
+                    .primitive(index)
+                    .expect("admitted source primitive index is in range")
+            })
+            .collect())
     }
 }

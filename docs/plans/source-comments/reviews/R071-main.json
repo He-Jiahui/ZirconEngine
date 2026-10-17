@@ -1,0 +1,1030 @@
+{
+  "schema": "zircon.source-comments.root-independent-review.v1",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R071",
+  "owner": "root",
+  "reviewed_at_utc": "2026-10-16T17:00:49.315742+00:00",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "status": "independently-reviewed-and-scoped-static-validated-awaiting-ledger-and-managed-phase",
+  "standard": {
+    "path": "docs/plans/source-comments/01-standard.md",
+    "sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3"
+  },
+  "summary": {
+    "files": 1,
+    "changed_files": 1,
+    "unchanged_files": 0,
+    "before_bytes": 4296,
+    "after_bytes": 5560,
+    "before_lines": 101,
+    "after_lines": 113,
+    "objects": 11,
+    "members": 14,
+    "gapfree_semantic_blocks": 15,
+    "canonical_span_pairs": 80,
+    "duplicate_method_spans_checked_separately": 3,
+    "methods": 3,
+    "ordered_reads": 11,
+    "assertions": 29,
+    "directly_reachable_static_true_predicates": 6,
+    "blocked_assertions": 23,
+    "insertion_groups": 9,
+    "inserted_comment_lines": 12,
+    "root_corrected_task_added_comment_lines": 1,
+    "new_BUG": 2,
+    "new_TODO": 0,
+    "tests_executed": 0
+  },
+  "fixed_child": {
+    "path": "docs/plans/source-comments/reviews/R071.json",
+    "sha256": "606f883770f5d881e80286ea8dfcdb0550dd3ca41a2cc5e96ba82870ab8ad04f",
+    "bytes": 112219
+  },
+  "root_amendment": {
+    "path": "docs/plans/source-comments/reviews/R071-root-amendments.json",
+    "sha256": "4eb908fa7d8515de2c2b90fb3e5135bc694b189cce7a4e323e083fbb93472d3b",
+    "bytes": 1799
+  },
+  "files": [
+    {
+      "path": "tools/tests/test_editor12_plugin_v2_pane_contract.py",
+      "before": {
+        "sha256": "2113d0dd8acce917417ba77455db7858cc3b86ea01585aa9f505880a59ceb743",
+        "bytes": 4296,
+        "lines": 101
+      },
+      "after": {
+        "sha256": "9c495afcc6f11382c8dfd2c8405f170eb8f5f615d52f8f6d09e9b792b20899ae",
+        "bytes": 5560,
+        "lines": 113
+      },
+      "fixed_child_final_sha256": "6194a40612ffa31b99469a86538ac272e5e5e2eea4cd12bb2040e28c79dbef95",
+      "full_source_root_read": true,
+      "original_bytes_and_EOL_preserved": true,
+      "root_object_member_block_review_complete": true,
+      "canonical_range_pairs": 80,
+      "immutable_model_reference": "docs/plans/source-comments/reviews/R071.json",
+      "root_amendment_reference": "docs/plans/source-comments/reviews/R071-root-amendments.json"
+    }
+  ],
+  "root_decisions": [
+    {
+      "scope": "模块、导入和两个根常量",
+      "finding": "原模块docstring/future/imports保留；导入时只构造Path，parents[2]是第三个父目录。每次方法另读UTF8文件，无自定义缓存或共享可变状态。"
+    },
+    {
+      "scope": "TestCase与三个方法",
+      "finding": "loader发现继承TestCase的test前缀callable并排序，每方法单独实例；原self参数/None返回不需机械文档。无fixture、装饰器、load_tests、FFI或自定义宏/动态注册。"
+    },
+    {
+      "scope": "三条进入路径及异常边界",
+      "finding": "直接main用TestProgram；tools/tests作为显式discovery起点可收集；根递归因tools无init跳过，不据此断言从未运行。默认failfastFalse，一方法读错不阻止另外方法被运行器调度。所有是静态源码关系，运行次数0。"
+    },
+    {
+      "scope": "方法1和6条谓词",
+      "finding": "三实际源whole text/lower域读入后进行6个包含/排除检查，独立求值均真；文本标记和小写禁名不证明Rust名称解析、调用顺序或运行时行为。"
+    },
+    {
+      "scope": "BUG0001",
+      "finding": "方法2前三读取descriptor/registry/contributions当前存在且解码后，第四旧payload物理路径缺失，Path.read_text将报FileNotFoundError；第五旧projection也缺失并被遮蔽。16断言均不可达；其中存在域7条独立真仍不能算执行通过。"
+    },
+    {
+      "scope": "BUG0002",
+      "finding": "方法3第一个旧app路径缺失，其后旧plugin_documents与plugin_documents/tests.rs同缺失；后2读取和7断言均被遮蔽。实际tests/cases.rs只作迁移证据，未替换原操作数。"
+    },
+    {
+      "scope": "真实Rust上下文",
+      "finding": "模块path别名不保留旧物理目录。现行ViewDescriptor/snapshot及通用TemplateV2桥接已读，现行app在batch sync成功后推进revision；实际batch先准备所有owner候选再交替换，回归正文描述保留last-good但未运行。"
+    },
+    {
+      "scope": "原文消费者与文档修正",
+      "finding": "29完整原断言的操作符/needle/whole text或lower域、11路径、AST/token/所有原字节及docstring保持。只将新增第10行两级改为第三个父目录，child不可变，amendment单独记录；注释新增对所有实际域贡献0。"
+    },
+    {
+      "scope": "缺失与未知",
+      "finding": "不存在域为null，不伪造False/通过；旧3/3历史文档不是当前证据。限定tools/.jenkins/.github/tests定位未找到专用当前runner，不推断全仓不存在引用。"
+    }
+  ],
+  "issue_review": [
+    {
+      "id": "CR-ZCA-R071-0001",
+      "kind": "BUG",
+      "path": "tools/tests/test_editor12_plugin_v2_pane_contract.py",
+      "source_tag": "        # BUG: [CR-ZCA-R071-0001] 旧物理路径缺失；前三次读取成功后，这里先抛 FileNotFoundError。",
+      "marker_after_lines": [
+        47,
+        48
+      ],
+      "affected_before_lines": [
+        41,
+        48
+      ],
+      "affected_after_lines": [
+        49,
+        56
+      ],
+      "trigger": "Invoke method2 with current checkout: its first three UTF-8 reads exist, fourth old payload path is absent.",
+      "observable_effect": "FileNotFoundError before projection read and all16 assertions.",
+      "missing_masked_inputs": [
+        "zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs"
+      ],
+      "proof_kind": "静态可证明的Path.read_text异常路径；测试未执行",
+      "next_action": "另行行为修复授权下核对权威物理挂载、更新旧输入后评估原断言；本批保留操作数与失败。",
+      "initial_source_sha256": "2113d0dd8acce917417ba77455db7858cc3b86ea01585aa9f505880a59ceb743",
+      "reviewed_source_sha256": "9c495afcc6f11382c8dfd2c8405f170eb8f5f615d52f8f6d09e9b792b20899ae"
+    },
+    {
+      "id": "CR-ZCA-R071-0002",
+      "kind": "BUG",
+      "path": "tools/tests/test_editor12_plugin_v2_pane_contract.py",
+      "source_tag": "        # BUG: [CR-ZCA-R071-0002] 首次读取仍用已迁移的旧物理路径，这里先抛 FileNotFoundError。",
+      "marker_after_lines": [
+        80,
+        81
+      ],
+      "affected_before_lines": [
+        71,
+        73
+      ],
+      "affected_after_lines": [
+        82,
+        84
+      ],
+      "trigger": "Invoke independent method3 with current checkout: its first old app path is absent.",
+      "observable_effect": "FileNotFoundError before two later reads and all7 assertions.",
+      "missing_masked_inputs": [
+        "zircon_editor/src/ui/template_runtime/runtime/plugin_documents.rs",
+        "zircon_editor/src/ui/template_runtime/runtime/plugin_documents/tests.rs"
+      ],
+      "proof_kind": "静态可证明的Path.read_text异常路径；测试未执行",
+      "next_action": "另行行为修复授权下核对权威物理挂载、更新旧输入后评估原断言；本批保留操作数与失败。",
+      "initial_source_sha256": "2113d0dd8acce917417ba77455db7858cc3b86ea01585aa9f505880a59ceb743",
+      "reviewed_source_sha256": "9c495afcc6f11382c8dfd2c8405f170eb8f5f615d52f8f6d09e9b792b20899ae"
+    }
+  ],
+  "root_context_reads": [
+    {
+      "path": "zircon_editor/src/core/editor_extension/view_descriptor.rs",
+      "sha256": "ef04d8dcf416fb1e1c848cde450cecd64d0de4b794be1ed18bd5c1b2244f55d1",
+      "bytes": 3209,
+      "lines": 118,
+      "spans": [
+        [
+          1,
+          100
+        ]
+      ],
+      "receipt": "380/native68156->bb8186 exit0/PID34884"
+    },
+    {
+      "path": "zircon_editor/src/ui/host/editor_extension_views.rs",
+      "sha256": "dc5ce481cecdf073ded4ed2324e3245f1389d383d4885606f044bcd483e9a94d",
+      "bytes": 5967,
+      "lines": 176,
+      "spans": [
+        [
+          1,
+          90
+        ]
+      ],
+      "receipt": "380/native68156->bb8186 exit0/PID34884"
+    },
+    {
+      "path": "zircon_editor/src/core/editor_extension/template_contributions.rs",
+      "sha256": "7377bd6a2741455f3dd43fd6fd068afa160b595abe5eac50d23a227098713db8",
+      "bytes": 7346,
+      "lines": 216,
+      "spans": [
+        [
+          1,
+          80
+        ]
+      ],
+      "receipt": "380/native68156->bb8186 exit0/PID34884"
+    },
+    {
+      "path": "zircon_editor/src/ui/layouts/windows/window/pane_payload.rs",
+      "sha256": "6edb32a63877615d8bd1189937c3d6756a832b25fabdad9ca11b5c0e4c526796",
+      "bytes": 8334,
+      "lines": 280,
+      "spans": [
+        [
+          1,
+          55
+        ]
+      ],
+      "receipt": "380/native68156->bb8186 exit0/PID34884"
+    },
+    {
+      "path": "zircon_editor/src/ui/retained/app/plugin_template_documents.rs",
+      "sha256": "8682b889c38011b143a2ec27b476110dcabe55f4e398e3738f102df86205dc10",
+      "bytes": 1293,
+      "lines": 35,
+      "spans": [
+        [
+          1,
+          35
+        ]
+      ],
+      "receipt": "380/native68156->bb8186 exit0/PID34884"
+    },
+    {
+      "path": "zircon_editor/src/ui/mod.rs",
+      "sha256": "916181088f1733ce5f59a1e90d063ca579cef10645884c3f61c3c8a2c4312e80",
+      "bytes": 1840,
+      "lines": 62,
+      "spans": [
+        [
+          30,
+          43
+        ]
+      ],
+      "receipt": "380/native68156->bb8186 exit0/PID34884"
+    },
+    {
+      "path": "zircon_editor/src/ui/layouts/windows/mod.rs",
+      "sha256": "d0ef64d8396fdfd7a5927db16416ae792db1553419934f0b07951ef91c42b449",
+      "bytes": 64,
+      "lines": 2,
+      "spans": [
+        [
+          1,
+          2
+        ]
+      ],
+      "receipt": "380/native68156->bb8186 exit0/PID34884"
+    },
+    {
+      "path": "zircon_editor/src/ui/runtime/runtime/mod.rs",
+      "sha256": "05a039a167887a012ba3b8248406cb9ad43bc5772e312840c67afc8f78d62e9a",
+      "bytes": 639,
+      "lines": 20,
+      "spans": [
+        [
+          1,
+          20
+        ]
+      ],
+      "receipt": "380/native68156->bb8186 exit0/PID34884"
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\__init__.py",
+      "sha256": "f6a8ed4b51a29dd660e4689311e785d2dcfe15793f58c0a67ed8d21427d4db81",
+      "bytes": 3326,
+      "lines": 80,
+      "spans": [
+        [
+          50,
+          80
+        ]
+      ],
+      "receipt": "386/146601 exit0/PID34568"
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\loader.py",
+      "sha256": "a0c6e71654f156420369d73fbf4f8a0d38ef78278c1cacd2150a952c8d49836c",
+      "bytes": 21304,
+      "lines": 484,
+      "spans": [
+        [
+          81,
+          119
+        ],
+        [
+          210,
+          227
+        ],
+        [
+          229,
+          272
+        ],
+        [
+          374,
+          407
+        ],
+        [
+          408,
+          449
+        ]
+      ],
+      "receipt": "386/146601 exit0/PID34568"
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\main.py",
+      "sha256": "58faa95ab82f8714e17b5686f2591a6a5d336a35a8e9f2968404782e7bc82b27",
+      "bytes": 11940,
+      "lines": 280,
+      "spans": [
+        [
+          60,
+          104
+        ],
+        [
+          144,
+          154
+        ],
+        [
+          177,
+          183
+        ],
+        [
+          244,
+          280
+        ]
+      ],
+      "receipt": "386/146601 exit0/PID34568"
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\case.py",
+      "sha256": "6c233f91c98b16899cb09801178c2313f48d58dce66a36d2d144facedb6bdbc4",
+      "bytes": 65855,
+      "lines": 1628,
+      "spans": [
+        [
+          54,
+          83
+        ],
+        [
+          614,
+          646
+        ],
+        [
+          1187,
+          1199
+        ]
+      ],
+      "receipt": "386/146601 exit0/PID34568"
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\suite.py",
+      "sha256": "26acd439bc5828fcba41c1dc7d2495ce05ed4f9073375e7fbfac05fafdd82e64",
+      "bytes": 13891,
+      "lines": 379,
+      "spans": [
+        [
+          102,
+          133
+        ]
+      ],
+      "receipt": "386/146601 exit0/PID34568"
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\runner.py",
+      "sha256": "c1ad778381995aa5d9a4e6935a2eb570975f1506cb69a66851e904906500c4ff",
+      "bytes": 11696,
+      "lines": 313,
+      "spans": [
+        [
+          186,
+          205
+        ],
+        [
+          242,
+          248
+        ]
+      ],
+      "receipt": "386/146601 exit0/PID34568"
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\result.py",
+      "sha256": "a3e2fc7d81e336083ebc33e148e29a41d679e5275369b134132370a76578ea1d",
+      "bytes": 9528,
+      "lines": 259,
+      "spans": [
+        [
+          12,
+          18
+        ],
+        [
+          44,
+          50
+        ],
+        [
+          112,
+          117
+        ]
+      ],
+      "receipt": "386/146601 exit0/PID34568"
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\loader.py",
+      "sha256": "a0c6e71654f156420369d73fbf4f8a0d38ef78278c1cacd2150a952c8d49836c",
+      "bytes": 21304,
+      "lines": 484,
+      "spans": [
+        [
+          65,
+          80
+        ],
+        [
+          450,
+          481
+        ]
+      ],
+      "receipt": "387/native32379->00b23f exit0/PID2692"
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\case.py",
+      "sha256": "6c233f91c98b16899cb09801178c2313f48d58dce66a36d2d144facedb6bdbc4",
+      "bytes": 65855,
+      "lines": 1628,
+      "spans": [
+        [
+          647,
+          697
+        ]
+      ],
+      "receipt": "387/native32379->00b23f exit0/PID2692"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_editor\\src\\ui\\host\\editor_extension_views.rs",
+      "sha256": "dc5ce481cecdf073ded4ed2324e3245f1389d383d4885606f044bcd483e9a94d",
+      "bytes": 5967,
+      "lines": 176,
+      "spans": [
+        [
+          90,
+          176
+        ]
+      ],
+      "receipt": "387/native32379->00b23f exit0/PID2692"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_editor\\src\\core\\editor_extension\\view_descriptor.rs",
+      "sha256": "ef04d8dcf416fb1e1c848cde450cecd64d0de4b794be1ed18bd5c1b2244f55d1",
+      "bytes": 3209,
+      "lines": 118,
+      "spans": [
+        [
+          98,
+          118
+        ]
+      ],
+      "receipt": "387/native32379->00b23f exit0/PID2692"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_editor\\src\\ui\\runtime\\runtime\\plugin_documents.rs",
+      "sha256": "614b8c0c2518b011ed6a2a5cd22653d86ddbefc8f899863457b9d672fb38b39a",
+      "bytes": 20854,
+      "lines": 564,
+      "spans": [
+        [
+          218,
+          230
+        ],
+        [
+          559,
+          564
+        ]
+      ],
+      "receipt": "387/native32379->00b23f exit0/PID2692"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_editor\\src\\ui\\runtime\\runtime\\plugin_documents\\tests\\cases.rs",
+      "sha256": "b0e8a46f3f975932ce7976bc738c83662d94e4d2cfd549d404580246df5bbe3f",
+      "bytes": 14856,
+      "lines": 408,
+      "spans": [
+        [
+          163,
+          208
+        ]
+      ],
+      "receipt": "387/native32379->00b23f exit0/PID2692"
+    }
+  ],
+  "context_pins": [
+    {
+      "path": "zircon_editor/src/ui/layouts/windows/window/pane_payload.rs",
+      "sha256": "6edb32a63877615d8bd1189937c3d6756a832b25fabdad9ca11b5c0e4c526796",
+      "bytes": 8334,
+      "lines": 280,
+      "agent_read_spans": [
+        [
+          1,
+          55
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/runtime/runtime/pane_payload_projection.rs",
+      "sha256": "3b5d8721701a6fa690e5f4532fbac17c561951dbae1b38c0fd524a73a3cab7d5",
+      "bytes": 31468,
+      "lines": 793,
+      "agent_read_spans": [
+        [
+          1,
+          60
+        ],
+        [
+          680,
+          740
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/retained/app/plugin_template_documents.rs",
+      "sha256": "8682b889c38011b143a2ec27b476110dcabe55f4e398e3738f102df86205dc10",
+      "bytes": 1293,
+      "lines": 35,
+      "agent_read_spans": [
+        [
+          1,
+          35
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/runtime/runtime/plugin_documents.rs",
+      "sha256": "614b8c0c2518b011ed6a2a5cd22653d86ddbefc8f899863457b9d672fb38b39a",
+      "bytes": 20854,
+      "lines": 564,
+      "agent_read_spans": [
+        [
+          210,
+          268
+        ],
+        [
+          370,
+          435
+        ],
+        [
+          559,
+          564
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/runtime/runtime/plugin_documents/tests/cases.rs",
+      "sha256": "b0e8a46f3f975932ce7976bc738c83662d94e4d2cfd549d404580246df5bbe3f",
+      "bytes": 14856,
+      "lines": 408,
+      "agent_read_spans": [
+        [
+          1,
+          40
+        ],
+        [
+          150,
+          240
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/mod.rs",
+      "sha256": "916181088f1733ce5f59a1e90d063ca579cef10645884c3f61c3c8a2c4312e80",
+      "bytes": 1840,
+      "lines": 62,
+      "agent_read_spans": [
+        [
+          30,
+          35
+        ],
+        [
+          38,
+          43
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/layouts/windows/mod.rs",
+      "sha256": "d0ef64d8396fdfd7a5927db16416ae792db1553419934f0b07951ef91c42b449",
+      "bytes": 64,
+      "lines": 2,
+      "agent_read_spans": [
+        [
+          1,
+          2
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/layouts/windows/window/mod.rs",
+      "sha256": "5b83f089216475aa5fb401c1af87947128e15ac3ecab33c0d6ff964c09954eb5",
+      "bytes": 3804,
+      "lines": 83,
+      "agent_read_spans": [
+        [
+          19,
+          26
+        ],
+        [
+          59,
+          67
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/runtime/mod.rs",
+      "sha256": "08440cd9efefb7a6b7003b0ad833e021ce0251598ca18e544bdfd04b456830d2",
+      "bytes": 1466,
+      "lines": 39,
+      "agent_read_spans": [
+        [
+          11,
+          16
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/runtime/runtime/mod.rs",
+      "sha256": "05a039a167887a012ba3b8248406cb9ad43bc5772e312840c67afc8f78d62e9a",
+      "bytes": 639,
+      "lines": 20,
+      "agent_read_spans": [
+        [
+          5,
+          10
+        ],
+        [
+          17,
+          20
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/retained/app.rs",
+      "sha256": "951c5f95080b35f22456fb7fc0b061e9c7f52f24017d48f7a5a91d40ef607a5d",
+      "bytes": 33501,
+      "lines": 834,
+      "agent_read_spans": [
+        [
+          193,
+          198
+        ],
+        [
+          395,
+          399
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "docs/plans/zircon_editor/editor/12/failure-2026-07-27-template-v2-pane-dynamic-control-state-projection.md",
+      "sha256": "fb70e6b7ca6c2fcb41e650f4668bdaecc385d60c2a3c3768305120fbb9fb934d",
+      "bytes": 5613,
+      "lines": 62,
+      "agent_read_spans": [
+        [
+          54,
+          62
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\__init__.py",
+      "sha256": "f6a8ed4b51a29dd660e4689311e785d2dcfe15793f58c0a67ed8d21427d4db81",
+      "bytes": 3326,
+      "lines": 80,
+      "agent_read_spans": [
+        [
+          1,
+          80
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\loader.py",
+      "sha256": "a0c6e71654f156420369d73fbf4f8a0d38ef78278c1cacd2150a952c8d49836c",
+      "bytes": 21304,
+      "lines": 484,
+      "agent_read_spans": [
+        [
+          65,
+          80
+        ],
+        [
+          81,
+          95
+        ],
+        [
+          97,
+          119
+        ],
+        [
+          210,
+          227
+        ],
+        [
+          229,
+          340
+        ],
+        [
+          374,
+          407
+        ],
+        [
+          408,
+          481
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\main.py",
+      "sha256": "58faa95ab82f8714e17b5686f2591a6a5d336a35a8e9f2968404782e7bc82b27",
+      "bytes": 11940,
+      "lines": 280,
+      "agent_read_spans": [
+        [
+          60,
+          104
+        ],
+        [
+          115,
+          142
+        ],
+        [
+          144,
+          154
+        ],
+        [
+          177,
+          183
+        ],
+        [
+          231,
+          280
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\case.py",
+      "sha256": "6c233f91c98b16899cb09801178c2313f48d58dce66a36d2d144facedb6bdbc4",
+      "bytes": 65855,
+      "lines": 1628,
+      "agent_read_spans": [
+        [
+          54,
+          83
+        ],
+        [
+          614,
+          626
+        ],
+        [
+          634,
+          697
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\suite.py",
+      "sha256": "26acd439bc5828fcba41c1dc7d2495ce05ed4f9073375e7fbfac05fafdd82e64",
+      "bytes": 13891,
+      "lines": 379,
+      "agent_read_spans": [
+        [
+          60,
+          67
+        ],
+        [
+          102,
+          133
+        ],
+        [
+          355,
+          358
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\runner.py",
+      "sha256": "c1ad778381995aa5d9a4e6935a2eb570975f1506cb69a66851e904906500c4ff",
+      "bytes": 11696,
+      "lines": 313,
+      "agent_read_spans": [
+        [
+          15,
+          21
+        ],
+        [
+          37,
+          43
+        ],
+        [
+          186,
+          193
+        ],
+        [
+          199,
+          205
+        ],
+        [
+          242,
+          248
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\result.py",
+      "sha256": "a3e2fc7d81e336083ebc33e148e29a41d679e5275369b134132370a76578ea1d",
+      "bytes": 9528,
+      "lines": 259,
+      "agent_read_spans": [
+        [
+          9,
+          15
+        ],
+        [
+          44,
+          50
+        ],
+        [
+          76,
+          82
+        ],
+        [
+          102,
+          115
+        ],
+        [
+          178,
+          186
+        ]
+      ],
+      "root_pin_verified": true,
+      "formal_coverage": false
+    }
+  ],
+  "validation": {
+    "receipt": "387/native32379->00b23f exit0/PID2692",
+    "original_raw_HEAD_grant_bytes_EOL_AST_tokens_docstrings_literals_paths_assertions_equal": true,
+    "parse_compile_without_execution": true,
+    "canonical_range_pairs": 80,
+    "canonical_range_digest": "0a86b2ae06759cc35db69720a4338f781e3de922d96428ba91f64420cfe94d6b",
+    "duplicate_method_spans_checked_separately": 3,
+    "all15_original_blocks_gapfree": true,
+    "command_results": [
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--check",
+          "--",
+          "tools/tests/test_editor12_plugin_v2_pane_contract.py"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "warning: LF will be replaced by CRLF in tools/tests/test_editor12_plugin_v2_pane_contract.py.\nThe file will have its original line endings in your working directory\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "tools/tests/test_editor12_plugin_v2_pane_contract.py"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--numstat",
+          "--",
+          "tools/tests/test_editor12_plugin_v2_pane_contract.py"
+        ],
+        "exit_code": 0,
+        "stdout": "12\t0\ttools/tests/test_editor12_plugin_v2_pane_contract.py\n",
+        "stderr": "warning: LF will be replaced by CRLF in tools/tests/test_editor12_plugin_v2_pane_contract.py.\nThe file will have its original line endings in your working directory\n"
+      },
+      {
+        "argv": [
+          "C:/Users/HeJiahui/AppData/Local/Python/pythoncore-3.14-64/python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          ".codex/skills/zircon-change-guard/scripts/change_guard.py",
+          "--json",
+          "patch",
+          "--git",
+          "--base",
+          "HEAD",
+          "--path",
+          "tools/tests/test_editor12_plugin_v2_pane_contract.py"
+        ],
+        "exit_code": 0,
+        "stdout": "{\r\n  \"tool\": \"zircon-change-guard\",\r\n  \"version\": 2,\r\n  \"mode\": \"patch\",\r\n  \"status\": \"passed\",\r\n  \"input\": {\r\n    \"patchDigest\": \"fba3550a6072906fc8ee1c85d5c660adfd5e3c09e962c4a35bd9da76c48b646c\",\r\n    \"base\": \"f28ba39a5095f4964c046ecc702778627f80cfd5\",\r\n    \"files\": [\r\n      \"tools/tests/test_editor12_plugin_v2_pane_contract.py\"\r\n    ],\r\n    \"declaredPaths\": [\r\n      \"tools/tests/test_editor12_plugin_v2_pane_contract.py\"\r\n    ],\r\n    \"writeGrantCheck\": true,\r\n    \"permissionRoot\": \"E:/Git/ZirconEngine\",\r\n    \"contributor\": false\r\n  },\r\n  \"summary\": {\r\n    \"errors\": 0,\r\n    \"warnings\": 0,\r\n    \"suppressed\": 0\r\n  },\r\n  \"markers\": {\r\n    \"closed\": [],\r\n    \"opened\": [\r\n      \"CR-ZCA-R071-0001\",\r\n      \"CR-ZCA-R071-0002\"\r\n    ],\r\n    \"moved\": []\r\n  },\r\n  \"findings\": [],\r\n  \"suppressed\": []\r\n}\r\n",
+        "stderr": ""
+      }
+    ],
+    "patch": {
+      "bytes": 3567,
+      "sha256": "fba3550a6072906fc8ee1c85d5c660adfd5e3c09e962c4a35bd9da76c48b646c"
+    },
+    "change_guard": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "fba3550a6072906fc8ee1c85d5c660adfd5e3c09e962c4a35bd9da76c48b646c",
+        "base": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+        "files": [
+          "tools/tests/test_editor12_plugin_v2_pane_contract.py"
+        ],
+        "declaredPaths": [
+          "tools/tests/test_editor12_plugin_v2_pane_contract.py"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [
+          "CR-ZCA-R071-0001",
+          "CR-ZCA-R071-0002"
+        ],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": []
+    },
+    "all29_full_predicates_rechecked": true,
+    "all_new_comment_operand_contributions_zero": true,
+    "tests_executed": 0
+  },
+  "receipts": {
+    "source_full_root_read": "46c0a2 exit0/PID22040 full113L; cached full source independently reread by root;386/146601 reads corrected line10",
+    "root_models": "379/e98945 exit0/PID36648 completecompact11objects14members15blocks11relations/issues/lifecycle;380/native68156->bb8186 exit0/PID34884 full native parsed13JSON before outer truncation,29guards recovered stored root view",
+    "child_actual_finalizer": "b15421/native54211 exit0/PID36400",
+    "child_independent_readback": "c74dfd/native26830->18b729 exit0/PID4692",
+    "root_amend_preregistration": "385/28e32d exit0/PID35756",
+    "root_comment_and_amendment_writer": "386/146601 exit0/PID34568",
+    "root_validation": "387/native32379->00b23f exit0/PID2692"
+  },
+  "limitations": [
+    "No unittest/Rust test/Cargo/build executed; scoped parse/static checks are not managed acceptance.",
+    "Earlier382/native30151->7b18d6 exit1 counted3 duplicated method spans after canonical80 as83; no commands reached. Corrected canonical80+3 duplicate checks pass in final00b23f.",
+    "378/ddb414 combinedR071 metadata native middle truncated; no full model claim.379/e98945 completecompactmodels and380/bb8186 actual intact source guard/context JSON recovered, then finalvalidation verifies all80 canonical pairs.",
+    "R059 has no reusable unittest root context entries; all7 stdlib files freshly read by root instead.",
+    "Git futureLF->CRLF warnings preserved; actual113LF physical bytes retained.",
+    "Unknown historic/foreign writers and index.lock preserved, not closed by stable hashes or this batch."
+  ],
+  "writer_lifecycle": {
+    "all_known_batch_source_child_and_root_writer_terminal": true,
+    "root_main_post_writer_pid": 23916,
+    "root_metadata_terminal": "Reconcile actual returned tool completion and independent fixed readback before ledger.",
+    "formal_acceptance": false,
+    "phase_commit": false,
+    "wecom_notification": false
+  },
+  "cleanup": {
+    "helpers": 0,
+    "source_copies": 0,
+    "builds": 0,
+    "deleted_files": 0,
+    "released_bytes": 0,
+    "retained": "Immutable child, one new-comment amendment, main/post, necessary failure and managed acceptance evidence."
+  },
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false
+}

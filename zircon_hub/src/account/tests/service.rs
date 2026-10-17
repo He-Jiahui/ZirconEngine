@@ -25,14 +25,12 @@ fn cloud_head_route_is_read_only_and_uses_canonical_qualified_ids() {
         (organization, "bad?query"),
         (organization, "00000000-0000-4000-8000-00000000000A"),
     ] {
-        assert!(
-            ServiceRequest::CloudHead {
-                organization: organization.into(),
-                project: project.into()
-            }
-            .parts()
-            .is_err()
-        );
+        assert!(ServiceRequest::CloudHead {
+            organization: organization.into(),
+            project: project.into()
+        }
+        .parts()
+        .is_err());
     }
 }
 
@@ -73,34 +71,30 @@ fn cloud_commit_prepares_a_canonical_bounded_journal_payload() {
         (organization, "bad?query", "0"),
         (organization, project, "00"),
     ] {
-        assert!(
-            ServiceRequest::CloudCommit {
-                organization: organization.into(),
-                project: project.into(),
-                operation_id: operation_id.into(),
-                base_revision: base_revision.into(),
-                manifest: manifest.clone(),
-            }
-            .parts()
-            .is_err()
-        );
-    }
-    assert!(
-        ServiceRequest::CloudCommit {
+        assert!(ServiceRequest::CloudCommit {
             organization: organization.into(),
             project: project.into(),
-            operation_id: "not-a-uuid".into(),
-            base_revision: "0".into(),
-            manifest,
+            operation_id: operation_id.into(),
+            base_revision: base_revision.into(),
+            manifest: manifest.clone(),
         }
         .parts()
-        .is_err()
-    );
+        .is_err());
+    }
+    assert!(ServiceRequest::CloudCommit {
+        organization: organization.into(),
+        project: project.into(),
+        operation_id: "not-a-uuid".into(),
+        base_revision: "0".into(),
+        manifest,
+    }
+    .parts()
+    .is_err());
 }
 
 #[tokio::test]
 async fn cloud_commit_transport_preserves_typed_http_conflict() {
-    use axum::{Json, Router, http::StatusCode, routing::post};
+    use axum::{http::StatusCode, routing::post, Json, Router};
 
     let response = serde_json::json!({
         "status":"conflict",
@@ -162,33 +156,27 @@ fn catalog_requests_reject_path_and_revision_aliases_and_keep_search_structured(
     .unwrap();
     assert_eq!(request.path, "/v1/catalog");
     assert_eq!(request.query.as_deref(), Some("name&after=other"));
-    assert!(
-        ServiceRequest::Catalog {
-            after: None,
-            query: Some("x".repeat(257))
-        }
-        .parts()
-        .is_err()
-    );
-    for organization in ["../other", "bad?query"] {
-        assert!(
-            ServiceRequest::CatalogEntitlements {
-                organization: organization.into(),
-                after: None
-            }
-            .parts()
-            .is_err()
-        );
+    assert!(ServiceRequest::Catalog {
+        after: None,
+        query: Some("x".repeat(257))
     }
-    assert!(
-        ServiceRequest::CatalogArtifact {
-            organization: "00000000-0000-4000-8000-000000000003".into(),
-            package_id: "00000000-0000-4000-8000-000000000004".into(),
-            revision: "01".into()
+    .parts()
+    .is_err());
+    for organization in ["../other", "bad?query"] {
+        assert!(ServiceRequest::CatalogEntitlements {
+            organization: organization.into(),
+            after: None
         }
         .parts()
-        .is_err()
-    );
+        .is_err());
+    }
+    assert!(ServiceRequest::CatalogArtifact {
+        organization: "00000000-0000-4000-8000-000000000003".into(),
+        package_id: "00000000-0000-4000-8000-000000000004".into(),
+        revision: "01".into()
+    }
+    .parts()
+    .is_err());
 }
 
 #[test]
@@ -209,22 +197,18 @@ fn catalog_entitlements_request_uses_the_license_route() {
 #[test]
 fn native_service_paths_cannot_escape_the_whitelisted_resource() {
     for organization in ["../other", "a?token=x", "a/b", "https://other.example"] {
-        assert!(
-            ServiceRequest::Members {
-                organization: organization.into(),
-                after: None
-            }
-            .parts()
-            .is_err()
-        );
-        assert!(
-            ServiceRequest::IssuedInvitations {
-                organization: organization.into(),
-                after: None
-            }
-            .parts()
-            .is_err()
-        );
+        assert!(ServiceRequest::Members {
+            organization: organization.into(),
+            after: None
+        }
+        .parts()
+        .is_err());
+        assert!(ServiceRequest::IssuedInvitations {
+            organization: organization.into(),
+            after: None
+        }
+        .parts()
+        .is_err());
     }
     let request = ServiceRequest::IssuedInvitations {
         organization: "00000000-0000-4000-8000-000000000003".into(),
@@ -244,10 +228,10 @@ fn native_service_paths_cannot_escape_the_whitelisted_resource() {
 
 #[tokio::test]
 async fn committed_response_over_budget_preserves_unknown_outcome() {
-    use axum::{Router, routing::post};
+    use axum::{routing::post, Router};
     use std::sync::{
-        Arc,
         atomic::{AtomicUsize, Ordering},
+        Arc,
     };
 
     let commits = Arc::new(AtomicUsize::new(0));
@@ -277,7 +261,7 @@ async fn committed_response_over_budget_preserves_unknown_outcome() {
 
 #[tokio::test]
 async fn response_budget_accepts_the_exact_limit_and_rejects_oversized_reads() {
-    use axum::{Router, routing::get};
+    use axum::{routing::get, Router};
 
     let router = Router::new()
         .route(

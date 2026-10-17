@@ -42,7 +42,8 @@ fn optimization_batch_20260826ea_runtime170_surface_child_borrows_attributes() {
     let borrowed = borrowed_surface_child_attribute(&attributes, VARIANT_NAMES).unwrap();
     assert_eq!(borrowed.as_ptr(), stored.as_ptr().wrapping_add(2));
 
-    let source = include_str!("../../../../asset/compiler/style_apply/mui_surface_child_classes.rs");
+    let source =
+        include_str!("../../../../asset/compiler/style_apply/mui_surface_child_classes.rs");
     assert_eq!(
         source.matches("borrowed_surface_child_attribute(").count(),
         6

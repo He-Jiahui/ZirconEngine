@@ -145,9 +145,16 @@ impl VmReflectionCatalog {
         expected_owner: &str,
         state_schema: Option<&VmStateSchema>,
     ) -> Result<usize, VmReflectionError> {
-        let prepared =
-            self.prepare_optional_generation(slot, generation, expected_owner, state_schema)?;
-        self.commit_prepared(prepared)
+        loop {
+            let prepared =
+                self.prepare_optional_generation(slot, generation, expected_owner, state_schema)?;
+            match self.commit_prepared(prepared) {
+                // The one-step test helper retries a publication overtaken by another slot.
+                // Explicitly prepared transactions still reject stale candidates at commit.
+                Err(VmReflectionError::PreparedGenerationStale { .. }) => continue,
+                result => return result,
+            }
+        }
     }
 
     pub(crate) fn prepare_optional_generation(

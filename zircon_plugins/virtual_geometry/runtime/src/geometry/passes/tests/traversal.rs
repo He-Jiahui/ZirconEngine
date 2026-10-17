@@ -213,8 +213,7 @@ fn node_and_cluster_cull_pass_gates_store_cluster_records_by_cluster_budget() {
             },
             VirtualGeometryNodeAndClusterCullTraversalRecord {
                 op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
-                child_source:
-                    VirtualGeometryNodeAndClusterCullTraversalChildSource::FixedFanout,
+                child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::FixedFanout,
                 instance_index: 0,
                 entity: 7,
                 cluster_array_index: 11,

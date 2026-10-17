@@ -1,3 +1,7 @@
+//! 将拥有型 JSON 值按深度优先前序展开为 `BinaryNode` 流，供二进制 writer 编码。
+//! 显式工作栈避免递归遍历；转换期间执行容器、深度、节点、字符串和数值约束。
+//! 生产 writer 在进入此转换前规范化对象键顺序，返回的节点流不借用输入值。
+
 use serde_json::{Number, Value};
 
 use super::super::wire::{
@@ -62,6 +66,7 @@ fn encode_value(
             validate_container(values.len())?;
             validate_depth(depth + 1)?;
             let len = values.len() as u32;
+            // tasks 是 LIFO：倒序压入键值对，并先压值再压键，弹出时恢复输入顺序的“键 + 值子树”。
             for (key, value) in values.into_iter().rev() {
                 tasks.push(EncodeTask::Value {
                     value,
@@ -76,6 +81,7 @@ fn encode_value(
 }
 
 fn number_from_json(value: Number) -> Result<BinaryNode, BinaryValueError> {
+    // 先保留 serde_json 可提供的 i64/u64 整数表示，无法按整数读取时才尝试 f64。
     if let Some(value) = value.as_i64() {
         return Ok(BinaryNode::I64(value));
     }

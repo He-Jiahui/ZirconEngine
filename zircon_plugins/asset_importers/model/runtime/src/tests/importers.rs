@@ -86,10 +86,11 @@ fn model_importers_cook_virtual_geometry_when_explicitly_enabled() {
             }
             other => panic!("unexpected imported asset: {other:?}"),
         }
-        let mesh_has_virtual_geometry = outcome.entries.iter().find_map(|entry| match &entry.asset {
-            ImportedAsset::Mesh(mesh) => Some(mesh.virtual_geometry.is_some()),
-            _ => None,
-        });
+        let mesh_has_virtual_geometry =
+            outcome.entries.iter().find_map(|entry| match &entry.asset {
+                ImportedAsset::Mesh(mesh) => Some(mesh.virtual_geometry.is_some()),
+                _ => None,
+            });
         assert_eq!(
             mesh_has_virtual_geometry,
             Some(true),

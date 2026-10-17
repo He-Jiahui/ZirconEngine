@@ -1,3 +1,7 @@
+//! 在构造会话上直接调用发布准入，核对失败类型与最近拒绝回执。
+//!
+//! 场景从超宽布局开始；测试未调用产物构建，发布先后关系由生产调用点另行保证。
+
 use super::admit_resolved_layout_publication;
 use crate::core::framework::text::TextLayoutError;
 use crate::text::font::{runtime_default_font_database_for_test, FontCollectionService};

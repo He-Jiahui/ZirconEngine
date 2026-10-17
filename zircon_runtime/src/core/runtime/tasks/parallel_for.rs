@@ -1,3 +1,4 @@
+#[cfg(not(target_arch = "wasm32"))]
 use rayon::prelude::*;
 
 use super::TaskPool;
@@ -19,7 +20,13 @@ where
     match item_count {
         0 => Vec::new(),
         1 => vec![task(0)],
-        _ => pool.install(|| (0..item_count).into_par_iter().map(task).collect()),
+        _ => pool.install(|| {
+            #[cfg(not(target_arch = "wasm32"))]
+            let indices = (0..item_count).into_par_iter();
+            #[cfg(target_arch = "wasm32")]
+            let indices = 0..item_count;
+            indices.map(task).collect()
+        }),
     }
 }
 
@@ -37,7 +44,13 @@ where
             };
             vec![task(item)]
         }
-        _ => pool.install(|| items.into_par_iter().map(task).collect()),
+        _ => pool.install(|| {
+            #[cfg(not(target_arch = "wasm32"))]
+            let items = items.into_par_iter();
+            #[cfg(target_arch = "wasm32")]
+            let items = items.into_iter();
+            items.map(task).collect()
+        }),
     }
 }
 
@@ -87,9 +100,11 @@ where
         return;
     }
     pool.install(|| {
-        items
-            .par_chunks_mut(chunk_size)
-            .for_each(|chunk| task(chunk));
+        #[cfg(not(target_arch = "wasm32"))]
+        let chunks = items.par_chunks_mut(chunk_size);
+        #[cfg(target_arch = "wasm32")]
+        let chunks = items.chunks_mut(chunk_size);
+        chunks.for_each(|chunk| task(chunk));
     });
 }
 

@@ -52,9 +52,11 @@ fn dynamic_component_descriptor_registers_reflected_json_component() {
         .component
         .clone()
         .expect("dynamic component registration should have adapter");
+    // 注册 descriptor 只提供类型和适配器，不会自动把动态组件附着到已有实体。
     assert!(!adapter.contains(&world, entity));
 }
 
+// 以下结构守卫读取源码并匹配实现片段，不调用被检查函数；实际 World 行为由后续测试覆盖。
 #[test]
 fn dynamic_component_reflection_registration_pre_sizes_descriptor_fields() {
     let source = read_source(
@@ -199,10 +201,20 @@ fn dynamic_component_reflection_read_helpers_use_direct_success_branches() {
             .join("dynamic_component.rs"),
     );
     let read_field = source
-        .split("fn read_field")
+        .split("fn read_field(")
         .nth(1)
-        .and_then(|text| text.split("fn read_dense_slot").next())
+        .and_then(|text| text.split("fn read_dense_slot(").next())
         .expect("read dynamic component reflection read_field body");
+    let read_dense_slot = source
+        .split("fn read_dense_slot(")
+        .nth(1)
+        .and_then(|text| text.split("fn read_declared_field(").next())
+        .expect("read dynamic component reflection read_dense_slot body");
+    let read_declared_field = source
+        .split("fn read_declared_field(")
+        .nth(1)
+        .and_then(|text| text.split("fn write_field(").next())
+        .expect("read shared dynamic component reflection read_declared_field body");
     let ensure_dynamic_component = source
         .split("fn ensure_dynamic_component")
         .nth(1)
@@ -216,13 +228,25 @@ fn dynamic_component_reflection_read_helpers_use_direct_success_branches() {
     let ensure_json_field_present = source
         .split("fn ensure_json_field_present")
         .nth(1)
-        .and_then(|text| text.split("fn dynamic_property_path").next())
+        .and_then(|text| text.split("fn declared_field_by_slot(").next())
         .expect("read dynamic JSON field presence helper");
 
     assert!(
-        read_field.contains(
+        read_field.contains("let field = ensure_declared_field(registration, field_name)?;")
+            && read_field.contains("read_declared_field(world, entity, type_path, field)")
+            && read_dense_slot.contains("let field = declared_field_by_slot(registration, field_slot)?;")
+            && read_dense_slot.contains("read_declared_field(world, entity, type_path, field)")
+            && read_declared_field.contains("ensure_dynamic_component(world, entity, type_path)?")
+            && read_declared_field.contains("ensure_json_field_present(component, type_path, &field.name)?"),
+        "dynamic component reflection entry points must resolve their fields and delegate to the shared presence-checked read helper"
+    );
+
+    // BUG: [CR-ZCA-R010-0001] 运行本结构测试时，截取范围只包含读取入口包装函数，下面的转换分支断言会失败。
+    // 证据：入口已委派给共用读取助手，实际属性读取和转换错误分支位于截取终点之后。
+    assert!(
+        read_declared_field.contains(
             "let Some(value) = world.dynamic_component_property(entity, &property_path) else"
-        ) && read_field.contains("return Err(ReflectError::UnsupportedConversion")
+        ) && read_declared_field.contains("return Err(ReflectError::UnsupportedConversion")
             && ensure_dynamic_component
                 .contains("let Some(component) = world.dynamic_component(entity, type_path) else")
             && ensure_dynamic_component.contains("return Err(ReflectError::MissingComponent")
@@ -233,7 +257,7 @@ fn dynamic_component_reflection_read_helpers_use_direct_success_branches() {
             && ensure_json_field_present.contains("let Some(object) = component.as_object() else")
             && ensure_json_field_present.contains("if object.contains_key(field_name)")
             && ensure_json_field_present.contains("return Ok(());")
-            && !read_field.contains(".ok_or_else(|| ReflectError::UnsupportedConversion")
+            && !read_declared_field.contains(".ok_or_else(|| ReflectError::UnsupportedConversion")
             && !ensure_dynamic_component.contains(".ok_or_else(|| ReflectError::MissingComponent")
             && !ensure_declared_field.contains(".iter()\n        .find(")
             && !ensure_json_field_present.contains(".and_then(|object| object.get(field_name))")
@@ -302,6 +326,7 @@ fn dynamic_component_reflection_reads_json_property_through_facade() {
             ReflectedValue::Scalar(0.75),
         )
     );
+    // 批量字段按 schema 声明顺序返回，而不是按 JSON 对象键顺序枚举。
     let fields = world
         .reflect_fields(zircon_runtime_interface::reflect::ReflectFieldsRequest::new(address))
         .expect("dynamic fields should enumerate in schema order")
@@ -336,6 +361,7 @@ fn dynamic_component_reflection_writes_json_property_through_facade() {
             json!({ "coverage": 0.25, "label": "storm front" }),
         )
         .expect("dynamic component should attach");
+    // 记录变更前代数，以区分真实写入和随后相同值的幂等写入。
     let generation = world.world_generation();
 
     let response = world
@@ -372,6 +398,7 @@ fn dynamic_component_reflection_writes_json_property_through_facade() {
     assert_eq!(world.world_generation(), generation + 1);
 }
 
+// VM 动态组件后端也检查变化写入推进一次代数、相同值重写不再推进。
 #[test]
 fn vm_dynamic_component_reflection_write_advances_generation_once_per_change() {
     let mut world = World::empty();
@@ -467,6 +494,7 @@ fn dynamic_component_reflection_unknown_type_and_field_are_structured_errors() {
             json!({ "coverage": 0.75, "label": "storm front" }),
         )
         .expect("dynamic component should attach");
+    // 未声明字段按稳定 ID 查询时，UnknownField 保留请求 ID 的字符串形式。
     let density_field_id = cloud_layer_field_id("density");
 
     assert_eq!(
@@ -507,6 +535,7 @@ fn dynamic_component_reflection_unknown_type_and_field_are_structured_errors() {
     );
 }
 
+// 已声明字段缺少对应 JSON 键时仍返回 UnknownField，不在读取时合成默认值。
 #[test]
 fn legacy_declared_field_missing_from_json_is_unknown_field() {
     let mut world = world_with_cloud_layer_descriptor();

@@ -1,5 +1,5 @@
 use super::manifest::digest;
-use crate::account::{AccountError, operations::validate_id};
+use crate::account::{operations::validate_id, AccountError};
 use openidconnect::reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

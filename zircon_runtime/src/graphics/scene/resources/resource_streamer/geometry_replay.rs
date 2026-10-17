@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::core::resource::{
     ResourceEvent, ResourceEventKind, ResourceEventReceiver, ResourceEventTryRecvError,
@@ -9,7 +9,12 @@ pub(super) struct RenderSceneGeometryReplayState {
     receiver: Option<ResourceEventReceiver>,
     pending_revisions: HashMap<UntypedResourceHandle, u64>,
     applied_revisions: HashMap<UntypedResourceHandle, u64>,
+    // Receiver order defines a remove/add lifecycle; content revisions may restart.
+    removed_resources: HashSet<UntypedResourceHandle>,
     resync_required: bool,
+    observed_active: Option<std::sync::Arc<crate::core::resource::ResourceActiveGeneration>>,
+    pending_active: HashMap<UntypedResourceHandle, Option<crate::core::resource::ResourceActiveVersionKey>>,
+    applied_active: HashMap<UntypedResourceHandle, Option<crate::core::resource::ResourceActiveVersionKey>>,
     // A replacement cursor is required before a disconnect resync can be acknowledged.
     reconnect_required: bool,
 }
@@ -25,9 +30,39 @@ impl RenderSceneGeometryReplayState {
             receiver,
             pending_revisions: HashMap::new(),
             applied_revisions: HashMap::new(),
+            removed_resources: HashSet::new(),
             resync_required: false,
+            observed_active: None,
+            pending_active: HashMap::new(),
+            applied_active: HashMap::new(),
             reconnect_required: false,
         }
+    }
+
+    pub(super) fn observe_active(
+        &mut self,
+        active: &std::sync::Arc<crate::core::resource::ResourceActiveGeneration>,
+        is_relevant: impl Fn(UntypedResourceHandle) -> bool,
+    ) {
+        if let Some(previous) = self.observed_active.as_ref() {
+            if std::sync::Arc::ptr_eq(previous, active) { return; }
+            if let Some(changed) = active.changed_since(previous) {
+                for id in changed {
+                    let row = active.row(id).or_else(|| previous.row(id));
+                    let Some(row) = row else { continue; };
+                    let resource = UntypedResourceHandle::new(id, row.record.kind);
+                    if !is_relevant(resource) { continue; }
+                    let key = active.key(id);
+                    if self.pending_active.get(&resource) == Some(&key)
+                        || (self.pending_active.get(&resource).is_none() && self.applied_active.get(&resource) == Some(&key))
+                    { continue; }
+                    self.pending_active.insert(resource, key);
+                    // Active identity changes must bypass catalog-revision deduplication.
+                    self.pending_revisions.insert(resource, row.record.revision);
+                }
+            } else { self.resync_required = true; }
+        }
+        self.observed_active = Some(std::sync::Arc::clone(active));
     }
 
     // 事件先折叠为每项资源的最新 pending 修订；完整重放、重同步和重连条件满足后，提交才推进 applied 游标。
@@ -98,6 +133,7 @@ impl RenderSceneGeometryReplayState {
         }
         self.applied_revisions
             .extend(self.pending_revisions.drain());
+        self.applied_active.extend(self.pending_active.drain());
         self.resync_required = false;
     }
 
@@ -109,6 +145,9 @@ impl RenderSceneGeometryReplayState {
             .retain(|resource, _| is_relevant(*resource));
         self.applied_revisions
             .retain(|resource, _| is_relevant(*resource));
+        self.pending_active.retain(|resource, _| is_relevant(*resource));
+        self.applied_active.retain(|resource, _| is_relevant(*resource));
+        self.removed_resources.retain(|resource| is_relevant(*resource));
     }
 
     #[cfg(test)]
@@ -134,6 +173,21 @@ impl RenderSceneGeometryReplayState {
             return;
         }
         let resource = UntypedResourceHandle::new(event.id, event.resource_kind);
+        let recreated = event.kind == ResourceEventKind::Added
+            && self.removed_resources.remove(&resource);
+        let first_removal = event.kind == ResourceEventKind::Removed
+            && self.removed_resources.insert(resource);
+        if recreated || first_removal {
+            // A committed removal cannot suppress a fresh cold Added event whose content
+            // revision is equal or smaller. Only the ordered Removed -> Added edge resets
+            // its old high-water mark; duplicate/stale content events retain normal dedup.
+            if recreated {
+                self.pending_revisions.remove(&resource);
+                self.applied_revisions.remove(&resource);
+            }
+            self.pending_revisions.insert(resource, event.revision);
+            return;
+        }
         if self
             .pending_revisions
             .get(&resource)

@@ -9,10 +9,8 @@ const DATE: &str = "2026-06-27";
 const GUARD: &str =
     "runtime_15_editor_retained_host_pane_data_conversion_uses_child_projection_owners";
 const PANE_DATA_MOD: &str = "zircon_editor/src/ui/retained/ui/data/mod.rs";
-const TEMPLATE_NODE_PROJECTION: &str =
-    "zircon_editor/src/ui/retained/ui/data/node_projection.rs";
-const ANIMATION_PROJECTION: &str =
-    "zircon_editor/src/ui/retained/ui/data/animation_projection.rs";
+const TEMPLATE_NODE_PROJECTION: &str = "zircon_editor/src/ui/retained/ui/data/node_projection.rs";
+const ANIMATION_PROJECTION: &str = "zircon_editor/src/ui/retained/ui/data/animation_projection.rs";
 const APPLY_PANE_CONVERSION: &str =
     "zircon_editor/src/ui/retained/ui/apply_presentation/pane_conversion.rs";
 const FILE_BUDGET: usize = 800;
@@ -23,13 +21,13 @@ fn runtime_15_editor_retained_host_pane_data_conversion_uses_child_projection_ow
     let template_node_projection = read_repo(TEMPLATE_NODE_PROJECTION);
     let animation_projection = read_repo(ANIMATION_PROJECTION);
     let apply_pane_conversion = read_repo(APPLY_PANE_CONVERSION);
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let editor_workbench_doc = read_repo("docs/editor-and-tooling/editor-workbench-shell.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _editor_workbench_doc = read_repo("docs/editor-and-tooling/editor-workbench-shell.md");
 
     assert_contains_all(
         "pane data conversion root delegates projection owners",

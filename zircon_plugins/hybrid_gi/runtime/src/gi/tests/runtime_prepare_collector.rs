@@ -99,9 +99,7 @@ fn hgi_prepare_uses_queue_free_upload_and_state_transaction_recorders() {
         .next()
         .unwrap_or_default();
     let params = include_str!("../renderer/gpu/execute/queue_params.rs");
-    let radiance = include_str!(
-        "../gpu/dispatch_radiance_cache/dispatch.rs"
-    );
+    let radiance = include_str!("../gpu/dispatch_radiance_cache/dispatch.rs");
 
     assert!(collector.contains("context.gpu_recording_context()"));
     assert!(collector.contains("mut buffer_uploads"));

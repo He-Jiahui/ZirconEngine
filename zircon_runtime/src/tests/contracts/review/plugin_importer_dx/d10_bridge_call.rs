@@ -1,6 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
-const PHYSICS_FRAMEWORK_MOD: &str =
-    include_str!("../../../../core/framework/physics/mod.rs");
+const PHYSICS_FRAMEWORK_MOD: &str = include_str!("../../../../core/framework/physics/mod.rs");
 const PHYSICS_QUERY_INTERFACE: &str =
     include_str!("../../../../core/framework/physics/query_interface.rs");
 const PHYSICS_PLUGIN_SOURCE: &str =
@@ -12,12 +11,10 @@ const PLUGIN_SDK_REGISTRATION: &str =
 const PLUGIN_SDK_LIB: &str = include_str!("../../../../../../zircon_plugins/plugin_sdk/src/lib.rs");
 const PLUGIN_SDK_PRELUDE: &str =
     include_str!("../../../../../../zircon_plugins/plugin_sdk/src/prelude.rs");
-const ANIMATION_PHYSICS_TEST: &str = include_str!(
-    "../../../../../../zircon_plugins/animation/runtime/tests/physics_tick.rs"
-);
-const RUNTIME_HELPERS_FIXTURE: &str = include_str!(
-    "../../../../../../zircon_plugins/animation/runtime/tests/runtime_helpers.rs"
-);
+const ANIMATION_PHYSICS_TEST: &str =
+    include_str!("../../../../../../zircon_plugins/animation/runtime/tests/physics_tick.rs");
+const RUNTIME_HELPERS_FIXTURE: &str =
+    include_str!("../../../../../../zircon_plugins/animation/runtime/tests/runtime_helpers.rs");
 
 #[test]
 fn review_d10_animation_physics_tests_use_sdk_bridge_call() {

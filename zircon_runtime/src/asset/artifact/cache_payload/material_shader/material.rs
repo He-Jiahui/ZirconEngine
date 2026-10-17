@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{
-    AlphaMode, AssetImportError, AssetReference, MaterialAsset, MaterialTextureSlotValue,
+    AlphaMode, AssetCodecError, AssetReference, MaterialAsset, MaterialTextureSlotValue,
     ZMaterialQueueOverride,
 };
 use crate::core::framework::render::RenderMaterialTextureTransform;
@@ -76,7 +76,7 @@ impl From<&MaterialAsset> for ArtifactCacheMaterialAsset {
 
 impl ArtifactCacheMaterialAsset {
     // 属性与选项表还原 TOML 日期时可能失败；纹理槽仅做字段转换，表转换错误会阻止整个材质缓存被返回。
-    pub(in super::super) fn into_asset(self) -> Result<MaterialAsset, AssetImportError> {
+    pub(in super::super) fn into_asset(self) -> Result<MaterialAsset, AssetCodecError> {
         Ok(MaterialAsset {
             name: self.name,
             shader: self.shader,

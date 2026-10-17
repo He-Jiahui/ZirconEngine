@@ -1,6 +1,10 @@
+//! 检查同一次范围装饰与光标生成对触及行映射的复用。
+//! 这里只使用合成的单字节水平行；断言值不代表字体整形或后端绘制已执行。
+
 use super::*;
 use crate::ui::surface::{UiResolvedTextRun, UiTextDirection, UiTextRunKind};
 
+/// 在一百二十八行中只触及下标为六十四的行，核种类顺序、几何值和一次映射构造。
 #[test]
 fn localized_selection_and_preedit_share_one_intersecting_line_source_map() {
     let lines = (0..128)
@@ -36,6 +40,7 @@ fn localized_selection_and_preedit_share_one_intersecting_line_source_map() {
     };
     let range = UiTextRange { start: 64, end: 65 };
     let mut decorations = Vec::new();
+    // 三种范围装饰和随后的光标共用这一个缓存实例。
     let mut source_maps = TextDecorationLineSourceMaps::new(&layout.lines);
 
     append_range_decorations_with_source_maps(

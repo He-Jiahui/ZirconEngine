@@ -5,6 +5,14 @@ use zircon_runtime_interface::ui::event_ui::{UiReflectionDiff, UiReflectionSnaps
 mod capacity_tests;
 
 // 同一 tree 的替换快照按 node_id 比较；结果只通知哪些节点重查，不包含属性补丁或真实表面变更。
+/// 按节点描述比较两个快照，生成需要重查和移除的节点编号。
+///
+/// # 参数与返回
+/// 两个快照仅在调用期间借用；新增或描述变化的节点进入变化列表，旧有但当前缺失的节点进入移除列表。
+/// 两列表分别沿节点映射的编号顺序生成，结果拥有编号及 `current` 的树身份。
+///
+/// # 约束
+/// 同树前提由 `UiEventManager::replace_tree` 的树键保证；本函数不校验两个树身份，也不比较根列表。
 pub(crate) fn compute_diff(
     previous: &UiReflectionSnapshot,
     current: &UiReflectionSnapshot,
@@ -31,6 +39,7 @@ pub(crate) fn compute_diff(
     }
 }
 
+// 预扫描与输出循环使用相同谓词，为两组编号分别计算容量需求；查表和比较仍会在两轮遍历中执行。
 fn reflection_diff_capacities(
     previous: &UiReflectionSnapshot,
     current: &UiReflectionSnapshot,

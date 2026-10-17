@@ -18,6 +18,13 @@ impl MeshPipelineCache {
         streamer: &ResourceStreamer,
         variant_id: MeshPipelineVariantId,
     ) -> PipelineAdmission<()> {
+        if self.oit_mesh_pipeline_layout.is_none() {
+            return self.unavailable_pipeline_for_target(
+                OIT_PIPELINE_TARGET,
+                variant_id,
+                PipelineAdmissionReason::OitFragmentStoreUnavailable,
+            );
+        }
         if self.oit_mesh_variant_pipelines.contains_key(&variant_id) {
             self.clear_pipeline_unavailable_state_for_target(OIT_PIPELINE_TARGET, variant_id);
             return PipelineAdmission::Ready(());
@@ -140,7 +147,7 @@ impl MeshPipelineCache {
         let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
         if let Some(source) = validated_source {
             let validation_key = source.validation_key;
-            let creation_started = std::time::Instant::now();
+            let creation_started = web_time::Instant::now();
             let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("zircon-oit-mesh-shader"),
                 source: wgpu::ShaderSource::Wgsl(source.wgsl_source.into()),
@@ -159,10 +166,12 @@ impl MeshPipelineCache {
                 .shader_modules
                 .get(&shader_key)
                 .expect("shader module cached");
-            let creation_started = std::time::Instant::now();
+            let creation_started = web_time::Instant::now();
             let pipeline = create_oit_mesh_pipeline(
                 device,
-                &self.oit_mesh_pipeline_layout,
+                self.oit_mesh_pipeline_layout
+                    .as_ref()
+                    .expect("OIT layout admission checked"),
                 shader,
                 &pipeline_key,
                 self.runtime_pipeline_cache.cache(),

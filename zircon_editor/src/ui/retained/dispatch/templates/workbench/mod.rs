@@ -60,6 +60,8 @@ mod hud_workspace_state;
 mod icon_tooltip;
 #[path = "../../workbench/inspector_component_source.rs"]
 mod inspector_component_source;
+#[path = "inspector_component_add.rs"]
+mod inspector_component_add;
 #[path = "inspector_filter.rs"]
 mod inspector_filter;
 #[path = "layout_frames.rs"]

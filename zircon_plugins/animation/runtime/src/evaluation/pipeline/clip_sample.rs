@@ -9,7 +9,7 @@ use zircon_runtime::core::resource::{
 };
 use zircon_runtime::scene::EntityId;
 
-use super::requests::PendingPoseSample;
+use super::requests::{playback_requires_continuous_frame, PendingPoseSample};
 use crate::{AnimationAssetRevision, AnimationClipEvaluator};
 
 pub(super) fn sample_pose_requests(
@@ -17,10 +17,25 @@ pub(super) fn sample_pose_requests(
     asset_manager: &ProjectAssetManager,
     pending_samples: Vec<PendingPoseSample>,
 ) -> BTreeMap<EntityId, AnimationPoseOutput> {
-    pending_samples
-        .into_iter()
-        .filter_map(|pending| sample_pose_request(evaluator, asset_manager, pending))
-        .collect()
+    sample_pose_requests_with_demand(evaluator, asset_manager, pending_samples).0
+}
+
+pub(super) fn sample_pose_requests_with_demand(
+    evaluator: &mut AnimationClipEvaluator,
+    asset_manager: &ProjectAssetManager,
+    pending_samples: Vec<PendingPoseSample>,
+) -> (BTreeMap<EntityId, AnimationPoseOutput>, bool) {
+    let mut poses = BTreeMap::new();
+    let mut requires_continuous_frame = false;
+    for pending in pending_samples {
+        if let Some((entity, pose, requires_frame)) =
+            sample_pose_request_with_demand(evaluator, asset_manager, pending)
+        {
+            poses.insert(entity, pose);
+            requires_continuous_frame |= requires_frame;
+        }
+    }
+    (poses, requires_continuous_frame)
 }
 
 /// 通过资源快照形成修订键，保证该次剪辑评估与缓存失效观察同一载荷。
@@ -29,6 +44,15 @@ pub(super) fn sample_pose_request(
     asset_manager: &ProjectAssetManager,
     pending: PendingPoseSample,
 ) -> Option<(EntityId, AnimationPoseOutput)> {
+    sample_pose_request_with_demand(evaluator, asset_manager, pending)
+        .map(|(entity, pose, _)| (entity, pose))
+}
+
+pub(super) fn sample_pose_request_with_demand(
+    evaluator: &mut AnimationClipEvaluator,
+    asset_manager: &ProjectAssetManager,
+    pending: PendingPoseSample,
+) -> Option<(EntityId, AnimationPoseOutput, bool)> {
     let skeleton = load_skeleton_snapshot(asset_manager, pending.skeleton_id)?;
     let clip = load_clip_snapshot(asset_manager, pending.clip_id)?;
     let skeleton_revision = AnimationAssetRevision::new(pending.skeleton_id, skeleton.revision());
@@ -47,9 +71,18 @@ pub(super) fn sample_pose_request(
             return None;
         }
     };
+    // The duration and revisions belong to the exact snapshots sampled above.
+    let requires_continuous_frame = !pose.bones.is_empty()
+        && playback_requires_continuous_frame(
+            pending.playing,
+            pending.playback_speed,
+            pending.time_seconds,
+            clip.duration_seconds,
+            pending.looping,
+        );
     pose.source = pending.source;
     pose.active_state = pending.active_state;
-    Some((pending.entity, pose))
+    Some((pending.entity, pose, requires_continuous_frame))
 }
 
 fn load_skeleton_snapshot(

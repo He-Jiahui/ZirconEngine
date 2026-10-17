@@ -18,17 +18,23 @@ use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::render::{
     DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
     RenderFramework, RenderLayerSet, RenderMeshSnapshot, RenderOverlayExtract,
-    RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderSubmissionConfig, RenderViewportDescriptor, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSubmissionConfig,
+    RenderViewportDescriptor, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
     RenderVirtualGeometryInstance, RenderVirtualGeometryPage, RenderWorldSnapshotHandle,
     RendererCommon, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use zircon_runtime::scene::components::{Mobility, default_render_layer_mask};
+use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
+use zircon_runtime_interface::project::RelPath;
 
 use super::virtual_geometry_render_framework_stats as render_fixture;
-use crate::test_support::render_feature_fixtures::pluginized_wgpu_render_framework_with_asset_manager;
+use crate::test_support::render_feature_fixtures::{
+    pluginized_wgpu_render_framework_with_asset_manager,
+    pluginized_wgpu_render_framework_with_uploader_collector, IndirectReadbackWords,
+    PluginizedWgpuRenderFrameworkFixture,
+};
+use crate::virtual_geometry::VirtualGeometryUploaderTestCollector;
 
 const VIEWPORT_SIZE: UVec2 = UVec2::new(160, 120);
 
@@ -36,10 +42,21 @@ struct ProductFrame {
     rgba: Vec<u8>,
     debug: zircon_runtime::core::framework::render::RenderVirtualGeometryDebugSnapshot,
     stats: zircon_runtime::core::framework::render::RenderStats,
+    indirect: IndirectReadbackWords,
 }
 
 fn render(extract: RenderFrameExtract, assets: Arc<ProjectAssetManager>) -> ProductFrame {
-    let framework = pluginized_wgpu_render_framework_with_asset_manager(assets);
+    let framework = pluginized_wgpu_render_framework_with_uploader_collector(
+        assets,
+        Arc::new(VirtualGeometryUploaderTestCollector::default()),
+    );
+    render_with_fixture(extract, framework)
+}
+
+fn render_with_fixture(
+    extract: RenderFrameExtract,
+    framework: PluginizedWgpuRenderFrameworkFixture,
+) -> ProductFrame {
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(VIEWPORT_SIZE))
         .unwrap();
@@ -57,8 +74,16 @@ fn render(extract: RenderFrameExtract, assets: Arc<ProjectAssetManager>) -> Prod
         .unwrap()
         .expect("public WGPU frame capture")
         .rgba;
+    let indirect = framework
+        .read_indirect_words_after_submit()
+        .expect("actual indirect args and authority GPU readback");
     framework.destroy_viewport(viewport).unwrap();
-    ProductFrame { rgba, debug, stats }
+    ProductFrame {
+        rgba,
+        debug,
+        stats,
+        indirect,
+    }
 }
 
 fn virtual_geometry_only_quality_profile() -> RenderQualityProfile {
@@ -106,7 +131,9 @@ fn public_wgpu_selected_replay_args_preserve_first_instance_indices() {
     framework
         .set_quality_profile(viewport, virtual_geometry_only_quality_profile())
         .unwrap();
-    framework.submit_frame_extract(viewport, extract.clone()).unwrap();
+    framework
+        .submit_frame_extract(viewport, extract.clone())
+        .unwrap();
     framework.submit_frame_extract(viewport, extract).unwrap();
 
     let stats = framework.query_stats().unwrap();
@@ -156,14 +183,55 @@ fn public_wgpu_hierarchy_reports_child_lineage() {
     let extract =
         render_fixture::build_hierarchical_instance_extract(VIEWPORT_SIZE, model, material);
     let result = render(extract, Arc::new(assets));
-    assert!(
-        result
+    assert!(result
+        .debug
+        .execution_segments
+        .iter()
+        .any(|segment| segment.lineage_depth > 0));
+    assert!(!result.rgba.is_empty());
+}
+
+#[test]
+fn virtual_geometry_unified_indirect_keeps_lineage_depth_in_gpu_submission_and_indirect_args() {
+    let (root, assets, model, material, _) = transparent_project("unified_indirect_lineage");
+    let extract =
+        render_fixture::build_hierarchical_instance_extract(VIEWPORT_SIZE, model, material);
+    let result = render(extract, Arc::clone(&assets));
+
+    let authority_records = result
+        .indirect
+        .authority
+        .chunks_exact(14)
+        .take(result.debug.execution_segments.len())
+        .collect::<Vec<_>>();
+    assert!(!authority_records.is_empty());
+    let mut observed_lineage = false;
+    for (slot, authority) in authority_records.iter().enumerate() {
+        let segment = result
             .debug
             .execution_segments
             .iter()
-            .any(|segment| segment.lineage_depth > 0)
+            .find(|segment| {
+                segment.original_index == authority[7]
+                    && segment.entity as u32 == authority[1]
+                    && segment.cluster_id == authority[4]
+            })
+            .expect("GPU authority must retain its source execution segment");
+        assert_eq!(authority[12], segment.lineage_depth);
+        let args = &result.indirect.args[1 + slot * 4..1 + slot * 4 + 4];
+        assert_eq!(args[0] > 0, args[1] == 1);
+        assert_eq!(
+            args[3],
+            (authority[8].min(0xffff) << 16) | authority[9].min(0xffff)
+        );
+        observed_lineage |= segment.lineage_depth > 0;
+    }
+    assert!(
+        observed_lineage,
+        "expected a hierarchy-derived GPU lineage value"
     );
-    assert!(!result.rgba.is_empty());
+
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -178,13 +246,11 @@ fn public_wgpu_pending_page_exposes_request_frontier() {
     virtual_geometry.pages[0].resident = false;
     let expected_page = virtual_geometry.pages[0].page_id;
     let result = render(extract, Arc::new(assets));
-    assert!(
-        result
-            .debug
-            .pending_page_request_inspections
-            .iter()
-            .any(|request| request.page_id == expected_page)
-    );
+    assert!(result
+        .debug
+        .pending_page_request_inspections
+        .iter()
+        .any(|request| request.page_id == expected_page));
 }
 
 #[test]
@@ -251,7 +317,10 @@ fn public_wgpu_multi_primitive_draws_have_distinct_submission_tokens() {
             .collect::<Vec<_>>(),
         records_by_submission
             .iter()
-            .map(|record| (Some(record.submission_index), record.draw_ref_index.unwrap()))
+            .map(|record| (
+                Some(record.submission_index),
+                record.draw_ref_index.unwrap()
+            ))
             .collect::<Vec<_>>(),
         "execution segments must carry the same GPU-authoritative compacted draw-ref indices as submission records"
     );
@@ -283,6 +352,114 @@ fn public_wgpu_multi_primitive_draws_have_distinct_submission_tokens() {
     let _ = fs::remove_dir_all(root);
 }
 
+#[test]
+fn render_framework_stats_follow_actual_virtual_geometry_gpu_submission_for_multi_primitive_model()
+{
+    let (root, assets, model, material, _) = transparent_project("unified_indirect_stats");
+    let extract = render_fixture::build_single_entity_extract(VIEWPORT_SIZE, model, material);
+    let result = render(extract, Arc::clone(&assets));
+
+    assert_eq!(result.stats.last_virtual_geometry_indirect_draw_count, 2);
+    assert_eq!(result.stats.last_virtual_geometry_indirect_segment_count, 1);
+    assert_eq!(result.stats.last_virtual_geometry_indirect_args_count, 2);
+    assert_eq!(result.stats.last_virtual_geometry_indirect_buffer_count, 1);
+    assert_eq!(result.indirect.args.first(), Some(&2));
+    assert!(result.indirect.args.len() >= 1 + 2 * 4);
+    assert!(result.indirect.args[1..1 + 2 * 4]
+        .chunks_exact(4)
+        .all(|args| args[0] > 0 && args[1] == 1));
+    assert!(result.indirect.authority.len() >= 2 * 14);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_prepare_keeps_one_visibility_owned_segment_but_distinct_gpu_args_for_multi_primitive_model(
+) {
+    let (root, assets, model, material, _) = transparent_project("unified_indirect_two_args");
+    let extract = render_fixture::build_single_entity_extract(VIEWPORT_SIZE, model, material);
+    let result = render(extract, Arc::clone(&assets));
+
+    assert_eq!(result.debug.execution_segment_count, 1);
+    assert_eq!(result.indirect.args.first(), Some(&2));
+    let args = &result.indirect.args[1..1 + 2 * 4];
+    assert_eq!(args.len(), 8);
+    assert!(args
+        .chunks_exact(4)
+        .all(|draw| draw[0] == 3 && draw[1] == 1));
+    let first_instances = args.chunks_exact(4).map(|draw| draw[3]).collect::<Vec<_>>();
+    assert_eq!(first_instances, vec![0, 1]);
+
+    let authority = &result.indirect.authority[..2 * 14];
+    assert_eq!(authority[9], 0);
+    assert_eq!(authority[14 + 9], 1);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_unified_indirect_propagates_multi_primitive_draw_ref_compaction_into_gpu_args()
+{
+    let (root, assets, model, material, _) = transparent_project("unified_indirect_compaction");
+    let extract = render_fixture::build_single_entity_extract(VIEWPORT_SIZE, model, material);
+    let result = render(extract, Arc::clone(&assets));
+
+    assert_eq!(result.debug.execution_segment_count, 1);
+    assert_eq!(result.indirect.args.first(), Some(&2));
+    let args = &result.indirect.args[1..1 + 2 * 4];
+    assert_eq!(
+        args.chunks_exact(4)
+            .map(|draw| (draw[2], draw[0]))
+            .collect::<Vec<_>>(),
+        vec![(0, 3), (3, 3)],
+        "GPU draw args must retain the compacted per-primitive vertex ranges"
+    );
+    let authority = result.indirect.authority[..2 * 14]
+        .chunks_exact(14)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        authority.iter().map(|record| record[6]).collect::<Vec<_>>(),
+        vec![3, 6],
+        "GPU authority must preserve the compacted primitive draw-ref indices"
+    );
+    assert_eq!(
+        authority.iter().map(|record| record[7]).collect::<Vec<_>>(),
+        vec![0, 0],
+        "both draw refs must remain attached to the same execution segment"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_renderer_submission_records_preserve_draw_level_tokens_for_repeated_primitives()
+{
+    let (root, assets, model, material, _) = transparent_project("unified_indirect_draw_tokens");
+    let extract = render_fixture::build_single_entity_extract(VIEWPORT_SIZE, model, material);
+    let result = render(extract, Arc::clone(&assets));
+
+    let mut tokens = result
+        .debug
+        .submission_records
+        .iter()
+        .map(|record| record.submission_index)
+        .collect::<Vec<_>>();
+    tokens.sort_unstable();
+    tokens.dedup();
+    assert_eq!(tokens, vec![0, 1]);
+    for (slot, record) in result.debug.submission_records.iter().enumerate() {
+        let authority = &result.indirect.authority[slot * 14..slot * 14 + 14];
+        let args = &result.indirect.args[1 + slot * 4..1 + slot * 4 + 4];
+        assert_eq!(authority[8], record.submission_index);
+        assert_eq!(authority[6], record.draw_ref_index.unwrap());
+        assert_eq!(
+            args[3],
+            (authority[8].min(0xffff) << 16) | authority[9].min(0xffff)
+        );
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
 fn transparent_project(
     label: &str,
 ) -> (
@@ -294,7 +471,7 @@ fn transparent_project(
 ) {
     let root = unique_temp_project_root(label);
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "VirtualGeometryPublicTransparentOrder",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -302,18 +479,19 @@ fn transparent_project(
     )
     .save(paths.manifest_path())
     .unwrap();
-    write_flat_color_wgsl(paths.assets_root().join("shaders/flat_color.wgsl"));
-    write_solid_png(paths.assets_root().join("textures/white.png"));
-    write_two_primitive_gltf(paths.assets_root().join("models/two_primitives.gltf"));
+    let assets_root = paths.asset_root(&RelPath::project_assets());
+    write_flat_color_wgsl(assets_root.join("shaders/flat_color.wgsl"));
+    write_solid_png(assets_root.join("textures/white.png"));
+    write_two_primitive_gltf(assets_root.join("models/two_primitives.gltf"));
     write_material(
-        paths.assets_root().join("materials/red.zmaterial"),
+        assets_root.join("materials/red.zmaterial"),
         "PublicOrderRed",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
     );
     write_material(
-        paths.assets_root().join("materials/blue.zmaterial"),
+        assets_root.join("materials/blue.zmaterial"),
         "PublicOrderBlue",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -587,7 +765,7 @@ fn write_material(path: PathBuf, name: &str, shader_uri: &str, texture_uri: &str
         texture_slots: Default::default(),
         validation_diagnostics: Vec::new(),
     };
-    fs::write(path, material.to_toml_string().unwrap()).unwrap();
+    fs::write(path, toml::to_string_pretty(&material).unwrap()).unwrap();
 }
 
 fn asset_reference(uri: &str) -> AssetReference {

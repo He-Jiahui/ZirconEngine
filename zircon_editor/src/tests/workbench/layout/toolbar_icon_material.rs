@@ -1,10 +1,8 @@
 //! 图标与活动栏控件的静止外观和状态反馈保持共享material声明。
-const WORKBENCH_ICON_BUTTON_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/workbench/primitives/inputs/icon_button.zui"
-);
-const WORKBENCH_RAIL_BUTTON_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/workbench/primitives/chrome/rail_button.zui"
-);
+const WORKBENCH_ICON_BUTTON_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/workbench/primitives/inputs/icon_button.zui");
+const WORKBENCH_RAIL_BUTTON_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/workbench/primitives/chrome/rail_button.zui");
 
 #[test]
 /// 透明静止表面与hover、选中和强调token须共同保留；未模拟指针或焦点状态。

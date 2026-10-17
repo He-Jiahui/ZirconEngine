@@ -36,7 +36,8 @@ fn root_componentized_workbench_surface_tool_click_updates_bridge_and_runtime() 
         harness
             .host
             .borrow()
-            .active_activity_window_template_document_id().expect("activity window projection")
+            .active_activity_window_template_document_id()
+            .expect("activity window projection")
             .as_deref(),
         Some(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)
     );
@@ -438,7 +439,8 @@ fn componentized_workbench_surface_control_requires_active_workbench_window_temp
     {
         let host = harness.host.borrow();
         assert_eq!(
-            host.active_activity_window_template_document_id().expect("activity window projection")
+            host.active_activity_window_template_document_id()
+                .expect("activity window projection")
                 .as_deref(),
             Some(ASSET_WINDOW_DOCUMENT_ID)
         );

@@ -84,7 +84,8 @@ fn child_window_inspector_control_focuses_source_window_before_runtime_dispatch(
             .host
             .borrow()
             .runtime
-            .editor_snapshot().unwrap()
+            .editor_snapshot()
+            .unwrap()
             .inspector
             .as_ref()
             .map(|inspector| inspector.name.as_str()),

@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R005",
+  "reviewer": "main",
+  "reviewed_at_utc": "2026-10-14T21:05:23.918149+00:00",
+  "status": "accepted-local-review-and-scoped-static-validation",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R005.json",
+    "sha256": "df40a422894bdb0c819de0bdf6e4e11359f9975526e1f0479a4edc5f3d0af005"
+  },
+  "implementation_record": {
+    "path": "docs/plans/source-comments/reviews/R005-implementation.json",
+    "sha256": "9e545f9e8b6ac44bfdc84ac377d75ccc083f62a492eecf76a872976b1244886a"
+  },
+  "validation_record": {
+    "path": "docs/plans/source-comments/reviews/R005-post-validation.json",
+    "sha256": "6f2b4a341234dc6fd22f11b4e1789fb560e853438ebf67b1573747b489d1d032"
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/src/scene/reflect/type_registry.rs",
+      "before_sha256": "2fa88aa63872b836b2622a8674d25b5681f1b80b75823a374b400d019a86b829",
+      "after_sha256": "eae2abb018182c9f0f49a28fcd219bf8c5999ec1806fb8fd691180cc5b44c705",
+      "original_source_full_manual_read": [
+        1,
+        690
+      ],
+      "final_diff_full_manual_read": true,
+      "objects_reviewed": 39,
+      "block_groups_reviewed": 30,
+      "insertions": 29,
+      "added_comment_lines": 441,
+      "full_original_bytes_reconstructed": true,
+      "existing_comments_preserved": true,
+      "attribution_base": "f28ba39a5095f4964c046ecc702778627f80cfd5 normalized source equality independently checked",
+      "comment_decision": "accepted",
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/world_reflection.rs",
+      "before_sha256": "641e3f66f37065c0ee70c84336229e136956239577ff4bb43e4d7a1b60689eba",
+      "after_sha256": "764d991f0dacd964ef45584e0b9fca316e22725bee354f7e54aa49b2863b255f",
+      "original_source_full_manual_read": [
+        1,
+        364
+      ],
+      "final_diff_full_manual_read": true,
+      "objects_reviewed": 27,
+      "block_groups_reviewed": 19,
+      "insertions": 19,
+      "added_comment_lines": 299,
+      "full_original_bytes_reconstructed": true,
+      "existing_comments_preserved": true,
+      "attribution_base": "f28ba39a5095f4964c046ecc702778627f80cfd5 normalized source equality independently checked",
+      "comment_decision": "accepted",
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/value_admission.rs",
+      "before_sha256": "d23257966d617a81a137d2e0573c4ba6ee8c25b2f8be89dd1a165dd0b7b7950a",
+      "after_sha256": "7c82399bcfc1861ee3f45b0e5947fbc3d6f15c0e91c6c2c1840643143ee3ef7e",
+      "original_source_full_manual_read": [
+        1,
+        61
+      ],
+      "final_diff_full_manual_read": true,
+      "objects_reviewed": 8,
+      "block_groups_reviewed": 6,
+      "insertions": 5,
+      "added_comment_lines": 53,
+      "full_original_bytes_reconstructed": true,
+      "existing_comments_preserved": true,
+      "attribution_base": "f28ba39a5095f4964c046ecc702778627f80cfd5 normalized source equality independently checked",
+      "comment_decision": "accepted",
+      "formal_acceptance": false
+    }
+  ],
+  "chief_manual_evidence": {
+    "original_complete_sources": [
+      690,
+      364,
+      61
+    ],
+    "entire_final_diffs_read": "exec115 type_registry; exec117 world_reflection and value_admission; truncated earlier emissions reread in full",
+    "critical_context_reread": [
+      "ReflectSchemaCatalog validate_entry/validate_insert/try_insert/try_replace",
+      "World register_vm_type/register_component_type/prepare_vm_type_sync",
+      "current revision, adapter-presence equality, Runtime numeric and type-admission branches"
+    ],
+    "code_path_proof": "All 53 inserted blocks checked by exact offsets/content hashes, original SHA reconstruction and normalized equality to base; no API, executable token, old-comment removal or quoted DSL changes."
+  },
+  "confirmed_contracts": [
+    "普通准入 Result 拒绝先于对应新插入/完整候选替换/依赖删除发布。预验证 publish 无 Result，通过 debug_assert/expect 依赖有效前提。跨 World 目录、ECS、payload 一起变化由外层调用者协调；不把 TypeRegistry 单独写成跨 World 事务。",
+    "stable ID 映射当前字段原序 dense slot；辅助索引排序不重排 schema 字段。read/write 以 slot dispatch；field_access 再核对 Runtime projection stable ID。persistent 引用用 ID，已编译计划绑定 revision。",
+    "注册表属于 World；访问器返回期内共享借用，World Clone 复制表、持久状态恢复重建内建注册。write clone/copy 的只是 adapter table，不是 World/实例候选。DTO 响应拥有值和文本，可离开本次借用。",
+    "先 facade admission 再 callback。response.field 克隆已接纳 request.value；changed 由 callback 报告。无隐式 post-write read、无 facade 通用 rollback。默认派生组件与动态批次候选策略只归对应 adapter；观察最终数据需显式 read。",
+    "共用 per-value tree 预算与适用反射浮点 finite。field batch 各值独立，不累计整个响应/批次预算。type_path/field_name 仅错误文字；字段身份、声明类型、取值及提交准入由不同目录/adapter/World 层承担。值生成/传入已发生，预算不是所有回调内分配的预防器。",
+    "list category 双 flag 皆 false 时无类别限制；可见性与插件包含条件仅 list 筛选。response fingerprint 覆盖全部catalog，reflect_schema/read/write 未套用同一filter作为访问权限。",
+    "generation 饱和，非空 clear 与成功目录变化才推进；不是跨 World ID。PartialEq 不比较 generation，RuntimeRegistration equality 只比较 metadata+adapter presence。实际 VM sync 额外 owner 限制避免单凭 presence 推断自定义 adapter 可任意覆写；此处不登记未经闭合的 BUG。"
+  ],
+  "issues": [],
+  "coverage_boundaries": {
+    "formal_files": 3,
+    "context_files": 35,
+    "context_coverage_credit": 0,
+    "tests_source_review_only": true,
+    "new_runtime_tests_executed": false,
+    "doc_comments_add_documentation_attributes": true
+  },
+  "formal_acceptance": false,
+  "coordinator_commit": "pending actual authorized Jenkins route"
+}

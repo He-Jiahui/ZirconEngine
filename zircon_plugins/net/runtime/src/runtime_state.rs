@@ -7,8 +7,8 @@ use std::sync::{Arc, Mutex};
 
 use tokio::runtime::{Builder, Runtime};
 use zircon_runtime::core::framework::net::{
-    NetConnectionId, NetConnectionState, NetEndpoint, NetEvent, NetListenerId, NetRouteId,
-    NetRuntimeMode, NetSocketId,
+    NetConnectionId, NetConnectionState, NetEndpoint, NetError, NetEvent, NetListenerId,
+    NetRouteId, NetRuntimeMode, NetSocketId,
 };
 use zircon_runtime::core::runtime::tasks::EngineThreadBudget;
 
@@ -109,6 +109,13 @@ impl NetRuntimeState {
 
     pub(crate) fn push_event(&self, event: NetEvent) {
         self.worker.enqueue_event(event);
+    }
+
+    pub(crate) fn try_admit_event(
+        &self,
+        build_event: impl FnOnce() -> Result<NetEvent, NetError>,
+    ) -> Result<(), NetError> {
+        self.worker.try_admit_event(build_event)
     }
 
     pub(crate) fn record_outbound_bytes(&self, bytes: usize) {

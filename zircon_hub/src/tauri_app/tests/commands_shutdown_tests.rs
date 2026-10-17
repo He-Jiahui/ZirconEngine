@@ -1,22 +1,22 @@
 use std::fs;
 use std::process::Command;
 use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use zircon_runtime_interface::hub_protocol::HubSessionToken;
 
-use super::{EditorTerminalInbox, HubEditorShutdownHandle, lock_before_deadline};
+use super::{lock_before_deadline, EditorTerminalInbox, HubEditorShutdownHandle};
 use crate::process::editor_child_receipt::EditorChildDisposition;
 use crate::process::{
-    EditorChildReaper, SupervisedChild, editor_handshake::wait_for_editor_handshake,
+    editor_handshake::wait_for_editor_handshake, EditorChildReaper, SupervisedChild,
 };
 use crate::settings::HubConfig;
 use crate::state::{TaskCancellationToken, TaskExecutionOutcome};
 use crate::tauri_app::action_request::HubActionRequest;
-use crate::tauri_app::runtime_state::HubRuntimeSession;
 use crate::tauri_app::runtime_state::action_tasks::EditorLaunchOwner;
+use crate::tauri_app::runtime_state::HubRuntimeSession;
 
 #[test]
 fn shutdown_session_lock_does_not_wait_past_the_deadline() {

@@ -134,18 +134,18 @@ fn reusable_blackboard_observer_matching_release_benchmark_evidence() {
 
     let (legacy_samples, optimized_samples) = benchmark_paired_samples(
         || {
-            let mut matched = 0_u64;
+            let mut matched = 0_usize;
             for _ in 0..REUSE_BENCHMARK_ITERATIONS {
-                matched += black_box(observers.matching(black_box(&slots))).len() as u64;
+                matched += black_box(observers.matching(black_box(&slots))).len();
             }
             matched
         },
         || {
-            let mut matched = 0_u64;
+            let mut matched = 0_usize;
             for _ in 0..REUSE_BENCHMARK_ITERATIONS {
                 scratch.clear();
                 observers.append_matching(black_box(&slots), &mut scratch);
-                matched += black_box(scratch.len()) as u64;
+                matched += black_box(scratch.len());
             }
             matched
         },

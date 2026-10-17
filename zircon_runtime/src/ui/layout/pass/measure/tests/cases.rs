@@ -1,3 +1,6 @@
+//! 本模块直接调用完整与增量测量入口，检查期望尺寸、缓存、探测计数与工作区复用。
+//! 用例不调用 compute_layout_tree；不覆盖后端选择或最终帧坐标。
+
 use std::{collections::BTreeSet, sync::Arc};
 
 use zircon_runtime_interface::ui::{

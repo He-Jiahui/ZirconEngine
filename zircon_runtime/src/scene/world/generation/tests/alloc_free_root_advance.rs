@@ -1,11 +1,17 @@
+//! 根绑定代数的行为、源码形态与迭代器适配微基准。
+//!
+//! 忽略基准测量下方两个探针；生产代数的实际结果由普通行为测试核对。
+
 use std::hint::black_box;
 use std::time::Instant;
 
 use super::SceneBindingGenerations;
 
+// 31 对交错采样，每个样本重复 20 万次；仅供显式启用的忽略基准使用。
 const SAMPLE_PAIRS: usize = 31;
 const ADVANCES_PER_SAMPLE: usize = 200_000;
 
+/// 核对空输入不推进修订，并让替换后的指定根越过旧世界已发布的代数。
 #[test]
 fn optimization_batch_20260829ag_runtime306_root_advances_preserve_generations() {
     let mut generations = SceneBindingGenerations::default();
@@ -26,6 +32,7 @@ fn optimization_batch_20260829ag_runtime306_root_advances_preserve_generations()
     assert_eq!(replacement.for_root(13), 2);
 }
 
+/// 此夹具截取生产源码检查迭代器形态；它不执行被截取的函数体，也不测量分配次数。
 #[test]
 fn optimization_batch_20260829ag_runtime306_root_advances_use_peekable_iterators() {
     let source = include_str!("../../compiled_binding/generation.rs");
@@ -52,6 +59,8 @@ fn optimization_batch_20260829ag_runtime306_root_advances_use_peekable_iterators
     }
 }
 
+/// 只比较两个迭代器探针的计时分布，按交错顺序采样后检查 P95 阈值。
+/// 输出中的分配次数为固定模型标签，本函数没有接入分配计数器。
 #[test]
 #[ignore = "managed Windows release performance evidence"]
 fn optimization_batch_20260829ag_runtime306_allocation_free_scene_binding_root_advance_bench() {
@@ -104,6 +113,7 @@ fn optimized_probe(roots: &[u64]) -> (bool, u64) {
     (true, roots.sum())
 }
 
+/// 重复运行指定探针并用校验和保留计算；返回至少为一的纳秒计时，不计入样本数组维护。
 fn measure(optimized: bool, roots: &[u64]) -> u128 {
     let started = Instant::now();
     let mut checksum = 0u64;
@@ -119,6 +129,7 @@ fn measure(optimized: bool, roots: &[u64]) -> u128 {
     started.elapsed().as_nanos().max(1)
 }
 
+/// 复制并排序非空样本，按上整百分位秩取值；本文件调用处只传 50 或 95。
 fn percentile(samples: &[u128], percentile: usize) -> u128 {
     let mut sorted = samples.to_vec();
     sorted.sort_unstable();

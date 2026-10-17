@@ -1,7 +1,7 @@
 //! Service and module lifecycle vocabulary.
 
 use serde::{Deserialize, Serialize};
-use std::time::Instant;
+use web_time::Instant;
 
 use super::contexts::{ModuleCleanupContext, ModuleContext};
 use super::error::CoreResult;

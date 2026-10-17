@@ -914,8 +914,8 @@ impl PbrMirrorViewerApp {
                         scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization:
                             startup_timing
                                 .renderer_environment_brdf_lut_builtin_payload_materialization(),
-                        scene_startup_renderer_environment_brdf_lut_texture_upload_submission:
-                            startup_timing.renderer_environment_brdf_lut_texture_upload_submission(),
+                        scene_startup_renderer_system_texture_upload_batch_submission:
+                            startup_timing.renderer_environment_system_texture_upload_batch_submission(),
                         scene_startup_renderer_deferred_initialization: startup_timing
                             .renderer_deferred_initialization(),
                         scene_startup_renderer_deferred_standard_pipeline: startup_timing

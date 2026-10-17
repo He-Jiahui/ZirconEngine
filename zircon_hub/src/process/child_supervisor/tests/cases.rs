@@ -2,7 +2,7 @@ use std::io;
 use std::process::ExitStatus;
 use std::time::{Duration, Instant};
 
-use super::{DirectChildControl, terminate_direct_child_and_reap_until};
+use super::{terminate_direct_child_and_reap_until, DirectChildControl};
 
 struct StubbornChild {
     kill_count: usize,
@@ -39,9 +39,7 @@ fn denied_kill_with_stubborn_child_stops_polling_at_deadline() {
     assert_eq!(child.kill_count, 1);
     assert!(child.poll_count > 1);
     assert!(error.to_string().contains("kill denied"));
-    assert!(
-        error
-            .to_string()
-            .contains("direct child did not exit before its reap deadline")
-    );
+    assert!(error
+        .to_string()
+        .contains("direct child did not exit before its reap deadline"));
 }

@@ -7,7 +7,7 @@ use zircon_runtime::core::framework::net::{
 };
 
 use super::support::complete_joined_session;
-use crate::{NetRpcRuntimeManager, net_rpc_runtime_manager};
+use crate::{net_rpc_runtime_manager, NetRpcRuntimeManager};
 
 #[test]
 fn rpc_feature_manager_correlates_requests_and_drains_priority_queue() {

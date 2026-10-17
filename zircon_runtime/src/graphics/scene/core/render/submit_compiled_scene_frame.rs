@@ -16,6 +16,7 @@ use crate::graphics::backend::RenderBackend;
 use crate::graphics::backend::{read_buffer_f32x4, read_texture_rgba, read_texture_rgba16float_3d};
 use crate::graphics::pipeline::CompiledRenderPipeline;
 use crate::graphics::scene::resources::ResourceStreamer;
+#[cfg(feature = "native-host")]
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_runtime_writeback::{
     IblBakeRuntimeGraphWritebackQueue, PreparedIblBakeRuntimeGraphWriteback,
 };
@@ -68,6 +69,7 @@ pub(super) struct CompiledSceneFrameSubmissionContext<'a> {
     pub(super) frame: &'a ViewportRenderFrame,
     pub(super) graph_resources: &'a mut RenderGraphExecutionResources,
     pub(super) graph_execution_record: &'a mut RenderGraphExecutionRecord,
+    #[cfg(feature = "native-host")]
     pub(super) prepared_ibl_writeback: Option<PreparedIblBakeRuntimeGraphWriteback>,
     pub(super) environment_ibl_prepare_error: Option<GraphicsError>,
     pub(super) realtime_ibl_submission: Option<RealtimeIblPendingSubmission>,
@@ -100,6 +102,7 @@ impl SceneRendererCore {
             frame,
             graph_resources,
             graph_execution_record,
+            #[cfg(feature = "native-host")]
             prepared_ibl_writeback,
             environment_ibl_prepare_error,
             realtime_ibl_submission,
@@ -140,6 +143,7 @@ impl SceneRendererCore {
         self.mesh_pipelines
             .reflection_probes
             .commit_pending_uploads();
+        #[cfg(feature = "native-host")]
         if let Some(prepared) = prepared_ibl_writeback {
             self.ibl_bake_runtime_writebacks.commit_submitted(prepared);
         }
@@ -712,6 +716,7 @@ fn physical_lease(
     ))
 }
 
+#[cfg(feature = "native-host")]
 pub(super) fn prepare_environment_ibl_runtime_cache_writeback(
     writebacks: &IblBakeRuntimeGraphWritebackQueue,
     backend: &RenderBackend,

@@ -26,6 +26,7 @@ fn accessibility_increment_and_decrement_step_slider_value() {
                         ..UiAccessibilityContract::default()
                     },
                     widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Range,
                         value: Some(UiValue::Float(0.5)),
                         ..UiWidgetContract::default()
                     },
@@ -705,4 +706,102 @@ fn accessibility_set_value_without_existing_text_or_value_is_unsupported() {
         .unwrap();
     assert!(!metadata.attributes.contains_key("value"));
     assert!(!metadata.attributes.contains_key("text"));
+}
+
+#[test]
+fn accessibility_range_boundary_reports_unchanged_without_property_changed() {
+    for (value, action) in [
+        (1.0, UiAccessibilityAction::Increment),
+        (0.0, UiAccessibilityAction::Decrement),
+    ] {
+        let mut surface = root_surface();
+        surface
+            .tree
+            .insert_child(
+                id(1),
+                UiTreeNode::new(id(2), UiNodePath::new("root/runtime-range-boundary"))
+                    .with_frame(UiFrame::new(4.0, 4.0, 120.0, 24.0))
+                    .with_state_flags(state(false, true))
+                    .with_template_metadata(UiTemplateNodeMetadata {
+                        component: "RuntimeRange".to_string(),
+                        attributes: [
+                            ("amount".to_string(), toml::Value::Float(value)),
+                            ("low".to_string(), toml::Value::Float(0.0)),
+                            ("high".to_string(), toml::Value::Float(1.0)),
+                            ("quantum".to_string(), toml::Value::Float(0.25)),
+                        ]
+                        .into_iter()
+                        .collect(),
+                        a11y: UiAccessibilityContract {
+                            role: UiA11yRole::Slider,
+                            actions: vec![
+                                UiAccessibilityAction::Increment,
+                                UiAccessibilityAction::Decrement,
+                            ],
+                            ..UiAccessibilityContract::default()
+                        },
+                        widget: UiWidgetContract {
+                            behavior: UiWidgetBehavior::Range,
+                            value_property: Some("amount".to_string()),
+                            min_property: Some("low".to_string()),
+                            max_property: Some("high".to_string()),
+                            step_property: Some("quantum".to_string()),
+                            ..UiWidgetContract::default()
+                        },
+                        ..UiTemplateNodeMetadata::default()
+                    }),
+            )
+            .unwrap();
+        surface.rebuild();
+        for (property, number) in [
+            ("amount", value),
+            ("low", 0.0),
+            ("high", 1.0),
+            ("quantum", 0.25),
+        ] {
+            surface
+                .component_states
+                .set_value(id(2), property, UiValue::Float(number));
+        }
+        surface.clear_dirty_flags();
+        let result = dispatch_accessibility(&mut surface, id(2), action);
+        assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+        assert_eq!(
+            result.diagnostics.handled_phase.as_deref(),
+            Some("accessibility.adjust_value")
+        );
+        // The action is accepted; its property mutation is unchanged.
+        assert!(has_note(&result, "status=accepted"));
+        assert!(has_note(
+            &result,
+            "accessibility_property_unchanged:amount:"
+        ));
+        assert!(!has_note(&result, "accessibility_property_changed:"));
+        assert!(!result
+            .component_events
+            .iter()
+            .any(|event| matches!(&event.event, UiComponentEvent::ValueChanged { .. })));
+        assert_eq!(
+            surface
+                .component_state(id(2))
+                .and_then(|state| state.value("amount"))
+                .cloned(),
+            Some(UiValue::Float(value))
+        );
+        assert!(!surface.dirty_flags().render);
+        assert!(!surface.dirty_flags().layout);
+        assert_accessibility_binding_report(&result, 0);
+        let report = &result.binding_reports[0];
+        assert_eq!(report.unchanged_count, 1);
+        assert_eq!(report.updates.len(), 1);
+        assert!(report.dirty.is_empty());
+        for update in &report.updates {
+            assert_eq!(
+                update.status,
+                zircon_runtime_interface::ui::binding::UiBindingUpdateStatus::Unchanged
+            );
+            assert_eq!(update.source.kind, UiBindingSourceKind::AccessibilityAction);
+            assert!(update.dirty.is_empty());
+        }
+    }
 }

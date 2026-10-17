@@ -147,6 +147,7 @@ fn module_plugins_fixture() -> ModulePluginsPaneViewData {
     ModulePluginsPaneViewData {
         plugins: model_rc(vec![module_plugin_status_fixture()]),
         diagnostics: "plugin catalog ready".into(),
+        ..ModulePluginsPaneViewData::default()
     }
 }
 
@@ -179,4 +180,194 @@ fn module_plugin_status_fixture() -> ModulePluginStatusViewData {
         hot_reload_action_label: "Hot Reload".into(),
         hot_reload_action_id: "workbench.plugin.hot_reload.physics".into(),
     }
+}
+
+#[test]
+fn details_flow_handles_empty_pages_long_labels_narrow_width_and_cache_changes() {
+    use crate::ui::layouts::windows::workbench_host_window::{
+        ModulePluginDetailsPayload, ModulePluginDetailsViewData, ModulePluginFeatureRowPayload,
+        ModulePluginFeatureRowViewData, ModulePluginsPanePayload, PaneBodyPresentation,
+        PanePresentation, PaneShellPresentation,
+    };
+    use crate::ui::workbench::view::{PaneInteractionMode, PanePayloadKind, PaneRouteNamespace};
+    use std::rc::Rc;
+
+    let mut pane = module_plugins_pane_fixture();
+    pane.id = "editor.module_plugins#details-flow".into();
+    let identity = format!(
+        "Owner: vendor.{}\nFeature: shared.{}",
+        "long_owner".repeat(12),
+        "long_feature".repeat(12)
+    );
+    let mut detail = ModulePluginDetailsPayload {
+        plugin_id: "vendor.owner".into(),
+        title: "Selected plugin".into(),
+        total_features: 10,
+        rows: (0..8)
+            .map(|index| ModulePluginFeatureRowPayload {
+                feature_id: format!("shared.feature.{index}"),
+                label: format!(
+                    "Feature {index}\nDesired: No\nEffective: Unknown\nRequired: No\nBlocked: No"
+                ),
+                effective: "Unknown".into(),
+                ..Default::default()
+            })
+            .collect(),
+        selected_feature_id: "shared.feature.7".into(),
+        selected_identity: identity.clone(),
+        selected_name: "Long feature name ".repeat(16),
+        selected_states: "Desired: No\nEffective: Unknown\nRequired: No\nBlocked: No".into(),
+        selected_reason: "A reason remains available in the flowing detail region.".repeat(8),
+        back_label: "Back".into(),
+        previous_label: "Previous page".into(),
+        next_label: "Next page".into(),
+        page_label: "Page 1/2".into(),
+        empty_label: "No optional features".into(),
+        action_label: "Enable Feature".into(),
+        action_id: "qualified.action".into(),
+        intent_id: "intent-1".into(),
+        ..Default::default()
+    };
+    let sync = |pane: &mut PaneData, detail: &ModulePluginDetailsPayload| {
+        let native = &mut pane.native_body.module_plugins;
+        native.details = Some(Rc::new(ModulePluginDetailsViewData {
+            plugin_id: detail.plugin_id.clone(),
+            title: detail.title.clone(),
+            page: detail.page,
+            total_features: detail.total_features,
+            rows: detail
+                .rows
+                .iter()
+                .map(|row| ModulePluginFeatureRowViewData {
+                    feature_id: row.feature_id.clone(),
+                    label: row.label.clone(),
+                    desired: row.desired,
+                    required: row.required,
+                    blocked: row.blocked,
+                    effective: row.effective.clone(),
+                })
+                .collect(),
+            selected_feature_id: detail.selected_feature_id.clone(),
+            selected_identity: detail.selected_identity.clone(),
+            selected_name: detail.selected_name.clone(),
+            selected_states: detail.selected_states.clone(),
+            selected_reason: detail.selected_reason.clone(),
+            action_label: detail.action_label.clone(),
+            action_id: detail.action_id.clone(),
+            intent_id: detail.intent_id.clone(),
+            back_label: detail.back_label.clone(),
+            previous_label: detail.previous_label.clone(),
+            next_label: detail.next_label.clone(),
+            page_label: detail.page_label.clone(),
+            empty_label: detail.empty_label.clone(),
+        }));
+        pane.pane_presentation = Some(PanePresentation::new(
+            PaneShellPresentation::new(
+                "Plugin Manager",
+                "plugin",
+                "",
+                "",
+                None,
+                false,
+                blank_viewport_chrome(),
+            ),
+            PaneBodyPresentation {
+                document_id: "res://ui/editor/host/module_plugins_body.zui".into(),
+                payload_kind: PanePayloadKind::ModulePluginsV1,
+                route_namespace: PaneRouteNamespace::Template,
+                interaction_mode: PaneInteractionMode::HybridNativeSlot,
+                payload: PanePayload::ModulePluginsV1(ModulePluginsPanePayload {
+                    diagnostics: native.diagnostics.to_string(),
+                    plugins: vec![],
+                    detail_generation: native.detail_generation,
+                    detail_locale: native.detail_locale.to_string(),
+                    selected_plugin_id: detail.plugin_id.clone(),
+                    focused_control: "features".into(),
+                    details: Some(detail.clone()),
+                }),
+            },
+        ));
+    };
+    pane.native_body.module_plugins.detail_generation = 1;
+    pane.native_body.module_plugins.detail_locale = "en".into();
+    sync(&mut pane, &detail);
+    let mut cache = ModulePluginsPaneProjectionCache::default();
+    let project = |pane: &PaneData, width, cache: &mut ModulePluginsPaneProjectionCache| {
+        to_host_contract_module_plugins_pane_from_host_pane_with_cache(
+            pane,
+            PaneContentSize::new(width, 520.0),
+            cache,
+        )
+    };
+    let wide = project(&pane, 640.0, &mut cache);
+    let repeated = project(&pane, 640.0, &mut cache);
+    assert!(wide.nodes.shares_values_with(&repeated.nodes));
+    let find = |data: &host_contract::ModulePluginsPaneData, control: &str| {
+        data.nodes
+            .iter()
+            .find(|node| node.control_id.as_str() == control)
+            .cloned()
+            .unwrap()
+    };
+    assert_eq!(
+        find(&wide, "ModulePluginFeatureRows")
+            .collection_rows
+            .row_count(),
+        8
+    );
+    assert!(!wide
+        .nodes
+        .iter()
+        .any(|node| node.control_id.as_str() == "ModulePluginAction"));
+    let narrow = project(&pane, 220.0, &mut cache);
+    let narrow_identity = find(&narrow, "ModulePluginFeatureIdentity");
+    assert_eq!(
+        narrow_identity.text.to_string().replace('\n', ""),
+        identity.replace('\n', "")
+    );
+    assert!(narrow_identity.frame.height > find(&wide, "ModulePluginFeatureIdentity").frame.height);
+    assert!(narrow_identity.frame.width <= 220.0);
+
+    pane.native_body.module_plugins.detail_generation += 1;
+    detail.page = 1;
+    detail.rows = (8..10)
+        .map(|index| ModulePluginFeatureRowPayload {
+            feature_id: format!("shared.feature.{index}"),
+            label: format!("Feature {index}"),
+            ..Default::default()
+        })
+        .collect();
+    detail.selected_feature_id.clear();
+    detail.action_id.clear();
+    detail.intent_id.clear();
+    sync(&mut pane, &detail);
+    let last = project(&pane, 220.0, &mut cache);
+    assert!(!narrow.nodes.shares_values_with(&last.nodes));
+    assert_eq!(
+        find(&last, "ModulePluginFeatureRows")
+            .collection_rows
+            .row_count(),
+        2
+    );
+    assert!(find(&last, "ModulePluginDetailsNext").disabled);
+    assert!(find(&last, "ModulePluginDetailsApply").disabled);
+    pane.native_body.module_plugins.detail_locale = "zh-CN".into();
+    sync(&mut pane, &detail);
+    let localized = project(&pane, 220.0, &mut cache);
+    assert!(!last.nodes.shares_values_with(&localized.nodes));
+    pane.native_body.module_plugins.detail_generation += 1;
+    detail.page = 0;
+    detail.total_features = 0;
+    detail.rows.clear();
+    sync(&mut pane, &detail);
+    let empty = project(&pane, 220.0, &mut cache);
+    assert!(empty.nodes.iter().any(
+        |node| node.control_id.as_str() == "ModulePluginFeatureEmpty"
+            && node.text.as_str() == "No optional features"
+    ));
+    assert!(!empty
+        .nodes
+        .iter()
+        .any(|node| node.control_id.as_str() == "ModulePluginFeatureRows"
+            && node.collection_rows.row_count() != 0));
 }

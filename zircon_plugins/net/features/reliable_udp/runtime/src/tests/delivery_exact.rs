@@ -4,7 +4,7 @@ use zircon_runtime::core::framework::net::{
     ReliableDatagramPacket, ReliableDatagramSimulationProfile,
 };
 
-use super::{NetReliableUdpRuntimeManager, simulated_delivery_capacities};
+use super::{simulated_delivery_capacities, NetReliableUdpRuntimeManager};
 
 const BENCHMARK_PACKET_COUNT: usize = 8_192;
 const BENCHMARK_SAMPLE_COUNT: usize = 21;

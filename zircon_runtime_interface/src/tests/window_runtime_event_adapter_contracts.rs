@@ -1,3 +1,6 @@
+//! 固定 ABI 事件到窗口泵及共享输入的映射矩阵。
+//! 载荷夹具必须覆盖同步转换期；输出拥有所需数据，断言只核对本文件所列事件形状。
+
 use crate::{
     ui::{
         accessibility::{
@@ -46,6 +49,10 @@ fn viewport() -> ZrRuntimeViewportHandle {
     ZrRuntimeViewportHandle::new(1)
 }
 
+/// 借出字符串的原始 ABI 载荷视图，不复制字节。
+///
+/// # 约束与生命周期
+/// 返回值不携带 Rust 借用期限；`value` 的底层字节须在同步转换返回前保持有效、只读。
 fn bytes(value: &str) -> ZrByteSlice {
     ZrByteSlice {
         data: value.as_bytes().as_ptr(),
@@ -53,10 +60,17 @@ fn bytes(value: &str) -> ZrByteSlice {
     }
 }
 
+/// 用固定上下文同步转换本模块的 ABI 夹具，并要求转换成功。
+///
+/// # 参数与返回
+/// `event` 的载荷由各调用点保活；返回拥有数据的泵事件，转换失败会使测试 panic。
 fn adapt(event: ZrRuntimeEventV1) -> UiWindowInputPumpEvent {
+    // SAFETY: 当前调用点仅传入空载荷、静态字符串，或仍在作用域且未修改的无障碍 JSON 字节。
+    // 非空范围来自完整切片，位于单一分配；此处同步读取到拥有数据的转换完成。
     unsafe { runtime_abi_event_to_window_input_pump_event(&adapter_context(), event) }.unwrap()
 }
 
+/// 核对尺寸快照、窗口状态与宿主重绘映射，并在尺寸样例检查固定上下文身份和时间序号。
 #[test]
 fn runtime_event_adapter_maps_viewport_and_window_events_to_window_pump_facts() {
     let metrics = ZrRuntimeViewportMetricsV1::new(
@@ -161,6 +175,7 @@ fn runtime_event_adapter_maps_viewport_and_window_events_to_window_pump_facts() 
     ));
 }
 
+/// 对照生命周期的激活/失焦映射，以及光标移动、进入、离开的窗口通知。
 #[test]
 fn runtime_event_adapter_maps_lifecycle_and_cursor_to_window_events() {
     let active = adapt(ZrRuntimeEventV1::lifecycle(
@@ -237,6 +252,7 @@ fn runtime_event_adapter_maps_lifecycle_and_cursor_to_window_events() {
     ));
 }
 
+/// 区分有无位置的像素滚轮，并核对按钮映射及触摸的独立指针身份。
 #[test]
 fn runtime_event_adapter_maps_pointer_touch_and_wheel_to_shared_input_events() {
     let mouse_down = adapt(ZrRuntimeEventV1::mouse_button(
@@ -317,6 +333,8 @@ fn runtime_event_adapter_maps_pointer_touch_and_wheel_to_shared_input_events() {
     assert_eq!(pointer.event.point, UiPoint::new(12.0, 13.0));
 }
 
+/// 核对文本、预编辑、文件拖放、手柄及无障碍请求的值映射。
+/// 无障碍载荷由局部序列化缓冲区保活，解码结果不借用该缓冲区。
 #[test]
 fn runtime_event_adapter_maps_keyboard_ime_drag_gamepad_and_accessibility_inputs() {
     let keyboard = adapt(ZrRuntimeEventV1::keyboard(
@@ -481,6 +499,7 @@ fn runtime_event_adapter_maps_keyboard_ime_drag_gamepad_and_accessibility_inputs
 #[test]
 fn runtime_event_adapter_preserves_batch_order_and_stops_on_invalid_event() {
     // 这里故意交错窗口与输入事件，顺序是 pump 后续状态合并的前提；坏事件另测整批转换的失败边界。
+    // SAFETY: 非空载荷仅来自静态文本，其余元素为空；每次转换同步完成且输出拥有数据。
     let batch = unsafe {
         runtime_abi_events_to_window_input_pump_batch(
             &adapter_context(),
@@ -516,16 +535,19 @@ fn runtime_event_adapter_preserves_batch_order_and_stops_on_invalid_event() {
     let mut bad =
         ZrRuntimeEventV1::window_occluded(ZIRCON_RUNTIME_ABI_VERSION_V1, viewport(), true);
     bad.button = 99;
+    // SAFETY: 非法布尔值位于标量字段，事件载荷为空，不会借用非空地址。
     let error = unsafe { runtime_abi_events_to_window_input_pump_batch(&adapter_context(), [bad]) }
         .unwrap_err();
     assert_eq!(error, UiRuntimeEventAdapterError::UnknownWindowBool(99));
 }
 
+/// 分别核对版本、不支持种类、非法 UTF-8、空指针形状和窗口状态错误的映射。
 #[test]
 fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
     let mut wrong_abi = ZrRuntimeEventV1::pointer_moved(999, viewport(), 1.0, 2.0);
     wrong_abi.abi_version = 999;
     assert_eq!(
+        // SAFETY: 载荷为空，错误 ABI 版本也会在建立载荷借用前返回。
         unsafe { runtime_abi_event_to_window_input_pump_event(&adapter_context(), wrong_abi) }
             .unwrap_err(),
         UiRuntimeEventAdapterError::UnsupportedAbi {
@@ -542,6 +564,7 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
         bytes("Pad"),
     );
     assert_eq!(
+        // SAFETY: 载荷来自静态字符串，完整范围在同步转换期间保持有效且不变。
         unsafe { runtime_abi_event_to_window_input_pump_event(&adapter_context(), connection) }
             .unwrap_err(),
         UiRuntimeEventAdapterError::NoPumpEquivalent(ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1)
@@ -560,6 +583,7 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
         },
     );
     assert_eq!(
+        // SAFETY: bad_payload 是本作用域内未修改的已初始化数组；无效 UTF-8 不影响字节借用有效性。
         unsafe { runtime_abi_event_to_window_input_pump_event(&adapter_context(), bad_keyboard) }
             .unwrap_err(),
         UiRuntimeEventAdapterError::InvalidTextPayload
@@ -577,6 +601,7 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
         },
     );
     assert_eq!(
+        // SAFETY: 空指针与非零长度在载体形状检查中返回错误，尚未构造或读取非空切片。
         unsafe {
             runtime_abi_event_to_window_input_pump_event(&adapter_context(), malformed_keyboard)
         }
@@ -591,6 +616,7 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
     );
     theme.state = ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1;
     assert_eq!(
+        // SAFETY: 此手工主题状态保留空载荷，不触发非空地址读取。
         unsafe { runtime_abi_event_to_window_input_pump_event(&adapter_context(), theme) }
             .unwrap_err(),
         UiRuntimeEventAdapterError::NoPumpEquivalent(crate::ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1)
@@ -603,12 +629,14 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
     );
     bad_window.state = 99;
     assert_eq!(
+        // SAFETY: 未知状态用例保留空载荷，错误产生于状态解码。
         unsafe { runtime_abi_event_to_window_input_pump_event(&adapter_context(), bad_window) }
             .unwrap_err(),
         UiRuntimeEventAdapterError::UnknownWindowStatus(99)
     );
 }
 
+/// 直接填充 ABI 标量与载荷，核对遮挡、缩放、拖放及各 IME 形状的解码约定。
 #[test]
 fn runtime_event_adapter_maps_manual_window_event_shapes() {
     let mut occluded = ZrRuntimeEventV1::new(
@@ -725,6 +753,11 @@ fn runtime_event_adapter_maps_manual_window_event_shapes() {
     ));
 }
 
+/// 消费转换结果并核对指针事件的窗口身份、种类、按钮、位置和精确滚动值。
+///
+/// # 参数与约束
+/// `event` 须为指针输入，其他参数为预期字段；出现其他种类或不匹配即使测试失败。
+/// 传入精确滚动预期时，本组夹具另要求像素单位；这不是对所有滚轮输入的通用限制。
 fn assert_pointer(
     event: UiWindowInputPumpEvent,
     kind: UiPointerEventKind,

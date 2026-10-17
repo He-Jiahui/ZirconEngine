@@ -62,15 +62,11 @@ fn review_f8_first_party_runtime_plugin_descriptors_use_builder() {
         ),
         (
             "virtual_geometry",
-            include_str!(
-                "../../../../../zircon_plugins/virtual_geometry/runtime/src/plugin.rs"
-            ),
+            include_str!("../../../../../zircon_plugins/virtual_geometry/runtime/src/plugin.rs"),
         ),
         (
             "zr_vm_language",
-            include_str!(
-                "../../../../../zircon_plugins/zr_vm_language/runtime/src/plugin.rs"
-            ),
+            include_str!("../../../../../zircon_plugins/zr_vm_language/runtime/src/plugin.rs"),
         ),
     ];
     assert_eq!(
@@ -101,15 +97,12 @@ fn review_f8_first_party_runtime_plugin_descriptors_use_builder() {
     let runtime_06_plan = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
     );
-    let runtime_index =
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
-        include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
     let package_manifest_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/plugin/package_manifest.md");
-    let first_party_catalog_doc = include_str!(
-        "../../../../../docs/crates/zircon_plugins/first_party_runtime_catalog.md"
-    );
+    let first_party_catalog_doc =
+        include_str!("../../../../../docs/crates/zircon_plugins/first_party_runtime_catalog.md");
 
     for doc_anchor in [
         "F8 first-party RuntimePluginDescriptor builder migration",

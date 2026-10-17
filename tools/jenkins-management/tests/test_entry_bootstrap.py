@@ -298,5 +298,84 @@ class EntryBootstrapTests(unittest.TestCase):
             self.assertEqual(error.exception.code, "driver_context_mismatch")
 
 
+
+class AutomaticEntryContextTests(unittest.TestCase):
+    def authorization(self, evidence):
+        repo = Path("E:/ordinary-entry-memory").absolute()
+        payload = {"action": "validate", "repositoryId": entry.sha(str(repo).casefold().encode()),
+                   "sessionId": "automatic-chat", "requestId": "automatic-request",
+                   "operationId": "automatic-operation", "ownedPaths": ["src/lib.rs"]}
+        evidence = dict(evidence, repositoryId=payload["repositoryId"], repositoryRoot=str(repo))
+        snapshot = {"repositoryId": payload["repositoryId"], "sessionId": payload["sessionId"],
+                    "principal": "owner-sid", "paths": ["src"],
+                    "actions": ["implementation", "validation"], "evidence": evidence}
+        row = {"status": "active", "principal": snapshot["principal"],
+               "paths": json.dumps(snapshot["paths"]), "actions": json.dumps(snapshot["actions"]),
+               "evidence": json.dumps(evidence), "snapshot_digest": entry.sha(entry.encoded(snapshot))}
+        @contextmanager
+        def connection(value):
+            yield SimpleNamespace(execute=lambda *args: SimpleNamespace(fetchone=lambda: row))
+        return repo, payload, row, connection
+
+    def test_automatic_policy_evidence_is_accepted_without_user_grant(self):
+        evidence = {"source": "automatic-local-request", "policy": "local-validation-v1",
+                    "kind": "ordinary-validation", "ownerPrincipal": "owner-sid",
+                    "inputDigest": "a" * 64}
+        repo, payload, row, connection = self.authorization(evidence)
+        with patch.dict(os.environ, {"ZIRCON_JENKINS_SESSION_ID": ""}):
+            with patch.object(entry, "connection", side_effect=connection):
+                relative = entry.authorize(repo, payload)
+                self.assertEqual(relative("src/lib.rs"), "src/lib.rs")
+                changed = {**evidence, "ownerPrincipal": "another-owner",
+                           "repositoryId": payload["repositoryId"], "repositoryRoot": str(repo)}
+                row["evidence"] = json.dumps(changed)
+                snapshot = {"repositoryId": payload["repositoryId"], "sessionId": payload["sessionId"],
+                            "principal": row["principal"], "paths": ["src"],
+                            "actions": ["implementation", "validation"], "evidence": changed}
+                row["snapshot_digest"] = entry.sha(entry.encoded(snapshot))
+                with self.assertRaisesRegex(entry.EntryError, "Original action authorization changed"):
+                    entry.authorize(repo, payload)
+
+    def test_submission_admits_context_and_queries_and_dry_runs_remain_read_only(self):
+        evidence = {"source": "automatic-local-request", "policy": "local-validation-v1",
+                    "kind": "ordinary-validation", "ownerPrincipal": "owner-sid",
+                    "inputDigest": "a" * 64}
+        repo, payload, row, connection = self.authorization(evidence)
+        helper = SimpleNamespace(_managed_route_replay=lambda *args, **kwargs: None)
+        module = SimpleNamespace(ensure_request_context=lambda *args: None, source_helper=lambda: helper)
+        context = {"repo": repo, "config": {}, "manager": object(), "module": module}
+        with patch.dict(os.environ, {"ZIRCON_JENKINS_SESSION_ID": ""}):
+            with patch.object(entry, "connection", side_effect=connection):
+                with patch.object(module, "ensure_request_context") as admit:
+                    entry.authorize(repo, payload, context=context, automatic=True)
+                    admit.assert_called_once_with(
+                        context["config"], repo, context["manager"], payload, record_request=False)
+        with patch.object(entry, "capability", return_value=context):
+            with patch.object(entry, "input_payload", return_value=payload) as prepare:
+                with patch.object(entry, "submit_payload", return_value={"status": "pending"}):
+                    for options in ({"dry_run": True}, {}):
+                        entry.dispatch(repo, payload, **options)
+                        self.assertEqual(prepare.call_args.kwargs["automatic_context"], not bool(options))
+                    prepare.reset_mock()
+                    statements = []
+                    @contextmanager
+                    def readonly(value):
+                        def execute(sql, parameters):
+                            statements.append(sql)
+                            result = row if "FROM authorizations" in sql else None
+                            return SimpleNamespace(fetchone=lambda: result)
+                        yield SimpleNamespace(execute=execute)
+                    original = {**payload, "driverDigest": "d" * 64, "runtimeOperationId": "old-runtime"}
+                    with patch.dict(os.environ, {"ZIRCON_JENKINS_SESSION_ID": ""}):
+                        with patch.object(entry, "connection", side_effect=readonly):
+                            with patch.object(module, "ensure_request_context") as admit:
+                                result = entry.dispatch(repo, original, query_only=True)
+                                admit.assert_not_called()
+                    self.assertEqual("original_operation_missing", result["reasonCode"])
+                    self.assertFalse(result["resubmitted"])
+                    self.assertTrue(any("FROM authorizations" in sql for sql in statements))
+                    self.assertTrue(any("FROM records" in sql for sql in statements))
+                    prepare.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

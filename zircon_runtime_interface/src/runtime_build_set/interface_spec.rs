@@ -5,6 +5,7 @@ use super::{ZrRuntimeDigestV1, ZrRuntimeIdentityEncodingError};
 const CURRENT_INTERFACE_SPEC_SOURCE: &str = include_str!("interface_spec_v1.json");
 
 /// Machine-readable definition of the frozen internal V8 runtime ABI family.
+/// 冻结的内部 V8 Runtime ABI 家族的机器可读定义；字段由 build.rs 生成槽目录并参与摘要。
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ZrRuntimeInterfaceSpecV1 {

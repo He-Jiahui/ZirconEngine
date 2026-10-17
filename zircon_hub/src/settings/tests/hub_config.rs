@@ -384,16 +384,12 @@ fn config_repair_deduplicates_and_prunes_foundation_registries() {
     assert!(report.repaired_anything());
     assert_eq!(config.recent_projects.len(), 2);
     assert_eq!(config.recent_projects[0].summary.name, "New");
-    assert!(
-        config
-            .project_metadata
-            .contains_key(&project_metadata_key("E:/Projects/Game"))
-    );
-    assert!(
-        !config
-            .project_metadata
-            .contains_key(&project_metadata_key("E:/Projects/Removed"))
-    );
+    assert!(config
+        .project_metadata
+        .contains_key(&project_metadata_key("E:/Projects/Game")));
+    assert!(!config
+        .project_metadata
+        .contains_key(&project_metadata_key("E:/Projects/Removed")));
     assert_eq!(config.active_engine_id.as_deref(), Some("local"));
 }
 

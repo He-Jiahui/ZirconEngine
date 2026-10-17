@@ -412,6 +412,11 @@ pub fn run_editor_with_config(
             .map_err(|error| hub_startup_reporter.report_failure(error))?;
     }
     let host = Rc::new(RefCell::new(retained_host));
+    let notification_context = host.borrow().runtime.context().clone();
+    ui.on_toast_presented(move |id, token| {
+        notification_context.notifications().acknowledge_toast_presented(id, token)
+            .unwrap_or(false)
+    }).map_err(|error| hub_startup_reporter.report_failure(std::io::Error::other(error)))?;
     wire_callbacks(&ui, &host, None);
     let host_weak = Rc::downgrade(&host);
     ui.window().on_close_requested(move || {
@@ -712,6 +717,7 @@ struct RetainedEditorHost {
     hub_focus_request_attention: Arc<dyn Fn() + Send + Sync>,
     module_plugin_projection_cache:
         RefCell<module_plugin_projection::ModulePluginPaneProjectionCache>,
+    module_plugin_details: RefCell<module_plugin_projection::ModulePluginDetailsState>,
     #[cfg(feature = "profiling")]
     runtime_gateway: SharedEditorRuntimeGateway,
     module_plugin_live_host_backend: Box<dyn module_plugin_actions::ModulePluginLiveHostBackend>,
@@ -721,7 +727,7 @@ struct RetainedEditorHost {
     desktop_export_wizard_sessions: build_export_wizard_session::DesktopExportWizardSessions,
     viewport: RetainedViewportController,
     asset_runtime_access: RetainedHostAssetRuntimeAccess,
-    asset_change_events: ChannelReceiver<AssetChange>,
+    asset_change_events: zircon_runtime::asset::watch::AssetChangeSubscription,
     editor_asset_change_events: EditorAssetChangeSubscription,
     resource_change_events: ResourceEventReceiver,
     asset_refresh_queue_age: assets::AssetRefreshQueueAgeState,

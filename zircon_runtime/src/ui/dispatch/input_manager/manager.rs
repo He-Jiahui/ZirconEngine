@@ -40,14 +40,26 @@ use super::{
 use crate::core::framework::input::ImeHostRequest;
 use toast_timer_queue::toast_timer_from_queue_value;
 
+/// 为宿主持有的输入流维护分发器、跨事件状态与待取请求。
+/// # 使用与生命周期
+/// 复用实例以延续指针、文本及计时状态；派发时独占借用管理器和传入表面。
+/// # 参数与返回
+/// 派发入口消费事件并返回结果；查询接口借用状态，取出接口转移队列内容的所有权。
+/// # 错误与约束
+/// 单事件与批次错误不回滚已发生的状态变化；切换表面不表示重置所有状态。
+/// # 参考
+/// 见同模块的指针表、计时器、文本会话与结果聚合实现。
 pub struct UiInputManager {
+    // 回调注册与跨事件服务分开持有，管理器负责串联它们的执行时机。
     pointer: UiPointerDispatcher,
     navigation: UiNavigationDispatcher,
     diagnostics_mode: UiInputDiagnosticsMode,
     pointers: UiActivePointerTable,
     timers: UiInputTimerState,
+    // 请求保留到宿主取出，单次结果的返回不会自动清空这些队列。
     ime_host_requests: Vec<ImeHostRequest>,
     clipboard_host_requests: UiClipboardHostRequestQueue,
+    // 会话及模型更新各自保留状态，派发前按传入表面协调文本所有者。
     pub(super) text_documents: UiTextDocumentSession,
     pub(super) text_model_updates: UiTextModelUpdateState,
     pub(super) number_model_updates: UiNumberModelUpdateState,
@@ -71,6 +83,7 @@ impl Default for UiInputManager {
 }
 
 impl UiInputManager {
+    /// 创建摘要诊断实例；保留输入行为所需状态，但不采集完整路由跟踪。
     pub fn summary() -> Self {
         Self {
             diagnostics_mode: UiInputDiagnosticsMode::Summary,
@@ -78,46 +91,57 @@ impl UiInputManager {
         }
     }
 
+    /// 读取随后派发所用的诊断粒度，不改变活动状态。
     pub fn diagnostics_mode(&self) -> UiInputDiagnosticsMode {
         self.diagnostics_mode
     }
 
+    /// 设置随后派发的诊断粒度；已经生成的结果不会随之更新。
     pub fn set_diagnostics_mode(&mut self, diagnostics_mode: UiInputDiagnosticsMode) {
         self.diagnostics_mode = diagnostics_mode;
     }
 
+    /// 借用指针回调注册表；引用的有效期受当前管理器借用限制。
     pub fn pointer_dispatcher(&self) -> &UiPointerDispatcher {
         &self.pointer
     }
 
+    /// 可变借用指针注册表供回调注册和移除；借用期间不能再次派发。
     pub fn pointer_dispatcher_mut(&mut self) -> &mut UiPointerDispatcher {
         &mut self.pointer
     }
 
+    /// 借用导航回调注册表；引用的有效期受当前管理器借用限制。
     pub fn navigation_dispatcher(&self) -> &UiNavigationDispatcher {
         &self.navigation
     }
 
+    /// 可变借用导航注册表供回调注册和移除；借用期间不能再次派发。
     pub fn navigation_dispatcher_mut(&mut self) -> &mut UiNavigationDispatcher {
         &mut self.navigation
     }
 
+    /// 借用跨事件指针状态，供宿主检查按压、悬停及捕获结果。
     pub fn active_pointers(&self) -> &UiActivePointerTable {
         &self.pointers
     }
 
+    /// 可变借用指针状态；调用方需协调手动修改与表面捕获状态。
     pub fn active_pointers_mut(&mut self) -> &mut UiActivePointerTable {
         &mut self.pointers
     }
 
+    /// 借用当前计时状态；后续输入或时钟推进可更新其中候选。
     pub fn timers(&self) -> &UiInputTimerState {
         &self.timers
     }
 
+    /// 按微秒时间戳返回最早可见计时工作的剩余时长；双击分类不触发帧唤醒。
     pub fn next_frame_visible_delay(&self, now: UiInputTimestamp) -> Option<Duration> {
         self.timers.next_frame_visible_delay(now)
     }
 
+    /// 查询提示框进入动画的归一化进度；没有活动进入动画时返回空值。
     pub fn tooltip_intro_progress(&self, now: UiInputTimestamp) -> Option<f32> {
         self.timers.tooltip_intro_progress(now)
     }
@@ -126,6 +150,7 @@ impl UiInputManager {
     ///
     /// The input manager remains the timing and transient-state authority even when the host uses
     /// richer metadata than the generic surface tooltip contract can express.
+    /// 外部解析的所有者与文本进入同一计时状态；起点为微秒时间戳，延迟单位为毫秒。
     pub fn arm_tooltip_candidate(
         &mut self,
         surface: &mut UiSurface,
@@ -142,6 +167,7 @@ impl UiInputManager {
     }
 
     /// Clears every pending or visible tooltip owned by this input manager.
+    /// 同时清除候选到期、进入动画及表面提示框状态，供宿主主动撤销提示。
     pub fn dismiss_tooltip(&mut self, surface: &mut UiSurface) {
         self.timers.clear_tooltip_expirations();
         self.timers.clear_tooltip_intro();
@@ -150,10 +176,12 @@ impl UiInputManager {
         );
     }
 
+    /// 取出并清空待处理输入法请求；返回队列由宿主负责执行。
     pub fn drain_ime_host_requests(&mut self) -> Vec<ImeHostRequest> {
         std::mem::take(&mut self.ime_host_requests)
     }
 
+    /// 把待处理剪贴板请求追加到宿主容器并清空内部队列，保留容器已有内容。
     pub(crate) fn drain_clipboard_host_requests_into(
         &mut self,
         output: &mut Vec<zircon_runtime_interface::ui::dispatch::UiClipboardRequest>,
@@ -161,6 +189,8 @@ impl UiInputManager {
         self.clipboard_host_requests.drain_into(output);
     }
 
+    /// 消费一条输入并更新传入表面，返回派发结果或树错误。
+    /// 所有者同步、触摸分类及提示框清理在底层派发前发生，失败不会撤销这些变化。
     pub fn dispatch_input_event(
         &mut self,
         surface: &mut UiSurface,
@@ -169,6 +199,7 @@ impl UiInputManager {
         self.dispatch_input_event_with_query(surface, event, None)
     }
 
+    /// 内部查询可替换指针命中空间；原始事件仍保留物理位置，省略时使用默认查询。
     pub(crate) fn dispatch_input_event_with_query(
         &mut self,
         surface: &mut UiSurface,
@@ -198,6 +229,7 @@ impl UiInputManager {
         Ok(result)
     }
 
+    /// 窗口事件直接走表面窗口入口；普通输入才走本管理器的完整指针与计时处理。
     pub fn dispatch_window_input_pump_event(
         &mut self,
         surface: &mut UiSurface,
@@ -220,6 +252,8 @@ impl UiInputManager {
         }
     }
 
+    /// 按顺序消费批次，成功时返回拥有逐项结果和克隆请求的汇总。
+    /// 首个树错误终止批次并舍弃局部结果列表；此前事件造成的状态变化仍保留。
     pub fn dispatch_window_input_pump_batch(
         &mut self,
         surface: &mut UiSurface,
@@ -232,6 +266,8 @@ impl UiInputManager {
         Ok(UiInputDispatchOutcome::from_results(surface, results))
     }
 
+    /// 由宿主传入微秒时间戳推进时钟，依次取出键入检索、子菜单、提示框和通知到期项。
+    /// 到期项生成序号为零的合成输入；最后收取焦点生命周期事件与输入法请求。
     pub fn tick(
         &mut self,
         surface: &mut UiSurface,
@@ -356,6 +392,7 @@ impl UiInputManager {
         timestamp: UiInputTimestamp,
         result: &UiInputDispatchResult,
     ) {
+        // 只有已投递给组件的报告才能驱动后续计时候选。
         for report in &result.component_events {
             if !report.delivered {
                 continue;
@@ -585,6 +622,7 @@ impl UiInputManager {
             self.pointers.remove(pointer_id);
             return;
         }
+        // 悬停取物理命中路径；捕获路由不应把物理悬停路径替换为捕获祖先链。
 
         self.pointers.upsert(
             pointer_id,
@@ -652,6 +690,7 @@ fn focus_input_method_lifecycle_result(
     result
 }
 
+/// 派发前复制的指针事实，供成功派发后更新活动表时使用。
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct UiActivePointerInputEvent {
     pointer_id: UiPointerId,
@@ -662,6 +701,7 @@ struct UiActivePointerInputEvent {
     is_primary: bool,
 }
 
+/// 松开派发前解析的双击候选，成功后才写入计时状态。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct UiDoubleClickPointerRelease {
     target: UiNodeId,

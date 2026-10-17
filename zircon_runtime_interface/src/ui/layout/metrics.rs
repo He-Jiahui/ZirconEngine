@@ -10,6 +10,8 @@ pub enum UiFlowDirection {
     RightToLeft,
 }
 
+/// 窗口事件、几何换算与绘制共享的度量值；逻辑尺寸和物理尺寸分开携带，比例字段缺省为 1。
+/// 此 DTO 不校验调用方给出的比例值，具体消费点按自身契约处理。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiLayoutMetrics {
     #[serde(default)]

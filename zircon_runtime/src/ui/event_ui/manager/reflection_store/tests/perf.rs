@@ -1,3 +1,8 @@
+//! 反射查询、索引结果断言与显式忽略的成对性能比较。
+//!
+//! 普通用例检查返回值、容量和重复路径的覆盖顺序；忽略用例仅在显式运行时取样。
+//! 此处计时也包含结果断言、循环和黑盒处理，阈值不能解释为单次查询的固有耗时。
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::hint::black_box;
 use std::time::Instant;

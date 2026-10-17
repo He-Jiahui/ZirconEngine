@@ -84,7 +84,7 @@ fn runtime04_registry_records_shader_resource_sort_bench() {
         .map(|_| {
             let started = Instant::now();
             for _ in 0..ITERATIONS {
-                black_box(deduplicate_shader_resource_records(fixture.clone()));
+                let _ = black_box(deduplicate_shader_resource_records(fixture.clone()));
             }
             started.elapsed()
         })

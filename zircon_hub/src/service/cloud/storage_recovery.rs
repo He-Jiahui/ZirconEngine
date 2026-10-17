@@ -1,11 +1,11 @@
 use super::{
-    BlobStore,
     config::reject_link,
     manifest, quota,
-    store::{ENCRYPTION_OVERHEAD, acquire_owner},
+    store::{acquire_owner, ENCRYPTION_OVERHEAD},
+    BlobStore,
 };
 use crate::service::{config::read_bounded_regular, error::ServiceError};
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use std::{
     fs::{self, File, OpenOptions},
     io::Write,

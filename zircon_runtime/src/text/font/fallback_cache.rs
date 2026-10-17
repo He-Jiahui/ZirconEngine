@@ -8,7 +8,7 @@ use std::mem::size_of;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::text::language::TextLanguageFallbackKey;
 use crate::text::{CompositeFontDescriptor, FontFaceId, FontQuery, FontScript, SubFontRange};

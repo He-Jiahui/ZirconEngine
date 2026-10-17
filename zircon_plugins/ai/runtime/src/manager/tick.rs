@@ -490,7 +490,7 @@ mod pending_delta_tests {
 
     use zircon_runtime::core::framework::ai::{
         AiBehaviorNodeDescriptor, AiBehaviorNodeKind, AiBehaviorTreeDescriptor, AiBlackboardEntry,
-        AiBlackboardValue,
+        AiBlackboardValue, AiManager,
     };
     use zircon_runtime::core::framework::scene::WorldHandle;
     use zircon_runtime::plugin::PluginModuleId;

@@ -18,6 +18,8 @@ pub(super) struct StagedFile {
     pub(super) new_digest: String,
     pub(super) retired_digests: Vec<String>,
     pub(super) committed: bool,
+    pub(super) expected_revision: Option<crate::io::source_revision::SourceRevision>,
+    pub(super) publication_revision: Option<crate::io::source_revision::SourceRevision>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -35,6 +37,7 @@ pub(super) fn stage_file(
 ) -> Result<StagedFile, DurableTransactionError> {
     #[cfg(not(test))]
     let _ = (fault, index);
+    super::engine::verify_source_revision(&write.path, write.expected_revision.as_ref())?;
     ensure_parent_directories(&write.path).map_err(|source| operation(&write.path, source))?;
     ensure_regular_or_missing(&write.path).map_err(|source| operation(&write.path, source))?;
     remove_reserved_if_exists(&intent.staging)
@@ -52,6 +55,18 @@ pub(super) fn stage_file(
         ));
     }
     let new_digest = write_and_sync_hash(&mut staging, &write.bytes)
+        .map_err(|source| operation(&write.path, source))?;
+    let publication_revision = write
+        .expected_revision
+        .as_ref()
+        .map(|_| {
+            crate::io::source_revision::SourceRevision::staged(
+                &intent.staging,
+                &staging,
+                &write.bytes,
+            )
+        })
+        .transpose()
         .map_err(|source| operation(&write.path, source))?;
     drop(staging);
     #[cfg(any(test, feature = "test-support"))]
@@ -132,6 +147,8 @@ pub(super) fn stage_file(
         new_digest,
         retired_digests,
         committed: false,
+        expected_revision: write.expected_revision,
+        publication_revision,
     };
     verify_originals(&staged).map_err(|source| operation(&staged.intent.target, source))?;
     Ok(staged)

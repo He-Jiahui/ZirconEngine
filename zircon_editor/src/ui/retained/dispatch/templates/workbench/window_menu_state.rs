@@ -299,9 +299,11 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 .as_ref()
                 .ok_or_else(|| missing(spec.menu_control_id))?;
             if !spec.trigger_source_is_owned(
-                root.source_path.as_deref().unwrap_or(""), root.instance_path.as_deref(),
+                root.source_path.as_deref().unwrap_or(""),
+                root.instance_path.as_deref(),
                 trigger.source_path.as_deref().unwrap_or(""),
-                trigger.source_node_id.as_deref().unwrap_or(""), trigger.instance_path.as_deref(),
+                trigger.source_node_id.as_deref().unwrap_or(""),
+                trigger.instance_path.as_deref(),
             ) || metadata.source_node_id.as_deref() != Some(spec.popup_source_node_id)
                 || metadata.source_path != root.source_path
                 || popup.parent != Some(root_id)

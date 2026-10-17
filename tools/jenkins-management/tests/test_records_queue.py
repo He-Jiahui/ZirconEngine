@@ -373,5 +373,136 @@ class RuntimeRebindTests(unittest.TestCase):
                 self.assertIsNone(case.published)
 
 
+
+
+class RequirementOutcomeTests(unittest.TestCase):
+    def inputs(self, status="input-provided"):
+        context = {"repo": Path("E:/Git/ZirconEngine"),
+                   "config": {"driverDigest": "1" * 64, "runtimeOperationId": "same-runtime"},
+                   "installed": {"capsuleSha256": "2" * 64}}
+        original = {"taskId": "one", "inventoryDigest": "3" * 64,
+                    "originalIdentity": {"sessionId": "original"},
+                    "pendingRequirements": ["complete external input", "actual compile"], "done": False,
+                    "formalAcceptance": False}
+        value = {"schemaVersion": 1, "taskId": original["taskId"],
+                 "originalInventoryDigest": original["inventoryDigest"],
+                 "originalIdentity": original["originalIdentity"],
+                 "requirementsDigest": queue.sha(queue.encoded(original["pendingRequirements"])),
+                 "provider": queue.outcome_provider(context), "formalAcceptance": False,
+                 "outcomes": [{"requirementText": original["pendingRequirements"][0],
+                     "requirementDigest": queue.sha(original["pendingRequirements"][0].encode()),
+                     "status": status, "note": "Exact input supplied; compilation still pending",
+                     "evidenceRefs": [{"path": str(context["repo"] / ".jenkins/state/management/evidence.json"),
+                                       "sha256": "4" * 64}]}]}
+        return context, original, value
+
+    def snapshot_inputs(self):
+        context, original, value = self.inputs()
+        value.update(schemaVersion=2,
+                     requirementsSnapshot=copy.deepcopy(original["pendingRequirements"]))
+        return context, original, value
+
+    def test_queued_snapshot_survives_append_without_accepting_new_requirements(self):
+        context, original, value = self.snapshot_inputs()
+        original["pendingRequirements"].append("actual visual acceptance")
+        before = copy.deepcopy(original)
+        with patch.object(queue, "fingerprint", return_value=({"sha256": "4" * 64}, b"{}")):
+            actual = queue.validate_requirement_outcome(context, value, original)
+            queue.attach_requirement_outcome(original, actual, followup_digest="6" * 64, response={})
+            viewed = queue.task_outcome_view(context, {"payload": original})
+        self.assertEqual(original["pendingRequirements"], before["pendingRequirements"])
+        self.assertFalse(original["done"])
+        self.assertFalse(original["formalAcceptance"])
+        self.assertEqual(viewed["payload"]["currentOutcomeView"]["counts"],
+                         {"input-provided": 1, "pending": 2})
+
+    def test_snapshot_cannot_cover_changed_removed_or_reordered_original_requirements(self):
+        for requirements in (["changed input", "actual compile"],
+                             ["actual compile"],
+                             ["actual compile", "complete external input"]):
+            with self.subTest(requirements=requirements):
+                context, original, value = self.snapshot_inputs()
+                original["pendingRequirements"] = requirements
+                with self.assertRaisesRegex(ValueError, "original identity"):
+                    queue.validate_requirement_outcome(context, value, original)
+
+    def test_snapshot_digest_and_provider_remain_exact_after_append(self):
+        for change in ("snapshot", "digest", "provider"):
+            with self.subTest(change=change):
+                context, original, value = self.snapshot_inputs()
+                original["pendingRequirements"].append("new request")
+                if change == "snapshot":
+                    value["requirementsSnapshot"][0] = "changed input"
+                elif change == "digest":
+                    value["requirementsDigest"] = "5" * 64
+                else:
+                    value["provider"]["runtimeOperationId"] = "another-runtime"
+                with self.assertRaisesRegex(ValueError, "original identity"):
+                    queue.validate_requirement_outcome(context, value, original)
+
+    def test_snapshot_cannot_smuggle_an_outcome_for_a_later_requirement(self):
+        context, original, value = self.snapshot_inputs()
+        original["pendingRequirements"].append("actual visual acceptance")
+        value["outcomes"][0].update(
+            requirementText="actual visual acceptance",
+            requirementDigest=queue.sha(b"actual visual acceptance"))
+        with self.assertRaisesRegex(ValueError, "original requirement"):
+            queue.validate_requirement_outcome(context, value, original)
+
+    def test_legacy_partial_projection_still_requires_the_exact_current_inventory(self):
+        context, original, value = self.inputs()
+        original["pendingRequirements"].append("new request")
+        with self.assertRaisesRegex(ValueError, "original identity"):
+            queue.validate_requirement_outcome(context, value, original)
+
+    def test_wrong_original_identity_and_changed_requirements_are_rejected(self):
+        for field, changed in (("originalIdentity", {"sessionId": "other"}),
+                               ("requirementsDigest", "5" * 64)):
+            context, original, value = self.inputs()
+            value[field] = changed
+            with self.assertRaisesRegex(ValueError, "original identity"):
+                queue.validate_requirement_outcome(context, value, original)
+
+    def test_input_outcome_preserves_original_pending_and_task_acceptance(self):
+        context, original, value = self.inputs()
+        before = copy.deepcopy(original)
+        with patch.object(queue, "fingerprint", return_value=({"sha256": "4" * 64}, b"{}")):
+            actual = queue.validate_requirement_outcome(context, value, original)
+        queue.attach_requirement_outcome(original, actual, followup_digest="6" * 64, response={})
+        self.assertEqual(original["pendingRequirements"], before["pendingRequirements"])
+        self.assertFalse(original["done"])
+        self.assertFalse(original["formalAcceptance"])
+        with patch.object(queue, "fingerprint", return_value=({"sha256": "4" * 64}, b"{}")):
+            viewed = queue.task_outcome_view(context, {"payload": original})
+        self.assertEqual(viewed["payload"]["currentOutcomeView"]["counts"],
+                         {"input-provided": 1, "pending": 1})
+
+    def test_route_metadata_without_actual_native_and_archive_proof_is_rejected(self):
+        context, original, value = self.inputs("route-ready")
+        proof = {"status": "ready", **value["provider"], "formalAcceptance": False,
+                 "regression": {"path": "regression.json", "sha256": "7" * 64}}
+        with patch.object(queue, "fingerprint", return_value=({"sha256": "4" * 64}, queue.encoded(proof))), \
+             patch.object(queue, "read_json", return_value=(
+                 {"jenkinsResult": "SUCCESS", "nativeProofComplete": False,
+                  "archiveByteVerification": []}, {"sha256": "7" * 64})):
+            with self.assertRaisesRegex(ValueError, "actual tested deployment"):
+                queue.validate_requirement_outcome(context, value, original)
+
+    def test_changed_evidence_is_displayed_stale_without_mutating_original(self):
+        context, original, value = self.inputs()
+        queue.attach_requirement_outcome(original, value, followup_digest="6" * 64, response={})
+        before = copy.deepcopy(original)
+        with patch.object(queue, "fingerprint", return_value=({"sha256": "8" * 64}, b"changed")):
+            viewed = queue.task_outcome_view(context, {"payload": original})
+        self.assertEqual(viewed["payload"]["currentOutcomeView"]["counts"],
+                         {"pending": 1, "stale-evidence": 1})
+        self.assertEqual(original, before)
+
+    def test_accepted_status_cannot_be_inserted_through_operator_observation(self):
+        context, original, value = self.inputs("accepted")
+        with self.assertRaisesRegex(ValueError, "nonacceptance status"):
+            queue.validate_requirement_outcome(context, value, original)
+
+
 if __name__ == '__main__':
     unittest.main()

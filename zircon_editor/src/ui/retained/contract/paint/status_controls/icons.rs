@@ -4,8 +4,8 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::select_workbench_status_icon_button_style;
 use super::super::template_status_control_geometry::{
-    frame_is_within, status_control_offset_rect, status_icon_button_glyph_rect,
-    status_icon_button_radius, workbench_status_metrics,
+    frame_is_within, has_paintable_status_control_extent, status_control_offset_rect,
+    status_icon_button_glyph_rect, status_icon_button_radius, workbench_status_metrics,
 };
 use super::super::template_status_glyphs::{push_status_icon_glyph, StatusIconKind};
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
@@ -23,7 +23,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
     let control_rect = status_control_offset_rect(node, parent_rect);
     // BUG: [CR-EDITOR-PAINT-CONTROLSTYLE-0004] 右侧图标继承非零视觉偏移后，等尺寸的 control_rect 不可能包含于原 parent_rect；
     // 这里提前退出，SnapToggle/World/Target 的图标和表面均消失；正式状态栏声明偏移 -0.5。
-    if !frame_is_within(parent_rect, &control_rect) || intersect(&control_rect, clip).is_none() {
+    if !has_paintable_status_control_extent(&control_rect)
+        || intersect(&control_rect, clip).is_none()
+    {
         return;
     }
     let style = select_workbench_status_icon_button_style(node);
@@ -84,4 +86,43 @@ fn push_status_icon_surface(
 
 fn visible_color(color: [u8; 4]) -> Option<[u8; 4]> {
     (color[3] > 0).then_some(color)
+}
+
+#[cfg(test)]
+mod finite_p2_regression_tests {
+    use super::*;
+    #[test]
+    fn shifted_status_icon_paints_inside_host_clip() {
+        let mut node = TemplatePaneNodeData::default();
+        node.checked = true;
+        node.selected = true;
+        node.layout_offset_y = -0.5;
+        let parent = FrameRect {
+            x: 10.0,
+            y: 10.0,
+            width: 36.0,
+            height: 36.0,
+        };
+        let clip = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 100.0,
+            height: 80.0,
+        };
+        let mut commands = Vec::new();
+        push_status_icon_button(
+            &mut commands,
+            &node,
+            &parent,
+            &clip,
+            0,
+            StatusIconKind::World,
+            1.0,
+        );
+        assert!(
+            !commands.is_empty(),
+            "a shifted status action remains visible"
+        );
+        assert!(commands.iter().any(|c| c.frame.y < parent.y));
+    }
 }

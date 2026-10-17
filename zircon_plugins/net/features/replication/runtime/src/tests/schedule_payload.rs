@@ -6,8 +6,8 @@ use zircon_runtime::core::framework::net::{
 };
 
 use super::{
-    NetReplicationRuntimeManager, ordered_snapshot_candidates, snapshot_payload_bytes,
-    update_interval_ms,
+    ordered_snapshot_candidates, snapshot_payload_bytes, update_interval_ms,
+    NetReplicationRuntimeManager,
 };
 
 const BENCHMARK_SNAPSHOT_COUNT: usize = 8_192;

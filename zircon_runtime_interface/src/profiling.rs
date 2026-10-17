@@ -1,3 +1,6 @@
+//! Profiling 与运行时诊断的跨 ABI JSON DTO。
+//! Runtime 通过有界请求/响应传输这些值；快照中的字符串和序列由生产方控制容量，消费方仍须执行预算检查。
+
 use serde::{Deserialize, Serialize};
 
 use crate::buffer::{ZrByteSlice, ZrOwnedResultV2};
@@ -10,6 +13,8 @@ mod session_path;
 
 pub use session_path::{profile_session_basename, PROFILE_SESSION_BASENAME_MAX_BYTES};
 
+/// FFI 参数中的请求字节视图和输出结构指针仅在本次调用期间借用。
+/// 返回的非空结果按 ZrOwnedResultV2 约定由调用方唯一释放，须通过原 Runtime 会话归还分配 ID。
 pub type ZrRuntimeProfileControlFnV2 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrByteSlice, *mut ZrOwnedResultV2) -> ZrStatus;
 
@@ -31,6 +36,7 @@ pub const PROFILE_CAPTURE_MAX_COUNTERS: usize = 32_768;
 pub const PROFILE_CAPTURE_MAX_FRAME_BUDGET_MS: f64 = 60_000.0;
 
 /// Capture options shared by the in-process recorder and the dynamic-runtime ABI.
+/// 进程内录制器与动态 Runtime ABI 共用的采集配置；`normalized` 在创建录制器前统一边界。
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ProfileCaptureConfig {
     pub session_id: String,
@@ -102,6 +108,7 @@ const fn normalized_capacity(requested: usize, default: usize, hard_max: usize) 
 }
 
 /// A transport-safe timeline snapshot containing frame, span, and counter samples.
+/// 可跨传输边界的时间线快照；样本数组与保留统计属于同一录制会话的只读投影。
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ProfileSnapshot {
     pub session_id: String,
@@ -151,6 +158,7 @@ pub struct ProfileRecorderRetentionSnapshot {
     pub counters: ProfileSampleRetentionSnapshot,
 }
 
+/// 单条帧样本，时间单位为微秒，预算字段单位为毫秒。
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ProfileFrameSnapshot {
     pub stream: String,
@@ -162,6 +170,7 @@ pub struct ProfileFrameSnapshot {
     pub over_budget: bool,
 }
 
+/// 单条嵌套 span 样本；`parent_id` 和 `depth` 由录制器维护调用树关系。
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ProfileSpanSnapshot {
     pub id: u64,
@@ -176,6 +185,7 @@ pub struct ProfileSpanSnapshot {
     pub depth: u16,
 }
 
+/// 单条计数器样本；`frame_index` 缺失时表示无法绑定到具体帧。
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ProfileCounterSnapshot {
     pub stream: String,
@@ -280,6 +290,7 @@ impl Default for UiHotspotReport {
     }
 }
 
+/// 一个 UI 场景在采集期间的帧、失效、绘制与 GPU 计数聚合；新增计数字段默认兼容旧载荷。
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UiScenarioHotspot {
     pub scenario: String,
@@ -539,6 +550,7 @@ pub enum ProfileControlCommand {
     Reset,
 }
 
+/// profiling 控制请求；启动命令消费 `config` 或使用默认配置，其余命令忽略该字段。
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ProfileControlRequest {
     pub command: ProfileControlCommand,
@@ -546,6 +558,8 @@ pub struct ProfileControlRequest {
     pub config: Option<ProfileCaptureConfig>,
 }
 
+/// profiling 控制响应；Runtime 按命令填充可选字段，导出成功后再填目录和文件列表。
+/// `status` 与载荷的组合由生产方保证，本类型只承载数据。
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ProfileControlResponse {
     pub status: String,
@@ -633,6 +647,7 @@ pub struct RuntimeRenderDeviceDiagnosticsSnapshot {
     pub max_storage_buffer_binding_size: u64,
 }
 
+/// Runtime 当前帧诊断快照；缺失的可选身份表示生产链尚未提供该证据。
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct RuntimeDiagnosticsSnapshot {
     pub frame_index: u64,

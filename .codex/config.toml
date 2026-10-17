@@ -41,7 +41,7 @@ RUSTC_WRAPPER = ''
 RUSTC_WORKSPACE_WRAPPER = ''
 
 [permissions.zircon-strict]
-description = "ZirconEngine: only registered source, documentation, skills and zircon-local output paths are writable."
+description = "ZirconEngine: scoped source/output writes and authorized local Jenkins task handoff."
 extends = ":read-only"
 
 [permissions.zircon-strict.filesystem]
@@ -165,6 +165,10 @@ extends = ":read-only"
 'E:/Git/ZirconEngine/zircon_runtime/runtime-feature-presets.toml' = "write"
 'E:/Git/ZirconEngine/zircon_hub/build.rs' = "write"
 'E:/Git/ZirconEngine/zircon_hub/Cargo.toml' = "write"
+'E:/Git/ZirconEngine/zircon_hub/gen/schemas/acl-manifests.json' = "write"
+'E:/Git/ZirconEngine/zircon_hub/gen/schemas/capabilities.json' = "write"
+'E:/Git/ZirconEngine/zircon_hub/gen/schemas/desktop-schema.json' = "write"
+'E:/Git/ZirconEngine/zircon_hub/gen/schemas/windows-schema.json' = "write"
 'E:/Git/ZirconEngine/zircon_hub/hub.toml' = "write"
 'E:/Git/ZirconEngine/zircon_hub/package-lock.json' = "write"
 'E:/Git/ZirconEngine/zircon_hub/package.json' = "write"
@@ -197,15 +201,32 @@ extends = ":read-only"
 'E:/Git/ZirconEngine/LICENSE' = "write"
 'E:/Git/ZirconEngine/tests/test_execution_engine.py' = "write"
 
-# Compiler products, compiler caches, scratch, exports and generated evidence.
-# Cargo entry points retain their physical-path validation and native locks.
+# Authorized Jenkins task handoff and lifecycle state (user grant: 2026-10-16).
+# Agents may submit scoped inputs/commands to the verified independent Jenkins
+# runtime for authorized source preparation, builds/tests, reuse and cleanup.
+# This grant includes its Git/worktree metadata and request/tray state; it does
+# not authorize commits, pushes or deletion of unowned content by itself.
 'E:/Git/ZirconEngine/.git' = "write"
 'E:/Git/ZirconEngine/.jenkins' = "write"
+'E:/Git/ZirconEngine/.codex/state/jenkins-coordinator' = "write"
+'E:/Git/ZirconEngine/.codex/state/jenkins-pilot' = "write"
+'E:/Git/ZirconEngine/.codex/state/jenkins-tray' = "write"
+
+# Compiler products, compiler caches, scratch, exports and generated evidence.
+# Jenkins and Cargo retain physical-path validation and native ownership locks.
 'D:/cargo-targets/zircon-local' = "write"
 'E:/cargo-targets/zircon-local' = "write"
 'F:/cargo-targets/zircon-local' = "write"
 
-# Control configuration, hooks, Git data, reference trees, worktrees, retired
-# coordinator data, user directories and system temp have no write grant.
+# Control configuration, hooks outside .git, unlisted reference trees/worktrees,
+# retired coordinator data, user directories and system temp have no write grant.
+# The existing Jenkins service has its own execution boundary; task-scoped
+# delegation to that verified service is explicitly authorized above.
 [permissions.zircon-strict.network]
 enabled = true
+
+# Permit the local Jenkins endpoint when a network proxy is active. These host
+# rules do not enable the proxy or restrict direct networking when it is off.
+[permissions.zircon-strict.network.domains]
+"127.0.0.1" = "allow"
+"localhost" = "allow"

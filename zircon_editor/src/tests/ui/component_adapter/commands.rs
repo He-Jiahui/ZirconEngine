@@ -154,7 +154,13 @@ fn keymap_dispatch_ignores_handled_and_released_keyboard_results() {
 fn inspector_component_adapter_rejects_missing_selection_without_mutation() {
     let _guard = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("zircon_ui_component_adapter_missing_subject");
-    let before = harness.runtime.editor_snapshot().unwrap().inspector.unwrap().name;
+    let before = harness
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .inspector
+        .unwrap()
+        .name;
     let envelope = UiComponentEventEnvelope::new(
         "res://ui/editor/host/inspector_surface_controls.zui",
         "NameField",
@@ -180,7 +186,13 @@ fn inspector_component_adapter_rejects_missing_selection_without_mutation() {
         }
     );
     assert_eq!(
-        harness.runtime.editor_snapshot().unwrap().inspector.unwrap().name,
+        harness
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .inspector
+            .unwrap()
+            .name,
         before
     );
 }
@@ -189,7 +201,12 @@ fn inspector_component_adapter_rejects_missing_selection_without_mutation() {
 fn inspector_component_adapter_rejects_unsupported_field() {
     let _guard = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("zircon_ui_component_adapter_unsupported_field");
-    let before = harness.runtime.editor_snapshot().unwrap().inspector.unwrap();
+    let before = harness
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .inspector
+        .unwrap();
     let envelope = inspector_value_envelope("transform.rotation.x", UiValue::Array(Vec::new()));
 
     let error = harness
@@ -204,7 +221,12 @@ fn inspector_component_adapter_rejects_unsupported_field() {
             path: "transform.rotation.x".to_string(),
         }
     );
-    let after = harness.runtime.editor_snapshot().unwrap().inspector.unwrap();
+    let after = harness
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .inspector
+        .unwrap();
     assert_eq!(after.name, before.name);
     assert_eq!(after.translation, before.translation);
 }
@@ -213,7 +235,12 @@ fn inspector_component_adapter_rejects_unsupported_field() {
 fn inspector_component_adapter_rejects_invalid_value_kind_for_supported_field() {
     let _guard = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("zircon_ui_component_adapter_invalid_value_kind");
-    let before = harness.runtime.editor_snapshot().unwrap().inspector.unwrap();
+    let before = harness
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .inspector
+        .unwrap();
     let envelope = inspector_value_envelope("name", UiValue::Bool(true));
 
     let error = harness
@@ -231,7 +258,13 @@ fn inspector_component_adapter_rejects_invalid_value_kind_for_supported_field() 
         }
     );
     assert_eq!(
-        harness.runtime.editor_snapshot().unwrap().inspector.unwrap().name,
+        harness
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .inspector
+            .unwrap()
+            .name,
         before.name
     );
 }
@@ -240,7 +273,12 @@ fn inspector_component_adapter_rejects_invalid_value_kind_for_supported_field() 
 fn inspector_component_adapter_rejects_non_value_property_without_mutation() {
     let _guard = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("zircon_ui_component_adapter_invalid_property");
-    let before = harness.runtime.editor_snapshot().unwrap().inspector.unwrap();
+    let before = harness
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .inspector
+        .unwrap();
     let envelope = UiComponentEventEnvelope::new(
         "res://ui/editor/host/inspector_surface_controls.zui",
         "NameField",
@@ -262,7 +300,13 @@ fn inspector_component_adapter_rejects_non_value_property_without_mutation() {
         UiComponentAdapterError::RejectedInput { .. }
     ));
     assert_eq!(
-        harness.runtime.editor_snapshot().unwrap().inspector.unwrap().name,
+        harness
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .inspector
+            .unwrap()
+            .name,
         before.name
     );
 }

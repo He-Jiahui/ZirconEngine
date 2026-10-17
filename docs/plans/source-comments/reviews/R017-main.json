@@ -1,0 +1,1154 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R017",
+  "reviewer": "root",
+  "reviewed_at_utc": "2026-10-15T05:06:35.611817+00:00",
+  "status": "independently-reviewed-and-scoped-static-validated",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R017.json",
+    "sha256": "0c9e7c161d92e007d6e383b0664c4071853f408876f92d5193de74e657abd8d7",
+    "immutable": true
+  },
+  "files": {
+    "zircon_runtime/src/core/framework/scene/component_type_desc/constructors.rs": {
+      "before_sha256": "84ddc59b14d92de881c79b3f71263c645097c5bc17b53ac1072fdcf950451c3d",
+      "reviewed_sha256": "f3e69b1094ca28040fcb9b429c80a945bae207637525c3c80e743df3526c15ad",
+      "bytes": 1992,
+      "lines": 52,
+      "full_source_review_spans": [
+        [
+          1,
+          52
+        ]
+      ],
+      "objects_reviewed": 6,
+      "continuous_blocks_reviewed": 6,
+      "insertion_blocks": 3,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/component_type_desc/desc.rs": {
+      "before_sha256": "1d3f29fea7626567a3923e26360ab985763fad84f242a6adbbc02bea30f1f4b0",
+      "reviewed_sha256": "a33cd25f0b588e4de4f8022c06d6e15c2e51871f62b2065b9ba897df3551700d",
+      "bytes": 958,
+      "lines": 20,
+      "full_source_review_spans": [
+        [
+          1,
+          20
+        ]
+      ],
+      "objects_reviewed": 7,
+      "continuous_blocks_reviewed": 2,
+      "insertion_blocks": 5,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/component_type_descriptor/mod.rs": {
+      "before_sha256": "404b8a640cff1c4e3b44eddfa282597c698e90736502ec232e65b0a2d03cc89c",
+      "reviewed_sha256": "404b8a640cff1c4e3b44eddfa282597c698e90736502ec232e65b0a2d03cc89c",
+      "bytes": 381,
+      "lines": 9,
+      "full_source_review_spans": [
+        [
+          1,
+          9
+        ]
+      ],
+      "objects_reviewed": 5,
+      "continuous_blocks_reviewed": 2,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/entity_path.rs": {
+      "before_sha256": "076ae9e217dec67d88f3be810964b2a0439f1ff09368df530c7f9e44ac60f022",
+      "reviewed_sha256": "d2e90edf5b894e9280b80424dead3488b8ae903f8167cd9e3c6aead418c468d6",
+      "bytes": 7600,
+      "lines": 213,
+      "full_source_review_spans": [
+        [
+          1,
+          213
+        ]
+      ],
+      "objects_reviewed": 35,
+      "continuous_blocks_reviewed": 24,
+      "insertion_blocks": 15,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/entity_path/tests/single_scan_parse.rs": {
+      "before_sha256": "a4ccb7263299f4a2c528a8f54240defe618825ae5a0bd820799ff72a77d2be98",
+      "reviewed_sha256": "0cd1a0f48943b9c4baa824a821cb0895cd148c5a8a200828d6cbda3a78764b79",
+      "bytes": 3653,
+      "lines": 97,
+      "full_source_review_spans": [
+        [
+          1,
+          97
+        ]
+      ],
+      "objects_reviewed": 13,
+      "continuous_blocks_reviewed": 9,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/level_manager_error.rs": {
+      "before_sha256": "945bc39a00a7b7798b07eb87d650e05389d217d400cece86bf6fec4a77909645",
+      "reviewed_sha256": "130b903b623cd8539ef3529f7da12099711f7ca81a94de1bba902037d2e75ee3",
+      "bytes": 2153,
+      "lines": 43,
+      "full_source_review_spans": [
+        [
+          1,
+          43
+        ]
+      ],
+      "objects_reviewed": 23,
+      "continuous_blocks_reviewed": 2,
+      "insertion_blocks": 13,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/level_summary.rs": {
+      "before_sha256": "d549aaf103e9c27b374342d30a46d4e32715bc198cc6bf6a160f2b74c37c160d",
+      "reviewed_sha256": "b477b890cdfa90ad3c95df04a52b506237067978af3dfd9eedaebd9faa827866",
+      "bytes": 661,
+      "lines": 15,
+      "full_source_review_spans": [
+        [
+          1,
+          15
+        ]
+      ],
+      "objects_reviewed": 6,
+      "continuous_blocks_reviewed": 2,
+      "insertion_blocks": 4,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/mobility.rs": {
+      "before_sha256": "4a1610a794694294095bfd537b8dccc981b8d3b4f7a0dd45bca70fa9b43d049e",
+      "reviewed_sha256": "90398c354dd3bc18745aeba8eddfc970afce7d44c5c248939dbb272ee2b063c6",
+      "bytes": 3440,
+      "lines": 109,
+      "full_source_review_spans": [
+        [
+          1,
+          109
+        ]
+      ],
+      "objects_reviewed": 14,
+      "continuous_blocks_reviewed": 10,
+      "insertion_blocks": 6,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/mobility/tests/borrowed_parse_tests.rs": {
+      "before_sha256": "1f6665b40f70ea1e9fdc06da1ff1ecacef4dff13d2731006c3dc80a3eead5e1d",
+      "reviewed_sha256": "1586556da962471c4b5dbe823d998db7f5c228d436dac786db323bac8a74a973",
+      "bytes": 4777,
+      "lines": 127,
+      "full_source_review_spans": [
+        [
+          1,
+          127
+        ]
+      ],
+      "objects_reviewed": 15,
+      "continuous_blocks_reviewed": 9,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/mod.rs": {
+      "before_sha256": "41cbf8650b3b00c24c59a07375341d373da4e013177dad621d4a2c2f6b490530",
+      "reviewed_sha256": "ca92b5e5c3dbfa7a299d5824f115d7267be0df9f7632054074fdfa9aff75ac1f",
+      "bytes": 5376,
+      "lines": 115,
+      "full_source_review_spans": [
+        [
+          1,
+          115
+        ]
+      ],
+      "objects_reviewed": 50,
+      "continuous_blocks_reviewed": 8,
+      "insertion_blocks": 19,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/module_identity.rs": {
+      "before_sha256": "104fd3f936577998e7dabb0f914a91e39b6d717c079ac73f4876e58f5b1ba8ae",
+      "reviewed_sha256": "104fd3f936577998e7dabb0f914a91e39b6d717c079ac73f4876e58f5b1ba8ae",
+      "bytes": 120,
+      "lines": 2,
+      "full_source_review_spans": [
+        [
+          1,
+          2
+        ]
+      ],
+      "objects_reviewed": 1,
+      "continuous_blocks_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/physics/ccd_mode.rs": {
+      "before_sha256": "b776de90872b172c37cc021216b189d57d2f5884f7c5b39bebb5a1cca0963210",
+      "reviewed_sha256": "f4dd1c21161274d451f7568c92993f5a5d72b1c16a48e38c37791af05c93d471",
+      "bytes": 501,
+      "lines": 13,
+      "full_source_review_spans": [
+        [
+          1,
+          13
+        ]
+      ],
+      "objects_reviewed": 4,
+      "continuous_blocks_reviewed": 2,
+      "insertion_blocks": 3,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/physics/combine_rule.rs": {
+      "before_sha256": "9ac8a2206a57dae5e0364aa06cb333f58246fad8e05c5158afbb5c13a7b6090a",
+      "reviewed_sha256": "65f980f2692abfe038d3f1f64dd57a4555aa1b289cfe8da7d96b19667e3ad44f",
+      "bytes": 618,
+      "lines": 18,
+      "full_source_review_spans": [
+        [
+          1,
+          18
+        ]
+      ],
+      "objects_reviewed": 6,
+      "continuous_blocks_reviewed": 2,
+      "insertion_blocks": 5,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/physics/joint_constraint_metadata.rs": {
+      "before_sha256": "37393c56b1306487d393c8c5989b6bbb862a3b8268dab06c053602a5403cc0b5",
+      "reviewed_sha256": "9ae1e750be95d4859461f23eedab96a32de6d3c1cfaa4142b096a6180f99775f",
+      "bytes": 3037,
+      "lines": 66,
+      "full_source_review_spans": [
+        [
+          1,
+          66
+        ]
+      ],
+      "objects_reviewed": 15,
+      "continuous_blocks_reviewed": 4,
+      "insertion_blocks": 9,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/physics/joint_constraint_serde.rs": {
+      "before_sha256": "c6212a228d1f7313a00c9d4b47e960225a04442e591dfc0c5aac6a1e4ce89888",
+      "reviewed_sha256": "5191f769acf0bb50ec6c6a6c9d56d3d4e4679399b788b2a600fb5caba843889b",
+      "bytes": 4283,
+      "lines": 120,
+      "full_source_review_spans": [
+        [
+          1,
+          120
+        ]
+      ],
+      "objects_reviewed": 18,
+      "continuous_blocks_reviewed": 12,
+      "insertion_blocks": 7,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/physics/joint_drive.rs": {
+      "before_sha256": "35e443f196c60b21bf1157a0444a3784cc9d77491677627b503b52c04fbb7c9f",
+      "reviewed_sha256": "d040a0ffb076f8c69eda1f90fb6003d494a1dc6e77eda81ccccc6ba780ff7e38",
+      "bytes": 1282,
+      "lines": 34,
+      "full_source_review_spans": [
+        [
+          1,
+          34
+        ]
+      ],
+      "objects_reviewed": 10,
+      "continuous_blocks_reviewed": 4,
+      "insertion_blocks": 6,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/physics/mass_properties.rs": {
+      "before_sha256": "572404a7b5c9d6bc31b74c79b46574f3bb8db2c4aa19c8918a6e54c64cefcc97",
+      "reviewed_sha256": "fa8cdecbb624b556d4e3335e185c9aa4f811601765b8af4dfcfc43be102ddf5d",
+      "bytes": 3183,
+      "lines": 70,
+      "full_source_review_spans": [
+        [
+          1,
+          70
+        ]
+      ],
+      "objects_reviewed": 13,
+      "continuous_blocks_reviewed": 7,
+      "insertion_blocks": 7,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/physics/material_metadata.rs": {
+      "before_sha256": "ec445d86d1de3ec8c682a206ab6b54bbf53ecc881aa6405c0095f8e311d845bb",
+      "reviewed_sha256": "5b6955d0bbd19cb5006c441a632e1e4b8e0a7433dac7fb9c091d7822dcd6fb89",
+      "bytes": 1158,
+      "lines": 22,
+      "full_source_review_spans": [
+        [
+          1,
+          22
+        ]
+      ],
+      "objects_reviewed": 8,
+      "continuous_blocks_reviewed": 2,
+      "insertion_blocks": 6,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/physics/mod.rs": {
+      "before_sha256": "0ea626408153336b506161b0bba69b3fe718865799d75c51a8f88e14bcc76a05",
+      "reviewed_sha256": "798ba44585b6dfd53dcacfcee84257dd7947cb5c76c580c3448d5e685a069330",
+      "bytes": 1120,
+      "lines": 35,
+      "full_source_review_spans": [
+        [
+          1,
+          35
+        ]
+      ],
+      "objects_reviewed": 19,
+      "continuous_blocks_reviewed": 6,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/physics/skeleton_joint_binding.rs": {
+      "before_sha256": "ad6a3b5cc340321972ed93a181b15fd87bbe79bdccdbd46608aeedaa71544e19",
+      "reviewed_sha256": "0c2ba7ae1d6cd9894a6583da13b1eb0d5c346561d391f0ced7317586f6b8c397",
+      "bytes": 890,
+      "lines": 18,
+      "full_source_review_spans": [
+        [
+          1,
+          18
+        ]
+      ],
+      "objects_reviewed": 6,
+      "continuous_blocks_reviewed": 2,
+      "insertion_blocks": 4,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/physics/sleep_policy.rs": {
+      "before_sha256": "c133f8fc4d94cbad14dfdb5a56ce3cec43b71f0c1c0873af3c0b7aaaa231b5b2",
+      "reviewed_sha256": "1aafd973f6cf62967746d4ca7eaef69edf1832047f36ff8e25cb5a9ab68f647d",
+      "bytes": 717,
+      "lines": 20,
+      "full_source_review_spans": [
+        [
+          1,
+          20
+        ]
+      ],
+      "objects_reviewed": 6,
+      "continuous_blocks_reviewed": 4,
+      "insertion_blocks": 4,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/physics/tests/cases.rs": {
+      "before_sha256": "0bdd7141f063c57294b5b369747df49417f7ffb365f81178b2410d3218cd4d17",
+      "reviewed_sha256": "3b070c4c1e430ce4c6b75b405f65d8f1dcb0f176bc478eb04176850d2cd96cb2",
+      "bytes": 5337,
+      "lines": 135,
+      "full_source_review_spans": [
+        [
+          1,
+          135
+        ]
+      ],
+      "objects_reviewed": 4,
+      "continuous_blocks_reviewed": 4,
+      "insertion_blocks": 3,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/property_value.rs": {
+      "before_sha256": "6cef1563ff0c2408a13d470f264f53ae2b3079366d8cc601c09aa713296fe3df",
+      "reviewed_sha256": "13e031ab322acffe0a525266708adfd1ebd2f2d606c98a1939594dff6294eff7",
+      "bytes": 2542,
+      "lines": 67,
+      "full_source_review_spans": [
+        [
+          1,
+          67
+        ]
+      ],
+      "objects_reviewed": 37,
+      "continuous_blocks_reviewed": 5,
+      "insertion_blocks": 19,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/resource.rs": {
+      "before_sha256": "ce87fa36f9c5ff6cd9e6f951fb541c005cf115ad1fee27e9b04341e328fd3040",
+      "reviewed_sha256": "3a234e43ed53b824ebc39a7e1d901e32e259cd9da0a00351534e9c82c994df61",
+      "bytes": 678,
+      "lines": 10,
+      "full_source_review_spans": [
+        [
+          1,
+          10
+        ]
+      ],
+      "objects_reviewed": 1,
+      "continuous_blocks_reviewed": 1,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/system_stage.rs": {
+      "before_sha256": "51e10c88789e4e27b68083705afd2c7ea06c0facac8612fb04122cb89c861e63",
+      "reviewed_sha256": "6cb1d9aa66292d265d3fbb7dfb2f573e0b7012b70f6b01c6a3d1331a73d29c9d",
+      "bytes": 2485,
+      "lines": 69,
+      "full_source_review_spans": [
+        [
+          1,
+          69
+        ]
+      ],
+      "objects_reviewed": 17,
+      "continuous_blocks_reviewed": 7,
+      "insertion_blocks": 13,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/tests/world_handle_perf.rs": {
+      "before_sha256": "758c5e33853b8d84f2a346703cf6ed678b72e16bee199ab1a0e339270a54995f",
+      "reviewed_sha256": "da823694a8f47cc6f53d074efb590a12f0899b274cd2275041aed333165eeb7c",
+      "bytes": 482,
+      "lines": 22,
+      "full_source_review_spans": [
+        [
+          1,
+          22
+        ]
+      ],
+      "objects_reviewed": 2,
+      "continuous_blocks_reviewed": 2,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/scene/world_handle.rs": {
+      "before_sha256": "327c45ee95746a66f47524dbe6095f296e7f6d55c850161d2f8484ce1bdd76ec",
+      "reviewed_sha256": "22935f5cb0d0c1d5a91de9505924a82577c26ce396b1d817744062330e3018a5",
+      "bytes": 1013,
+      "lines": 26,
+      "full_source_review_spans": [
+        [
+          1,
+          26
+        ]
+      ],
+      "objects_reviewed": 7,
+      "continuous_blocks_reviewed": 6,
+      "insertion_blocks": 3,
+      "all_original_raw_bytes_reconstructed": true
+    }
+  },
+  "all_objects_and_blocks_reviewed": true,
+  "objects_reviewed": 348,
+  "continuous_blocks_reviewed": 145,
+  "explicit_branch_groups_reviewed": 77,
+  "insertion_blocks": 159,
+  "comment_lines_added": 257,
+  "changed_source_count": 25,
+  "unchanged_source_count": 2,
+  "root_actual_read_receipts": [
+    {
+      "chunk_id": "c430fa",
+      "exit_code": 0,
+      "scope": "All388 lines of constructors, component root, entity path, mass properties, skeleton and world handle."
+    },
+    {
+      "chunk_id": "f15d05",
+      "exit_code": 0,
+      "scope": "All381 lines of descriptors, entity parser contracts, level errors/summary, module identity, physics contracts and stages."
+    },
+    {
+      "chunk_id": "24a327",
+      "exit_code": 0,
+      "scope": "All390 lines of mobility, borrowed parser contracts, CCD/combine/joint metadata, physics root and world-handle contracts; stored complete output separately inspected."
+    },
+    {
+      "chunk_id": "80a4b7",
+      "exit_code": 0,
+      "scope": "All388 lines of scene module, constraint serde, joint drive/material/sleep and property/resource contracts."
+    },
+    {
+      "chunk_id": "3cc7dc",
+      "exit_code": 0,
+      "scope": "Independent reflected clone/checked commit, resource read/mutation APIs, generated member/virtual-field dispatch and trait boundaries."
+    },
+    {
+      "chunk_id": "2d72db",
+      "exit_code": 0,
+      "scope": "Independent Jolt material/CCD/sleep/native field mapping and scene persistence DTOs."
+    },
+    {
+      "chunk_id": "b881ae",
+      "exit_code": 0,
+      "scope": "Independent level manager preparation/publication, captured project/save inputs and observer-only ticket deadline."
+    },
+    {
+      "chunk_id": "87991c",
+      "exit_code": 0,
+      "scope": "Independent project generation guard, artifact admission/terminal projection, transactional fixed stages and dynamic service alias registration."
+    },
+    {
+      "chunk_id": "cabb8f",
+      "exit_code": 0,
+      "scope": "Independent shared/provider numeric admission, shape-derived mass and Jolt scalar inertia limitations, sleep command and drive activation."
+    },
+    {
+      "chunk_id": "eab79b",
+      "exit_code": 0,
+      "scope": "Independent entity text consumers, animation value conversion, native ORDER decoding, level manager fixture, descriptor mount and checked numeric property conversion."
+    }
+  ],
+  "context_review": [
+    {
+      "id": "R017-E01",
+      "path": "zircon_runtime/src/scene/tests/property_paths/read_paths.rs",
+      "sha256": "c07d0581fb225749360bb275f041ad51adfcedcf66c9848b20f6537be22ebbac",
+      "read_spans": [
+        [
+          150,
+          215
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E02",
+      "path": "zircon_runtime/src/scene/world/component_type_registry.rs",
+      "sha256": "bf7c19c54e11f93ea63bfad580205981af0f266ddcd2e711670b3533a5c859af",
+      "read_spans": [
+        [
+          1,
+          172
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E03",
+      "path": "zircon_runtime/src/scene/ecs/resource/marker.rs",
+      "sha256": "66c394c838192b4817505d4876b6ca66d51f66062048f60146b2a3a464d91f2b",
+      "read_spans": [
+        [
+          1,
+          6
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E04",
+      "path": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs",
+      "sha256": "4400454f408405059fa16db038391455aebc479c81522bb13e721c66b36d38b7",
+      "read_spans": [
+        [
+          1,
+          150
+        ],
+        [
+          245,
+          311
+        ],
+        [
+          205,
+          251
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E05",
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/runtime.rs",
+      "sha256": "c11e1d22b0c74fd82050a635b7e32177683f18662f5c71c2e63fc9944962c455",
+      "read_spans": [
+        [
+          341,
+          375
+        ],
+        [
+          260,
+          345
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E06",
+      "path": "zircon_runtime/src/scene/module/default_level_manager.rs",
+      "sha256": "d76bd61c219292ffdc352c223a7eba81a69d96259b0957d6c64d0bfcf56f01e0",
+      "read_spans": [
+        [
+          1,
+          82
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E07",
+      "path": "zircon_runtime/src/scene/module/level_manager_lifecycle.rs",
+      "sha256": "a2066f797869c31bfbdf7ec563747d8bc3d13f5c5113428d48eff3cae79aefba",
+      "read_spans": [
+        [
+          75,
+          165
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E08",
+      "path": "zircon_runtime/src/scene/module/level_manager_project_io.rs",
+      "sha256": "ae8ff1ad38d2dddd96a61c6586b81ef98236f9edac1f13e45f6931b34c0c64ee",
+      "read_spans": [
+        [
+          1,
+          127
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E09",
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs",
+      "sha256": "2545b670140933dead71c86b6c19597c8429258f7a9430aced731ba8a7c4f850",
+      "read_spans": [
+        [
+          270,
+          307
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E10",
+      "path": "zircon_runtime/src/scene/world/query.rs",
+      "sha256": "06a9e954a37d87fd25d24267e4a9a31d1535aacfd212c0e3dc53356f310c93ee",
+      "read_spans": [
+        [
+          630,
+          663
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E11",
+      "path": "zircon_runtime/src/scene/world/typed_api.rs",
+      "sha256": "03c6592c29c6eed3bc7d3b7e861ab81f330e441aaebf6c0d781a79e43ac79a8b",
+      "read_spans": [
+        [
+          510,
+          580
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E12",
+      "path": "zircon_runtime/src/scene/world/property_access/path_resolution.rs",
+      "sha256": "9f378a8635842211534f3a600ee6ca00e10c98a7bd65b8df831c495e23c80085",
+      "read_spans": [
+        [
+          1,
+          115
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E13",
+      "path": "zircon_runtime/src/core/framework/animation/parameter_value.rs",
+      "sha256": "bc10b19f8a35dd2122b52dcbabf1314e83da5bc6296ab540b588230d6268020a",
+      "read_spans": [
+        [
+          1,
+          13
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E14",
+      "path": "zircon_runtime/src/animation/sequence/target.rs",
+      "sha256": "4e47aea520faff5d8ed13c007e64c97e0bfd90fda1da1d8eae117824b7b7bccb",
+      "read_spans": [
+        [
+          1,
+          22
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E15",
+      "path": "zircon_runtime/src/animation/sequence/conversion.rs",
+      "sha256": "cc0c86cd65ccbd1c8396b4d22379f0dcc5c3e0a629729a18067adae0eaab05e2",
+      "read_spans": [
+        [
+          1,
+          69
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E16",
+      "path": "zircon_runtime/src/scene/world/property_access/write.rs",
+      "sha256": "18fe921eba3dd5f94680d33e4ff805d4ba6504deb0a4bd4bb8bf2e7ae219e1dc",
+      "read_spans": [
+        [
+          1,
+          120
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E17",
+      "path": "zircon_plugins/physics/runtime/src/backend/tests/mass_properties.rs",
+      "sha256": "3cf7e7363db85acb8023a65c2775af2656bd94f4b8a0506dbbcf2f406c095f5e",
+      "read_spans": [
+        [
+          1,
+          59
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E18",
+      "path": "zircon_runtime/src/plugin/loader/host_api_adapter/abi_decode/tests/cases.rs",
+      "sha256": "4975d3c285251b7ef73d08db0010ff62329708a0d9dcf38d3d9fd7a8d80bd7a8",
+      "read_spans": [
+        [
+          1,
+          28
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E19",
+      "path": "zircon_runtime/src/scene/module/tests/level_manager_contract.rs",
+      "sha256": "cea0e8aeb65bbdb020b1bacae8f7e4ec3838c30d1c256cf73d210903604e1436",
+      "read_spans": [
+        [
+          1,
+          25
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E20",
+      "path": "zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/ticket.rs",
+      "sha256": "673c8671da89a502e69270626a545077293d403b3fee69e0391b77d223ca47d8",
+      "read_spans": [
+        [
+          1,
+          155
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E21",
+      "path": "zircon_runtime/src/core/framework/tests/cases.rs",
+      "sha256": "ed4e9bed08040d81853664e7301c1de00030c22bac2459439b851d6d85b013af",
+      "read_spans": [
+        [
+          76,
+          146
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E22",
+      "path": "zircon_runtime/src/core/framework/mod.rs",
+      "sha256": "26be3e27f5149f16b4bb2f199bc97c8b21192e0b2c8ff4a6433a797336d07153",
+      "read_spans": [
+        [
+          1,
+          64
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E23",
+      "path": "zircon_runtime/src/core/scene/component_type_desc/component_property_desc.rs",
+      "sha256": "1a005b085077f64fe5cc9c736c3b5ecccc7897c6e84b5df42d92f50eb3374acb",
+      "read_spans": [
+        [
+          1,
+          9
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E24",
+      "path": "zircon_runtime/src/scene/module/level_manager_contract.rs",
+      "sha256": "c12f046c8103d665510dbf3abbeec58abf00409d14da266c632fdbf8e6d0cf2a",
+      "read_spans": [
+        [
+          1,
+          119
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E25",
+      "path": "zircon_runtime/src/scene/module/scene_artifact_io.rs",
+      "sha256": "0f23e649129614af4078597585ff259252a22fdebdb952be067014c24adbd144",
+      "read_spans": [
+        [
+          1,
+          140
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E26",
+      "path": "zircon_runtime/src/scene/module/world_driver.rs",
+      "sha256": "01e2711a88e4472a196f88f2cd46a62acde0254269b5aa24a8dc79814a086227",
+      "read_spans": [
+        [
+          1,
+          145
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E27",
+      "path": "zircon_runtime/src/plugin/loader/host_api_adapter/abi_decode/system.rs",
+      "sha256": "78d7673861ee12ff0d56a7ec25aa80e656d4c8de64922c7226f0ddc853240112",
+      "read_spans": [
+        [
+          1,
+          90
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E28",
+      "path": "zircon_runtime/src/core/framework/tests/framework_surfaces.rs",
+      "sha256": "ad91aecb437023fe9cc3cd437530e35996c71c786ac89f6033f3d490ef338462",
+      "read_spans": [
+        [
+          185,
+          248
+        ],
+        [
+          1,
+          125
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E29",
+      "path": "zircon_plugins/physics/runtime/src/manager/validation.rs",
+      "sha256": "8522f82dabfe611b14678f65849736efcf76f04c29df586b5a9c4cb90ef7eb51",
+      "read_spans": [
+        [
+          1,
+          175
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E30",
+      "path": "zircon_plugins/physics/runtime/src/backend/validation.rs",
+      "sha256": "e6665a81648d59640bef3ecef1d9b2e546320031abcf11cb5ddb26b11c798f53",
+      "read_spans": [
+        [
+          1,
+          74
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E31",
+      "path": "zircon_plugins/physics/runtime/src/backend/mass_properties.rs",
+      "sha256": "6ee51ff72fc87cb7fd341d60e5d0379d76b20fadc4133d1bd466c964ec447e3a",
+      "read_spans": [
+        [
+          1,
+          155
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E32",
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/command_apply.rs",
+      "sha256": "9b9d223c1cc1df564f71ddfde0eab8f9d85053c4b816ceadd5d83e88e4da1f44",
+      "read_spans": [
+        [
+          55,
+          105
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E33",
+      "path": "zircon_plugins/physics/runtime/src/constraint/params.rs",
+      "sha256": "5ea8b7e6fcbe05277ac05b2d3364a36011607e2623811bb62cdbfa9a4006cb00",
+      "read_spans": [
+        [
+          1,
+          197
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E34",
+      "path": "zircon_runtime/src/asset/assets/scene/physics.rs",
+      "sha256": "93fe2254c6708d64d73f19c46f8794c13c29f82fd1b8106825eefd1becd831d8",
+      "read_spans": [
+        [
+          1,
+          135
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E35",
+      "path": "zircon_runtime/src/scene/components/scene/lighting.rs",
+      "sha256": "cb929cb0ba992d6bd6c96180fe246bd1cca7043531770e32b64e93e7fc2f680c",
+      "read_spans": [],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E36",
+      "path": "zircon_reflect_derive/src/lib.rs",
+      "sha256": "700988240f23c9d388569aeb162b1a55d0d88c24a1eccef79df94a37e0976793",
+      "read_spans": [
+        [
+          1,
+          42
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E37",
+      "path": "zircon_reflect_derive/src/derive.rs",
+      "sha256": "7351e19214f9ff5fcdd539503cd94de8aebcc8c2113b030be151e51ec1da5a55",
+      "read_spans": [
+        [
+          34,
+          215
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E38",
+      "path": "zircon_reflect_derive/src/fields.rs",
+      "sha256": "faad588c0123f1c6af93020bf91aee886926ca4ea0b7d1c3f76d9791c63bacee",
+      "read_spans": [
+        [
+          160,
+          191
+        ],
+        [
+          227,
+          277
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E39",
+      "path": "zircon_runtime_interface/src/reflect/zr_reflect.rs",
+      "sha256": "6eeb0e0f3e53014a566b69bd8d5f848ca3f82464bf49fd549a422864c1600f47",
+      "read_spans": [
+        [
+          1,
+          32
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E40",
+      "path": "zircon_reflect_derive/src/tests/cases.rs",
+      "sha256": "9637d257aa51f5f31387f130a15fe6948c5d2c4da2083d06a4bf7d5e84901bb1",
+      "read_spans": [
+        [
+          185,
+          222
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E41",
+      "path": "zircon_runtime/src/scene/world/property_access/value_conversion/values.rs",
+      "sha256": "09d6fbf7850d3f3962fafb17af7cc1ce6aa3806d1d50943bd240d212ee0dde95",
+      "read_spans": [
+        [
+          1,
+          116
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E42",
+      "path": "zircon_runtime/src/scene/world/dynamic_components.rs",
+      "sha256": "3a53ee3a34810ea667293676d04a169482cc23ca701213324dff9e62f52816b3",
+      "read_spans": [
+        [
+          80,
+          180
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    },
+    {
+      "id": "R017-E43",
+      "path": "zircon_runtime/src/scene/module/mod.rs",
+      "sha256": "52e1912e4dab02b84a472293562da334f7f796b021a3bca37b5c2fdf8160d6c9",
+      "read_spans": [
+        [
+          1,
+          85
+        ],
+        [
+          135,
+          148
+        ]
+      ],
+      "formal_source_coverage": false,
+      "source_pin_current_at_booking": true
+    }
+  ],
+  "review_conclusions": [
+    "Scene contracts own descriptors, structured paths, generic values and opaque world identity; actual ECS storage, registration and handle allocation remain caller-owned.",
+    "EntityPath and ComponentPropertyPath parsing, capacity helpers and raw-text coupling were traced through World consumers; preexisting roundtrip BUG/TODO remain open and all source-string predicates preserve their actual booleans.",
+    "Mobility virtual-field parsing borrows normalized input and reports conversions before mutation; generated reflection operates on a cloned component, then routes through checked World::set_mobility rather than bypassing its admission.",
+    "Physics metadata is authored shared configuration with serde defaults. Runtime/provider admission is separate; Jolt applies only selected material fields and supports explicit primitive inertia through a scalar uniform multiplier.",
+    "LevelManager creation publishes after runtime preparation; asset calls validate active project generation, capture snapshot/project/URI before asynchronous persistence, and return observer tickets whose timeout does not cancel work.",
+    "SystemStage::ORDER is shared by native ordinal decoding; the fixed driver wraps each complete FIXED_LOOP in a begin/commit-or-abort transaction. WorldHandle is a transparent numeric identity and has no implicit registry lookup.",
+    "All existing code, strings, assertions, DSL and comments remain unchanged. Context-only plugin risks were neither edited nor booked as formal coverage."
+  ],
+  "issues": [
+    {
+      "audit_id": "CR-FRAMEWORK-SCENE-0001",
+      "path": "zircon_runtime/src/core/framework/scene/entity_path.rs",
+      "current_line": 17,
+      "status": "open-confirmed-preexisting-BUG",
+      "origin": "preexisting",
+      "source_tag": "// BUG: [CR-FRAMEWORK-SCENE-0001] 段中允许 '/'，但文本形式用 '/' 连接；带斜杠的节点名经 as_str/parse 回读会变成不同层级。",
+      "source_sha256": "d2e90edf5b894e9280b80424dead3488b8ae903f8167cd9e3c6aead418c468d6",
+      "evidence": [
+        "EntityPath::new accepts any nonempty/nonblank segment and joins it with slash without escaping.",
+        "Input segments [a/b] form raw a/b, while EntityPath::parse(a/b) splits into two segments [a,b].",
+        "World::path_segment_for_entity preserves a nonblank Name string, so a slash in a scene name can reach this text representation."
+      ],
+      "evidence_gap": null,
+      "next_action": "Decide segment validation or escaping contract and add a roundtrip boundary fixture in separately authorized behavior work.",
+      "bug_confirmed": true,
+      "runtime_test_executed": false
+    },
+    {
+      "audit_id": "CR-FRAMEWORK-SCENE-0002",
+      "path": "zircon_runtime/src/core/framework/scene/entity_path.rs",
+      "current_line": 115,
+      "status": "open-preexisting-TODO",
+      "origin": "preexisting",
+      "source_tag": "// TODO: [CR-FRAMEWORK-SCENE-0002] 明确动态类型路径的文本回读约定：new 可接收带点号的组件名，parse 却将首个点号当分隔符。",
+      "source_sha256": "d2e90edf5b894e9280b80424dead3488b8ae903f8167cd9e3c6aead418c468d6",
+      "evidence": [
+        "ComponentPropertyPath::new accepts a dotted component key and builds dotted raw text.",
+        "parse treats the first effective dotted token as the component key; structured World consumers accept full component type paths.",
+        "The intended external escaping/text convention for dotted component keys is not established by the inspected public contract."
+      ],
+      "evidence_gap": "No decisive public external-format contract or explicit dotted-component roundtrip fixture resolves intended behavior.",
+      "next_action": "Confirm the external component path convention and add a dotted-component boundary fixture in separate behavior work.",
+      "bug_confirmed": false,
+      "runtime_test_executed": false
+    }
+  ],
+  "new_issue_markers": 0,
+  "entity_path_read_time_history": {
+    "R014_context_pin": "a45c0ec23b8a9a83c1d35eb595e78644837bc65c0b39679b2e6527f322ff3e3e",
+    "R017_final_pin": "d2e90edf5b894e9280b80424dead3488b8ae903f8167cd9e3c6aead418c468d6",
+    "scope": "R017 child records its later refinement of a newly inserted condition sentence. R014 retains its accurate earlier read-time pin; executable bytes unchanged."
+  },
+  "context_path_correction": {
+    "ecs_reflect_structure_pin": "2545b670140933dead71c86b6c19597c8429258f7a9430aced731ba8a7c4f850",
+    "distinct_dynamic_structure_pin": "8d265f3249f219309a5e9df0a658dab47d3c4d2e3f415e95c985b00445c1b139",
+    "R017_child_context_was_correct": true,
+    "root_metadata_correction_record": "docs/plans/source-comments/reviews/R014-context-correction.json"
+  },
+  "all_original_bytes_and_comments_preserved": true,
+  "builds_or_Rust_tests_executed": false,
+  "validation_record": {
+    "path": "docs/plans/source-comments/reviews/R017-post-validation.json",
+    "sha256": "87432b68ebcde7fc3dd3b7505a9d3ad17582b2395d49fdfdff231b054d1691e1"
+  },
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

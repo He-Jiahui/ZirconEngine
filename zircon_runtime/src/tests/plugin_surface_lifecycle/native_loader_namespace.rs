@@ -26,13 +26,10 @@ fn runtime_06_native_loader_tests_use_isolated_plugin_native_namespace() {
     let native_loader_test_files =
         files_containing(&plugin_extension_tests, NATIVE_LOADER_TEST_PATTERNS);
     let expected_native_loader_test_files = BTreeSet::from([
-        "zircon_runtime/src/tests/plugins/export_build_plan/catalog_projection.rs"
-            .to_string(),
-        "zircon_runtime/src/tests/plugins/export_build_plan_native_dynamic.rs"
-            .to_string(),
+        "zircon_runtime/src/tests/plugins/export_build_plan/catalog_projection.rs".to_string(),
+        "zircon_runtime/src/tests/plugins/export_build_plan_native_dynamic.rs".to_string(),
         "zircon_runtime/src/tests/plugins/loader.rs".to_string(),
-        "zircon_runtime/src/tests/plugins/loader/real_fixture.rs"
-            .to_string(),
+        "zircon_runtime/src/tests/plugins/loader/real_fixture.rs".to_string(),
     ]);
     assert_eq!(
         native_loader_test_files, expected_native_loader_test_files,
@@ -47,11 +44,9 @@ fn runtime_06_native_loader_tests_use_isolated_plugin_native_namespace() {
         ],
     );
     let expected_namespace_import_files = BTreeSet::from([
-        "zircon_runtime/src/tests/plugins/export_build_plan_native_dynamic.rs"
-            .to_string(),
+        "zircon_runtime/src/tests/plugins/export_build_plan_native_dynamic.rs".to_string(),
         "zircon_runtime/src/tests/plugins/loader.rs".to_string(),
-        "zircon_runtime/src/tests/plugins/loader/real_fixture.rs"
-            .to_string(),
+        "zircon_runtime/src/tests/plugins/loader/real_fixture.rs".to_string(),
     ]);
     assert_eq!(
         namespace_import_files, expected_namespace_import_files,

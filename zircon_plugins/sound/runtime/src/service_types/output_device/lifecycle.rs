@@ -337,10 +337,8 @@ fn retire_after_owner_unlock(retired: DefaultKiraEngine) {
 
 #[cfg(test)]
 fn owner_test_serial() -> std::sync::MutexGuard<'static, ()> {
-    OWNER_TEST_SERIAL
-        .get_or_init(|| Mutex::new(()))
-        .lock()
-        .unwrap()
+    // This mutex only serializes tests; a failed device admission must not poison later cases.
+    lock_recover(OWNER_TEST_SERIAL.get_or_init(|| Mutex::new(())))
 }
 
 #[cfg(test)]

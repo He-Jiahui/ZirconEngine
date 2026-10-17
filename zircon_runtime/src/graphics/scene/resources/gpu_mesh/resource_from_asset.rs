@@ -7,17 +7,28 @@ const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
 const FNV_PRIME: u64 = 0x100000001b3;
 
 impl GpuMeshResource {
+    pub(crate) fn from_admitted_primitive(
+        device: &wgpu::Device,
+        source: crate::graphics::VirtualGeometryPrimitiveAdmission,
+    ) -> Self {
+        // Upload happens only for a newly admitted revision/device resource.
+        // The immutable canonical primitive is never cloned during per-frame extract.
+        let mut resource = Self::from_asset(device, source.primitive());
+        resource.source_admission = Some(source);
+        resource
+    }
+
     /// 从同一批顶点生成缓冲、边界和排序补充签名；签名选取部分通道及索引顺序，资源复用仍由资产版本决定。
     pub(crate) fn from_asset(
         device: &wgpu::Device,
-        payload: crate::asset::assets::ModelPrimitiveAsset,
+        payload: &crate::asset::assets::ModelPrimitiveAsset,
     ) -> Self {
         let mut indirect_order_signature = FNV_OFFSET_BASIS;
         let mut vertices: Vec<GpuMeshVertex> = Vec::with_capacity(payload.vertices.len());
         let mut bounds = MeshBoundsAccumulator::default();
-        for vertex in payload.vertices {
-            indirect_order_signature = fnv1a_mesh_vertex(indirect_order_signature, &vertex);
-            let vertex: GpuMeshVertex = vertex.into();
+        for vertex in &payload.vertices {
+            indirect_order_signature = fnv1a_mesh_vertex(indirect_order_signature, vertex);
+            let vertex: GpuMeshVertex = (*vertex).into();
             bounds.include_position(vertex.position);
             vertices.push(vertex);
         }
@@ -46,6 +57,7 @@ impl GpuMeshResource {
             vertex_buffer,
             index_buffer,
             index_count: payload.indices.len() as u32,
+            source_admission: None,
             indirect_order_signature,
             wire_segments: build_wire_segments(&vertices, &payload.indices),
             bounds_min,

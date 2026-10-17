@@ -318,7 +318,7 @@ fn prepared_scene_activation_defers_lifecycle_state_change_until_commit() {
             "reservation must not publish a replacement before world installation succeeds"
         );
 
-        authority.commit_scene_activation_while_routed(reservation)
+        authority.commit_scene_activation_while_routed(reservation, None)
     });
 
     assert!(!activation.already_active);
@@ -485,7 +485,7 @@ fn binding_failure_does_not_publish_or_activate_the_reserved_scene_document() {
     let session = authority.begin_project_session(root).session;
 
     let error = authority
-        .activate_scene_with_binding(session, root, "res://scenes/main.scene.toml", |_| {
+        .activate_scene_with_binding(session, root, "res://scenes/main.scene.toml", None, |_| {
             Err("journal source is invalid")
         })
         .unwrap_err();

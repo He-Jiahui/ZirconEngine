@@ -88,8 +88,7 @@ fn runtime_entry_applies_runtime_ime_host_requests_from_session_drain() {
 fn runtime_entry_completes_clipboard_requests_on_the_target_window_thread() {
     let routing_source = include_str!("../../runtime_entry_app/host_requests/routing.rs");
     let clipboard_source = include_str!("../../runtime_entry_app/host_requests/clipboard/mod.rs");
-    let windows_source =
-        include_str!("../../host_requests/clipboard/platform/windows.rs");
+    let windows_source = include_str!("../../host_requests/clipboard/platform/windows.rs");
 
     assert!(
         routing_source.contains("ZrRuntimeHostRequestV1::Clipboard(request)"),

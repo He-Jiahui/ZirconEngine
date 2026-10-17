@@ -215,6 +215,7 @@ use crate::scene::ecs::{ComponentTicks, Mut, StorageType};
 #[derive(Debug, PartialEq, Eq)]
 struct RetainedSparseHealth(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(RetainedSparseHealth { 0 });
 impl Component for RetainedSparseHealth {
     const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }

@@ -19,8 +19,8 @@ mod plugin;
 
 pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};
 pub use plugin::{
-    RenderingContactShadowRuntimeFeature, feature_manifest, plugin_feature_registration,
-    runtime_plugin_feature,
+    feature_manifest, plugin_feature_registration, runtime_plugin_feature,
+    RenderingContactShadowRuntimeFeature,
 };
 
 pub const FEATURE_ID: &str = "rendering.contact_shadow";
@@ -46,27 +46,25 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             "lighting".to_string(),
         ],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::AmbientOcclusion,
-                PASS_NAME,
-                QueueLane::AsyncCompute,
-            )
-            .with_executor_id(EXECUTOR_ID)
-            .with_compute_workload(RenderGraphComputeWorkload::per_pixel(
-                CONTACT_SHADOW_PIPELINE_LABEL,
-                CONTACT_SHADOW_WORKGROUP_SIZE,
-                PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION,
-                [
-                    CONTACT_SHADOW_WORKGROUP_SIZE[0],
-                    CONTACT_SHADOW_WORKGROUP_SIZE[1],
-                ],
-            ))
-            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
-            .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
-            .write_storage_texture(PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::AmbientOcclusion,
+            PASS_NAME,
+            QueueLane::AsyncCompute,
+        )
+        .with_executor_id(EXECUTOR_ID)
+        .with_compute_workload(RenderGraphComputeWorkload::per_pixel(
+            CONTACT_SHADOW_PIPELINE_LABEL,
+            CONTACT_SHADOW_WORKGROUP_SIZE,
+            PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION,
+            [
+                CONTACT_SHADOW_WORKGROUP_SIZE[0],
+                CONTACT_SHADOW_WORKGROUP_SIZE[1],
+            ],
+        ))
+        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+        .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
+        .write_storage_texture(PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION)],
     )
 }
 

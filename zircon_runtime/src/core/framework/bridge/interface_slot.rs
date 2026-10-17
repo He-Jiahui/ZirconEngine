@@ -34,10 +34,13 @@ impl InterfaceSlot {
         Self(raw)
     }
 
+    /// 返回保存的原始槽号，供同一冻结表的调用入口传递位置。
+    /// 槽号所属表与验证前提见 [`Self::from_raw`]。
     pub const fn raw(self) -> u32 {
         self.0
     }
 
+    /// 将槽号转换为数组索引用的 `usize`；entry 是否越界仍由持有表的调用方检查。
     pub const fn index(self) -> usize {
         self.0 as usize
     }

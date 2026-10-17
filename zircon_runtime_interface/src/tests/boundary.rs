@@ -208,6 +208,7 @@ fn production_source_does_not_include_or_import_implementation_crates() {
 
 /// 显式模块挂载只允许普通相对路径，并验证其真实目标仍属于接口源码。
 /// 条件路径属性需要单独审查，不能借条件编译绕过模块归属检查。
+/// source 提供归属基准，text 是待扫描源码；返回发现的路径属性违规诊断。
 pub(super) fn local_module_path_violations(source: &Path, text: &str) -> Vec<String> {
     let root = manifest_dir()
         .join("src")
@@ -273,6 +274,7 @@ pub(super) fn local_module_path_violations(source: &Path, text: &str) -> Vec<Str
 }
 
 #[test]
+/// 覆盖归属内普通相对路径、注释/字面量伪属性，以及外部、绝对、动态或条件路径的拒绝。
 fn module_paths_stay_within_the_physical_contract_source_owner() {
     let source = manifest_dir().join("src/lib.rs");
     for text in [
@@ -639,6 +641,7 @@ fn is_rust_code_position(text: &str, target: usize) -> bool {
 }
 
 /// 跳过 Rust 原始字符串，包括字节串与 C 字符串的前缀；内嵌引号不结束扫描。
+/// start 是候选前缀的字节偏移；匹配时返回闭合引号及井号后的偏移，无法识别或未闭合时返回 None。
 fn rust_raw_string_end(text: &str, start: usize) -> Option<usize> {
     let remainder = text.get(start..)?;
     let prefix_len = if remainder.starts_with("br") || remainder.starts_with("cr") {

@@ -1,5 +1,16 @@
+//! 从通知队列值中借用通知标识并解析自动隐藏时长。
+//!
+//! # 生命周期与边界
+//! 返回标识依附输入值存储；管理器在写入计时状态时才取得自己的所有权。
+//! 数组递归选择首个有效项；映射和文本各自按下述别名优先级解析。
+
 use zircon_runtime_interface::ui::component::UiValue;
 
+/// 解析组件队列值，供通知计时器更新时使用。
+/// # 参数与返回
+/// 输入只借用；返回借用标识和正的毫秒时长，不支持的形状返回空值。
+/// # 约束
+/// 映射按固定顺序选标识及首个可转换时长；零时长会使该项无效，不再尝试较后别名。
 pub(super) fn toast_timer_from_queue_value(value: &UiValue) -> Option<(&str, u64)> {
     match value {
         UiValue::Array(values) => values.iter().find_map(toast_timer_from_queue_value),
@@ -22,6 +33,7 @@ pub(super) fn toast_timer_from_queue_value(value: &UiValue) -> Option<(&str, u64
     }
 }
 
+/// 文本首段为去空白标识；首个已知时长字段决定结果，格式错误或零值不会跳到后续字段。
 fn toast_timer_from_queue_string(value: &str) -> Option<(&str, u64)> {
     let mut parts = value.split('|');
     let toast_id = parts.next()?.trim();
@@ -44,6 +56,7 @@ fn toast_timer_from_queue_string(value: &str) -> Option<(&str, u64)> {
     None
 }
 
+/// 按别名优先级借用首个非空文本；不复制映射内存。
 fn first_string_value<'a>(
     values: &'a std::collections::BTreeMap<String, UiValue>,
     keys: &[&str],
@@ -53,6 +66,7 @@ fn first_string_value<'a>(
         .find(|value| !value.is_empty())
 }
 
+/// 先选择首个可转换的别名，再检查正值；不是从所有别名中择任意正值。
 fn first_u64_value(
     values: &std::collections::BTreeMap<String, UiValue>,
     keys: &[&str],
@@ -62,6 +76,7 @@ fn first_u64_value(
         .filter(|value| *value > 0)
 }
 
+/// 仅借用文本与枚举载荷，保留输入值的存储期限。
 fn string_value(value: &UiValue) -> Option<&str> {
     match value {
         UiValue::String(value) | UiValue::Enum(value) => Some(value.as_str()),
@@ -69,6 +84,7 @@ fn string_value(value: &UiValue) -> Option<&str> {
     }
 }
 
+/// 数字负值按零处理，浮点先四舍五入；文本沿用无符号整数解析规则。
 fn u64_value(value: &UiValue) -> Option<u64> {
     match value {
         UiValue::Int(value) => Some((*value).max(0) as u64),

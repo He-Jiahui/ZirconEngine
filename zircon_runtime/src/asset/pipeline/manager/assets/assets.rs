@@ -21,11 +21,6 @@ pub(in crate::asset::pipeline::manager) type ProjectSourcePathIndex =
 
 pub(in crate::asset::pipeline::manager) const PROJECT_RESIDENCY_STRIPE_COUNT: usize = 64;
 
-pub(in crate::asset::pipeline::manager) struct ProjectAssetChangeSubscriber {
-    sender: ChannelSender<AssetChange>,
-    wake: Option<ChannelWakeCallback>,
-}
-
 pub(in crate::asset::pipeline::manager) struct ProjectAssetGenerationWakeSubscriber {
     sender: ChannelSender<()>,
     wake: ChannelWakeCallback,
@@ -52,25 +47,6 @@ impl ProjectAssetGenerationWakeSubscriber {
     }
 }
 
-impl ProjectAssetChangeSubscriber {
-    pub(in crate::asset::pipeline::manager) fn new(
-        sender: ChannelSender<AssetChange>,
-        wake: Option<ChannelWakeCallback>,
-    ) -> Self {
-        Self { sender, wake }
-    }
-
-    pub(in crate::asset::pipeline::manager) fn send(&self, change: AssetChange) -> bool {
-        self.sender.send(change).is_ok()
-    }
-
-    pub(in crate::asset::pipeline::manager) fn wake(&self) {
-        if let Some(wake) = self.wake.as_ref() {
-            wake();
-        }
-    }
-}
-
 pub(in crate::asset::pipeline::manager) struct ProjectWatcherActivation {
     pub(in crate::asset::pipeline::manager) state: Mutex<ProjectWatcherActivationState>,
 }
@@ -84,6 +60,10 @@ pub(in crate::asset::pipeline::manager) struct ProjectWatcherActivationState {
     pub(in crate::asset::pipeline::manager) diagnostics: AssetWatchBatchDiagnostics,
     pub(in crate::asset::pipeline::manager) errors: VecDeque<AssetWatchError>,
     pub(in crate::asset::pipeline::manager) worker_scheduled: bool,
+    pub(in crate::asset::pipeline::manager) ingress_epoch: Arc<()>,
+    pub(in crate::asset::pipeline::manager) retry_timer: Option<Arc<super::watch_retry::WatchRetryTimer>>,
+    pub(in crate::asset::pipeline::manager) retry_work: Option<super::runtime::WatchRetryWork>,
+    pub(in crate::asset::pipeline::manager) retry_ready: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -108,12 +88,12 @@ pub struct ProjectAssetManager {
     pub(in crate::asset::pipeline::manager) resource_manager: ResourceManager,
     pub(in crate::asset::pipeline::manager) residency_stripes:
         Arc<[Mutex<()>; PROJECT_RESIDENCY_STRIPE_COUNT]>,
-    pub(in crate::asset::pipeline::manager) change_subscribers:
-        Arc<Mutex<Vec<ProjectAssetChangeSubscriber>>>,
+    pub(in crate::asset::pipeline::manager) change_events:
+        crate::asset::watch::AssetEventLog<AssetChange>,
     pub(in crate::asset::pipeline::manager) generation_wake_subscribers:
         Arc<Mutex<Vec<ProjectAssetGenerationWakeSubscriber>>>,
-    pub(in crate::asset::pipeline::manager) watch_error_subscribers:
-        Arc<Mutex<Vec<ChannelSender<AssetWatchError>>>>,
+    pub(in crate::asset::pipeline::manager) watch_errors:
+        crate::asset::watch::AssetEventLog<AssetWatchError>,
     pub(in crate::asset::pipeline::manager) watcher_activation:
         Arc<Mutex<Option<Arc<ProjectWatcherActivation>>>>,
     pub(super) watcher_admission: Arc<ProjectWatcherAdmission>,

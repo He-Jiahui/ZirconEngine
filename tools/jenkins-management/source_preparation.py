@@ -3169,3 +3169,143 @@ def register_prepared_worktree_flow(management, payload):
         trusted_driver_digest=management.config["driverDigest"])
     return response("registered", currentSourceRef=reference, reused=reused,
                     sourcePreparation=prepared_result)
+
+
+def resume_prepared_flow_execution(management, payload, *, transport=None):
+    """Resume one typed Flow's existing claim, then collect its real receipts."""
+    from tools.jenkins import current_source as current, managed_worktree as formal
+    from tools.jenkins.contracts import JenkinsError, digest
+    from tools.jenkins.deployment.driver import active_driver_binding
+    from tools.jenkins.submission import _submission_fields, request_payload, submit
+    from tools.jenkins.workflow import handler as flow_handler
+
+    state, root = management.state, management.repo
+    continuation = payload.get("resumeExecution")
+    if (not isinstance(continuation, dict)
+            or set(continuation) - {"executionId", "recipeRef", "phase"}
+            or continuation.get("phase", "dispatch") not in {"dispatch", "collect"}):
+        raise JenkinsError("execution_resume_invalid", "Resume requires its original execution and recipe")
+    reference = payload.get("currentSourceRef")
+    if not isinstance(reference, str) or len(reference) != 64:
+        raise JenkinsError("execution_resume_identity_mismatch", "Resume requires its original current-source reference")
+    intent_row = state.get("current_source_intent", reference)
+    intent = intent_row["payload"] if intent_row else {}
+    if (not intent_row or digest(intent) != reference
+            or payload.get("identity") != intent.get("identity")
+            or intent.get("repositoryId", intent.get("identity", {}).get("repositoryId")) != management.repo_id
+            or intent.get("identity", {}).get("sessionId") != management.session):
+        raise JenkinsError("execution_resume_identity_mismatch", "Resume must retain the original current-source author")
+    authorization = current._authorize(state, intent)
+    if authorization["snapshotDigest"] != intent.get("authorizationSnapshot"):
+        raise JenkinsError("current_source_authorization_changed", "Resume authority differs from original intake")
+    if any((payload.get("authorization") or {}).get(name) is True for name in ("allowCommit", "allowNotify", "allowPush")):
+        raise JenkinsError("execution_resume_action_forbidden", "This continuation resumes validation and acceptance only")
+    prepared_row = state.get("current_source_preparation", reference)
+    prepared = prepared_row["payload"].get("result", {}) if prepared_row else {}
+    operation_ref = prepared.get("sourcePreparationRef")
+    operation = state.get_operation(operation_ref) if operation_ref else None
+    if (not prepared_row or prepared_row["payload"].get("status") != "prepared"
+            or operation_ref != "current-source-" + reference
+            or not operation or operation["kind"] != "source_preparation" or operation["status"] != "complete"
+            or operation["payloadDigest"] != digest(operation["payload"]) or operation["payload"] != intent
+            or not operation.get("result")
+            or operation["result"].get("sourceDigest") != prepared.get("sealedInputRef")
+            or operation["result"].get("coverageDigest") != prepared.get("identity", {}).get("coverageDigest")
+            or any(operation["result"].get(name) != intent.get(name)
+                   for name in ("currentHashes", "ownedPaths", "untrackedPaths", "externalInputs"))):
+        raise JenkinsError("source_preparation_untrusted", "Resume needs the exact completed typed preparation")
+    identity = prepared.get("identity", {})
+    key = ":".join(str(identity.get(name, "")) for name in ("sessionId", "requestId", "attemptId"))
+    workflow_row = state.get("workflow", key)
+    workflow = workflow_row["payload"] if workflow_row else {}
+    execution_id, recipe_ref = continuation.get("executionId"), continuation.get("recipeRef")
+    source = prepared.get("sealedInputRef")
+    if (not isinstance(execution_id, str) or len(execution_id) != 32
+            or not isinstance(recipe_ref, str) or len(recipe_ref) != 64
+            or not workflow_row or workflow.get("identity") != identity
+            or workflow.get("executionId") != execution_id or workflow.get("recipeRef") != recipe_ref
+            or workflow.get("sourceDigest") != source
+            or workflow.get("coverageDigest") != prepared.get("identity", {}).get("coverageDigest")
+            or workflow.get("sourcePreparationRef") != operation_ref
+            or workflow.get("status") in {"failed", "cancelled", "rejected"}):
+        raise JenkinsError("execution_resume_identity_mismatch", "Resume cannot replace the registered Flow or claim")
+    current.require_source_preparation(state, operation_ref, identity=identity, source_digest=source)
+    active = active_driver_binding(root)
+    runtime = active.get("runtimeOperationId") or active.get("generation")
+    if (active.get("digest") != management.config["driverDigest"]
+            or runtime != management.config["runtimeOperationId"] or intent.get("runtimeOperationId") != runtime
+            or identity.get("stageImplementationDigest") != active.get("digest")):
+        raise JenkinsError("runtime_binding_mismatch", "Resume must retain the selected driver and runtime")
+    flow_handler._require_registered_execution(state, root, workflow, key)
+    original = state.get_request(management.repo_id, management.session, identity["requestId"])
+    expected = current._request(intent, prepared)
+    if (not original or original.get("payloadDigest") != digest(original["payload"])
+            or original["payload"] != expected or original["generation"] != identity["generation"]):
+        raise JenkinsError("submission_identity_mismatch", "Resume must retain the immutable registered request")
+    sealed_row = state.get("sealed_input", source)
+    if (not sealed_row or sealed_row["payload"].get("sourceDigest") != source
+            or digest(sealed_row["payload"].get("sourceManifest")) != source):
+        raise JenkinsError("current_source_sealed_missing", "Resume requires the original sealed manifest")
+    pins = []
+    for domain, row_key in (("current_source_intent", reference), ("current_source_preparation", reference),
+                            ("workflow", key), ("recipe_plan", recipe_ref), ("execution", execution_id), ("sealed_input", source)):
+        row = state.get(domain, row_key)
+        if row is None:
+            raise JenkinsError("execution_resume_identity_mismatch", "Resume authority disappeared")
+        pins.append({"domain": domain, "key": row_key, "version": row["version"],
+                     "payloadDigest": digest(row["payload"])})
+    submission_id = identity["requestId"] + ":execution:" + recipe_ref[:16]
+    request = request_payload(repository_id=management.repo_id, session_id=management.session,
+        request_id=identity["requestId"], source_ref=source, source_digest=source,
+        coverage_ref=identity["coverageDigest"], coverage_digest=identity["coverageDigest"],
+        parameters={"recipeRef": recipe_ref, "executionId": execution_id,
+                    "attemptId": identity["attemptId"], "generation": str(identity["generation"]),
+                    "submissionRequestId": submission_id})
+    fields = _submission_fields(expected)
+    for name in ("CURRENT_SOURCE_REF", "SOURCE_PREPARATION_REF", "PATCH_REQUEST_REF",
+                 "PATCH_OPERATION_REF", "STAGE_IMPLEMENTATION_DIGEST", "RUNTIME_OPERATION_ID", "BUILD_ROOT"):
+        if name in fields:
+            request["parameters"][name] = fields[name]
+    request["parameters"]["RUNTIME_OPERATION_ID"] = runtime
+    with state.transaction() as connection:
+        if not formal._pins_current(state, pins, connection=connection):
+            raise JenkinsError("execution_resume_conflict", "Resume authority changed before dispatch", retryable=True)
+        if current._authorize(state, intent, connection=connection)["snapshotDigest"] != intent["authorizationSnapshot"]:
+            raise JenkinsError("current_source_authorization_changed", "Resume authority changed before continuation")
+        checked = state.get_request(management.repo_id, management.session, identity["requestId"], connection=connection)
+        typed = state.get_operation(operation_ref, connection=connection)
+        if (not checked or checked["payloadDigest"] != original["payloadDigest"]
+                or not typed or typed["version"] != operation["version"] or typed != operation):
+            raise JenkinsError("execution_resume_conflict", "Typed request changed before continuation", retryable=True)
+    if continuation.get("phase", "dispatch") == "dispatch":
+        delivery = submit(state, request, job="zircon-execution", transport=transport,
+                          manager=management.manager if transport is None else None)
+        fresh = state.get("workflow", key)
+        if (not fresh or fresh["payload"].get("identity") != identity
+                or fresh["payload"].get("executionId") != execution_id or fresh["payload"].get("recipeRef") != recipe_ref):
+            raise JenkinsError("execution_resume_conflict", "Original Flow changed while delivery was observed", retryable=True)
+        state.put("workflow", key, {**fresh["payload"],
+            "jenkinsSubmission": {name: value for name, value in delivery.items() if name != "request"}},
+            expected_version=fresh["version"])
+        return {"status": "submitted", "executionId": execution_id, "recipeRef": recipe_ref,
+                "flowId": key, "submission": delivery, "formalAcceptance": False}
+    from tools.jenkins.submission import _marker_key
+    marker = state.get("jenkins_submission", _marker_key(request))
+    if (not marker or marker["payload"].get("payloadDigest") != digest(request)
+            or not marker["payload"].get("dispatchDigest")
+            or marker["payload"].get("delivery") not in {"submitted", "accepted", "completed"}):
+        raise JenkinsError("delivery_unknown", "Collect requires the exact reconciled execution delivery", retryable=True)
+    observed = flow_handler.handle("observe-flow", {"identity": identity, "executionId": execution_id}, state, root)
+    if observed.get("status") not in {"ready", "accepted"}:
+        return {"status": observed["status"] if observed.get("status") in {"failed", "cancelled", "rejected", "unknown"} else "pending",
+                "executionId": execution_id, "recipeRef": recipe_ref, "flowId": key,
+                "observation": observed, "formalAcceptance": False}
+    accepted = flow_handler.handle("run-stage", {"identity": identity, "executionId": execution_id,
+        "flowId": key, "stage": "acceptance"}, state, root)
+    if accepted.get("status") != "accepted":
+        raise JenkinsError("flow_unaccepted", "Original Flow acceptance did not complete")
+    finalized = flow_handler.handle("finalize-flow", {"identity": identity, "executionId": execution_id,
+        "commitRequested": False, "notifyRequested": False}, state, root)
+    return {"status": "accepted", "executionId": execution_id, "recipeRef": recipe_ref,
+            "flowId": key, "acceptance": accepted, "finalization": finalized, "formalAcceptance": False}
+

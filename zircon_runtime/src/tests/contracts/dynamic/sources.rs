@@ -1,7 +1,6 @@
 //! 动态场景会话、补丁预览和资产重载路径需保持现有只读与所有权约束。集中保存路径、锚点或预期清单；消费方负责读取实际源码。
 pub(super) const PATCH_SOURCE: &str = include_str!("../../../scene/dynamic/patch.rs");
-pub(super) const DYNAMIC_SCENE_MOD_SOURCE: &str =
-    include_str!("../../../scene/dynamic/mod.rs");
+pub(super) const DYNAMIC_SCENE_MOD_SOURCE: &str = include_str!("../../../scene/dynamic/mod.rs");
 pub(super) const SCENE_API_SOURCE: &str = concat!(
     include_str!("../../../scene/dynamic/scene/snapshot.rs"),
     include_str!("../../../scene/dynamic/scene/world_operations.rs")
@@ -28,8 +27,7 @@ pub(super) const SELECTION_BEHAVIOR_SOURCE: &str =
     include_str!("../../../scene/tests/session/selection.rs");
 pub(super) const MERGE_BEHAVIOR_SOURCE: &str =
     include_str!("../../../scene/tests/session/merge.rs");
-pub(super) const LOAD_BEHAVIOR_SOURCE: &str =
-    include_str!("../../../scene/tests/session/load.rs");
+pub(super) const LOAD_BEHAVIOR_SOURCE: &str = include_str!("../../../scene/tests/session/load.rs");
 pub(super) const QUERIES_BEHAVIOR_SOURCE: &str =
     include_str!("../../../scene/tests/session/queries.rs");
 pub(super) const PATH_MANAGEMENT_BEHAVIOR_SOURCE: &str =
@@ -38,9 +36,8 @@ pub(super) const PATH_MANAGEMENT_ARCHIVE_MERGE_SOURCE: &str =
     include_str!("../../../scene/tests/session/path_management/archive_merge.rs");
 pub(super) const PATH_MANAGEMENT_MUTATION_PREVIEWS_SOURCE: &str =
     include_str!("../../../scene/tests/session/path_management/mutation_previews.rs");
-pub(super) const PATH_MANAGEMENT_SINGLE_SLOT_IMPORT_SOURCE: &str = include_str!(
-    "../../../scene/tests/session/path_management/single_slot_import.rs"
-);
+pub(super) const PATH_MANAGEMENT_SINGLE_SLOT_IMPORT_SOURCE: &str =
+    include_str!("../../../scene/tests/session/path_management/single_slot_import.rs");
 pub(super) const PATH_MANAGEMENT_SINGLE_SLOT_SAVE_SOURCE: &str =
     include_str!("../../../scene/tests/session/path_management/single_slot_save.rs");
 pub(super) const PATH_MANAGEMENT_SLOT_COPY_SOURCE: &str =

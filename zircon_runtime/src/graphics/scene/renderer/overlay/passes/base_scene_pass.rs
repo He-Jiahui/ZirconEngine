@@ -79,6 +79,60 @@ impl BaseScenePass {
             attachment_ops,
             depth_attachment_ops,
             None,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn record_commands_with_indexed_journal<'a, I>(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        device: &wgpu::Device,
+        color_view: &wgpu::TextureView,
+        depth_view: &wgpu::TextureView,
+        scene_bind_group: &wgpu::BindGroup,
+        gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
+        mesh_draw_commands: I,
+        mesh_pipelines: &mut MeshPipelineCache,
+        streamer: &ResourceStreamer,
+        frame: &ViewportRenderFrame,
+        shadow_atlas_resources: Option<&ShadowAtlasResources>,
+        render_region: ViewportRenderRegion,
+        light_grid_params_buffer: Option<wgpu::BufferBinding<'_>>,
+        light_zbins_buffer: Option<wgpu::BufferBinding<'_>>,
+        light_tile_masks_buffer: Option<wgpu::BufferBinding<'_>>,
+        integrated_volumetric_view: Option<&wgpu::TextureView>,
+        transmission_scene_color_view: Option<&wgpu::TextureView>,
+        attachment_ops: RenderGraphAttachmentOps,
+        depth_attachment_ops: RenderGraphAttachmentOps,
+        indexed_journal: Option<&mut Vec<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedRunRef>>,
+    ) -> MeshDrawReplayStats
+    where
+        I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
+        I::IntoIter: Clone,
+    {
+        self.record_commands_with_receiver_policy(
+            encoder,
+            device,
+            color_view,
+            depth_view,
+            scene_bind_group,
+            gpu_scene_bind_group,
+            mesh_draw_commands,
+            mesh_pipelines,
+            streamer,
+            frame,
+            shadow_atlas_resources,
+            render_region,
+            light_grid_params_buffer,
+            light_zbins_buffer,
+            light_tile_masks_buffer,
+            integrated_volumetric_view,
+            transmission_scene_color_view,
+            attachment_ops,
+            depth_attachment_ops,
+            None,
+            indexed_journal,
         )
     }
 
@@ -125,6 +179,7 @@ impl BaseScenePass {
             attachment_ops,
             depth_attachment_ops,
             forward_receiver_bind_group,
+            None,
         )
     }
 
@@ -151,6 +206,7 @@ impl BaseScenePass {
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
         provided_forward_receiver_bind_group: Option<&wgpu::BindGroup>,
+        indexed_journal: Option<&mut Vec<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedRunRef>>,
     ) -> MeshDrawReplayStats
     where
         I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
@@ -271,6 +327,9 @@ impl BaseScenePass {
                 true
             });
         }
+        if let Some(journal) = indexed_journal {
+            journal.extend(replayer.take_issued_indexed_runs());
+        }
         replayer.stats()
     }
 
@@ -297,6 +356,56 @@ impl BaseScenePass {
         transmission_scene_color_view: Option<&wgpu::TextureView>,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
+    ) -> MeshDrawReplayStats {
+        self.record_transparent_mixed_with_indexed_journal(
+            encoder,
+            device,
+            color_view,
+            depth_view,
+            scene_bind_group,
+            gpu_scene_bind_group,
+            mesh_draw_commands,
+            mesh_pipelines,
+            streamer,
+            sprite_renderer,
+            frame,
+            shadow_atlas_resources,
+            render_region,
+            light_grid_params_buffer,
+            light_zbins_buffer,
+            light_tile_masks_buffer,
+            integrated_volumetric_view,
+            transmission_scene_color_view,
+            attachment_ops,
+            depth_attachment_ops,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn record_transparent_mixed_with_indexed_journal<'a>(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        device: &wgpu::Device,
+        color_view: &wgpu::TextureView,
+        depth_view: &wgpu::TextureView,
+        scene_bind_group: &wgpu::BindGroup,
+        gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
+        mesh_draw_commands: &'a [MeshDrawCommand],
+        mesh_pipelines: &mut MeshPipelineCache,
+        streamer: &ResourceStreamer,
+        sprite_renderer: &SpriteRenderer,
+        frame: &ViewportRenderFrame,
+        shadow_atlas_resources: Option<&ShadowAtlasResources>,
+        render_region: ViewportRenderRegion,
+        light_grid_params_buffer: Option<wgpu::BufferBinding<'_>>,
+        light_zbins_buffer: Option<wgpu::BufferBinding<'_>>,
+        light_tile_masks_buffer: Option<wgpu::BufferBinding<'_>>,
+        integrated_volumetric_view: Option<&wgpu::TextureView>,
+        transmission_scene_color_view: Option<&wgpu::TextureView>,
+        attachment_ops: RenderGraphAttachmentOps,
+        depth_attachment_ops: RenderGraphAttachmentOps,
+        indexed_journal: Option<&mut Vec<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedRunRef>>,
     ) -> MeshDrawReplayStats {
         if wire_only_load_store_can_skip(
             frame.overlays().display_mode,
@@ -422,6 +531,9 @@ impl BaseScenePass {
                     replayer.invalidate_state_after_external_pipeline();
                 }
             }
+        }
+        if let Some(journal) = indexed_journal {
+            journal.extend(replayer.take_issued_indexed_runs());
         }
         replayer.stats()
     }

@@ -4,6 +4,12 @@ use crate::core::diagnostics::RuntimeDiagnosticsSnapshot;
 use super::support::{assert_render_byte_series, assert_render_count_series};
 
 pub(super) fn assert_graph_resources(snapshot: &RuntimeDiagnosticsSnapshot) {
+    assert_render_byte_series(
+        &snapshot.store,
+        "render.taa.reactive_mask_encoded_write_bytes",
+        1234.0,
+        &["taa", "reactive_mask"],
+    );
     assert_render_count_series(
         &snapshot.store,
         "render.last_graph_executed_pass_count",

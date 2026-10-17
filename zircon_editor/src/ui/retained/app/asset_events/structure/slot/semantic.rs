@@ -1,6 +1,6 @@
 use super::super::semantic_paths::slot_semantic_action_path;
-use crate::ui::host::EditorError;
 use super::super::*;
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -20,7 +20,8 @@ impl RetainedEditorHost {
                 );
             }
             "slot.semantic.delete" => {
-                match self.editor_manager
+                match self
+                    .editor_manager
                     .enter()
                     .map_err(EditorError::from)
                     .and_then(|manager| {

@@ -151,10 +151,10 @@ impl IblSourceCubemapStagingStore {
         &self,
         request: &IblBakeArtifactRequest,
         _uri: AssetUri,
-        mut before_source_read: BeforeSourceRead,
-        mut after_source_read: AfterSourceRead,
-        mut after_derived_read: AfterDerivedRead,
-        mut after_source_miss_barrier: AfterSourceMissBarrier,
+        before_source_read: BeforeSourceRead,
+        after_source_read: AfterSourceRead,
+        after_derived_read: AfterDerivedRead,
+        after_source_miss_barrier: AfterSourceMissBarrier,
     ) -> Result<SourceCubemapEnvironment, IblSourceCubemapStagingError>
     where
         BeforeSourceRead: FnMut() -> Result<(), IblSourceCubemapStagingError>,
@@ -162,12 +162,48 @@ impl IblSourceCubemapStagingStore {
         AfterDerivedRead: FnMut() -> Result<(), IblSourceCubemapStagingError>,
         AfterSourceMissBarrier: FnMut() -> Result<(), IblSourceCubemapStagingError>,
     {
+        self.read_source_cubemap_environment_with_snapshot_and_missing_manifest_hooks(
+            request,
+            _uri,
+            before_source_read,
+            after_source_read,
+            after_derived_read,
+            after_source_miss_barrier,
+            || Ok(()),
+        )
+    }
+
+    fn read_source_cubemap_environment_with_snapshot_and_missing_manifest_hooks<
+        BeforeSourceRead,
+        AfterSourceRead,
+        AfterDerivedRead,
+        AfterSourceMissBarrier,
+        BeforeManifestMissBarrier,
+    >(
+        &self,
+        request: &IblBakeArtifactRequest,
+        _uri: AssetUri,
+        mut before_source_read: BeforeSourceRead,
+        mut after_source_read: AfterSourceRead,
+        mut after_derived_read: AfterDerivedRead,
+        mut after_source_miss_barrier: AfterSourceMissBarrier,
+        mut before_manifest_miss_barrier: BeforeManifestMissBarrier,
+    ) -> Result<SourceCubemapEnvironment, IblSourceCubemapStagingError>
+    where
+        BeforeSourceRead: FnMut() -> Result<(), IblSourceCubemapStagingError>,
+        AfterSourceRead: FnMut() -> Result<(), IblSourceCubemapStagingError>,
+        AfterDerivedRead: FnMut() -> Result<(), IblSourceCubemapStagingError>,
+        AfterSourceMissBarrier: FnMut() -> Result<(), IblSourceCubemapStagingError>,
+        BeforeManifestMissBarrier: FnMut() -> Result<(), IblSourceCubemapStagingError>,
+    {
         for _ in 0..IBL_SOURCE_CUBEMAP_BUNDLE_READ_ATTEMPTS {
             self.recover_pending_bundle_writes()?;
             before_source_read()?;
             let Some((_manifest_path, manifest_bytes)) =
                 self.read_bundle_manifest_bytes(request)?
             else {
+                // Observe the initial miss before acquiring the publication barrier.
+                before_manifest_miss_barrier()?;
                 if self.bundle_manifest_miss_is_settled_after_publication_barrier(
                     request,
                     &mut after_source_miss_barrier,
@@ -609,11 +645,18 @@ impl IblSourceCubemapStagingStore {
                     source,
                 }
             })?;
+        let resolved_cache_root = fs::canonicalize(&self.cache_root).map_err(|source| {
+            IblSourceCubemapStagingError::BundleJournalRead {
+                path: self.cache_root.clone(),
+                source,
+            }
+        })?;
+        let resolved_store = Self::new(resolved_cache_root);
         let mut policy = IblSourceCubemapBundleRecoveryPolicy::new(
             resolved_journal_directory,
-            self.source_cubemap_root(),
-            self.asset_derived_root(),
-            self.bundle_manifest_root(),
+            resolved_store.source_cubemap_root(),
+            resolved_store.asset_derived_root(),
+            resolved_store.bundle_manifest_root(),
         );
         recover_pending_transactions(
             &journal_directory,

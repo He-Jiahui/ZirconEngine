@@ -1,5 +1,6 @@
 //! 动画运行时插件的公共 API：模块注册、采样契约、IK、蒙皮及状态机类型从此导出。
 //! 宿主通过插件清单激活帧系统，直接调用这些类型不会自动注册场景资源。
+#[cfg(feature = "native-host")]
 #[path = "capability.rs"]
 mod capability;
 #[path = "channel_sampling/mod.rs"]
@@ -16,6 +17,7 @@ mod manager;
 mod mask;
 #[path = "module.rs"]
 mod module;
+#[cfg(feature = "native-host")]
 #[path = "plugin.rs"]
 mod plugin;
 #[path = "runtime_system.rs"]
@@ -23,6 +25,7 @@ mod runtime_system;
 #[path = "state_machine/mod.rs"]
 mod state_machine;
 
+#[cfg(feature = "native-host")]
 pub use capability::{
     ANIMATION_DECLARATION, ANIMATION_RUNTIME_CAPABILITY, ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY,
     NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY,
@@ -50,13 +53,14 @@ pub use module::{
     module_descriptor, AnimationDriver, AnimationModule, ANIMATION_DRIVER_NAME,
     ANIMATION_MODULE_NAME, DEFAULT_ANIMATION_MANAGER_NAME,
 };
+#[cfg(feature = "native-host")]
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
     runtime_plugin_descriptor, AnimationRuntimePlugin, ANIMATION_DIST_CRATE_NAME,
     ANIMATION_DIST_RUNTIME_ENTRY, PLUGIN_RUNTIME_MODULE_NAME,
 };
 pub use runtime_system::{
-    register_runtime_system, AnimationRuntimeSystem, ANIMATION_CLIP_EVENT,
+    portable_runtime_extension_plan, AnimationRuntimeSystem, ANIMATION_CLIP_EVENT,
     ANIMATION_CLIP_EVENT_SCHEMA, ANIMATION_EVALUATE_SYSTEM, ANIMATION_EVALUATION_DIAGNOSTIC_EVENT,
     ANIMATION_EVALUATION_DIAGNOSTIC_SCHEMA, ANIMATION_LAYER_DIAGNOSTIC_EVENT,
     ANIMATION_LAYER_DIAGNOSTIC_SCHEMA, ANIMATION_SYSTEM_SET,
@@ -81,3 +85,6 @@ pub use zircon_runtime::core::manager::ANIMATION_MANAGER_NAME;
 #[cfg(test)]
 #[path = "tests/cases.rs"]
 mod tests;
+
+#[cfg(feature = "native-host")]
+pub use runtime_system::register_runtime_system;

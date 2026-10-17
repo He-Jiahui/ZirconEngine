@@ -1,5 +1,5 @@
 use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
-use std::time::Instant;
+use web_time::Instant;
 
 use super::schedule_execution::schedule_owner_changed_error;
 

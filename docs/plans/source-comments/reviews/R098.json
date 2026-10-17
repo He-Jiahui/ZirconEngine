@@ -1,0 +1,2391 @@
+{
+  "schema": "zircon-source-comments-review/v1",
+  "batch": "R098",
+  "owner": "reflection_luna",
+  "model": "gpt-6-luna",
+  "reasoning_effort": "max",
+  "authority": {
+    "assignment": "docs/plans/source-comments/assignments.json#metadata_tasks.R098",
+    "canonical_sha256": "dbeb01ab22f8417c522fd4bff729f495e089b4090a5ce5818a62cf3a164da528",
+    "fresh_assignment_sha256": "7fcea18ea8f2fb9b10b28d9d7b53ece8d0df4a78f9fcd01dffdca07949e2bc85",
+    "root_grant": "Root883/827be6 exit0 PID20976",
+    "root_independent": "Root884/f26816 exit0 PID47708",
+    "child": "docs/plans/source-comments/reviews/R098.json",
+    "root_owned": "global ledgers, main and post-validation records; no Git mutations or formal acceptance",
+    "standard_sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3",
+    "dev_skill_sha256": "2d699cd12492709facc84079838a836356e4f7dd8b7bac475b65d10a804ed957",
+    "artifact_registry": "E:/cargo-targets/zircon-local/reports/source-comments-20261014-01a13a81/artifacts.json",
+    "three_retained_plans": "exact resolved destinations child/main/post, planned-not-created with three original source dependencies at first source gate"
+  },
+  "audited_paths": [
+    "zircon_runtime/src/text/model/font/database.rs",
+    "zircon_runtime/src/text/model/font/face.rs",
+    "zircon_runtime/src/text/model/font/family.rs"
+  ],
+  "counts": {
+    "files": 3,
+    "changed_files": 2,
+    "unchanged_files": 1,
+    "original_LF": 131,
+    "final_LF": 157,
+    "original_bytes": 5055,
+    "final_bytes": 6503,
+    "object_groups": 25,
+    "import_groups": 3,
+    "declarations_excluding_imports": 22,
+    "fields_including_tuple_payloads": 20,
+    "enum_variants": 3,
+    "enum_payloads": 1,
+    "associated_constants": 3,
+    "inherent_impls": 4,
+    "methods": 4,
+    "method_parameters": 4,
+    "derive_attributes": 10,
+    "serde_default_attributes": 2,
+    "default_variant_attributes": 1,
+    "semantic_blocks": 18,
+    "owned_tests": 0,
+    "context_test_functions_described": 1,
+    "context_assertions_described": 2,
+    "insertions": 7,
+    "inserted_LF": 26,
+    "inserted_bytes": 1448
+  },
+  "documentation_reasons": {
+    "type-doc-covers": "类型职责、构造和字段角色已说明使用方式；保留原字段，无需机械重复注释。"
+  },
+  "range_hash_convention": "span_sha256 is [before,after]; a single hash means both spans contain identical bytes. Ranges are 1-based inclusive physical lines with original EOL.",
+  "status": "complete-child-local-review-parent-acceptance-pending",
+  "assembly": {
+    "complete": true,
+    "method": "single authorized child assembled through bounded compare-and-swap updates",
+    "evidence": "All source bytes/pins and the 25-object/18-block manual model are fixed. Final actual child write/readback receipt is delivered in handoff after terminal."
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/src/text/model/font/database.rs",
+      "objects": [
+        {
+          "name": "serde and font-value imports",
+          "kind": "import-group",
+          "before_lines": [
+            1,
+            5
+          ],
+          "audit": "导入派生宏、选面属性与FontFamilyName值类型，无运行期注册。",
+          "documentation_decision": "新增模块职责说明；导入本身无需注释。",
+          "after_lines": [
+            4,
+            8
+          ],
+          "span_sha256": [
+            "990395ec458416c646c2bc24246a629762a781d5ad9e8ab31f20e85f67f79bee"
+          ]
+        },
+        {
+          "name": "FontFaceId",
+          "kind": "public-tuple-struct",
+          "before_lines": [
+            6,
+            9
+          ],
+          "audit": "u64数据库内身份；Copy值不持有数据库、字体字节或版本，也不延长这些对象生命期。已有文档禁止跨独立数据库按数值视为同一资源。",
+          "documentation_decision": "现有两行身份/数据库约束充分，不新增。",
+          "declaration_before": 9,
+          "members": [
+            {
+              "name": "0",
+              "type": "u64",
+              "before_line": 9,
+              "role": "数据库内字体面身份值",
+              "documentation_decision": "type-doc-covers",
+              "tuple": true,
+              "after_line": 12
+            }
+          ],
+          "evidence": [
+            "E2",
+            "E3"
+          ],
+          "after_lines": [
+            9,
+            12
+          ],
+          "declaration_after": 12,
+          "span_sha256": [
+            "2256fc65b2abb8fc3a6f427a78283417c4180be35d00d361965514412ac726f9"
+          ]
+        },
+        {
+          "name": "InstancedFaceId",
+          "kind": "public-tuple-struct",
+          "before_lines": [
+            11,
+            14
+          ],
+          "audit": "字体面和有效轴坐标的实例标识；值不能恢复文件，不能替代所属字库版本检查，也不自行保活实例。",
+          "documentation_decision": "现有身份/有效实例约束充分，保留。",
+          "declaration_before": 14,
+          "members": [
+            {
+              "name": "0",
+              "type": "u64",
+              "before_line": 14,
+              "role": "数据库内字体实例身份值",
+              "documentation_decision": "type-doc-covers",
+              "tuple": true,
+              "after_line": 17
+            }
+          ],
+          "evidence": [
+            "E3"
+          ],
+          "after_lines": [
+            14,
+            17
+          ],
+          "declaration_after": 17,
+          "span_sha256": [
+            "897151523655396ef9c55cafe374a4e66fd72368ef8199add197fc4c455f103c"
+          ]
+        },
+        {
+          "name": "FontQuery",
+          "kind": "public-struct",
+          "before_lines": [
+            16,
+            24
+          ],
+          "audit": "家族偏好与字重/样式/宽度组成查询快照；derived Serde不执行匹配或验证资源存在；family顺序的消费由数据库决定。",
+          "documentation_decision": "原职责及家族顺序说明充分；方法补默认值/返回边界。",
+          "declaration_before": 19,
+          "members": [
+            {
+              "name": "families",
+              "type": "Vec<FontFamilyName>",
+              "before_line": 20,
+              "role": "有序家族偏好",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 23
+            },
+            {
+              "name": "weight",
+              "type": "FontWeight",
+              "before_line": 21,
+              "role": "字重偏好",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 24
+            },
+            {
+              "name": "style",
+              "type": "FontStyle",
+              "before_line": 22,
+              "role": "样式分类",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 25
+            },
+            {
+              "name": "stretch",
+              "type": "FontStretch",
+              "before_line": 23,
+              "role": "宽度偏好",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 26
+            }
+          ],
+          "evidence": [
+            "E2"
+          ],
+          "after_lines": [
+            19,
+            27
+          ],
+          "declaration_after": 22,
+          "span_sha256": [
+            "70fb76b93ff7fb60ebc608bfa409c800b1df6010d038a1b9c782fb71f7096d3a"
+          ]
+        },
+        {
+          "name": "impl FontQuery",
+          "kind": "inherent-impl",
+          "before_lines": [
+            26,
+            35
+          ],
+          "audit": "只包含single_family组装方法；没有查询执行或注册状态。",
+          "documentation_decision": "由方法文档解释参数和默认值，不重复impl标题。",
+          "after_lines": [
+            29,
+            43
+          ],
+          "span_sha256": [
+            "3916526b76bd55ecaa6567b8dea3db28f4ff6bbb5dc8a80504b06157a8a24a09",
+            "2ea75544c875499664f3f247496404563e468de86306d26e9d6f621532837513"
+          ]
+        },
+        {
+          "name": "FontQuery::single_family",
+          "kind": "public-fn",
+          "before_lines": [
+            27,
+            34
+          ],
+          "audit": "将family.into()写成Vec唯一项，使用400、Normal、100默认属性，返回独立拥有家族值的查询。它不进行数据库匹配、字体存在性或字符覆盖检查。",
+          "documentation_decision": "新增summary及Markdown参数/返回，说明组装时机与默认值。",
+          "declaration_before": 27,
+          "parameters": [
+            {
+              "name": "family",
+              "type": "impl Into<FontFamilyName>",
+              "role": "转成唯一家族偏好项"
+            }
+          ],
+          "returns": "Self",
+          "control_points": [
+            {
+              "before_lines": [
+                28,
+                33
+              ],
+              "effect": "Self literal: families=vec![family.into()], weight=NORMAL, style=Normal, stretch=NORMAL；无条件分支",
+              "after_lines": [
+                36,
+                41
+              ]
+            }
+          ],
+          "evidence": [
+            "E2"
+          ],
+          "after_lines": [
+            30,
+            42
+          ],
+          "declaration_after": 35,
+          "span_sha256": [
+            "eb9659abb2e442b1d4e3241e83f59b6f8fbbcb94aefd6d95e6260d302fd2f316",
+            "d5ba2c172f981430d4d75a4aaefeff07d4e0d531f058cde4103b9a636d89456d"
+          ]
+        },
+        {
+          "name": "FontMatch",
+          "kind": "public-struct",
+          "before_lines": [
+            37,
+            44
+          ],
+          "audit": "选面结果是字体面ID和两项合成样式元数据；不含字体源所有权，不能承诺字符全覆盖。",
+          "documentation_decision": "已有类型两行明确覆盖由后续整形解析，字段名与调用可理解，无新增。",
+          "declaration_before": 40,
+          "members": [
+            {
+              "name": "face",
+              "type": "FontFaceId",
+              "before_line": 41,
+              "role": "选中的数据库字体面身份",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 49
+            },
+            {
+              "name": "synthetic_bold",
+              "type": "bool",
+              "before_line": 42,
+              "role": "合成粗体标志",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 50
+            },
+            {
+              "name": "synthetic_oblique",
+              "type": "bool",
+              "before_line": 43,
+              "role": "合成倾斜标志",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 51
+            }
+          ],
+          "evidence": [
+            "E2"
+          ],
+          "after_lines": [
+            45,
+            52
+          ],
+          "declaration_after": 48,
+          "span_sha256": [
+            "1fa94d06da3bb4e4f1739591abe37c8375168fa3c1799db71d6603e8fd9103ba"
+          ]
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "imports and module contract",
+          "before_lines": [
+            1,
+            5
+          ],
+          "entry": "编译模块/导入",
+          "effect": "Serde和字体值类型导入，不注册数据库对象。",
+          "next": "身份和查询声明",
+          "documentation_decision": "模块职责新增",
+          "after_lines": [
+            1,
+            8
+          ],
+          "span_sha256": [
+            "990395ec458416c646c2bc24246a629762a781d5ad9e8ab31f20e85f67f79bee",
+            "754a75c062aeaeb7d329432dd9ce096711c517f82864b250d39266cd7346a6b5"
+          ]
+        },
+        {
+          "name": "font face identity",
+          "before_lines": [
+            6,
+            10
+          ],
+          "entry": "构造/复制/Serde身份值",
+          "effect": "仅保存u64；数据库与版本由消费者约束。",
+          "next": "数据库选面/实例消费",
+          "documentation_decision": "已有两行文档充分",
+          "after_lines": [
+            9,
+            13
+          ],
+          "span_sha256": [
+            "6bfb8dba998b9e30166f8cd944db5043988160a160bba3e8bb8810c60da05056"
+          ]
+        },
+        {
+          "name": "instanced face identity",
+          "before_lines": [
+            11,
+            15
+          ],
+          "entry": "构造/复制/Serde实例标识",
+          "effect": "仅保存u64；无字体文件或数据库所有权。",
+          "next": "实例表解析",
+          "documentation_decision": "已有文档充分",
+          "after_lines": [
+            14,
+            18
+          ],
+          "span_sha256": [
+            "85840aa34efe114876c7083a242cd3db97aaf6bd35ea05df23cf7fa06a119847"
+          ]
+        },
+        {
+          "name": "font query value",
+          "before_lines": [
+            16,
+            25
+          ],
+          "entry": "持有查询各属性",
+          "effect": "Vec家族顺序及三个属性只表达偏好，无匹配分支。",
+          "next": "single_family或数据库match_face",
+          "documentation_decision": "已有类型说明充分",
+          "after_lines": [
+            19,
+            28
+          ],
+          "span_sha256": [
+            "1c0a32aac6a860ad1b5e21e6bc297e4ee0497437e7ca369efa792a21b0e6ffa0"
+          ]
+        },
+        {
+          "name": "single-family query assembly",
+          "before_lines": [
+            26,
+            36
+          ],
+          "entry": "family参数进入",
+          "effect": "into转换、单项Vec、三个固定默认值；返回Self，未查询数据库。",
+          "next": "调用方传入match_face等消费者",
+          "documentation_decision": "新增参数/返回及不执行选面约束",
+          "after_lines": [
+            29,
+            44
+          ],
+          "span_sha256": [
+            "79ab0c207048e1914f1b25e645d7197d72c01263d0092afbbac4ee680c89c9ed",
+            "9936506c0deb15a589b7981d6a08fe55975b20dda873c2ae7ef77dd970c2b403"
+          ]
+        },
+        {
+          "name": "font matching value",
+          "before_lines": [
+            37,
+            44
+          ],
+          "entry": "数据库给出结果或值反序列化",
+          "effect": "面ID和两个合成标志，没有覆盖证明或字体资源pin。",
+          "next": "后续整形/绘制消费",
+          "documentation_decision": "既有说明充分",
+          "after_lines": [
+            45,
+            52
+          ],
+          "span_sha256": [
+            "1fa94d06da3bb4e4f1739591abe37c8375168fa3c1799db71d6603e8fd9103ba"
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "name": "FontFaceId derive",
+          "before_line": 8,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "PartialEq",
+            "Eq",
+            "Hash",
+            "Serialize",
+            "Deserialize"
+          ],
+          "after_line": 11
+        },
+        {
+          "name": "InstancedFaceId derive",
+          "before_line": 13,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "PartialEq",
+            "Eq",
+            "Hash",
+            "Serialize",
+            "Deserialize"
+          ],
+          "after_line": 16
+        },
+        {
+          "name": "FontQuery derive",
+          "before_line": 18,
+          "traits": [
+            "Clone",
+            "Debug",
+            "PartialEq",
+            "Serialize",
+            "Deserialize"
+          ],
+          "after_line": 21
+        },
+        {
+          "name": "FontMatch derive",
+          "before_line": 39,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "PartialEq",
+            "Eq",
+            "Serialize",
+            "Deserialize"
+          ],
+          "after_line": 47
+        }
+      ],
+      "coverage_basis": "Manual complete original source read, with declarations/members/variants and semantic entry-effect-next blocks. Lexical declaration output is a location aid, not AST/call-resolution completeness.",
+      "tests": {
+        "direct_mount": false,
+        "owned_normal": 0,
+        "owned_ignored": 0,
+        "executed": 0
+      },
+      "before_sha256": "3c209651f17be365c0659303a7ff04ee04fd1a1a5dec6476608696c3ba2c6acc",
+      "after_sha256": "0e88df2ef295315637e0dc67db8c7260aaff42041239aa4f4f3f004f49125c86",
+      "before_bytes": 1810,
+      "after_bytes": 2234,
+      "before_LF": 44,
+      "after_LF": 52,
+      "before_CRLF": 0,
+      "after_CRLF": 0,
+      "BOM": false,
+      "insertions": [
+        {
+          "before_line": 1,
+          "exact_text": "//! 字体查询、匹配结果与数据库内身份的值模型。\n//! 组装这些值不执行选面、字体登记或实例解析。\n\n",
+          "before_offset": 0,
+          "after_offset": 0,
+          "after_line": 1,
+          "length": 137,
+          "LF": 3,
+          "sha256": "aeb778e141855f1cc60f39471848c7ab11ac82b167c3a289a5ca5e3f8e9d7de3"
+        },
+        {
+          "before_line": 27,
+          "exact_text": "    /// 组装只有一个家族偏好的常规选面查询。\n    ///\n    /// # 参数与返回\n    /// `family` 转为 `FontFamilyName` 并写入唯一家族项。\n    /// 返回字重 `400`、`Normal` 样式、正常宽度 `100` 的查询；尚未执行选面或字符覆盖检查。\n",
+          "before_offset": 1188,
+          "after_offset": 1325,
+          "after_line": 30,
+          "length": 287,
+          "LF": 5,
+          "sha256": "bdc18a7b7d460052fbbb578811d758a0891115de13e0e9428768b2238a036ee7"
+        }
+      ],
+      "inverse_sha256": "3c209651f17be365c0659303a7ff04ee04fd1a1a5dec6476608696c3ba2c6acc",
+      "rawHEAD_sha256": "3c209651f17be365c0659303a7ff04ee04fd1a1a5dec6476608696c3ba2c6acc",
+      "changed": true
+    },
+    {
+      "path": "zircon_runtime/src/text/model/font/face.rs",
+      "objects": [
+        {
+          "name": "serde and family imports",
+          "kind": "import-group",
+          "before_lines": [
+            1,
+            4
+          ],
+          "audit": "Serde派生和FontFamilyName值类型导入，无运行期注册。",
+          "documentation_decision": "新增模块职责与消费方归一边界；导入无需逐项注释。",
+          "after_lines": [
+            4,
+            7
+          ],
+          "span_sha256": [
+            "dc5b13a765dd0fb3630abc3a623d55dcb678ca2b794356f7c24985ab5d1e618a"
+          ]
+        },
+        {
+          "name": "FontWeight",
+          "kind": "public-tuple-struct",
+          "before_lines": [
+            5,
+            8
+          ],
+          "audit": "公开u16包装；只有调用clamped才截断至100..=900。直接构造或derived Serde不自动调用该方法。",
+          "documentation_decision": "原类型doc已明确这一边界，保留。",
+          "declaration_before": 8,
+          "members": [
+            {
+              "name": "0",
+              "type": "u16",
+              "before_line": 8,
+              "role": "字体字重偏好数值",
+              "documentation_decision": "type-doc-covers",
+              "tuple": true,
+              "after_line": 11
+            }
+          ],
+          "evidence": [
+            "E4"
+          ],
+          "after_lines": [
+            8,
+            11
+          ],
+          "declaration_after": 11,
+          "span_sha256": [
+            "bc7a150197bc3d7772b7d8ae49dbc017afa71fe8a4fa5a532b541bec94e70439"
+          ]
+        },
+        {
+          "name": "impl FontWeight",
+          "kind": "inherent-impl",
+          "before_lines": [
+            10,
+            17
+          ],
+          "audit": "两个常量和一限幅构造方法，无字体查找。",
+          "documentation_decision": "方法补参数/返回；impl不重复。",
+          "after_lines": [
+            13,
+            24
+          ],
+          "span_sha256": [
+            "c93caaf5ed575e3b5fd16a606f05174f4a42cc6a0d178c3bfd48197568c34dfd",
+            "c55863070f07bc0c008c3fad8dfee8ee1ba339b021c051e67190882928bf5c50"
+          ]
+        },
+        {
+          "name": "FontWeight::NORMAL",
+          "kind": "associated-constant",
+          "before_lines": [
+            11,
+            11
+          ],
+          "audit": "Self(400)常规字重值，无资源解析。",
+          "documentation_decision": "常量名及字面值明确，不新增。",
+          "declaration_before": 11,
+          "value": "Self(400)",
+          "after_lines": [
+            14,
+            14
+          ],
+          "declaration_after": 14,
+          "span_sha256": [
+            "fee9a45dbbc1ad6768541ccab89471d33411c533bb112638bb2da3305b271e93"
+          ]
+        },
+        {
+          "name": "FontWeight::BOLD",
+          "kind": "associated-constant",
+          "before_lines": [
+            12,
+            12
+          ],
+          "audit": "Self(700)粗体字重值，无资源解析。",
+          "documentation_decision": "常量名及字面值明确，不新增。",
+          "declaration_before": 12,
+          "value": "Self(700)",
+          "after_lines": [
+            15,
+            15
+          ],
+          "declaration_after": 15,
+          "span_sha256": [
+            "d1e4ed3735d5dd425dc2835fcf2df78b6ec8ac91096d4b8f45e3d446cea74097"
+          ]
+        },
+        {
+          "name": "FontWeight::clamped",
+          "kind": "public-fn",
+          "before_lines": [
+            14,
+            16
+          ],
+          "audit": "value:u16经标准clamp(100,900)后包装；无Result，所有u16输入均可产生范围内值，不检查字体。",
+          "documentation_decision": "新增方法职责/参数/闭区间返回。",
+          "declaration_before": 14,
+          "parameters": [
+            {
+              "name": "value",
+              "type": "u16",
+              "role": "待限幅字重"
+            }
+          ],
+          "returns": "Self",
+          "control_points": [
+            {
+              "before_lines": [
+                15,
+                15
+              ],
+              "effect": "Self(value.clamp(100,900))；低于100取100，高于900取900，区间内保持原值",
+              "after_lines": [
+                22,
+                22
+              ]
+            }
+          ],
+          "evidence": [
+            "E4"
+          ],
+          "after_lines": [
+            17,
+            23
+          ],
+          "declaration_after": 21,
+          "span_sha256": [
+            "a3353724f623aba6efd5c0c49ddb7cdcb22ba691c8f3a872dc111047c1a9163c",
+            "c763d5f9018ca72e6b57603ef856f8424978913915c4eb35f0dc37a90e007f4f"
+          ]
+        },
+        {
+          "name": "FontStyle",
+          "kind": "public-enum",
+          "before_lines": [
+            19,
+            27
+          ],
+          "audit": "Normal/Italic/Oblique(f32)分类，Default选择Normal；Oblique参数单位及选面缓存/距离意图仍由既有TODO跟进。派生不执行选面。",
+          "documentation_decision": "保留原TODO和类型doc，不用新标签或猜测角度单位。",
+          "declaration_before": 22,
+          "variants": [
+            {
+              "name": "Normal",
+              "before_line": 24,
+              "payload": [],
+              "role": "默认常规样式",
+              "documentation_decision": "名称及#[default]明确，无新增",
+              "after_line": 31
+            },
+            {
+              "name": "Italic",
+              "before_line": 25,
+              "payload": [],
+              "role": "斜体分类",
+              "documentation_decision": "分类名明确，无新增",
+              "after_line": 32
+            },
+            {
+              "name": "Oblique",
+              "before_line": 26,
+              "payload": [
+                {
+                  "type": "f32",
+                  "role": "语义/单位尚未闭合的参数"
+                }
+              ],
+              "role": "带参数的倾斜分类",
+              "documentation_decision": "单位和意图由既有CR-TEXT-LAYOUT-0001保留，不写事实",
+              "after_line": 33
+            }
+          ],
+          "existing_issue": "CR-TEXT-LAYOUT-0001",
+          "after_lines": [
+            26,
+            34
+          ],
+          "declaration_after": 29,
+          "span_sha256": [
+            "9cd273ff1afa197231d4fe1667fcff711507a548693f55d2ee69eea6a97e9681"
+          ]
+        },
+        {
+          "name": "FontStretch",
+          "kind": "public-tuple-struct",
+          "before_lines": [
+            29,
+            31
+          ],
+          "audit": "以正常宽度100为基准的选面宽度偏好，不是布局缩放倍率；公开u16/derived Serde不会自动限幅。",
+          "documentation_decision": "保留原宽度距离说明，补显式clamped准入边界及方法链接。",
+          "declaration_before": 31,
+          "members": [
+            {
+              "name": "0",
+              "type": "u16",
+              "before_line": 31,
+              "role": "宽度偏好数值",
+              "documentation_decision": "type-doc-covers",
+              "tuple": true,
+              "after_line": 40
+            }
+          ],
+          "evidence": [
+            "E4"
+          ],
+          "after_lines": [
+            36,
+            40
+          ],
+          "declaration_after": 40,
+          "span_sha256": [
+            "4bb4d6dfe89d2526652c81e6d3eff038d892e2fab5c60764670f1af5688316c7",
+            "93fd2657e9edd323a0be3fe54af20a687ab6201f165edebb9e429a8f0578e25f"
+          ]
+        },
+        {
+          "name": "impl FontStretch",
+          "kind": "inherent-impl",
+          "before_lines": [
+            33,
+            39
+          ],
+          "audit": "正常宽度常量及clamped方法，未执行布局。",
+          "documentation_decision": "方法说明足够，不加impl机械文案。",
+          "after_lines": [
+            42,
+            52
+          ],
+          "span_sha256": [
+            "e4efbc5e4e50615b253824be6885c37d060bd7695caa2a7d0698f163ae063678",
+            "5b1695c7bff5b167f4d3e816ee5dd071face7c3cd032590857d30fd5609ab1bb"
+          ]
+        },
+        {
+          "name": "FontStretch::NORMAL",
+          "kind": "associated-constant",
+          "before_lines": [
+            34,
+            34
+          ],
+          "audit": "Self(100)正常宽度偏好。",
+          "documentation_decision": "常量名/字面值明确，不新增。",
+          "declaration_before": 34,
+          "value": "Self(100)",
+          "after_lines": [
+            43,
+            43
+          ],
+          "declaration_after": 43,
+          "span_sha256": [
+            "d90eb2c4c9e1f21a73af8a89fbcd1baa53199c35d7c5c3e7c5c262ef3e18f8eb"
+          ]
+        },
+        {
+          "name": "FontStretch::clamped",
+          "kind": "public-fn",
+          "before_lines": [
+            36,
+            38
+          ],
+          "audit": "value:u16经clamp(50,200)后包装，无Result或布局计算。",
+          "documentation_decision": "补参数单位、返回闭区间和不执行布局缩放。",
+          "declaration_before": 36,
+          "parameters": [
+            {
+              "name": "value",
+              "type": "u16",
+              "role": "正常宽度100基准的偏好数值"
+            }
+          ],
+          "returns": "Self",
+          "control_points": [
+            {
+              "before_lines": [
+                37,
+                37
+              ],
+              "effect": "Self(value.clamp(50,200))；低于50取50，高于200取200，区间内保持原值",
+              "after_lines": [
+                50,
+                50
+              ]
+            }
+          ],
+          "evidence": [
+            "E4"
+          ],
+          "after_lines": [
+            45,
+            51
+          ],
+          "declaration_after": 49,
+          "span_sha256": [
+            "be573382f0c20bf0bb1a5e0a1f0429baaa1c8149ddbafca7279b3a1bb10829c0",
+            "e2fae36ae9d2120277c14ecd03720688c594043ad6e16fbda98ea0749fd5cb9d"
+          ]
+        },
+        {
+          "name": "FaceIndex",
+          "kind": "public-type-alias",
+          "before_lines": [
+            41,
+            42
+          ],
+          "audit": "u32集合内部字体面索引，区别于数据库身份；类型别名不校验索引是否存在于实际文件。",
+          "documentation_decision": "已有字体源/集合定位说明充分，不新增。",
+          "declaration_before": 42,
+          "target": "u32",
+          "after_lines": [
+            54,
+            55
+          ],
+          "declaration_after": 55,
+          "span_sha256": [
+            "494cc775cb99c6b4859c20b51000a675b14439b0b41302aa52e952b2d545bf7c"
+          ]
+        },
+        {
+          "name": "VariationCoords",
+          "kind": "public-tuple-struct",
+          "before_lines": [
+            44,
+            47
+          ],
+          "audit": "拥有Vec<(u32,f32)>轴标签与设计坐标声明；Default为空Vec，derived Deserialize不调用有效实例归一。实际归一发生于数据库/metadata消费。",
+          "documentation_decision": "现有两行顺序/重复/有限值及整形栅格同实例说明充分，保留。",
+          "declaration_before": 47,
+          "members": [
+            {
+              "name": "0",
+              "type": "Vec<(u32, f32)>",
+              "before_line": 47,
+              "role": "拥有的轴标签/坐标序列",
+              "documentation_decision": "type-doc-covers",
+              "tuple": true,
+              "after_line": 60
+            }
+          ],
+          "evidence": [
+            "E3"
+          ],
+          "after_lines": [
+            57,
+            60
+          ],
+          "declaration_after": 60,
+          "span_sha256": [
+            "42f4d8499a17b69b1be4c92a38f6bf3b7f253defb1f7a79f7b328606db74f1ae"
+          ]
+        },
+        {
+          "name": "FontFaceDescriptor",
+          "kind": "public-struct",
+          "before_lines": [
+            49,
+            60
+          ],
+          "audit": "拥有family及选择/源索引/轴声明值；不拥有字体源字节，不自动证明覆盖。缺失variations字段经serde(default)使用VariationCoords::default空序列，不登记或归一实例。",
+          "documentation_decision": "现有职责/索引/坐标doc充分；regular补默认值与登记时机。",
+          "declaration_before": 52,
+          "members": [
+            {
+              "name": "family",
+              "type": "FontFamilyName",
+              "before_line": 53,
+              "role": "声明的家族值",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 66
+            },
+            {
+              "name": "weight",
+              "type": "FontWeight",
+              "before_line": 54,
+              "role": "字重声明",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 67
+            },
+            {
+              "name": "style",
+              "type": "FontStyle",
+              "before_line": 55,
+              "role": "样式声明",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 68
+            },
+            {
+              "name": "stretch",
+              "type": "FontStretch",
+              "before_line": 56,
+              "role": "宽度声明",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 69
+            },
+            {
+              "name": "face_index",
+              "type": "FaceIndex",
+              "before_line": 57,
+              "role": "源文件集合索引",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 70
+            },
+            {
+              "name": "variations",
+              "type": "VariationCoords",
+              "before_line": 59,
+              "role": "默认轴声明",
+              "documentation_decision": "type-doc-covers",
+              "serde_default_before": 58,
+              "after_line": 72,
+              "serde_default_after": 71
+            }
+          ],
+          "evidence": [
+            "E3",
+            "E4",
+            "E5"
+          ],
+          "after_lines": [
+            62,
+            73
+          ],
+          "declaration_after": 65,
+          "span_sha256": [
+            "e6efb3c8d1705aa536e48b82a5b5011ba05b45d5d2e3e9dc282dbf0b8857315e"
+          ]
+        },
+        {
+          "name": "impl FontFaceDescriptor",
+          "kind": "inherent-impl",
+          "before_lines": [
+            62,
+            73
+          ],
+          "audit": "只含regular默认声明组装，无源文件读取/注册动作。",
+          "documentation_decision": "方法解释参数/返回，impl不重复。",
+          "after_lines": [
+            75,
+            91
+          ],
+          "span_sha256": [
+            "3bee4b36c3bf4157d4bd512bc4c96d759518428f81529a777797614f35c82269",
+            "0ea8615bffa888a4293a9d0655313e8838700fda2431fb269ddd18525b53dba8"
+          ]
+        },
+        {
+          "name": "FontFaceDescriptor::regular",
+          "kind": "public-fn",
+          "before_lines": [
+            63,
+            72
+          ],
+          "audit": "family.into()及NORMAL/Normal/NORMAL、face_index0、VariationCoords::default组成Self；无字体源IO或数据库注册，也不验证索引存在。",
+          "documentation_decision": "新增summary与Markdown参数/返回/默认值及资源存在性边界。",
+          "declaration_before": 63,
+          "parameters": [
+            {
+              "name": "family",
+              "type": "impl Into<FontFamilyName>",
+              "role": "声明的家族值"
+            }
+          ],
+          "returns": "Self",
+          "control_points": [
+            {
+              "before_lines": [
+                64,
+                71
+              ],
+              "effect": "Self字面量存family.into、400/Normal/100、index0、空VariationCoords；无条件分支",
+              "after_lines": [
+                82,
+                89
+              ]
+            }
+          ],
+          "evidence": [
+            "E6"
+          ],
+          "after_lines": [
+            76,
+            90
+          ],
+          "declaration_after": 81,
+          "span_sha256": [
+            "e6fa18f90e1f78ac8bd8358a1adc09d0ae6098117c87cd272c5b282392191b6c",
+            "c3627258de345b2e9ca406f021dd7cfd2412e80c24fb3febc0a12809f0dc2585"
+          ]
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "imports and model boundary",
+          "before_lines": [
+            1,
+            4
+          ],
+          "entry": "模块编译",
+          "effect": "值属性导入，模块doc限定解析/归一在消费方。",
+          "next": "字重声明",
+          "documentation_decision": "模块职责新增",
+          "after_lines": [
+            1,
+            7
+          ],
+          "span_sha256": [
+            "dc5b13a765dd0fb3630abc3a623d55dcb678ca2b794356f7c24985ab5d1e618a",
+            "aef4696ad4f63a3834d26198e77e9cab39ac86b00e915134e914724f9675a799"
+          ]
+        },
+        {
+          "name": "font weight value",
+          "before_lines": [
+            5,
+            9
+          ],
+          "entry": "公开tuple/Serde构造",
+          "effect": "保存u16；不是隐式clamp路径。",
+          "next": "显式常量与clamped",
+          "documentation_decision": "已有类型doc充分",
+          "after_lines": [
+            8,
+            12
+          ],
+          "span_sha256": [
+            "d8394a6128cefef5b1288af89773f036ecb55f44c350cadeee1c7b7af3311cd7"
+          ]
+        },
+        {
+          "name": "font weight helpers",
+          "before_lines": [
+            10,
+            18
+          ],
+          "entry": "常量访问或u16参数",
+          "effect": "400/700常量；clamp100..900后包装，不查字体。",
+          "next": "返回FontWeight",
+          "documentation_decision": "方法参数/返回新增",
+          "after_lines": [
+            13,
+            25
+          ],
+          "span_sha256": [
+            "e933ce50d84d6e373dba00659c0faeec9e1ab570a388bc12f289fdc05da44361",
+            "7a125b794d9cf42adcf082401ad029a6e67f9e5e50b71660ec79c235c5521970"
+          ]
+        },
+        {
+          "name": "style variants and existing intent gap",
+          "before_lines": [
+            19,
+            28
+          ],
+          "entry": "Default或分类值构造",
+          "effect": "Default Normal；Italic/Oblique(f32)仅分类载荷，原TODO保持待确认。",
+          "next": "选面与缓存消费",
+          "documentation_decision": "既有TODO/doc保留，不新增问题",
+          "after_lines": [
+            26,
+            35
+          ],
+          "span_sha256": [
+            "0f1673129fcfe42c1b32867711f4929630d1761eb91c3ebd3219735ffae0a2e0"
+          ]
+        },
+        {
+          "name": "font stretch value",
+          "before_lines": [
+            29,
+            32
+          ],
+          "entry": "公开tuple/Serde构造",
+          "effect": "保存u16偏好；不会自动clamp，不是布局倍率。",
+          "next": "正常宽度与clamped",
+          "documentation_decision": "补直接构造/Serde边界",
+          "after_lines": [
+            36,
+            41
+          ],
+          "span_sha256": [
+            "03bffeac70cf4d5f1b7a0767ac783c4a489e23cc1e670d57cc2ee4d05538df15",
+            "d384941ecf4f207c7b4e6a6c97c8330fd4517e138f6ffa8e10b69d9a0cdfbb86"
+          ]
+        },
+        {
+          "name": "font stretch helpers",
+          "before_lines": [
+            33,
+            40
+          ],
+          "entry": "常量访问或u16参数",
+          "effect": "100常量；clamp50..200后包装，不执行布局缩放。",
+          "next": "返回FontStretch",
+          "documentation_decision": "方法参数/返回新增",
+          "after_lines": [
+            42,
+            53
+          ],
+          "span_sha256": [
+            "e9bbe5ffb94f7783775dffa20be30e8a7023eda39a30963424b9685389c660a4",
+            "cf7649a815af46a3df08c0786b3eb68f172353eb9b53a85eb72007ee13e8ac2d"
+          ]
+        },
+        {
+          "name": "collection face index",
+          "before_lines": [
+            41,
+            43
+          ],
+          "entry": "u32索引值",
+          "effect": "别名不校验实际字体集合边界。",
+          "next": "字体源解析消费者",
+          "documentation_decision": "已有doc充分",
+          "after_lines": [
+            54,
+            56
+          ],
+          "span_sha256": [
+            "eec4e828d36647566984a526338ff6deb80fdfc2cac211d24616c4c4d5e0d782"
+          ]
+        },
+        {
+          "name": "variation declaration",
+          "before_lines": [
+            44,
+            48
+          ],
+          "entry": "Vec轴坐标或Default",
+          "effect": "拥有序列但未规范化/登记实例；Default空序列。",
+          "next": "数据库effective_variations/实例表",
+          "documentation_decision": "已有doc充分",
+          "after_lines": [
+            57,
+            61
+          ],
+          "span_sha256": [
+            "fa262492b3ced76c1b06e262d7a89dd7e098baca4e3f74f72c2edea9e2a697fb"
+          ]
+        },
+        {
+          "name": "face descriptor and serde default",
+          "before_lines": [
+            49,
+            61
+          ],
+          "entry": "声明组装/派生解码",
+          "effect": "保存6字段；缺variations时默认空坐标，无源字节或覆盖证明。",
+          "next": "regular或字体登记消费者",
+          "documentation_decision": "已有职责doc充分",
+          "after_lines": [
+            62,
+            74
+          ],
+          "span_sha256": [
+            "636c60a461423caa4dde57ab94117a78872ba16f8055488cb69b4fb918f4f6bc"
+          ]
+        },
+        {
+          "name": "regular descriptor assembly",
+          "before_lines": [
+            62,
+            73
+          ],
+          "entry": "family参数",
+          "effect": "into转换及固定默认属性/index0/空轴坐标，不读文件、不注册。",
+          "next": "返回独立值，由外部register_stored_face消费",
+          "documentation_decision": "参数/返回默认值和存在性边界新增",
+          "after_lines": [
+            75,
+            91
+          ],
+          "span_sha256": [
+            "3bee4b36c3bf4157d4bd512bc4c96d759518428f81529a777797614f35c82269",
+            "0ea8615bffa888a4293a9d0655313e8838700fda2431fb269ddd18525b53dba8"
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "name": "FontWeight derive",
+          "before_line": 7,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "PartialEq",
+            "Eq",
+            "PartialOrd",
+            "Ord",
+            "Hash",
+            "Serialize",
+            "Deserialize"
+          ],
+          "after_line": 10
+        },
+        {
+          "name": "FontStyle derive",
+          "before_line": 21,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "Default",
+            "PartialEq",
+            "Serialize",
+            "Deserialize"
+          ],
+          "after_line": 28
+        },
+        {
+          "name": "FontStyle default variant",
+          "before_line": 23,
+          "attribute": "#[default]",
+          "target": "FontStyle::Normal",
+          "after_line": 30
+        },
+        {
+          "name": "FontStretch derive",
+          "before_line": 30,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "PartialEq",
+            "Eq",
+            "PartialOrd",
+            "Ord",
+            "Hash",
+            "Serialize",
+            "Deserialize"
+          ],
+          "after_line": 39
+        },
+        {
+          "name": "VariationCoords derive",
+          "before_line": 46,
+          "traits": [
+            "Clone",
+            "Debug",
+            "Default",
+            "PartialEq",
+            "Serialize",
+            "Deserialize"
+          ],
+          "after_line": 59
+        },
+        {
+          "name": "FontFaceDescriptor derive",
+          "before_line": 51,
+          "traits": [
+            "Clone",
+            "Debug",
+            "PartialEq",
+            "Serialize",
+            "Deserialize"
+          ],
+          "after_line": 64
+        },
+        {
+          "name": "FontFaceDescriptor variations default",
+          "before_line": 58,
+          "attribute": "#[serde(default)]",
+          "target": "variations -> VariationCoords::default()",
+          "after_line": 71
+        }
+      ],
+      "coverage_basis": "Manual complete original source read, with declarations/members/variants and semantic entry-effect-next blocks. Lexical declaration output is a location aid, not AST/call-resolution completeness.",
+      "tests": {
+        "direct_mount": false,
+        "owned_normal": 0,
+        "owned_ignored": 0,
+        "executed": 0
+      },
+      "before_sha256": "2311c2c0783238c526fafa2a4098ecf0e2265c5d7931e326e769b591cdc91f98",
+      "after_sha256": "0a1eace5660db1ef066a3f0a532d3f492007175e06071f2163e093bca339cd71",
+      "before_bytes": 2755,
+      "after_bytes": 3779,
+      "before_LF": 73,
+      "after_LF": 91,
+      "before_CRLF": 0,
+      "after_CRLF": 0,
+      "BOM": false,
+      "insertions": [
+        {
+          "before_line": 1,
+          "exact_text": "//! 字体面的选择属性、源索引与可变轴声明值。\n//! 限幅方法只处理数值；字体源解析和实例归一由消费方负责。\n\n",
+          "before_offset": 0,
+          "after_offset": 0,
+          "after_line": 1,
+          "length": 152,
+          "LF": 3,
+          "sha256": "9d60be60af0b7f7080ac19f7a68dc1423ba73cef269a8e98dc95335f19604cd5"
+        },
+        {
+          "before_line": 14,
+          "exact_text": "    /// 按本模型的字重范围组装包装值。\n    ///\n    /// # 参数与返回\n    /// `value` 为待截断的字重；返回 `100..=900` 内的值，不查找或验证字体面。\n",
+          "before_offset": 477,
+          "after_offset": 629,
+          "after_line": 17,
+          "length": 190,
+          "LF": 4,
+          "sha256": "c1d7e9c65c1aa331d339ec54b96cb0d432aa7a40e311cac20f12cf97fda49ec1"
+        },
+        {
+          "before_line": 30,
+          "exact_text": "/// 公开字段直接构造和派生反序列化不会调用 [`Self::clamped`]；\n/// 只有显式调用该方法时才按本模块的范围截断。\n",
+          "before_offset": 1137,
+          "after_offset": 1479,
+          "after_line": 37,
+          "length": 151,
+          "LF": 2,
+          "sha256": "be2af7db3682427777995172a6c1f4efad0d3ca5819f42b1e93935b6d5b6307b"
+        },
+        {
+          "before_line": 36,
+          "exact_text": "    /// 按本模型的宽度范围组装包装值。\n    ///\n    /// # 参数与返回\n    /// `value` 以正常宽度 `100` 为基准；返回截断到 `50..=200` 的值，不执行布局缩放。\n",
+          "before_offset": 1323,
+          "after_offset": 1816,
+          "after_line": 45,
+          "length": 199,
+          "LF": 4,
+          "sha256": "ca46f3d6da5515e2a2033e3d3839692a10a615601830578e131cf6a2bd22836d"
+        },
+        {
+          "before_line": 63,
+          "exact_text": "    /// 组装常规样式的字体面声明。\n    ///\n    /// # 参数与返回\n    /// `family` 转为 `FontFamilyName`；返回字重 `400`、`Normal` 样式、正常宽度 `100`、集合索引 `0` 及空轴坐标。\n    /// 返回值未读取字体源或登记字体面，也不证明该集合索引在实际文件中存在。\n",
+          "before_offset": 2424,
+          "after_offset": 3116,
+          "after_line": 76,
+          "length": 332,
+          "LF": 5,
+          "sha256": "a964fd1f54dd2960f2ae5badccb100a2c5c204e9e0175a7692a7d302472642a8"
+        }
+      ],
+      "inverse_sha256": "2311c2c0783238c526fafa2a4098ecf0e2265c5d7931e326e769b591cdc91f98",
+      "rawHEAD_sha256": "2311c2c0783238c526fafa2a4098ecf0e2265c5d7931e326e769b591cdc91f98",
+      "changed": true
+    },
+    {
+      "path": "zircon_runtime/src/text/model/font/family.rs",
+      "objects": [
+        {
+          "name": "serde, family and descriptor imports",
+          "kind": "import-group",
+          "before_lines": [
+            1,
+            6
+          ],
+          "audit": "Serde、FontFamilyName和FontFaceDescriptor导入；不执行字体源或数据库操作。",
+          "documentation_decision": "三条导入边清楚，不需要新模块doc来重复唯一类型职责。",
+          "after_lines": [
+            1,
+            6
+          ],
+          "span_sha256": [
+            "edac4366319873fbf21a3745a6215d79c246ee64d875055c73b67f957763cc69"
+          ]
+        },
+        {
+          "name": "FontFamilyDescriptor",
+          "kind": "public-struct",
+          "before_lines": [
+            7,
+            14
+          ],
+          "audit": "拥有家族名与字体面声明Vec；缺faces字段默认空Vec，不能据此证明实际注册、源字节或可用实例。",
+          "documentation_decision": "原两行已完整说明值用途及不登记/不含字体字节，完全不改源码。",
+          "declaration_before": 10,
+          "members": [
+            {
+              "name": "name",
+              "type": "FontFamilyName",
+              "before_line": 11,
+              "role": "家族描述名",
+              "documentation_decision": "type-doc-covers",
+              "after_line": 11
+            },
+            {
+              "name": "faces",
+              "type": "Vec<FontFaceDescriptor>",
+              "before_line": 13,
+              "role": "拥有的各字体面声明",
+              "documentation_decision": "type-doc-covers",
+              "serde_default_before": 12,
+              "after_line": 13,
+              "serde_default_after": 12
+            }
+          ],
+          "evidence": [
+            "E1",
+            "S1"
+          ],
+          "after_lines": [
+            7,
+            14
+          ],
+          "declaration_after": 10,
+          "span_sha256": [
+            "258916cd26e3865648e5b4d8acb60bd3e8bf5b49474e2f2d68bdff3a09239800"
+          ]
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "family descriptor imports",
+          "before_lines": [
+            1,
+            6
+          ],
+          "entry": "模块编译",
+          "effect": "仅导入类型/派生，无外部状态。",
+          "next": "唯一family声明",
+          "documentation_decision": "导入清楚无需新增",
+          "after_lines": [
+            1,
+            6
+          ],
+          "span_sha256": [
+            "edac4366319873fbf21a3745a6215d79c246ee64d875055c73b67f957763cc69"
+          ]
+        },
+        {
+          "name": "family aggregate and serde default",
+          "before_lines": [
+            7,
+            14
+          ],
+          "entry": "值构造/派生解码",
+          "effect": "name和faces值集合；缺faces时空Vec，不读取/登记字体或产生实例。",
+          "next": "父模块重导，限定搜索未见生产调用",
+          "documentation_decision": "既有说明充分，所有源码字节不变",
+          "after_lines": [
+            7,
+            14
+          ],
+          "span_sha256": [
+            "258916cd26e3865648e5b4d8acb60bd3e8bf5b49474e2f2d68bdff3a09239800"
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "name": "FontFamilyDescriptor derive",
+          "before_line": 9,
+          "traits": [
+            "Clone",
+            "Debug",
+            "PartialEq",
+            "Serialize",
+            "Deserialize"
+          ],
+          "after_line": 9
+        },
+        {
+          "name": "FontFamilyDescriptor faces default",
+          "before_line": 12,
+          "attribute": "#[serde(default)]",
+          "target": "faces -> Vec::default()",
+          "after_line": 12
+        }
+      ],
+      "coverage_basis": "Manual complete original source read, with declarations/members/variants and semantic entry-effect-next blocks. Lexical declaration output is a location aid, not AST/call-resolution completeness.",
+      "tests": {
+        "direct_mount": false,
+        "owned_normal": 0,
+        "owned_ignored": 0,
+        "executed": 0
+      },
+      "before_sha256": "32d679bf4c71469b4023bb016f0ab5dc2c61ce22dee6902f33a40191adf084be",
+      "after_sha256": "32d679bf4c71469b4023bb016f0ab5dc2c61ce22dee6902f33a40191adf084be",
+      "before_bytes": 490,
+      "after_bytes": 490,
+      "before_LF": 14,
+      "after_LF": 14,
+      "before_CRLF": 0,
+      "after_CRLF": 0,
+      "BOM": false,
+      "insertions": [],
+      "inverse_sha256": "32d679bf4c71469b4023bb016f0ab5dc2c61ce22dee6902f33a40191adf084be",
+      "rawHEAD_sha256": "32d679bf4c71469b4023bb016f0ab5dc2c61ce22dee6902f33a40191adf084be",
+      "changed": false
+    }
+  ],
+  "context_files": [
+    {
+      "id": "C1",
+      "path": "zircon_runtime/src/text/model/font/mod.rs",
+      "sha256": "0da7f02ee67af5a676d66823a6b614535ff4c7f85ce30291c83b941570e57886",
+      "bytes": 460,
+      "LF": 16,
+      "read_spans": [
+        [
+          1,
+          16
+        ]
+      ],
+      "role": "parent mount and reexports only",
+      "formal_coverage": false,
+      "read_span_hashes": [
+        {
+          "lines": [
+            1,
+            16
+          ],
+          "sha256": "0da7f02ee67af5a676d66823a6b614535ff4c7f85ce30291c83b941570e57886"
+        }
+      ]
+    },
+    {
+      "id": "C2",
+      "path": "zircon_runtime/src/text/model/mod.rs",
+      "sha256": "65930050e4fb75c674a6993e8f0fd800fa3ef009d9730fe676066903e0d22b73",
+      "bytes": 1787,
+      "LF": 41,
+      "read_spans": [
+        [
+          1,
+          41
+        ]
+      ],
+      "role": "font parent mount; no candidate-owned tests",
+      "formal_coverage": false,
+      "read_span_hashes": [
+        {
+          "lines": [
+            1,
+            41
+          ],
+          "sha256": "65930050e4fb75c674a6993e8f0fd800fa3ef009d9730fe676066903e0d22b73"
+        }
+      ]
+    },
+    {
+      "id": "C3",
+      "path": "zircon_runtime/src/text/font/database/face_matching.rs",
+      "sha256": "9b7a18c4e88cbf28b439510de5675768a4ce121f4be28ecfdda7646b24378551",
+      "bytes": 11405,
+      "LF": 329,
+      "read_spans": [
+        [
+          91,
+          135
+        ]
+      ],
+      "role": "actual FontQuery/FontMatch consumer",
+      "formal_coverage": false,
+      "read_span_hashes": [
+        {
+          "lines": [
+            91,
+            135
+          ],
+          "sha256": "0c113aa6caab9dff184cb57d65312427486e9e6058458c8d384b7f0610108ab6"
+        }
+      ]
+    },
+    {
+      "id": "C4",
+      "path": "zircon_runtime/src/text/font/database/instances.rs",
+      "sha256": "28daf254495dfb5b144c1c98adf270baf9cd6f29cfab5c7f6a001e03246154be",
+      "bytes": 4240,
+      "LF": 131,
+      "read_spans": [
+        [
+          10,
+          44
+        ]
+      ],
+      "role": "actual FontFaceId/VariationCoords -> InstancedFaceId path",
+      "formal_coverage": false,
+      "read_span_hashes": [
+        {
+          "lines": [
+            10,
+            44
+          ],
+          "sha256": "42ce947d7ac1bbd33574169927cf42df382074ffd6568a7fb9744fed12ffe967"
+        }
+      ]
+    },
+    {
+      "id": "C5",
+      "path": "zircon_runtime/src/text/font/descriptors.rs",
+      "sha256": "682f76347624b8980232477151de64651a45783068c031ed0cb6910b30008ee1",
+      "bytes": 2834,
+      "LF": 89,
+      "read_spans": [
+        [
+          1,
+          75
+        ]
+      ],
+      "role": "production descriptor assembly and explicit clamp calls",
+      "formal_coverage": false,
+      "read_span_hashes": [
+        {
+          "lines": [
+            1,
+            75
+          ],
+          "sha256": "cfce12d3790919ccb2ddc23234a758a0a91733a9ebf1c65b360089d07824d905"
+        }
+      ]
+    },
+    {
+      "id": "C6",
+      "path": "zircon_runtime/src/text/font/face_metadata.rs",
+      "sha256": "b4ce8e466ad6a56618a77a979b3de070ab014f260052450e5ad0130dc737e297",
+      "bytes": 11341,
+      "LF": 347,
+      "read_spans": [
+        [
+          64,
+          80
+        ]
+      ],
+      "role": "metadata import calls FontWeight::clamped",
+      "formal_coverage": false,
+      "read_span_hashes": [
+        {
+          "lines": [
+            64,
+            80
+          ],
+          "sha256": "f09c6584b9c06981b51b5f175934b7b31ad4ab15dc92f01465fb84cf3e890cea"
+        }
+      ]
+    },
+    {
+      "id": "C7",
+      "path": "zircon_runtime/src/text/font/database.rs",
+      "sha256": "19a7c1a25afed96ca3330b78ce57d316c54056f963bf0476d8b49c2ffdccfbf9",
+      "bytes": 26437,
+      "LF": 746,
+      "read_spans": [
+        [
+          738,
+          746
+        ]
+      ],
+      "role": "external test root mount only",
+      "formal_coverage": false,
+      "read_span_hashes": [
+        {
+          "lines": [
+            738,
+            746
+          ],
+          "sha256": "d3dba7a69639fa48da63755a5dc2b36fc73bba6ee85110d323796a67c363157f"
+        }
+      ]
+    },
+    {
+      "id": "C8",
+      "path": "zircon_runtime/src/text/font/database/tests/cases.rs",
+      "sha256": "645e6fb9aac81dd61b8c69e353f105cff8ae60a7093f0b165636b3637009b148",
+      "bytes": 869,
+      "LF": 32,
+      "read_spans": [
+        [
+          30,
+          32
+        ]
+      ],
+      "role": "variations test child mount only",
+      "formal_coverage": false,
+      "read_span_hashes": [
+        {
+          "lines": [
+            30,
+            32
+          ],
+          "sha256": "3bca492a5d159d679a3864273667fe5784fd32048da87501317b5695219928d6"
+        }
+      ]
+    },
+    {
+      "id": "C9",
+      "path": "zircon_runtime/src/text/font/database/tests/variations.rs",
+      "sha256": "1b920b54e60ce1f420348f1d36b045e83975dbede2345c2ace5bc33e4aedaa83",
+      "bytes": 7364,
+      "LF": 197,
+      "read_spans": [
+        [
+          1,
+          27
+        ]
+      ],
+      "role": "one synthetic variation-identity test and next attribute",
+      "formal_coverage": false,
+      "read_span_hashes": [
+        {
+          "lines": [
+            1,
+            27
+          ],
+          "sha256": "7d2b81a63b5f9a4e0a87a6010eba14b45293fab7cd18ec299c690f2ed8c2ec2c"
+        }
+      ]
+    },
+    {
+      "id": "C10",
+      "path": ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py",
+      "sha256": "bbf991fdfc3caf46478c0372d511d27e346803fec1add372e8a95ee17e19100a",
+      "bytes": 36537,
+      "LF": 953,
+      "read_spans": [
+        [
+          268,
+          269
+        ],
+        [
+          282,
+          286
+        ],
+        [
+          876,
+          915
+        ]
+      ],
+      "role": "generic raw source reader, no comments stripped before regex",
+      "formal_coverage": false,
+      "read_span_hashes": [
+        {
+          "lines": [
+            268,
+            269
+          ],
+          "sha256": "a4c850865c4c931d9de3664ddd5779af60c3bfe4aa3925f3f5e4bf73ef8f20c8"
+        },
+        {
+          "lines": [
+            282,
+            286
+          ],
+          "sha256": "39cfcf10643085083238484fac47b1417136cca4710587bb0f1d6f96bbc094ab"
+        },
+        {
+          "lines": [
+            876,
+            915
+          ],
+          "sha256": "61d6e5c3b61c4d9db9e5e299547618346b318bb968e44788e9f7eb52307464ab"
+        }
+      ]
+    }
+  ],
+  "call_edges": [
+    {
+      "id": "E1",
+      "context": "C1",
+      "lines": [
+        1,
+        16
+      ],
+      "from": "text::model::font",
+      "to": "database/face/family and public reexports",
+      "contract": "Three direct leaf mounts; no owned #[cfg(test)] module in the entire three leaves or full font parent. Model parent C2:1-2 mounts font."
+    },
+    {
+      "id": "E2",
+      "context": "C3",
+      "lines": [
+        93,
+        131
+      ],
+      "from": "FontDatabase::match_face",
+      "to": "&FontQuery -> Option<FontMatch>",
+      "contract": "Cache lookup then requested-family order105, project/runtime fallback chains106-125; synth flags in fallback result114-118. Query is data; this consumer performs selection, not query constructor or derived Serde."
+    },
+    {
+      "id": "E3",
+      "context": "C4",
+      "lines": [
+        12,
+        25
+      ],
+      "from": "FontDatabase::instance",
+      "to": "FontFaceId + &VariationCoords -> Result<InstancedFaceId,...>",
+      "contract": "Unknown face rejected17-18; metadata.effective_variations20-22 then instances.resolve_or_insert23-25. IDs alone do not hold the database or face bytes; model value declaration does not run this path."
+    },
+    {
+      "id": "E4",
+      "context": "C5",
+      "lines": [
+        44,
+        69
+      ],
+      "from": "descriptor metadata/fontdb conversion",
+      "to": "FontStretch::clamped and FontWeight::clamped",
+      "contract": "Width class is translated45-56 then explicitly clamped57; fontdb metadata explicit weight64 and stretch66 calls. This demonstrates clamp is a consumer call, not a serde hook."
+    },
+    {
+      "id": "E5",
+      "context": "C5",
+      "lines": [
+        22,
+        41
+      ],
+      "from": "descriptor_from_font_metadata",
+      "to": "FontFaceDescriptor value literal",
+      "contract": "Family source priority28-33, copied metadata attributes/face_index34-40 and empty variations. This assembles metadata, does not itself register a face."
+    },
+    {
+      "id": "E6",
+      "context": "C9",
+      "lines": [
+        5,
+        24
+      ],
+      "from": "text_font_variations_hash_stable",
+      "to": "FontFaceDescriptor::regular and VariationCoords",
+      "contract": "regular('Inter') passed to register_stored_face with synthetic byte payload; database.instance compares resulting IDs for same/different coordinate sequences. Test context only."
+    },
+    {
+      "id": "E7",
+      "context": "C6",
+      "lines": [
+        69,
+        80
+      ],
+      "from": "FontFaceMetadata parse path",
+      "to": "FontWeight::clamped",
+      "contract": "Weight from parsed face is explicitly clamped73; no implicit guarantee for direct tuple/Serde paths."
+    }
+  ],
+  "search_evidence": [
+    {
+      "id": "S1",
+      "query": "rg -n --glob *.rs FontFamilyDescriptor zircon_runtime zircon_runtime_interface zircon_editor zircon_app zircon_plugins",
+      "exit": 0,
+      "total_lines": 3,
+      "result": "Only declaration, text/model/font/mod.rs reexport and text/mod.rs reexport in those searched roots. No production registration call established; this bounded absence is not a whole-world/API-usage claim."
+    },
+    {
+      "id": "S2",
+      "query": "rg -n -F -e text/model/font/ -e model\\\\font\\\\ tools/tests zircon_runtime/src/tests zircon_runtime/tests",
+      "exit": 1,
+      "total_lines": 0,
+      "result": "No explicit raw-input path matches in searched test roots; generic naming reader C10 still covers Runtime source."
+    },
+    {
+      "id": "S3",
+      "query": "constructor/variation locator",
+      "result": "Initial wide caller locators displayed first12/15 and reported remaining counts; they were not claimed fully read. Necessary production methods and one test were subsequently read at pinned spans."
+    }
+  ],
+  "test_contracts": [
+    {
+      "name": "text_font_variations_hash_stable",
+      "context": "C9",
+      "lines": [
+        3,
+        25
+      ],
+      "owned": false,
+      "normal": true,
+      "executed": false,
+      "mount": [
+        {
+          "context": "C7",
+          "lines": [
+            744,
+            746
+          ]
+        },
+        {
+          "context": "C8",
+          "lines": [
+            31,
+            32
+          ]
+        }
+      ],
+      "assertions": [
+        {
+          "lines": [
+            17,
+            20
+          ],
+          "proves": "same face with equal wght650 declaration yields equal instance ID in this synthetic fixture"
+        },
+        {
+          "lines": [
+            21,
+            24
+          ],
+          "proves": "same face with wght650 versus700 yields unequal instance IDs in this fixture"
+        }
+      ],
+      "limits": "No execution. Synthetic register_stored_face input is not real-font variation output, allocator behavior, angle semantics, full glyph coverage or cross-database/global ID stability. Other external tests remain context only and are not claimed covered."
+    }
+  ],
+  "trait_macro_registration_ffi": {
+    "serde": "Ten derives include external Serialize/Deserialize macro generation. Tuple/scalar/Vec field serialization is value transport, not clamped construction, font lookup, resource registration or semantic validation.",
+    "default_fields": "FontFaceDescriptor.variations #[serde(default)] uses empty VariationCoords default; FontFamilyDescriptor.faces #[serde(default)] uses empty Vec. FontStyle #[default] selects Normal.",
+    "builtins": "Clone/Copy/Debug/PartialEq/Eq/Hash/Ord traits are listed per attribute. Float-bearing FontStyle/VariationCoords/descriptor values lack Eq in their derives; no invented finite/angle validation or exact float semantics.",
+    "registration": "No runtime registry, reflection derive, dynamic registrar, local proc-macro definition or direct FFI/unsafe/extern/repr(C) entry in exact three complete source files. Actual instance registration occurs in read-only E3; this does not grant ownership of that consumer.",
+    "lifecycle": "IDs are numbers and declarations own only names/Vec values. These values do not keep a font database, file or font instance alive. Serde/Copy is not ABI stability or resource-lifetime ownership.",
+    "references": "No new rustdoc template sections where redundant. FontStretch added Self::clamped reference resolves to existing inherent method; no source/API/macro-input changes."
+  },
+  "raw_source_consumers": [
+    {
+      "context": "C10",
+      "domain": "Runtime src/**/*.rs including these three leaves; classification follows raw token detection.",
+      "read_operators": "UTF8 errors=replace at268-269; source glob282-286; _decisions_for_term876-915 splitlines then per-line regex.finditer then unique tokens; comments are not removed first.",
+      "regexes": [
+        "\\b[A-Za-z0-9_]*editor[A-Za-z0-9_]*\\b",
+        "\\b[A-Za-z0-9_]*legacy[A-Za-z0-9_]*\\b"
+      ],
+      "flags": "IGNORECASE",
+      "vectors": [
+        {
+          "path": "zircon_runtime/src/text/model/font/database.rs",
+          "term": "editor",
+          "before": [],
+          "current": [],
+          "new": []
+        },
+        {
+          "path": "zircon_runtime/src/text/model/font/database.rs",
+          "term": "legacy",
+          "before": [],
+          "current": [],
+          "new": []
+        },
+        {
+          "path": "zircon_runtime/src/text/model/font/face.rs",
+          "term": "editor",
+          "before": [],
+          "current": [],
+          "new": []
+        },
+        {
+          "path": "zircon_runtime/src/text/model/font/face.rs",
+          "term": "legacy",
+          "before": [],
+          "current": [],
+          "new": []
+        },
+        {
+          "path": "zircon_runtime/src/text/model/font/family.rs",
+          "term": "editor",
+          "before": [],
+          "current": [],
+          "new": []
+        },
+        {
+          "path": "zircon_runtime/src/text/model/font/family.rs",
+          "term": "legacy",
+          "before": [],
+          "current": [],
+          "new": []
+        }
+      ],
+      "new_contribution": 0,
+      "limits": "Only actual editor/legacy operands were re-evaluated; no complete naming audit, Rust test or external test runner execution."
+    }
+  ],
+  "issues": [
+    {
+      "id": "CR-TEXT-LAYOUT-0001",
+      "status": "preexisting-open-TODO",
+      "source": "zircon_runtime/src/text/model/font/face.rs",
+      "before_line": 19,
+      "after_line": 26,
+      "coverage_issue": "LEGACY:zircon_runtime/src/text/model/font/face.rs:19:TODO",
+      "evidence": "Original TODO states unresolved Oblique parameter unit/style_distance versus cache-bit identity and missing angle behavior tests. All original bytes and exactly one label preserved by inverse; not promoted to BUG or duplicated.",
+      "next_step": "Keep original metadata/synthetic-consumer angle-contract investigation. This batch adds no interpretation of Oblique f32 units."
+    }
+  ],
+  "new_issues": [],
+  "reserved_issue_id": "CR-ZCA-R098-0001 unused",
+  "validation": {
+    "source": {
+      "source_count": 3,
+      "changed_sources": 2,
+      "unchanged_sources": 1,
+      "before_bytes": 5055,
+      "after_bytes": 6503,
+      "before_LF": 131,
+      "after_LF": 157,
+      "insertions": 7,
+      "inserted_LF": 26,
+      "inserted_bytes": 1448,
+      "inverse_equals_grant_and_rawHEAD": true,
+      "new_contribution": 0,
+      "existing_issue_label_preserved": true,
+      "diff_additions": 26,
+      "diff_deletions": 0,
+      "tests_executed": 0,
+      "raw_vectors_ref": "raw_source_consumers[0].vectors"
+    },
+    "commands": [
+      {
+        "argv": [
+          "rustfmt",
+          "--check",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true",
+          "zircon_runtime/src/text/model/font/database.rs",
+          "zircon_runtime/src/text/model/font/face.rs",
+          "zircon_runtime/src/text/model/font/family.rs"
+        ],
+        "exit": 0,
+        "stdout_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--check",
+          "--",
+          "zircon_runtime/src/text/model/font/database.rs",
+          "zircon_runtime/src/text/model/font/face.rs",
+          "zircon_runtime/src/text/model/font/family.rs"
+        ],
+        "exit": 0,
+        "stdout_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/model/font/database.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/model/font/face.rs.\nThe file will have its original line endings in your working directory"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "zircon_runtime/src/text/model/font/database.rs",
+          "zircon_runtime/src/text/model/font/face.rs",
+          "zircon_runtime/src/text/model/font/family.rs"
+        ],
+        "exit": 0,
+        "stdout_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--unified=3",
+          "--",
+          "zircon_runtime/src/text/model/font/database.rs",
+          "zircon_runtime/src/text/model/font/face.rs",
+          "zircon_runtime/src/text/model/font/family.rs"
+        ],
+        "exit": 0,
+        "stdout_bytes": 3210,
+        "stdout_sha256": "e8bcb26af2c4fa6774221da408302b3e0e6fa1ca701728cb73e4bfd2c757aebf",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/model/font/database.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/model/font/face.rs.\nThe file will have its original line endings in your working directory"
+      }
+    ],
+    "source_frozen": true,
+    "tests_executed": 0,
+    "cargo": 0,
+    "build": 0,
+    "helpers": 0,
+    "source_copies": 0,
+    "git_mutations": 0,
+    "formal_acceptance": false,
+    "root_review": "pending",
+    "rawHEAD_commands": "Source checker 07a63a ran git --no-optional-locks show HEAD:<path> for each owned source; actual stdout hashes are files[*].rawHEAD_sha256 and equalled inverse/grant."
+  },
+  "receipts": [
+    {
+      "phase": "candidate discovery",
+      "chunk": "74cb1a",
+      "exit": 0,
+      "pid": 33692
+    },
+    {
+      "phase": "candidate exact3 gate",
+      "chunk": "d2c507",
+      "exit": 0,
+      "pid": 53020
+    },
+    {
+      "phase": "caller locator",
+      "chunk": "1dc706",
+      "exit": 0,
+      "pid": 19356,
+      "result": "bounded firstN locator output, remaining counts explicit"
+    },
+    {
+      "phase": "caller evidence",
+      "chunk": "8e3c8a",
+      "exit": 0,
+      "pid": 27488
+    },
+    {
+      "phase": "consumer/test-mount closure",
+      "chunk": "055663",
+      "exit": 0,
+      "pid": 38512
+    },
+    {
+      "phase": "R098 fresh gate",
+      "outer": 18,
+      "chunk": "f2b748",
+      "exit": 0,
+      "pid": 43256,
+      "result": "exact canonical/pins/rawHEAD/stage/filter/status/cached/three retained plans/child absent/standard verified; index.lock observed present and untouched"
+    },
+    {
+      "phase": "source CAS writer",
+      "outer": 19,
+      "chunk": "1bd5cb",
+      "exit": 0,
+      "pid": 39112,
+      "result": "fresh exact gate then seven pure insertions; family source untouched"
+    },
+    {
+      "phase": "source independent check",
+      "outer": 20,
+      "chunk": "07a63a",
+      "exit": 0,
+      "pid": 27004,
+      "result": "exact3 rustfmt,diff,cached0,seven inverse blocks,rawHEAD,existing TODO and raw operands passed"
+    },
+    {
+      "phase": "child preparation span and pin gate",
+      "outer": 30,
+      "initial_chunk": "505905",
+      "session_id": 85446,
+      "pid": 32736,
+      "terminal_chunk": "e41f1d",
+      "exit": 0,
+      "result": "25 object span pairs,18 gapfree block span pairs,10 pinned context span models verified; exact grant unchanged,child absent,cached0"
+    },
+    {
+      "phase": "sole child draft create",
+      "outer": 34,
+      "initial_chunk": "cd71e3",
+      "session_id": 6283,
+      "pid": 42472,
+      "terminal_chunk": "3439f6",
+      "exit": 0,
+      "bytes": 18182,
+      "sha256": "4209db7d18535f2e50c642c71ce44e81ed0ffaab659cd2acd8685020662fd191",
+      "status": "incomplete/draft"
+    },
+    {
+      "phase": "sole child face partial and family append",
+      "outer": 36,
+      "chunk": "dec8f9",
+      "pid": 15848,
+      "exit": 0,
+      "sha256": "c7d5c6752409cd8796185761703106f5e382f1648830403828e3737f81625abb",
+      "status": "incomplete/draft"
+    },
+    {
+      "phase": "sole child complete face and contexts",
+      "outer": 37,
+      "initial_chunk": "3cca3e",
+      "session_id": 14920,
+      "pid": 44140,
+      "terminal_chunk": "2159a7",
+      "exit": 0,
+      "sha256": "1681e6381a64245781fc654102542aec5cc057edb387a486333b842f616bc45e",
+      "status": "incomplete/draft"
+    },
+    {
+      "phase": "sole child calls tests and contracts append",
+      "outer": 39,
+      "chunk": "2276bb",
+      "pid": 37532,
+      "exit": 0,
+      "sha256": "5f26cd5d9527dae066dea571c29966a1df4a40c1f14ca4e5092545830f30b93b",
+      "status": "incomplete/draft"
+    }
+  ],
+  "observations": [
+    "Root and other agents may change disjoint globals/HEAD; exact unchanged R098 canonical and source pins are the authority. HEAD gate observation e62354261849ede15838db4e1df8328a96827e0e is recorded, not a global lock.",
+    "index.lock was absent in candidate gate and present in R098 gate/writer. It was neither read for ownership nor modified; all readonly Git commands succeeded with --no-optional-locks.",
+    "Git warned LF may be replaced by CRLF. Actual before/after bytes remain LF-only/noBOM, with original bytes preserved. Permission warning about C:/Users/HeJiahui/.config/git/ignore retained; no permission/config workaround.",
+    "Core is independent read-only assistance, not formal root acceptance. Child/source write and final readback receipts will be handed off after actual terminal; no predicted native/PID/exit.",
+    {
+      "phase": "child-preparation",
+      "head_observed": "e62354261849ede15838db4e1df8328a96827e0e",
+      "assignment_sha256": "e1981d9cbafad03d1a59c94fc2fdd57b99d00986af36173f043d3b36e2a06792",
+      "index_lock": "not changed or used as ownership evidence"
+    }
+  ],
+  "core_review": {
+    "reviewer": "core_timer_sol",
+    "model": "gpt-6.1-sol/max",
+    "whole_original_sources": "131LF, three original pins matched e5a43b exit0 PID46280",
+    "instance_callee": "b7c7ae exit0 PID1560",
+    "failed_locator": "4b194f exit1 FileNotFound for mistakenly guessed database/descriptors.rs; no buffered body counted; correct actual path is text/font/descriptors.rs",
+    "final_docs": "821c25 exit0 PID8924 independently read all7 added blocks26LF against rawHEAD, all insert-only and inverse original pins. No must-fix new doc and no new BUG/TODO. Existing Oblique TODO preserved.",
+    "scope": "Core opinion is readonly assistance, not formal parent acceptance or executed tests/fmt/raw guard validation.",
+    "context_evidence": [
+      {
+        "path": "zircon_runtime/src/text/font/database/instances.rs",
+        "sha256": "28daf254495dfb5b144c1c98adf270baf9cd6f29cfab5c7f6a001e03246154be",
+        "bytes": 4240,
+        "LF": 131,
+        "read_spans": [
+          [
+            1,
+            120
+          ]
+        ],
+        "receipt": "b7c7ae exit0 PID1560"
+      },
+      {
+        "path": "zircon_runtime/src/text/font/instance.rs",
+        "sha256": "1bc81fdf2853b30ca95a7bce1f80658586ed1494d6cde5f15b6fafed4260d6e0",
+        "bytes": 12471,
+        "LF": 384,
+        "read_spans": [
+          [
+            1,
+            75
+          ],
+          [
+            305,
+            384
+          ]
+        ],
+        "supplemental_read_spans": [
+          [
+            260,
+            304
+          ]
+        ],
+        "receipt": "b7c7ae exit0 PID1560; supplemental821c25 exit0 PID8924"
+      },
+      {
+        "path": "zircon_runtime/src/text/font/database/face_matching.rs",
+        "sha256": "9b7a18c4e88cbf28b439510de5675768a4ce121f4be28ecfdda7646b24378551",
+        "bytes": 11405,
+        "LF": 329,
+        "read_spans": [
+          [
+            91,
+            135
+          ],
+          [
+            170,
+            230
+          ]
+        ],
+        "receipt": "fd3485 exit0 PID40504"
+      },
+      {
+        "path": "zircon_runtime/src/text/font/descriptors.rs",
+        "sha256": "682f76347624b8980232477151de64651a45783068c031ed0cb6910b30008ee1",
+        "bytes": 2834,
+        "LF": 89,
+        "read_spans": [
+          [
+            1,
+            89
+          ]
+        ],
+        "receipt": "fd3485 exit0 PID40504"
+      },
+      {
+        "path": "zircon_runtime/src/text/font/face_metadata.rs",
+        "sha256": "b4ce8e466ad6a56618a77a979b3de070ab014f260052450e5ad0130dc737e297",
+        "bytes": 11341,
+        "LF": 347,
+        "read_spans": [
+          [
+            64,
+            80
+          ],
+          [
+            153,
+            212
+          ]
+        ],
+        "receipt": "fd3485 exit0 PID40504"
+      },
+      {
+        "path": "zircon_runtime/src/text/font/database/tests/matching.rs",
+        "sha256": "e7b86ab3f95daa953a051247d5cb8f1dda3ea3d5a0f544597de4dc019349c9f6",
+        "bytes": 8104,
+        "LF": 244,
+        "read_spans": [
+          [
+            1,
+            85
+          ]
+        ],
+        "receipt": "821c25 exit0 PID8924"
+      },
+      {
+        "path": "zircon_runtime/src/text/font/database/tests/variations.rs",
+        "sha256": "1b920b54e60ce1f420348f1d36b045e83975dbede2345c2ace5bc33e4aedaa83",
+        "bytes": 7364,
+        "LF": 197,
+        "read_spans": [
+          [
+            1,
+            78
+          ]
+        ],
+        "receipt": "821c25 exit0 PID8924"
+      }
+    ],
+    "additional_receipts": [
+      {
+        "chunk": "c06388",
+        "exit": 1,
+        "result": "output bound failure; no body counted; PID not exposed"
+      },
+      {
+        "chunk": "6bf72c",
+        "exit": 0,
+        "pid": 51508,
+        "result": "restored locator; not additional whole-file audit"
+      }
+    ],
+    "no_new_native_for_final_handoff": true
+  },
+  "handoff": {
+    "source_frozen": true,
+    "child": "Sole complete child. Final write and independent readback terminal/hash supplied externally after actual completion; not predicted or self-certified here.",
+    "root_main_post_globals": "root-only",
+    "formal_acceptance": false,
+    "temporary_artifacts_created": 0,
+    "space_released_bytes": 0,
+    "retention": "canonical exact3 sources and sole child; no build/cache/helper/source snapshot created",
+    "all_receipts_before_final_write_are_terminal": true
+  }
+}

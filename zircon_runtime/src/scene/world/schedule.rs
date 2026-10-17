@@ -18,7 +18,8 @@ impl World {
         &self.schedule
     }
 
-    pub(crate) fn register_boxed_runtime_scene_system(
+    /// Registers a linked runtime system without a desktop plugin loader.
+    pub fn register_boxed_runtime_scene_system(
         &mut self,
         system: BoxedRuntimeSceneSystem,
     ) -> Result<(), ScheduleError> {

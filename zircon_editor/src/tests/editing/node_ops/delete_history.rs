@@ -124,6 +124,7 @@ fn deleting_parent_of_the_last_camera_is_rejected() {
 #[derive(Debug)]
 struct DeletePayloadDropProbe(Arc<AtomicUsize>);
 
+zircon_runtime_interface::impl_retained_owner_v1!(DeletePayloadDropProbe { 0 });
 impl Component for DeletePayloadDropProbe {}
 
 impl Drop for DeletePayloadDropProbe {
@@ -162,18 +163,28 @@ fn install_delete_target_change(
         .with_world_mut(std::mem::take);
     let replacement = Mutex::new(Some(replacement));
     level.with_world_mut(|scene| {
-        scene.observe_component_lifecycle::<Name>(kind, move |world, event| {
-            if event.entity() != cube {
-                return;
-            }
-            calls.fetch_add(1, Ordering::SeqCst);
-            match cause {
-                LifecycleTargetChange::World => {
-                    *world = replacement.lock().unwrap().take().unwrap()
-                }
-                LifecycleTargetChange::Schedule => *world.schedule_mut() = Default::default(),
-            }
-        });
+        scene.observe_component_lifecycle::<Name>(
+            kind,
+            // SAFETY: This retires the current World or schedule. Remaining work is counter-
+            // only scheduling; replacement history is never adopted.
+            unsafe {
+                use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                    if event.entity() != cube {
+                        return;
+                    }
+                    calls.fetch_add(1, Ordering::SeqCst);
+                    match cause {
+                        LifecycleTargetChange::World => {
+                            *world = replacement.lock().unwrap().take().unwrap()
+                        }
+                        LifecycleTargetChange::Schedule => {
+                            *world.schedule_mut() = Default::default()
+                        }
+                    }
+                })
+            },
+        );
     });
 }
 
@@ -336,4 +347,123 @@ fn restore_admission_failure_keeps_the_exact_move_only_batch_for_retry() {
     drop(context);
     drop(level);
     assert_eq!(drops.load(Ordering::SeqCst), 1);
+}
+
+#[derive(Debug)]
+struct DeleteRetainedBytesV1(Vec<u8>);
+zircon_runtime_interface::impl_retained_owner_v1!(DeleteRetainedBytesV1 { 0 });
+impl Component for DeleteRetainedBytesV1 {}
+
+#[derive(Debug)]
+struct DeleteRetainedEventV1;
+
+fn delete_retention_domain_v1(
+    record: u64,
+) -> crate::core::editing::engine::HistoryRetentionDomainV1 {
+    use crate::core::editing::engine::{HistoryRetentionBudgetV1, HistoryRetentionDomainV1};
+    HistoryRetentionDomainV1::try_new(HistoryRetentionBudgetV1 {
+        record_bytes: record,
+        history_bytes: record * 4,
+        committed_bytes: 16 * 1024 * 1024,
+        staging_bytes: 8 * 1024 * 1024,
+    })
+    .unwrap()
+}
+
+#[test]
+fn delete_history_charges_move_only_components_and_entity_observer_state() {
+    use zircon_runtime::core::framework::retained_memory::RetainedEntityObserverV1;
+    let drops = Arc::new(AtomicUsize::new(0));
+    let (level, context, cube) = delete_payload_context(Arc::clone(&drops));
+    let observed = Arc::new(AtomicUsize::new(0));
+    let original_pointer = level.with_world_mut(|world| {
+        let payload = Vec::<u8>::with_capacity(12 * 1024);
+        let original_pointer = payload.as_ptr() as usize;
+        world.insert(cube, DeleteRetainedBytesV1(payload)).unwrap();
+        world.observe_entity_event::<DeleteRetainedEventV1>(
+            cube,
+            RetainedEntityObserverV1::new(
+                (Vec::<u8>::with_capacity(8 * 1024), Arc::clone(&observed)),
+                |state, _, _, _| {
+                    state.1.fetch_add(1, Ordering::SeqCst);
+                },
+            ),
+        );
+        original_pointer
+    });
+    let domain = delete_retention_domain_v1(1024 * 1024);
+    let engine =
+        EditorTransactionEngine::with_retention_domain_v1(context, 128, domain.clone()).unwrap();
+    let baseline = domain.snapshot().unwrap().committed_bytes;
+    let command = level
+        .with_world(|world| EditorCommand::delete_node(world, cube))
+        .unwrap();
+    let mut scope = engine
+        .begin("delete retained payload", HistoryContextId::Global)
+        .unwrap();
+    scope.push(command).unwrap();
+    scope.commit().unwrap();
+
+    assert!(!level.with_world(|world| world.contains_entity(cube)));
+    assert!(domain.snapshot().unwrap().committed_bytes >= baseline + 20 * 1024);
+    assert_eq!(drops.load(Ordering::SeqCst), 0);
+    assert!(engine.undo(HistoryContextId::Global).unwrap());
+    let restored_pointer = level.with_world_mut(|world| {
+        let pointer = world.get::<DeleteRetainedBytesV1>(cube).unwrap().0.as_ptr() as usize;
+        world.trigger_entity_event(cube, DeleteRetainedEventV1);
+        pointer
+    });
+    assert_eq!(restored_pointer, original_pointer);
+    assert_eq!(observed.load(Ordering::SeqCst), 1);
+    assert_eq!(drops.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn redo_larger_current_subtree_rejects_before_detach_and_cursor_move() {
+    let (level, context, cube) = delete_payload_context(Arc::new(AtomicUsize::new(0)));
+    level.with_world_mut(|world| {
+        world
+            .insert(cube, DeleteRetainedBytesV1(Vec::with_capacity(256)))
+            .unwrap()
+    });
+    let domain = delete_retention_domain_v1(32 * 1024);
+    let engine =
+        EditorTransactionEngine::with_retention_domain_v1(context, 128, domain.clone()).unwrap();
+    let command = level
+        .with_world(|world| EditorCommand::delete_node(world, cube))
+        .unwrap();
+    let mut scope = engine
+        .begin("delete then grow", HistoryContextId::Global)
+        .unwrap();
+    scope.push(command).unwrap();
+    scope.commit().unwrap();
+    assert!(engine.undo(HistoryContextId::Global).unwrap());
+
+    let (generation, ticks, pointer) = level.with_world_mut(|world| {
+        world
+            .insert(cube, DeleteRetainedBytesV1(Vec::with_capacity(96 * 1024)))
+            .unwrap();
+        (
+            world.world_generation(),
+            world.component_change_ticks::<DeleteRetainedBytesV1>(cube),
+            world.get::<DeleteRetainedBytesV1>(cube).unwrap().0.as_ptr() as usize,
+        )
+    });
+    let before = engine.history_status(HistoryContextId::Global).unwrap();
+    let error = engine.redo(HistoryContextId::Global).unwrap_err();
+    assert!(matches!(error, EditCommandError::Retention(_)));
+    assert_eq!(
+        engine.history_status(HistoryContextId::Global).unwrap(),
+        before
+    );
+    assert_eq!(
+        level.with_world(|world| (
+            world.world_generation(),
+            world.component_change_ticks::<DeleteRetainedBytesV1>(cube),
+            world.get::<DeleteRetainedBytesV1>(cube).unwrap().0.as_ptr() as usize,
+        )),
+        (generation, ticks, pointer)
+    );
+    assert_eq!(domain.snapshot().unwrap().staging_bytes, 0);
+    assert_eq!(domain.snapshot().unwrap().promised_bytes, 0);
 }

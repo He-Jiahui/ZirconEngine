@@ -213,9 +213,7 @@ fn project_session_startup_reuses_one_prepared_project_manager_snapshot() {
 fn linked_plugin_catalog_reaches_prepared_project_codec_consumer_transactionally() {
     let project_source = include_str!("../session/project.rs");
     let construction_source = include_str!("../session/construction.rs");
-    let catalog_source = include_str!(
-        "../../plugin/runtime/catalog/contributions/extension.rs"
-    );
+    let catalog_source = include_str!("../../plugin/runtime/catalog/contributions/extension.rs");
     assert!(
         construction_source.contains("runtime_extensions_handle()")
             && construction_source.contains("linked_extensions.registry.clone()"),

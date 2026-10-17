@@ -4,9 +4,7 @@ use crate::core::framework::render::RenderCapabilitySummary;
 use super::super::queue_capability::queue_capability;
 use super::flagship_baseline_supported::flagship_baseline_supported;
 
-pub(in crate::graphics::runtime::render_framework) fn capability_summary(
-    caps: &crate::rhi::RenderBackendCaps,
-) -> RenderCapabilitySummary {
+pub(crate) fn capability_summary(caps: &crate::rhi::RenderBackendCaps) -> RenderCapabilitySummary {
     let flagship_baseline_supported = flagship_baseline_supported(caps);
 
     RenderCapabilitySummary {

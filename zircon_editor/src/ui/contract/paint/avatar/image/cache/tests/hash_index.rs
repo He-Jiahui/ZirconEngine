@@ -34,7 +34,8 @@ fn optimization_batch_20260826bo_avatar_mask_hash_index_preserves_arc_lru() {
 
 #[test]
 fn optimization_batch_20260826bo_avatar_mask_hash_index_eliminates_ordered_lookup() {
-    const SOURCE: &str = include_str!("../../../../../../retained/contract/paint/primitives/avatar/image/cache.rs");
+    const SOURCE: &str =
+        include_str!("../../../../../../retained/contract/paint/primitives/avatar/image/cache.rs");
     let production = SOURCE.split("#[cfg(test)]").next().unwrap();
 
     assert_eq!(ENTRY_COUNT, 64);

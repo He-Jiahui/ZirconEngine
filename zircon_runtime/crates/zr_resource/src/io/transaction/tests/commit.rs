@@ -23,6 +23,8 @@ fn prepublication_conflict_preserves_external_target_and_skips_rollback() {
         },
         target_existed: false,
         original_digest: None,
+        expected_revision: None,
+        publication_revision: None,
         new_digest: String::new(),
         retired_digests: Vec::new(),
         committed: false,

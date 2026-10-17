@@ -1,3 +1,5 @@
+//! 键名行为夹具将表内键与未知数值键同格式化参考实现比较。
+//! 忽略的计时夹具只测最大 u32 未知键路径；11 个样本的排序末项在本文件中称为 p95。
 use super::*;
 
 fn physical_key_name_formatting(key_code: u32) -> String {

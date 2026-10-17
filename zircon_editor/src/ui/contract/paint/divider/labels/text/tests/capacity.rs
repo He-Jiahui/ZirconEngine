@@ -28,13 +28,16 @@ fn optimization_batch_20260826fv_editor163_divider_label_preserves_fallback_orde
 
 #[test]
 fn optimization_batch_20260826fv_editor163_divider_label_is_borrowed_until_command() {
-    let source = include_str!("../../../../../../retained/contract/paint/primitives/divider/labels/text.rs");
+    let source =
+        include_str!("../../../../../../retained/contract/paint/primitives/divider/labels/text.rs");
     assert!(source.contains("fn divider_label("));
     assert!(source.contains(") -> &str"));
     assert!(!source.contains(".to_string()"));
 
-    let horizontal = include_str!("../../../../../../retained/contract/paint/primitives/divider/horizontal.rs");
-    let vertical = include_str!("../../../../../../retained/contract/paint/primitives/divider/vertical.rs");
+    let horizontal =
+        include_str!("../../../../../../retained/contract/paint/primitives/divider/horizontal.rs");
+    let vertical =
+        include_str!("../../../../../../retained/contract/paint/primitives/divider/vertical.rs");
     assert!(horizontal.contains("push_horizontal_divider_label("));
     assert!(vertical.contains("push_vertical_divider_label("));
 }

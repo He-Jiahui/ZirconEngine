@@ -174,7 +174,8 @@ fn native_popup_no_redraw_search_consumes_f_and_preserves_key_release() {
     assert!(ui.dispatch_native_popup_text_for_test("m").request_redraw());
     let unhandled = Rc::new(RefCell::new(Vec::new()));
     let observed = unhandled.clone();
-    ui.global::<UiHostContext>().on_unhandled_keyboard_input(move |input| observed.borrow_mut().push(input));
+    ui.global::<UiHostContext>()
+        .on_unhandled_keyboard_input(move |input| observed.borrow_mut().push(input));
     let key_event = |text: &str, code: KeyCode, state: ElementState| {
         let key = Key::Character(text.into());
         KeyEvent {
@@ -189,15 +190,24 @@ fn native_popup_no_redraw_search_consumes_f_and_preserves_key_release() {
         }
     };
     for (text, code) in [("f", KeyCode::KeyF), ("m", KeyCode::KeyM)] {
-        let result = ui.dispatch_native_key_for_test(key_event(text, code, ElementState::Pressed), ModifiersState::empty());
+        let result = ui.dispatch_native_key_for_test(
+            key_event(text, code, ElementState::Pressed),
+            ModifiersState::empty(),
+        );
         assert!(!result.request_redraw());
         assert!(unhandled.borrow().is_empty());
     }
-    ui.dispatch_native_key_for_test(key_event("f", KeyCode::KeyF, ElementState::Released), ModifiersState::empty());
+    ui.dispatch_native_key_for_test(
+        key_event("f", KeyCode::KeyF, ElementState::Released),
+        ModifiersState::empty(),
+    );
     assert_eq!(unhandled.borrow().len(), 1);
     assert_eq!(unhandled.borrow()[0].state, UiKeyboardInputState::Released);
     ui.set_host_presentation(HostWindowPresentationData::default());
-    ui.dispatch_native_key_for_test(key_event("f", KeyCode::KeyF, ElementState::Pressed), ModifiersState::empty());
+    ui.dispatch_native_key_for_test(
+        key_event("f", KeyCode::KeyF, ElementState::Pressed),
+        ModifiersState::empty(),
+    );
     let unhandled = unhandled.borrow();
     assert_eq!(unhandled.len(), 2);
     assert_eq!(unhandled[1].state, UiKeyboardInputState::Pressed);

@@ -2,30 +2,25 @@
 fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_bindings() {
     let app_source = include_str!("../../../ui/retained/app.rs");
     let viewport_new_source = include_str!("../../../ui/retained/viewport/new.rs");
-    let viewport_state_source =
-        include_str!("../../../ui/retained/viewport/viewport_state.rs");
+    let viewport_state_source = include_str!("../../../ui/retained/viewport/viewport_state.rs");
     let viewport_access_source =
         include_str!("../../../ui/retained/viewport/render_framework_access.rs");
     let runtime_lease_source = include_str!("../../../ui/retained/app/runtime_lease.rs");
     let viewport_resolve_job_source =
         include_str!("../../../ui/retained/viewport/render_framework_resolve_job.rs");
-    let viewport_submit_source =
-        include_str!("../../../ui/retained/viewport/submit_extract.rs");
+    let viewport_submit_source = include_str!("../../../ui/retained/viewport/submit_extract.rs");
     let viewport_lifecycle_source =
         include_str!("../../../ui/retained/viewport/viewport_lifecycle.rs");
-    let viewport_poll_source =
-        include_str!("../../../ui/retained/viewport/poll_captured_frame.rs");
-    let viewport_redraw_source =
-        include_str!("../../../ui/retained/app/viewport_image_redraw.rs");
+    let viewport_poll_source = include_str!("../../../ui/retained/viewport/poll_captured_frame.rs");
+    let viewport_redraw_source = include_str!("../../../ui/retained/app/viewport_image_redraw.rs");
     let host_viewport_image_source =
         include_str!("../../../ui/retained/contract/data/viewport_image.rs");
     let host_viewport_image_production_source = host_viewport_image_source
         .split("\n#[cfg(test)]")
         .next()
         .expect("viewport image source should have a production section");
-    let startup_assembly_source = include_str!(
-        "../../../ui/retained/app/startup/state/construction/assembly.rs"
-    );
+    let startup_assembly_source =
+        include_str!("../../../ui/retained/app/startup/state/construction/assembly.rs");
     let manifest = include_str!("../../../../Cargo.toml");
 
     assert!(
@@ -137,14 +132,11 @@ fn retained_host_composition_owns_runtime_lifetime_outside_viewport_state() {
     let startup_managers_source =
         include_str!("../../../ui/retained/app/host_lifecycle/startup/resources/managers.rs");
     let runtime_lease_source = include_str!("../../../ui/retained/app/runtime_lease.rs");
-    let construction_input_source = include_str!(
-        "../../../ui/retained/app/startup/state/construction/input.rs"
-    );
-    let assembly_source = include_str!(
-        "../../../ui/retained/app/startup/state/construction/assembly.rs"
-    );
-    let viewport_state_source =
-        include_str!("../../../ui/retained/viewport/viewport_state.rs");
+    let construction_input_source =
+        include_str!("../../../ui/retained/app/startup/state/construction/input.rs");
+    let assembly_source =
+        include_str!("../../../ui/retained/app/startup/state/construction/assembly.rs");
+    let viewport_state_source = include_str!("../../../ui/retained/viewport/viewport_state.rs");
     let viewport_job_source =
         include_str!("../../../ui/retained/viewport/render_framework_resolve_job.rs");
 
@@ -201,11 +193,9 @@ fn editor_retained_host_presenter_boundary_keeps_wgpu_inside_runtime_rhi() {
     let host_window_source = include_str!("../../../ui/retained/contract/window.rs");
     let host_window_event_loop_source =
         include_str!("../../../ui/retained/contract/window/event_loop.rs");
-    let host_window_lifecycle_presenter_source = include_str!(
-        "../../../ui/retained/contract/window/event_loop/lifecycle/presenter.rs"
-    );
-    let presenter_root_source =
-        include_str!("../../../ui/retained/contract/presenter/mod.rs");
+    let host_window_lifecycle_presenter_source =
+        include_str!("../../../ui/retained/contract/window/event_loop/lifecycle/presenter.rs");
+    let presenter_root_source = include_str!("../../../ui/retained/contract/presenter/mod.rs");
     let presenter_trait_source =
         include_str!("../../../ui/retained/contract/presenter/host_chrome_presenter.rs");
     let presenter_backend_source =
@@ -214,8 +204,7 @@ fn editor_retained_host_presenter_boundary_keeps_wgpu_inside_runtime_rhi() {
         include_str!("../../../ui/retained/contract/presenter/factory.rs");
     let presenter_softbuffer_source =
         include_str!("../../../ui/retained/contract/presenter/softbuffer.rs");
-    let presenter_gpu_source =
-        include_str!("../../../ui/retained/contract/presenter/gpu.rs");
+    let presenter_gpu_source = include_str!("../../../ui/retained/contract/presenter/gpu.rs");
     let presenter_command_source =
         include_str!("../../../ui/retained/contract/chrome_command_stream/mod.rs");
     let manifest = include_str!("../../../../../Cargo.toml");

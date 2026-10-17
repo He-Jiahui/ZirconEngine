@@ -197,9 +197,28 @@ pub enum GraphMutationEffect<Delta> {
 /// graph foundation never becomes a second animation, state-machine, or behavior-tree model.
 pub trait GraphModel: Send {
     type NodeId: Clone + Eq + Ord;
-    type Delta: Clone;
+    type Delta: Clone + zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1;
     type Error;
 
+    /// Read-only conservative bounds for both directions, all clone/materialization
+    /// peaks and the revision they describe. No inverse allocation occurs here.
+    fn delta_retention_v1(
+        &self,
+        delta: &Self::Delta,
+        meter: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<GraphDeltaProofV1, crate::core::editing::engine::EditCommandError>;
+    fn retention_revision_v1(&self) -> u64;
+    /// Allocates the proven pair only after the command's one-use permit.
+    fn prepare_delta_v1(
+        &self,
+        delta: &Self::Delta,
+    ) -> Result<PreparedGraphDeltaV1<Self::Delta>, Self::Error>;
+    /// Must consume no extra unbounded inverse or error owner. Failure is unchanged;
+    /// success applies exactly the revision-bound pair without growing its owners.
+    fn apply_prepared_delta_v1(
+        &mut self,
+        prepared: &PreparedGraphDeltaV1<Self::Delta>,
+    ) -> Result<(), Self::Error>;
     fn nodes(&self) -> Vec<GraphNodeView<Self::NodeId>>;
     fn edges(&self) -> Vec<GraphEdgeView<Self::NodeId>>;
     fn palette(&self) -> &GraphNodePaletteDescriptor;
@@ -347,3 +366,27 @@ fn cycle_pending_capacity(edge_count: usize) -> usize {
 #[cfg(test)]
 #[path = "tests/model_optimization_batch_editor816_tests.rs"]
 mod optimization_batch_editor816_tests;
+
+#[derive(Clone, Copy, Debug)]
+pub struct GraphDeltaProofV1 {
+    pub revision: u64,
+    pub retained_pair_bytes: u64,
+    pub materialization_peak_bytes: u64,
+}
+/// Domain-owned forward and inverse, prepared without publishing a mutation.
+pub struct PreparedGraphDeltaV1<D> {
+    pub revision: u64,
+    pub forward: D,
+    pub inverse: D,
+}
+impl<D: zircon_runtime_interface::retained_memory::RetainedOwnerV1>
+    zircon_runtime_interface::retained_memory::RetainedOwnerV1 for PreparedGraphDeltaV1<D>
+{
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        self.forward.retained_bound_v1(m)?;
+        self.inverse.retained_bound_v1(m)
+    }
+}

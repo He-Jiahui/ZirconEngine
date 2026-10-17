@@ -17,17 +17,16 @@ impl RetainedEditorHost {
                     height,
                     surface.tree_size,
                 )
-            }).transpose();
+            })
+            .transpose();
         let tree_size = match size_result {
             Ok(size) => size.flatten(),
             Err(error) => {
-
                 self.set_status_line(error.to_string());
                 return false;
             }
         };
-        let Some(tree_size) = tree_size
-        else {
+        let Some(tree_size) = tree_size else {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return false;
         };

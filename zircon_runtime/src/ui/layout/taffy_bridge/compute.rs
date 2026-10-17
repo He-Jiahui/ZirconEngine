@@ -19,6 +19,10 @@ use super::{
 };
 
 #[derive(Clone, Copy, Debug)]
+/// 同次安排收集的节点标识、节点与可选槽位借用。
+///
+/// `node_id` 用作父产品的子项键；`node` 与 `slot` 应来自当前树和相应父子边。
+/// 借用仅用于立即投影样式，保留的产品持有样式数据，不延长这些树借用的生命周期。
 pub(crate) struct TaffyChildLayoutInput<'a> {
     pub node_id: UiNodeId,
     pub node: &'a UiTreeNode,
@@ -37,6 +41,11 @@ pub(crate) struct TaffyLayoutOutcome {
 }
 
 #[derive(Debug)]
+/// 暂存当前父节点的子 ID、Taffy 样式和结果帧；开始新容器时清空内容并保留向量容量供安排工作区复用。
+///
+/// # 生命周期
+/// `begin_children` 清空上次长度和 Grid 累计状态；随后按本次 Full 或 Exact 范围收集样式。
+/// 结果帧属于这次父节点计算，递归安排前结束产品缓存借用；不能把该暂存区当作长期产品或已发布树状态。
 pub(crate) struct TaffyLayoutBridgeScratch {
     child_node_ids: Vec<UiNodeId>,
     child_styles: Vec<Style>,
@@ -156,6 +165,23 @@ impl TaffyLayoutBridgeError {
     }
 }
 
+/// 将完整有序子项或 Exact 变更子集交给父产品缓存，生成父框架所在布局坐标系中的子帧。
+///
+/// # 参数
+/// - `parent_id`、`container`、`frame`：产品键、已通过调用方准入的父契约与父框架。
+/// - `products`：所有者保留的父产品缓存；`scratch`：本次输入样式及输出子帧。
+/// - `contract_scope`：Full 完整输入或 Exact 已保留子项的变更子集。
+/// - `ordered_children_revision`：用于检验产品拓扑一致性的子顺序修订。
+/// - `inherited_clip`：与父框架一起参与本次子帧发布范围的复用判断。
+///
+/// # 返回与发布
+/// 成功返回建树统计，子帧写入 `scratch`；相对子帧加上父框架偏移。
+/// Exact 必须已有产品且顺序修订匹配。仅当计算、父框架和继承裁剪均复用时只发布输入子集，
+/// 其余成功路径发布保留的全部子帧；实际写入 `UiTree` 由安排调用方完成。
+///
+/// # 失败与参考
+/// 错误交安排调用方记录后端回退。最前面的容器拒绝发生在输出清空之前，
+/// 不得把任意错误后的暂存结果当作本次有效帧。缓存的取出和失败丢弃边界见 `TaffyParentProductCache`。
 pub(crate) fn compute_taffy_child_frames(
     parent_id: UiNodeId,
     container: UiContainerKind,

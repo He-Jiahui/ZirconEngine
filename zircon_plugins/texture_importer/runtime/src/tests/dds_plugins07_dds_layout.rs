@@ -122,9 +122,7 @@ fn measure_legacy() -> u128 {
     for _ in 0..LOOKUPS_PER_SAMPLE {
         for token in TOKENS {
             let bytes_per_block = match black_box(token).trim().to_ascii_lowercase().as_str() {
-                "dds/dxt1" | "dds/ati1" | "dds/bc4u" | "dds/bc4s" => {
-                    Some(DDS_BC1_BYTES_PER_BLOCK)
-                }
+                "dds/dxt1" | "dds/ati1" | "dds/bc4u" | "dds/bc4s" => Some(DDS_BC1_BYTES_PER_BLOCK),
                 "dds/dxt3" | "dds/dxt5" | "dds/ati2" | "dds/bc5u" | "dds/bc5s" => {
                     Some(DDS_BC_FULL_BYTES_PER_BLOCK)
                 }

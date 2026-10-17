@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::animation::{
@@ -25,18 +25,12 @@ fn pose() -> AnimationPoseOutput {
 #[test]
 fn replacement_epoch_and_empty_mode_prepare_without_duplicate_resets() {
     let mut pipeline = AnimationEvaluationPipeline::default();
-    pipeline
-        .presentation_poses
-        .make_mut()
-        .insert(17, Arc::new(pose()));
+    Arc::make_mut(&mut pipeline.presentation_poses).insert(17, Arc::new(pose()));
 
     assert!(pipeline.begin_evaluation_frame(1));
     assert!(pipeline.presentation_poses.is_empty());
 
-    pipeline
-        .presentation_poses
-        .make_mut()
-        .insert(18, Arc::new(pose()));
+    Arc::make_mut(&mut pipeline.presentation_poses).insert(18, Arc::new(pose()));
     assert!(!pipeline.begin_evaluation_frame(1));
     assert!(pipeline.presentation_poses.contains_key(&18));
 

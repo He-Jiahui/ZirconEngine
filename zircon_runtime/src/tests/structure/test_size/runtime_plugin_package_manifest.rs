@@ -10,21 +10,21 @@ fn runtime_15_runtime_plugin_package_manifest_tests_are_folder_backed() {
     let capability_status = read_runtime_src(
         "tests/plugin_extensions/runtime_plugin_package_manifest/capability_status.rs",
     );
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo(
             "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
         );
-    let runtime_index = read_repo(
+    let _runtime_index = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let review_findings = read_repo(
+    let _review_findings = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
-    let structure_convention = read_repo(
+    let _structure_convention = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let package_manifest_doc = read_repo("docs/zircon_runtime/plugin/package_manifest.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _package_manifest_doc = read_repo("docs/zircon_runtime/plugin/package_manifest.md");
 
     assert_contains_all(
         "runtime plugin package manifest parent mounts feature/module child owner",

@@ -19,13 +19,26 @@ const NODE_AND_CLUSTER_CULL_BASELINE_MIN_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOL
 const NODE_AND_CLUSTER_CULL_BASELINE_MAX_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD: Real = 32.0;
 const NODE_AND_CLUSTER_CULL_BASELINE_CHILD_FRUSTUM_CULLING_ENABLED: bool = true;
 
-pub(super) fn build_node_and_cluster_cull_global_state(
+pub(in crate::virtual_geometry::renderer::root_render_passes) fn build_node_and_cluster_cull_global_state(
     frame: &VirtualGeometryRenderFrame,
     cull_input: &RenderVirtualGeometryCullInputSnapshot,
     previous_global_state: Option<&RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
 ) -> RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot {
-    let camera = &frame.scene.scene.camera;
-    let aspect = frame.viewport_size.x as Real / frame.viewport_size.y.max(1) as Real;
+    build_node_and_cluster_cull_global_state_from_camera(
+        &frame.scene.scene.camera,
+        [frame.viewport_size.x, frame.viewport_size.y],
+        cull_input,
+        previous_global_state,
+    )
+}
+
+pub(super) fn build_node_and_cluster_cull_global_state_from_camera(
+    camera: &ViewportCameraSnapshot,
+    viewport_size: [u32; 2],
+    cull_input: &RenderVirtualGeometryCullInputSnapshot,
+    previous_global_state: Option<&RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
+) -> RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot {
+    let aspect = viewport_size[0] as Real / viewport_size[1].max(1) as Real;
     let projection = match camera.projection_mode {
         ProjectionMode::Perspective => Mat4::perspective_rh(
             camera.fov_y_radians,
@@ -58,13 +71,10 @@ pub(super) fn build_node_and_cluster_cull_global_state(
 
     RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot {
         cull_input: *cull_input,
-        viewport_size: [frame.viewport_size.x, frame.viewport_size.y],
+        viewport_size: viewport_size,
         camera_translation,
         child_split_screen_space_error_threshold:
-            node_and_cluster_cull_child_split_screen_space_error_threshold(
-                camera,
-                frame.viewport_size.y,
-            ),
+            node_and_cluster_cull_child_split_screen_space_error_threshold(camera, viewport_size[1]),
         child_frustum_culling_enabled: node_and_cluster_cull_child_frustum_culling_enabled(camera),
         view_proj,
         previous_camera_translation,
@@ -124,10 +134,19 @@ pub(super) fn build_node_and_cluster_cull_instance_seeds(
     frame: &VirtualGeometryRenderFrame,
     global_state: &RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
 ) -> Vec<RenderVirtualGeometryNodeAndClusterCullInstanceSeed> {
-    let Some(extract) = frame.extract.geometry.virtual_geometry.as_ref() else {
+    build_node_and_cluster_cull_instance_seeds_from_extract(
+        frame.extract.geometry.virtual_geometry.as_ref(),
+        global_state,
+    )
+}
+
+pub(super) fn build_node_and_cluster_cull_instance_seeds_from_extract(
+    extract: Option<&zircon_runtime::core::framework::render::RenderVirtualGeometryExtract>,
+    global_state: &RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+) -> Vec<RenderVirtualGeometryNodeAndClusterCullInstanceSeed> {
+    let Some(extract) = extract else {
         return Vec::new();
     };
-
     extract
         .instances
         .iter()
@@ -221,7 +240,7 @@ pub(super) fn build_node_and_cluster_cull_cluster_work_items(
     )
 }
 
-fn build_node_and_cluster_cull_cluster_work_items_from_clusters(
+pub(super) fn build_node_and_cluster_cull_cluster_work_items_from_clusters(
     clusters: &[RenderVirtualGeometryCluster],
     instance_work_items: &[RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem],
     cluster_work_item_limit: u32,

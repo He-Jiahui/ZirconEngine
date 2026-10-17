@@ -1,0 +1,2287 @@
+{
+  "batch": "R016",
+  "task": "zircon_runtime_interface serialization load/migration contracts 中文源码注释审查",
+  "owner": "reflection_luna",
+  "status": "comments_implemented_pending_parent_review",
+  "assignment": {
+    "initial_grant_sha256": "3cd88323aac003adc25749a0333b90e3b799148ff4b30970bc6a08dfd6d36379",
+    "current_ledger_sha256": "1f99ae29a8d8a00dd8efc1fc55f64ce2ee6895f326b791b5db32fcb293e7ef00",
+    "entry": "metadata_tasks.R016",
+    "exact_paths_confirmed": true,
+    "state": "assigned/reflection_luna/R016"
+  },
+  "scope": {
+    "formal_files": [
+      "zircon_runtime_interface/src/serialization/migration/mod.rs",
+      "zircon_runtime_interface/src/serialization/migration/chain.rs",
+      "zircon_runtime_interface/src/serialization/migration/step.rs",
+      "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "zircon_runtime_interface/src/serialization/migration/validate.rs",
+      "zircon_runtime_interface/src/serialization/migration/error.rs",
+      "zircon_runtime_interface/src/serialization/load.rs",
+      "zircon_runtime_interface/src/serialization/loaded.rs",
+      "zircon_runtime_interface/src/serialization/error.rs",
+      "zircon_runtime_interface/src/serialization/format.rs",
+      "zircon_runtime_interface/src/serialization/payload_header.rs",
+      "zircon_runtime_interface/src/serialization/budget.rs",
+      "zircon_runtime_interface/src/serialization/tests/migration_contract.rs",
+      "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs",
+      "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "zircon_runtime_interface/src/serialization/tests/legacy_detection.rs",
+      "zircon_runtime_interface/src/serialization/tests/malformed_contract.rs"
+    ],
+    "metadata_file": "docs/plans/source-comments/reviews/R016.json",
+    "before_line_count": 1330,
+    "formal_coverage": true,
+    "exclusions": [
+      "serialization/tests/mod.rs、serialization/mod.rs、VersionedSchema、writer/wire 实现和跨仓 caller 仅作上下文，不计正式覆盖。",
+      "R013 tests/mod.rs overflow 观察为 context，不在本批登记、编辑或声称修复。",
+      "其他初始争议路径仍暂停，不由本批授权推断写入权。"
+    ]
+  },
+  "files": {
+    "zircon_runtime_interface/src/serialization/migration/mod.rs": {
+      "before_sha256": "39d4198effe113e67dafa7bb759aef14048170d0384b7e231ed8da1da5c8e76b",
+      "after_sha256": "39d4198effe113e67dafa7bb759aef14048170d0384b7e231ed8da1da5c8e76b",
+      "before_bytes": 902,
+      "after_bytes": 902,
+      "before_physical_lines": 24,
+      "after_physical_lines": 24,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "migration module declarations",
+          "lines": [
+            1,
+            24
+          ],
+          "audit": "组织 chain/error/execute/step/validate 子模块。",
+          "documentation_decision": "模块文档充分。"
+        }
+      ],
+      "block_audit": [],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "39d4198effe113e67dafa7bb759aef14048170d0384b7e231ed8da1da5c8e76b",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/migration/chain.rs": {
+      "before_sha256": "608418fd0e3c8ec20045990b8cc82f6c9b11c592d256eada5ca0693bdf7d02f9",
+      "after_sha256": "608418fd0e3c8ec20045990b8cc82f6c9b11c592d256eada5ca0693bdf7d02f9",
+      "before_bytes": 1558,
+      "after_bytes": 1558,
+      "before_physical_lines": 37,
+      "after_physical_lines": 37,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "MigrationChain<T>",
+          "lines": [
+            1,
+            29
+          ],
+          "audit": "PhantomData 绑定类型与 static 步骤表，不保存 T 实例。",
+          "documentation_decision": "现有中文说明覆盖静态生命周期、构造不校验和实际校验入口。"
+        },
+        {
+          "name": "MigrationChain::new",
+          "lines": [
+            31,
+            37
+          ],
+          "audit": "按引用保存 static slice，不复制、排序或提前校验。",
+          "documentation_decision": "参数/生命周期/返回说明充分。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "静态链和构造",
+          "lines": [
+            13,
+            37
+          ],
+          "audit": "保存 static slice；创建不校验/排序，入口按 target 校验。"
+        }
+      ],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "608418fd0e3c8ec20045990b8cc82f6c9b11c592d256eada5ca0693bdf7d02f9",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/migration/step.rs": {
+      "before_sha256": "23f94e12b773fd363f17636468308f4168d8d4ee1d6c28a89bb5d3078ee68f8f",
+      "after_sha256": "23f94e12b773fd363f17636468308f4168d8d4ee1d6c28a89bb5d3078ee68f8f",
+      "before_bytes": 1639,
+      "after_bytes": 1639,
+      "before_physical_lines": 38,
+      "after_physical_lines": 38,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "MigrationFn",
+          "lines": [
+            1,
+            6
+          ],
+          "audit": "接收并返回拥有所有权的 serde_json::Value 或 MigrateError。",
+          "documentation_decision": "已有中文说明充分。"
+        },
+        {
+          "name": "MigrationStep",
+          "lines": [
+            9,
+            29
+          ],
+          "audit": "声明 from_version 到直接后继版本的值域迁移边。",
+          "documentation_decision": "已有中文说明充分。"
+        },
+        {
+          "name": "MigrationStep::new",
+          "lines": [
+            30,
+            38
+          ],
+          "audit": "保存来源版本和回调指针，不运行、不校验整表。",
+          "documentation_decision": "参数/返回/时机说明充分。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "回调和一步转换",
+          "lines": [
+            9,
+            38
+          ],
+          "audit": "owned Value 回调；step 只描述边，不运行回调或验证全链。"
+        }
+      ],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "23f94e12b773fd363f17636468308f4168d8d4ee1d6c28a89bb5d3078ee68f8f",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/migration/execute.rs": {
+      "before_sha256": "17f268b77bd73622bb2b1f69abc2e9f2e71e0cb77226995ef18e008c106c692a",
+      "after_sha256": "17f268b77bd73622bb2b1f69abc2e9f2e71e0cb77226995ef18e008c106c692a",
+      "before_bytes": 2705,
+      "after_bytes": 2705,
+      "before_physical_lines": 51,
+      "after_physical_lines": 51,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "migrate_value",
+          "lines": [
+            33,
+            51
+          ],
+          "audit": "先校验完整链，再执行适用于来源版本的相邻步骤。",
+          "documentation_decision": "已有文档充分；保留 TODO CR-SERIALIZATION-0001。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "迁移控制流",
+          "lines": [
+            33,
+            51
+          ],
+          "audit": "校验后逐步调用回调并包装 StepFailed；保留既存 TODO。"
+        }
+      ],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "17f268b77bd73622bb2b1f69abc2e9f2e71e0cb77226995ef18e008c106c692a",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [
+        {
+          "id": "CR-SERIALIZATION-0001",
+          "kind": "TODO",
+          "line": 7,
+          "status": "preserved",
+          "evidence": "既存 TODO 涉及直接 migrate_value 调用 from_version 大于 target_version 的边界；不提升为 BUG。已分配测试只覆盖 from=target 的重复链校验。",
+          "coverage_gap": "没有已分配测试断言 from_version > target_version 的直接调用结果。"
+        }
+      ],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/migration/validate.rs": {
+      "before_sha256": "fa122993908ff320ad19260683fe722654507e6f101efab01c706b77446cb1e1",
+      "after_sha256": "fa122993908ff320ad19260683fe722654507e6f101efab01c706b77446cb1e1",
+      "before_bytes": 2408,
+      "after_bytes": 2408,
+      "before_physical_lines": 57,
+      "after_physical_lines": 57,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "validate",
+          "lines": [
+            8,
+            57
+          ],
+          "audit": "按目标版本检查重复、顺序、缺少相邻边及目标外条目。",
+          "documentation_decision": "参数/返回/错误顺序说明充分。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "表边界校验",
+          "lines": [
+            8,
+            57
+          ],
+          "audit": "按序扫描重复/乱序/缺步/目标外条目。"
+        }
+      ],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "fa122993908ff320ad19260683fe722654507e6f101efab01c706b77446cb1e1",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/migration/error.rs": {
+      "before_sha256": "6956d37fcd9423b73ea92b6f365b1e894c27c659997a5be0bf0b1ffdf93138a0",
+      "after_sha256": "6956d37fcd9423b73ea92b6f365b1e894c27c659997a5be0bf0b1ffdf93138a0",
+      "before_bytes": 3252,
+      "after_bytes": 3252,
+      "before_physical_lines": 80,
+      "after_physical_lines": 80,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "MigrateError",
+          "lines": [
+            1,
+            76
+          ],
+          "audit": "迁移表结构错误和回调失败；StepFailed 通过 source 保留内层原因。",
+          "documentation_decision": "已有逐variant文档充分。"
+        },
+        {
+          "name": "MigrateError::invalid_payload",
+          "lines": [
+            77,
+            80
+          ],
+          "audit": "将可转 String 的原因封装为 InvalidPayload。",
+          "documentation_decision": "参数/返回文档充分。"
+        }
+      ],
+      "block_audit": [],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "6956d37fcd9423b73ea92b6f365b1e894c27c659997a5be0bf0b1ffdf93138a0",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/load.rs": {
+      "before_sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+      "after_sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+      "before_bytes": 11575,
+      "after_bytes": 11575,
+      "before_physical_lines": 278,
+      "after_physical_lines": 278,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "load_versioned",
+          "lines": [
+            41,
+            61
+          ],
+          "audit": "按 Format 分派文本/二进制，常规入口拒绝无封套回退。",
+          "documentation_decision": "已有中文文档充分。"
+        },
+        {
+          "name": "load_versioned_envelope",
+          "lines": [
+            63,
+            87
+          ],
+          "audit": "只读版本封套并产出 Loaded<T>。",
+          "documentation_decision": "已有文档充分。"
+        },
+        {
+          "name": "load_versioned_legacy_schema_zero",
+          "lines": [
+            89,
+            102
+          ],
+          "audit": "显式兼容入口仅给无封套文本选择 schema 0。",
+          "documentation_decision": "已有文档充分。"
+        },
+        {
+          "name": "UnversionedTextPolicy",
+          "lines": [
+            104,
+            109
+          ],
+          "audit": "内部策略选择拒绝裸载荷或按 schema 0 解释。",
+          "documentation_decision": "已有说明充分。"
+        },
+        {
+          "name": "load_text_versioned",
+          "lines": [
+            111,
+            162
+          ],
+          "audit": "限制文本 bytes 后解析封套/schema/version/chain，再直接解码或迁移。",
+          "documentation_decision": "已有说明覆盖执行顺序。"
+        },
+        {
+          "name": "load_schema_zero_text",
+          "lines": [
+            163,
+            171
+          ],
+          "audit": "处理显式策略选中的无封套文本。",
+          "documentation_decision": "已有说明充分。"
+        },
+        {
+          "name": "load_binary_versioned",
+          "lines": [
+            173,
+            195
+          ],
+          "audit": "解析 wire prefix/body/header，校验 schema/version/chain 后解码。",
+          "documentation_decision": "已有说明充分。"
+        },
+        {
+          "name": "load_migrated_value",
+          "lines": [
+            196,
+            214
+          ],
+          "audit": "将 owned JSON Value 迁移后反序列化为目标类型。",
+          "documentation_decision": "已有说明充分。"
+        },
+        {
+          "name": "validate_migration_chain",
+          "lines": [
+            215,
+            224
+          ],
+          "audit": "目标解码之前验证完整迁移表。",
+          "documentation_decision": "已有说明充分。"
+        },
+        {
+          "name": "text_read_error",
+          "lines": [
+            225,
+            232
+          ],
+          "audit": "将文本解析错误转为 LoadError。",
+          "documentation_decision": "已有说明充分。"
+        },
+        {
+          "name": "binary_current_decode_error",
+          "lines": [
+            233,
+            250
+          ],
+          "audit": "将 binary wire/decode 错误分类映射。",
+          "documentation_decision": "已有说明充分。"
+        },
+        {
+          "name": "validate_source_version",
+          "lines": [
+            251,
+            265
+          ],
+          "audit": "拒绝未来版本并校验可迁移范围。",
+          "documentation_decision": "已有说明充分。"
+        },
+        {
+          "name": "validate_schema",
+          "lines": [
+            266,
+            278
+          ],
+          "audit": "比较 schema identity 并构造 mismatch。",
+          "documentation_decision": "已有说明充分。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "入口分派",
+          "lines": [
+            41,
+            110
+          ],
+          "audit": "常规入口拒绝无封套；只有显式 legacy 入口选择 schema-zero。"
+        },
+        {
+          "name": "文本读取",
+          "lines": [
+            111,
+            172
+          ],
+          "audit": "字节预算先于 parse；封套/schema/version/完整迁移链先于 typed decode。"
+        },
+        {
+          "name": "二进制读取",
+          "lines": [
+            173,
+            250
+          ],
+          "audit": "wire prefix/body/header 检查先于 schema/version/chain 和目标解码；错误映射分阶段。"
+        },
+        {
+          "name": "共享迁移与校验",
+          "lines": [
+            196,
+            278
+          ],
+          "audit": "旧值迁移为 owned Value；schema、版本和链分别验证。"
+        }
+      ],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/loaded.rs": {
+      "before_sha256": "40a7748e33d56c15c99e9250296d3d22e0bede0217d7a7aae1c444f7fdb3827b",
+      "after_sha256": "40a7748e33d56c15c99e9250296d3d22e0bede0217d7a7aae1c444f7fdb3827b",
+      "before_bytes": 1014,
+      "after_bytes": 1014,
+      "before_physical_lines": 19,
+      "after_physical_lines": 19,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "Loaded<T>",
+          "lines": [
+            1,
+            19
+          ],
+          "audit": "保存 owned 值和迁移来源元数据，不借用输入缓冲。",
+          "documentation_decision": "中文类型和字段说明已充分。"
+        }
+      ],
+      "block_audit": [],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "40a7748e33d56c15c99e9250296d3d22e0bede0217d7a7aae1c444f7fdb3827b",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/error.rs": {
+      "before_sha256": "77f6bd3e24d67c8c6bdabedb08c996a8fcd20b4979b08101f9d9993455a24543",
+      "after_sha256": "a6e27a361d0b9c391f8281f113c17eda64ae7aee39aced50ee17c10a7943af9f",
+      "before_bytes": 2114,
+      "after_bytes": 3966,
+      "before_physical_lines": 56,
+      "after_physical_lines": 77,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "comment_additions_only",
+      "objects": [
+        {
+          "name": "LoadError",
+          "lines": [
+            1,
+            77
+          ],
+          "audit": "读流程错误类型覆盖 parse、wire、schema/version、迁移和目标 decode 阶段。",
+          "documentation_decision": "增加类型文档及14个variant文档。"
+        },
+        {
+          "name": "MalformedText",
+          "lines": [
+            10,
+            13
+          ],
+          "audit": "非法 JSON 文本。",
+          "documentation_decision": "补 parse 阶段说明。"
+        },
+        {
+          "name": "InvalidEnvelope",
+          "lines": [
+            14,
+            16
+          ],
+          "audit": "封套结构非法，不降级为裸载荷。",
+          "documentation_decision": "补失败语义。"
+        },
+        {
+          "name": "MissingTextEnvelope",
+          "lines": [
+            17,
+            19
+          ],
+          "audit": "常规读取拒绝无封套输入。",
+          "documentation_decision": "补 explicit legacy 约束。"
+        },
+        {
+          "name": "TextDocumentTooLarge",
+          "lines": [
+            20,
+            24
+          ],
+          "audit": "parse 前限制完整文本输入字节；found>max失败，等于可继续；不代表解码内存总量。",
+          "documentation_decision": "补单位、边界与时序。"
+        },
+        {
+          "name": "BinaryHeaderTruncated",
+          "lines": [
+            25,
+            28
+          ],
+          "audit": "固定 wire prefix 不足；完整 prefix 后的 envelope 头错误属于 MalformedBinary。",
+          "documentation_decision": "补阶段界线。"
+        },
+        {
+          "name": "BinaryMagicMismatch",
+          "lines": [
+            29,
+            30
+          ],
+          "audit": "wire magic 不匹配。",
+          "documentation_decision": "补失败语义。"
+        },
+        {
+          "name": "UnsupportedBinaryWireVersion",
+          "lines": [
+            31,
+            32
+          ],
+          "audit": "wire 格式版本不同于 schema version。",
+          "documentation_decision": "补版本域区分。"
+        },
+        {
+          "name": "BinaryPayloadTooLarge",
+          "lines": [
+            33,
+            36
+          ],
+          "audit": "固定 prefix 后 body（含封套头和 payload）超限；found>max失败。",
+          "documentation_decision": "补统计范围和边界。"
+        },
+        {
+          "name": "MalformedBinary",
+          "lines": [
+            37,
+            38
+          ],
+          "audit": "binary 结构错误并保留 decoder source。",
+          "documentation_decision": "补阶段说明。"
+        },
+        {
+          "name": "InvalidBinaryPayload",
+          "lines": [
+            39,
+            40
+          ],
+          "audit": "binary 值域 payload 无效。",
+          "documentation_decision": "补阶段说明。"
+        },
+        {
+          "name": "SchemaMismatch",
+          "lines": [
+            41,
+            42
+          ],
+          "audit": "输入 schema identity 与目标类型不匹配。",
+          "documentation_decision": "补校验语义。"
+        },
+        {
+          "name": "FutureVersion",
+          "lines": [
+            43,
+            44
+          ],
+          "audit": "输入 schema version 高于目标当前版本。",
+          "documentation_decision": "补比较对象。"
+        },
+        {
+          "name": "PayloadDecode",
+          "lines": [
+            45,
+            47
+          ],
+          "audit": "schema/version/迁移之后目标类型反序列化失败，并保留 serde source。",
+          "documentation_decision": "补时序和错误链。"
+        },
+        {
+          "name": "Migration",
+          "lines": [
+            48,
+            50
+          ],
+          "audit": "迁移链校验或回调失败并保留 MigrateError。",
+          "documentation_decision": "补错误阶段。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "文本错误块",
+          "lines": [
+            10,
+            24
+          ],
+          "audit": "非法 JSON、非法封套、缺封套、文本字节超限分开。"
+        },
+        {
+          "name": "binary wire/body 错误块",
+          "lines": [
+            25,
+            40
+          ],
+          "audit": "prefix、magic、wire version、body size、结构和 payload 错误分开。"
+        },
+        {
+          "name": "schema/target decode 错误块",
+          "lines": [
+            41,
+            77
+          ],
+          "audit": "schema/version 在目标 decode 前；serde 与 migration source 分开保留。"
+        }
+      ],
+      "insertions": [
+        {
+          "offset_before": 97,
+          "offset_after": 97,
+          "length_bytes": 212,
+          "sha256": "376d733764d3952ba9771e223df40fe938fd9c387adde794ed2090c490e3c867",
+          "exact_text": "/// 版本化载荷读取的 wire 解析、schema 兼容性、迁移和目标类型解码错误。\n///\n/// 带 source 字段的变体保留底层错误链；其余变体提供结构化上下文或原因文本。\n",
+          "location": "LoadError 类型职责和错误链",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 142,
+          "offset_after": 354,
+          "length_bytes": 93,
+          "sha256": "619d19802fe42b681098622140a55e01ff9ae246fdb85c5e07654377026ede63",
+          "exact_text": "    /// 输入不是合法 JSON 文本；与可解析文本中的封套结构错误区分。\n",
+          "location": "MalformedText",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 273,
+          "offset_after": 578,
+          "length_bytes": 105,
+          "sha256": "eb389e577457351402c5ea70baada8420f410a91cbaf2149defaf5e0a64e15ea",
+          "exact_text": "    /// 文本声明了保留封套，但封套结构不符合线格式；不会降级为旧裸载荷。\n",
+          "location": "InvalidEnvelope",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 416,
+          "offset_after": 826,
+          "length_bytes": 99,
+          "sha256": "d2972fe36e080e5ff1c1a8bcd64b0049a19875d0dd4c79a5a1eb385178b49bdc",
+          "exact_text": "    /// 常规文本读取拒绝无封套输入；schema-zero 回退须显式选择兼容入口。\n",
+          "location": "MissingTextEnvelope",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 533,
+          "offset_after": 1042,
+          "length_bytes": 316,
+          "sha256": "36ab50c2c64662fcfaab34e35feada28b836c6feef7dbc2da2068f784b736a9b",
+          "exact_text": "    /// 文本文档字节长度超过固定输入上限，在封套和载荷解析前失败。\n    /// found 统计完整文本输入字节（含封套）；仅 found > max 时产生此错误，等于上限继续解析。\n    /// 该上限约束读取字节数，不衡量目标类型解码后全部内存分配。\n",
+          "location": "TextDocumentTooLarge",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 668,
+          "offset_after": 1493,
+          "length_bytes": 178,
+          "sha256": "49623cfa1805c3f95cc2feb4215317575971f05bc3682085c127a7adedb664fb",
+          "exact_text": "    /// 二进制输入短于解析 wire 头所需的字节数。\n    /// 仅表示固定 wire 前缀不完整；前缀完整后的封套头格式错误归入 MalformedBinary。\n",
+          "location": "BinaryHeaderTruncated",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 845,
+          "offset_after": 1848,
+          "length_bytes": 66,
+          "sha256": "a69400149364d10bace5f6040dd97f27357fd45ee7a59d2a79a97dc1246fa7f7",
+          "exact_text": "    /// 二进制头部的魔数与当前格式标识不匹配。\n",
+          "location": "BinaryMagicMismatch",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 954,
+          "offset_after": 2023,
+          "length_bytes": 95,
+          "sha256": "0162ffc0b4c6a4c1694edefd722a5eee9ec84afe5b60ddc63fc8b02062c06bee",
+          "exact_text": "    /// 头部声明了不支持的 wire 格式版本；它与载荷的 schema 版本不同。\n",
+          "location": "UnsupportedBinaryWireVersion",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 1112,
+          "offset_after": 2276,
+          "length_bytes": 156,
+          "sha256": "ce62da70580a55194fa01b677bc2d84f9e330b13a81ca8eb93983a26c59a500f",
+          "exact_text": "    /// 二进制载荷主体超过读取上限。\n    /// found 统计固定前缀后的封套 body（含头部和载荷）；仅 found > max 时拒绝。\n",
+          "location": "BinaryPayloadTooLarge",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 1253,
+          "offset_after": 2573,
+          "length_bytes": 93,
+          "sha256": "ed4331d415bb278485a97d01090cd4bc4af0abe1499b51234f5d3315c171449b",
+          "exact_text": "    /// 二进制位置编码字节不符合线格式结构，并保留底层解码错误。\n",
+          "location": "MalformedBinary",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 1407,
+          "offset_after": 2820,
+          "length_bytes": 78,
+          "sha256": "0428d230d8638ef7ad4bca4d13575b72bc0206e533b8fb4a69b443b234184e1a",
+          "exact_text": "    /// 二进制值域载荷无效，保留 decoder 提供的原因文本。\n",
+          "location": "InvalidBinaryPayload",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 1514,
+          "offset_after": 3005,
+          "length_bytes": 74,
+          "sha256": "e71366ed42b2683112580ec5bfd0d74246f31b7423fb7a209660b20182560687",
+          "exact_text": "    /// 封套中的 schema 身份与目标类型声明的身份不同。\n",
+          "location": "SchemaMismatch",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 1628,
+          "offset_after": 3193,
+          "length_bytes": 90,
+          "sha256": "5d0aff41c3f68fdc1928ee2eb803b08541bcd3bbe4739bc0d1e1fc5a6bbe38ed",
+          "exact_text": "    /// 输入 schema 版本高于目标类型的当前版本，loader 不尝试解码。\n",
+          "location": "FutureVersion",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 1821,
+          "offset_after": 3476,
+          "length_bytes": 111,
+          "sha256": "900997179c4904455ec3f0f578694ca9582cc5cd6039dff9c99aa8fc9c76f60d",
+          "exact_text": "    /// schema/版本检查及必要迁移后，目标类型反序列化失败；source 保留 serde 错误。\n",
+          "location": "PayloadDecode",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 2049,
+          "offset_after": 3815,
+          "length_bytes": 86,
+          "sha256": "ad2ca0b20379c8ca702d52167a4c26edd3b3ba39511355b1d5795ae53136ed7a",
+          "exact_text": "    /// 迁移表校验或迁移回调失败，内层原因由 MigrateError 保留。\n",
+          "location": "Migration",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        }
+      ],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "77f6bd3e24d67c8c6bdabedb08c996a8fcd20b4979b08101f9d9993455a24543",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 15
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/format.rs": {
+      "before_sha256": "78850f48b4692f32c8e854262abebee5e51d1a5a41c479bb35d6f94e19acb7b6",
+      "after_sha256": "be7d0cbaedf621551b968ee34a4cae448fba0d57dca6c6584f5eb2dc1168c94d",
+      "before_bytes": 138,
+      "after_bytes": 451,
+      "before_physical_lines": 6,
+      "after_physical_lines": 9,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "comment_additions_only",
+      "objects": [
+        {
+          "name": "Format",
+          "lines": [
+            1,
+            9
+          ],
+          "audit": "版本化载荷线格式；读取后均由 loader 校验 schema/version。",
+          "documentation_decision": "新增 enum 和 Text/Binary 中文文档，说明 schema-zero 只在显式 legacy 文本入口。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "格式分支",
+          "lines": [
+            1,
+            9
+          ],
+          "audit": "Text/Binary 封套选择；schema-zero 由显式 legacy 入口处理，不宣称自动探测。"
+        }
+      ],
+      "insertions": [
+        {
+          "offset_before": 51,
+          "offset_after": 51,
+          "length_bytes": 110,
+          "sha256": "58eb9142d8736cbac0f9ee57a5c75987d8058865a5f4168273ad534cb7340496",
+          "exact_text": "/// 版本化载荷的线格式选择；读取后仍由 loader 统一检查 schema 身份和 schema 版本。\n",
+          "location": "Format 类型用途",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 114,
+          "offset_after": 224,
+          "length_bytes": 91,
+          "sha256": "a47a0416cd72f529284e349cffe08055966cc1e87aa8eee7e81e5bbc6696a9e0",
+          "exact_text": "    /// 文本版本封套；无封套 schema 0 回退仅由显式 legacy loader 决定。\n",
+          "location": "Format::Text",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 124,
+          "offset_after": 325,
+          "length_bytes": 112,
+          "sha256": "4842139380efc97ce0c1c17343e27e39c6d89764f37bdf4bf2edc43022d2895e",
+          "exact_text": "    /// 二进制版本封套；读取要求有效 wire 前缀和头部，不采用无头 schema-zero 回退。\n",
+          "location": "Format::Binary",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        }
+      ],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "78850f48b4692f32c8e854262abebee5e51d1a5a41c479bb35d6f94e19acb7b6",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 3
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/payload_header.rs": {
+      "before_sha256": "24de8fdb868a92f7176e78d154636d52361d2e6621626f31f5bc5e7a004882da",
+      "after_sha256": "24de8fdb868a92f7176e78d154636d52361d2e6621626f31f5bc5e7a004882da",
+      "before_bytes": 977,
+      "after_bytes": 977,
+      "before_physical_lines": 22,
+      "after_physical_lines": 22,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "PayloadHeader",
+          "lines": [
+            1,
+            22
+          ],
+          "audit": "封套 header 的 schema_id/version/payload 字段，拒绝未知键。",
+          "documentation_decision": "已有中文文档/字段解释充分。"
+        }
+      ],
+      "block_audit": [],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "24de8fdb868a92f7176e78d154636d52361d2e6621626f31f5bc5e7a004882da",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/budget.rs": {
+      "before_sha256": "6590c4472eecbe25b02e53456f353d5d04f133bef34bacef607571b5bff8af27",
+      "after_sha256": "16d32f8d1f3196f376aace674b452db37b75a0b82f559ec769b0468aee549c43",
+      "before_bytes": 539,
+      "after_bytes": 1229,
+      "before_physical_lines": 18,
+      "after_physical_lines": 29,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "comment_additions_only",
+      "objects": [
+        {
+          "name": "SerializationBudget",
+          "lines": [
+            1,
+            29
+          ],
+          "audit": "单次输出字节上限，不是全程临时或最终内存上限。",
+          "documentation_decision": "补充预算消费入口与单位。"
+        },
+        {
+          "name": "SerializationBudget::new",
+          "lines": [
+            8,
+            20
+          ],
+          "audit": "保存调用方上限；构造本身不写数据。",
+          "documentation_decision": "补参数、返回、使用时机。"
+        },
+        {
+          "name": "SerializationBudget::max_output_bytes",
+          "lines": [
+            21,
+            29
+          ],
+          "audit": "返回保存的单次输出上限，单位字节。",
+          "documentation_decision": "补 getter 含义。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "预算保存和比较",
+          "lines": [
+            8,
+            29
+          ],
+          "audit": "writer 按输出 bytes 计数；恰等 max 允许，超出拒绝；非总内存预算。"
+        }
+      ],
+      "insertions": [
+        {
+          "offset_before": 216,
+          "offset_after": 216,
+          "length_bytes": 101,
+          "sha256": "3a62d34a5c292d67a2a3c403745d6036ed0e618abb19336e7d8f0aaeb43a5873",
+          "exact_text": "/// 供一次写入调用使用的输出字节上限，由调用方按线格式契约显式提供。\n",
+          "location": "SerializationBudget 类型职责",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 216,
+          "offset_after": 317,
+          "length_bytes": 134,
+          "sha256": "ce81d0d29aeffcda0b63f7d994f9d88a57427764ef6dff02496cd31762827173",
+          "exact_text": "/// write_canonical_text_to 按输出字节计量（含末尾换行）；该入口不写版本封套，也不代表总内存预算。\n",
+          "location": "write_canonical_text_to 消费边界",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 353,
+          "offset_after": 588,
+          "length_bytes": 287,
+          "sha256": "b58dc70782876a52b4a13301658a0113ff644d87e81230abcef34af0f4c70fae",
+          "exact_text": "    /// 创建一个调用方选择的输出字节上限。\n    ///\n    /// # 参数\n    /// - max_output_bytes：单次写入最多允许输出的字节数。\n    ///\n    /// # 返回值\n    /// 返回保存该上限的预算值，由接收它的写入入口用于限制该次输出。\n",
+          "location": "SerializationBudget::new 参数和返回",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 353,
+          "offset_after": 875,
+          "length_bytes": 96,
+          "sha256": "6539eb7989413fae6398bb6caf816276875ba20e49d708d7d79b8954d4ceef08",
+          "exact_text": "    /// 输出可达到上限；只有累计输出字节数超出上限时该写入会失败。\n",
+          "location": "输出上限边界",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        },
+        {
+          "offset_before": 450,
+          "offset_after": 1068,
+          "length_bytes": 72,
+          "sha256": "4a5a70808f23d89db8915cad0d9c0d9aebaecdbc9e0f369f25d04b230e2a585d",
+          "exact_text": "    /// 返回此预算保存的单次输出上限，单位为字节。\n",
+          "location": "max_output_bytes getter",
+          "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+        }
+      ],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "6590c4472eecbe25b02e53456f353d5d04f133bef34bacef607571b5bff8af27",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 5
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/tests/migration_contract.rs": {
+      "before_sha256": "6f639acc69f3e9a8bd9a638bd5ee300d3ed76be6359106512a59c5ea90c0b76a",
+      "after_sha256": "6f639acc69f3e9a8bd9a638bd5ee300d3ed76be6359106512a59c5ea90c0b76a",
+      "before_bytes": 4362,
+      "after_bytes": 4362,
+      "before_physical_lines": 155,
+      "after_physical_lines": 155,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "DuplicateStepDocument fixture",
+          "lines": [
+            15,
+            29
+          ],
+          "audit": "静态链含重复 from_version。",
+          "documentation_decision": "fixture 自描述。"
+        },
+        {
+          "name": "OutOfOrderDocument fixture",
+          "lines": [
+            50,
+            64
+          ],
+          "audit": "静态步骤顺序为 from=1 后 from=0。",
+          "documentation_decision": "fixture 自描述。"
+        },
+        {
+          "name": "ExtraStepDocument fixture",
+          "lines": [
+            82,
+            96
+          ],
+          "audit": "目标版本1但静态表额外含 from=1。",
+          "documentation_decision": "fixture 自描述。"
+        },
+        {
+          "name": "duplicate_source_version_is_rejected_instead_of_using_table_order",
+          "lines": [
+            35,
+            47
+          ],
+          "audit": "重复 from=0 步骤返回 DuplicateStep。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "out_of_order_table_is_rejected_instead_of_searched",
+          "lines": [
+            66,
+            79
+          ],
+          "audit": "from=1 后 from=0 返回 expected=0/found=1。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "extra_step_past_current_version_is_rejected",
+          "lines": [
+            98,
+            110
+          ],
+          "audit": "target=1 且额外 from=1 返回 UnexpectedStep。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "current_version_payload_does_not_bypass_invalid_chain_validation",
+          "lines": [
+            113,
+            135
+          ],
+          "audit": "当前版本 envelope 仍因重复链返回 DuplicateStep。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "value_domain_callers_use_the_same_complete_chain_validation",
+          "lines": [
+            137,
+            155
+          ],
+          "audit": "直接 migrate_value(value,1,1) 对重复链返回 DuplicateStep。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "invalid chain fixtures and five tests",
+          "lines": [
+            15,
+            155
+          ],
+          "audit": "五测试覆盖 duplicate、乱序、超目标、当前版本校验和直接 migrate_value。"
+        }
+      ],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "6f639acc69f3e9a8bd9a638bd5ee300d3ed76be6359106512a59c5ea90c0b76a",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs": {
+      "before_sha256": "b84d67e5ab56cbf6baef0b9f9347c4c99ccd0307fd5049fbc07fc4ddaed157cd",
+      "after_sha256": "b84d67e5ab56cbf6baef0b9f9347c4c99ccd0307fd5049fbc07fc4ddaed157cd",
+      "before_bytes": 1545,
+      "after_bytes": 1545,
+      "before_physical_lines": 46,
+      "after_physical_lines": 46,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "FailingStepDocument fixture",
+          "lines": [
+            14,
+            26
+          ],
+          "audit": "静态 from=0 步骤指向失败回调。",
+          "documentation_decision": "fixture/回调名称清楚。"
+        },
+        {
+          "name": "migration_step_failure_preserves_schema_version_and_source",
+          "lines": [
+            32,
+            46
+          ],
+          "audit": "InvalidPayload 被包装为 StepFailed，保留 schema、from_version 和 source。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "callback failure test",
+          "lines": [
+            14,
+            46
+          ],
+          "audit": "验证 schema/from_version 和嵌套 MigrateError。"
+        }
+      ],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "b84d67e5ab56cbf6baef0b9f9347c4c99ccd0307fd5049fbc07fc4ddaed157cd",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/tests/load_contract.rs": {
+      "before_sha256": "8c15c7910534bbaef2357b0beef35e837e552ed680aab3ff25fc3f15134683fa",
+      "after_sha256": "8c15c7910534bbaef2357b0beef35e837e552ed680aab3ff25fc3f15134683fa",
+      "before_bytes": 8782,
+      "after_bytes": 8782,
+      "before_physical_lines": 291,
+      "after_physical_lines": 291,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "BrokenChainDocument fixture",
+          "lines": [
+            71,
+            89
+          ],
+          "audit": "目标版本2但迁移表仅提供 from=0。",
+          "documentation_decision": "fixture 自描述。"
+        },
+        {
+          "name": "text_reader_rejects_an_input_larger_than_the_wire_budget_before_parsing",
+          "lines": [
+            17,
+            28
+          ],
+          "audit": "超限文本返回 TextDocumentTooLarge。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "unwrapped_text_payload_is_recognized_as_v0_and_migrated_in_order",
+          "lines": [
+            31,
+            44
+          ],
+          "audit": "显式 legacy loader 得到 migrated_from=Some(0)，字段已迁移。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "envelope_only_loader_rejects_unwrapped_text_before_payload_materialization",
+          "lines": [
+            47,
+            56
+          ],
+          "audit": "envelope-only 入口对裸文本返回 MissingTextEnvelope。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "generic_loader_rejects_unwrapped_text_before_payload_materialization",
+          "lines": [
+            59,
+            68
+          ],
+          "audit": "常规入口对裸文本返回 MissingTextEnvelope。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "migration_chain_gap_reports_the_missing_source_version",
+          "lines": [
+            91,
+            107
+          ],
+          "audit": "目标2但缺 from=1，返回 MissingStep(from=1,target=2)。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "future_schema_version_is_rejected_before_deserializing_payload",
+          "lines": [
+            110,
+            135
+          ],
+          "audit": "version3 对目标2返回 FutureVersion，即使 payload 不匹配。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "claimed_text_envelopes_with_duplicate_reserved_header_fields_fail_closed",
+          "lines": [
+            138,
+            172
+          ],
+          "audit": "列举重复 header/schema_id/version 组合均为 InvalidEnvelope。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "current_envelope_loads_without_reporting_a_migration",
+          "lines": [
+            175,
+            195
+          ],
+          "audit": "当前版本加载成功且 migrated_from=None。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "envelope_only_loader_accepts_the_current_borrowed_payload_path",
+          "lines": [
+            198,
+            218
+          ],
+          "audit": "当前版本 envelope-only 路径从 envelope 借用 payload 并解码。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "current_text_envelope_uses_the_direct_typed_decode_path",
+          "lines": [
+            221,
+            237
+          ],
+          "audit": "include_str! 静态检查 load.rs 含 direct typed decode/schema-zero helper 文本。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "current_envelope_validates_the_complete_migration_chain_before_typed_decode",
+          "lines": [
+            240,
+            265
+          ],
+          "audit": "当前 envelope 配断链 fixture 返回 MissingStep。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "envelope_for_a_different_schema_is_rejected",
+          "lines": [
+            268,
+            291
+          ],
+          "audit": "schema_id 不同返回 SchemaMismatch 并报告双方。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "预算/legacy/version tests",
+          "lines": [
+            17,
+            135
+          ],
+          "audit": "超限、显式 legacy、缺 step 和未来版本顺序。"
+        },
+        {
+          "name": "envelope/decode tests",
+          "lines": [
+            138,
+            291
+          ],
+          "audit": "重复保留键、当前 envelope、静态守卫、chain 和 schema mismatch。"
+        }
+      ],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "8c15c7910534bbaef2357b0beef35e837e552ed680aab3ff25fc3f15134683fa",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": [],
+      "source_scan_impact": {
+        "scanner": "current_text_envelope_uses_the_direct_typed_decode_path 静态 include_str! 扫描 load.rs。",
+        "scanned_path": "zircon_runtime_interface/src/serialization/load.rs",
+        "scanned_path_changed": false,
+        "before_predicates": [
+          true,
+          true
+        ],
+        "after_predicates": [
+          true,
+          true
+        ],
+        "limits": "只验证两个源文本片段，不证明 loader 执行。"
+      }
+    },
+    "zircon_runtime_interface/src/serialization/tests/legacy_detection.rs": {
+      "before_sha256": "1b1110e1f6ca1693ca832e902c0b15a9d8fc980df970a969387639cbc65777b8",
+      "after_sha256": "1b1110e1f6ca1693ca832e902c0b15a9d8fc980df970a969387639cbc65777b8",
+      "before_bytes": 1906,
+      "after_bytes": 1906,
+      "before_physical_lines": 47,
+      "after_physical_lines": 47,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "module contract",
+          "lines": [
+            1,
+            7
+          ],
+          "audit": "说明裸载荷领域键样例和测试边界。",
+          "documentation_decision": "模块文档充分。"
+        },
+        {
+          "name": "unwrapped_v0_payload_may_own_a_domain_field_named_payload",
+          "lines": [
+            9,
+            19
+          ],
+          "audit": "裸业务 payload 字段仍走 legacy v0 并迁移。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "unwrapped_v0_payload_may_own_header_and_payload_domain_fields",
+          "lines": [
+            23,
+            33
+          ],
+          "audit": "普通对象含 header/payload 字段仍作为 v0 处理。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "unwrapped_v0_payload_may_own_a_domain_field_named_zircon",
+          "lines": [
+            37,
+            47
+          ],
+          "audit": "普通对象含 zircon 字段仍作为 v0 处理。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "legacy field names",
+          "lines": [
+            9,
+            47
+          ],
+          "audit": "三个普通业务键样例通过显式 legacy 路径。"
+        }
+      ],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "1b1110e1f6ca1693ca832e902c0b15a9d8fc980df970a969387639cbc65777b8",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/tests/malformed_contract.rs": {
+      "before_sha256": "e7e82f2cf328a35d9ce9295c33658539f934c719a75c8f3977c75121f8a68137",
+      "after_sha256": "e7e82f2cf328a35d9ce9295c33658539f934c719a75c8f3977c75121f8a68137",
+      "before_bytes": 3319,
+      "after_bytes": 3319,
+      "before_physical_lines": 105,
+      "after_physical_lines": 105,
+      "line_ending": "LF",
+      "status_before": "clean",
+      "status_after": "clean",
+      "objects": [
+        {
+          "name": "module contract",
+          "lines": [
+            1,
+            9
+          ],
+          "audit": "说明 parse/envelope/decode 错误分类范围。",
+          "documentation_decision": "模块文档充分。"
+        },
+        {
+          "name": "malformed_json_and_malformed_envelope_have_distinct_errors",
+          "lines": [
+            11,
+            30
+          ],
+          "audit": "非法 JSON 为 MalformedText；可解析但封套缺 payload 为 InvalidEnvelope。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "current_payload_decode_failure_reports_schema_and_version",
+          "lines": [
+            34,
+            59
+          ],
+          "audit": "当前 envelope 目标类型错误返回 PayloadDecode，带 schema/version/source。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "envelope_header_rejects_unknown_fields",
+          "lines": [
+            63,
+            82
+          ],
+          "audit": "header 未知键返回 InvalidEnvelope。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        },
+        {
+          "name": "envelope_rejects_outer_fields_without_reclassifying_it_as_legacy",
+          "lines": [
+            86,
+            105
+          ],
+          "audit": "envelope 外额外字段仍 InvalidEnvelope，不降级为 legacy。",
+          "documentation_decision": "测试名和断言已说明合同；无须重复注释。"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "错误分类 tests",
+          "lines": [
+            11,
+            105
+          ],
+          "audit": "区分 syntax/envelope/typed decode/unknown header/legacy fallback。"
+        }
+      ],
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "从最终 raw bytes 按偏移逆序移除精确 UTF-8 注释块，再与分配前 raw bytes 逐字节比较。",
+        "reconstructed_before_sha256": "e7e82f2cf328a35d9ce9295c33658539f934c719a75c8f3977c75121f8a68137",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true,
+        "inserted_block_count": 0
+      },
+      "preexisting_markers": [],
+      "issues": []
+    }
+  },
+  "test_contracts": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_contract.rs",
+      "name": "duplicate_source_version_is_rejected_instead_of_using_table_order",
+      "lines": [
+        35,
+        47
+      ],
+      "checks": [
+        "重复 from=0 步骤返回 DuplicateStep。"
+      ],
+      "limits": "只证明该重复表样例。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_contract.rs",
+      "name": "out_of_order_table_is_rejected_instead_of_searched",
+      "lines": [
+        66,
+        79
+      ],
+      "checks": [
+        "from=1 后 from=0 返回 expected=0/found=1。"
+      ],
+      "limits": "只覆盖该乱序样例。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_contract.rs",
+      "name": "extra_step_past_current_version_is_rejected",
+      "lines": [
+        98,
+        110
+      ],
+      "checks": [
+        "target=1 且额外 from=1 返回 UnexpectedStep。"
+      ],
+      "limits": "未覆盖其他目标组合。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_contract.rs",
+      "name": "current_version_payload_does_not_bypass_invalid_chain_validation",
+      "lines": [
+        113,
+        135
+      ],
+      "checks": [
+        "当前版本 envelope 仍因重复链返回 DuplicateStep。"
+      ],
+      "limits": "证明链校验不被当前版本解码绕过。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_contract.rs",
+      "name": "value_domain_callers_use_the_same_complete_chain_validation",
+      "lines": [
+        137,
+        155
+      ],
+      "checks": [
+        "直接 migrate_value(value,1,1) 对重复链返回 DuplicateStep。"
+      ],
+      "limits": "from=target；不覆盖 from>target。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs",
+      "name": "migration_step_failure_preserves_schema_version_and_source",
+      "lines": [
+        32,
+        46
+      ],
+      "checks": [
+        "InvalidPayload 被包装为 StepFailed，保留 schema、from_version 和 source。"
+      ],
+      "limits": "只覆盖该回调失败 fixture。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "name": "text_reader_rejects_an_input_larger_than_the_wire_budget_before_parsing",
+      "lines": [
+        17,
+        28
+      ],
+      "checks": [
+        "超限文本返回 TextDocumentTooLarge。"
+      ],
+      "limits": "不测等于上限、解码内存或 binary budget。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "name": "unwrapped_text_payload_is_recognized_as_v0_and_migrated_in_order",
+      "lines": [
+        31,
+        44
+      ],
+      "checks": [
+        "显式 legacy loader 得到 migrated_from=Some(0)，字段已迁移。"
+      ],
+      "limits": "只覆盖 fixture 的链和字段。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "name": "envelope_only_loader_rejects_unwrapped_text_before_payload_materialization",
+      "lines": [
+        47,
+        56
+      ],
+      "checks": [
+        "envelope-only 入口对裸文本返回 MissingTextEnvelope。"
+      ],
+      "limits": "不执行目标 decode。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "name": "generic_loader_rejects_unwrapped_text_before_payload_materialization",
+      "lines": [
+        59,
+        68
+      ],
+      "checks": [
+        "常规入口对裸文本返回 MissingTextEnvelope。"
+      ],
+      "limits": "不覆盖所有 wire 组合。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "name": "migration_chain_gap_reports_the_missing_source_version",
+      "lines": [
+        91,
+        107
+      ],
+      "checks": [
+        "目标2但缺 from=1，返回 MissingStep(from=1,target=2)。"
+      ],
+      "limits": "仅该缺口。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "name": "future_schema_version_is_rejected_before_deserializing_payload",
+      "lines": [
+        110,
+        135
+      ],
+      "checks": [
+        "version3 对目标2返回 FutureVersion，即使 payload 不匹配。"
+      ],
+      "limits": "只证明未来版本错误先于 decode。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "name": "claimed_text_envelopes_with_duplicate_reserved_header_fields_fail_closed",
+      "lines": [
+        138,
+        172
+      ],
+      "checks": [
+        "列举重复 header/schema_id/version 组合均为 InvalidEnvelope。"
+      ],
+      "limits": "仅列举的重复字段组合。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "name": "current_envelope_loads_without_reporting_a_migration",
+      "lines": [
+        175,
+        195
+      ],
+      "checks": [
+        "当前版本加载成功且 migrated_from=None。"
+      ],
+      "limits": "不覆盖其他类型/schema。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "name": "envelope_only_loader_accepts_the_current_borrowed_payload_path",
+      "lines": [
+        198,
+        218
+      ],
+      "checks": [
+        "当前版本 envelope-only 路径从 envelope 借用 payload 并解码。"
+      ],
+      "limits": "不覆盖 migration 值域路径。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "name": "current_text_envelope_uses_the_direct_typed_decode_path",
+      "lines": [
+        221,
+        237
+      ],
+      "checks": [
+        "include_str! 静态检查 load.rs 含 direct typed decode/schema-zero helper 文本。"
+      ],
+      "limits": "源码结构守卫，不执行 loader，也不是宏/Runtime 行为证据。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "name": "current_envelope_validates_the_complete_migration_chain_before_typed_decode",
+      "lines": [
+        240,
+        265
+      ],
+      "checks": [
+        "当前 envelope 配断链 fixture 返回 MissingStep。"
+      ],
+      "limits": "仅 fixture 中的链缺口。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/load_contract.rs",
+      "name": "envelope_for_a_different_schema_is_rejected",
+      "lines": [
+        268,
+        291
+      ],
+      "checks": [
+        "schema_id 不同返回 SchemaMismatch 并报告双方。"
+      ],
+      "limits": "不覆盖 alias 或注册。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/legacy_detection.rs",
+      "name": "unwrapped_v0_payload_may_own_a_domain_field_named_payload",
+      "lines": [
+        9,
+        19
+      ],
+      "checks": [
+        "裸业务 payload 字段仍走 legacy v0 并迁移。"
+      ],
+      "limits": "模块文档排除部分 envelope/重复键一般结论。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/legacy_detection.rs",
+      "name": "unwrapped_v0_payload_may_own_header_and_payload_domain_fields",
+      "lines": [
+        23,
+        33
+      ],
+      "checks": [
+        "普通对象含 header/payload 字段仍作为 v0 处理。"
+      ],
+      "limits": "仅该对象样例。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/legacy_detection.rs",
+      "name": "unwrapped_v0_payload_may_own_a_domain_field_named_zircon",
+      "lines": [
+        37,
+        47
+      ],
+      "checks": [
+        "普通对象含 zircon 字段仍作为 v0 处理。"
+      ],
+      "limits": "不推断任意嵌套策略。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/malformed_contract.rs",
+      "name": "malformed_json_and_malformed_envelope_have_distinct_errors",
+      "lines": [
+        11,
+        30
+      ],
+      "checks": [
+        "非法 JSON 为 MalformedText；可解析但封套缺 payload 为 InvalidEnvelope。"
+      ],
+      "limits": "仅两类输入。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/malformed_contract.rs",
+      "name": "current_payload_decode_failure_reports_schema_and_version",
+      "lines": [
+        34,
+        59
+      ],
+      "checks": [
+        "当前 envelope 目标类型错误返回 PayloadDecode，带 schema/version/source。"
+      ],
+      "limits": "不覆盖迁移后所有 decode 组合。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/malformed_contract.rs",
+      "name": "envelope_header_rejects_unknown_fields",
+      "lines": [
+        63,
+        82
+      ],
+      "checks": [
+        "header 未知键返回 InvalidEnvelope。"
+      ],
+      "limits": "单一未知字段样例。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/malformed_contract.rs",
+      "name": "envelope_rejects_outer_fields_without_reclassifying_it_as_legacy",
+      "lines": [
+        86,
+        105
+      ],
+      "checks": [
+        "envelope 外额外字段仍 InvalidEnvelope，不降级为 legacy。"
+      ],
+      "limits": "模块文档排除所有 malformed/duplicate permutations。",
+      "documentation_decision": "测试名和断言已说明合同；不重复添加注释。"
+    }
+  ],
+  "context_files": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/mod.rs",
+      "sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "physical_lines": 53,
+      "role": "cfg(test) 挂载 serialization/tests/mod.rs。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/mod.rs",
+      "sha256": "55ae7bab29bd22dc3c0e7f0422a3d1d7aca12445131fb0401cccf76a09f50ed9",
+      "physical_lines": 79,
+      "role": "挂载五个本批测试并定义 VersionedSchema 测试 fixture；R013 overflow 线索只作为 context。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/versioned_schema.rs",
+      "sha256": "cf1121e8f7cbcb918de31b9513cd534517ef6aa60d1c2416a430af6e00c34b9f",
+      "physical_lines": 26,
+      "role": "提供 SCHEMA、VERSION 与 static MigrationChain<Self>。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/write.rs",
+      "sha256": "82e8c35a6bc599ac23b8efaae33898a2507721c08fd84482b3ed445a0cb138cb",
+      "physical_lines": 466,
+      "role": "write_versioned Format 分派 lines 23-39；write_canonical_text_to 预算消费和裸 canonical JSON lines 115-130。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/canonical_writer.rs",
+      "sha256": "b512879570b2da9f67d7546ee745f3c5dc8b1de24a4384fa7fae4e5ae7e40c28",
+      "physical_lines": 799,
+      "role": "规范文本 writer 将尾随换行也通过计量输出路径写入。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/canonical_writer/output.rs",
+      "sha256": "f522c9ac94bd76cf7d19b3bd5a8909ec6c67d9243024f554d74bab7a9ca44c81",
+      "physical_lines": 181,
+      "role": "累计输出 bytes 仅在 > max 时失败。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/wire.rs",
+      "sha256": "216534ee17a313a768ca18def0ba5f54589f7186d67e5d501f3704f9b33c3b6d",
+      "physical_lines": 4,
+      "role": "MAX_TEXT_DOCUMENT_BYTES 常量。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/decode.rs",
+      "sha256": "af0792107858987a6827aff8828294c59aef2c8dfe972911c4943c8a787ef836",
+      "physical_lines": 55,
+      "role": "解出 borrowed body；schema/version 先于目标类型 body decode。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/wire.rs",
+      "sha256": "e0d0511abad96c484697c6640709e0788b1b10a1fe4dfa12bbbcc1811c274928",
+      "physical_lines": 83,
+      "role": "固定 prefix 校验；body 从 prefix 后开始，大小包含 envelope header/payload。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/binary_malformed_contract.rs",
+      "sha256": "04c8cb2c773e95cf360c6248c43985fa86cfd04e3f8281cf541b8d924d8d667a",
+      "physical_lines": 214,
+      "role": "相邻 binary malformed 测试仅作上下文。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/binary_contract.rs",
+      "sha256": "a54fa257552598bcbb9c5f02621056754644618484f2658286f1d753fa0363bd",
+      "physical_lines": 340,
+      "role": "相邻 binary 契约测试仅作上下文。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "sha256": "f1d4bccd23a391a602db885c708ea4a9d9ca0e4b4a94e5fddbf622487101db64",
+      "physical_lines": 899,
+      "role": "raw writer budget 测试 lines 763-785 仅作预算消费 context。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/migration.rs",
+      "sha256": "718a3e283f78cb57b5d3e3827859173ed8f6dbca89abf477d3d80a9df5b504bc",
+      "physical_lines": 134,
+      "role": "manifest schema 检查后调用 migrate_value。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/dynamic/document/read.rs",
+      "sha256": "195b3a0c354780a2478d1661c8512feabf83e5cb425ec7a48f4a25379fce3540",
+      "physical_lines": 56,
+      "role": "显式 legacy loader 后调用 ensure_supported。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/json_document/read.rs",
+      "sha256": "d161b84acb0bd35e76c30735a9f9c181ac77a93cd2680f836fbf4afee77ad471",
+      "physical_lines": 20,
+      "role": "legacy loader 后由 caller 做 schema/value budget validation。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/export/preset.rs",
+      "sha256": "8bdc684029add6938264e4b1d4a52195ca77d60dcc0a97bcde5f59bef77d8ab9",
+      "physical_lines": 247,
+      "role": "envelope loader 后显式调用领域 validate。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/template_pack.rs",
+      "sha256": "79c1c13d78440f2308c53d8ae1b44a036b87b0dae683732ab6df04e590101bb5",
+      "physical_lines": 521,
+      "role": "模板包测试调用 preset loader。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/workbench/project/layout_preset_asset_document.rs",
+      "sha256": "32beaec1f503ad099fa9289b69b7096aca9a060aec4fdac92aaf721f484eb311",
+      "physical_lines": 69,
+      "role": "layout preset editor caller。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/workbench/project/editor_workspace_document.rs",
+      "sha256": "353ef7861f9c9400564e254558c10d6a8cd87528f38f7cb45f0d876ed78ef908",
+      "physical_lines": 93,
+      "role": "workspace document editor caller。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/workbench/layout_persistence_document.rs",
+      "sha256": "7a595cac35738f0588d79878722688c80e9bb4378b15f9b466bfd91bb685dba2",
+      "physical_lines": 144,
+      "role": "decode_config_value<T> caller。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/core/settings/io.rs",
+      "sha256": "5032b4e646f35035be6b49ce52af4df4d0bfba0b1429afb9fcd9a04288480b36",
+      "physical_lines": 452,
+      "role": "decode_current_document 检查 migrated_from。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/core/editing/engine/journal/transaction.rs",
+      "sha256": "c5a8af1a5c088070211a79583af9b944425a42d26bca01e8e8b7cafbcb256fc8",
+      "physical_lines": 181,
+      "role": "transaction journal decode caller。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/dynamic/session/artifact.rs",
+      "sha256": "f56683b937ab484b2640cc16b81ee726adf8f05ad5e47d1a879076f016203e6b",
+      "physical_lines": 533,
+      "role": "session artifact writer 调用 write_canonical_text_to 并提供预算。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs",
+      "sha256": "2545b670140933dead71c86b6c19597c8429258f7a9430aced731ba8a7c4f850",
+      "physical_lines": 439,
+      "role": "line 144 静态 guard 搜索 legacy loader token，不证明运行时执行。",
+      "formal_coverage": false
+    }
+  ],
+  "test_mounts": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/mod.rs",
+      "sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "lines": [
+        51,
+        53
+      ],
+      "evidence": "cfg(test) 模块挂载。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/mod.rs",
+      "sha256": "55ae7bab29bd22dc3c0e7f0422a3d1d7aca12445131fb0401cccf76a09f50ed9",
+      "lines": [
+        10,
+        18
+      ],
+      "evidence": "挂载 R016 的五个测试文件。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/mod.rs",
+      "sha256": "55ae7bab29bd22dc3c0e7f0422a3d1d7aca12445131fb0401cccf76a09f50ed9",
+      "lines": [
+        30,
+        79
+      ],
+      "evidence": "声明 v2 fixture 和 v0→v1→v2 static chain；只作 context。",
+      "formal_coverage": false
+    }
+  ],
+  "callers_traits_registration_ffi": {
+    "traits": [
+      {
+        "name": "VersionedSchema",
+        "path": "zircon_runtime_interface/src/serialization/versioned_schema.rs",
+        "sha256": "cf1121e8f7cbcb918de31b9513cd534517ef6aa60d1c2416a430af6e00c34b9f",
+        "lines": [
+          8,
+          24
+        ],
+        "contract": "静态提供 schema identity、当前版本和 static MigrationChain<Self>；trait 本身不执行迁移。"
+      }
+    ],
+    "direct_calls": [
+      {
+        "symbol": "load_versioned and explicit legacy entry",
+        "path": "zircon_runtime_interface/src/serialization/load.rs",
+        "sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+        "lines": [
+          41,
+          102
+        ],
+        "evidence": "常规拒绝裸文本；explicit legacy 只对无封套文本选择 schema-zero policy。",
+        "formal_coverage": true
+      },
+      {
+        "symbol": "text/binary loader branches",
+        "path": "zircon_runtime_interface/src/serialization/load.rs",
+        "sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+        "lines": [
+          111,
+          195
+        ],
+        "evidence": "预算、wire/envelope、schema/version、完整链、typed decode 的执行顺序。",
+        "formal_coverage": true
+      },
+      {
+        "symbol": "migrate_value",
+        "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+        "sha256": "17f268b77bd73622bb2b1f69abc2e9f2e71e0cb77226995ef18e008c106c692a",
+        "lines": [
+          33,
+          51
+        ],
+        "evidence": "公开的 owned JSON value 迁移入口。",
+        "formal_coverage": true
+      },
+      {
+        "symbol": "manifest summary caller",
+        "path": "zircon_runtime_interface/src/project/manifest_summary/migration.rs",
+        "sha256": "718a3e283f78cb57b5d3e3827859173ed8f6dbca89abf477d3d80a9df5b504bc",
+        "lines": [
+          46,
+          68
+        ],
+        "evidence": "先校验 manifest schema identity，再调用 migrate_value。",
+        "formal_coverage": false
+      },
+      {
+        "symbol": "dynamic document legacy reader",
+        "path": "zircon_runtime/src/scene/dynamic/document/read.rs",
+        "sha256": "195b3a0c354780a2478d1661c8512feabf83e5cb425ec7a48f4a25379fce3540",
+        "lines": [
+          8,
+          13
+        ],
+        "evidence": "调用显式 legacy loader，随后 ensure_supported。",
+        "formal_coverage": false
+      },
+      {
+        "symbol": "reflect JSON document reader",
+        "path": "zircon_runtime/src/scene/reflect/json_document/read.rs",
+        "sha256": "d161b84acb0bd35e76c30735a9f9c181ac77a93cd2680f836fbf4afee77ad471",
+        "lines": [
+          9,
+          16
+        ],
+        "evidence": "legacy loader 后另做 schema/value budget validation。",
+        "formal_coverage": false
+      },
+      {
+        "symbol": "preset load",
+        "path": "zircon_runtime_interface/src/export/preset.rs",
+        "sha256": "8bdc684029add6938264e4b1d4a52195ca77d60dcc0a97bcde5f59bef77d8ab9",
+        "lines": [
+          183,
+          190
+        ],
+        "evidence": "load 后显式领域 validate，解码不代表领域合法。",
+        "formal_coverage": false
+      },
+      {
+        "symbol": "write_versioned",
+        "path": "zircon_runtime_interface/src/serialization/write.rs",
+        "sha256": "82e8c35a6bc599ac23b8efaae33898a2507721c08fd84482b3ed445a0cb138cb",
+        "lines": [
+          23,
+          39
+        ],
+        "evidence": "Format 分派到 versioned text/binary writers。",
+        "formal_coverage": false
+      },
+      {
+        "symbol": "write_canonical_text_to",
+        "path": "zircon_runtime_interface/src/serialization/write.rs",
+        "sha256": "82e8c35a6bc599ac23b8efaae33898a2507721c08fd84482b3ed445a0cb138cb",
+        "lines": [
+          115,
+          130
+        ],
+        "evidence": "消费 SerializationBudget，输出裸 canonical JSON。",
+        "formal_coverage": false
+      },
+      {
+        "symbol": "output reserve and final newline",
+        "path": "zircon_runtime_interface/src/serialization/text/canonical_writer/output.rs",
+        "sha256": "f522c9ac94bd76cf7d19b3bd5a8909ec6c67d9243024f554d74bab7a9ca44c81",
+        "lines": [
+          1,
+          181
+        ],
+        "evidence": "累计 bytes > max 才拒绝；canonical writer 末尾换行也计量。",
+        "formal_coverage": false
+      },
+      {
+        "symbol": "binary body budget",
+        "path": "zircon_runtime_interface/src/serialization/binary/wire.rs",
+        "sha256": "e0d0511abad96c484697c6640709e0788b1b10a1fe4dfa12bbbcc1811c274928",
+        "lines": [
+          1,
+          83
+        ],
+        "evidence": "固定 prefix 后的 body 包含 envelope header 和 payload。",
+        "formal_coverage": false
+      }
+    ],
+    "macros_and_derives": [
+      "serde Serialize/Deserialize 在 typed decode 目标调用处发挥作用。",
+      "thiserror::Error 和 source 属性实现 LoadError/MigrateError 错误与错误链。",
+      "cfg(test)/test 把 fixture/test functions 挂入测试模块。"
+    ],
+    "registration": "正式范围无运行时动态注册表或插件注册流程。",
+    "ffi": "正式范围无 FFI/ABI 声明。",
+    "evidence_boundary": "静态 include_str 源码断言不等于 loader 执行或宏展开证据；runtime/preset 调用方可能另行做领域验证。"
+  },
+  "helpers_call_graph": [
+    "load_versioned -> load_text_versioned 或 load_binary_versioned -> schema/version 校验 -> 完整迁移链验证 -> 当前类型直接 decode 或迁移后 decode。",
+    "load_versioned_legacy_schema_zero -> 文本 policy=SchemaZero -> load_schema_zero_text -> schema-zero 值域迁移。",
+    "load_migrated_value -> MigrationChain::migrate_value -> 完整链验证 -> 按序 MigrationFn(Value) -> 目标类型反序列化。",
+    "write_versioned 按 Format 写版本封套；write_canonical_text_to 独立走 canonical writer 并消费 budget。"
+  ],
+  "evidence": {
+    "coverage_basis": "正式范围为精确17份分配路径，1330条分配前物理行；调用上下文不会扩张覆盖。",
+    "test_contracts": "25个分配内测试逐函数登记输入、断言和限界；static include_str 守卫不记作 loader 执行证据。"
+  },
+  "coverage_basis": {
+    "assigned_path_count": 17,
+    "before_physical_lines": 1330,
+    "objects_reviewed": 76,
+    "blocks_reviewed": 19,
+    "tests_reviewed": 25,
+    "changed_source_count": 3,
+    "unchanged_sources_count": 14,
+    "all_source_before_hashes_match": true,
+    "remaining_gap": "将在固定前记录全部声明/块和25个已读测试；不声称样例外、未运行 Cargo、全量 serde 分配、运行时注册或 FFI 已验证。"
+  },
+  "validation": {
+    "commands": [
+      {
+        "command": "rustfmt --check --edition 2021 --config skip_children=true <exact 17 paths>",
+        "exit_code": 0
+      },
+      {
+        "command": "git diff --check -- <exact 17 paths>",
+        "exit_code": 0
+      }
+    ],
+    "git_diff_scoped_summary": {
+      "files_changed": 3,
+      "insertions": 35,
+      "deletions": 0,
+      "paths": [
+        "zircon_runtime_interface/src/serialization/format.rs",
+        "zircon_runtime_interface/src/serialization/budget.rs",
+        "zircon_runtime_interface/src/serialization/error.rs"
+      ]
+    },
+    "cargo_tests_build_generation_run": false,
+    "processes": {
+      "owned_writer_commands": "已结束；未启动新 writer。",
+      "status": "no known in-flight writer"
+    },
+    "acceptance": "父审复核待完成。"
+  },
+  "issues": [],
+  "preexisting_markers": [
+    {
+      "id": "CR-SERIALIZATION-0001",
+      "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "line": 7,
+      "decision": "保留既有 TODO，不提升为 BUG。"
+    }
+  ],
+  "formal_gate": {
+    "parent_review": "pending",
+    "jenkins_or_external_acceptance": "not_requested_or_run",
+    "source_writes_after_fixation": "停止 R016 源写入。"
+  }
+}

@@ -1,8 +1,8 @@
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use std::time::Instant;
+use web_time::Instant;
 
-use crate::core::runtime::{TaskDescriptor, TaskId, TaskPoolKind};
+use crate::core::runtime::{TaskCancellationPolicy, TaskDescriptor, TaskId, TaskPoolKind};
 
 use super::contract::{
     RenderArtifactBlockIoDispatchBudget, RenderArtifactBlockIoDispatchError,
@@ -10,7 +10,10 @@ use super::contract::{
 };
 use super::loader::RenderArtifactBlockLoaderInner;
 use super::registry::take_task_id;
+#[cfg(not(target_arch = "wasm32"))]
 use super::worker::run_io_task;
+#[cfg(target_arch = "wasm32")]
+use super::worker::run_io_task_async;
 
 impl RenderArtifactBlockLoaderInner {
     // 任务数与编码字节预算共同限制本次调度；最高优先级块放不下时恢复该项并结束，留待调用方再次调度。
@@ -66,12 +69,14 @@ impl RenderArtifactBlockLoaderInner {
             let store = self.store.clone();
             let store_limits = self.limits.store_limits();
             let metrics = Arc::clone(&self.metrics);
+            #[cfg(not(target_arch = "wasm32"))]
             let task = self.scope.submit(
                 TaskDescriptor::new(
                     TaskId::new(task_id),
                     TaskPoolKind::Io,
                     "render-artifact-block-read",
-                ),
+                )
+                .with_cancellation_policy(TaskCancellationPolicy::CancelOnDrop),
                 move |cancellation| {
                     run_io_task(
                         weak_loader,
@@ -81,6 +86,26 @@ impl RenderArtifactBlockLoaderInner {
                         metrics,
                         cancellation,
                     );
+                },
+            );
+            #[cfg(target_arch = "wasm32")]
+            let task = self.scope.submit_local_future(
+                TaskDescriptor::new(
+                    TaskId::new(task_id),
+                    TaskPoolKind::Io,
+                    "render-artifact-block-read",
+                )
+                .with_cancellation_policy(TaskCancellationPolicy::CancelOnDrop),
+                move |cancellation| async move {
+                    run_io_task_async(
+                        weak_loader,
+                        entry_for_work,
+                        store,
+                        store_limits,
+                        metrics,
+                        cancellation,
+                    )
+                    .await;
                 },
             );
             let task = match task {

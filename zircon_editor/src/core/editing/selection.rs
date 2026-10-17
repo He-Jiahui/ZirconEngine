@@ -71,6 +71,46 @@ impl Default for SelectionSnapshot {
 }
 
 impl SelectionSnapshot {
+    /// Empty and scalar fixture states have the same closed Arc allocation
+    /// layout. Meter it from a stack value before constructing a snapshot.
+    pub fn scalar_retention_bound_v1(
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<u64, EditCommandError> {
+        use zircon_runtime_interface::retained_memory::{RetainedBoundBuilderV1, RetainedBytesV1};
+        let mut meter = RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(limit));
+        meter.layout(std::mem::size_of::<Self>(), std::mem::align_of::<Self>())?;
+        meter.arc_payload(&SelectionState::Empty)?;
+        Ok(meter.bytes().get())
+    }
+
+    /// Bounds both Arc allocations from a borrowed item count, before a
+    /// preview/context binding can allocate the corresponding scene snapshot.
+    pub(crate) fn scene_projection_retention_bound_v1(
+        count: usize,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<u64, EditCommandError> {
+        use zircon_runtime_interface::retained_memory::{
+            align_up_v1, RetainedBoundBuilderV1, RetainedBytesV1, RetentionContractError,
+        };
+        let mut meter = RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(limit));
+        meter.items(count)?;
+        meter.layout(std::mem::size_of::<Self>(), std::mem::align_of::<Self>())?;
+        let state_align = std::mem::align_of::<SelectionState>().max(8);
+        let state = align_up_v1(16, state_align)?
+            .checked_add(std::mem::size_of::<SelectionState>())
+            .ok_or(RetentionContractError::Overflow)?;
+        meter.layout(align_up_v1(state, state_align)?, state_align)?;
+        let items_align = std::mem::align_of::<NodeId>().max(8);
+        let items = count
+            .checked_mul(std::mem::size_of::<NodeId>())
+            .and_then(|n| n.checked_add(16))
+            .ok_or(RetentionContractError::Overflow)?;
+        meter.layout(align_up_v1(items, items_align)?, items_align)?;
+        Ok(meter.bytes().get())
+    }
+
     pub(crate) fn empty(generation: u64) -> Self {
         Self {
             generation,
@@ -144,3 +184,43 @@ impl SelectionSnapshot {
 #[cfg(test)]
 #[path = "tests/selection.rs"]
 mod tests;
+
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for SceneSelection {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        m.arc_payload(self.items.as_ref())
+    }
+}
+unsafe impl zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1 for SceneSelection {}
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for SelectionState {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        match self {
+            Self::Scene(value) => {
+                zircon_runtime_interface::retained_memory::RetainedOwnerV1::retained_bound_v1(
+                    value, m,
+                )
+            }
+            Self::Empty => Ok(()),
+            #[cfg(test)]
+            Self::FixtureValue(_) => Ok(()),
+        }
+    }
+}
+unsafe impl zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1 for SelectionState {}
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for SelectionSnapshot {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        m.arc_payload(self.state.as_ref())
+    }
+}
+unsafe impl zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1
+    for SelectionSnapshot
+{
+}

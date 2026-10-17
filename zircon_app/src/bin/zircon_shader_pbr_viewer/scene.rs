@@ -208,7 +208,7 @@ pub(crate) struct PbrMirrorSceneStartupTiming {
     renderer_environment_brdf_lut_builtin_payload_materialized: bool,
     renderer_environment_brdf_lut_builtin_payload_cache_wait: std::time::Duration,
     renderer_environment_brdf_lut_builtin_payload_materialization: std::time::Duration,
-    renderer_environment_brdf_lut_texture_upload_submission: std::time::Duration,
+    renderer_environment_system_texture_upload_batch_submission: std::time::Duration,
     renderer_deferred_initialization: std::time::Duration,
     renderer_deferred_standard_pipeline: std::time::Duration,
     resource_streamer_initialization: std::time::Duration,
@@ -261,10 +261,10 @@ impl PbrMirrorSceneStartupTiming {
         self.renderer_environment_brdf_lut_builtin_payload_materialization
     }
 
-    pub(crate) const fn renderer_environment_brdf_lut_texture_upload_submission(
+    pub(crate) const fn renderer_environment_system_texture_upload_batch_submission(
         self,
     ) -> std::time::Duration {
-        self.renderer_environment_brdf_lut_texture_upload_submission
+        self.renderer_environment_system_texture_upload_batch_submission
     }
 
     pub(crate) const fn renderer_deferred_initialization(self) -> std::time::Duration {
@@ -511,8 +511,8 @@ impl PbrMirrorScene {
                 .system_texture_builtin_payload_cache_wait(),
             renderer_environment_brdf_lut_builtin_payload_materialization: renderer_startup_report
                 .system_texture_builtin_payload_materialization(),
-            renderer_environment_brdf_lut_texture_upload_submission: core_startup
-                .environment_brdf_lut_texture_upload_submission(),
+            renderer_environment_system_texture_upload_batch_submission: renderer_startup_report
+                .system_texture_upload_submission(),
             renderer_deferred_initialization: core_startup.deferred(),
             renderer_deferred_standard_pipeline: core_startup.deferred_lighting_standard_pipeline(),
             resource_streamer_initialization: renderer_startup_report
@@ -537,7 +537,7 @@ impl PbrMirrorScene {
             _asset_runtime: Some(asset_runtime),
         };
         println!(
-            "PBR viewer startup timing: hdr_decode={hdri_decode_elapsed:.2?}, project_assets={project_assets_elapsed:.2?} ({project_assets_cache}; mesh_generation_samples={}; serialized_source_bytes={}; asset_filesystem_writes={}; project_manifest_writes={}; startup_filesystem_writes={}), runtime_bootstrap={runtime_bootstrap_elapsed:.2?}, project_open={project_open_elapsed:.2?} (project_open_count={}; imported_assets={}; ready_assets={}), world_load={world_load_elapsed:.2?}, renderer_init={renderer_init_elapsed:.2?} (backend={:.2?}, core={:.2?} [setup={:.2?}, brdf_lut=[builtin_materialized={}, builtin_cache_wait={:.2?}, builtin_materialization={:.2?}, upload_submit={:.2?}], mesh_environment={:.2?}, shadows={:.2?}, deferred={:.2?} [lighting_pipelines={:.2?} [lighting_source_assembly={:.2?}, pipeline_foundation={:.2?}, standard_pso={:.2?}], fallback_resources={:.2?}], scene_effects={:.2?} [particles={:.2?}, sprites={:.2?}, hzb={:.2?}, post_process={:.2?}], overlay_ui={:.2?}], streamer={:.2?}, base_prewarm={base_prewarm_report:?}), ibl_restore={ibl_restore_elapsed:.2?}, total={:.2?}",
+            "PBR viewer startup timing: hdr_decode={hdri_decode_elapsed:.2?}, project_assets={project_assets_elapsed:.2?} ({project_assets_cache}; mesh_generation_samples={}; serialized_source_bytes={}; asset_filesystem_writes={}; project_manifest_writes={}; startup_filesystem_writes={}), runtime_bootstrap={runtime_bootstrap_elapsed:.2?}, project_open={project_open_elapsed:.2?} (project_open_count={}; imported_assets={}; ready_assets={}), world_load={world_load_elapsed:.2?}, renderer_init={renderer_init_elapsed:.2?} (backend={:.2?}, core={:.2?} [setup={:.2?}, system_texture_upload_batch=[builtin_materialized={}, builtin_cache_wait={:.2?}, builtin_materialization={:.2?}, submission={:.2?}], mesh_environment={:.2?}, shadows={:.2?}, deferred={:.2?} [lighting_pipelines={:.2?} [lighting_source_assembly={:.2?}, pipeline_foundation={:.2?}, standard_pso={:.2?}], fallback_resources={:.2?}], scene_effects={:.2?} [particles={:.2?}, sprites={:.2?}, hzb={:.2?}, post_process={:.2?}], overlay_ui={:.2?}], streamer={:.2?}, base_prewarm={base_prewarm_report:?}), ibl_restore={ibl_restore_elapsed:.2?}, total={:.2?}",
             project_asset_generation.mesh_generation_samples(),
             project_asset_generation.serialized_source_bytes(),
             project_asset_generation.filesystem_writes(),
@@ -552,7 +552,7 @@ impl PbrMirrorScene {
             renderer_startup_report.system_texture_builtin_payload_materialized(),
             renderer_startup_report.system_texture_builtin_payload_cache_wait(),
             renderer_startup_report.system_texture_builtin_payload_materialization(),
-            core_startup.environment_brdf_lut_texture_upload_submission(),
+            renderer_startup_report.system_texture_upload_submission(),
             core_startup.mesh_and_environment(),
             core_startup.shadows(),
             core_startup.deferred(),

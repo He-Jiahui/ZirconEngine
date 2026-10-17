@@ -419,3 +419,298 @@ fn project_close_entry_points_preflight_before_mutating_the_runtime_owner() {
         assert!(preflight < destructive_close);
     }
 }
+
+#[cfg(windows)]
+mod observed_scene_save {
+    use crate::core::document::SceneSaveOutcome;
+    use crate::core::editor_message::DocumentMessage;
+    use crate::ui::host::editor_event_execution::{
+        complete_scene_save_checkpoint, MenuActionExecutionError,
+    };
+    use std::os::windows::fs::MetadataExt;
+    use std::path::{Path, PathBuf};
+    use zircon_runtime::asset::project::{
+        EditorDocumentCommitFault, EditorDocumentScope, ProjectManager, ProjectManifest,
+        ProjectPaths,
+    };
+    use zircon_runtime::asset::AssetUri;
+    use zircon_runtime::scene::world::SceneProjectError;
+    use zircon_runtime_interface::project::RelPath;
+
+    struct FixtureRoot(PathBuf);
+    impl Drop for FixtureRoot {
+        fn drop(&mut self) {
+            let result = std::fs::remove_dir_all(&self.0);
+            if !std::thread::panicking() {
+                result.expect("remove owned scene-save receipt fixture");
+            }
+        }
+    }
+
+    fn fixture_root(label: &str) -> FixtureRoot {
+        let base = Path::new(r"E:\cargo-targets\zircon-local");
+        for ancestor in base.ancestors() {
+            let metadata = std::fs::symlink_metadata(ancestor).expect("physical E fixture root");
+            assert!(metadata.is_dir() && metadata.file_attributes() & 0x400 == 0);
+        }
+        assert!(std::fs::canonicalize(base)
+            .unwrap()
+            .to_string_lossy()
+            .trim_start_matches(r"\\?\")
+            .eq_ignore_ascii_case(r"E:\cargo-targets\zircon-local"));
+        let root = base.join(format!(
+            "editor182-observed-save-{label}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&root).expect("create owned receipt fixture");
+        FixtureRoot(root)
+    }
+
+    fn fixture_project(root: &Path) -> ProjectManager {
+        let paths = ProjectPaths::from_root(root).unwrap();
+        paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
+        std::fs::create_dir_all(paths.asset_root(&RelPath::project_assets()).join("scenes"))
+            .unwrap();
+        let uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
+        ProjectManifest::new("Observed save receipts", uri.clone(), 1)
+            .save(paths.manifest_path())
+            .unwrap();
+        let project = ProjectManager::open(root).unwrap();
+        let mut world = zircon_runtime::scene::Scene::empty_for_project(&project).unwrap();
+        world
+            .spawn_node(zircon_runtime::scene::components::NodeKind::Empty)
+            .unwrap();
+        let source = world
+            .to_scene_asset(&project)
+            .unwrap()
+            .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
+            .unwrap();
+        std::fs::write(project.source_path_for_uri(&uri).unwrap(), source).unwrap();
+        project
+    }
+
+    #[test]
+    fn durable_projection_failure_advances_only_the_disk_base() {
+        let fixture = fixture_root("projection");
+        let project = fixture_project(&fixture.0);
+        let uri = project.manifest().default_scene.clone();
+        let (world, source_revision) =
+            zircon_runtime::scene::Scene::load_scene_document(&project, &uri)
+                .unwrap()
+                .into_parts();
+        let node = world.nodes()[0].id;
+        let level = zircon_runtime::scene::DefaultLevelManager::default()
+            .create_level(world, zircon_runtime::scene::LevelMetadata::default());
+        let mut context = crate::core::editing::context::CoreEditContext::default();
+        context
+            .bind_scene(
+                level.clone(),
+                crate::core::editing::selection::SceneSelection::new(vec![node], Some(node)),
+            )
+            .unwrap();
+        let transactions = crate::core::editing::engine::EditorTransactionEngine::new(context);
+        let history = crate::core::editing::engine::HistoryContextId::Global;
+        let command = level
+            .with_world(|scene| {
+                crate::core::editing::command::EditorCommand::rename_node(
+                    scene,
+                    node,
+                    "local saved bytes".to_owned(),
+                )
+            })
+            .unwrap()
+            .unwrap();
+        let mut edit = transactions
+            .begin("real publisher receipt", history)
+            .unwrap();
+        edit.push(command).unwrap();
+        edit.commit().unwrap();
+        let world = level.snapshot();
+        let lifecycle = crate::core::document::DocumentLifecycleAuthority::default();
+        let session = lifecycle
+            .begin_project_session(project.paths().root())
+            .session;
+        lifecycle
+            .activate_scene_with_binding(
+                session,
+                project.paths().root(),
+                &uri.to_string(),
+                Some(source_revision),
+                |_| Ok::<(), std::io::Error>(()),
+            )
+            .unwrap();
+        let identity = lifecycle
+            .active_scene_identity(project.paths().root())
+            .unwrap();
+        let before = transactions.history_status(history).unwrap();
+        assert!(before.dirty);
+        let token = transactions.capture_save_token(history).unwrap();
+
+        let (outcome, saved) = lifecycle
+            .save_active_scene(project.paths().root(), None, |_, expected| {
+                let receipt = world.save_scene_to_project(&project, &uri, expected)?;
+                Ok::<_, SceneProjectError>(SceneSaveOutcome::PersistedProjectionFailed {
+                    receipt,
+                    phase: "fixture_view_projection",
+                })
+            })
+            .unwrap();
+        assert!(outcome.receipt().is_durable());
+        assert_eq!(saved, None);
+        let updated = lifecycle
+            .active_scene_identity(project.paths().root())
+            .unwrap();
+        assert_eq!(
+            updated.source_revision(),
+            Some(outcome.receipt().source_revision())
+        );
+        assert_ne!(updated.source_revision(), identity.source_revision());
+        let error =
+            complete_scene_save_checkpoint(&outcome, &transactions, history, token).unwrap_err();
+        assert!(
+            matches!(&error, MenuActionExecutionError::PersistedProjectionFailed { receipt, .. }
+            if receipt.as_ref() == outcome.receipt())
+        );
+        assert_eq!(transactions.history_status(history).unwrap(), before);
+
+        // A later complete Save uses the receipt base and can still make the same history clean.
+        let token = transactions.capture_save_token(history).unwrap();
+        let (outcome, saved) = lifecycle
+            .save_active_scene(project.paths().root(), None, |_, expected| {
+                let receipt = world.save_scene_to_project(&project, &uri, expected)?;
+                Ok::<_, SceneProjectError>(SceneSaveOutcome::Persisted { receipt })
+            })
+            .unwrap();
+        assert_eq!(
+            saved,
+            Some(DocumentMessage::Saved {
+                doc: identity.document()
+            })
+        );
+        complete_scene_save_checkpoint(&outcome, &transactions, history, token).unwrap();
+        assert!(!transactions.history_status(history).unwrap().dirty);
+    }
+
+    #[test]
+    fn recovery_deferred_preserves_base_dirty_checkpoint_and_saved_fact() {
+        let fixture = fixture_root("deferred");
+        let project = fixture_project(&fixture.0);
+        let uri = project.manifest().default_scene.clone();
+        let (world, source_revision) =
+            zircon_runtime::scene::Scene::load_scene_document(&project, &uri)
+                .unwrap()
+                .into_parts();
+        let node = world.nodes()[0].id;
+        let level = zircon_runtime::scene::DefaultLevelManager::default()
+            .create_level(world, zircon_runtime::scene::LevelMetadata::default());
+        let mut context = crate::core::editing::context::CoreEditContext::default();
+        context
+            .bind_scene(
+                level.clone(),
+                crate::core::editing::selection::SceneSelection::new(vec![node], Some(node)),
+            )
+            .unwrap();
+        let transactions = crate::core::editing::engine::EditorTransactionEngine::new(context);
+        let history = crate::core::editing::engine::HistoryContextId::Global;
+        let command = level
+            .with_world(|scene| {
+                crate::core::editing::command::EditorCommand::rename_node(
+                    scene,
+                    node,
+                    "local saved bytes".to_owned(),
+                )
+            })
+            .unwrap()
+            .unwrap();
+        let mut edit = transactions
+            .begin("real publisher receipt", history)
+            .unwrap();
+        edit.push(command).unwrap();
+        edit.commit().unwrap();
+        let world = level.snapshot();
+        let lifecycle = crate::core::document::DocumentLifecycleAuthority::default();
+        let session = lifecycle
+            .begin_project_session(project.paths().root())
+            .session;
+        lifecycle
+            .activate_scene_with_binding(
+                session,
+                project.paths().root(),
+                &uri.to_string(),
+                Some(source_revision),
+                |_| Ok::<(), std::io::Error>(()),
+            )
+            .unwrap();
+        let identity = lifecycle
+            .active_scene_identity(project.paths().root())
+            .unwrap();
+        let before = transactions.history_status(history).unwrap();
+        assert!(before.dirty);
+        let token = transactions.capture_save_token(history).unwrap();
+
+        let scene_path = project.source_path_for_uri(&uri).unwrap();
+        let workspace_path = project.paths().derived_root().join("editor-workspace.json");
+        let old_pair = (
+            std::fs::read(&scene_path).unwrap(),
+            std::fs::read(&workspace_path).ok(),
+        );
+        let workspace = br#"{"fixture":"deferred workspace bytes"}"#;
+        let (outcome, saved) = lifecycle
+            .save_active_scene(project.paths().root(), None, |_, expected| {
+                let scope = project
+                    .scoped_editor_document(&EditorDocumentScope::new(
+                        project.paths().root(),
+                        project.catalog_input_generation().sequence(),
+                    ))
+                    .unwrap();
+                let receipt = scope.commit_scene_workspace_with_fault_for_test(
+                    &uri,
+                    &world,
+                    expected,
+                    workspace,
+                    EditorDocumentCommitFault::FailCommitPointSync,
+                )?;
+                Ok::<_, SceneProjectError>(SceneSaveOutcome::RecoveryDeferred { receipt })
+            })
+            .unwrap();
+        assert!(!outcome.receipt().is_durable());
+        assert_eq!(saved, None);
+        assert_eq!(
+            lifecycle
+                .active_scene_identity(project.paths().root())
+                .unwrap(),
+            identity
+        );
+        let new_pair = (
+            std::fs::read(&scene_path).unwrap(),
+            std::fs::read(&workspace_path).ok(),
+        );
+        let error =
+            complete_scene_save_checkpoint(&outcome, &transactions, history, token).unwrap_err();
+        assert!(
+            matches!(&error, MenuActionExecutionError::Editor(crate::ui::host::EditorError::SceneProject {
+            source: SceneProjectError::PublicationRecoveryDeferred { receipt },
+        }) if receipt.as_ref() == outcome.receipt())
+        );
+        assert_eq!(transactions.history_status(history).unwrap(), before);
+        let recovered = ProjectManager::open(project.paths().root()).unwrap();
+        let pair = (
+            std::fs::read(&scene_path).unwrap(),
+            std::fs::read(&workspace_path).ok(),
+        );
+        assert!(
+            pair == old_pair || pair == new_pair,
+            "recovery must retain a coherent source/workspace pair"
+        );
+        assert!(
+            std::fs::read_dir(recovered.paths().derived_root().join("editor-document"))
+                .unwrap()
+                .next()
+                .is_none()
+        );
+    }
+}

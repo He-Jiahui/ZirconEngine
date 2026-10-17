@@ -336,8 +336,12 @@ pub enum EditorViewportEvent {
         provider_id: String,
     },
     FrameSelection,
-    SetGridVisibility { visible: bool },
-    ToggleSnap { kind: TransformHandleKind },
+    SetGridVisibility {
+        visible: bool,
+    },
+    ToggleSnap {
+        kind: TransformHandleKind,
+    },
 }
 
 impl EditorViewportEvent {

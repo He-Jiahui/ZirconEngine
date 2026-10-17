@@ -15,7 +15,8 @@ pub(super) const MENUS: &[MenuCase] = &[
         trigger: "WorkbenchAssetsWorldTools",
         menu: "WorkbenchAssetsWorldToolsMenu",
         root: "WorkbenchModuleAssetsWorkspace",
-        source_suffix: "ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui",
+        source_suffix:
+            "ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui",
         trigger_source: "assets_world_tools",
         popup_source: "assets_world_tools_menu",
         rows: &[
@@ -34,7 +35,8 @@ pub(super) const MENUS: &[MenuCase] = &[
         trigger: "WorkbenchAssetsGameplayTools",
         menu: "WorkbenchAssetsGameplayToolsMenu",
         root: "WorkbenchModuleAssetsWorkspace",
-        source_suffix: "ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui",
+        source_suffix:
+            "ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui",
         trigger_source: "assets_gameplay_tools",
         popup_source: "assets_gameplay_tools_menu",
         rows: &[
@@ -52,7 +54,8 @@ pub(super) const MENUS: &[MenuCase] = &[
         trigger: "WorkbenchAssetsProductionTools",
         menu: "WorkbenchAssetsProductionToolsMenu",
         root: "WorkbenchModuleAssetsWorkspace",
-        source_suffix: "ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui",
+        source_suffix:
+            "ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui",
         trigger_source: "assets_production_tools",
         popup_source: "assets_production_tools_menu",
         rows: &[

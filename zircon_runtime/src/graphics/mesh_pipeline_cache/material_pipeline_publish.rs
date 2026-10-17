@@ -166,7 +166,7 @@ impl ErrorProxyPipelineAdmissionStats {
         &mut self,
         reason: crate::graphics::pipeline::PipelineAdmissionReason,
         completed_count: usize,
-        elapsed: std::time::Duration,
+        elapsed: web_time::Duration,
     ) {
         use crate::graphics::pipeline::PipelineAdmissionReason;
 
@@ -472,7 +472,7 @@ impl MeshPipelineCache {
                                         | crate::graphics::pipeline::PipelineAdmissionReason::QueueSaturated
                                 ) =>
                         {
-                            let sync_started = std::time::Instant::now();
+                            let sync_started = web_time::Instant::now();
                             let completed_count =
                                 self.finish_pending_shader_source_validations();
                             stats.record_source_validation_sync(

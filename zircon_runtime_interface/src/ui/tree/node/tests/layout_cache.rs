@@ -12,6 +12,7 @@ fn text_layout_revision_advances_from_the_default_cache() {
     assert_eq!(cache.retained_text_layout_revision(), Some(1));
 }
 
+// 极值作为禁用保留键的哨兵；重复推进也不能回到历史修订。
 #[test]
 fn exhausted_text_layout_revision_disables_retained_identity_without_wrapping() {
     let mut cache = UiLayoutCache {
@@ -28,6 +29,7 @@ fn exhausted_text_layout_revision_disables_retained_identity_without_wrapping() 
     assert_eq!(cache.retained_text_layout_revision(), None);
 }
 
+// 有效性独立于零尺寸；本夹具只验证标记协议，不执行布局。
 #[test]
 fn measurement_validity_is_independent_from_zero_geometry() {
     let mut cache = UiLayoutCache::default();

@@ -1,10 +1,10 @@
 use super::*;
 use crate::account::{
-    AccountConfig, State,
     credential::{CredentialStore, SavedSession},
+    AccountConfig, State,
 };
 use std::{future::Future, sync::Arc};
-use tokio::sync::{Mutex, watch};
+use tokio::sync::{watch, Mutex};
 
 #[test]
 fn cloud_receipt_conflict_is_terminal_without_becoming_a_publish() {

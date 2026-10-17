@@ -303,3 +303,74 @@ fn device_execution_accepts_a_full_scope_view_only_transient_texture_lease() {
         .validate_device_execution_pass(&graph, &execution_pass, &access_ids)
         .expect("the exact full-scope view is a valid device lease for this pass");
 }
+
+#[test]
+fn device_execution_validates_unresolved_external_buffer_without_retyping_its_lease() {
+    use crate::render_graph::{RenderGraphExternalResourceBinding, RenderGraphResourceAccessRange};
+    let backend = RenderBackend::new_offscreen()
+        .expect("external buffer regression requires a real GPU device");
+    let mut builder = RenderGraphBuilder::new("device-execution-unresolved-external-buffer");
+    // Keep the logical range unresolved while retaining the required buffer type.
+    // Its physical extent is supplied by the actual native lease below.
+    let buffer = builder.import_present_external_resource_with_binding(
+        "external-buffer",
+        RenderGraphExternalResourceBinding::required_buffer(),
+    );
+    let pass = builder.add_pass("external-writer", QueueLane::AsyncCompute);
+    builder.write_storage_external(pass, buffer).unwrap();
+    builder
+        .set_pass_flags(
+            pass,
+            PassFlags {
+                has_side_effects: true,
+                ..PassFlags::default()
+            },
+        )
+        .unwrap();
+    let graph = builder.compile().unwrap();
+    let (mut execution_pass, access_ids) = execution_pass_for(&graph, pass);
+    assert_eq!(
+        execution_pass.device_access_bindings[0].key.range,
+        RenderGraphResourceAccessRange::UnresolvedExternal
+    );
+    let native = backend.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("device-execution-unresolved-external-buffer"),
+        size: 256,
+        usage: wgpu::BufferUsages::STORAGE,
+        mapped_at_creation: false,
+    });
+    let mut resources = RenderGraphExecutionResources::new();
+    resources.insert_buffer("external-buffer", native);
+    let mut pool = TransientResourcePool::default();
+    pool.begin_frame(backend.device_profile());
+    resources
+        .materialize_transient_resources_with_pool(
+            &backend.device,
+            backend.device_profile(),
+            &graph,
+            &mut pool,
+        )
+        .unwrap();
+    resources
+        .materialize_external_access_bindings(&graph)
+        .unwrap();
+    resources
+        .validate_device_execution_pass(&graph, &execution_pass, &access_ids)
+        .expect("unresolved typed buffer must validate against its real full-range lease");
+    assert_eq!(
+        resources
+            .external_buffer_binding_for_access(access_ids[0])
+            .unwrap()
+            .1,
+        0..256
+    );
+    let error = resources
+        .external_texture_view_for_access(access_ids[0])
+        .expect_err("successful buffer validation must not retype the physical lease as a texture");
+    assert!(error.contains("buffer lease, not a texture view"));
+    execution_pass.device_access_bindings[0].key.range =
+        RenderGraphResourceAccessRange::Texture(RenderGraphTextureSubresourceRange::full());
+    resources
+        .validate_device_execution_pass(&graph, &execution_pass, &access_ids)
+        .expect_err("a texture access key must not authorize the original buffer lease");
+}

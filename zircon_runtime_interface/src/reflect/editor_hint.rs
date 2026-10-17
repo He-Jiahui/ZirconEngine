@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 /// 编辑器选择控件的提示；它不替代运行时对字段值类型及提示兼容性的注册校验。
+///
+/// # serde 线格式
+///
+/// 在 JSON 中，每个单元变体以其变体名表示，例如 `Scalar`。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReflectEditorHint {
     /// 不指定专用控件。

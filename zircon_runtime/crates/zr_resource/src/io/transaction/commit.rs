@@ -19,10 +19,17 @@ pub(super) fn commit_file(
 ) -> io::Result<()> {
     #[cfg(not(test))]
     let _ = (fault, index);
+    // ExpectedMissing always selects the create-only primitive, even if an external creator
+    // was briefly observed during staging. It can never select existing-target replacement.
+    let replace_existing = staged.target_existed
+        && !matches!(
+            staged.expected_revision.as_ref(),
+            Some(crate::io::source_revision::SourceRevision::Missing),
+        );
     match publish_staged_file_for_transaction(
         &staged.intent.staging,
         &staged.intent.target,
-        staged.target_existed,
+        replace_existing,
     ) {
         Ok(()) => staged.committed = true,
         Err(error) => {

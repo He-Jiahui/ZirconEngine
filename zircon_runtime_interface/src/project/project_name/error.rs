@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+/// 项目名称不满足跨平台单文件名组件规则时返回的错误。
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum ProjectNameError {
     #[error("project name cannot be empty")]

@@ -61,12 +61,12 @@ mod first_party_runtime_plugins;
 
 const EDITOR_MODULE_NAME: &str = "EditorModule";
 
-struct IsolatedConfigFile {
+pub(in crate::entry) struct IsolatedConfigFile {
     path: PathBuf,
 }
 
 impl IsolatedConfigFile {
-    fn new() -> Self {
+    pub(in crate::entry) fn new() -> Self {
         static NEXT_ID: AtomicU64 = AtomicU64::new(0);
         let stamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -81,7 +81,7 @@ impl IsolatedConfigFile {
         }
     }
 
-    fn path(&self) -> PathBuf {
+    pub(in crate::entry) fn path(&self) -> PathBuf {
         self.path.clone()
     }
 }

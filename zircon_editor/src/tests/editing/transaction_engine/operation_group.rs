@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -40,11 +39,46 @@ impl TransactionEventSink for RecordingEventSink {
 }
 
 struct BlockingCommand {
-    entered: mpsc::Sender<()>,
-    release: mpsc::Receiver<()>,
+    entered: FixedSignalSenderV1,
+    release: FixedSignalReceiverV1,
 }
 
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for BlockingCommand {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        m.owned(&self.entered)?;
+        m.owned(&self.release)?;
+        Ok(())
+    }
+}
 impl EditCommand for BlockingCommand {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<
+        crate::core::editing::engine::CommandRetentionPlanV1,
+        crate::core::editing::engine::EditCommandError,
+    > {
+        crate::core::editing::engine::CommandRetentionPlanV1::for_owner(
+            self, context, phase, model, limit,
+        )
+    }
+    fn prepare_retention_v1(
+        &mut self,
+        _: &mut dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        permit: &mut crate::core::editing::engine::RetentionMaterializationV1,
+    ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+        permit
+            .consume(self, phase)
+            .map_err(crate::core::editing::engine::CommandExecutionError::unchanged)
+    }
+
     fn label(&self) -> &str {
         "blocking operation group command"
     }
@@ -257,8 +291,8 @@ fn operation_group_flush_restores_group_after_concurrent_busy() {
             )),
         )
         .unwrap();
-    let (entered_tx, entered_rx) = mpsc::channel();
-    let (release_tx, release_rx) = mpsc::channel();
+    let (entered_tx, entered_rx) = fixed_signal_v1();
+    let (release_tx, release_rx) = fixed_signal_v1();
     let worker_engine = Arc::clone(&engine);
     let worker = thread::spawn(move || {
         worker_engine.execute_operation(
@@ -290,8 +324,8 @@ fn operation_group_flush_restores_group_after_concurrent_busy() {
 #[test]
 fn operation_group_initialization_blocks_concurrent_flush() {
     let engine = Arc::new(EditorTransactionEngine::new(FixtureContext::default()));
-    let (entered_tx, entered_rx) = mpsc::channel();
-    let (release_tx, release_rx) = mpsc::channel();
+    let (entered_tx, entered_rx) = fixed_signal_v1();
+    let (release_tx, release_rx) = fixed_signal_v1();
     let worker_engine = Arc::clone(&engine);
     let worker = thread::spawn(move || {
         worker_engine.execute_operation(
@@ -367,4 +401,86 @@ fn operation_group_first_push_preserves_rollback_failure() {
         engine.history_status(HistoryContextId::Global),
         Err(EditCommandError::EngineFaulted { .. })
     ));
+}
+
+#[derive(Default)]
+struct FixedSignalStateV1 {
+    state: Mutex<(bool, bool)>,
+    changed: std::sync::Condvar,
+}
+struct FixedSignalSenderV1(Arc<FixedSignalStateV1>);
+struct FixedSignalReceiverV1(Arc<FixedSignalStateV1>);
+fn fixed_signal_v1() -> (FixedSignalSenderV1, FixedSignalReceiverV1) {
+    let state = Arc::new(FixedSignalStateV1::default());
+    (
+        FixedSignalSenderV1(state.clone()),
+        FixedSignalReceiverV1(state),
+    )
+}
+impl FixedSignalSenderV1 {
+    fn send(&self, _: ()) -> Result<(), ()> {
+        let mut state = self.0.state.lock().unwrap();
+        if state.1 {
+            return Err(());
+        }
+        state.0 = true;
+        self.0.changed.notify_all();
+        Ok(())
+    }
+}
+impl FixedSignalReceiverV1 {
+    fn recv_timeout(&self, timeout: Duration) -> Result<(), ()> {
+        let state = self.0.state.lock().unwrap();
+        let (state, _) = self
+            .0
+            .changed
+            .wait_timeout_while(state, timeout, |s| !s.0 && !s.1)
+            .unwrap();
+        if state.0 {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+}
+impl Drop for FixedSignalSenderV1 {
+    fn drop(&mut self) {
+        self.0.state.lock().unwrap().1 = true;
+        self.0.changed.notify_all();
+    }
+}
+impl Drop for FixedSignalReceiverV1 {
+    fn drop(&mut self) {
+        self.0.state.lock().unwrap().1 = true;
+        self.0.changed.notify_all();
+    }
+}
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for FixedSignalStateV1 {
+    fn retained_bound_v1(
+        &self,
+        _: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        Ok(())
+    }
+}
+// The admitted Windows Mutex/Condvar representation and the two bools have no growable heap.
+unsafe impl zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1
+    for FixedSignalStateV1
+{
+}
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for FixedSignalSenderV1 {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        m.owned(&self.0)
+    }
+}
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for FixedSignalReceiverV1 {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        m.owned(&self.0)
+    }
 }

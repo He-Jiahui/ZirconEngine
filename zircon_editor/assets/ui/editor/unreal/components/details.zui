@@ -6,7 +6,7 @@ version = 2
 display_name = "Unreal Details Panel"
 
 [imports]
-widgets = ["res://ui/editor/workbench/primitives/inputs/search_input.zui#WorkbenchSearchInput", "res://ui/editor/workbench/primitives/chrome/axis_value_field.zui#WorkbenchAxisValueField", "res://ui/editor/workbench/data/component_property_row.zui#WorkbenchComponentPropertyRow", "res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton"]
+widgets = ["res://ui/editor/workbench/primitives/inputs/dropdown.zui#WorkbenchDropdown", "res://ui/editor/workbench/primitives/inputs/search_input.zui#WorkbenchSearchInput", "res://ui/editor/workbench/primitives/chrome/axis_value_field.zui#WorkbenchAxisValueField", "res://ui/editor/workbench/data/component_property_row.zui#WorkbenchComponentPropertyRow", "res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton"]
 styles = ["res://ui/editor/unreal/starship.zui"]
 
 [components.UnrealDetailsPanel]
@@ -49,9 +49,9 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.add]
 component = "WorkbenchButton"
 control_id = "WorkbenchAddComponent"
-props = { text = "Add Component", visibility = "collapsed", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+props = { text = { text_key = "editor.inspector.component_add.open", table = "editor" }, visibility = "collapsed", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
-events = [{ id = "Inspector/AddComponent", event = "Click", route = "workbench.inspector.add_component" }]
+events = [{ id = "Inspector/AddComponent", event = "Click" }]
 
 [nodes.search]
 component = "WorkbenchSearchInput"
@@ -67,7 +67,7 @@ component = "ScrollableBox"
 control_id = "RightDrawerContentRoot"
 props = { input_hoverable = true }
 layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "metadata" }, { node = "transform" }, { node = "component" }, { node = "empty" }]
+children = [{ node = "component_add" }, { node = "metadata" }, { node = "transform" }, { node = "component" }, { node = "empty" }]
 
 [nodes.metadata]
 component = "HorizontalGroup"
@@ -226,3 +226,100 @@ events = [{ id = "Inspector/ComponentProperty04Edit", event = "Change", route = 
 component = "Label"
 control_id = "WorkbenchInspectorFilterEmpty"
 props = { text = "No matching properties", visibility = "collapsed", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+
+# Inline creation picker uses RightDrawerContentRoot and adds no scroll owner.
+[nodes.component_add]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentAddPanel"
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "component_add_title" }, { node = "component_add_type" }, { node = "component_add_name" }, { node = "component_add_pages" }, { node = "component_add_required_label" }, { node = "component_add_required" }, { node = "component_add_values" }, { node = "component_add_feedback" }, { node = "component_add_actions" }]
+
+[nodes.component_add_title]
+component = "Label"
+control_id = "WorkbenchComponentAddTitle"
+props = { text = { text_key = "editor.inspector.component_add.title", table = "editor" }, text_overflow = "ellipsis", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+
+[nodes.component_add_type]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchComponentAddType"
+props = { options = [], disabled_options = [], value = "", value_text = "", label = { text_key = "editor.inspector.component_add.type", table = "editor" }, popup_open = false, disabled = true }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ComponentAddType", event = "Click" }]
+
+[nodes.component_add_name]
+component = "Label"
+control_id = "WorkbenchComponentAddName"
+props = { text = "", text_overflow = "ellipsis", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+
+[nodes.component_add_pages]
+component = "HorizontalGroup"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "component_add_previous" }, { node = "component_add_page" }, { node = "component_add_next" }]
+
+[nodes.component_add_previous]
+component = "WorkbenchButton"
+control_id = "WorkbenchComponentAddPrevious"
+props = { text = { text_key = "editor.inspector.component_add.previous", table = "editor" }, font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ComponentAddPrevious", event = "Click" }]
+
+[nodes.component_add_page]
+component = "Label"
+control_id = "WorkbenchComponentAddPage"
+props = { text = "", text_overflow = "ellipsis", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+
+[nodes.component_add_next]
+component = "WorkbenchButton"
+control_id = "WorkbenchComponentAddNext"
+props = { text = { text_key = "editor.inspector.component_add.next", table = "editor" }, font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ComponentAddNext", event = "Click" }]
+
+[nodes.component_add_required_label]
+component = "Label"
+control_id = "WorkbenchComponentAddRequiredLabel"
+props = { text = { text_key = "editor.inspector.component_add.required", table = "editor" }, text_overflow = "ellipsis", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+
+[nodes.component_add_required]
+component = "Label"
+control_id = "WorkbenchComponentAddRequired"
+props = { text = "", text_overflow = "ellipsis", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+
+[nodes.component_add_values]
+component = "WorkbenchSearchInput"
+control_id = "WorkbenchComponentAddValues"
+props = { query = "", placeholder = { text_key = "editor.inspector.component_add.values", table = "editor" }, disabled = true, has_clear_action = false, font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+widget = { value_property = "query" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ComponentAddValuesEdit", event = "Change", component_event = "ValueChanged" }, { id = "Inspector/ComponentAddValuesCommit", event = "Submit", component_event = "Commit" }]
+
+[nodes.component_add_feedback]
+component = "Label"
+control_id = "WorkbenchComponentAddFeedback"
+props = { text = "", text_overflow = "ellipsis", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+
+[nodes.component_add_actions]
+component = "HorizontalGroup"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "component_add_cancel" }, { node = "component_add_confirm" }]
+
+[nodes.component_add_cancel]
+component = "WorkbenchButton"
+control_id = "WorkbenchComponentAddCancel"
+props = { text = { text_key = "editor.inspector.component_add.cancel", table = "editor" }, font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ComponentAddCancel", event = "Click" }]
+
+[nodes.component_add_confirm]
+component = "WorkbenchButton"
+control_id = "WorkbenchComponentAddConfirm"
+props = { text = { text_key = "editor.inspector.component_add.confirm", table = "editor" }, font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ComponentAddConfirm", event = "Click" }]

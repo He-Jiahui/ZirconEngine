@@ -8,7 +8,13 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
-        let scene_entries = (match self.prepare_hierarchy_pointer_target(width, height, true) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
+        let scene_entries = (match self.prepare_hierarchy_pointer_target(width, height, true) {
+            Ok(value) => value,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        });
         match callback_dispatch::dispatch_shared_hierarchy_pointer_click(
             &self.runtime,
             &mut self.hierarchy_pointer_bridge,

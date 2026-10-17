@@ -8,6 +8,9 @@ use crate::core::editing::context::CoreEditContext;
 use crate::core::editing::engine::{HistoryContextId, HistoryStatus};
 use crate::core::editing::intent::EditorIntent;
 use crate::core::editor_event::{EditorEvent, EditorEventSource, MenuAction};
+use crate::core::editor_message::{
+    DocumentMessage, EditorMessage, EditorMessagePayload, EditorTopic, TOPIC_DOCUMENT,
+};
 use crate::core::gateway::InProcessGateway;
 use crate::core::notifications::{DecisionOptionId, DecisionTicket};
 use crate::core::play::{PlayKind, WorldDomain};
@@ -41,8 +44,18 @@ struct FixtureFiles {
 
 impl Drop for FixtureFiles {
     fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.root);
-        let _ = std::fs::remove_file(&self.config);
+        let root = std::fs::remove_dir_all(&self.root);
+        let config = std::fs::remove_file(&self.config);
+        if !std::thread::panicking() {
+            root.expect("remove the owned physical E reload fixture");
+            if let Err(error) = config {
+                assert_eq!(
+                    error.kind(),
+                    std::io::ErrorKind::NotFound,
+                    "remove owned reload configuration"
+                );
+            }
+        }
     }
 }
 
@@ -52,8 +65,31 @@ impl ReloadHarness {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("{prefix}_{unique}"));
+        use std::os::windows::fs::MetadataExt;
+        let output = std::path::Path::new(r"E:\cargo-targets\zircon-local");
+        for ancestor in output.ancestors() {
+            let metadata =
+                std::fs::symlink_metadata(ancestor).expect("physical E fixture ancestor");
+            assert!(
+                metadata.is_dir() && metadata.file_attributes() & 0x400 == 0,
+                "reload fixture ancestors must be real directories: {}",
+                ancestor.display()
+            );
+        }
+        let physical = std::fs::canonicalize(output).expect("resolve physical E fixture root");
+        assert_eq!(
+            physical.to_string_lossy().trim_start_matches(r"\\?\"),
+            output.to_string_lossy()
+        );
+        let root = output.join(format!(
+            "editor182-observed-reload-{prefix}-{}-{unique}",
+            std::process::id()
+        ));
         let config = root.with_extension("json");
+        let files = FixtureFiles {
+            root: root.clone(),
+            config: config.clone(),
+        };
         std::env::set_var("ZIRCON_CONFIG_PATH", &config);
         let core = CoreRuntime::new();
         core.register_module(foundation_module_descriptor())
@@ -88,7 +124,13 @@ impl ReloadHarness {
         ProjectAuthority::default()
             .create_scene(&mut project, SceneCreateRequest::new(secondary))
             .unwrap();
-        host.editor_manager.enter().expect("editor manager admission").open_project(&created.root).unwrap();
+        let opened = host
+            .editor_manager
+            .enter()
+            .expect("editor manager admission")
+            .open_project(&created.root)
+            .unwrap();
+        let source_revision = opened.scene_source_revision.clone();
         let (project, _) = host
             .asset_runtime_access
             .project_asset_manager()
@@ -98,13 +140,7 @@ impl ReloadHarness {
             .into_parts();
         let manager_handle = host.editor_manager.clone();
         let manager = manager_handle.enter().expect("editor manager admission");
-        let world = manager
-            .prepare_authoring_world(
-                DefaultLevelManager::default()
-                    .create_default_level()
-                    .with_world(Clone::clone),
-            )
-            .unwrap();
+        let world = manager.prepare_authoring_world(opened.world).unwrap();
         let mut state = EditorState::project_with_context(
             world,
             UVec2::new(1280, 720),
@@ -115,6 +151,7 @@ impl ReloadHarness {
             .activate_startup_scene_document(
                 project.paths().root(),
                 &project.manifest().default_scene,
+                source_revision,
             )
             .unwrap();
         state.bind_scene_document(document);
@@ -124,8 +161,101 @@ impl ReloadHarness {
         Self {
             host,
             _core: core,
-            _files: FixtureFiles { root, config },
+            _files: files,
         }
+    }
+
+    fn external_rename(&self, name: &str) {
+        let (project, _) = self
+            .host
+            .asset_runtime_access
+            .project_asset_manager()
+            .unwrap()
+            .current_project_generation_snapshot()
+            .unwrap()
+            .into_parts();
+        let uri = project.manifest().default_scene.clone();
+        let (world, _) = zircon_runtime::scene::Scene::load_scene_document(&project, &uri)
+            .unwrap()
+            .into_parts();
+        let cube = world
+            .nodes()
+            .iter()
+            .find(|node| matches!(node.kind, NodeKind::Cube))
+            .unwrap()
+            .id;
+        let mut scene = world.to_scene_asset(&project).unwrap();
+        scene
+            .entities
+            .iter_mut()
+            .find(|entity| entity.entity == cube)
+            .unwrap()
+            .name = name.to_owned();
+        let source = scene
+            .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
+            .unwrap();
+        std::fs::write(project.source_path_for_uri(&uri).unwrap(), source).unwrap();
+    }
+
+    fn source_bytes(&self) -> Vec<u8> {
+        let (project, _) = self
+            .host
+            .asset_runtime_access
+            .project_asset_manager()
+            .unwrap()
+            .current_project_generation_snapshot()
+            .unwrap()
+            .into_parts();
+        std::fs::read(
+            project
+                .source_path_for_uri(&project.manifest().default_scene)
+                .unwrap(),
+        )
+        .unwrap()
+    }
+
+    fn disk_name(&self) -> String {
+        let (project, _) = self
+            .host
+            .asset_runtime_access
+            .project_asset_manager()
+            .unwrap()
+            .current_project_generation_snapshot()
+            .unwrap()
+            .into_parts();
+        let (world, _) = zircon_runtime::scene::Scene::load_scene_document(
+            &project,
+            &project.manifest().default_scene,
+        )
+        .unwrap()
+        .into_parts();
+        world
+            .nodes()
+            .iter()
+            .find(|node| matches!(node.kind, NodeKind::Cube))
+            .unwrap()
+            .name
+            .clone()
+    }
+
+    fn saved_message(&self) -> EditorMessage {
+        let identity = self
+            .host
+            .editor_manager
+            .enter()
+            .expect("editor manager admission")
+            .active_scene_identity_for_session()
+            .unwrap();
+        EditorMessage::new(EditorMessagePayload::Document(DocumentMessage::Saved {
+            doc: identity.document(),
+        }))
+    }
+
+    fn external_prompt(&mut self, name: &str) -> DecisionTicket {
+        self.external_rename(name);
+        self.host.request_active_scene_reload().unwrap();
+        self.finish_reload();
+        self.decision()
     }
 
     fn rename(&self, name: &str) {
@@ -200,10 +330,12 @@ impl ReloadHarness {
     fn prompt(&mut self) -> DecisionTicket {
         let identity = self
             .host
-            .editor_manager.enter().expect("editor manager admission")
+            .editor_manager
+            .enter()
+            .expect("editor manager admission")
             .active_scene_identity_for_session()
             .unwrap();
-        let (_, generation) = self
+        let (project, generation) = self
             .host
             .asset_runtime_access
             .project_asset_manager()
@@ -211,8 +343,17 @@ impl ReloadHarness {
             .current_project_generation_snapshot()
             .unwrap()
             .into_parts();
-        self.host
-            .install_active_scene_reload_conflict(identity, generation);
+        self.host.install_active_scene_reload_conflict(
+            identity.clone(),
+            generation,
+            zircon_runtime::scene::Scene::load_scene_document(
+                &project,
+                &ResourceLocator::parse(identity.scene_uri()).unwrap(),
+            )
+            .unwrap()
+            .into_parts()
+            .1,
+        );
         self.decision()
     }
 
@@ -357,6 +498,202 @@ impl ReloadHarness {
 }
 
 #[test]
+fn save_overwrites_the_observed_revision_once() {
+    let _guard = crate::tests::support::env_lock().lock().unwrap();
+    let mut harness = ReloadHarness::new("save-observed");
+    harness.rename("local A");
+    let ticket = harness.external_prompt("external B");
+    let bus = harness.host.runtime.context().bus().clone();
+    let subscriber = bus
+        .register_subscriber([EditorTopic::parse(TOPIC_DOCUMENT).unwrap()])
+        .unwrap();
+    let saved = harness.saved_message();
+
+    harness.choose(&ticket, "save");
+
+    assert_eq!(harness.disk_name(), "local A");
+    assert_eq!(harness.name(), "local A");
+    assert!(!harness.history().dirty);
+    assert_eq!(harness.history().saved_top, harness.history().top);
+    assert!(harness.host.active_scene_reload_conflict.is_none());
+    assert_eq!(
+        bus.drain_deliveries(subscriber)
+            .iter()
+            .filter(|delivery| delivery.message() == &saved)
+            .count(),
+        1
+    );
+
+    // A later ordinary Save must use the receipt's new object identity, never the old A or B base.
+    harness.rename("local A after successful save");
+    let record = harness
+        .host
+        .runtime
+        .dispatch_event(
+            EditorEventSource::RetainedHost,
+            EditorEvent::WorkbenchMenu(MenuAction::SaveProject),
+        )
+        .unwrap();
+    assert!(record.result.error.is_none(), "{record:?}");
+    assert_eq!(harness.disk_name(), "local A after successful save");
+    assert!(!harness.history().dirty);
+    assert_eq!(
+        bus.drain_deliveries(subscriber)
+            .iter()
+            .filter(|delivery| delivery.message() == &saved)
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn save_after_a_second_external_change_preserves_source_dirty_and_checkpoint() {
+    let _guard = crate::tests::support::env_lock().lock().unwrap();
+    let mut harness = ReloadHarness::new("save-second-change");
+    harness.rename("local A");
+    let ticket = harness.external_prompt("external B");
+    let identity = harness
+        .host
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
+        .active_scene_identity_for_session()
+        .unwrap();
+    let before = harness.history();
+    harness.external_rename("external C");
+    let c_bytes = harness.source_bytes();
+    let bus = harness.host.runtime.context().bus().clone();
+    let subscriber = bus
+        .register_subscriber([EditorTopic::parse(TOPIC_DOCUMENT).unwrap()])
+        .unwrap();
+    let saved = harness.saved_message();
+
+    harness.choose(&ticket, "save");
+
+    assert_eq!(harness.source_bytes(), c_bytes);
+    assert_eq!(harness.disk_name(), "external C");
+    assert_eq!(harness.name(), "local A");
+    assert_eq!(harness.history(), before);
+    assert!(harness.history().dirty);
+    assert_eq!(
+        harness
+            .host
+            .editor_manager
+            .enter()
+            .expect("editor manager admission")
+            .active_scene_identity_for_session(),
+        Some(identity)
+    );
+    assert!(harness.host.active_scene_reload_conflict.is_none());
+    assert_eq!(
+        bus.drain_deliveries(subscriber)
+            .iter()
+            .filter(|delivery| delivery.message() == &saved)
+            .count(),
+        0
+    );
+}
+
+#[test]
+fn ordinary_save_rejects_an_unobserved_external_change() {
+    let _guard = crate::tests::support::env_lock().lock().unwrap();
+    let harness = ReloadHarness::new("ordinary-stale-source");
+    harness.rename("local A");
+    let identity = harness
+        .host
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
+        .active_scene_identity_for_session()
+        .unwrap();
+    let before = harness.history();
+    harness.external_rename("external B without a prompt");
+    let b_bytes = harness.source_bytes();
+    let bus = harness.host.runtime.context().bus().clone();
+    let subscriber = bus
+        .register_subscriber([EditorTopic::parse(TOPIC_DOCUMENT).unwrap()])
+        .unwrap();
+    let saved = harness.saved_message();
+
+    let error = harness
+        .host
+        .runtime
+        .dispatch_event(
+            EditorEventSource::RetainedHost,
+            EditorEvent::WorkbenchMenu(MenuAction::SaveProject),
+        )
+        .unwrap_err();
+    let crate::ui::host::EditorEventDispatcherError::Event(
+        crate::ui::host::EditorEventDispatchError::Execution(error),
+    ) = error
+    else {
+        panic!("expected an event execution error, got {error:?}");
+    };
+    assert!(error.is_scene_source_conflict(), "{error:?}");
+
+    assert_eq!(harness.source_bytes(), b_bytes);
+    assert_eq!(harness.name(), "local A");
+    assert_eq!(harness.history(), before);
+    assert_eq!(
+        harness
+            .host
+            .editor_manager
+            .enter()
+            .expect("editor manager admission")
+            .active_scene_identity_for_session(),
+        Some(identity)
+    );
+    assert_eq!(
+        bus.drain_deliveries(subscriber)
+            .iter()
+            .filter(|delivery| delivery.message() == &saved)
+            .count(),
+        0
+    );
+}
+
+#[test]
+fn conflict_requires_a_new_decision_before_retry() {
+    let _guard = crate::tests::support::env_lock().lock().unwrap();
+    let mut harness = ReloadHarness::new("save-new-decision");
+    harness.rename("local A");
+    let old_ticket = harness.external_prompt("external B");
+    harness.external_rename("external C");
+    let before = harness.history();
+    let bus = harness.host.runtime.context().bus().clone();
+    let subscriber = bus
+        .register_subscriber([EditorTopic::parse(TOPIC_DOCUMENT).unwrap()])
+        .unwrap();
+    let saved = harness.saved_message();
+    harness.choose(&old_ticket, "save");
+    assert_eq!(harness.disk_name(), "external C");
+    assert_eq!(harness.history(), before);
+    assert_eq!(
+        bus.drain_deliveries(subscriber)
+            .iter()
+            .filter(|delivery| delivery.message() == &saved)
+            .count(),
+        0
+    );
+
+    harness.host.request_active_scene_reload().unwrap();
+    harness.finish_reload();
+    let new_ticket = harness.decision();
+    assert_ne!(new_ticket, old_ticket);
+    harness.choose(&new_ticket, "save");
+
+    assert_eq!(harness.disk_name(), "local A");
+    assert!(!harness.history().dirty);
+    assert_eq!(
+        bus.drain_deliveries(subscriber)
+            .iter()
+            .filter(|delivery| delivery.message() == &saved)
+            .count(),
+        1
+    );
+}
+
+#[test]
 fn discard_after_a_new_edit_since_the_prompt_requires_a_new_decision() {
     let _guard = crate::tests::support::env_lock().lock().unwrap();
     let mut harness = ReloadHarness::new("reload_discard_prompt_generation");
@@ -430,7 +767,9 @@ fn unchanged_discard_authorization_allows_the_real_scene_job_to_commit() {
     harness.rename("authorized edit");
     let identity = harness
         .host
-        .editor_manager.enter().expect("editor manager admission")
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .active_scene_identity_for_session()
         .unwrap();
     let ticket = harness.prompt();
@@ -444,7 +783,9 @@ fn unchanged_discard_authorization_allows_the_real_scene_job_to_commit() {
     assert_eq!(
         harness
             .host
-            .editor_manager.enter().expect("editor manager admission")
+            .editor_manager
+            .enter()
+            .expect("editor manager admission")
             .active_scene_identity_for_session(),
         Some(identity)
     );
@@ -473,13 +814,35 @@ fn a_scene_activation_supersedes_the_pending_discard_without_clearing_history() 
     let default = project.manifest().default_scene.clone();
     harness
         .host
-        .editor_manager.enter().expect("editor manager admission")
-        .activate_startup_scene_document(project.paths().root(), &secondary)
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
+        .activate_startup_scene_document(
+            project.paths().root(),
+            &secondary,
+            Some(
+                zircon_runtime::scene::Scene::load_scene_document(&project, &secondary)
+                    .unwrap()
+                    .into_parts()
+                    .1,
+            ),
+        )
         .unwrap();
     let document = harness
         .host
-        .editor_manager.enter().expect("editor manager admission")
-        .activate_startup_scene_document(project.paths().root(), &default)
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
+        .activate_startup_scene_document(
+            project.paths().root(),
+            &default,
+            Some(
+                zircon_runtime::scene::Scene::load_scene_document(&project, &default)
+                    .unwrap()
+                    .into_parts()
+                    .1,
+            ),
+        )
         .unwrap();
     harness.host.runtime.bind_scene_document(document);
 
@@ -505,13 +868,17 @@ fn a_project_generation_supersedes_the_pending_discard_without_mutating_the_worl
     harness.await_deferred_reload();
     let close = harness
         .host
-        .editor_manager.enter().expect("editor manager admission")
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .begin_project_close()
         .unwrap()
         .unwrap();
     harness
         .host
-        .editor_manager.enter().expect("editor manager admission")
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .commit_project_close(&close)
         .unwrap();
 
@@ -532,7 +899,9 @@ fn a_project_generation_supersedes_the_pending_discard_without_mutating_the_worl
     harness.end_preview(ViewportCommand::CancelInteraction);
     harness
         .host
-        .editor_manager.enter().expect("editor manager admission")
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .finalize_project_close(&close)
         .unwrap();
 }
@@ -804,3 +1173,6 @@ fn play_and_simulate_keep_pending_authoring_reload_out_of_both_history_domains()
         assert_ne!(harness.name(), "dirty authoring edit");
     }
 }
+
+#[path = "model_import_settlement.rs"]
+mod model_import_settlement_tests;

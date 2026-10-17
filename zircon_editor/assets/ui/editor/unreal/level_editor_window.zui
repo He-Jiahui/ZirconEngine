@@ -33,7 +33,7 @@ children = [{ node = "editor_content" }, { node = "content_drawer" }, { node = "
 component = "VerticalGroup"
 control_id = "UnrealLevelEditorContent"
 classes = ["unreal-editor-window"]
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = 1}, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "menu_bar", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
   { node = "project_context", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },

@@ -41,7 +41,8 @@ fn animation_rebind_to_existing_track_keeps_original_sequence_tracks_intact() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")
@@ -128,7 +129,8 @@ fn animation_rebind_updates_selected_timeline_span_to_new_track_path() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")

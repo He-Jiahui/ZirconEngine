@@ -16,19 +16,37 @@ impl RetainedEditorHost {
         pointer: UiPointerInputEvent,
         tooltip_target: Option<WorkbenchTooltipPointerTarget>,
     ) {
-        if pointer.event.kind == UiPointerEventKind::Down && self.workbench_window_bridge.content_drawer_is_open() {
+        if pointer.event.kind == UiPointerEventKind::Down
+            && self.workbench_window_bridge.content_drawer_is_open()
+        {
             let point = pointer.event.point;
             let mount = self.workbench_window_bridge.layout_frames().mount_frame;
             let inside = |frame: zircon_runtime_interface::ui::layout::UiFrame| {
                 let x = frame.x + mount.map_or(0.0, |mount| mount.x);
                 let y = frame.y + mount.map_or(0.0, |mount| mount.y);
-                point.x >= x && point.x < x + frame.width && point.y >= y && point.y < y + frame.height
+                point.x >= x
+                    && point.x < x + frame.width
+                    && point.y >= y
+                    && point.y < y + frame.height
             };
-            let in_drawer = self.workbench_window_bridge.control_frame("UnrealContentDrawerRegion").is_some_and(inside);
-            let on_toggle = self.workbench_window_bridge.control_frame("UnrealContentDrawerToggle").is_some_and(inside);
+            let in_drawer = self
+                .workbench_window_bridge
+                .control_frame("UnrealContentDrawerRegion")
+                .is_some_and(inside);
+            let on_toggle = self
+                .workbench_window_bridge
+                .control_frame("UnrealContentDrawerToggle")
+                .is_some_and(inside);
             if !in_drawer && !on_toggle {
-                match self.workbench_window_bridge.dismiss_content_drawer_for_pointer() {
-                    Ok(()) => { let mut effects = UiHostEventEffects::default(); effects.request_paint_only(); self.apply_dispatch_effects(effects); }
+                match self
+                    .workbench_window_bridge
+                    .dismiss_content_drawer_for_pointer()
+                {
+                    Ok(()) => {
+                        let mut effects = UiHostEventEffects::default();
+                        effects.request_paint_only();
+                        self.apply_dispatch_effects(effects);
+                    }
                     Err(error) => self.set_status_line(error.to_string()),
                 }
             }

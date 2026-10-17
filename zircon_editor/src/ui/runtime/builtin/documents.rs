@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
+use zircon_runtime::asset::{runtime_asset_path_with_dev_asset_root, AssetRelativePath};
 use zircon_runtime::diagnostic_log::{
     diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
 };
@@ -46,24 +46,26 @@ pub(crate) const PANE_BUILD_EXPORT_BODY_DOCUMENT_ID: &str =
     "res://ui/editor/host/build_export_desktop_body.zui";
 pub(crate) const PANE_GENERATED_BOTTOM_BODY_DOCUMENT_ID: &str =
     "res://ui/editor/host/generated_bottom_body.zui";
-const BUILTIN_HOST_TEMPLATE_ROOT: &str = "/assets/ui/editor/host/";
-const BUILTIN_EDITOR_TEMPLATE_ROOT: &str = "/assets/ui/editor/";
-const BUILTIN_WINDOW_TEMPLATE_ROOT: &str = "/assets/ui/editor/windows/";
+const BUILTIN_HOST_TEMPLATE_ROOT: &str = "ui/editor/host";
+const BUILTIN_EDITOR_TEMPLATE_ROOT: &str = "ui/editor";
+const BUILTIN_WINDOW_TEMPLATE_ROOT: &str = "ui/editor/windows";
 
 fn builtin_host_template_path(relative: &str) -> PathBuf {
-    editor_runtime_asset_path(BUILTIN_HOST_TEMPLATE_ROOT).join(relative)
+    editor_runtime_asset_path(&format!("{BUILTIN_HOST_TEMPLATE_ROOT}/{relative}"))
 }
 
 fn builtin_window_template_path(relative: &str) -> PathBuf {
-    editor_runtime_asset_path(BUILTIN_WINDOW_TEMPLATE_ROOT).join(relative)
+    editor_runtime_asset_path(&format!("{BUILTIN_WINDOW_TEMPLATE_ROOT}/{relative}"))
 }
 
 fn builtin_editor_template_path(relative: &str) -> PathBuf {
-    editor_runtime_asset_path(BUILTIN_EDITOR_TEMPLATE_ROOT).join(relative)
+    editor_runtime_asset_path(&format!("{BUILTIN_EDITOR_TEMPLATE_ROOT}/{relative}"))
 }
 
 fn editor_runtime_asset_path(relative: &str) -> PathBuf {
-    runtime_asset_path_with_dev_asset_root(relative, editor_dev_asset_root())
+    let relative = AssetRelativePath::parse(relative)
+        .expect("builtin template literals must be valid asset-relative paths");
+    runtime_asset_path_with_dev_asset_root(&relative, editor_dev_asset_root())
 }
 
 fn editor_dev_asset_root() -> PathBuf {

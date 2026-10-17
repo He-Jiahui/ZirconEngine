@@ -1,9 +1,13 @@
+//! 以流式方式写出规范 JSON 字符串，并把引号、原文和转义字节交给计数 writer。
+//! 对象键已提前预留完整编码长度时使用预记账入口，避免写出阶段重复占用文档预算。
+
 use std::fmt;
 use std::io::Write;
 
 use super::super::super::write_error::CanonicalTextWriteError;
 use super::CountingWriter;
 
+/// 写出带引号的 JSON 字符串，并逐段计入实际输出字节。
 pub(super) fn write_json_string<W>(
     output: &mut CountingWriter<'_, '_, W>,
     value: &str,
@@ -16,6 +20,7 @@ where
     output.write_counted(b"\"")
 }
 
+/// 写出带引号的 JSON 字符串；调用方必须已为完整编码长度预留文档预算。
 pub(super) fn write_json_string_preaccounted<W>(
     output: &mut CountingWriter<'_, '_, W>,
     value: &str,
@@ -28,6 +33,7 @@ where
     output.write_preaccounted(b"\"")
 }
 
+/// 将 `Display` 结果作为带引号 JSON 字符串流式格式化；预算错误原样返回，格式化器拒绝则转为验证错误。
 pub(super) fn write_json_display<W, T>(
     output: &mut CountingWriter<'_, '_, W>,
     value: &T,
@@ -77,6 +83,7 @@ where
     }
 }
 
+// 调用方负责引号；未转义片段直接输出 UTF-8，控制字符则写为 JSON 转义序列。
 fn write_json_string_content<F>(value: &str, mut write: F) -> Result<(), CanonicalTextWriteError>
 where
     F: FnMut(&[u8]) -> Result<(), CanonicalTextWriteError>,

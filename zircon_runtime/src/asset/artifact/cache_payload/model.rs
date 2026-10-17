@@ -7,11 +7,12 @@ use crate::asset::{
 
 // 模型子网格与引用按库工件顺序格式保存；项目加载路径会把它恢复为 ModelAsset。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub(super) struct ArtifactCacheModelAsset {
+pub(in crate::asset::artifact) struct ArtifactCacheModelAsset {
     uri: AssetUri,
     primitives: Vec<ArtifactCacheModelPrimitiveAsset>,
 }
 
+#[cfg(test)]
 impl From<&ModelAsset> for ArtifactCacheModelAsset {
     fn from(asset: &ModelAsset) -> Self {
         Self {
@@ -47,6 +48,7 @@ struct ArtifactCacheModelPrimitiveAsset {
     virtual_geometry: Option<VirtualGeometryAsset>,
 }
 
+#[cfg(test)]
 impl From<&ModelPrimitiveAsset> for ArtifactCacheModelPrimitiveAsset {
     fn from(asset: &ModelPrimitiveAsset) -> Self {
         Self {
@@ -70,3 +72,56 @@ impl ArtifactCacheModelPrimitiveAsset {
         }
     }
 }
+
+// The field order deliberately matches the owned cache DTO above. Slices and
+// options of references use the same positional representation without cloning payloads.
+#[derive(Serialize)]
+pub(super) struct ArtifactCacheModelAssetRef<'a> {
+    uri: &'a AssetUri,
+    primitives: ArtifactCacheModelPrimitivesRef<'a>,
+}
+
+impl<'a> ArtifactCacheModelAssetRef<'a> {
+    pub(super) fn new(asset: &'a ModelAsset) -> Self {
+        Self {
+            uri: &asset.uri,
+            primitives: ArtifactCacheModelPrimitivesRef(&asset.primitives),
+        }
+    }
+}
+
+struct ArtifactCacheModelPrimitivesRef<'a>(&'a [ModelPrimitiveAsset]);
+
+impl Serialize for ArtifactCacheModelPrimitivesRef<'_> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeSeq;
+        let mut sequence = serializer.serialize_seq(Some(self.0.len()))?;
+        for primitive in self.0 {
+            sequence.serialize_element(&ArtifactCacheModelPrimitiveRef {
+                vertices: &primitive.vertices,
+                indices: &primitive.indices,
+                mesh: primitive.mesh.as_ref(),
+                mesh_sdf: primitive.mesh_sdf.as_ref(),
+                virtual_geometry: primitive.virtual_geometry.as_ref(),
+            })?;
+        }
+        sequence.end()
+    }
+}
+
+#[derive(Serialize)]
+struct ArtifactCacheModelPrimitiveRef<'a> {
+    vertices: &'a [MeshVertex],
+    indices: &'a [u32],
+    mesh: Option<&'a AssetReference>,
+    mesh_sdf: Option<&'a MeshSdfAsset>,
+    virtual_geometry: Option<&'a VirtualGeometryAsset>,
+}
+
+#[cfg(test)]
+#[path = "model/tests.rs"]
+mod tests;
+
+#[cfg(all(test, feature = "memory-validation"))]
+#[path = "model/memory_profile.rs"]
+mod memory_profile;

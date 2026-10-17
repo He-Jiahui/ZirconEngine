@@ -27,7 +27,9 @@ impl RetainedEditorHost {
             self.editor_manager
                 .enter()
                 .map_err(EditorError::from)
-                .and_then(|manager| manager.set_ui_asset_editor_locale_preview(instance_id, locale)),
+                .and_then(|manager| {
+                    manager.set_ui_asset_editor_locale_preview(instance_id, locale)
+                }),
         )
     }
 }

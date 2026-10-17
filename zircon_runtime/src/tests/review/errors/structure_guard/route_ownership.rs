@@ -5,7 +5,7 @@ use super::*;
 
 pub(in super::super) fn assert_typed_error_source_inventory_child_sources_structure_guard_is_child_backed(
 ) {
-    let parent = read_runtime_src(TYPED_ERROR_SOURCE_INVENTORY_CHILD_SOURCES_CHILD);
+    let _parent = read_runtime_src(TYPED_ERROR_SOURCE_INVENTORY_CHILD_SOURCES_CHILD);
     let structure_guard_parent =
         read_runtime_src(TYPED_ERROR_SOURCE_INVENTORY_CHILD_SOURCES_STRUCTURE_GUARD_CHILD);
     let structure_guard_children_blob = super::super::source_blobs::source_blob_from(

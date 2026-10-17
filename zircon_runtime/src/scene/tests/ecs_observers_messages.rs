@@ -10,11 +10,13 @@ use crate::scene::{SceneError, World};
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
 impl Component for Health {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct Marker;
 
+zircon_runtime_interface::impl_retained_owner_v1!(Marker {});
 impl Component for Marker {}
 
 #[derive(Debug, PartialEq, Eq)]
@@ -87,14 +89,22 @@ fn lifecycle_observers_report_insert_replace_remove_and_despawn_order() {
         LifecycleEventKind::Despawn,
     ] {
         let events = events.clone();
-        world.observe_component_lifecycle::<Health>(kind, move |_world, event| {
-            events.lock().unwrap().push(format!(
-                "{:?}:{}:{}",
-                event.kind(),
-                event.entity(),
-                event.component_id().index()
-            ));
-        });
+        world.observe_component_lifecycle::<Health>(
+            kind,
+            // SAFETY: Only the external observation log changes after optional World reads;
+            // retained World payload is untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, event| {
+                    events.lock().unwrap().push(format!(
+                        "{:?}:{}:{}",
+                        event.kind(),
+                        event.entity(),
+                        event.component_id().index()
+                    ));
+                })
+            },
+        );
     }
 
     let entity = world
@@ -129,8 +139,13 @@ fn observer_handles_can_be_removed_before_later_triggers() {
         let events = events.clone();
         world.observe_component_lifecycle::<Health>(
             LifecycleEventKind::Add,
-            move |_world, event| {
-                events.lock().unwrap().push(event.entity());
+            // SAFETY: Only the external observation log changes after optional World reads;
+            // retained World payload is untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, event| {
+                    events.lock().unwrap().push(event.entity());
+                })
             },
         )
     };
@@ -148,7 +163,7 @@ fn observer_handles_can_be_removed_before_later_triggers() {
 fn event_observer_handles_can_be_removed_before_later_triggers() {
     let mut world = World::empty();
     let target = world.spawn((Name("Target".to_string()),)).unwrap();
-    let events = Arc::new(Mutex::new(Vec::new()));
+    let events = Arc::new(crate::tests::prelude::RetainedObserverLogV1::new());
 
     let global_observer = {
         let events = events.clone();
@@ -158,12 +173,18 @@ fn event_observer_handles_can_be_removed_before_later_triggers() {
     };
     let target_observer = {
         let events = events.clone();
-        world.observe_entity_event::<DamageEvent>(target, move |_world, entity, event| {
-            events
-                .lock()
-                .unwrap()
-                .push(format!("target={entity}:{}", event.0));
-        })
+        world.observe_entity_event::<DamageEvent>(
+            target,
+            crate::core::framework::retained_memory::RetainedEntityObserverV1::new(
+                events,
+                |events, _world, entity, event| {
+                    events
+                        .lock()
+                        .unwrap()
+                        .push(format!("target={entity}:{}", event.0));
+                },
+            ),
+        )
     };
 
     assert!(world.remove_observer(global_observer).is_ok());
@@ -212,12 +233,17 @@ fn lifecycle_observer_fires_immediately_during_component_mutation() {
         let observed = observed.clone();
         world.observe_component_lifecycle::<Health>(
             LifecycleEventKind::Add,
-            move |world, event| {
-                observed.lock().unwrap().push(format!(
-                    "add:{}:{}",
-                    event.entity(),
-                    world.get::<Health>(event.entity()).is_some()
-                ));
+            // SAFETY: Only the external observation log changes after optional World reads;
+            // retained World payload is untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                    observed.lock().unwrap().push(format!(
+                        "add:{}:{}",
+                        event.entity(),
+                        world.get::<Health>(event.entity()).is_some()
+                    ));
+                })
             },
         );
     }
@@ -237,13 +263,19 @@ fn entity_event_observer_only_fires_for_target_entity() {
     let mut world = World::empty();
     let target = world.spawn((Name("Target".to_string()),)).unwrap();
     let other = world.spawn((Name("Other".to_string()),)).unwrap();
-    let events = Arc::new(Mutex::new(Vec::new()));
+    let events = Arc::new(crate::tests::prelude::RetainedObserverLogV1::new());
 
     {
         let events = events.clone();
-        world.observe_entity_event::<DamageEvent>(target, move |_world, entity, event| {
-            events.lock().unwrap().push(format!("{entity}:{}", event.0));
-        });
+        world.observe_entity_event::<DamageEvent>(
+            target,
+            crate::core::framework::retained_memory::RetainedEntityObserverV1::new(
+                events,
+                |events, _world, entity, event| {
+                    events.lock().unwrap().push(format!("{entity}:{}", event.0));
+                },
+            ),
+        );
     }
 
     world.trigger_entity_event(other, DamageEvent(1));
@@ -256,13 +288,19 @@ fn entity_event_observer_only_fires_for_target_entity() {
 fn entity_event_observers_are_removed_with_their_target_entity() {
     let mut world = World::empty();
     let target = world.spawn((Name("Target".to_string()),)).unwrap();
-    let events = Arc::new(Mutex::new(Vec::new()));
+    let events = Arc::new(crate::tests::prelude::RetainedObserverLogV1::new());
 
     {
         let events = events.clone();
-        world.observe_entity_event::<DamageEvent>(target, move |_world, entity, event| {
-            events.lock().unwrap().push(format!("{entity}:{}", event.0));
-        });
+        world.observe_entity_event::<DamageEvent>(
+            target,
+            crate::core::framework::retained_memory::RetainedEntityObserverV1::new(
+                events,
+                |events, _world, entity, event| {
+                    events.lock().unwrap().push(format!("{entity}:{}", event.0));
+                },
+            ),
+        );
     }
 
     world.remove_entity(target).unwrap();
@@ -352,7 +390,7 @@ fn immediate_entity_event_observers_run_global_then_targeted_callbacks() {
     let mut world = World::empty();
     let first = world.spawn((Name("First".to_string()),)).unwrap();
     let second = world.spawn((Name("Second".to_string()),)).unwrap();
-    let events = Arc::new(Mutex::new(Vec::new()));
+    let events = Arc::new(crate::tests::prelude::RetainedObserverLogV1::new());
 
     {
         let events = events.clone();
@@ -362,13 +400,19 @@ fn immediate_entity_event_observers_run_global_then_targeted_callbacks() {
     }
     {
         let events = events.clone();
-        world.observe_entity_event::<DamageEvent>(first, move |world, entity, event| {
-            world.insert(entity, Marker).unwrap();
-            events
-                .lock()
-                .unwrap()
-                .push(format!("targeted={entity}:{}", event.0));
-        });
+        world.observe_entity_event::<DamageEvent>(
+            first,
+            crate::core::framework::retained_memory::RetainedEntityObserverV1::new(
+                events,
+                |events, world, entity, event| {
+                    world.insert(entity, Marker).unwrap();
+                    events
+                        .lock()
+                        .unwrap()
+                        .push(format!("targeted={entity}:{}", event.0));
+                },
+            ),
+        );
     }
 
     world.trigger_entity_event(first, DamageEvent(7));
@@ -799,10 +843,12 @@ mod public_lifecycle_owner {
 
     #[derive(Clone, Debug, PartialEq, Eq)]
     struct OwnerTable(u32);
+    zircon_runtime_interface::impl_retained_owner_v1!(OwnerTable { 0 });
     impl Component for OwnerTable {}
 
     #[derive(Clone, Debug, PartialEq, Eq)]
     struct OwnerSparse(u32);
+    zircon_runtime_interface::impl_retained_owner_v1!(OwnerSparse { 0 });
     impl Component for OwnerSparse {
         const STORAGE_TYPE: StorageType = StorageType::SparseSet;
     }
@@ -882,13 +928,29 @@ mod public_lifecycle_owner {
             LifecycleEventKind::Insert,
         ] {
             let leaked_table = Arc::clone(&leaked);
-            replacement.observe_component_lifecycle::<OwnerTable>(kind, move |_, _| {
-                leaked_table.fetch_add(1, Ordering::SeqCst);
-            });
+            replacement.observe_component_lifecycle::<OwnerTable>(
+                kind,
+                // SAFETY: Only an external atomic counter changes; retained World payload and
+                // dynamic JSON are untouched.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                        leaked_table.fetch_add(1, Ordering::SeqCst);
+                    })
+                },
+            );
             let leaked_sparse = Arc::clone(&leaked);
-            replacement.observe_component_lifecycle::<OwnerSparse>(kind, move |_, _| {
-                leaked_sparse.fetch_add(1, Ordering::SeqCst);
-            });
+            replacement.observe_component_lifecycle::<OwnerSparse>(
+                kind,
+                // SAFETY: Only an external atomic counter changes; retained World payload and
+                // dynamic JSON are untouched.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                        leaked_sparse.fetch_add(1, Ordering::SeqCst);
+                    })
+                },
+            );
         }
         replacement.commands().queue_fn(move |_| {
             fresh_calls.fetch_add(1, Ordering::SeqCst);
@@ -913,14 +975,27 @@ mod public_lifecycle_owner {
                 let generation = replacement.world_generation();
                 let replacement = Arc::new(Mutex::new(Some(replacement)));
                 let swap = Arc::clone(&replacement);
-                world.observe_component_lifecycle::<OwnerTable>(boundary, move |world, _| {
-                    let mut fresh = swap.lock().unwrap().take().unwrap();
-                    if retain_schedule {
-                        *fresh.schedule_mut() = std::mem::take(world.schedule_mut());
-                        assert!(Arc::ptr_eq(&original_plan, &fresh.schedule().stage_plan()));
-                    }
-                    *world = fresh;
-                });
+                world.observe_component_lifecycle::<OwnerTable>(
+                    boundary,
+                    // SAFETY: This retires the current World or schedule. Remaining work is
+                    // counter-only scheduling; replacement history is never adopted.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                            move |world, _| {
+                                let mut fresh = swap.lock().unwrap().take().unwrap();
+                                if retain_schedule {
+                                    *fresh.schedule_mut() = std::mem::take(world.schedule_mut());
+                                    assert!(Arc::ptr_eq(
+                                        &original_plan,
+                                        &fresh.schedule().stage_plan()
+                                    ));
+                                }
+                                *world = fresh;
+                            },
+                        )
+                    },
+                );
                 assert!(matches!(
                     world.remove_entity(entity),
                     Err(SceneError::LifecycleTargetReplaced {
@@ -962,13 +1037,27 @@ mod public_lifecycle_owner {
                 let result = if sparse {
                     world.observe_component_lifecycle::<OwnerSparse>(
                         LifecycleEventKind::Remove,
-                        swap,
+                        // SAFETY: This retires the current World or schedule. Remaining work is
+                        // counter-only scheduling; replacement history is never adopted.
+                        unsafe {
+                            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                                swap,
+                            )
+                        },
                     );
                     world.remove::<OwnerSparse>(entity).map(|_| ())
                 } else {
                     world.observe_component_lifecycle::<OwnerTable>(
                         LifecycleEventKind::Remove,
-                        swap,
+                        // SAFETY: This retires the current World or schedule. Remaining work is
+                        // counter-only scheduling; replacement history is never adopted.
+                        unsafe {
+                            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                                swap,
+                            )
+                        },
                     );
                     world.remove::<OwnerTable>(entity).map(|_| ())
                 };
@@ -994,24 +1083,36 @@ mod public_lifecycle_owner {
             let observed = Arc::clone(&fresh_calls);
             world.observe_component_lifecycle::<OwnerTable>(
                 LifecycleEventKind::Remove,
-                move |world, _| {
-                    *world.schedule_mut() = Default::default();
-                    let observed = Arc::clone(&observed);
-                    world.commands().queue_fn(move |_| {
-                        observed.fetch_add(1, Ordering::SeqCst);
-                    });
+                // SAFETY: After World or schedule retirement, only fixed resources and counter-
+                // only commands change; no replacement history is adopted.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, _| {
+                        *world.schedule_mut() = Default::default();
+                        let observed = Arc::clone(&observed);
+                        world.commands().queue_fn(move |_| {
+                            observed.fetch_add(1, Ordering::SeqCst);
+                        });
+                    })
                 },
             );
             if operation == 2 {
                 let observed = Arc::clone(&fresh_calls);
                 world.observe_component_lifecycle::<OwnerSparse>(
                     LifecycleEventKind::Remove,
-                    move |world, _| {
-                        *world.schedule_mut() = Default::default();
-                        let observed = Arc::clone(&observed);
-                        world.commands().queue_fn(move |_| {
-                            observed.fetch_add(1, Ordering::SeqCst);
-                        });
+                    // SAFETY: After World or schedule retirement, only fixed resources and
+                    // counter-only commands change; no replacement history is adopted.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                            move |world, _| {
+                                *world.schedule_mut() = Default::default();
+                                let observed = Arc::clone(&observed);
+                                world.commands().queue_fn(move |_| {
+                                    observed.fetch_add(1, Ordering::SeqCst);
+                                });
+                            },
+                        )
                     },
                 );
             }
@@ -1062,14 +1163,27 @@ mod public_lifecycle_owner {
         let generation = fresh.world_generation();
         let leaked = Arc::new(AtomicUsize::new(0));
         let observed = Arc::clone(&leaked);
-        fresh.observe_component_lifecycle::<Hierarchy>(LifecycleEventKind::Insert, move |_, _| {
-            observed.fetch_add(1, Ordering::SeqCst);
-        });
+        fresh.observe_component_lifecycle::<Hierarchy>(
+            LifecycleEventKind::Insert,
+            // SAFETY: Only an external atomic counter changes; retained World payload and
+            // dynamic JSON are untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                    observed.fetch_add(1, Ordering::SeqCst);
+                })
+            },
+        );
         let fresh = Arc::new(Mutex::new(Some(fresh)));
         world.observe_component_lifecycle::<Hierarchy>(
             LifecycleEventKind::Replace,
-            move |world, _| {
-                *world = fresh.lock().unwrap().take().unwrap();
+            // SAFETY: This retires the current World or schedule. Remaining work is counter-
+            // only scheduling; replacement history is never adopted.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, _| {
+                    *world = fresh.lock().unwrap().take().unwrap();
+                })
             },
         );
         assert!(matches!(
@@ -1105,8 +1219,15 @@ mod public_lifecycle_owner {
                     let observed = Arc::clone(&leaked);
                     fresh.observe_component_lifecycle::<OwnerTable>(
                         LifecycleEventKind::Insert,
-                        move |_, _| {
-                            observed.fetch_add(1, Ordering::SeqCst);
+                        // SAFETY: Only an external atomic counter changes; retained World
+                        // payload and dynamic JSON are untouched.
+                        unsafe {
+                            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                                move |_, _| {
+                                    observed.fetch_add(1, Ordering::SeqCst);
+                                },
+                            )
                         },
                     );
                     let fresh = Arc::new(Mutex::new(Some(fresh)));
@@ -1117,13 +1238,23 @@ mod public_lifecycle_owner {
                     } else {
                         LifecycleEventKind::Add
                     };
-                    world.observe_component_lifecycle::<OwnerTable>(boundary, move |world, _| {
-                        if schedule_only {
-                            *world.schedule_mut() = Default::default();
-                        } else {
-                            *world = fresh.lock().unwrap().take().unwrap();
-                        }
-                    });
+                    world.observe_component_lifecycle::<OwnerTable>(
+                        boundary,
+                        // SAFETY: This retires the current World or schedule. Remaining work is
+                        // counter-only scheduling; replacement history is never adopted.
+                        unsafe {
+                            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                                move |world, _| {
+                                    if schedule_only {
+                                        *world.schedule_mut() = Default::default();
+                                    } else {
+                                        *world = fresh.lock().unwrap().take().unwrap();
+                                    }
+                                },
+                            )
+                        },
+                    );
                     assert!(matches!(
                         world.insert(entity, OwnerTable(2)),
                         Err(SceneError::LifecycleTargetReplaced {
@@ -1173,8 +1304,24 @@ mod public_lifecycle_owner {
                 }
             };
             let callback_sparse = callback.clone();
-            world.observe_component_lifecycle::<OwnerTable>(kind, callback);
-            world.observe_component_lifecycle::<OwnerSparse>(kind, callback_sparse);
+            world.observe_component_lifecycle::<OwnerTable>(
+                kind,
+                // SAFETY: The local callback only observes and registers a system that
+                // increments an external counter; no history payload grows.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(callback)
+                },
+            );
+            world.observe_component_lifecycle::<OwnerSparse>(
+                kind,
+                // SAFETY: The local callback only observes and registers a system that
+                // increments an external counter; no history payload grows.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(callback_sparse)
+                },
+            );
         }
         world.remove_entity(entity).unwrap();
         assert_eq!(callbacks.load(Ordering::SeqCst), 4);
@@ -1216,11 +1363,21 @@ mod public_lifecycle_owner {
             if sparse {
                 world.observe_component_lifecycle::<OwnerSparse>(
                     LifecycleEventKind::Remove,
-                    callback.clone(),
+                    // SAFETY: The local callback only observes and registers a system that
+                    // increments an external counter; no history payload grows.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(callback.clone())
+                    },
                 );
                 world.observe_component_lifecycle::<OwnerSparse>(
                     LifecycleEventKind::Remove,
-                    callback,
+                    // SAFETY: The local callback only observes and registers a system that
+                    // increments an external counter; no history payload grows.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(callback)
+                    },
                 );
                 assert_eq!(
                     world.remove::<OwnerSparse>(entity).unwrap(),
@@ -1229,11 +1386,21 @@ mod public_lifecycle_owner {
             } else {
                 world.observe_component_lifecycle::<OwnerTable>(
                     LifecycleEventKind::Remove,
-                    callback.clone(),
+                    // SAFETY: The local callback only observes and registers a system that
+                    // increments an external counter; no history payload grows.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(callback.clone())
+                    },
                 );
                 world.observe_component_lifecycle::<OwnerTable>(
                     LifecycleEventKind::Remove,
-                    callback,
+                    // SAFETY: The local callback only observes and registers a system that
+                    // increments an external counter; no history payload grows.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(callback)
+                    },
                 );
                 assert_eq!(
                     world.remove::<OwnerTable>(entity).unwrap(),
@@ -1265,24 +1432,34 @@ mod public_lifecycle_owner {
                 let original = Arc::clone(&original);
                 let callbacks = Arc::clone(&callbacks);
                 let systems = Arc::clone(&systems);
-                world.observe_component_lifecycle::<OwnerTable>(kind, move |world, _| {
-                    assert_eq!(world.get::<OwnerTable>(entity), Some(&OwnerTable(2)));
-                    assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
-                    if callbacks.fetch_add(1, Ordering::SeqCst) == 0 {
-                        let systems = Arc::clone(&systems);
-                        world
-                            .register_native_system::<(), _>(
-                                "tests.public-insert.pending",
-                                SystemStage::Update,
-                                0,
-                                move |()| {
-                                    systems.fetch_add(1, Ordering::SeqCst);
-                                },
-                            )
-                            .unwrap();
-                    }
-                    assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
-                });
+                world.observe_component_lifecycle::<OwnerTable>(
+                    kind,
+                    // SAFETY: The local callback only observes and registers a system that
+                    // increments an external counter; no history payload grows.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                            move |world, _| {
+                                assert_eq!(world.get::<OwnerTable>(entity), Some(&OwnerTable(2)));
+                                assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+                                if callbacks.fetch_add(1, Ordering::SeqCst) == 0 {
+                                    let systems = Arc::clone(&systems);
+                                    world
+                                        .register_native_system::<(), _>(
+                                            "tests.public-insert.pending",
+                                            SystemStage::Update,
+                                            0,
+                                            move |()| {
+                                                systems.fetch_add(1, Ordering::SeqCst);
+                                            },
+                                        )
+                                        .unwrap();
+                                }
+                                assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+                            },
+                        )
+                    },
+                );
             }
             world.insert(entity, OwnerTable(2)).unwrap();
             assert_eq!(callbacks.load(Ordering::SeqCst), 2);
@@ -1302,20 +1479,25 @@ mod public_lifecycle_owner {
         let observed = Arc::clone(&systems);
         world.observe_component_lifecycle::<OwnerTable>(
             LifecycleEventKind::Remove,
-            move |world, _| {
-                let observed = Arc::clone(&observed);
-                world
-                    .register_native_system::<(), _>(
-                        "tests.public-remove.panic-pending",
-                        SystemStage::Update,
-                        0,
-                        move |()| {
-                            observed.fetch_add(1, Ordering::SeqCst);
-                        },
-                    )
-                    .unwrap();
-                *saved.lock().unwrap() = Some(std::mem::replace(world, World::empty()));
-                panic!("public remove original panic");
+            // SAFETY: This schedules only an external counter, retires the owner, and
+            // propagates the original panic; no history payload grows.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, _| {
+                    let observed = Arc::clone(&observed);
+                    world
+                        .register_native_system::<(), _>(
+                            "tests.public-remove.panic-pending",
+                            SystemStage::Update,
+                            0,
+                            move |()| {
+                                observed.fetch_add(1, Ordering::SeqCst);
+                            },
+                        )
+                        .unwrap();
+                    *saved.lock().unwrap() = Some(std::mem::replace(world, World::empty()));
+                    panic!("public remove original panic");
+                })
             },
         );
         let panic =

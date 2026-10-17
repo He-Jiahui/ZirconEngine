@@ -21,8 +21,10 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
         "dynamic API session FFI registry consumer",
         &dynamic_session_ffi,
         &[
-            "try_insert_session_with_wake, with_session, with_session_activity,",
-            "let handle = match try_insert_session_with_wake(",
+            "try_create_session_with_wake, with_session, with_session_activity,",
+            "match try_create_session_with_wake(profile, project_config, wake)",
+            "ptr::write(out_session, handle)",
+            "ZrStatus::ok()",
             "destroy_session_slot(handle)",
             "with_session(handle, |session|",
         ],
@@ -41,19 +43,23 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
         "dynamic API session store poison recovery helpers",
         &dynamic_session_store,
         &[
-            "use std::sync::{Arc, Mutex, MutexGuard, OnceLock};",
+            "use std::sync::{Arc, Mutex, MutexGuard, OnceLock, TryLockError};",
             "fn lock_registry() -> MutexGuard<'static, SessionRegistry>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "let registry = lock_registry();",
-            "let mut session = slot.lock_session();",
+            "match slot.dispatch_scoped(action)",
+            "let slot = find_session_slot(handle)?;",
         ],
     );
     assert_contains_all(
         "dynamic API session slot poison recovery helper",
         &dynamic_session_slot,
         &[
-            "session: Mutex<Option<RuntimeDynamicSession>>",
-            "pub(super) fn lock_session(&self) -> MutexGuard<'_, Option<RuntimeDynamicSession>>",
+            "owner: RuntimeSessionOwner",
+            "lifecycle: Mutex<SessionSlotLifecycle>",
+            "fn lock_lifecycle(&self) -> MutexGuard<'_, SessionSlotLifecycle>",
+            "pub(super) fn dispatch_scoped<R: Send>(",
+            "self.owner.dispatch_scoped(action)",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
         ],
     );
@@ -99,8 +105,8 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
 
 #[test]
 fn runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_task() {
-    let task = read_runtime_src("scene/dynamic_scene/spawn_task/task.rs");
-    let loader = read_runtime_src("scene/dynamic_scene/spawn_task/loader.rs");
+    let task = read_runtime_src("scene/dynamic/spawn_task/task.rs");
+    let loader = read_runtime_src("scene/dynamic/spawn_task/loader.rs");
 
     assert_contains_all(
         "dynamic scene spawn task poison recovery helpers",
@@ -109,7 +115,6 @@ fn runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_t
             "use std::sync::{Arc, Mutex, MutexGuard};",
             "pub(super) fn lock_spawn_result(",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
-            "dynamic_scene_spawn_task_accessors_recover_poisoned_locks",
         ],
     );
     assert_contains_all(
@@ -117,7 +122,7 @@ fn runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_t
         &loader,
         &[
             "use super::task::{lock_spawn_result, DynamicSceneSpawnTask};",
-            "let task = TaskHandle::schedule_detached",
+            "let task = TaskHandle::try_schedule_detached",
             "let task = scope.submit",
             "let mut result = lock_spawn_result(&result);",
         ],
@@ -139,11 +144,18 @@ fn runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_t
             "{label} production code should recover poisoned locks instead of panicking"
         );
     }
+    let recovery_tests = read_runtime_src("scene/dynamic/spawn_task/tests/task.rs");
+    assert_contains_all(
+        "mounted poison recovery regression",
+        &recovery_tests,
+        &["fn dynamic_scene_spawn_task_accessors_recover_poisoned_locks("],
+    );
 }
 
 #[test]
 fn runtime_15_scene_ecs_parallel_executor_lock_poison_recovery_guard_covers_batch_result_slots() {
     let executor = read_runtime_src("scene/ecs/schedule_parallel_executor.rs");
+    let executor_tests = read_runtime_src("scene/ecs/tests/schedule_parallel_executor.rs");
 
     assert_contains_all(
         "schedule parallel executor batch-result poison recovery helpers",
@@ -155,8 +167,12 @@ fn runtime_15_scene_ecs_parallel_executor_lock_poison_recovery_guard_covers_batc
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "*lock_batch_result(&batch_result_for_task) = Some(result);",
             "lock_batch_result(&batch_result)",
-            "schedule_parallel_executor_batch_result_slot_recovers_poisoned_lock",
         ],
+    );
+    assert_contains_all(
+        "schedule parallel executor batch-result poison recovery test",
+        &executor_tests,
+        &["schedule_parallel_executor_batch_result_slot_recovers_poisoned_lock"],
     );
 
     let production = production_section(&executor);

@@ -39,7 +39,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sl
         FrameRect {
             x: track_rect.x + track_rect.width * fill_start,
             y: track_rect.y,
-            width: fill_width.max(1.0),
+            width: fill_width,
             height: track_rect.height,
         },
         Some(clip.clone()),
@@ -50,4 +50,39 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sl
         metrics.track_radius,
         opacity,
     ));
+}
+
+#[cfg(test)]
+mod finite_p2_regression_tests {
+    use super::*;
+    use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
+    use crate::ui::retained_host::host_contract::paint_template_nodes::style_selector::select_workbench_slider_style;
+    #[test]
+    fn subpixel_fill_near_the_right_edge_stays_inside_the_rail() {
+        let style = select_workbench_slider_style(&TemplatePaneNodeData::default());
+        let rail = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 100.0,
+            height: 4.0,
+        };
+        let mut commands = Vec::new();
+        push_slider_track(
+            &mut commands,
+            &style,
+            &rail,
+            &rail,
+            0,
+            1.0,
+            Some(0.999),
+            1.0,
+        );
+        assert_eq!(commands.len(), 2);
+        let fill = &commands[1].frame;
+        assert!(fill.width > 0.0 && fill.width < 1.0);
+        assert!(fill.x + fill.width <= rail.x + rail.width);
+        commands.clear();
+        push_slider_track(&mut commands, &style, &rail, &rail, 0, 1.0, Some(1.0), 1.0);
+        assert_eq!(commands.len(), 1, "an empty interval has no synthetic fill");
+    }
 }

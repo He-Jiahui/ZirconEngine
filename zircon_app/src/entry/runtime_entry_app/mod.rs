@@ -67,7 +67,7 @@ use application_lifecycle::ApplicationLifecycleMachine;
 use event_loop_policy::RuntimeFrameCadence;
 use ime_input::{RuntimeImeCompositionProducer, RuntimeImeInputAdmission};
 
-pub(in crate::entry) use config::RuntimeEntryAppConfig;
+pub(in crate::entry) use config::{RuntimeEntryAppConfig, RuntimeProductProofPolicy};
 pub(in crate::entry) use failure::RuntimeEntryAppFailureState;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -100,7 +100,7 @@ pub(super) struct RuntimeEntryApp {
     exit_after_presented_frames: Option<NonZeroU64>,
     presented_frame_count: u64,
     first_frame_capture_path: Option<ResolvedProjectPath>,
-    require_persisted_scene_diagnostics: bool,
+    product_proof_policy: RuntimeProductProofPolicy,
     first_frame_capture_written: bool,
     first_frame_product_diagnostics_emitted: bool,
     mvp_input_probe_submitted: bool,
@@ -116,6 +116,8 @@ pub(super) struct RuntimeEntryApp {
     gamepads: Option<gilrs::Gilrs>,
     #[cfg(feature = "gamepad-gilrs")]
     gamepad_connections_announced: bool,
+    #[cfg(feature = "gamepad-gilrs")]
+    gamepad_producer: gamepad::producer::GamepadProducer,
     #[cfg(feature = "gamepad-gilrs")]
     gamepad_rumble_effects: Option<gamepad::RunningRumbleEffects>,
 }

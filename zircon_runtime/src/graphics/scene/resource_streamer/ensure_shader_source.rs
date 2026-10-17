@@ -1,4 +1,4 @@
-use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
     RenderMaterialDependencySet, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
     RenderMaterialFallbackUsage, RenderMaterialReadinessReport, RenderMaterialValidationError,

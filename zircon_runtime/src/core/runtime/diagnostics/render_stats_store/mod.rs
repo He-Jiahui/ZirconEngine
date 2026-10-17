@@ -38,6 +38,16 @@ mod virtual_geometry;
 mod volumetric_fog;
 
 use super::DiagnosticStore;
+
+pub(super) fn record_identity_u64(
+    store: &mut DiagnosticStore,
+    path: &'static str,
+    frame_index: u64,
+    value: u64,
+    subsystem_tags: &[&str],
+) {
+    store.record_identity_u64_static(path, frame_index, value, Some("u64"), subsystem_tags);
+}
 use measurement::{record_bool, record_bytes, record_count, record_microseconds};
 
 pub(crate) use dispatch::record_render_stats_diagnostics;

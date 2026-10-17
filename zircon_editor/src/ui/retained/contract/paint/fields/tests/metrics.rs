@@ -54,22 +54,45 @@ fn authored_field_metrics_keep_zero_insets_and_scale_one_line_box() {
 
 #[test]
 fn authored_ratio_follows_size_and_explicit_pixels_take_priority() {
-    let host = HostControlMetrics { scale_factor: 2.0, ..METRICS };
-    let mut node = super::super::super::super::data::TemplatePaneNodeData { font_size: 17.0, line_height_ratio: 0.5, ..Default::default() };
-    assert_eq!(workbench_field_metrics_for_node_from_host(&node,host).line_height, 17.0);
-    node.line_height=12.0;
-    assert_eq!(workbench_field_metrics_for_node_from_host(&node,host).line_height,24.0);
+    let host = HostControlMetrics {
+        scale_factor: 2.0,
+        ..METRICS
+    };
+    let mut node = super::super::super::super::data::TemplatePaneNodeData {
+        font_size: 17.0,
+        line_height_ratio: 0.5,
+        ..Default::default()
+    };
+    assert_eq!(
+        workbench_field_metrics_for_node_from_host(&node, host).line_height,
+        17.0
+    );
+    node.line_height = 12.0;
+    assert_eq!(
+        workbench_field_metrics_for_node_from_host(&node, host).line_height,
+        24.0
+    );
 }
 
 #[test]
 fn authored_field_label_width_scales_once_without_resizing_plain_fields() {
-    let host = HostControlMetrics { scale_factor: 1.5, ..METRICS };
-    let mut node = super::super::super::super::data::TemplatePaneNodeData {
-        authored_field_label_width: Some(92.0), ..Default::default()
+    let host = HostControlMetrics {
+        scale_factor: 1.5,
+        ..METRICS
     };
-    assert_eq!(workbench_field_metrics_for_node_from_host(&node, host).label_width, 138.0);
+    let mut node = super::super::super::super::data::TemplatePaneNodeData {
+        authored_field_label_width: Some(92.0),
+        ..Default::default()
+    };
+    assert_eq!(
+        workbench_field_metrics_for_node_from_host(&node, host).label_width,
+        138.0
+    );
     for width in [Some(0.0), Some(-1.0), Some(f32::NAN), None] {
         node.authored_field_label_width = width;
-        assert_eq!(workbench_field_metrics_for_node_from_host(&node, host).label_width, 0.0);
+        assert_eq!(
+            workbench_field_metrics_for_node_from_host(&node, host).label_width,
+            0.0
+        );
     }
 }

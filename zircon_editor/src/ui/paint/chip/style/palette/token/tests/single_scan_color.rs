@@ -82,7 +82,8 @@ fn optimization_batch_20260829bp_editor288_chip_color_tokens_preserve_results() 
 
 #[test]
 fn optimization_batch_20260829bp_editor288_chip_color_uses_one_scan() {
-    let source = include_str!("../../../../../../retained/contract/paint/chip/style/palette/token.rs");
+    let source =
+        include_str!("../../../../../../retained/contract/paint/chip/style/palette/token.rs");
     let production = source.split_once("#[cfg(test)]").expect("test boundary").0;
     assert!(production.contains("for part in component_variant.split"));
     assert!(production.contains("best = best.min"));

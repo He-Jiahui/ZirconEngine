@@ -9,6 +9,83 @@ const BENCHMARK_SAMPLES: usize = 11;
 const BENCHMARK_ITERATIONS: usize = 2_000;
 
 #[test]
+fn restore_preserves_existing_descriptor_and_singleton_ownership() {
+    let mut registry = ViewRegistry::default();
+    let first_id = ViewDescriptorId::new("editor.restore.first");
+    let second_id = ViewDescriptorId::new("editor.restore.second");
+    for id in [&first_id, &second_id] {
+        registry
+            .register_view(ViewDescriptor::new(
+                id.clone(),
+                ViewKind::ActivityView,
+                "Restore Probe",
+            ))
+            .unwrap();
+    }
+    let first = registry.open_descriptor(first_id.clone()).unwrap();
+    let second = registry.open_descriptor(second_id.clone()).unwrap();
+
+    let mut wrong_owner = second.clone();
+    wrong_owner.instance_id = first.instance_id.clone();
+    assert!(registry.restore_instance(wrong_owner).is_err());
+    assert_eq!(registry.open_descriptor(first_id.clone()).unwrap(), first);
+    assert_eq!(registry.open_descriptor(second_id).unwrap(), second);
+
+    let mut second_singleton = first.clone();
+    second_singleton.instance_id = ViewInstanceId::new("editor.restore.first#99");
+    assert!(registry.restore_instance(second_singleton).is_err());
+    assert_eq!(registry.counters.get(&first_id), Some(&1));
+    assert_eq!(registry.instances.len(), 2);
+
+    let mut updated = first.clone();
+    updated.title = "Restored title".to_string();
+    registry.restore_instance(updated.clone()).unwrap();
+    assert_eq!(registry.open_descriptor(first_id.clone()).unwrap(), updated);
+    registry.remove_instance(&first.instance_id).unwrap();
+    assert_eq!(
+        registry.open_descriptor(first_id).unwrap().instance_id,
+        ViewInstanceId::new("editor.restore.first#2")
+    );
+}
+
+#[test]
+fn next_view_instance_skips_restored_ids_and_reports_counter_exhaustion() {
+    let mut registry = ViewRegistry::default();
+    let allocated_id = ViewDescriptorId::new("editor.allocate");
+    let restored_id = ViewDescriptorId::new("editor.restored");
+    for id in [&allocated_id, &restored_id] {
+        registry
+            .register_view(
+                ViewDescriptor::new(id.clone(), ViewKind::ActivityView, "Instance Probe")
+                    .with_multi_instance(true),
+            )
+            .unwrap();
+    }
+    let mut restored = registry.open_descriptor(restored_id).unwrap();
+    restored.instance_id = ViewInstanceId::new("editor.allocate#1");
+    registry.restore_instance(restored.clone()).unwrap();
+
+    let allocated = registry.open_descriptor(allocated_id.clone()).unwrap();
+    assert_eq!(
+        allocated.instance_id,
+        ViewInstanceId::new("editor.allocate#2")
+    );
+    assert_eq!(
+        registry.instances.get(&restored.instance_id),
+        Some(&restored)
+    );
+
+    let instance_count = registry.instances.len();
+    registry.counters.insert(allocated_id.clone(), usize::MAX);
+    assert!(registry.open_descriptor(allocated_id).is_err());
+    assert_eq!(registry.instances.len(), instance_count);
+    assert_eq!(
+        registry.instances.get(&restored.instance_id),
+        Some(&restored)
+    );
+}
+
+#[test]
 fn capability_error_preserves_missing_order_and_success_semantics() {
     let descriptor = ViewDescriptor::new(
         ViewDescriptorId::new("editor.capability_probe"),

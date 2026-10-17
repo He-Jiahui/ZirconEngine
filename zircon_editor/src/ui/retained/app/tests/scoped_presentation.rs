@@ -58,7 +58,9 @@ fn ui_asset_mode_action_patches_the_presented_view_without_a_full_shell_rebuild(
     let instance_id = harness
         .host
         .borrow()
-        .editor_manager.enter().expect("editor manager admission")
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .open_ui_asset_editor(&asset_path, None)
         .expect("UI asset editor should open");
 
@@ -115,7 +117,9 @@ fn ui_asset_mode_action_patches_a_native_floating_presenter_without_a_full_shell
     let instance_id = harness
         .host
         .borrow()
-        .editor_manager.enter().expect("editor manager admission")
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .open_ui_asset_editor(&asset_path, None)
         .expect("UI asset editor should open");
     {
@@ -179,11 +183,15 @@ fn ui_asset_scoped_patch_updates_only_its_matching_native_presenter() {
     let (first_instance, second_instance) = {
         let host = harness.host.borrow();
         let first = host
-            .editor_manager.enter().expect("editor manager admission")
+            .editor_manager
+            .enter()
+            .expect("editor manager admission")
             .open_ui_asset_editor(&first_path, None)
             .expect("first UI asset editor should open");
         let second = host
-            .editor_manager.enter().expect("editor manager admission")
+            .editor_manager
+            .enter()
+            .expect("editor manager admission")
             .open_ui_asset_editor(&second_path, None)
             .expect("second UI asset editor should open");
         (first, second)

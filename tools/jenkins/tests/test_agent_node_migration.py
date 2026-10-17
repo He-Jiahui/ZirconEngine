@@ -77,7 +77,7 @@ class Nodes:
 
 class AgentNodeMigrationTests(unittest.TestCase):
     def setUp(self):
-        self.temp = TemporaryDirectory(prefix="agent-migration-test-", dir=ROOT / "tools/jenkins/tests")
+        self.temp = TemporaryDirectory(prefix="agent-migration-test-")
         self.addCleanup(self.temp.cleanup)
         self.nodes = Nodes(Path(self.temp.name))
 

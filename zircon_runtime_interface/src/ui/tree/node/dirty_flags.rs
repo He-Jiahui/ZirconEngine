@@ -10,6 +10,7 @@ pub struct UiDirtyFlags {
     pub style: bool,
     pub text: bool,
     pub input: bool,
+    /// 可见窗口或虚拟列表范围变化；与布局、绘制失效分别记录。
     pub visible_range: bool,
 }
 

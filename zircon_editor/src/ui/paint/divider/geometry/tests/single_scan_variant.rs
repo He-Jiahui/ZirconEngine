@@ -87,7 +87,8 @@ fn optimization_batch_20260829bo_editor287_divider_orientation_preserves_results
 
 #[test]
 fn optimization_batch_20260829bo_editor287_divider_orientation_uses_one_scan() {
-    let source = include_str!("../../../../retained/contract/paint/divider/geometry/orientation.rs");
+    let source =
+        include_str!("../../../../retained/contract/paint/divider/geometry/orientation.rs");
     let production = source.split_once("#[cfg(test)]").expect("test boundary").0;
     assert!(production.contains("for part in component_variant.split"));
     assert!(production.contains("has_vertical"));

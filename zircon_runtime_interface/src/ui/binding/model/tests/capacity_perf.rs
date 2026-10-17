@@ -1,8 +1,14 @@
+//! 事件绑定容量提示的文本等价测试与显式忽略的微基准。
+//!
+//! 普通测试覆盖带参数、无参数和无动作三种状态；相等断言不统计实际分配次数。
+//! 微基准仅测量此处生成的无参数夹具，不代表任意参数规模的性能结论。
+
 use std::{hint::black_box, time::Instant};
 
 use super::UiEventBinding;
 use crate::ui::binding::model::{UiBindingCall, UiBindingValue, UiEventKind, UiEventPath};
 
+/// 按开关构造长标识夹具；参数分支另加入字符串与整数值。
 fn sample_binding(with_argument: bool) -> UiEventBinding {
     let mut action = UiBindingCall::new(format!("Apply{}", "Action".repeat(24)));
     if with_argument {
@@ -21,6 +27,7 @@ fn sample_binding(with_argument: bool) -> UiEventBinding {
     )
 }
 
+/// 不作容量预估的历史写入方式，供文本结果与局部耗时比较。
 fn native_binding_unpresized(binding: &UiEventBinding) -> String {
     let mut output = String::new();
     binding.path.native_prefix_into(&mut output);
@@ -32,6 +39,7 @@ fn native_binding_unpresized(binding: &UiEventBinding) -> String {
     output
 }
 
+/// 比较三种载荷状态的文本输出；没有对分配器或 Runtime 执行作断言。
 #[test]
 fn runtime_interface03_batch44_46_presized_event_binding_preserves_unpresized_output() {
     for binding in [
@@ -46,6 +54,7 @@ fn runtime_interface03_batch44_46_presized_event_binding_preserves_unpresized_ou
     }
 }
 
+/// 显式忽略的无参数夹具微基准；交替测量顺序并比较采样分位值。
 #[test]
 #[ignore = "release-only presized event binding benchmark"]
 fn runtime_interface03_batch44_46_presized_event_binding_release_benchmark() {

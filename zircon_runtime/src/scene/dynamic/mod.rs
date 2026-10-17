@@ -1,5 +1,6 @@
 //! Runtime dynamic scene snapshots backed by reflected components and resources.
 
+#[cfg(feature = "native-host")]
 #[path = "asset_reload/mod.rs"]
 mod asset_reload;
 #[path = "document/mod.rs"]
@@ -14,15 +15,19 @@ mod patch;
 mod remap;
 #[path = "scene/mod.rs"]
 mod scene;
+#[cfg(feature = "native-host")]
 #[path = "scene_asset/mod.rs"]
 mod scene_asset;
+#[cfg(feature = "native-host")]
 #[path = "session/mod.rs"]
 mod session;
+#[cfg(feature = "native-host")]
 #[path = "spawn_task/mod.rs"]
 mod spawn_task;
 #[path = "value/mod.rs"]
 mod value;
 
+#[cfg(feature = "native-host")]
 pub use asset_reload::{
     DynamicSceneAssetReloadAppliedScene, DynamicSceneAssetReloadApplyFailure,
     DynamicSceneAssetReloadApplyReport, DynamicSceneAssetReloadDiagnostics,
@@ -42,6 +47,7 @@ pub use patch::{
 pub use remap::EntityRemap;
 pub use scene::DynamicScene;
 pub(crate) use scene::{CompiledSceneSpawn, PreflightedSceneMutation};
+#[cfg(feature = "native-host")]
 pub use session::{
     RuntimeSessionArchive, RuntimeSessionArchiveArtifact, RuntimeSessionArchiveArtifactDiagnostics,
     RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
@@ -61,5 +67,7 @@ pub use session::{
     RuntimeSessionSlotSelectionReport, RuntimeSessionSlotSelector, RuntimeSessionSlotSummary,
     MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
 };
+#[cfg(feature = "native-host")]
 pub(crate) use spawn_task::{DynamicSceneSpawnTargetSnapshot, StagedDynamicSceneSpawn};
+#[cfg(feature = "native-host")]
 pub use spawn_task::{DynamicSceneSpawnTask, PreparedDynamicSceneSpawn};

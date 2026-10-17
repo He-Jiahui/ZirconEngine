@@ -96,12 +96,14 @@ fn virtual_geometry_registration_contributes_render_feature_descriptor() {
         vec![
             "virtual-geometry-prepare",
             "virtual-geometry-node-cluster-cull",
+            "virtual-geometry-indirect-args",
             "virtual-geometry-page-feedback",
             "virtual-geometry-visbuffer",
             "virtual-geometry-debug-overlay",
+            "virtual-geometry-terminal-execution",
         ]
     );
-    assert_eq!(report.extensions.render_pass_executors().len(), 5);
+    assert_eq!(report.extensions.render_pass_executors().len(), 6);
     assert_eq!(report.extensions.runtime_prepare_collectors().len(), 1);
     assert_eq!(
         report.extensions.runtime_prepare_collectors()[0].collector_id(),
@@ -117,6 +119,7 @@ fn virtual_geometry_registration_contributes_render_feature_descriptor() {
         vec![
             "virtual-geometry.prepare",
             "virtual-geometry.node-cluster-cull",
+            "virtual-geometry.indirect-args",
             "virtual-geometry.page-feedback",
             "virtual-geometry.visbuffer",
             "virtual-geometry.debug-overlay",

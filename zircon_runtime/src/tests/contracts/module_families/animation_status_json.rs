@@ -1,8 +1,7 @@
 //! 运行时根入口只公开选定模块，模块家族和历史别名由各自子模块判定。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_animation_status_json_boundary_sanitizes_non_finite_values() {
-    let runtime_status_source =
-        include_str!("../../../core/framework/animation/runtime_status.rs");
+    let runtime_status_source = include_str!("../../../core/framework/animation/runtime_status.rs");
     for required_anchor in [
         "serialize_sanitized_non_negative_real",
         "deserialize_sanitized_non_negative_real",

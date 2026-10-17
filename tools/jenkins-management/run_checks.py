@@ -143,6 +143,16 @@ def remove_registered_trees(output: Path, names: tuple[str, ...], manifest_bytes
         if (not path.is_file() or info.st_size != entry["bytes"]
                 or identity != entry["identity"] or stable_hash(path) != entry["sha256"]):
             raise ValueError("cleanup_file_changed_after_inventory")
+        # Git creates read-only object files in these task-owned fixtures.
+        # Clear only that DOS attribute after the exact plan and byte checks;
+        # ACLs and every path outside the registered fixture roots are untouched.
+        if os.name == "nt" and getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_READONLY:
+            os.chmod(path, stat.S_IWRITE)
+            after = physical(path).stat()
+            if (not path.is_file() or after.st_size != entry["bytes"]
+                    or [after.st_dev, after.st_ino, after.st_mtime_ns] != entry["identity"][:3]
+                    or stable_hash(path) != entry["sha256"]):
+                raise ValueError("cleanup_file_changed_after_readonly_clear")
         path.unlink()
         removed_bytes += entry["bytes"]
     for relative in sorted(directories, key=len, reverse=True):
@@ -203,10 +213,19 @@ def verify_pins(repo: Path, expected_driver: str, expected_runtime: str,
         raise ValueError("management_capsule_runtime_mismatch")
 
     files = config.get("files")
-    allowed_capsule_files = {"runner.py", "source_preparation.py", "zircon-management.groovy", "checkout_guard.py"}
+    allowed_capsule_files = {"runner.py", "source_preparation.py", "zircon-management.groovy", "checkout_guard.py", "checkout_product.py"}
     if (not isinstance(files, dict) or not {"runner.py", "zircon-management.groovy"}.issubset(files)
             or not set(files).issubset(allowed_capsule_files)):
         raise ValueError("management_capsule_files_invalid")
+    product_capabilities = tuple(
+        {"enabled": True, "kind": "zircon-development-editor-preview", "schemaVersion": version, "helper": "checkout_product.py"}
+        for version in (1, 2)
+    )
+    if "checkout_product.py" in files:
+        if set(files) != allowed_capsule_files or config.get("checkoutProduct") not in product_capabilities:
+            raise ValueError("management_product_capsule_files_invalid")
+    elif config.get("checkoutProduct") is not None:
+        raise ValueError("management_product_helper_missing")
     for name, expected_hash in files.items():
         if not isinstance(expected_hash, str) or not SHA256.fullmatch(expected_hash):
             raise ValueError("management_capsule_file_pin_invalid")
@@ -299,6 +318,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--expected-runtime", required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--repo-root", required=True)
+    parser.add_argument("--suite", choices=("ordinary", "workflow-routing"), default="ordinary")
     args = parser.parse_args(argv)
 
     output: Path | None = None
@@ -319,7 +339,10 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("repository_root_fixed")
 
         driver_manifest_name = f".jenkins/runtime/drivers/{args.expected_driver}/driver-manifest.json"
-        source_names = (*SOURCE_NAMES, driver_manifest_name)
+        routing_sources = ("tools/jenkins-management/test_job.py",
+                           "tools/jenkins-management/tests/test_test_job.py",
+                           "tools/jenkins-management/zircon-management-tests.groovy") if args.suite == "workflow-routing" else ()
+        source_names = (*SOURCE_NAMES, *routing_sources, driver_manifest_name)
         source_before = {name: stable_hash(repo / Path(name)) for name in source_names}
         capsule_digest = verify_pins(repo, args.expected_driver, args.expected_runtime, source_before)
 
@@ -343,6 +366,9 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("run_id_already_registered")
         output.mkdir(parents=True, exist_ok=False)
         test_file = repo / "tools/jenkins-management/tests/test_ordinary_flow.py"
+        test_files = [str(test_file)]
+        if args.suite == "workflow-routing":
+            test_files = [str(repo / "tools/jenkins-management/tests/test_test_job.py")]
         python = repo / ".jenkins/runtime/python/python.exe"
         basetemp = output / "basetemp"
         temp = output / "temp"
@@ -359,6 +385,7 @@ def main(argv: list[str] | None = None) -> int:
             "taskId": "jenkins-parallel-activation-20261011",
             "owner": "jenkins-management-ordinary-flow-regression",
             "runId": args.run_id,
+            "testSuite": args.suite,
             "repositoryRoot": str(repo),
             "outputRoot": str(output),
             "sourceInputs": {
@@ -386,7 +413,7 @@ def main(argv: list[str] | None = None) -> int:
         driver_root = repo / ".jenkins/runtime/drivers" / args.expected_driver
         command = [
             str(python), "-B", "-Xutf8", "-P", "-m", "pytest",
-            "-c", str(pytest_config), str(test_file), "-q", "--noconftest",
+            "-c", str(pytest_config), *test_files, "-q", "--noconftest",
             "--confcutdir", str(test_file.parent), "--basetemp", str(basetemp),
             "--junitxml", str(junit), "-o", "addopts=",
             "-o", "cache_dir=" + str(cache),
@@ -456,9 +483,18 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"runId": args.run_id, "status": status, "reasonCode": reason,
                           "summary": str(summary_path)}, separators=(",", ":")))
         return 0 if status == "passed" else (1 if status == "failed" else 2)
-    except Exception:
+    except Exception as error:
         # The exception text may contain host details; only a fixed reason code is emitted.
-        reason = stage
+        fixed_reasons = {
+            "selected_runtime_pin_mismatch", "management_capsule_pin_invalid",
+            "management_capsule_identity_mismatch", "management_capsule_runtime_mismatch",
+            "management_capsule_files_invalid", "management_product_capsule_files_invalid",
+            "management_product_helper_missing", "management_capsule_file_pin_invalid",
+            "management_capsule_file_mismatch", "native_helper_capsule_pin_mismatch",
+            "run_id_already_registered", "repository_root_fixed", "windows_agent_required",
+            "driver_pin_invalid", "runtime_or_run_id_invalid",
+        }
+        reason = str(error) if isinstance(error, ValueError) and str(error) in fixed_reasons else stage
         if output is not None and output.exists() and not (output / "summary.json").exists():
             try:
                 repo = REPOSITORY

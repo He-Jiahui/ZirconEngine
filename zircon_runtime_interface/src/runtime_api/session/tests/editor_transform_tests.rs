@@ -5,6 +5,7 @@ use crate::{
     ZrRuntimeEditorTransformPhaseV1, ZrRuntimeEditorTransformWriteV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
+/// 构造非单位缩放与绕 Y 轴 0.25 弧度的旋转，用于验证 ABI 数组转换保值。
 fn transform(x: f32) -> Transform {
     Transform {
         translation: Vec3::new(x, 2.0, 3.0),
@@ -14,12 +15,14 @@ fn transform(x: f32) -> Transform {
 }
 
 #[test]
+/// 固定当前目标上的请求尺寸为 128 字节、对齐为 8；不执行动态跨库调用。
 fn editor_transform_write_is_a_fixed_128_byte_payload() {
     assert_eq!(size_of::<ZrRuntimeEditorTransformWriteV1>(), 128);
     assert_eq!(align_of::<ZrRuntimeEditorTransformWriteV1>(), 8);
 }
 
 #[test]
+/// 验证构造保留身份、序号、世界代数、阶段和两份变换，并通过本地结构检查。
 fn editor_transform_write_preserves_expected_and_target_values() {
     let expected = transform(1.0);
     let target = transform(4.0);
@@ -48,6 +51,7 @@ fn editor_transform_write_preserves_expected_and_target_values() {
 }
 
 #[test]
+/// 分别改变起始序号、非有限平移、零缩放及未知阶段，验证本地拒绝；不覆盖会话状态机。
 fn editor_transform_write_rejects_invalid_phase_sequence_and_transform() {
     let value = transform(1.0);
     let mut begin = ZrRuntimeEditorTransformWriteV1::new(

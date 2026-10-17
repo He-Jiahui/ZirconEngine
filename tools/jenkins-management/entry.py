@@ -20,12 +20,21 @@ CLIENT_SOURCES = frozenset({
 })
 CAPABILITY = {"enabled": True, "actions": ["validate"],
               "formalAcceptance": False, "m8Accepted": False}
+PREVIEW_ACTION = "preview-current-editor-r34"
+
 ACTIONS = {"create-branch", "create-worktree", "prepare-merge", "apply-patch",
            "commit-worktree", "release-worktree", "recover-worktree", "validate", "generate",
-           "prepare-flow", "submit-flow"}
+           "prepare-flow", "submit-flow", "prepare-worktree", "inspect-worktree", "retire-worktree-reader", PREVIEW_ACTION}
 AUTH = {name: "implementation" for name in ACTIONS}
-AUTH.update({"validate": "validation", "submit-flow": "validation", "prepare-flow": "validation",
+AUTH.update({PREVIEW_ACTION: "validation", "validate": "validation", "submit-flow": "validation", "prepare-flow": "validation",
+             "prepare-worktree": "validation", "inspect-worktree": "validation", "retire-worktree-reader": "validation",
              "commit-worktree": "commit", "release-worktree": "gc", "recover-worktree": "gc"})
+MANAGED_WORKTREE_CAPABILITY = {
+    "enabled": True, "schemaVersion": 1, "actions": sorted(ACTIONS - {PREVIEW_ACTION}),
+    "sourcePreparation": "managed-worktree-source-preparation-v1",
+    "compilerInputs": "managed-worktree-product-inputs-v1", "formalAcceptance": False,
+}
+
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}\Z")
 SHA = re.compile(r"[0-9a-f]{64}\Z")
 RECIPE_FIELDS = frozenset({
@@ -114,17 +123,30 @@ def capability(repo):
             and config.get("ordinaryEntry") == CAPABILITY, "Capsule capability or repository changed")
     capsule_files = set(config.get("files", {}))
     legacy_files = {"runner.py", "source_preparation.py", "zircon-management.groovy"}
-    require(capsule_files in (legacy_files, legacy_files | {"checkout_guard.py"})
+    checkout_files = legacy_files | {"checkout_guard.py"}
+    product_files = checkout_files | {"checkout_product.py"}
+    require(capsule_files in (legacy_files, checkout_files, product_files)
             and set(config.get("clientSources", {})) == CLIENT_SOURCES, "Capsule has an incomplete code inventory")
     checkout_capability = {"enabled": True, "policy": "actual-checkout", "guard": "checkout_guard.py"}
     require(config.get("checkoutValidation") == (checkout_capability if "checkout_guard.py" in capsule_files else None),
             "Capsule checkout validation capability differs from its pinned code")
+    product_capabilities = (
+        {"enabled": True, "kind": "zircon-development-editor-preview", "schemaVersion": 1, "helper": "checkout_product.py"},
+        {"enabled": True, "kind": "zircon-development-editor-preview", "schemaVersion": 2, "helper": "checkout_product.py"},
+    )
+    configured_product = config.get("checkoutProduct")
+    require((capsule_files == product_files and configured_product in product_capabilities)
+            or (capsule_files != product_files and configured_product is None),
+            "Capsule checkout product differs from its exact pinned inventory")
     for name, expected in config["files"].items():
         require(isinstance(expected, str) and SHA.fullmatch(expected)
                 and sha(plain(capsule / name).read_bytes()) == expected, "Pinned capsule source changed")
     for name, expected in config["clientSources"].items():
         require(isinstance(expected, str) and SHA.fullmatch(expected)
                 and sha(plain(repo / name).read_bytes()) == expected, "Pinned public entry source changed")
+    managed = config.get("managedWorktree")
+    require(managed in (None, MANAGED_WORKTREE_CAPABILITY) and installed.get("managedWorktree") == managed,
+            "Managed worktree capability differs from its exact installed inventory")
     for name in ("driverDigest", "runtimeOperationId"):
         require(config.get(name) == installed.get(name), "Installed capability differs from its runtime")
     spec = importlib.util.spec_from_file_location("verified_ordinary_management_runner", capsule / "runner.py")
@@ -150,13 +172,14 @@ def capability(repo):
             "manager": manager, "owner": owner}
 
 
-def authorize(repo, payload):
+def authorize(repo, payload, *, context=None, automatic=False, origin_session=None, read_connection=None):
     require(payload.get("action") in ACTIONS, "Unsupported management action")
     for name in ("sessionId", "requestId", "operationId"):
         require(isinstance(payload.get(name), str) and ID.fullmatch(payload[name])
                 and not payload[name].endswith("."), "An exact bounded " + name + " is required")
     session = os.environ.get("ZIRCON_JENKINS_SESSION_ID")
-    require(not session or session == payload["sessionId"], "Input belongs to another current session")
+    require(not session or session == (origin_session or payload["sessionId"]),
+            "Input belongs to another current session")
     expected_ids = {sha(str(repo.resolve()).casefold().encode())[:32],
                     sha(str(repo).casefold().encode()), sha(encoded(str(repo).casefold()))}
     require(payload.get("repositoryId") in expected_ids, "Repository identity differs from the physical checkout")
@@ -168,15 +191,37 @@ def authorize(repo, payload):
                 and all(p not in {"", ".", "..", ".git"} for p in name.split("/")),
                 "Owned/source paths must be canonical repository-relative paths")
         return name.casefold()
-    with connection(repo) as value:
+    for name in owned:
+        relative(name)
+    if automatic and context is not None:
+        context["module"].ensure_request_context(
+            context["config"], repo, context["manager"], payload, record_request=False)
+    with (contextlib.nullcontext(read_connection) if read_connection is not None else connection(repo)) as value:
         row = value.execute("SELECT * FROM authorizations WHERE repository_id=? AND session_id=?",
                             (payload["repositoryId"], payload["sessionId"])).fetchone()
         require(row is not None and row["status"] == "active", "Current session authorization is pending")
         allowed, actions, evidence = (json.loads(row[name]) for name in ("paths", "actions", "evidence"))
         snapshot = {"repositoryId": payload["repositoryId"], "sessionId": payload["sessionId"],
                     "principal": row["principal"], "paths": allowed, "actions": actions, "evidence": evidence}
-        require(sha(encoded(snapshot)) == row["snapshot_digest"] and evidence.get("source") == "user"
-                and evidence.get("task") and AUTH[payload["action"]] in actions, "Original action authorization changed")
+        manual = evidence.get("source") == "user" and evidence.get("task")
+        kind = evidence.get("kind")
+        writer_context = (kind in {"ordinary-validation", "managed-worktree-writer"}
+            and evidence.get("ownerPrincipal") == row["principal"]
+            and actions == ["implementation", "validation"])
+        reader_context = False
+        if kind == "managed-worktree-reader" and context is not None:
+            helper = context["module"].source_helper()
+            reader_context = (actions == ["validation"]
+                and evidence.get("writerPrincipal") == row["principal"]
+                and evidence.get("ownerPrincipal") == helper.local_request_principal(context["manager"]))
+        automatic_context = (evidence.get("source") == "automatic-local-request"
+            and evidence.get("policy") == "local-validation-v1"
+            and evidence.get("repositoryId") == payload["repositoryId"]
+            and evidence.get("repositoryRoot") == str(repo)
+            and isinstance(evidence.get("inputDigest"), str) and SHA.fullmatch(evidence["inputDigest"])
+            and (writer_context or reader_context))
+        require(sha(encoded(snapshot)) == row["snapshot_digest"] and (manual or automatic_context)
+                and AUTH[payload["action"]] in actions, "Original action authorization changed")
         for name in owned:
             path = relative(name)
             require(any(path == scope or path.startswith(scope + "/") for scope in allowed),
@@ -297,6 +342,90 @@ def output_policy(repo, payload, *, target_dir=None, build_root=None):
     return result
 
 
+def capture_drift_diagnostics(module, source_root, before, after_root, after):
+    """Explain the two existing captures without changing their rejection contract."""
+    try:
+        def checksum(value):
+            return sha(encoded(value))
+        def identity(value):
+            if value is None or isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", value):
+                return value
+            if isinstance(value, dict) and set(value) == {"sha256"} and SHA.fullmatch(value["sha256"]):
+                return value
+            return {"sha256": checksum(value)}
+        def path(value):
+            text = str(value)
+            return {"path": text[:256], "pathSha256": sha(text.encode("utf-8")), "truncated": len(text) > 256}
+        def roots(snapshot):
+            result = {}
+            def visit(root, source):
+                result[root] = source
+                for name, value in source["files"].items():
+                    if isinstance(value, dict) and isinstance(value.get("source"), dict):
+                        visit(root.rstrip("/\\") + "/" + name, value["source"])
+            visit(snapshot["sourceRoot"], snapshot["source"])
+            for external in snapshot["externalRoots"]:
+                visit(external["path"], external["source"])
+            return result
+        def summary(source):
+            if source is None:
+                return None
+            files = source["files"]
+            value = {"head": identity(source.get("head")), "sourceDigest": identity(source.get("sourceDigest")),
+                     "filesDigest": checksum(files), "fileCount": len(files),
+                     "membershipDigest": checksum(sorted(files))}
+            if "gitIndex" in source:
+                index = source["gitIndex"]
+                value.update(gitIndexDigest=checksum(index), gitIndexEntryCount=len(index["entries"]),
+                             gitIndexMetadataSha256=identity(index.get("metadataSha256")))
+            if "diffSha256" in source:
+                value["diffSha256"] = identity(source["diffSha256"])
+            return value
+        old, new = roots(before), roots(after)
+        names = sorted(set(old) | set(new))
+        changed = [name for name in names if old.get(name) != new.get(name)]
+        components = ("sourceView", "sourceRoot", "sourceDigest", "source", "externalRoots", "dependencyCache")
+        details = {"captureRootBefore": path(source_root), "captureRootAfter": path(after_root),
+                   "sourceDigestBefore": identity(before.get("sourceDigest")),
+                   "sourceDigestAfter": identity(after.get("sourceDigest")),
+                   "changedComponents": [name for name in components if before.get(name) != after.get(name)],
+                   "dependencyCacheBeforeSha256": checksum(before.get("dependencyCache")),
+                   "dependencyCacheAfterSha256": checksum(after.get("dependencyCache")),
+                   "rootCount": len(names), "changedRootCount": len(changed),
+                   "rootsTruncated": len(changed) > 8, "outputTruncated": False, "roots": []}
+        for name in changed[:8]:
+            left, right = old.get(name), new.get(name)
+            left_files, right_files = (left or {}).get("files", {}), (right or {}).get("files", {})
+            added, removed = sorted(set(right_files) - set(left_files)), sorted(set(left_files) - set(right_files))
+            changes = module.input_changes(left_files, right_files, limit=16)
+            changes["values"] = [{"path": path("/".join(value["path"])),
+                                  "before": identity(value["before"]), "after": identity(value["after"])}
+                                 for value in changes["values"]]
+            details["roots"].append({"root": path(name), "before": summary(left), "after": summary(right),
+                "addedPathCount": len(added), "removedPathCount": len(removed),
+                "addedPaths": [path(item) for item in added[:16]],
+                "removedPaths": [path(item) for item in removed[:16]],
+                "membershipPathsTruncated": len(added) > 16 or len(removed) > 16, "fileChanges": changes})
+        # Keep a hard byte limit as well as per-root/path limits, including Unicode paths.
+        prefix = "[ordinary-entry] pre-submit capture drift "
+        while len(prefix.encode("utf-8")) + len(encoded(details)) + 2 > 32768:
+            details["outputTruncated"] = True
+            root = details["roots"][-1]
+            if root["fileChanges"]["values"]:
+                root["fileChanges"]["values"].pop()
+                root["fileChanges"]["truncated"] = True
+            elif root["addedPaths"] or root["removedPaths"]:
+                (root["addedPaths"] or root["removedPaths"]).pop()
+                root["membershipPathsTruncated"] = True
+            else:
+                details["roots"].pop()
+                details["rootsTruncated"] = True
+        print(prefix + encoded(details).decode("utf-8"), file=sys.stderr)
+    except Exception:
+        with contextlib.suppress(Exception):
+            print("[ordinary-entry] pre-submit capture drift diagnostics unavailable", file=sys.stderr)
+
+
 def source_digest(context, payload):
     """Reuse the pinned job's complete read-only source capture; create no copy."""
     from tools.jenkins.state import State
@@ -321,6 +450,8 @@ def source_digest(context, payload):
                     and before["source"]["files"].get(name) == expected, "An authored source hash changed")
         with contextlib.redirect_stdout(sys.stderr):
             _after_root, after = actor.validation_with_cache()
+        if _after_root != source_root or after != before:
+            capture_drift_diagnostics(context["module"], source_root, before, _after_root, after)
         require(_after_root == source_root and after == before, "Source changed during pre-submit capture")
         actor.verify_declared_inputs(before, payload)
         return before["sourceDigest"], source_root, context["module"].source_components(before)
@@ -329,14 +460,45 @@ def source_digest(context, payload):
         else: os.environ["GIT_OPTIONAL_LOCKS"] = previous
 
 
-def input_payload(context, payload, *, identity=None, recipe=None, target_dir=None, build_root=None):
+def input_payload(context, payload, *, identity=None, recipe=None, target_dir=None, build_root=None,
+                  automatic_context=True, routing=None):
     value = dict(payload)
     if identity:
         for name, expected in identity.items():
             require(value.get(name) == expected, "Input differs from submit argument: " + name)
     for name in ("driverDigest", "runtimeOperationId"):
         require(value.get(name) == context["config"][name], "Original request differs from installed " + name)
-    authorize(context["repo"], value)
+    origin_session = value.get("sessionId")
+    session = os.environ.get("ZIRCON_JENKINS_SESSION_ID")
+    require(not session or session == origin_session, "Input belongs to another current session")
+    value, route = context["module"].route_request_context(
+        context["config"], context["repo"], context["manager"], value,
+        query_only=not automatic_context)
+    if route is not None and routing is not None:
+        routing.update(route)
+    authorize(context["repo"], value, context=context, automatic=automatic_context,
+              origin_session=origin_session if route is not None else None)
+    if value["action"] == PREVIEW_ACTION:
+        require(recipe is None and target_dir is None and build_root is None,
+                "Fixed preview accepts only its descriptor inputs")
+        context["module"].fixed_editor_preview_recipe(value)
+    if value["action"] in {"prepare-worktree", "inspect-worktree", "retire-worktree-reader"} or value.get("worktreePreparationRef"):
+        require(context["config"].get("managedWorktree") == MANAGED_WORKTREE_CAPABILITY,
+                "Managed worktree source preparation is pending installation", "managed_worktree_pending")
+    if "checkoutProduct" in value:
+        require(value["action"] == "validate" and recipe is None, "Fixed checkout product uses its validation-only two-command contract")
+        product = value.get("checkoutProduct")
+        require(isinstance(product, dict) and type(product.get("schemaVersion")) is int
+                and product["schemaVersion"] in {1, 2},
+                "A supported fixed editor product schema is required", "checkout_product_schema_unsupported")
+        if product["schemaVersion"] == 2:
+            require(context["config"].get("checkoutProduct", {}).get("schemaVersion") == 2,
+                    "The installed management capsule does not support product schema 2",
+                    "checkout_product_schema_unsupported")
+        helper = context["module"].checkout_product_helper(context["config"])
+        product_batch = helper.batch_payload(value, context["repo"])
+        require("batch" not in value or value["batch"] == product_batch, "Fixed product batch argv changed")
+        value["batch"] = product_batch
     if value["action"] == "validate":
         if "batch" in value:
             require(recipe is None, "A batch cannot be combined with a single Cargo adapter recipe")
@@ -543,12 +705,166 @@ def submit_payload(context, payload, *, query_only=False, dry_run=False, resume_
             "actualTargetDir": None}
 
 
+
+def historical_query(context, payload, *, identity=None, recipe=None, target_dir=None, build_root=None):
+    """Observe an original delivery in one read-only authority snapshot."""
+    repo = context["repo"]
+    require(isinstance(payload, dict), "An original request object is required")
+    if identity:
+        for name, expected in identity.items():
+            require(payload.get(name) == expected, "Input differs from submit argument: " + name)
+    require(isinstance(payload.get("driverDigest"), str) and SHA.fullmatch(payload["driverDigest"])
+            and isinstance(payload.get("runtimeOperationId"), str) and ID.fullmatch(payload["runtimeOperationId"]),
+            "The original driver and runtime identities are required")
+    names = ("repositoryId", "sessionId", "requestId", "operationId")
+    def normalized(value):
+        require(isinstance(value, dict), "Original delivery payload is unavailable")
+        require("observationOnly" not in value or value["observationOnly"] is False,
+                "Only an original non-observation delivery can be queried")
+        return {name: item for name, item in value.items() if name != "observationOnly"}
+    normalized(payload)
+    with connection(repo) as current:
+        authorize(repo, payload, context=context, read_connection=current)
+        class ReadRecords:
+            def get(self, domain, key, *, connection=None):
+                require(connection is None or connection is current, "Read-only query connection changed")
+                row = current.execute("SELECT domain,key,payload,version FROM records WHERE domain=? AND key=?",
+                                      (domain, key)).fetchone()
+                return None if row is None else {**dict(row), "payload": json.loads(row["payload"])}
+        state = ReadRecords()
+        origin = {name: payload[name] for name in names}
+        helper = context["module"].source_helper()
+        replay = helper._managed_route_replay(state, payload, sha(encoded(origin)), connection=current)
+        value, route = replay if replay is not None else (dict(payload), None)
+        if route is not None:
+            require(route.get("schemaVersion") == 1 and route.get("repositoryRoot") == str(repo)
+                    and route.get("driverDigest") == value["driverDigest"]
+                    and route.get("runtimeOperationId") == value["runtimeOperationId"]
+                    and route.get("routeRef") == sha(encoded(route.get("originIdentity"))),
+                    "Original managed route binding changed")
+            for who, snapshot_name in (("originIdentity", "originSnapshot"),):
+                bound = route.get(who, {})
+                row = current.execute("SELECT * FROM authorizations WHERE repository_id=? AND session_id=?",
+                                      (bound.get("repositoryId"), bound.get("sessionId"))).fetchone()
+                require(row is not None and row["status"] == "active",
+                        "Original managed route authorization changed")
+                snapshot = {"repositoryId": bound.get("repositoryId"), "sessionId": bound.get("sessionId"),
+                            "principal": row["principal"], "paths": json.loads(row["paths"]),
+                            "actions": json.loads(row["actions"]), "evidence": json.loads(row["evidence"])}
+                require(sha(encoded(snapshot)) == row["snapshot_digest"]
+                        and row["snapshot_digest"] == route.get(snapshot_name),
+                        "Original managed route authorization changed")
+            routed_identity = {name: value[name] for name in names}
+            require(routed_identity == route.get("routedIdentity")
+                    and routed_identity["repositoryId"] == origin["repositoryId"],
+                    "Original routed identity changed")
+            if route["routedIdentity"] != route["originIdentity"]:
+                alias = state.get("management_context_route_alias", sha(encoded(routed_identity)), connection=current)
+                require(alias is not None and alias["payload"] == {"routeRef": route["routeRef"]},
+                        "Original managed route alias changed")
+            snapshot_name = ("writerAuthorizationSnapshot" if value["sessionId"] == route.get("writerSessionId")
+                             else "readerAuthorizationSnapshot" if value["sessionId"] == route.get("readerSessionId")
+                             else None)
+            row = current.execute("SELECT status,snapshot_digest FROM authorizations WHERE repository_id=? AND session_id=?",
+                                  (value["repositoryId"], value["sessionId"])).fetchone()
+            require(snapshot_name is not None and row is not None and row["status"] == "active"
+                    and row["snapshot_digest"] == route.get(snapshot_name),
+                    "Original routed authorization changed")
+        authorize(repo, value, context=context, origin_session=payload["sessionId"], read_connection=current)
+        routed_identity = {name: value[name] for name in names}
+        key = sha(encoded(routed_identity))
+        existing = state.get("management_operation", key, connection=current)
+        marker_key = sha("|".join(value[name] for name in ("sessionId", "requestId", "operationId")).encode())
+        marker = plain(repo / ".jenkins/state/management/submissions" / (marker_key + ".json"))
+        old, marker_raw = document(marker) if marker.exists() else (None, None)
+        original = None
+        if existing is not None:
+            operation = existing["payload"]
+            original = normalized(operation.get("payload"))
+            require(existing["key"] == sha(encoded({name: original.get(name) for name in names}))
+                    and operation.get("action") == original.get("action")
+                    and operation.get("phase") in {"running", "waiting", "complete", "unknown"}
+                    and operation.get("inputDigest") == sha(encoded(original)),
+                    "Original operation input or phase changed")
+            for name in (*names, "action", "driverDigest", "runtimeOperationId"):
+                require(name not in operation or operation[name] == original.get(name),
+                        "Original operation envelope changed: " + name)
+            if isinstance(operation.get("result"), dict):
+                for name, expected in {**{name: original.get(name) for name in (*names, "driverDigest", "runtimeOperationId")},
+                                       "operationKey": key}.items():
+                    require(name not in operation["result"] or operation["result"][name] == expected,
+                            "Original operation result identity changed: " + name)
+        if old is not None:
+            delivered = old.get("payload")
+            delivery = normalized(delivered)
+            for name in (*names, "driverDigest", "runtimeOperationId"):
+                require(old.get(name) == delivered.get(name), "Original delivery envelope changed: " + name)
+            require(sha(encoded({name: delivered.get(name) for name in names})) == key
+                    and old.get("inputDigest") == sha(encoded(delivered))
+                    and old.get("phase") in {"dispatching", "submitted", "delivery_unknown"}
+                    and old.get("formalAcceptance") is False and old.get("m8Accepted") is False,
+                    "Original delivery input or phase changed")
+            parameters = {"SESSION_ID": delivered["sessionId"], "REQUEST_ID": delivered["requestId"],
+                          "OPERATION_ID": delivered["operationId"], "ACTION": delivered["action"],
+                          "INPUT_JSON": encoded(delivered).decode(), "EXPECTED_DRIVER_DIGEST": delivered["driverDigest"],
+                          "RUNTIME_OPERATION_ID": delivered["runtimeOperationId"], "QUERY_ONLY": "false"}
+            require(old.get("bodyDigest") == sha(urllib.parse.urlencode(parameters).encode("ascii")),
+                    "Original delivery body changed")
+            require(original is None or original == delivery, "Original State and delivery payloads differ")
+            original = delivery
+        if original is None:
+            result = {"status": "pending", "reasonCode": "original_operation_missing",
+                      "requestId": value["requestId"], "operationId": value["operationId"],
+                      "resubmitted": False, "formalAcceptance": False, "m8Accepted": False}
+        else:
+            candidate = normalized(value)
+            if recipe is not None:
+                require(value["action"] == "validate" and "batch" not in original and isinstance(recipe, dict)
+                        and not set(recipe) - RECIPE_FIELDS, "Original Cargo adapter recipe is incompatible")
+                for name, expected in recipe.items():
+                    require(name not in candidate or candidate[name] == expected,
+                            "Input differs from Cargo option: " + name)
+                    candidate[name] = expected
+            for name, expected in (("requestedTargetDir", target_dir), ("buildRoot", build_root)):
+                if expected is not None:
+                    require(name in original and original[name] == expected
+                            and (name not in candidate or candidate[name] == expected),
+                            "Input differs from explicit output option: " + name)
+                    candidate[name] = expected
+            if value["action"] == "validate":
+                for name in RECIPE_FIELDS | {"expectedSourceDigest"}:
+                    if name not in candidate and name in original:
+                        candidate[name] = original[name]
+            require(candidate == original, "Original identity already has different action/input/source/runtime")
+            envelope = {**{name: original[name] for name in (*names, "driverDigest", "runtimeOperationId")},
+                        "inputDigest": sha(encoded(original)), "formalAcceptance": False, "m8Accepted": False}
+            if existing is not None:
+                operation = existing["payload"]
+                result = {**envelope, "status": "observed" if operation["phase"] == "complete" else "pending",
+                          "phase": operation["phase"], "result": operation.get("result"), "resubmitted": False}
+            else:
+                result = {**envelope, "status": "pending", "phase": old["phase"], "queueUrl": old.get("queueUrl"),
+                          "reasonCode": "original_delivery_requires_reconciliation", "resubmitted": False,
+                          "nextAction": "Query the same identity; do not submit a replacement"}
+        require(marker_raw is None or marker.read_bytes() == marker_raw, "Original delivery changed during query")
+        return {**result, "managedContext": route} if route is not None else result
+
+
 def dispatch(repo, payload, *, identity=None, recipe=None, target_dir=None, build_root=None,
              query_only=False, dry_run=False, resume_original=False):
     context = capability(repo)
+    require(not query_only or not (dry_run or resume_original),
+            "QueryOnly cannot be combined with dry-run or resume")
+    if query_only:
+        return historical_query(context, payload, identity=identity, recipe=recipe,
+                                target_dir=target_dir, build_root=build_root)
+    routing = {}
     value = input_payload(context, payload, identity=identity, recipe=recipe,
-                          target_dir=target_dir, build_root=build_root)
-    return submit_payload(context, value, query_only=query_only, dry_run=dry_run, resume_original=resume_original)
+                          target_dir=target_dir, build_root=build_root,
+                          automatic_context=not query_only and not dry_run, routing=routing)
+    result = submit_payload(context, value, query_only=query_only, dry_run=dry_run,
+                            resume_original=resume_original)
+    return {**result, "managedContext": routing} if routing else result
 
 
 def cargo_entry(repo, arguments, *, identity_file=None, target_dir=None, build_root=None,
@@ -558,6 +874,7 @@ def cargo_entry(repo, arguments, *, identity_file=None, target_dir=None, build_r
         require("--locked" not in arguments, "Unlocked input conflicts with --locked")
         recipe["locked"] = False
     if runtime_profile:
+        require(not query_only, "Historical Cargo queries need explicit original features, not a current runtime profile")
         import tomllib
         presets = tomllib.loads(plain(Path(repo) / "zircon_runtime/runtime-feature-presets.toml").read_text(encoding="utf-8"))
         choices = [p for p in presets["profiles"] if p["id"] == runtime_profile]
@@ -602,6 +919,7 @@ def main(argv=None):
         if args.command == "capability":
             context = capability(args.repo_root)
             result = {"status": "ready", "ordinaryEntry": CAPABILITY,
+                      "managedWorktree": context["config"].get("managedWorktree"),
                       "driverDigest": context["config"]["driverDigest"],
                       "runtimeOperationId": context["config"]["runtimeOperationId"],
                       "formalAcceptance": False, "m8Accepted": False}

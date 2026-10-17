@@ -6,11 +6,14 @@ mod integration_contracts {
     mod native_window_hosts;
     mod structure_roots;
     mod ui_layout_editor_window_template;
+    #[path = "viewport_toolbar_template_project.rs"]
     mod viewport_toolbar_template_projection;
     mod workbench_animation_editor_shell;
     mod workbench_autolayout;
     mod workbench_retained_shell;
+    #[path = "retained_ui_asset_authoring_shell.rs"]
     mod workbench_retained_ui_asset_authoring_shell;
+    #[path = "retained_ui_asset_theme_shell.rs"]
     mod workbench_retained_ui_asset_theme_shell;
     mod workbench_window_resize;
     mod workbench_window_template;

@@ -91,8 +91,8 @@ impl HzbOcclusionIndirectArgsReadbackSummary {
             self.first_instances[start..start + copied]
                 .copy_from_slice(&other.first_instances[..copied]);
             self.first_instance_count += copied as u8;
-            self.first_instances_truncated |= other.first_instances_truncated
-                || usize::from(other.first_instance_count) > copied;
+            self.first_instances_truncated |=
+                other.first_instances_truncated || usize::from(other.first_instance_count) > copied;
         }
     }
 

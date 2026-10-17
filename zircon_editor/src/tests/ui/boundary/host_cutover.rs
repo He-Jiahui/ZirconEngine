@@ -411,7 +411,7 @@ fn editor_ui_host_owns_layout_project_and_workspace_orchestration() {
         "self.preflight_existing_project_launch(&intent, path.as_ref())?",
         "self.session_admission_request(&intent)?",
         "self.open_project_document_with_admission(preflight, &admission)",
-        "save_active_scene(&project_root, &scene_uri, world)",
+        "self.save_active_scene_with_workspace(path, world, &workspace)?",
         "self.host.prepare_authoring_world(scene)",
     ] {
         assert!(

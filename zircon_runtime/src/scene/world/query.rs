@@ -504,6 +504,11 @@ impl World {
         self.entity_registry.contains_stable(entity)
     }
 
+    /// Checks scene-node identity without projecting a node or reading the node cache.
+    pub fn contains_scene_node(&self, entity: EntityId) -> bool {
+        self.node_kind(entity).is_some()
+    }
+
     pub fn camera_count(&self) -> usize {
         self.registered_component_id::<CameraComponent>()
             .map(|component_id| self.component_count_for_id(component_id))

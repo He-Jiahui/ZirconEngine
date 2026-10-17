@@ -1,4 +1,4 @@
-//! 调色板构建时的关节容量和父索引错误；渲染调用方应回退或报告资产问题。
+//! 调色板构建时的关节容量、父索引和姿态匹配错误；渲染调用方应回退或报告资产问题。
 use std::error::Error;
 use std::fmt;
 
@@ -6,6 +6,7 @@ use std::fmt;
 pub enum SkinningPaletteError {
     TooManyJoints { joint_count: usize, limit: usize },
     MissingParent { bone: String, parent_index: u32 },
+    AmbiguousPoseBone { bone: String },
 }
 
 impl fmt::Display for SkinningPaletteError {
@@ -13,6 +14,12 @@ impl fmt::Display for SkinningPaletteError {
         match self {
             Self::TooManyJoints { joint_count, limit } => {
                 write!(formatter, "skin has {joint_count} joints; limit is {limit}")
+            }
+            Self::AmbiguousPoseBone { bone } => {
+                write!(
+                    formatter,
+                    "pose bone '{bone}' cannot be matched uniquely by name"
+                )
             }
             Self::MissingParent { bone, parent_index } => {
                 write!(

@@ -1,11 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::resource::{
-    ResourceKind, ResourceManagementGeneration, ResourceReadinessGeneration,
-    ResourceReadinessRowIdentity, UntypedResourceHandle,
+    ResourceKind, ResourceProjectionSnapshot, UntypedResourceHandle,
 };
 use crate::graphics::scene::render_scene::RenderSceneResourceReferenceDelta;
 use zr_rhi::{SubmissionStatus, SubmissionTicket};
+use super::contract::RenderAssetResidencySourceIdentity;
 
 use super::gpu_residency::{
     RenderAssetGpuResidencyLimits, RenderAssetGpuResidencyState,
@@ -29,7 +29,7 @@ mod ticket_issuance;
 struct RenderAssetResidencyTicketSeed {
     resource: UntypedResourceHandle,
     asset_revision: u64,
-    readiness_identity: ResourceReadinessRowIdentity,
+    source_identity: RenderAssetResidencySourceIdentity,
     demand_generation: RenderAssetDemandGeneration,
     device: RenderAssetDeviceEpoch,
     scope: RenderAssetResidencyScope,
@@ -42,7 +42,7 @@ impl RenderAssetResidencyTicketSeed {
             id,
             self.resource,
             self.asset_revision,
-            self.readiness_identity,
+            self.source_identity,
             self.demand_generation,
             self.device,
             self.scope,
@@ -53,7 +53,7 @@ impl RenderAssetResidencyTicketSeed {
     fn matches(&self, ticket: &RenderAssetResidencyTicket) -> bool {
         self.resource == ticket.resource()
             && self.asset_revision == ticket.asset_revision()
-            && &self.readiness_identity == ticket.readiness_identity()
+            && &self.source_identity == ticket.source_identity()
             && self.demand_generation == ticket.demand_generation()
             && self.device == ticket.device()
             && self.scope == ticket.scope()
@@ -127,8 +127,7 @@ impl RenderAssetResidencyManager {
     pub(crate) fn apply_scene_reference_deltas(
         &mut self,
         deltas: &[RenderSceneResourceReferenceDelta],
-        management: &ResourceManagementGeneration,
-        readiness: &ResourceReadinessGeneration,
+        projection: &ResourceProjectionSnapshot,
         device: RenderAssetDeviceEpoch,
         demand_generation: RenderAssetDemandGeneration,
     ) -> Result<RenderAssetResidencyMutation, RenderAssetResidencyAdmissionError> {
@@ -177,8 +176,7 @@ impl RenderAssetResidencyManager {
                 stats.catalog_lookup_count = stats.catalog_lookup_count.saturating_add(1);
                 Some(resolve_ticket_seed(
                     resource,
-                    management,
-                    readiness,
+                    projection,
                     device,
                     demand_generation,
                 )?)
@@ -247,8 +245,7 @@ impl RenderAssetResidencyManager {
     pub(crate) fn reconcile_changed_resources(
         &mut self,
         changed_resources: &[UntypedResourceHandle],
-        management: &ResourceManagementGeneration,
-        readiness: &ResourceReadinessGeneration,
+        projection: &ResourceProjectionSnapshot,
         device: RenderAssetDeviceEpoch,
         demand_generation: RenderAssetDemandGeneration,
     ) -> Result<RenderAssetResidencyMutation, RenderAssetResidencyAdmissionError> {
@@ -272,7 +269,7 @@ impl RenderAssetResidencyManager {
             };
             stats.catalog_lookup_count = stats.catalog_lookup_count.saturating_add(1);
             let seed =
-                resolve_ticket_seed(resource, management, readiness, device, demand_generation)?;
+                resolve_ticket_seed(resource, projection, device, demand_generation)?;
             if entry
                 .pending
                 .as_ref()
@@ -650,11 +647,51 @@ impl RenderAssetResidencyManager {
 
 fn resolve_ticket_seed(
     resource: UntypedResourceHandle,
-    management: &ResourceManagementGeneration,
-    readiness: &ResourceReadinessGeneration,
+    projection: &ResourceProjectionSnapshot,
     device: RenderAssetDeviceEpoch,
     demand_generation: RenderAssetDemandGeneration,
 ) -> Result<RenderAssetResidencyTicketSeed, RenderAssetResidencyAdmissionError> {
+    let management = projection.management();
+    let readiness = projection.readiness();
+    if matches!(resource.kind(), ResourceKind::Model | ResourceKind::Mesh) {
+        if let Some(active) = projection.active().row(resource.id()) {
+            if active.record.kind != resource.kind() {
+                return Err(RenderAssetResidencyAdmissionError::CatalogKindMismatch {
+                    resource, catalog_kind: active.record.kind,
+                });
+            }
+            let mut dependencies = Vec::new();
+            let mut candidate_dependencies = Vec::new();
+            let mut pending = active.record.dependency_ids.clone();
+            let mut seen = HashSet::new();
+            while let Some(id) = pending.pop() {
+                if id == resource.id() || !seen.insert(id) { continue; }
+                if let Some(row) = projection.active().row(id).filter(|row| {
+                    matches!(row.record.kind, ResourceKind::Model | ResourceKind::Mesh)
+                }) {
+                    dependencies.push((id, Some(row.key.clone())));
+                    pending.extend(row.record.dependency_ids.iter().copied());
+                } else if management.row_by_id(id).is_some_and(|row| {
+                    matches!(row.kind, ResourceKind::Model | ResourceKind::Mesh)
+                }) {
+                    dependencies.push((id, None));
+                } else {
+                    // Keep readiness closure identity for material/data/shader dependencies.
+                    candidate_dependencies.push((id, readiness.row_identity(id)));
+                }
+            }
+            dependencies.sort_by_key(|(id, _)| *id);
+            candidate_dependencies.sort_by_key(|(id, _)| *id);
+            let policy = policy_for_resource_kind(resource.kind()).expect("geometry residency policy");
+            return Ok(RenderAssetResidencyTicketSeed {
+                resource, asset_revision: active.record.revision,
+                source_identity: RenderAssetResidencySourceIdentity::ActiveResident {
+                    key: active.key.clone(), dependencies, candidate_dependencies,
+                },
+                demand_generation, device, scope: policy.scope, route: policy.route,
+            });
+        }
+    }
     let Some(row) = management.row_by_id(resource.id()) else {
         return Err(RenderAssetResidencyAdmissionError::MissingCatalogRecord { resource });
     };
@@ -670,6 +707,11 @@ fn resolve_ticket_seed(
     let Some(readiness_identity) = readiness.row_identity(resource.id()) else {
         return Err(RenderAssetResidencyAdmissionError::MissingReadinessRecord { resource });
     };
+    if matches!(resource.kind(), ResourceKind::Model | ResourceKind::Mesh)
+        && readiness_identity.row().record.state != crate::core::resource::ResourceState::Ready
+    {
+        return Err(RenderAssetResidencyAdmissionError::MissingReadinessRecord { resource });
+    }
     let readiness_revision = readiness_identity.row().record.revision;
     if row.revision != readiness_revision {
         return Err(
@@ -686,7 +728,7 @@ fn resolve_ticket_seed(
     Ok(RenderAssetResidencyTicketSeed {
         resource,
         asset_revision: row.revision,
-        readiness_identity,
+        source_identity: RenderAssetResidencySourceIdentity::CandidateReadiness(readiness_identity),
         demand_generation,
         device,
         scope: policy.scope,

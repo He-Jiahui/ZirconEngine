@@ -1,19 +1,29 @@
 use super::*;
+use crate::ReflectionProbeCaptureRequestError;
 use zircon_runtime::core::framework::render::{
-    RenderEnvironmentCaptureHandle, RenderEnvironmentCaptureOutputIdentity,
-    RenderEnvironmentCaptureRequest, SourceCubemapPrefilterQuality, RGBA16F_TEXEL_SIZE_BYTES,
-    SOURCE_CUBEMAP_FACE_COUNT,
+    source_cubemap_mip_count, source_cubemap_mip_size, RenderEnvironmentCaptureHandle,
+    RenderEnvironmentCaptureOutputIdentity, RenderEnvironmentCaptureRequest,
+    SourceCubemapPrefilterQuality, RGBA16F_TEXEL_SIZE_BYTES, SOURCE_CUBEMAP_FACE_COUNT,
+    SOURCE_CUBEMAP_MIN_FACE_SIZE,
 };
 use zircon_runtime::core::resource::ResourceScheme;
 
 #[test]
 fn captured_source_encoder_validates_project_output_before_zcube_encoding() {
+    let face_size = SOURCE_CUBEMAP_MIN_FACE_SIZE;
+    let mip_count = source_cubemap_mip_count(face_size);
+    let source_byte_len = (0..mip_count)
+        .map(|mip| {
+            let mip_size = source_cubemap_mip_size(face_size, mip) as usize;
+            SOURCE_CUBEMAP_FACE_COUNT * mip_size * mip_size * RGBA16F_TEXEL_SIZE_BYTES
+        })
+        .sum();
     let request = RenderEnvironmentCaptureRequest::with_revisions(
         "atrium",
         [0.0; 3],
         0.1,
         200.0,
-        1,
+        face_size,
         SourceCubemapPrefilterQuality::Normal,
         1,
         1,
@@ -25,18 +35,16 @@ fn captured_source_encoder_validates_project_output_before_zcube_encoding() {
     let payload = RenderEnvironmentCaptureSourcePayload::new(
         RenderEnvironmentCaptureHandle::new(1).unwrap(),
         RenderEnvironmentCaptureOutputIdentity::from_request(&request),
-        1,
-        1,
-        vec![0; SOURCE_CUBEMAP_FACE_COUNT * RGBA16F_TEXEL_SIZE_BYTES],
+        face_size,
+        mip_count,
+        vec![0; source_byte_len],
     )
     .unwrap();
 
     assert!(matches!(
         encode_reflection_probe_capture_source(payload),
         Err(CapturedReflectionProbeConsumeError::Request(
-            ReflectionProbeCaptureRequestError::UnsupportedOutputUriScheme(
-                ResourceScheme::Library
-            )
+            ReflectionProbeCaptureRequestError::UnsupportedOutputUriScheme(ResourceScheme::Library)
         ))
     ));
 }

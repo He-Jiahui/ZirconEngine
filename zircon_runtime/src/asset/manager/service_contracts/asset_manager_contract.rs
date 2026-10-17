@@ -1,6 +1,5 @@
-use crate::core::framework::channel::{ChannelReceiver, ChannelWakeCallback};
+use crate::core::framework::channel::ChannelWakeCallback;
 use crate::core::CoreError;
-use crossbeam_channel::unbounded;
 
 use super::super::errors::{asset_error, asset_error_message};
 use super::super::project_asset_manager::ProjectAssetManager;
@@ -124,21 +123,19 @@ impl AssetManagerContract for ProjectAssetManager {
         assets
     }
 
-    fn subscribe_asset_changes(&self) -> ChannelReceiver<AssetChange> {
+    fn subscribe_asset_changes(&self) -> crate::asset::watch::AssetChangeSubscription {
         self.subscribe_asset_changes_internal(None)
     }
 
     fn subscribe_asset_changes_with_wake(
         &self,
         wake: ChannelWakeCallback,
-    ) -> ChannelReceiver<AssetChange> {
+    ) -> crate::asset::watch::AssetChangeSubscription {
         self.subscribe_asset_changes_internal(Some(wake))
     }
 
-    fn subscribe_asset_watch_errors(&self) -> ChannelReceiver<AssetWatchError> {
-        let (sender, receiver) = unbounded();
-        self.lock_watch_error_subscribers().push(sender);
-        receiver
+    fn subscribe_asset_watch_errors(&self) -> crate::asset::watch::AssetWatchErrorSubscription {
+        self.watch_errors.subscribe(None)
     }
 
     fn relocate_project_source(

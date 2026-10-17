@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, hint::black_box, time::Instant};
 
-use super::{RpcChannelMessage, drain_bounded_channel_messages};
+use super::{drain_bounded_channel_messages, RpcChannelMessage};
 
 const BENCHMARK_MESSAGE_COUNT: usize = 8_192;
 const BENCHMARK_SAMPLE_COUNT: usize = 21;
@@ -71,9 +71,7 @@ fn benchmark_queue(count: usize) -> VecDeque<RpcChannelMessage> {
         .collect()
 }
 
-fn message_sequences<'a>(
-    messages: impl IntoIterator<Item = &'a RpcChannelMessage>,
-) -> Vec<u64> {
+fn message_sequences<'a>(messages: impl IntoIterator<Item = &'a RpcChannelMessage>) -> Vec<u64> {
     messages
         .into_iter()
         .map(|message| message.sequence)
@@ -128,8 +126,7 @@ fn measure_legacy(seed: &VecDeque<RpcChannelMessage>) -> u128 {
 fn measure_optimized(seed: &VecDeque<RpcChannelMessage>) -> u128 {
     let mut queue = seed.clone();
     let start = Instant::now();
-    let drained =
-        drain_bounded_channel_messages(black_box(&mut queue), BENCHMARK_MESSAGE_COUNT);
+    let drained = drain_bounded_channel_messages(black_box(&mut queue), BENCHMARK_MESSAGE_COUNT);
     let elapsed = start.elapsed().as_nanos();
     black_box(drained);
     elapsed

@@ -261,7 +261,18 @@ fn worker_deferred_replacement_cancels_remaining_command_window_and_old_restore(
 
 #[test]
 fn whole_tick_replacement_cancels_later_stages_from_the_original_plan() {
+    use crate::engine_module::EngineModule;
+
     let runtime = CoreRuntime::new();
+    runtime
+        .register_module(crate::core::runtime::TasksModule.descriptor())
+        .unwrap();
+    runtime
+        .register_module(crate::core::runtime::TimeModule.descriptor())
+        .unwrap();
+    runtime
+        .register_module(crate::asset::module_descriptor())
+        .unwrap();
     runtime
         .register_module(crate::scene::module_descriptor())
         .unwrap();
@@ -550,9 +561,11 @@ fn direct_command_window_reports_replacement_cancellation_and_leaves_new_world_c
 
 #[derive(Debug)]
 struct StructuralReplacementComponent;
+zircon_runtime_interface::impl_retained_owner_v1!(StructuralReplacementComponent {});
 impl Component for StructuralReplacementComponent {}
 #[derive(Debug)]
 struct CanceledStructuralComponent;
+zircon_runtime_interface::impl_retained_owner_v1!(CanceledStructuralComponent {});
 impl Component for CanceledStructuralComponent {}
 
 #[test]
@@ -566,15 +579,25 @@ fn structural_lifecycle_replacement_cancels_old_observers_rows_and_following_clo
     let marker = Arc::clone(&fresh_marker);
     world.observe_component_lifecycle::<StructuralReplacementComponent>(
         LifecycleEventKind::Add,
-        move |world, _| {
-            *world = replacement_world(Arc::clone(&marker));
+        // SAFETY: This retires the current World or schedule. Remaining work is counter-only
+        // scheduling; replacement history is never adopted.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, _| {
+                *world = replacement_world(Arc::clone(&marker));
+            })
         },
     );
     let observers = Arc::clone(&old_observers);
     world.observe_component_lifecycle::<StructuralReplacementComponent>(
         LifecycleEventKind::Add,
-        move |_, _| {
-            observers.fetch_add(1, Ordering::SeqCst);
+        // SAFETY: Only an external atomic counter changes; retained World payload and dynamic
+        // JSON are untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                observers.fetch_add(1, Ordering::SeqCst);
+            })
         },
     );
     world
@@ -598,6 +621,7 @@ fn structural_lifecycle_replacement_cancels_old_observers_rows_and_following_clo
 }
 
 struct PanicOnReplace(Arc<AtomicBool>);
+zircon_runtime_interface::impl_retained_owner_v1!(PanicOnReplace { 0 });
 impl Component for PanicOnReplace {}
 impl Drop for PanicOnReplace {
     fn drop(&mut self) {
@@ -618,8 +642,13 @@ fn dense_replacement_drop_panic_restores_lifecycle_staging_and_preserves_the_ori
     let calls = Arc::clone(&observer_calls);
     world.observe_component_lifecycle::<CanceledStructuralComponent>(
         LifecycleEventKind::Add,
-        move |_, _| {
-            calls.fetch_add(1, Ordering::SeqCst);
+        // SAFETY: Only an external atomic counter changes; retained World payload and dynamic
+        // JSON are untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                calls.fetch_add(1, Ordering::SeqCst);
+            })
         },
     );
     world
@@ -941,23 +970,28 @@ fn rejected_queue_errors_survive_lifecycle_world_replacement_at_each_structural_
             let marker = Arc::clone(&fresh_calls);
             world.observe_component_lifecycle::<StructuralReplacementComponent>(
                 LifecycleEventKind::Add,
-                move |world, _| {
-                    let mut replacement = replacement_world(Arc::clone(&marker));
-                    assert_eq!(replacement.spawn(()).unwrap(), entity);
-                    replacement.record_deferred_command_error(
-                        crate::scene::ecs::DeferredCommandError::new(
-                            DeferredCommandOperation::ReparentChecked,
-                            DeferredCommandTarget::Resolved(entity),
-                            crate::scene::SceneError::MissingParent {
-                                child: entity,
-                                parent: replacement_missing_parent,
-                            },
-                        ),
-                    );
-                    *world = replacement;
-                    if panic_after_replacement {
-                        panic!("original structural lifecycle replacement panic");
-                    }
+                // SAFETY: Only a separate replacement World is built before owner retirement;
+                // no retained payload of the original owner grows or adopts it.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, _| {
+                        let mut replacement = replacement_world(Arc::clone(&marker));
+                        assert_eq!(replacement.spawn(()).unwrap(), entity);
+                        replacement.record_deferred_command_error(
+                            crate::scene::ecs::DeferredCommandError::new(
+                                DeferredCommandOperation::ReparentChecked,
+                                DeferredCommandTarget::Resolved(entity),
+                                crate::scene::SceneError::MissingParent {
+                                    child: entity,
+                                    parent: replacement_missing_parent,
+                                },
+                            ),
+                        );
+                        *world = replacement;
+                        if panic_after_replacement {
+                            panic!("original structural lifecycle replacement panic");
+                        }
+                    })
                 },
             );
             {
@@ -1083,14 +1117,21 @@ mod checked_reparent_lifecycle_owner {
             let original = world.schedule().stage_plan();
             world.observe_component_lifecycle::<Hierarchy>(
                 LifecycleEventKind::Replace,
-                move |world, event| {
-                    assert_eq!(event.entity(), child);
-                    let mut fresh = fresh.lock().unwrap().take().unwrap();
-                    if retain_schedule {
-                        *fresh.schedule_mut() = std::mem::take(world.schedule_mut());
-                        assert!(Arc::ptr_eq(&original, &fresh.schedule().stage_plan()));
-                    }
-                    *world = fresh;
+                // SAFETY: This retires the current World or schedule. Remaining work is
+                // counter-only scheduling; replacement history is never adopted.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                        move |world, event| {
+                            assert_eq!(event.entity(), child);
+                            let mut fresh = fresh.lock().unwrap().take().unwrap();
+                            if retain_schedule {
+                                *fresh.schedule_mut() = std::mem::take(world.schedule_mut());
+                                assert!(Arc::ptr_eq(&original, &fresh.schedule().stage_plan()));
+                            }
+                            *world = fresh;
+                        },
+                    )
                 },
             );
             {
@@ -1144,25 +1185,30 @@ mod checked_reparent_lifecycle_owner {
         let system = Arc::clone(&systems);
         world.observe_component_lifecycle::<Hierarchy>(
             LifecycleEventKind::Replace,
-            move |world, event| {
-                assert_eq!(event.entity(), child);
-                *world.schedule_mut() = Default::default();
-                let system = Arc::clone(&system);
-                world
-                    .register_native_system::<(), _>(
-                        "tests.checked-reparent.fresh",
-                        SystemStage::Update,
-                        0,
-                        move |()| {
-                            system.fetch_add(1, Ordering::SeqCst);
-                        },
-                    )
-                    .unwrap();
-                world.insert_resource(ReparentSentinel(52));
-                let fresh = Arc::clone(&fresh);
-                world.commands().queue_fn(move |_| {
-                    fresh.fetch_add(1, Ordering::SeqCst);
-                });
+            // SAFETY: After World or schedule retirement, only fixed resources and counter-only
+            // commands change; no replacement history is adopted.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                    assert_eq!(event.entity(), child);
+                    *world.schedule_mut() = Default::default();
+                    let system = Arc::clone(&system);
+                    world
+                        .register_native_system::<(), _>(
+                            "tests.checked-reparent.fresh",
+                            SystemStage::Update,
+                            0,
+                            move |()| {
+                                system.fetch_add(1, Ordering::SeqCst);
+                            },
+                        )
+                        .unwrap();
+                    world.insert_resource(ReparentSentinel(52));
+                    let fresh = Arc::clone(&fresh);
+                    world.commands().queue_fn(move |_| {
+                        fresh.fetch_add(1, Ordering::SeqCst);
+                    });
+                })
             },
         );
         {
@@ -1224,24 +1270,34 @@ mod checked_reparent_lifecycle_owner {
             let callbacks = Arc::clone(&callbacks);
             let systems = Arc::clone(&systems);
             let original = Arc::clone(&original);
-            world.observe_component_lifecycle::<Hierarchy>(kind, move |world, event| {
-                assert_eq!(event.entity(), child);
-                assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
-                if callbacks.fetch_add(1, Ordering::SeqCst) == 0 {
-                    let systems = Arc::clone(&systems);
-                    world
-                        .register_native_system::<(), _>(
-                            "tests.checked-reparent.pending",
-                            SystemStage::Update,
-                            0,
-                            move |()| {
-                                systems.fetch_add(1, Ordering::SeqCst);
-                            },
-                        )
-                        .unwrap();
-                }
-                assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
-            });
+            world.observe_component_lifecycle::<Hierarchy>(
+                kind,
+                // SAFETY: The local callback only observes and registers a system that
+                // increments an external counter; no history payload grows.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                        move |world, event| {
+                            assert_eq!(event.entity(), child);
+                            assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+                            if callbacks.fetch_add(1, Ordering::SeqCst) == 0 {
+                                let systems = Arc::clone(&systems);
+                                world
+                                    .register_native_system::<(), _>(
+                                        "tests.checked-reparent.pending",
+                                        SystemStage::Update,
+                                        0,
+                                        move |()| {
+                                            systems.fetch_add(1, Ordering::SeqCst);
+                                        },
+                                    )
+                                    .unwrap();
+                            }
+                            assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+                        },
+                    )
+                },
+            );
         }
         {
             let mut commands = world.commands();

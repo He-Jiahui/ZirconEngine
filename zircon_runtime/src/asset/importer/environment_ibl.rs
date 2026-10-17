@@ -438,7 +438,9 @@ fn prepare_environment_ibl_source_with_builder(
         environment_ibl_request_for_source_image(context, source_image)?
     };
     // BUG: [CR-ASSET-IMPORT-0001] warm probe 已计入一次请求标识耗时，冷路径在此覆盖而非累加，导致报告及 profiling 低报该阶段总耗时。
-    timing.source_identity = identity_started.elapsed();
+    timing.source_identity = timing
+        .source_identity
+        .saturating_add(identity_started.elapsed());
     let Some(request) = request else {
         return Ok(PreparedEnvironmentIblSourceStaging {
             store: IblSourceCubemapStagingStore::new(cache_root.as_ref()),
@@ -467,7 +469,21 @@ fn prepare_environment_ibl_source_with_builder(
         if current_bundle_manifest_matches {
             EnvironmentIblStagedBundleState::Current
         } else {
-            staged_bundle_state(&store, &request, &context.uri, source_image)?
+            match std::fs::symlink_metadata(cache_root.as_ref()) {
+                Ok(_) => staged_bundle_state(&store, &request, &context.uri, source_image)?,
+                Err(source) if source.kind() == std::io::ErrorKind::NotFound => {
+                    // Preparation is speculative; actual publication still serializes at commit.
+                    EnvironmentIblStagedBundleState::Missing
+                }
+                Err(source) => {
+                    return Err(EnvironmentIblSourceStagingError::Stage(
+                        IblSourceCubemapStagingError::InspectBundlePayload {
+                            path: cache_root.as_ref().to_path_buf(),
+                            source,
+                        },
+                    ));
+                }
+            }
         }
     };
     timing.cache_probe = timing

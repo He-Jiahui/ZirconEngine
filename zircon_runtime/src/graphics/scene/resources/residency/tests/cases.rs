@@ -47,8 +47,9 @@ fn render_residency_tickets_route_semantic_model_set_and_prepared_work_explicitl
             RenderAssetResidencyRoute::PreparedDependencies,
         ),
     ];
-    let management = resources.management_generation();
-    let readiness = resources.readiness_generation();
+    let projection = resources.projection_snapshot();
+    let management = projection.management();
+    let readiness = projection.readiness();
     let deltas = inputs
         .iter()
         .map(|(resource, _)| RenderSceneResourceReferenceDelta::acquire(*resource, 1))
@@ -58,8 +59,7 @@ fn render_residency_tickets_route_semantic_model_set_and_prepared_work_explicitl
     let mutation = residency
         .apply_scene_reference_deltas(
             &deltas,
-            &management,
-            &readiness,
+            &projection,
             device_epoch(7, 2),
             demand_generation(5),
         )
@@ -152,8 +152,9 @@ fn render_scene_reference_delta_creates_generation_bound_all_lod_and_bootstrap_t
         ResourceKind::Material,
         Vec::new(),
     );
-    let management = resources.management_generation();
-    let readiness = resources.readiness_generation();
+    let projection = resources.projection_snapshot();
+    let management = projection.management();
+    let readiness = projection.readiness();
     let device = device_epoch(4, 9);
     let demand = demand_generation(17);
     let mut residency = RenderAssetResidencyManager::new();
@@ -163,8 +164,7 @@ fn render_scene_reference_delta_creates_generation_bound_all_lod_and_bootstrap_t
             RenderSceneResourceReferenceDelta::acquire(model, 1),
             RenderSceneResourceReferenceDelta::acquire(material, 1),
         ],
-        &management,
-        &readiness,
+        &projection,
         device,
         demand,
     ) {
@@ -190,10 +190,17 @@ fn render_scene_reference_delta_creates_generation_bound_all_lod_and_bootstrap_t
             None => panic!("ticket resource must remain in catalog"),
         };
         assert_eq!(ticket.asset_revision(), row.revision);
-        assert_eq!(
-            Some(ticket.readiness_identity()),
-            readiness.row_identity(ticket.resource().id()).as_ref()
-        );
+        if ticket.resource().kind() == ResourceKind::Model {
+            let super::contract::RenderAssetResidencySourceIdentity::ActiveResident { key, .. } = ticket.source_identity() else {
+                panic!("resident model must use its active publication identity");
+            };
+            assert_eq!(projection.active().key(ticket.resource().id()).as_ref(), Some(key));
+        } else {
+            assert_eq!(
+                ticket.readiness_identity(),
+                readiness.row_identity(ticket.resource().id()).as_ref()
+            );
+        }
         assert_eq!(ticket.demand_generation(), demand);
         assert_eq!(ticket.device(), device);
     }
@@ -208,8 +215,9 @@ fn render_repeated_scene_references_share_one_pending_ticket_until_the_last_rele
         ResourceKind::Mesh,
         Vec::new(),
     );
-    let management = resources.management_generation();
-    let readiness = resources.readiness_generation();
+    let projection = resources.projection_snapshot();
+    let management = projection.management();
+    let readiness = projection.readiness();
     let device = device_epoch(2, 1);
     let demand = demand_generation(3);
     let mut residency = RenderAssetResidencyManager::new();
@@ -217,8 +225,7 @@ fn render_repeated_scene_references_share_one_pending_ticket_until_the_last_rele
     let first = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(mesh, 2)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand,
         )
@@ -227,8 +234,7 @@ fn render_repeated_scene_references_share_one_pending_ticket_until_the_last_rele
     let repeated = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(mesh, 3)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand,
         )
@@ -239,8 +245,7 @@ fn render_repeated_scene_references_share_one_pending_ticket_until_the_last_rele
     let retained = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::release(mesh, 4)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand,
         )
@@ -251,8 +256,7 @@ fn render_repeated_scene_references_share_one_pending_ticket_until_the_last_rele
     let final_release = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::release(mesh, 1)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand,
         )
@@ -285,16 +289,16 @@ fn render_reference_delta_preflight_is_atomic_on_underflow() {
         ResourceKind::Material,
         Vec::new(),
     );
-    let management = resources.management_generation();
-    let readiness = resources.readiness_generation();
+    let projection = resources.projection_snapshot();
+    let management = projection.management();
+    let readiness = projection.readiness();
     let device = device_epoch(6, 1);
     let demand = demand_generation(1);
     let mut residency = RenderAssetResidencyManager::new();
     let initial = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(model, 1)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand,
         )
@@ -306,8 +310,7 @@ fn render_reference_delta_preflight_is_atomic_on_underflow() {
             RenderSceneResourceReferenceDelta::release(model, 2),
             RenderSceneResourceReferenceDelta::acquire(material, 1),
         ],
-        &management,
-        &readiness,
+        &projection,
         device,
         demand,
     );
@@ -322,8 +325,7 @@ fn render_reference_delta_preflight_is_atomic_on_underflow() {
     let admitted = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(material, 1)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand,
         )
@@ -344,15 +346,15 @@ fn render_upload_requires_legal_state_and_matching_device_submission() {
         ResourceKind::Mesh,
         Vec::new(),
     );
-    let management = resources.management_generation();
-    let readiness = resources.readiness_generation();
+    let projection = resources.projection_snapshot();
+    let management = projection.management();
+    let readiness = projection.readiness();
     let device = device_epoch(8, 11);
     let mut residency = RenderAssetResidencyManager::new();
     let admitted = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(mesh, 1)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand_generation(5),
         )
@@ -414,8 +416,7 @@ fn render_hot_reload_keeps_last_good_until_the_new_generation_completes() {
     let initial = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(model, 1)],
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             device,
             demand_generation(1),
         )
@@ -448,8 +449,7 @@ fn render_hot_reload_keeps_last_good_until_the_new_generation_completes() {
     let replacement = residency
         .reconcile_changed_resources(
             &[model],
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             device,
             demand_generation(2),
         )
@@ -485,8 +485,7 @@ fn render_hot_reload_keeps_last_good_until_the_new_generation_completes() {
     let retry = residency
         .reconcile_changed_resources(
             &[model],
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             device,
             demand_generation(3),
         )
@@ -532,16 +531,16 @@ fn render_releasing_an_uploading_asset_preserves_submission_for_fence_retirement
         ResourceKind::Texture,
         Vec::new(),
     );
-    let management = resources.management_generation();
-    let readiness = resources.readiness_generation();
+    let projection = resources.projection_snapshot();
+    let management = projection.management();
+    let readiness = projection.readiness();
     let device = device_epoch(12, 1);
     let demand = demand_generation(4);
     let mut residency = RenderAssetResidencyManager::new();
     let admitted = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(texture, 1)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand,
         )
@@ -562,8 +561,7 @@ fn render_releasing_an_uploading_asset_preserves_submission_for_fence_retirement
     let released = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::release(texture, 1)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand,
         )

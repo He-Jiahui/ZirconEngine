@@ -1,5 +1,5 @@
 use std::fmt;
-use std::time::Instant;
+use web_time::Instant;
 
 /// Neutral callback installed by an upper runtime domain that needs to follow
 /// successful core module activation and pre-unload deactivation.

@@ -15,13 +15,10 @@ fn runtime_07_artifact_cache_payload_owner_split_keeps_wire_types_folder_backed(
     let runtime_07_archive = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
     );
-    let runtime_index =
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let hotspot_doc = include_str!(
-        "../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
-    );
-    let artifact_doc =
-        include_str!("../../../../../docs/crates/zircon_runtime/asset/artifact.md");
+    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let hotspot_doc =
+        include_str!("../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md");
+    let artifact_doc = include_str!("../../../../../docs/crates/zircon_runtime/asset/artifact.md");
 
     for root_anchor in [
         "mod json_value;",

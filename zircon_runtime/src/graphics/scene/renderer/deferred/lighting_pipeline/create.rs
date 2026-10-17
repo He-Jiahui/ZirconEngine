@@ -4,7 +4,7 @@ use crate::graphics::material::ShadingModelIncludeSourceSet;
 use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::types::GraphicsError;
 use std::sync::OnceLock;
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use super::shader_source::{
     assemble_deferred_lighting_shader_source, DeferredLightingShaderSourceRequest,
@@ -124,21 +124,20 @@ impl DeferredLightingPipelineCache {
             lighting_subsurface_pipeline: OnceLock::new(),
         };
 
-        let (pipeline_foundation, standard_pipeline) = if deferred_lighting_profile
-            == SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
-        {
-            // The viewer records only its BaseScenePass; defer this unused
-            // compiled-graph pipeline until a caller actually requests it.
-            (Duration::ZERO, Duration::ZERO)
-        } else {
-            let foundation_started = Instant::now();
-            let foundation = cache.foundation(device, lighting_bind_group_layout);
-            let pipeline_foundation = foundation_started.elapsed();
-            let standard_pipeline_started = Instant::now();
-            let _ = cache.pipeline_from_foundation(device, foundation, false);
-            let standard_pipeline = standard_pipeline_started.elapsed();
-            (pipeline_foundation, standard_pipeline)
-        };
+        let (pipeline_foundation, standard_pipeline) =
+            if deferred_lighting_profile.uses_environment_only_lighting() {
+                // The viewer records only its BaseScenePass; defer this unused
+                // compiled-graph pipeline until a caller actually requests it.
+                (Duration::ZERO, Duration::ZERO)
+            } else {
+                let foundation_started = Instant::now();
+                let foundation = cache.foundation(device, lighting_bind_group_layout);
+                let pipeline_foundation = foundation_started.elapsed();
+                let standard_pipeline_started = Instant::now();
+                let _ = cache.pipeline_from_foundation(device, foundation, false);
+                let standard_pipeline = standard_pipeline_started.elapsed();
+                (pipeline_foundation, standard_pipeline)
+            };
 
         Ok((
             cache,

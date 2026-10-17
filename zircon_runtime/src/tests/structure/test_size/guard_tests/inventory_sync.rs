@@ -23,22 +23,22 @@ const LISTING_PROSE_GUARD_PATH: &str = "priority_plan_docs/guard_tests/inventory
 fn runtime_15_priority_plan_docs_guard_inventory_uses_child_row_data_sources() {
     assert_priority_plan_doc_guard_row_data_sources_are_child_owned();
 
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = runtime_index_with_output_archive_source();
-    let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_index = runtime_index_with_output_archive_source();
+    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 }
 
 #[test]
 fn runtime_15_priority_plan_docs_listing_prose_names_full_inventory() {
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = runtime_index_with_output_archive_source();
-    let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_index = runtime_index_with_output_archive_source();
+    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 }
 
 fn assert_listing_prose_has_no_stale_inventory_terms(label: &str, source: &str) {

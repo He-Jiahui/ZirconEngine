@@ -87,16 +87,14 @@ pub fn terrain_component_descriptor() -> ComponentTypeDescriptor {
 }
 
 pub fn terrain_importer_descriptors() -> Vec<zircon_runtime::asset::AssetImporterDescriptor> {
-    vec![
-        zircon_runtime::asset::AssetImporterDescriptor::new(
-            TERRAIN_HEIGHTFIELD_IMPORTER_ID,
-            PLUGIN_ID,
-            zircon_runtime::asset::AssetKind::Terrain,
-            1,
-        )
-        .with_source_extensions(["raw", "r16", "png"])
-        .with_required_capabilities([TERRAIN_RUNTIME_CAPABILITY]),
-    ]
+    vec![zircon_runtime::asset::AssetImporterDescriptor::new(
+        TERRAIN_HEIGHTFIELD_IMPORTER_ID,
+        PLUGIN_ID,
+        zircon_runtime::asset::AssetKind::Terrain,
+        1,
+    )
+    .with_source_extensions(["raw", "r16", "png"])
+    .with_required_capabilities([TERRAIN_RUNTIME_CAPABILITY])]
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(TerrainRuntimePlugin);

@@ -30,10 +30,10 @@ use super::{
     inspector_semantics::{
         build_layout_semantic_group, build_slot_semantic_group, reconcile_selected_semantic_path,
     },
+    palette::UiAssetPaletteCatalog,
     preview_compile::{compile_preview, current_preview_size, preview_size_for_preset},
     preview_host::UiAssetPreviewHost,
     preview_mock::{apply_preview_mock_overrides, reconcile_preview_mock_state},
-    palette::UiAssetPaletteCatalog,
     runtime_report_state::DEFAULT_LOCALE_PREVIEW,
     session_state::{
         default_selection, ensure_asset_kind, reconcile_selection, UiAssetCompilerImports,
@@ -657,10 +657,8 @@ impl UiAssetEditorSession {
         &mut self,
         refresh_palette_catalog: bool,
     ) -> Result<(), UiAssetEditorSessionError> {
-        let prepared = self.prepare_source_revalidation(
-            self.source_buffer.text(),
-            refresh_palette_catalog,
-        )?;
+        let prepared =
+            self.prepare_source_revalidation(self.source_buffer.text(), refresh_palette_catalog)?;
         self.apply_prepared_source_document(prepared);
         Ok(())
     }
@@ -671,24 +669,14 @@ impl UiAssetEditorSession {
         refresh_palette_catalog: bool,
     ) -> Result<UiAssetPreparedSourceDocument, UiAssetEditorSessionError> {
         match self.source_schema {
-            UiAssetSourceSchema::LayoutDocument => {
-                match parse_ui_asset_source(source) {
-                    Ok(document) => self.prepare_valid_document(
-                        document,
-                        refresh_palette_catalog,
-                    ),
-                    Err(error) => Ok(UiAssetPreparedSourceDocument::Invalid(error.to_string())),
-                }
-            }
-            UiAssetSourceSchema::V2 => {
-                match UiV2AssetLoader::load_toml_str(source) {
-                    Ok(document) => self.prepare_valid_v2_document(
-                        document,
-                        refresh_palette_catalog,
-                    ),
-                    Err(error) => Ok(UiAssetPreparedSourceDocument::Invalid(error.to_string())),
-                }
-            }
+            UiAssetSourceSchema::LayoutDocument => match parse_ui_asset_source(source) {
+                Ok(document) => self.prepare_valid_document(document, refresh_palette_catalog),
+                Err(error) => Ok(UiAssetPreparedSourceDocument::Invalid(error.to_string())),
+            },
+            UiAssetSourceSchema::V2 => match UiV2AssetLoader::load_toml_str(source) {
+                Ok(document) => self.prepare_valid_v2_document(document, refresh_palette_catalog),
+                Err(error) => Ok(UiAssetPreparedSourceDocument::Invalid(error.to_string())),
+            },
         }
     }
 
@@ -710,13 +698,22 @@ impl UiAssetEditorSession {
         Ok(UiAssetPreparedSourceDocument::Layout { document, palette })
     }
 
-    pub(super) fn apply_prepared_source_document(&mut self, prepared: UiAssetPreparedSourceDocument) {
+    pub(super) fn apply_prepared_source_document(
+        &mut self,
+        prepared: UiAssetPreparedSourceDocument,
+    ) {
         match prepared {
-            UiAssetPreparedSourceDocument::Invalid(error) => self.mark_current_source_invalid(error),
+            UiAssetPreparedSourceDocument::Invalid(error) => {
+                self.mark_current_source_invalid(error)
+            }
             UiAssetPreparedSourceDocument::Layout { document, palette } => {
                 self.apply_prepared_layout_document(document, palette);
             }
-            UiAssetPreparedSourceDocument::V2 { document, projection, palette } => {
+            UiAssetPreparedSourceDocument::V2 {
+                document,
+                projection,
+                palette,
+            } => {
                 self.apply_prepared_v2_document(document, projection, palette);
             }
         }
@@ -767,8 +764,13 @@ impl UiAssetEditorSession {
         refresh_palette_catalog: bool,
     ) -> Result<UiAssetPreparedSourceDocument, UiAssetEditorSessionError> {
         let projection_document = v2_document_to_legacy_projection_document(&document)?;
-        let palette = self.prepare_projection_palette(&projection_document, refresh_palette_catalog)?;
-        Ok(UiAssetPreparedSourceDocument::V2 { document, projection: projection_document, palette })
+        let palette =
+            self.prepare_projection_palette(&projection_document, refresh_palette_catalog)?;
+        Ok(UiAssetPreparedSourceDocument::V2 {
+            document,
+            projection: projection_document,
+            palette,
+        })
     }
 
     fn apply_prepared_v2_document(
@@ -962,7 +964,9 @@ impl UiAssetEditorSession {
             return Ok(false);
         }
         let current = self.source_buffer.text();
-        let checkpoint = self.undo_stack.prepare_source_checkpoint(current, &canonical)
+        let checkpoint = self
+            .undo_stack
+            .prepare_source_checkpoint(current, &canonical)
             .map_err(|_| UiAssetEditorSessionError::InvalidSourceBuffer)?;
         let cursor = checkpoint.remap_cursor(current, &canonical, self.source_cursor_byte_offset);
         // Preparation above reads the current history under this mutable borrow;

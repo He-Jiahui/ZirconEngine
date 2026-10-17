@@ -7,7 +7,9 @@ use super::super::super::super::super::paint_text::{
     draw_text_with_size_and_style, measure_runtime_text_width,
 };
 use super::super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+#[cfg(test)]
 use super::super::super::super::SEPARATOR;
+#[cfg(test)]
 use super::super::super::style::{
     WELCOME_MUTED_TEXT, WELCOME_SURFACE, WELCOME_SURFACE_INSET, WELCOME_TEXT, WELCOME_WARNING,
 };
@@ -22,7 +24,12 @@ pub(super) fn draw_recent_project_row_surface(
     invalid: bool,
 ) {
     let metrics = current_host_metrics();
-    draw_rect_clipped(frame, row.clone(), Some(clip), WELCOME_SURFACE);
+    draw_rect_clipped(
+        frame,
+        row.clone(),
+        Some(clip),
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().surface,
+    );
     let separator_height = metrics.border_width.min(row.height.max(0.0));
     draw_rect_clipped(
         frame,
@@ -33,14 +40,14 @@ pub(super) fn draw_recent_project_row_surface(
             height: separator_height,
         },
         Some(clip),
-        SEPARATOR,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().border,
     );
     if invalid {
         draw_rounded_border_clipped(
             frame,
             row.clone(),
             Some(clip),
-            WELCOME_WARNING,
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette().warning,
             metrics.border_width,
             metrics.radius_control,
         );
@@ -62,8 +69,13 @@ pub(super) fn draw_recent_project_row_actions(
             frame,
             action.clone(),
             Some(clip),
-            WELCOME_SURFACE_INSET,
-            if invalid { WELCOME_WARNING } else { SEPARATOR },
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette()
+                .surface_inset,
+            if invalid {
+                crate::ui::retained_host::host_contract::paint_theme::current_host_palette().warning
+            } else {
+                crate::ui::retained_host::host_contract::paint_theme::current_host_palette().border
+            },
             metrics.border_width,
             metrics.radius_control,
         );
@@ -74,26 +86,40 @@ pub(super) fn draw_recent_project_row_actions(
         clip,
         "Open",
         if invalid {
-            WELCOME_MUTED_TEXT
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text_muted
         } else {
-            WELCOME_TEXT
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text
         },
         metrics,
     );
-    draw_recent_project_action_label(frame, safe, clip, "S", WELCOME_WARNING, metrics);
+    draw_recent_project_action_label(
+        frame,
+        safe,
+        clip,
+        "S",
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().warning,
+        metrics,
+    );
     draw_recent_project_action_label(
         frame,
         recover,
         clip,
         "R",
         if invalid {
-            WELCOME_MUTED_TEXT
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text_muted
         } else {
-            WELCOME_TEXT
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text
         },
         metrics,
     );
-    draw_recent_project_action_label(frame, remove, clip, "×", WELCOME_MUTED_TEXT, metrics);
+    draw_recent_project_action_label(
+        frame,
+        remove,
+        clip,
+        "×",
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text_muted,
+        metrics,
+    );
 }
 
 fn draw_recent_project_action_label(
@@ -136,3 +162,38 @@ fn draw_recent_project_action_label(
 #[cfg(test)]
 #[path = "tests/surface.rs"]
 mod tests;
+
+#[cfg(test)]
+mod finite_p2_regression_tests {
+    use super::*;
+    use crate::ui::retained_host::host_contract::paint_frame::HostRecordedPaintKind;
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        current_host_palette, enter_host_paint_theme_scope,
+        host_paint_theme_snapshot_from_tokens_for_test,
+    };
+    use zircon_runtime_interface::ui::{design_tokens::EditorDesignTokens, style::UiRgbaColor};
+    #[test]
+    fn welcome_row_records_the_active_theme_surface_and_separator() {
+        let mut tokens = EditorDesignTokens::workbench_dark();
+        tokens.palette.surface[2] = UiRgbaColor::from_u8(71, 83, 97, 255);
+        tokens.palette.border = UiRgbaColor::from_u8(102, 113, 127, 255);
+        let _scope =
+            enter_host_paint_theme_scope(host_paint_theme_snapshot_from_tokens_for_test(&tokens));
+        let palette = current_host_palette();
+        let row = FrameRect {
+            x: 8.0,
+            y: 8.0,
+            width: 100.0,
+            height: 32.0,
+        };
+        let mut frame = HostRgbaFrame::recording_only(128, 48);
+        draw_recent_project_row_surface(&mut frame, &row, &row, false);
+        let commands = frame.into_recorded_commands();
+        assert!(
+            matches!(&commands[0].kind, HostRecordedPaintKind::Quad { color, .. } if *color == palette.surface)
+        );
+        assert!(
+            matches!(&commands[1].kind, HostRecordedPaintKind::Quad { color, .. } if *color == palette.border)
+        );
+    }
+}

@@ -142,9 +142,7 @@ fn scene_completion_owner_routes_every_poll_before_draining_timer_results() {
         .split_once("#[cfg(test)]")
         .map(|(production, _)| production)
         .expect("direct frame caller must retain a test boundary");
-    let compiled_caller = include_str!(
-        "../../../core/pipeline/frame_submission_owner.rs"
-    );
+    let compiled_caller = include_str!("../../../core/pipeline/frame_submission_owner.rs");
     let production = source
         .split_once("#[cfg(test)]")
         .map(|(production, _)| production)
@@ -182,9 +180,7 @@ fn scene_completion_owner_routes_every_poll_before_draining_timer_results() {
         assert!(!caller.contains("readback_queue.poll_completed()"));
     }
 
-    let readback_owner = include_str!(
-        "../pipeline/pipeline/readback.rs"
-    );
+    let readback_owner = include_str!("../pipeline/pipeline/readback.rs");
     let backend_submission =
         include_str!("../../../../backend/backend/render_backend_submission.rs");
     let backend_diagnostics =

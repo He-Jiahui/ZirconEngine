@@ -117,25 +117,42 @@ def validate_case_publication(profile: dict, review_case: dict) -> None:
     data = review_case.get("data") or {}
     bound_normal = data.get("normal_window_evidence") or {}
     bound = bound_normal.get("workbenchStatePublication")
-    if bound is None:
+    full_case = any(key in bound_normal for key in
+                    ("presentationCursor", "presentedFrameCount", "viewportToolbarPublication"))
+    if bound is None and not full_case:
         return  # Static cases retain unknown business authority.
     expected_normal_fields = {"workbenchStatePublication"}
+    if full_case:
+        expected_normal_fields.update(("presentationCursor", "presentedFrameCount", "viewportToolbarPublication"))
+        if "semanticNodes" in bound_normal:
+            expected_normal_fields.add("semanticNodes")
     if "focusPublication" in bound_normal:
         expected_normal_fields.add("focusPublication")
     require(set(bound_normal) == expected_normal_fields,
-            "The hashed case must exclude per-frame capture, font, media and command evidence")
+            "The hashed case needs an exact legacy publication or a complete canonical seed publication")
     fields = {"authority", "observed", "presentationCursor",
               "workbenchPresentation", "managedSceneFingerprint"}
-    require(isinstance(bound, dict) and set(bound) == fields and
+    bound_fields = fields | ({"presentedFrameCount"} if full_case else set())
+    require(isinstance(bound, dict) and set(bound) == bound_fields and
             bound.get("authority") == "normal-retained-workbench-projection" and
             bound.get("observed") is True,
-            "The hashed normal case must contain a stable actual business publication")
+            "The hashed normal case must contain a complete actual business publication")
     counters = {"structure", "geometry", "interaction", "viewport",
                 "hitTest", "theme", "diagnostics"}
     cursor = bound.get("presentationCursor")
     require(isinstance(cursor, dict) and set(cursor) == counters and
             all(uint(value) and value <= 2**53 - 1 for value in cursor.values()),
             "The hashed business publication needs all seven actual safe counters")
+    if full_case:
+        seed_toolbar = bound_normal["viewportToolbarPublication"]
+        seed_count = bound["presentedFrameCount"]
+        require(isinstance(seed_toolbar, dict) and
+                json_identity_equal(bound_normal["presentationCursor"], cursor) and
+                json_identity_equal(seed_toolbar.get("presentationCursor"), cursor) and
+                all(uint(value) and 0 < value <= 2**53 - 1 for value in
+                    (seed_count, bound_normal["presentedFrameCount"], seed_toolbar.get("presentedFrameCount"))) and
+                seed_count == bound_normal["presentedFrameCount"] == seed_toolbar["presentedFrameCount"],
+                "The canonical seed toolbar, business and normal publications must identify one successful frame")
     dto = bound.get("workbenchPresentation")
     require(isinstance(dto, dict) and isinstance(dto.get("stateFingerprint"), str) and
             len(dto["stateFingerprint"]) == 64 and
@@ -147,7 +164,7 @@ def validate_case_publication(profile: dict, review_case: dict) -> None:
     submitted = profile.get("submitted_gpu_text") or {}
     actual = normal.get("workbenchStatePublication")
     require(isinstance(actual, dict) and
-            json_identity_equal({key: actual.get(key) for key in fields}, bound) and
+            json_identity_equal({key: actual.get(key) for key in fields}, {key: bound[key] for key in fields}) and
             actual.get("authority") == "normal-retained-workbench-projection" and
             actual.get("observed") is True and
             json_identity_equal(normal.get("presentationCursor"), cursor) and
@@ -158,6 +175,24 @@ def validate_case_publication(profile: dict, review_case: dict) -> None:
             actual["presentedFrameCount"] == normal.get("presentedFrameCount") and
             actual["presentedFrameCount"] == submitted.get("presentedFrameCount"),
             "The held GPU frame changed the actual business DTO, source, managed scene or seven-counter cursor")
+    if full_case:
+        actual_toolbar = normal.get("viewportToolbarPublication")
+        require(isinstance(actual_toolbar, dict) and
+                json_identity_equal(actual_toolbar.get("presentationCursor"), cursor) and
+                uint(actual_toolbar.get("presentedFrameCount")) and
+                actual_toolbar["presentedFrameCount"] == actual["presentedFrameCount"],
+                "The held source toolbar does not belong to the held business and GPU frame")
+        # The case SHA binds an immutable seed observation. A later held present
+        # may advance only its frame count; every source/state/geometry field stays exact.
+        # The canonical producer/receipt chain separately validates the full toolbar
+        # schema and pins the observed seed profile, capture sequence and case SHA.
+        require(json_identity_equal(
+                    {key: value for key, value in seed_toolbar.items() if key != "presentedFrameCount"},
+                    {key: value for key, value in actual_toolbar.items() if key != "presentedFrameCount"}),
+                "The held toolbar source, state, bounds, desired size or cursor changed after case preparation")
+        require(("semanticNodes" in bound_normal) == ("semanticNodes" in normal) and
+                json_identity_equal(bound_normal.get("semanticNodes"), normal.get("semanticNodes")),
+                "Actual semantic nodes changed after case preparation")
     require(("focusPublication" in bound_normal) == ("focusPublication" in normal) and
             json_identity_equal(bound_normal.get("focusPublication"), normal.get("focusPublication")),
             "Actual focus changed after case preparation; unknown is not known unfocused")

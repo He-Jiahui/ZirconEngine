@@ -1,12 +1,12 @@
 use std::path::Path;
 
 use crate::error::HubError;
-use crate::projects::{RecentProject, project_paths_match};
+use crate::projects::{project_paths_match, RecentProject};
 use crate::state::{HubMessage, HubMessageId, ShellMessageId};
 use crate::tauri_app::action_id::HubActionId;
 use crate::tauri_app::action_request::{HubActionRequest, ProjectTargetActionPayload};
 
-use super::{HubRuntimeSession, recent_project_display_name};
+use super::{recent_project_display_name, HubRuntimeSession};
 
 impl HubRuntimeSession {
     pub(in crate::tauri_app) fn apply_request_project_target(

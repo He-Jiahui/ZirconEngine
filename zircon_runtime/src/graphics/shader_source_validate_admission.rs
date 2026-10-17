@@ -1,3 +1,5 @@
+#[cfg(feature = "native-host")]
+use crate::graphics::shader::{ShaderVariantCacheDiskKey, ShaderVariantCacheDiskLookup};
 use std::sync::Arc;
 
 use crate::core::framework::render::{
@@ -10,10 +12,7 @@ use crate::graphics::scene::resources::PipelineKey;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshPassPipelineKind, MeshPipelineVariantId,
 };
-use crate::graphics::shader::{
-    template::ShaderTemplateReflection, ShaderBindingStage, ShaderVariantCacheDiskKey,
-    ShaderVariantCacheDiskLookup,
-};
+use crate::graphics::shader::{template::ShaderTemplateReflection, ShaderBindingStage};
 
 use super::mesh_pipeline_cache::{MeshPipelineCache, PipelineCreationTarget};
 use super::mesh_shader_entry_contract::{
@@ -204,35 +203,40 @@ impl MeshPipelineCache {
                 return self.unavailable_pipeline_for_target(target, variant_id, failure.reason);
             }
         };
-        let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-            variant_key,
-            source_hash,
-            &cache_content_hashes,
-            &template_revision,
-            SHADER_VARIANT_CACHE_NAGA_VERSION,
-            SHADER_VARIANT_CACHE_WGPU_VERSION,
-        );
-        let compiled_source = match self.shader_variant_disk_cache.lookup(&disk_key) {
-            ShaderVariantCacheDiskLookup::Hit(entry) => {
-                self.record_shader_variant_disk_hit(variant_key);
-                entry.wgsl_source
-            }
-            ShaderVariantCacheDiskLookup::Miss => {
-                self.record_shader_variant_compile_miss(variant_key);
-                match self
-                    .shader_variant_disk_cache
-                    .write(&disk_key, &wgsl_source)
-                {
-                    Ok(_) => self.record_shader_variant_disk_write(variant_key),
-                    Err(_) => self.record_shader_variant_disk_error(variant_key),
+        #[cfg(feature = "native-host")]
+        let compiled_source = {
+            let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
+                variant_key,
+                source_hash,
+                &cache_content_hashes,
+                &template_revision,
+                SHADER_VARIANT_CACHE_NAGA_VERSION,
+                SHADER_VARIANT_CACHE_WGPU_VERSION,
+            );
+            match self.shader_variant_disk_cache.lookup(&disk_key) {
+                ShaderVariantCacheDiskLookup::Hit(entry) => {
+                    self.record_shader_variant_disk_hit(variant_key);
+                    entry.wgsl_source
                 }
-                wgsl_source
-            }
-            ShaderVariantCacheDiskLookup::Error(_) => {
-                self.record_shader_variant_disk_error(variant_key);
-                wgsl_source
+                ShaderVariantCacheDiskLookup::Miss => {
+                    self.record_shader_variant_compile_miss(variant_key);
+                    match self
+                        .shader_variant_disk_cache
+                        .write(&disk_key, &wgsl_source)
+                    {
+                        Ok(_) => self.record_shader_variant_disk_write(variant_key),
+                        Err(_) => self.record_shader_variant_disk_error(variant_key),
+                    }
+                    wgsl_source
+                }
+                ShaderVariantCacheDiskLookup::Error(_) => {
+                    self.record_shader_variant_disk_error(variant_key);
+                    wgsl_source
+                }
             }
         };
+        #[cfg(not(feature = "native-host"))]
+        let compiled_source = wgsl_source;
         PipelineAdmission::Ready(ValidatedMeshPipelineShaderSource {
             wgsl_source: compiled_source,
             reflection,
@@ -297,7 +301,7 @@ impl MeshPipelineCache {
         let shader_variant_key = validation_key.shader_variant_key.clone();
         let validation_source_identity = validation_key.source_identity.clone();
         let validation_metrics = Arc::clone(&self.pipeline_creation_metrics);
-        let queued_at = std::time::Instant::now();
+        let queued_at = web_time::Instant::now();
         let outcome = self
             .shader_source_validation_compiler
             .as_mut()
@@ -308,7 +312,7 @@ impl MeshPipelineCache {
                         &validation_source_identity,
                         queued_at.elapsed(),
                     );
-                    let validation_started = std::time::Instant::now();
+                    let validation_started = web_time::Instant::now();
                     let result =
                         super::shader_source::MeshPipelineShaderSource::validate_wgsl_with_segments(
                             &wgsl_source,

@@ -1,0 +1,1497 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R029",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T10:44:07.023754+00:00",
+  "status": "scoped-static-validation-passed",
+  "files": {
+    "zircon_runtime/src/core/runtime/clock_source.rs": {
+      "before_sha256": "37300a89869098afa9e002111ca827581a180fce18223f71771d3d929d6d7b9f",
+      "reviewed_sha256": "b3f704a78088a93698fbba179ec4c4453649e7557d5b7638e35f1f6aef7e9a86",
+      "bytes": 6407,
+      "lines": 168,
+      "full_source_review_spans": [
+        [
+          1,
+          168
+        ]
+      ],
+      "child_object_groups_reviewed": 25,
+      "child_block_groups_reviewed": 16,
+      "insertion_blocks": 12,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 168
+    },
+    "zircon_runtime/src/core/runtime/tests/clock_source.rs": {
+      "before_sha256": "aeecffc874d9d21162273e0dd2144d9f293b270c94d3d6f6d8985b5ce9c14adc",
+      "reviewed_sha256": "aeecffc874d9d21162273e0dd2144d9f293b270c94d3d6f6d8985b5ce9c14adc",
+      "bytes": 1445,
+      "lines": 42,
+      "full_source_review_spans": [
+        [
+          1,
+          42
+        ]
+      ],
+      "child_object_groups_reviewed": 3,
+      "child_block_groups_reviewed": 3,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 42
+    },
+    "zircon_runtime/src/core/runtime/tests/frame_clock.rs": {
+      "before_sha256": "a481a3380cd6a0cdb0bc3de06870848586f55103326508fa189fa83d3ca1c5d5",
+      "reviewed_sha256": "a481a3380cd6a0cdb0bc3de06870848586f55103326508fa189fa83d3ca1c5d5",
+      "bytes": 3107,
+      "lines": 97,
+      "full_source_review_spans": [
+        [
+          1,
+          97
+        ]
+      ],
+      "child_object_groups_reviewed": 8,
+      "child_block_groups_reviewed": 7,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 97
+    },
+    "zircon_runtime/src/core/runtime/time.rs": {
+      "before_sha256": "2defec277cf570ff7b2f8f6eeeb6c5dd1832055928fd724b96ce5184b480c167",
+      "reviewed_sha256": "5ffa3ec1086872fa7cd4c57d1c4dfbd041420b1237749e29d56193f0c93b84bb",
+      "bytes": 8438,
+      "lines": 218,
+      "full_source_review_spans": [
+        [
+          1,
+          218
+        ]
+      ],
+      "child_object_groups_reviewed": 42,
+      "child_block_groups_reviewed": 13,
+      "insertion_blocks": 23,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 218
+    },
+    "zircon_runtime/src/core/runtime/time/product_policy.rs": {
+      "before_sha256": "e252c3c3c00bd91812bc7556b01cd19d54104554db5d2c0de245563206cbc866",
+      "reviewed_sha256": "b9861875a9c77c4b06d3a626d7a1f36c32f3e32d3350cb82f45e832391e0d15c",
+      "bytes": 3190,
+      "lines": 71,
+      "full_source_review_spans": [
+        [
+          1,
+          71
+        ]
+      ],
+      "child_object_groups_reviewed": 10,
+      "child_block_groups_reviewed": 9,
+      "insertion_blocks": 4,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 71
+    },
+    "zircon_runtime/src/core/runtime/time/tests/product_policy.rs": {
+      "before_sha256": "2ba10ce1e3770eb3c8858faf1783b5463173b20762fb482d28ddc9437aa1503a",
+      "reviewed_sha256": "2ba10ce1e3770eb3c8858faf1783b5463173b20762fb482d28ddc9437aa1503a",
+      "bytes": 1916,
+      "lines": 57,
+      "full_source_review_spans": [
+        [
+          1,
+          57
+        ]
+      ],
+      "child_object_groups_reviewed": 4,
+      "child_block_groups_reviewed": 3,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 57
+    },
+    "zircon_runtime/src/core/runtime/handle/time.rs": {
+      "before_sha256": "9c5b1512e42810a4da525fb1ed907e097b04b677b854784ab8146dc5c620613f",
+      "reviewed_sha256": "d9657ceeb32f121ac2c479b104a94c62006f3b285a21f28751d31316cec67465",
+      "bytes": 6259,
+      "lines": 155,
+      "full_source_review_spans": [
+        [
+          1,
+          155
+        ]
+      ],
+      "child_object_groups_reviewed": 15,
+      "child_block_groups_reviewed": 12,
+      "insertion_blocks": 10,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 155
+    },
+    "zircon_runtime/src/core/runtime/modules/time.rs": {
+      "before_sha256": "a08a657b0ae9ede785f8e942d154b3ad4b89eb8138d77c42986fbf62d0f10038",
+      "reviewed_sha256": "95f6e751b1df0667eef2e0c0d4e8024856c6e6a16f1387d299720c391599c1af",
+      "bytes": 1321,
+      "lines": 27,
+      "full_source_review_spans": [
+        [
+          1,
+          27
+        ]
+      ],
+      "child_object_groups_reviewed": 7,
+      "child_block_groups_reviewed": 4,
+      "insertion_blocks": 3,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 27
+    },
+    "zircon_runtime/src/scene/world_time/controller.rs": {
+      "before_sha256": "14fa4b522069eee8b937a13717d2a51cee1d7a09e83ddec5cabe93ece3f03513",
+      "reviewed_sha256": "273b9226ee318516d9711b7c776ce296fba8a5af2313cda5810bafa8ee4d9dcd",
+      "bytes": 21039,
+      "lines": 479,
+      "full_source_review_spans": [
+        [
+          1,
+          479
+        ]
+      ],
+      "child_object_groups_reviewed": 62,
+      "child_block_groups_reviewed": 32,
+      "insertion_blocks": 46,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 479
+    },
+    "zircon_runtime/src/scene/world_time/fixed_step.rs": {
+      "before_sha256": "c38283614bb98896b1d9c1e614837b2fe06ba86782997d3286e9f38d30d716e7",
+      "reviewed_sha256": "82de8dadcd34ecf87e4942cebab4b0af2adc5684292b5a31de5310093c9b4ac3",
+      "bytes": 4084,
+      "lines": 105,
+      "full_source_review_spans": [
+        [
+          1,
+          105
+        ]
+      ],
+      "child_object_groups_reviewed": 26,
+      "child_block_groups_reviewed": 8,
+      "insertion_blocks": 17,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 105,
+      "lone_lf_count": 0
+    },
+    "zircon_runtime/src/scene/world_time/interpolation.rs": {
+      "before_sha256": "a871047f5cd1eebccea18ba5a69da58dc665b18f198ddee230824dbcca7d6d1b",
+      "reviewed_sha256": "fc5ec679da322ae6da471ced6a29a3e26a00d9e287b8f4a8c3580ea505b0538f",
+      "bytes": 3491,
+      "lines": 97,
+      "full_source_review_spans": [
+        [
+          1,
+          97
+        ]
+      ],
+      "child_object_groups_reviewed": 21,
+      "child_block_groups_reviewed": 7,
+      "insertion_blocks": 11,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 97,
+      "lone_lf_count": 0
+    },
+    "zircon_runtime/src/scene/world_time/mod.rs": {
+      "before_sha256": "631cd56b51a889b50161f7777ec1f3e12b5549816490229b8587a34e48637791",
+      "reviewed_sha256": "b7b2134da0fb192555b37984612d4a123a2b902175155bba7c47dc65f95d3627",
+      "bytes": 974,
+      "lines": 24,
+      "full_source_review_spans": [
+        [
+          1,
+          24
+        ]
+      ],
+      "child_object_groups_reviewed": 7,
+      "child_block_groups_reviewed": 3,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 21,
+      "lone_lf_count": 3
+    },
+    "zircon_runtime/src/scene/world_time/snapshot.rs": {
+      "before_sha256": "ba53a088c49b7fd1ae6689957dd5a04ffc7197225a1516b411e3086ce054314a",
+      "reviewed_sha256": "8e32d52c4d97f10be27c151d581d78bc44e1eba1dedd93ac536285a2eb0c895f",
+      "bytes": 5416,
+      "lines": 138,
+      "full_source_review_spans": [
+        [
+          1,
+          138
+        ]
+      ],
+      "child_object_groups_reviewed": 29,
+      "child_block_groups_reviewed": 6,
+      "insertion_blocks": 17,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 111,
+      "lone_lf_count": 27
+    },
+    "zircon_runtime/src/scene/world_time/tests/controller.rs": {
+      "before_sha256": "7bebebd9b5939502c5fbf8bc5ed333d0810f01c43717b95253a3aec12f18311a",
+      "reviewed_sha256": "7bebebd9b5939502c5fbf8bc5ed333d0810f01c43717b95253a3aec12f18311a",
+      "bytes": 9760,
+      "lines": 270,
+      "full_source_review_spans": [
+        [
+          1,
+          270
+        ]
+      ],
+      "child_object_groups_reviewed": 8,
+      "child_block_groups_reviewed": 10,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 270
+    },
+    "zircon_runtime/src/scene/tests/ecs_schedule/world_time_controller.rs": {
+      "before_sha256": "4aeda9153b1ee72d3414c8b97b7801e38d65090ba3bb54afbcfd3d8ba6111738",
+      "reviewed_sha256": "47ff328dac025b52bb2fbef430c8a32cc5306374a55ee5ef72e4c21cd9bc3640",
+      "bytes": 20869,
+      "lines": 561,
+      "full_source_review_spans": [
+        [
+          1,
+          561
+        ]
+      ],
+      "child_object_groups_reviewed": 25,
+      "child_block_groups_reviewed": 29,
+      "insertion_blocks": 2,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 561
+    }
+  },
+  "root_actual_validation": {
+    "batch": "R029",
+    "child_sha256": "7766ad308772221d497d9869d367c4c98d8367371392bac88784b4b2565e4d38",
+    "source_count": 15,
+    "source_lines": 2509,
+    "before_lines": 2307,
+    "insertion_blocks": 146,
+    "added_comment_lines": 202,
+    "inserted_bytes": 18181,
+    "changed_source_count": 11,
+    "object_groups": 292,
+    "named_objects": 471,
+    "continuous_blocks": 162,
+    "branch_groups": 81,
+    "reference_count": 841,
+    "original_raw_bytes_preserved": true,
+    "normalized_HEAD_matches": true,
+    "local_boundary_contributions_count": 50,
+    "source_predicates_all_counts_preserved": true,
+    "new_markers": [
+      {
+        "path": "zircon_runtime/src/scene/world_time/controller.rs",
+        "kind": "TODO",
+        "id": "CR-ZCA-R029-0001",
+        "line": 203,
+        "sha256": "273b9226ee318516d9711b7c776ce296fba8a5af2313cda5810bafa8ee4d9dcd"
+      },
+      {
+        "path": "zircon_runtime/src/scene/world_time/controller.rs",
+        "kind": "BUG",
+        "id": "CR-ZCA-R029-0002",
+        "line": 293,
+        "sha256": "273b9226ee318516d9711b7c776ce296fba8a5af2313cda5810bafa8ee4d9dcd"
+      }
+    ],
+    "checks": [
+      {
+        "name": "diff15",
+        "exit_code": 0,
+        "stdout_bytes": 0,
+        "stderr_bytes": 1456,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e130fdc134b2f923ba5ceab039a54d1d9329e6e90918ca5da699c4cd178143bd"
+      },
+      {
+        "name": "staged15-empty",
+        "exit_code": 0,
+        "stdout_bytes": 0,
+        "stderr_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "change-guard15",
+        "exit_code": 0,
+        "stdout_bytes": 2236,
+        "stderr_bytes": 0,
+        "stdout_sha256": "337c994e658000076d2248e4f24b788f66af107e84d1c852ce5e9f4f331aba96",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "summary": {
+          "errors": 0,
+          "warnings": 0,
+          "suppressed": 0
+        },
+        "markers": {
+          "closed": [],
+          "opened": [
+            "CR-ZCA-R029-0002"
+          ],
+          "moved": []
+        },
+        "changed_paths": 11,
+        "declared_paths": 15
+      }
+    ],
+    "reused_rustfmt_checks": [
+      {
+        "name": "fmt-initial-15",
+        "command": "rustfmt --check --edition 2021 --config skip_children=true 'zircon_runtime/src/core/runtime/clock_source.rs' 'zircon_runtime/src/core/runtime/tests/clock_source.rs' 'zircon_runtime/src/core/runtime/tests/frame_clock.rs' 'zircon_runtime/src/core/runtime/time.rs' 'zircon_runtime/src/core/runtime/time/product_policy.rs' 'zircon_runtime/src/core/runtime/time/tests/product_policy.rs' 'zircon_runtime/src/core/runtime/handle/time.rs' 'zircon_runtime/src/core/runtime/modules/time.rs' 'zircon_runtime/src/scene/world_time/controller.rs' 'zircon_runtime/src/scene/world_time/fixed_step.rs' 'zircon_runtime/src/scene/world_time/interpolation.rs' 'zircon_runtime/src/scene/world_time/mod.rs' 'zircon_runtime/src/scene/world_time/snapshot.rs' 'zircon_runtime/src/scene/world_time/tests/controller.rs' 'zircon_runtime/src/scene/tests/ecs_schedule/world_time_controller.rs'",
+        "paths": [
+          "zircon_runtime/src/core/runtime/clock_source.rs",
+          "zircon_runtime/src/core/runtime/tests/clock_source.rs",
+          "zircon_runtime/src/core/runtime/tests/frame_clock.rs",
+          "zircon_runtime/src/core/runtime/time.rs",
+          "zircon_runtime/src/core/runtime/time/product_policy.rs",
+          "zircon_runtime/src/core/runtime/time/tests/product_policy.rs",
+          "zircon_runtime/src/core/runtime/handle/time.rs",
+          "zircon_runtime/src/core/runtime/modules/time.rs",
+          "zircon_runtime/src/scene/world_time/controller.rs",
+          "zircon_runtime/src/scene/world_time/fixed_step.rs",
+          "zircon_runtime/src/scene/world_time/interpolation.rs",
+          "zircon_runtime/src/scene/world_time/mod.rs",
+          "zircon_runtime/src/scene/world_time/snapshot.rs",
+          "zircon_runtime/src/scene/world_time/tests/controller.rs",
+          "zircon_runtime/src/scene/tests/ecs_schedule/world_time_controller.rs"
+        ],
+        "receipt": "19fa82",
+        "exit_code": 0,
+        "stdout_or_combined_output": "",
+        "coverage_note": "Final current pins reused for unaffected 12 paths; F01/F09/F11 then revised own comments and rerun in affected-3."
+      },
+      {
+        "name": "fmt-final-affected-3",
+        "command": "rustfmt --check --edition 2021 --config skip_children=true 'zircon_runtime/src/core/runtime/clock_source.rs' 'zircon_runtime/src/scene/world_time/controller.rs' 'zircon_runtime/src/scene/world_time/interpolation.rs'",
+        "paths": [
+          "zircon_runtime/src/core/runtime/clock_source.rs",
+          "zircon_runtime/src/scene/world_time/controller.rs",
+          "zircon_runtime/src/scene/world_time/interpolation.rs"
+        ],
+        "receipt": "442a7f",
+        "exit_code": 0,
+        "stdout_or_combined_output": "",
+        "coverage_note": "Current final source pins."
+      }
+    ],
+    "patch_bytes": 41307,
+    "patch_sha256": "4e57f1523ba8520bf40020464f0dc77b3d18fce32ba6d47ea1a3328ffdb6c7ed",
+    "Rust_tests_builds_run": false,
+    "semantic_corrections_required_in_parent": true,
+    "files": {
+      "zircon_runtime/src/core/runtime/clock_source.rs": {
+        "before_sha256": "37300a89869098afa9e002111ca827581a180fce18223f71771d3d929d6d7b9f",
+        "reviewed_sha256": "b3f704a78088a93698fbba179ec4c4453649e7557d5b7638e35f1f6aef7e9a86",
+        "bytes": 6407,
+        "lines": 168,
+        "full_source_review_spans": [
+          [
+            1,
+            168
+          ]
+        ],
+        "child_object_groups_reviewed": 25,
+        "child_block_groups_reviewed": 16,
+        "insertion_blocks": 12,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 168
+      },
+      "zircon_runtime/src/core/runtime/tests/clock_source.rs": {
+        "before_sha256": "aeecffc874d9d21162273e0dd2144d9f293b270c94d3d6f6d8985b5ce9c14adc",
+        "reviewed_sha256": "aeecffc874d9d21162273e0dd2144d9f293b270c94d3d6f6d8985b5ce9c14adc",
+        "bytes": 1445,
+        "lines": 42,
+        "full_source_review_spans": [
+          [
+            1,
+            42
+          ]
+        ],
+        "child_object_groups_reviewed": 3,
+        "child_block_groups_reviewed": 3,
+        "insertion_blocks": 0,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 42
+      },
+      "zircon_runtime/src/core/runtime/tests/frame_clock.rs": {
+        "before_sha256": "a481a3380cd6a0cdb0bc3de06870848586f55103326508fa189fa83d3ca1c5d5",
+        "reviewed_sha256": "a481a3380cd6a0cdb0bc3de06870848586f55103326508fa189fa83d3ca1c5d5",
+        "bytes": 3107,
+        "lines": 97,
+        "full_source_review_spans": [
+          [
+            1,
+            97
+          ]
+        ],
+        "child_object_groups_reviewed": 8,
+        "child_block_groups_reviewed": 7,
+        "insertion_blocks": 0,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 97
+      },
+      "zircon_runtime/src/core/runtime/time.rs": {
+        "before_sha256": "2defec277cf570ff7b2f8f6eeeb6c5dd1832055928fd724b96ce5184b480c167",
+        "reviewed_sha256": "5ffa3ec1086872fa7cd4c57d1c4dfbd041420b1237749e29d56193f0c93b84bb",
+        "bytes": 8438,
+        "lines": 218,
+        "full_source_review_spans": [
+          [
+            1,
+            218
+          ]
+        ],
+        "child_object_groups_reviewed": 42,
+        "child_block_groups_reviewed": 13,
+        "insertion_blocks": 23,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 218
+      },
+      "zircon_runtime/src/core/runtime/time/product_policy.rs": {
+        "before_sha256": "e252c3c3c00bd91812bc7556b01cd19d54104554db5d2c0de245563206cbc866",
+        "reviewed_sha256": "b9861875a9c77c4b06d3a626d7a1f36c32f3e32d3350cb82f45e832391e0d15c",
+        "bytes": 3190,
+        "lines": 71,
+        "full_source_review_spans": [
+          [
+            1,
+            71
+          ]
+        ],
+        "child_object_groups_reviewed": 10,
+        "child_block_groups_reviewed": 9,
+        "insertion_blocks": 4,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 71
+      },
+      "zircon_runtime/src/core/runtime/time/tests/product_policy.rs": {
+        "before_sha256": "2ba10ce1e3770eb3c8858faf1783b5463173b20762fb482d28ddc9437aa1503a",
+        "reviewed_sha256": "2ba10ce1e3770eb3c8858faf1783b5463173b20762fb482d28ddc9437aa1503a",
+        "bytes": 1916,
+        "lines": 57,
+        "full_source_review_spans": [
+          [
+            1,
+            57
+          ]
+        ],
+        "child_object_groups_reviewed": 4,
+        "child_block_groups_reviewed": 3,
+        "insertion_blocks": 0,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 57
+      },
+      "zircon_runtime/src/core/runtime/handle/time.rs": {
+        "before_sha256": "9c5b1512e42810a4da525fb1ed907e097b04b677b854784ab8146dc5c620613f",
+        "reviewed_sha256": "d9657ceeb32f121ac2c479b104a94c62006f3b285a21f28751d31316cec67465",
+        "bytes": 6259,
+        "lines": 155,
+        "full_source_review_spans": [
+          [
+            1,
+            155
+          ]
+        ],
+        "child_object_groups_reviewed": 15,
+        "child_block_groups_reviewed": 12,
+        "insertion_blocks": 10,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 155
+      },
+      "zircon_runtime/src/core/runtime/modules/time.rs": {
+        "before_sha256": "a08a657b0ae9ede785f8e942d154b3ad4b89eb8138d77c42986fbf62d0f10038",
+        "reviewed_sha256": "95f6e751b1df0667eef2e0c0d4e8024856c6e6a16f1387d299720c391599c1af",
+        "bytes": 1321,
+        "lines": 27,
+        "full_source_review_spans": [
+          [
+            1,
+            27
+          ]
+        ],
+        "child_object_groups_reviewed": 7,
+        "child_block_groups_reviewed": 4,
+        "insertion_blocks": 3,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 27
+      },
+      "zircon_runtime/src/scene/world_time/controller.rs": {
+        "before_sha256": "14fa4b522069eee8b937a13717d2a51cee1d7a09e83ddec5cabe93ece3f03513",
+        "reviewed_sha256": "273b9226ee318516d9711b7c776ce296fba8a5af2313cda5810bafa8ee4d9dcd",
+        "bytes": 21039,
+        "lines": 479,
+        "full_source_review_spans": [
+          [
+            1,
+            479
+          ]
+        ],
+        "child_object_groups_reviewed": 62,
+        "child_block_groups_reviewed": 32,
+        "insertion_blocks": 46,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 479
+      },
+      "zircon_runtime/src/scene/world_time/fixed_step.rs": {
+        "before_sha256": "c38283614bb98896b1d9c1e614837b2fe06ba86782997d3286e9f38d30d716e7",
+        "reviewed_sha256": "82de8dadcd34ecf87e4942cebab4b0af2adc5684292b5a31de5310093c9b4ac3",
+        "bytes": 4084,
+        "lines": 105,
+        "full_source_review_spans": [
+          [
+            1,
+            105
+          ]
+        ],
+        "child_object_groups_reviewed": 26,
+        "child_block_groups_reviewed": 8,
+        "insertion_blocks": 17,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 105,
+        "lone_lf_count": 0
+      },
+      "zircon_runtime/src/scene/world_time/interpolation.rs": {
+        "before_sha256": "a871047f5cd1eebccea18ba5a69da58dc665b18f198ddee230824dbcca7d6d1b",
+        "reviewed_sha256": "fc5ec679da322ae6da471ced6a29a3e26a00d9e287b8f4a8c3580ea505b0538f",
+        "bytes": 3491,
+        "lines": 97,
+        "full_source_review_spans": [
+          [
+            1,
+            97
+          ]
+        ],
+        "child_object_groups_reviewed": 21,
+        "child_block_groups_reviewed": 7,
+        "insertion_blocks": 11,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 97,
+        "lone_lf_count": 0
+      },
+      "zircon_runtime/src/scene/world_time/mod.rs": {
+        "before_sha256": "631cd56b51a889b50161f7777ec1f3e12b5549816490229b8587a34e48637791",
+        "reviewed_sha256": "b7b2134da0fb192555b37984612d4a123a2b902175155bba7c47dc65f95d3627",
+        "bytes": 974,
+        "lines": 24,
+        "full_source_review_spans": [
+          [
+            1,
+            24
+          ]
+        ],
+        "child_object_groups_reviewed": 7,
+        "child_block_groups_reviewed": 3,
+        "insertion_blocks": 1,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 21,
+        "lone_lf_count": 3
+      },
+      "zircon_runtime/src/scene/world_time/snapshot.rs": {
+        "before_sha256": "ba53a088c49b7fd1ae6689957dd5a04ffc7197225a1516b411e3086ce054314a",
+        "reviewed_sha256": "8e32d52c4d97f10be27c151d581d78bc44e1eba1dedd93ac536285a2eb0c895f",
+        "bytes": 5416,
+        "lines": 138,
+        "full_source_review_spans": [
+          [
+            1,
+            138
+          ]
+        ],
+        "child_object_groups_reviewed": 29,
+        "child_block_groups_reviewed": 6,
+        "insertion_blocks": 17,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 111,
+        "lone_lf_count": 27
+      },
+      "zircon_runtime/src/scene/world_time/tests/controller.rs": {
+        "before_sha256": "7bebebd9b5939502c5fbf8bc5ed333d0810f01c43717b95253a3aec12f18311a",
+        "reviewed_sha256": "7bebebd9b5939502c5fbf8bc5ed333d0810f01c43717b95253a3aec12f18311a",
+        "bytes": 9760,
+        "lines": 270,
+        "full_source_review_spans": [
+          [
+            1,
+            270
+          ]
+        ],
+        "child_object_groups_reviewed": 8,
+        "child_block_groups_reviewed": 10,
+        "insertion_blocks": 0,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 270
+      },
+      "zircon_runtime/src/scene/tests/ecs_schedule/world_time_controller.rs": {
+        "before_sha256": "4aeda9153b1ee72d3414c8b97b7801e38d65090ba3bb54afbcfd3d8ba6111738",
+        "reviewed_sha256": "47ff328dac025b52bb2fbef430c8a32cc5306374a55ee5ef72e4c21cd9bc3640",
+        "bytes": 20869,
+        "lines": 561,
+        "full_source_review_spans": [
+          [
+            1,
+            561
+          ]
+        ],
+        "child_object_groups_reviewed": 25,
+        "child_block_groups_reviewed": 29,
+        "insertion_blocks": 2,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 561
+      }
+    },
+    "context_files": [
+      {
+        "id": "R029-E01",
+        "path": "zircon_runtime/src/core/framework/tests/framework_surfaces.rs",
+        "sha256": "ad91aecb437023fe9cc3cd437530e35996c71c786ac89f6033f3d490ef338462",
+        "read_spans": [
+          [
+            1,
+            160
+          ],
+          [
+            125,
+            164
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E02",
+        "path": "zircon_runtime/src/core/framework/mod.rs",
+        "sha256": "26be3e27f5149f16b4bb2f199bc97c8b21192e0b2c8ff4a6433a797336d07153",
+        "read_spans": [
+          [
+            1,
+            64
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E03",
+        "path": "zircon_runtime/src/core/runtime/handle/tests/time.rs",
+        "sha256": "95e3a6597d0b19eec9ab05a1c573b62c0a3d9fab2f2c5030b96a6768c7041bcb",
+        "read_spans": [
+          [
+            1,
+            105
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E04",
+        "path": "zircon_runtime/src/tests/time.rs",
+        "sha256": "f2b942fbad8193e7f32ab0c74cfed0f4301c338759ff48459b67d99b557919e9",
+        "read_spans": [
+          [
+            1,
+            162
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E05",
+        "path": "zircon_runtime/src/dynamic_api/session/profile.rs",
+        "sha256": "7aeed46a2249997215d3fdff2ca299081cc9ef83c007e9303368ce88ffca88f6",
+        "read_spans": [
+          [
+            1,
+            82
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E06",
+        "path": "zircon_runtime/src/dynamic_api/session/construction.rs",
+        "sha256": "6154f98c8d57dbafc737cde6f9cd7d0ea99709ef05c5f5f33a67be07fede8602",
+        "read_spans": [
+          [
+            1,
+            110
+          ],
+          [
+            130,
+            158
+          ],
+          [
+            240,
+            285
+          ],
+          [
+            111,
+            129
+          ],
+          [
+            345,
+            420
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E07",
+        "path": "zircon_runtime/src/tests/contracts/schedule_frame_loop/runtime_anchors.rs",
+        "sha256": "35807202d4e0a0071a63b931d5d21b98cc6678c234f9621bd11a1e41a2b7bd5c",
+        "read_spans": [
+          [
+            1,
+            134
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E08",
+        "path": "zircon_runtime/src/tests/contracts/schedule_frame_loop/inventory.rs",
+        "sha256": "c77b59fb522609e2d1418425ad5397ea3c4ff70416836094fe38ff37df707892",
+        "read_spans": [
+          [
+            1,
+            56
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E09",
+        "path": "zircon_runtime/src/dynamic_api/session/ffi.rs",
+        "sha256": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+        "read_spans": [
+          [
+            40,
+            115
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E10",
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "read_spans": [
+          [
+            1,
+            45
+          ],
+          [
+            210,
+            280
+          ],
+          [
+            45,
+            105
+          ],
+          [
+            263,
+            330
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E11",
+        "path": "zircon_runtime/src/scene/level_system.rs",
+        "sha256": "bf78da1953c7eeefa614a16b24fd47440021c98cf936285735e892ff0266bf55",
+        "read_spans": [
+          [
+            150,
+            240
+          ],
+          [
+            210,
+            235
+          ],
+          [
+            60,
+            85
+          ],
+          [
+            405,
+            505
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E12",
+        "path": "zircon_runtime/src/scene/module/world_driver.rs",
+        "sha256": "01e2711a88e4472a196f88f2cd46a62acde0254269b5aa24a8dc79814a086227",
+        "read_spans": [
+          [
+            115,
+            220
+          ],
+          [
+            1,
+            114
+          ],
+          [
+            218,
+            250
+          ],
+          [
+            250,
+            401
+          ],
+          [
+            50,
+            130
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E13",
+        "path": "zircon_plugins/physics/runtime/src/runtime_system.rs",
+        "sha256": "7ea40e5d5f59012b15fec187e86c4005d983c0ae8f67db3048f2e1edf59ae79d",
+        "read_spans": [
+          [
+            45,
+            105
+          ],
+          [
+            95,
+            135
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E14",
+        "path": "zircon_app/src/entry/entry_runner/headless/session.rs",
+        "sha256": "41931f6e7b8f530a8d970658e13d4b959ef92ed11bfe6bcb9c9287d59f882833",
+        "read_spans": [
+          [
+            235,
+            265
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E15",
+        "path": "zircon_runtime/tests/m1_runtime_editor_boundary_contract.rs",
+        "sha256": "49ed3078ecd0ee5f43e0a56915303053773a21cfcd897468a885462926bc9e96",
+        "read_spans": [
+          [
+            132,
+            232
+          ],
+          [
+            325,
+            415
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E16",
+        "path": "zircon_runtime/src/core/mod.rs",
+        "sha256": "4113ac592ece3a0c36108e676428450fcad6029203eb4e516dde4cc3d77c0e2a",
+        "read_spans": [
+          [
+            1,
+            45
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E17",
+        "path": "zircon_runtime/src/core/framework/tests/cases.rs",
+        "sha256": "ed4e9bed08040d81853664e7301c1de00030c22bac2459439b851d6d85b013af",
+        "read_spans": [
+          [
+            1,
+            46
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E18",
+        "path": "zircon_runtime/src/core/runtime/frame_clock.rs",
+        "sha256": "325f55279ec3e900892eaefcdb000658821f8dcd3611343fc7bd440fdc7569e9",
+        "read_spans": [
+          [
+            1,
+            153
+          ],
+          [
+            1,
+            153
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E19",
+        "path": "zircon_runtime/src/prelude.rs",
+        "sha256": "d3670a5469332d6da821026c36e67311bd4b3b3c2ab3be2fc1217ce5e3c1c155",
+        "read_spans": [
+          [
+            14,
+            32
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E20",
+        "path": "zircon_runtime/src/core/runtime/runtime.rs",
+        "sha256": "35add6ab63f42871c2f4199418d56494bff75378c00221d64e187368d03744d3",
+        "read_spans": [
+          [
+            240,
+            282
+          ],
+          [
+            85,
+            145
+          ],
+          [
+            240,
+            282
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E21",
+        "path": "zircon_runtime/src/core/runtime/mod.rs",
+        "sha256": "0ce8b77108cb9f02449d7b3da42ab90fdb63a89b5b67fe2ce0dbd07e36b5e7e5",
+        "read_spans": [
+          [
+            1,
+            108
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E22",
+        "path": "zircon_runtime/src/core/runtime/handle/mod.rs",
+        "sha256": "d38ceb51c0583aeb060dddf33aded66cef7ecc4d33dd63522cce09cd026155fb",
+        "read_spans": [
+          [
+            1,
+            30
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E23",
+        "path": "zircon_runtime/src/tests/contracts/structure/core_runtime/handle_accessors.rs",
+        "sha256": "c65d9e29e8b586b849f72057167838c62e200c3366e3dca477a1c893c3ddc086",
+        "read_spans": [
+          [
+            1,
+            150
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E24",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/classifiers.rs",
+        "sha256": "62f1b46a442690319bff1ed20ea49490be9276b703e0f653d0397f01b780c515",
+        "read_spans": [
+          [
+            100,
+            145
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E25",
+        "path": "zircon_runtime/src/scene/ecs/tick_context.rs",
+        "sha256": "f359eb4670cc2589cb820ca609bc86b7bac702aa026739b5b0ccb31fc96f144c",
+        "read_spans": [
+          [
+            1,
+            110
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E26",
+        "path": "zircon_runtime/src/core/runtime/modules/mod.rs",
+        "sha256": "e63dabce0d198179aaa5fc07c4d458078d7b97f83ffa0891348539f93296488d",
+        "read_spans": [
+          [
+            1,
+            19
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E27",
+        "path": "zircon_runtime/src/engine_module/engine_module.rs",
+        "sha256": "821f6a4a5d3045e1d0d6c849828eab21a31116fc6b80fa2ca596d2022bb653ae",
+        "read_spans": [
+          [
+            1,
+            9
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E28",
+        "path": "zircon_runtime/src/builtin/runtime_modules/core_modules.rs",
+        "sha256": "075e9560c354f81b234c597117b6a8134a81c2ca4e9eaa37199066986dbe9595",
+        "read_spans": [
+          [
+            65,
+            95
+          ],
+          [
+            112,
+            145
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E29",
+        "path": "zircon_runtime/src/tests/contracts/structure/lock_poison_policy/support.rs",
+        "sha256": "77471b82e10930dd5449b831466ccdbfd9122d985e12aec681d3d6ba8a0f91da",
+        "read_spans": [
+          [
+            1,
+            40
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E30",
+        "path": "zircon_runtime/src/scene/tests/ecs_schedule/fixed_update.rs",
+        "sha256": "3494ce85b824f2ca57dbf42624a97f9c1d71943ea7f6af0f8b2bbcf8310ae391",
+        "read_spans": [
+          [
+            380,
+            454
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E31",
+        "path": "zircon_runtime/src/core/framework/time/clock.rs",
+        "sha256": "29f6bfa463f9b5eed8f23a5d3de53a72054f8aef8b0367c332cbab4b939cc111",
+        "read_spans": [
+          [
+            85,
+            120
+          ],
+          [
+            185,
+            266
+          ],
+          [
+            118,
+            191
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E32",
+        "path": "zircon_runtime/src/core/framework/time/virtual_clock.rs",
+        "sha256": "efbea363ce85e02f2efce8185be5394c0506985d01919ab3f0a5775d23304e36",
+        "read_spans": [
+          [
+            1,
+            96
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E33",
+        "path": "zircon_runtime/src/core/framework/time/fixed.rs",
+        "sha256": "b85405c36f6be5b6934a1e082e9530f93974ab86ab71dcca3fa196a1f0ccc0d0",
+        "read_spans": [
+          [
+            1,
+            71
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E34",
+        "path": "zircon_runtime/src/core/framework/time/fixed_step_plan.rs",
+        "sha256": "422d0279a5a3304e213500d27042a5a668bacf48cf22f522b6fa324f1d9ac48b",
+        "read_spans": [
+          [
+            1,
+            102
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E35",
+        "path": "zircon_runtime/src/core/framework/time/policy.rs",
+        "sha256": "58315b6c658c42c67eeb19174ead3f2af4342802aa1141927714d6e3b53a8e4a",
+        "read_spans": [
+          [
+            1,
+            198
+          ],
+          [
+            95,
+            198
+          ],
+          [
+            95,
+            120
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E36",
+        "path": "zircon_runtime/src/core/framework/time/product_policy.rs",
+        "sha256": "6cd5e0a59e23f3df184533e37f230df390b188add774532fc217d00e6dc5f603",
+        "read_spans": [
+          [
+            1,
+            151
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E37",
+        "path": "zircon_runtime/src/core/framework/time/domain/stamp.rs",
+        "sha256": "2341cb4f1759886f6a62fe5bf1db586f98ab707b206f451565ae08d9e0b54034",
+        "read_spans": [
+          [
+            1,
+            75
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E38",
+        "path": "zircon_runtime/src/tests/contracts/structure/rust_source_view.rs",
+        "sha256": "61d32585f680e08ef2fc3a6d0e0f0cf4887ea2ebd8c812689eb37a2107291bee",
+        "read_spans": [
+          [
+            1,
+            180
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E39",
+        "path": "zircon_runtime/src/scene/tests/ecs_schedule.rs",
+        "sha256": "91eb740629b1598c76f0264564d42a9ee5fca55117cbb65cb4dca13002d99d4a",
+        "read_spans": [
+          [
+            1,
+            40
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E40",
+        "path": "zircon_runtime/src/core/runtime/tests/cases.rs",
+        "sha256": "246600d25944378076e938e382bf9cdeb522a6b563182f005005f22029354dc5",
+        "read_spans": [
+          [
+            1,
+            23
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E41",
+        "path": "zircon_runtime/src/builtin/runtime_modules.rs",
+        "sha256": "937ccd494c2d08c96665cc7eed75b6faf519481321e336ed172d9202fa416303",
+        "read_spans": [
+          [
+            1,
+            55
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E42",
+        "path": "zircon_runtime/src/tests/contracts/structure/support.rs",
+        "sha256": "bbb3e8385361c8efc1fffe2b680512340b8a1947d46e1d634e2e5681e3dbac16",
+        "read_spans": [
+          [
+            1,
+            63
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E43",
+        "path": "zircon_runtime/src/tests/contracts/structure/lock_poison_policy.rs",
+        "sha256": "13e6e41ba85750d38c2171d89b8b9e90738bce333d5bafd4849ec2c11f7b536b",
+        "read_spans": [
+          [
+            1,
+            11
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E44",
+        "path": "zircon_runtime/src/builtin/runtime_modules/composition.rs",
+        "sha256": "d33e2735da8d5edba6ac3c7757cbf07b281d913a0b4d13b3ac96cece1ac66025",
+        "read_spans": [
+          [
+            1,
+            15
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E45",
+        "path": "zircon_runtime/src/plugin/register/runtime_scene_system_register.rs",
+        "sha256": "5cd19918381861a2e65e2467354181af5775736a7367905ca6f894fe2ba4cd8c",
+        "read_spans": [
+          [
+            1,
+            219
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E46",
+        "path": "zircon_runtime/src/plugin/extension_registry/apply_to_world.rs",
+        "sha256": "bf7cad08340e7b65736af60c126810abaa7e84d3f53fadda3fefb44819f43215",
+        "read_spans": [
+          [
+            1,
+            102
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E47",
+        "path": "zircon_runtime/src/scene/runtime_extension/plan.rs",
+        "sha256": "183c683831dc7378d078fd6ad0dea74fa5387cd91acbc58df30730fb7a158129",
+        "read_spans": [
+          [
+            1,
+            64
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E48",
+        "path": "zircon_runtime/src/scene/ecs/system/native/runtime_scene_system.rs",
+        "sha256": "7bd727d249fbce3adf7ce03c0833b81fd9007600c907df08887dbc2540b6cf05",
+        "read_spans": [
+          [
+            1,
+            118
+          ]
+        ],
+        "formal_coverage": false
+      },
+      {
+        "id": "R029-E49",
+        "path": "zircon_runtime/src/scene/world/schedule.rs",
+        "sha256": "e7d8e8d5a676a049568ccf312eae2e6f8ae84a35f25e67847dc36d943a163c04",
+        "read_spans": [
+          [
+            1,
+            100
+          ]
+        ],
+        "formal_coverage": false
+      }
+    ],
+    "scoped_checker_receipt": {
+      "chunk_id": "2c3d80",
+      "exit_code": 0
+    },
+    "source_predicates": {
+      "rules": 39,
+      "extra_real_fixture_predicates": 3,
+      "local_boundary_contributions": 50,
+      "all_before_current_counts_preserved": true,
+      "receipt": "2c3d80"
+    },
+    "source_reference_anchor_checks": 841
+  },
+  "child_evidence_amendments": [
+    {
+      "id": "R029-M01",
+      "file": "R029-F03",
+      "object": "backward_clock_sample_does_not_move_the_baseline_backwards",
+      "lines": [
+        65,
+        77
+      ],
+      "correction": "Actual samples are origin,+10ms,+5ms,+20ms; asserted deltas are 10ms,0,10ms. The child describes +20/+10/+25 and 5ms, which this fixture does not contain.",
+      "path": "zircon_runtime/src/core/runtime/tests/frame_clock.rs",
+      "sha256": "a481a3380cd6a0cdb0bc3de06870848586f55103326508fa189fa83d3ca1c5d5",
+      "source_change": false
+    },
+    {
+      "id": "R029-M02",
+      "file": "R029-F07",
+      "object": "rebase_frame_clock",
+      "lines": [
+        89,
+        94
+      ],
+      "correction": "The implementation requests SessionActivationCompleted, not ClockDomainSwap. FrameClock then consumes the pending receipt on the next tick.",
+      "path": "zircon_runtime/src/core/runtime/handle/time.rs",
+      "sha256": "d9657ceeb32f121ac2c479b104a94c62006f3b285a21f28751d31316cec67465",
+      "source_change": false
+    },
+    {
+      "id": "R029-M03",
+      "file": "R029-F14",
+      "object": "worlds_keep_pause_scale_and_fixed_debt_independent",
+      "lines": [
+        16,
+        21
+      ],
+      "correction": "This fixture makes two separate outer.advance_time_by(25ms,8) calls with frame indices1 then2. It does not share one outer snapshot. The separate F15 fixture checks sharing.",
+      "path": "zircon_runtime/src/scene/world_time/tests/controller.rs",
+      "sha256": "7bebebd9b5939502c5fbf8bc5ed333d0810f01c43717b95253a3aec12f18311a",
+      "source_change": false
+    },
+    {
+      "id": "R029-M04",
+      "file": "R029-F14",
+      "object": "policy_transactions_advance_only_for_applied_changes",
+      "lines": [
+        34,
+        61
+      ],
+      "correction": "This fixture applies one policy change and checks the resulting sequence; it does not repeat an equal change. Equality behavior is separately visible in implementation/context tests.",
+      "path": "zircon_runtime/src/scene/world_time/tests/controller.rs",
+      "sha256": "7bebebd9b5939502c5fbf8bc5ed333d0810f01c43717b95253a3aec12f18311a",
+      "source_change": false
+    },
+    {
+      "id": "R029-M05",
+      "file": "R029-F14",
+      "object": "fixed_steps_stay_uncommitted_until_the_world_tick_commits",
+      "lines": [
+        64,
+        113
+      ],
+      "correction": "This fixture begins and commits twice and checks state; it does not assert a BudgetExhausted error.",
+      "path": "zircon_runtime/src/scene/world_time/tests/controller.rs",
+      "sha256": "7bebebd9b5939502c5fbf8bc5ed333d0810f01c43717b95253a3aec12f18311a",
+      "source_change": false
+    },
+    {
+      "id": "R029-M06",
+      "file": "R029-F14",
+      "object": "aborting_a_fixed_step_does_not_advance_authority",
+      "lines": [
+        116,
+        141
+      ],
+      "correction": "This fixture checks abort state and a retry token with ID1; it does not commit that retry.",
+      "path": "zircon_runtime/src/scene/world_time/tests/controller.rs",
+      "sha256": "7bebebd9b5939502c5fbf8bc5ed333d0810f01c43717b95253a3aec12f18311a",
+      "source_change": false
+    },
+    {
+      "id": "R029-M07",
+      "file": "R029-F14",
+      "object": "time_policy_changes_are_rejected_while_a_fixed_step_is_active",
+      "lines": [
+        144,
+        164
+      ],
+      "correction": "This fixture asserts FixedStepActive then aborts. It does not assert full state equality; mutation-before-error absence is separately proven by the precheck.",
+      "path": "zircon_runtime/src/scene/world_time/tests/controller.rs",
+      "sha256": "7bebebd9b5939502c5fbf8bc5ed333d0810f01c43717b95253a3aec12f18311a",
+      "source_change": false
+    },
+    {
+      "id": "R029-M08",
+      "file": "R029-F03",
+      "object": "rebase_issues_a_new_clock_domain_and_only_one_receipt",
+      "lines": [
+        27,
+        42
+      ],
+      "correction": "This fixture checks generation/cause/policy/one-time receipt; numerical restarted delta is checked in a separate fixture at45-61, not here.",
+      "path": "zircon_runtime/src/core/runtime/tests/frame_clock.rs",
+      "sha256": "a481a3380cd6a0cdb0bc3de06870848586f55103326508fa189fa83d3ca1c5d5",
+      "source_change": false
+    }
+  ],
+  "actual_receipts": [
+    {
+      "chunk_id": "225f78",
+      "exit_code": 1,
+      "scope": "First parent checker stopped at an incorrect assertion that current CRLF count must equal the original; added CRLF comment lines legitimately increase that count. No writes."
+    },
+    {
+      "chunk_id": "2c3d80",
+      "exit_code": 0,
+      "scope": "Corrected exact insertion-byte removal reconstructs every original raw byte and EOL. All15 pins,292 object groups,162 partitions,841 reference anchors,49 context pins,39+3 source predicates and scoped Git/guard checks passed."
+    }
+  ],
+  "formatter_evidence_reused": true,
+  "Rust_tests_or_builds_run": false,
+  "managed_coordinator_validation": "pending",
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

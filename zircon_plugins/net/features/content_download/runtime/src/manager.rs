@@ -51,7 +51,9 @@ impl NetContentDownloadRuntimeManager {
             .expect("net content download state mutex poisoned")
     }
 
-    pub(in crate::manager) fn net(&self) -> Result<Option<ServiceCallGuard<dyn NetManager>>, CoreError> {
+    pub(in crate::manager) fn net(
+        &self,
+    ) -> Result<Option<ServiceCallGuard<dyn NetManager>>, CoreError> {
         let (Some(core), Some(handle)) = (&self.core, &self.net) else {
             return Ok(None);
         };

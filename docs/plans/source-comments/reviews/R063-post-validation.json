@@ -1,0 +1,4995 @@
+{
+  "schema": "zircon.source-comments.root-scoped-validation.v1",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R063",
+  "owner": "root",
+  "status": "scoped-comment-static-validation-only",
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false,
+  "recorded_at_utc": "2026-10-16T16:29:07.396229+00:00",
+  "main_record": {
+    "path": "docs/plans/source-comments/reviews/R063-main.json",
+    "sha256": "22e63666745327a49320358ae8951d5e4eef6806eaed14f2f807af57bf0e9069",
+    "bytes": 22751
+  },
+  "fixed_child": {
+    "path": "docs/plans/source-comments/reviews/R063.json",
+    "sha256": "5d23ce83e7bd5d913cefb33f14adc3f9c7eb174525d5e974a29220ce24044af2",
+    "bytes": 246036
+  },
+  "root_amendment": {
+    "path": "docs/plans/source-comments/reviews/R063-root-amendments.json",
+    "sha256": "87af0e819e9362a72a2a62a66c3303ebe787f231d194cf00f929e13ba4b36dcf",
+    "bytes": 2816
+  },
+  "summary": {
+    "files": 2,
+    "changed_files": 2,
+    "unchanged_files": 0,
+    "before_bytes": 26319,
+    "after_bytes": 35341,
+    "before_lines": 801,
+    "after_lines": 924,
+    "objects": 68,
+    "members": 21,
+    "semantic_blocks": 60,
+    "control_points": 99,
+    "range_pairs": 286,
+    "insertion_blocks": 52,
+    "inserted_lines": 123,
+    "root_corrected_task_added_doc_lines": 1,
+    "deleted_original_bytes": 0,
+    "normal_tests": 5,
+    "ignored_tests": 2,
+    "assertion_macro_sites": 31,
+    "new_BUG": 0,
+    "new_TODO": 0,
+    "executed_tests": 0
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+      "before": {
+        "sha256": "9e2746e30710c279616b9a2ba7b162c2bda79ada4f3e14c0c99c9823cc081ae6",
+        "bytes": 14605,
+        "lines": 457
+      },
+      "after": {
+        "sha256": "37bb04981b0ad8166f22a9cffbd5fdb08740ff98f9fbb3517ce4945fb11721a8",
+        "bytes": 22940,
+        "lines": 572
+      },
+      "child_final_sha256": "37bb04981b0ad8166f22a9cffbd5fdb08740ff98f9fbb3517ce4945fb11721a8",
+      "raw_HEAD_sha256": "9e2746e30710c279616b9a2ba7b162c2bda79ada4f3e14c0c99c9823cc081ae6",
+      "inverse_equals_grant_and_raw_HEAD": true,
+      "original_lines_and_EOL_preserved": true,
+      "all_added_lines_comments_or_blank": true,
+      "insertion_groups": 47,
+      "inserted_lines": 115,
+      "range_pairs": [
+        {
+          "location": "objects/0",
+          "name": "MICROS_PER_MILLI",
+          "before_lines": [
+            12,
+            12
+          ],
+          "after_lines": [
+            17,
+            17
+          ],
+          "original_range_sha256": "14db624793b1dd7c4e1f6f40d240a543eccdf851318ca7f738ac2dfa5f78afad",
+          "current_full_range_sha256": "14db624793b1dd7c4e1f6f40d240a543eccdf851318ca7f738ac2dfa5f78afad",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/1",
+          "name": "TOOLTIP_INTRO_FRAME_INTERVAL_MS",
+          "before_lines": [
+            13,
+            13
+          ],
+          "after_lines": [
+            18,
+            18
+          ],
+          "original_range_sha256": "80939665d8af7cbdfcf43d888e3c271ae823e909c4cc18b652e4e7a4ea303e2c",
+          "current_full_range_sha256": "80939665d8af7cbdfcf43d888e3c271ae823e909c4cc18b652e4e7a4ea303e2c",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/2",
+          "name": "DEFAULT_DOUBLE_CLICK_TIMEOUT_MS",
+          "before_lines": [
+            14,
+            14
+          ],
+          "after_lines": [
+            20,
+            20
+          ],
+          "original_range_sha256": "af3f0e4bd698dca63498a39a9d5b258ea9a2f6a4f5dd9d2e8159db06b6398c57",
+          "current_full_range_sha256": "af3f0e4bd698dca63498a39a9d5b258ea9a2f6a4f5dd9d2e8159db06b6398c57",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/3",
+          "name": "DEFAULT_TOOLTIP_DELAY_MS",
+          "before_lines": [
+            15,
+            15
+          ],
+          "after_lines": [
+            22,
+            22
+          ],
+          "original_range_sha256": "7e9d3b591be3face480e91d725072b434e728eb144f274eff0fbedb1c106e921",
+          "current_full_range_sha256": "7e9d3b591be3face480e91d725072b434e728eb144f274eff0fbedb1c106e921",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/4",
+          "name": "DEFAULT_TOOLTIP_INTRO_DURATION_MS",
+          "before_lines": [
+            16,
+            16
+          ],
+          "after_lines": [
+            24,
+            24
+          ],
+          "original_range_sha256": "ed952c9f431f2dde1d58031b6bf6fdf9fa574d1aa18c164d5ae2d29aca3138d4",
+          "current_full_range_sha256": "ed952c9f431f2dde1d58031b6bf6fdf9fa574d1aa18c164d5ae2d29aca3138d4",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/5",
+          "name": "UiInputTimerState",
+          "before_lines": [
+            18,
+            27
+          ],
+          "after_lines": [
+            37,
+            46
+          ],
+          "original_range_sha256": "a76c11e6b3943f8a072f177e602b294d976c2fc66b327a2bdf7d7b7fee172104",
+          "current_full_range_sha256": "a76c11e6b3943f8a072f177e602b294d976c2fc66b327a2bdf7d7b7fee172104",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/5/members/0",
+          "name": "last_tick",
+          "before_lines": [
+            20,
+            20
+          ],
+          "after_lines": [
+            39,
+            39
+          ],
+          "original_range_sha256": "b2cede2291a4d10b2e65b4f8c028d4fe5c0a8f1b4d16bf6a575443033422265e",
+          "current_full_range_sha256": "b2cede2291a4d10b2e65b4f8c028d4fe5c0a8f1b4d16bf6a575443033422265e",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/5/members/1",
+          "name": "typeahead_expirations",
+          "before_lines": [
+            21,
+            21
+          ],
+          "after_lines": [
+            40,
+            40
+          ],
+          "original_range_sha256": "99818931f2af1d41def8489a586ac58eefd8a9efa5365918cb44dbcc7948ce99",
+          "current_full_range_sha256": "99818931f2af1d41def8489a586ac58eefd8a9efa5365918cb44dbcc7948ce99",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/5/members/2",
+          "name": "submenu_hover_expirations",
+          "before_lines": [
+            22,
+            22
+          ],
+          "after_lines": [
+            41,
+            41
+          ],
+          "original_range_sha256": "46d494e0ad40fcff2efe0e5ff37d69d692b87de82312cd39767f9cbdc107fe9d",
+          "current_full_range_sha256": "46d494e0ad40fcff2efe0e5ff37d69d692b87de82312cd39767f9cbdc107fe9d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/5/members/3",
+          "name": "tooltip_expirations",
+          "before_lines": [
+            23,
+            23
+          ],
+          "after_lines": [
+            42,
+            42
+          ],
+          "original_range_sha256": "06940f87c8f4b5cb80b3c37573eececbb48e45085d99a4049f007814d5898b1c",
+          "current_full_range_sha256": "06940f87c8f4b5cb80b3c37573eececbb48e45085d99a4049f007814d5898b1c",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/5/members/4",
+          "name": "tooltip_intro",
+          "before_lines": [
+            24,
+            24
+          ],
+          "after_lines": [
+            43,
+            43
+          ],
+          "original_range_sha256": "646c13caad86313540920dbe604e224d4640ef3fcd49d57b5e651a07b202872d",
+          "current_full_range_sha256": "646c13caad86313540920dbe604e224d4640ef3fcd49d57b5e651a07b202872d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/5/members/5",
+          "name": "double_click_candidate",
+          "before_lines": [
+            25,
+            25
+          ],
+          "after_lines": [
+            44,
+            44
+          ],
+          "original_range_sha256": "db24e2c71bcad124505887486ed8f7091b5ca992507df0d944251b2dea3afa71",
+          "current_full_range_sha256": "db24e2c71bcad124505887486ed8f7091b5ca992507df0d944251b2dea3afa71",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/5/members/6",
+          "name": "toast_expirations",
+          "before_lines": [
+            26,
+            26
+          ],
+          "after_lines": [
+            45,
+            45
+          ],
+          "original_range_sha256": "e893dcd77c65e4aafd10f9da7841ffd1b100c924e404db515c04f54cd6507ae9",
+          "current_full_range_sha256": "e893dcd77c65e4aafd10f9da7841ffd1b100c924e404db515c04f54cd6507ae9",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/6",
+          "name": "UiSubmenuHoverTimerExpiration",
+          "before_lines": [
+            29,
+            33
+          ],
+          "after_lines": [
+            49,
+            53
+          ],
+          "original_range_sha256": "7ea1ba0f4d905114f33ba7a876d3c2487b5f459a9cd1210ebe5fb72672c38cdf",
+          "current_full_range_sha256": "7ea1ba0f4d905114f33ba7a876d3c2487b5f459a9cd1210ebe5fb72672c38cdf",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/6/members/0",
+          "name": "deadline",
+          "before_lines": [
+            31,
+            31
+          ],
+          "after_lines": [
+            51,
+            51
+          ],
+          "original_range_sha256": "eed142d9ebfaf1a63d7f16c27083fded395f6ea3ba79b7a3d17aed7d1a14cb3b",
+          "current_full_range_sha256": "eed142d9ebfaf1a63d7f16c27083fded395f6ea3ba79b7a3d17aed7d1a14cb3b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/6/members/1",
+          "name": "option_id",
+          "before_lines": [
+            32,
+            32
+          ],
+          "after_lines": [
+            52,
+            52
+          ],
+          "original_range_sha256": "67481a81f1d04c10dcd11b517749dd56d8609c58bc9f563e7f3ea5b79966e58c",
+          "current_full_range_sha256": "67481a81f1d04c10dcd11b517749dd56d8609c58bc9f563e7f3ea5b79966e58c",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/7",
+          "name": "UiTooltipTimerExpiration",
+          "before_lines": [
+            35,
+            39
+          ],
+          "after_lines": [
+            56,
+            60
+          ],
+          "original_range_sha256": "390566b8633c1e2a4b4833f69c32ba5967557b7ee0467b2fa35b15a8dff3fa9a",
+          "current_full_range_sha256": "390566b8633c1e2a4b4833f69c32ba5967557b7ee0467b2fa35b15a8dff3fa9a",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/7/members/0",
+          "name": "deadline",
+          "before_lines": [
+            37,
+            37
+          ],
+          "after_lines": [
+            58,
+            58
+          ],
+          "original_range_sha256": "eed142d9ebfaf1a63d7f16c27083fded395f6ea3ba79b7a3d17aed7d1a14cb3b",
+          "current_full_range_sha256": "eed142d9ebfaf1a63d7f16c27083fded395f6ea3ba79b7a3d17aed7d1a14cb3b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/7/members/1",
+          "name": "tooltip_id",
+          "before_lines": [
+            38,
+            38
+          ],
+          "after_lines": [
+            59,
+            59
+          ],
+          "original_range_sha256": "8bbaae6681c53eae804613bb676ee45b2f0e678bc3cd658df4db571302a6e798",
+          "current_full_range_sha256": "8bbaae6681c53eae804613bb676ee45b2f0e678bc3cd658df4db571302a6e798",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/8",
+          "name": "UiTooltipIntroTimer",
+          "before_lines": [
+            41,
+            45
+          ],
+          "after_lines": [
+            63,
+            67
+          ],
+          "original_range_sha256": "c511e304a307f96fd7b684f39c8b5b0999fd4660ca74cdb07aa47b205689aa66",
+          "current_full_range_sha256": "c511e304a307f96fd7b684f39c8b5b0999fd4660ca74cdb07aa47b205689aa66",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/8/members/0",
+          "name": "started_at",
+          "before_lines": [
+            43,
+            43
+          ],
+          "after_lines": [
+            65,
+            65
+          ],
+          "original_range_sha256": "17585917e378fd3e80fda877dbcde948fe885045db14ff7da237bb910b425cec",
+          "current_full_range_sha256": "17585917e378fd3e80fda877dbcde948fe885045db14ff7da237bb910b425cec",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/8/members/1",
+          "name": "deadline",
+          "before_lines": [
+            44,
+            44
+          ],
+          "after_lines": [
+            66,
+            66
+          ],
+          "original_range_sha256": "eed142d9ebfaf1a63d7f16c27083fded395f6ea3ba79b7a3d17aed7d1a14cb3b",
+          "current_full_range_sha256": "eed142d9ebfaf1a63d7f16c27083fded395f6ea3ba79b7a3d17aed7d1a14cb3b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/9",
+          "name": "UiDoubleClickTimerCandidate",
+          "before_lines": [
+            47,
+            55
+          ],
+          "after_lines": [
+            70,
+            78
+          ],
+          "original_range_sha256": "b583c7839ca2de13efdf0c26bcd5fb6858640a8e29b171312308eff47dd486d2",
+          "current_full_range_sha256": "b583c7839ca2de13efdf0c26bcd5fb6858640a8e29b171312308eff47dd486d2",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/9/members/0",
+          "name": "deadline",
+          "before_lines": [
+            49,
+            49
+          ],
+          "after_lines": [
+            72,
+            72
+          ],
+          "original_range_sha256": "eed142d9ebfaf1a63d7f16c27083fded395f6ea3ba79b7a3d17aed7d1a14cb3b",
+          "current_full_range_sha256": "eed142d9ebfaf1a63d7f16c27083fded395f6ea3ba79b7a3d17aed7d1a14cb3b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/9/members/1",
+          "name": "target",
+          "before_lines": [
+            50,
+            50
+          ],
+          "after_lines": [
+            73,
+            73
+          ],
+          "original_range_sha256": "2befc73a7c0d1a812cd1ba529990d01c4d08c89d98e22d6125e51ccd4b32a46f",
+          "current_full_range_sha256": "2befc73a7c0d1a812cd1ba529990d01c4d08c89d98e22d6125e51ccd4b32a46f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/9/members/2",
+          "name": "pointer_id",
+          "before_lines": [
+            51,
+            51
+          ],
+          "after_lines": [
+            74,
+            74
+          ],
+          "original_range_sha256": "6528877b71898aa4c6955c31d21096e2d575056ac44d120900fba89474859e41",
+          "current_full_range_sha256": "6528877b71898aa4c6955c31d21096e2d575056ac44d120900fba89474859e41",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/9/members/3",
+          "name": "pointer_source",
+          "before_lines": [
+            52,
+            52
+          ],
+          "after_lines": [
+            75,
+            75
+          ],
+          "original_range_sha256": "47fbb951df662f90e63d42780bd54102f1f313c1a0281bf32382e0549b593692",
+          "current_full_range_sha256": "47fbb951df662f90e63d42780bd54102f1f313c1a0281bf32382e0549b593692",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/9/members/4",
+          "name": "button",
+          "before_lines": [
+            53,
+            53
+          ],
+          "after_lines": [
+            76,
+            76
+          ],
+          "original_range_sha256": "f770d4c2dfdaf62b54ebd273668e54711faf6135ec91aae5b72502f27465e115",
+          "current_full_range_sha256": "f770d4c2dfdaf62b54ebd273668e54711faf6135ec91aae5b72502f27465e115",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/9/members/5",
+          "name": "click_count",
+          "before_lines": [
+            54,
+            54
+          ],
+          "after_lines": [
+            77,
+            77
+          ],
+          "original_range_sha256": "50dc456e11a4ae91aaf8d4363b3cb47e51f83df65f8c76015ae3ab2cd6383b41",
+          "current_full_range_sha256": "50dc456e11a4ae91aaf8d4363b3cb47e51f83df65f8c76015ae3ab2cd6383b41",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/10",
+          "name": "UiToastTimerExpiration",
+          "before_lines": [
+            57,
+            61
+          ],
+          "after_lines": [
+            81,
+            85
+          ],
+          "original_range_sha256": "20b4fd197592d8f9cae9ec0979705fe6b715d3aa10b25c6f9c3adb48a749c375",
+          "current_full_range_sha256": "20b4fd197592d8f9cae9ec0979705fe6b715d3aa10b25c6f9c3adb48a749c375",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/10/members/0",
+          "name": "deadline",
+          "before_lines": [
+            59,
+            59
+          ],
+          "after_lines": [
+            83,
+            83
+          ],
+          "original_range_sha256": "eed142d9ebfaf1a63d7f16c27083fded395f6ea3ba79b7a3d17aed7d1a14cb3b",
+          "current_full_range_sha256": "eed142d9ebfaf1a63d7f16c27083fded395f6ea3ba79b7a3d17aed7d1a14cb3b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/10/members/1",
+          "name": "toast_id",
+          "before_lines": [
+            60,
+            60
+          ],
+          "after_lines": [
+            84,
+            84
+          ],
+          "original_range_sha256": "686ddef69a4c7ac8fef058f9cdc9229397b7eb241f0e913ab893f79eff00865e",
+          "current_full_range_sha256": "686ddef69a4c7ac8fef058f9cdc9229397b7eb241f0e913ab893f79eff00865e",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/11",
+          "name": "impl UiInputTimerState",
+          "before_lines": [
+            63,
+            423
+          ],
+          "after_lines": [
+            87,
+            535
+          ],
+          "original_range_sha256": "79d241cf6e7a6e440edd5ffc510d49e08b58d2b3c9a529e7219cd7faf2428a3f",
+          "current_full_range_sha256": "03e9b6252fddefcd0e37177dc7058fc95899aa0c697e82bbda8cc8654e3ba5af",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/12",
+          "name": "UiInputTimerState::last_tick",
+          "before_lines": [
+            64,
+            66
+          ],
+          "after_lines": [
+            89,
+            91
+          ],
+          "original_range_sha256": "d1eb77cf1643114281d729bfe4ab7b6ad3d6d8e6c155488349851b6b0b53fb4e",
+          "current_full_range_sha256": "d1eb77cf1643114281d729bfe4ab7b6ad3d6d8e6c155488349851b6b0b53fb4e",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/13",
+          "name": "UiInputTimerState::next_frame_visible_delay",
+          "before_lines": [
+            68,
+            97
+          ],
+          "after_lines": [
+            102,
+            131
+          ],
+          "original_range_sha256": "8b08c95a384c6900a4dba0d006285ce498e93fcea046336f2feb07a082bce415",
+          "current_full_range_sha256": "8b08c95a384c6900a4dba0d006285ce498e93fcea046336f2feb07a082bce415",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/14",
+          "name": "UiInputTimerState::record_tick",
+          "before_lines": [
+            99,
+            101
+          ],
+          "after_lines": [
+            135,
+            137
+          ],
+          "original_range_sha256": "0ee9b7b43433c477d9004f357fdab2a5126c9a69ca39850e463df84d73caa2c9",
+          "current_full_range_sha256": "0ee9b7b43433c477d9004f357fdab2a5126c9a69ca39850e463df84d73caa2c9",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/15",
+          "name": "UiInputTimerState::typeahead_expiration",
+          "before_lines": [
+            103,
+            105
+          ],
+          "after_lines": [
+            140,
+            142
+          ],
+          "original_range_sha256": "2344695bc61d631e4bf682a2059488e2ff4a9f9f41880c2809ce4a5a3eaf12e7",
+          "current_full_range_sha256": "2344695bc61d631e4bf682a2059488e2ff4a9f9f41880c2809ce4a5a3eaf12e7",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/16",
+          "name": "UiInputTimerState::submenu_hover_expiration",
+          "before_lines": [
+            107,
+            111
+          ],
+          "after_lines": [
+            145,
+            149
+          ],
+          "original_range_sha256": "445cf27f0b2ef5bb29ad349afc1942992f1f03c820b1ee450887aade7f8112ae",
+          "current_full_range_sha256": "445cf27f0b2ef5bb29ad349afc1942992f1f03c820b1ee450887aade7f8112ae",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/17",
+          "name": "UiInputTimerState::submenu_hover_option_id",
+          "before_lines": [
+            113,
+            117
+          ],
+          "after_lines": [
+            152,
+            156
+          ],
+          "original_range_sha256": "cfc2c6b028f90d0e1b2743ea2395b2750bc843f9879491186dba541409068c22",
+          "current_full_range_sha256": "cfc2c6b028f90d0e1b2743ea2395b2750bc843f9879491186dba541409068c22",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/18",
+          "name": "UiInputTimerState::tooltip_expiration",
+          "before_lines": [
+            119,
+            123
+          ],
+          "after_lines": [
+            159,
+            163
+          ],
+          "original_range_sha256": "d3edb253ab67d006d649e0eacfd954d31fa7243224bfe59ed650278594e39705",
+          "current_full_range_sha256": "d3edb253ab67d006d649e0eacfd954d31fa7243224bfe59ed650278594e39705",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/19",
+          "name": "UiInputTimerState::tooltip_id",
+          "before_lines": [
+            125,
+            129
+          ],
+          "after_lines": [
+            166,
+            170
+          ],
+          "original_range_sha256": "0f425c347443f250bb7a6afb54817e5cdc2e9cf0ab1b72e614c3ad1bfdd5bd58",
+          "current_full_range_sha256": "0f425c347443f250bb7a6afb54817e5cdc2e9cf0ab1b72e614c3ad1bfdd5bd58",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/20",
+          "name": "UiInputTimerState::tooltip_intro_progress",
+          "before_lines": [
+            131,
+            133
+          ],
+          "after_lines": [
+            176,
+            178
+          ],
+          "original_range_sha256": "df7c4c4b672133c3a9868fbba5176584080eb1b9868ae782461688bbb10e378e",
+          "current_full_range_sha256": "df7c4c4b672133c3a9868fbba5176584080eb1b9868ae782461688bbb10e378e",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/21",
+          "name": "UiInputTimerState::toast_expiration",
+          "before_lines": [
+            135,
+            139
+          ],
+          "after_lines": [
+            181,
+            185
+          ],
+          "original_range_sha256": "56e5d9d488b166cfdb39c58051ade2450808f877cdceb94943a5e52bb6686852",
+          "current_full_range_sha256": "56e5d9d488b166cfdb39c58051ade2450808f877cdceb94943a5e52bb6686852",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/22",
+          "name": "UiInputTimerState::toast_id",
+          "before_lines": [
+            141,
+            145
+          ],
+          "after_lines": [
+            188,
+            192
+          ],
+          "original_range_sha256": "03ba86f79af32b8658ad8018de911013aa88ee134392ee48c23fd659848f16a8",
+          "current_full_range_sha256": "03ba86f79af32b8658ad8018de911013aa88ee134392ee48c23fd659848f16a8",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/23",
+          "name": "UiInputTimerState::double_click_expiration",
+          "before_lines": [
+            147,
+            151
+          ],
+          "after_lines": [
+            195,
+            199
+          ],
+          "original_range_sha256": "49be09891eb1f92b4a51e3f50a1af9912b496f3cac84e3e1c09b31ded13d3125",
+          "current_full_range_sha256": "49be09891eb1f92b4a51e3f50a1af9912b496f3cac84e3e1c09b31ded13d3125",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/24",
+          "name": "UiInputTimerState::double_click_target",
+          "before_lines": [
+            153,
+            157
+          ],
+          "after_lines": [
+            202,
+            206
+          ],
+          "original_range_sha256": "524a7f7980fb59a8ee796c816e6d2535a1f9f30107a45ab0559d3a57d6aa6903",
+          "current_full_range_sha256": "524a7f7980fb59a8ee796c816e6d2535a1f9f30107a45ab0559d3a57d6aa6903",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/25",
+          "name": "UiInputTimerState::double_click_count",
+          "before_lines": [
+            159,
+            163
+          ],
+          "after_lines": [
+            209,
+            213
+          ],
+          "original_range_sha256": "c63616a27b1b9a048841260a369c2d2f38e9cc595e890c619fdac0afca2acfdb",
+          "current_full_range_sha256": "c63616a27b1b9a048841260a369c2d2f38e9cc595e890c619fdac0afca2acfdb",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/26",
+          "name": "UiInputTimerState::arm_typeahead_expiration",
+          "before_lines": [
+            165,
+            176
+          ],
+          "after_lines": [
+            221,
+            232
+          ],
+          "original_range_sha256": "6a30327573044861334f0ed063031531d4392ce8319db54c58e1c46638793a31",
+          "current_full_range_sha256": "6a30327573044861334f0ed063031531d4392ce8319db54c58e1c46638793a31",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/27",
+          "name": "UiInputTimerState::arm_submenu_hover_expiration",
+          "before_lines": [
+            178,
+            195
+          ],
+          "after_lines": [
+            238,
+            255
+          ],
+          "original_range_sha256": "e1f1a8df7c271a48e2e4fbc114d0d6250ad3aa6135ab08c856e63261d89a48e7",
+          "current_full_range_sha256": "e1f1a8df7c271a48e2e4fbc114d0d6250ad3aa6135ab08c856e63261d89a48e7",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/28",
+          "name": "UiInputTimerState::arm_tooltip_expiration",
+          "before_lines": [
+            197,
+            214
+          ],
+          "after_lines": [
+            261,
+            278
+          ],
+          "original_range_sha256": "22a4359c02893c646a170b7614c30546244fdf30eaa834f8005a7894a48bf6c6",
+          "current_full_range_sha256": "22a4359c02893c646a170b7614c30546244fdf30eaa834f8005a7894a48bf6c6",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/29",
+          "name": "UiInputTimerState::clear_submenu_hover_expiration",
+          "before_lines": [
+            216,
+            218
+          ],
+          "after_lines": [
+            281,
+            283
+          ],
+          "original_range_sha256": "4e9cd06317e770937efb3ece833c2108ad6072e018a6d3f72cae167a45ba9606",
+          "current_full_range_sha256": "4e9cd06317e770937efb3ece833c2108ad6072e018a6d3f72cae167a45ba9606",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/30",
+          "name": "UiInputTimerState::clear_tooltip_expiration",
+          "before_lines": [
+            220,
+            222
+          ],
+          "after_lines": [
+            286,
+            288
+          ],
+          "original_range_sha256": "393b9f721fd87eaa701af2e8217c1bf2e4e0a55da02ce206a6507d779340febb",
+          "current_full_range_sha256": "393b9f721fd87eaa701af2e8217c1bf2e4e0a55da02ce206a6507d779340febb",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/31",
+          "name": "UiInputTimerState::clear_tooltip_expirations",
+          "before_lines": [
+            224,
+            226
+          ],
+          "after_lines": [
+            291,
+            293
+          ],
+          "original_range_sha256": "28bda399e0162fcb8c3077cf6e3541de7a2cbaf85a9356b1aacd1b481e989390",
+          "current_full_range_sha256": "28bda399e0162fcb8c3077cf6e3541de7a2cbaf85a9356b1aacd1b481e989390",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/32",
+          "name": "UiInputTimerState::arm_tooltip_intro",
+          "before_lines": [
+            228,
+            236
+          ],
+          "after_lines": [
+            299,
+            307
+          ],
+          "original_range_sha256": "ca380aa7c96864e46cfe0b2ed1d7e366a36193cc4dad9a751a65f77d3b9ef7aa",
+          "current_full_range_sha256": "ca380aa7c96864e46cfe0b2ed1d7e366a36193cc4dad9a751a65f77d3b9ef7aa",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/33",
+          "name": "UiInputTimerState::clear_tooltip_intro",
+          "before_lines": [
+            238,
+            240
+          ],
+          "after_lines": [
+            310,
+            312
+          ],
+          "original_range_sha256": "c8f5dcc6888ae87e14f4b8dea0c3486488accbb838c973029538bceb6c1a1dfb",
+          "current_full_range_sha256": "c8f5dcc6888ae87e14f4b8dea0c3486488accbb838c973029538bceb6c1a1dfb",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/34",
+          "name": "UiInputTimerState::expire_tooltip_intro",
+          "before_lines": [
+            242,
+            249
+          ],
+          "after_lines": [
+            315,
+            322
+          ],
+          "original_range_sha256": "b329ef963190632281b4ae5712c1e8ed16f88f961d59e55ae494cf7917807599",
+          "current_full_range_sha256": "b329ef963190632281b4ae5712c1e8ed16f88f961d59e55ae494cf7917807599",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/35",
+          "name": "UiInputTimerState::double_click_count_for_release",
+          "before_lines": [
+            251,
+            269
+          ],
+          "after_lines": [
+            333,
+            351
+          ],
+          "original_range_sha256": "70ddcc20937fafa5def2fee45fcbe9539a7fbc7a2566f6400da3130ff8078bd1",
+          "current_full_range_sha256": "70ddcc20937fafa5def2fee45fcbe9539a7fbc7a2566f6400da3130ff8078bd1",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/36",
+          "name": "UiInputTimerState::arm_double_click_candidate",
+          "before_lines": [
+            271,
+            292
+          ],
+          "after_lines": [
+            357,
+            378
+          ],
+          "original_range_sha256": "a298074ca540834059e1c6472849e5c89ec28fa1df02fadfb90f1c76d80bc25c",
+          "current_full_range_sha256": "a298074ca540834059e1c6472849e5c89ec28fa1df02fadfb90f1c76d80bc25c",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/37",
+          "name": "UiInputTimerState::clear_double_click_candidate",
+          "before_lines": [
+            294,
+            296
+          ],
+          "after_lines": [
+            381,
+            383
+          ],
+          "original_range_sha256": "adfffb5af113b56a4a37f95431fac0032d80526607577d89459ded46a67e138d",
+          "current_full_range_sha256": "adfffb5af113b56a4a37f95431fac0032d80526607577d89459ded46a67e138d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/38",
+          "name": "UiInputTimerState::expire_double_click_candidate",
+          "before_lines": [
+            298,
+            305
+          ],
+          "after_lines": [
+            386,
+            393
+          ],
+          "original_range_sha256": "5b7e38d61b98939f85ad7c96cdb5b4c49b2e8201d8807d1e9b059f91da49687e",
+          "current_full_range_sha256": "5b7e38d61b98939f85ad7c96cdb5b4c49b2e8201d8807d1e9b059f91da49687e",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/39",
+          "name": "UiInputTimerState::arm_toast_expiration",
+          "before_lines": [
+            307,
+            322
+          ],
+          "after_lines": [
+            399,
+            414
+          ],
+          "original_range_sha256": "8dc2a8735012b346a913bae057184619a0f67bf5c76191ea7f6f378f9d3b19c1",
+          "current_full_range_sha256": "8dc2a8735012b346a913bae057184619a0f67bf5c76191ea7f6f378f9d3b19c1",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/40",
+          "name": "UiInputTimerState::arm_toast_expiration_ref",
+          "before_lines": [
+            324,
+            347
+          ],
+          "after_lines": [
+            420,
+            443
+          ],
+          "original_range_sha256": "d26a33bf2bc4914d4a5b7ef8f67e0354fa5e367fe1b1507268921cd400ee309e",
+          "current_full_range_sha256": "d26a33bf2bc4914d4a5b7ef8f67e0354fa5e367fe1b1507268921cd400ee309e",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/41",
+          "name": "UiInputTimerState::clear_toast_expiration",
+          "before_lines": [
+            349,
+            351
+          ],
+          "after_lines": [
+            446,
+            448
+          ],
+          "original_range_sha256": "efccb62617703b3eac3a51562cd1ecc3f5f49df75440c176bae6db7592d1f176",
+          "current_full_range_sha256": "efccb62617703b3eac3a51562cd1ecc3f5f49df75440c176bae6db7592d1f176",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/42",
+          "name": "UiInputTimerState::drain_expired_typeahead",
+          "before_lines": [
+            353,
+            368
+          ],
+          "after_lines": [
+            459,
+            474
+          ],
+          "original_range_sha256": "806a68d708a5bcd843f54333e4b814df66ebecd264627e6a95043c462423387e",
+          "current_full_range_sha256": "806a68d708a5bcd843f54333e4b814df66ebecd264627e6a95043c462423387e",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/43",
+          "name": "UiInputTimerState::drain_expired_submenu_hover",
+          "before_lines": [
+            370,
+            388
+          ],
+          "after_lines": [
+            478,
+            496
+          ],
+          "original_range_sha256": "3fbc87b3583f2765769275cadc6cd35b63030fa90d147dabe0643d7e507fc9fc",
+          "current_full_range_sha256": "3fbc87b3583f2765769275cadc6cd35b63030fa90d147dabe0643d7e507fc9fc",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/44",
+          "name": "UiInputTimerState::drain_expired_tooltips",
+          "before_lines": [
+            390,
+            405
+          ],
+          "after_lines": [
+            500,
+            515
+          ],
+          "original_range_sha256": "7e0c0a00f36116ec705106d06028901db4a13adf9871c4d67a15dc2230b49e0d",
+          "current_full_range_sha256": "7e0c0a00f36116ec705106d06028901db4a13adf9871c4d67a15dc2230b49e0d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/45",
+          "name": "UiInputTimerState::drain_expired_toasts",
+          "before_lines": [
+            407,
+            422
+          ],
+          "after_lines": [
+            519,
+            534
+          ],
+          "original_range_sha256": "d8e30aa517ac537d291715be31da1173a2561b478a5414ac547e3648748a79f8",
+          "current_full_range_sha256": "d8e30aa517ac537d291715be31da1173a2561b478a5414ac547e3648748a79f8",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/46",
+          "name": "toast_deadline",
+          "before_lines": [
+            425,
+            428
+          ],
+          "after_lines": [
+            538,
+            541
+          ],
+          "original_range_sha256": "e0254080d1f5744a05549f0f9739ca45036be3398fad5aef51f37ddfe0c6d6d7",
+          "current_full_range_sha256": "e0254080d1f5744a05549f0f9739ca45036be3398fad5aef51f37ddfe0c6d6d7",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/47",
+          "name": "impl UiTooltipIntroTimer",
+          "before_lines": [
+            430,
+            453
+          ],
+          "after_lines": [
+            543,
+            568
+          ],
+          "original_range_sha256": "ad57acd2f5c335c6273efdb91435fb9a1e86bcc514799c25e19dd145845ce4ba",
+          "current_full_range_sha256": "7c7a865405f1b1e40deb41e41ec07e9d4d7cb3100965077498f33fafea747e34",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/48",
+          "name": "UiTooltipIntroTimer::next_sample_micros",
+          "before_lines": [
+            431,
+            437
+          ],
+          "after_lines": [
+            545,
+            551
+          ],
+          "original_range_sha256": "11e1cafe9623a53f995cf8b920784b25c5504ca9c0f754660cad4fad5ca97163",
+          "current_full_range_sha256": "11e1cafe9623a53f995cf8b920784b25c5504ca9c0f754660cad4fad5ca97163",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/49",
+          "name": "UiTooltipIntroTimer::progress",
+          "before_lines": [
+            439,
+            452
+          ],
+          "after_lines": [
+            553,
+            567
+          ],
+          "original_range_sha256": "001672eda440c927368316033a4766a366999adc0ae8d27d4f2d6865ccfaaf4f",
+          "current_full_range_sha256": "3176a5521d0c67943d7631640c15f6c8334dfbaadff854ad7a9db781bb9119f0",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/50",
+          "name": "retain_drain_tests module",
+          "before_lines": [
+            455,
+            457
+          ],
+          "after_lines": [
+            570,
+            572
+          ],
+          "original_range_sha256": "d0320b16de3a8994aa0b7ca16c005ef0b5ab1a8d317178ee929254bbda3b130f",
+          "current_full_range_sha256": "d0320b16de3a8994aa0b7ca16c005ef0b5ab1a8d317178ee929254bbda3b130f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/0",
+          "name": "标准集合/时长与接口身份导入",
+          "before_lines": [
+            1,
+            11
+          ],
+          "after_lines": [
+            1,
+            16
+          ],
+          "original_range_sha256": "e93584c60698e527f0f97a0690bfb5b454827d8b8f389fda6423c27ab4497b88",
+          "current_full_range_sha256": "c283384aa9798a0df02837f77e1fc3db388ed078617e92257da1da02a9863cfe",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/1",
+          "name": "时间换算和默认窗口常量",
+          "before_lines": [
+            12,
+            17
+          ],
+          "after_lines": [
+            17,
+            25
+          ],
+          "original_range_sha256": "31823bf1aadd19a13eab7d05c2dd63a744ecbeaa7bcd16d300a9d79434cbb0b0",
+          "current_full_range_sha256": "fce77eb95f277f205148a53f84bde49d72e3bddd0a534ddc6e84973deb8609e4",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/2",
+          "name": "UiInputTimerState 字段与内建派生",
+          "before_lines": [
+            18,
+            28
+          ],
+          "after_lines": [
+            26,
+            47
+          ],
+          "original_range_sha256": "73f0a5b64455af155c720d0ccd2a8cfd4f91dc51e2d590ef546f395336655a5e",
+          "current_full_range_sha256": "796074f9f68dec2d45776ef638c12518124a87b2e9c66436ad62f65c4335cb42",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/3",
+          "name": "UiSubmenuHoverTimerExpiration 字段与内建派生",
+          "before_lines": [
+            29,
+            34
+          ],
+          "after_lines": [
+            48,
+            54
+          ],
+          "original_range_sha256": "9347d475258893c98073175dd7dfd399b04ddc5194cb01152c86bc59e04f62c5",
+          "current_full_range_sha256": "83aa9fb19a0cf506e1d2bb30b63cd79418b8ccb9bba9b4273399b19edf7a418a",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/4",
+          "name": "UiTooltipTimerExpiration 字段与内建派生",
+          "before_lines": [
+            35,
+            40
+          ],
+          "after_lines": [
+            55,
+            61
+          ],
+          "original_range_sha256": "26ce47237a08c1ceadc63e81d1935f9743cf60904fc2f22b8dd801747ea1a095",
+          "current_full_range_sha256": "30ae6c81462ddf6ba9c3381b68aa1068a1094182836e93a7e04f98df1ac250cb",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/5",
+          "name": "UiTooltipIntroTimer 字段与内建派生",
+          "before_lines": [
+            41,
+            46
+          ],
+          "after_lines": [
+            62,
+            68
+          ],
+          "original_range_sha256": "d1df98a82d2c4581c3ded41b2438de3f57ecceb5836529054ee97aa082843b68",
+          "current_full_range_sha256": "233f4f317aaacb5c722b1557ce43e65c3e2e51822caa483f71390d166fa367a2",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/6",
+          "name": "UiDoubleClickTimerCandidate 字段与内建派生",
+          "before_lines": [
+            47,
+            56
+          ],
+          "after_lines": [
+            69,
+            79
+          ],
+          "original_range_sha256": "3c87344bf86d70403a1fd41f6419f972e842d7823a17780b095b9a5174d5e11b",
+          "current_full_range_sha256": "27539f11e0bf9cee3700f593eb76409aff5ef76b890d658086c01cfdb923c869",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/7",
+          "name": "UiToastTimerExpiration 字段与内建派生",
+          "before_lines": [
+            57,
+            62
+          ],
+          "after_lines": [
+            80,
+            86
+          ],
+          "original_range_sha256": "81db948b18bdf99680fd2855551116de345385614ea7ad5e84a8e1d38948480b",
+          "current_full_range_sha256": "fbea0673c4bfc70eee7a3ca88202434e8f887cf92cdd746964bf513f28535e6e",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/8",
+          "name": "UiInputTimerState::last_tick",
+          "before_lines": [
+            63,
+            67
+          ],
+          "after_lines": [
+            87,
+            92
+          ],
+          "original_range_sha256": "22b7eee8909c72050c7b4ccd915e6a12c4e6fa9fc66564e493a8114990d48fdb",
+          "current_full_range_sha256": "dbb087cee7c46bc8728e6eceeb54a7d86a4c9d1694fcf660641e4dbee65a3e01",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/8/control_points/0",
+          "name": "Option原值复制",
+          "before_lines": [
+            65,
+            65
+          ],
+          "after_lines": [
+            90,
+            90
+          ],
+          "original_range_sha256": "24568a9414c29337c2ad975ac1148b623775c17e86cfe3f1c9c1e951f0a84e12",
+          "current_full_range_sha256": "24568a9414c29337c2ad975ac1148b623775c17e86cfe3f1c9c1e951f0a84e12",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/9",
+          "name": "UiInputTimerState::next_frame_visible_delay",
+          "before_lines": [
+            68,
+            98
+          ],
+          "after_lines": [
+            93,
+            132
+          ],
+          "original_range_sha256": "4ce56cea2422b69659cc555d3c534b1899f22dea3b0887860560c1bec981df75",
+          "current_full_range_sha256": "d2fac7f30bdfa891441c98b945580200a6b1f955bb73ffd22f64f1a8bf5a7de2",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/9/control_points/0",
+          "name": "四Map加intro采样候选",
+          "before_lines": [
+            69,
+            91
+          ],
+          "after_lines": [
+            103,
+            125
+          ],
+          "original_range_sha256": "442848a03540d975ba47e5132effd4adc2e709f66cb21e6ec66f85981a2426d0",
+          "current_full_range_sha256": "442848a03540d975ba47e5132effd4adc2e709f66cb21e6ec66f85981a2426d0",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/9/control_points/1",
+          "name": "最小值缺失短路",
+          "before_lines": [
+            92,
+            92
+          ],
+          "after_lines": [
+            126,
+            126
+          ],
+          "original_range_sha256": "243d66caafa291d19103f220c39c07f57ba7272d6fb11044717f4337ad151db5",
+          "current_full_range_sha256": "243d66caafa291d19103f220c39c07f57ba7272d6fb11044717f4337ad151db5",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/9/control_points/2",
+          "name": "饱和相对时间",
+          "before_lines": [
+            94,
+            96
+          ],
+          "after_lines": [
+            128,
+            130
+          ],
+          "original_range_sha256": "d7bf3a0c1a09e76703414ce2b28d6918fcafb45e7c6b1ed4ba63d9ea8165434b",
+          "current_full_range_sha256": "d7bf3a0c1a09e76703414ce2b28d6918fcafb45e7c6b1ed4ba63d9ea8165434b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/10",
+          "name": "UiInputTimerState::record_tick",
+          "before_lines": [
+            99,
+            102
+          ],
+          "after_lines": [
+            133,
+            138
+          ],
+          "original_range_sha256": "91b4019a69bb198168e3346d7fbbe0f40e54f433385b095929a22e9029983c68",
+          "current_full_range_sha256": "311512c846e6d772f771bf09acf60cdc2f6474f5a0d0c8895387c68480311c88",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/10/control_points/0",
+          "name": "覆盖最近tick",
+          "before_lines": [
+            100,
+            100
+          ],
+          "after_lines": [
+            136,
+            136
+          ],
+          "original_range_sha256": "57c13a72dca96331906bff911ad2d03b3e6505358e666d419bf81e4f363c920e",
+          "current_full_range_sha256": "57c13a72dca96331906bff911ad2d03b3e6505358e666d419bf81e4f363c920e",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/11",
+          "name": "UiInputTimerState::typeahead_expiration",
+          "before_lines": [
+            103,
+            106
+          ],
+          "after_lines": [
+            139,
+            143
+          ],
+          "original_range_sha256": "fde89c460a3ba022f245b67b4dac8252adf2584b05a1be303b2441a085e32d44",
+          "current_full_range_sha256": "32a3f6e4518ab8c0e8125fbb6e9b42be8283af9d9867f9c63f225c553acf4bac",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/11/control_points/0",
+          "name": "键查找并复制",
+          "before_lines": [
+            104,
+            104
+          ],
+          "after_lines": [
+            141,
+            141
+          ],
+          "original_range_sha256": "08cbce210abf3e73ba9f62eaba97fcee5e8dcd2101e34a4f534113969bfdfcd0",
+          "current_full_range_sha256": "08cbce210abf3e73ba9f62eaba97fcee5e8dcd2101e34a4f534113969bfdfcd0",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/12",
+          "name": "UiInputTimerState::submenu_hover_expiration",
+          "before_lines": [
+            107,
+            112
+          ],
+          "after_lines": [
+            144,
+            150
+          ],
+          "original_range_sha256": "c1b863938eed53ce04761f67e3ec08002a6f072008c9f6a8daaaebba40090bc3",
+          "current_full_range_sha256": "6815bb154d9b69038811cd3243e8288a0b32d52d2fa4435e438387ef1de3d9ea",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/12/control_points/0",
+          "name": "键查找投影截止",
+          "before_lines": [
+            108,
+            110
+          ],
+          "after_lines": [
+            146,
+            148
+          ],
+          "original_range_sha256": "935c808dcf083830917fa1b76277f830ffd1572d21f7bf2c66aa32f0c05400ea",
+          "current_full_range_sha256": "935c808dcf083830917fa1b76277f830ffd1572d21f7bf2c66aa32f0c05400ea",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/13",
+          "name": "UiInputTimerState::submenu_hover_option_id",
+          "before_lines": [
+            113,
+            118
+          ],
+          "after_lines": [
+            151,
+            157
+          ],
+          "original_range_sha256": "c2db08d9a22fdc1b502bb06cb8fe559a2071e05479c1b3fda504a90106f0e8d4",
+          "current_full_range_sha256": "aae6e49c14c0289fe580a5fe16ab11559845f72c410f6783419ff7441bb52c69",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/13/control_points/0",
+          "name": "借用String载荷",
+          "before_lines": [
+            114,
+            116
+          ],
+          "after_lines": [
+            153,
+            155
+          ],
+          "original_range_sha256": "4406638666e9d4e809056c28f52c185edff22ed71d864703d2a4ed812b277ebf",
+          "current_full_range_sha256": "4406638666e9d4e809056c28f52c185edff22ed71d864703d2a4ed812b277ebf",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/14",
+          "name": "UiInputTimerState::tooltip_expiration",
+          "before_lines": [
+            119,
+            124
+          ],
+          "after_lines": [
+            158,
+            164
+          ],
+          "original_range_sha256": "c67c512f777b7051c5d420b8a19ebd204ef7003cebe004fff5ecd800c5e215ab",
+          "current_full_range_sha256": "02f229e279490beac6fa72b06fcd2fd11c98f257f5bb810a7e29b09c262a2fca",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/14/control_points/0",
+          "name": "提示截止投影",
+          "before_lines": [
+            120,
+            122
+          ],
+          "after_lines": [
+            160,
+            162
+          ],
+          "original_range_sha256": "b7ebabb8a1a1aad6e2ad78e1f255407fb8081636bea8cb7af86097839c98c2b2",
+          "current_full_range_sha256": "b7ebabb8a1a1aad6e2ad78e1f255407fb8081636bea8cb7af86097839c98c2b2",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/15",
+          "name": "UiInputTimerState::tooltip_id",
+          "before_lines": [
+            125,
+            130
+          ],
+          "after_lines": [
+            165,
+            171
+          ],
+          "original_range_sha256": "6744588cd967f26f04e94c511e722b7d850db57401c651248c7634882ad511e3",
+          "current_full_range_sha256": "da15b5a0c4a9eaafeeb04dd085aa8783277e8ef7a279dbfa112686d82287f934",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/15/control_points/0",
+          "name": "提示标识借用",
+          "before_lines": [
+            126,
+            128
+          ],
+          "after_lines": [
+            167,
+            169
+          ],
+          "original_range_sha256": "1b3a0da0e5285cf94d91ef23db8cfdc1e863f7e9211153cdc52092526fb47efe",
+          "current_full_range_sha256": "1b3a0da0e5285cf94d91ef23db8cfdc1e863f7e9211153cdc52092526fb47efe",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/16",
+          "name": "UiInputTimerState::tooltip_intro_progress",
+          "before_lines": [
+            131,
+            134
+          ],
+          "after_lines": [
+            172,
+            179
+          ],
+          "original_range_sha256": "572bcadbfb12c97fe6ff565512ddfff17b3bb7dd063f52a215e4138b4dabe519",
+          "current_full_range_sha256": "844f4d86547001a1e601dfa87f7cf4bef778358172654f32849538b68b4550cf",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/16/control_points/0",
+          "name": "可选区间计算",
+          "before_lines": [
+            132,
+            132
+          ],
+          "after_lines": [
+            177,
+            177
+          ],
+          "original_range_sha256": "5c978d726a298f947ac6a2985c4b616bd702ea4f4f0a35c40783ac2cfb8602a1",
+          "current_full_range_sha256": "5c978d726a298f947ac6a2985c4b616bd702ea4f4f0a35c40783ac2cfb8602a1",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/17",
+          "name": "UiInputTimerState::toast_expiration",
+          "before_lines": [
+            135,
+            140
+          ],
+          "after_lines": [
+            180,
+            186
+          ],
+          "original_range_sha256": "5c364c329d07a3d338c76dad747baa5f21c74577c55ce6af0655835ca34ee834",
+          "current_full_range_sha256": "2baf998d1eab2ecd9a2ac8aa1c82e16a280bbda4aa1764391d5d2f58324d1dc2",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/17/control_points/0",
+          "name": "通知截止投影",
+          "before_lines": [
+            136,
+            138
+          ],
+          "after_lines": [
+            182,
+            184
+          ],
+          "original_range_sha256": "cbd3ed258f643d29eaa7c9cce0a37486c84f6a329de6ee88fd458829fbfe8ffc",
+          "current_full_range_sha256": "cbd3ed258f643d29eaa7c9cce0a37486c84f6a329de6ee88fd458829fbfe8ffc",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/18",
+          "name": "UiInputTimerState::toast_id",
+          "before_lines": [
+            141,
+            146
+          ],
+          "after_lines": [
+            187,
+            193
+          ],
+          "original_range_sha256": "b8be8a8bf06e5f01ab9fbc0b0ee5db85b39271eb3e23e0cdd75298e140d710cf",
+          "current_full_range_sha256": "b79a858214b80d956fd08f8abca2b1207ffdd18b37a3fd072142a0956fa44155",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/18/control_points/0",
+          "name": "通知标识借用",
+          "before_lines": [
+            142,
+            144
+          ],
+          "after_lines": [
+            189,
+            191
+          ],
+          "original_range_sha256": "ffa724c44e93b1505974b4c6f39361ebe8d99a31e6d2dd1ba12c989b651a2b1d",
+          "current_full_range_sha256": "ffa724c44e93b1505974b4c6f39361ebe8d99a31e6d2dd1ba12c989b651a2b1d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/19",
+          "name": "UiInputTimerState::double_click_expiration",
+          "before_lines": [
+            147,
+            152
+          ],
+          "after_lines": [
+            194,
+            200
+          ],
+          "original_range_sha256": "a846b5464a40c148ff57e43a8c8756dc17751ac7904aaded258494ead24b55e5",
+          "current_full_range_sha256": "599c1aafbee41d52f8256ba21dd2818b2119344b59f5e3db2c17452301a1c947",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/19/control_points/0",
+          "name": "双击截止投影",
+          "before_lines": [
+            148,
+            150
+          ],
+          "after_lines": [
+            196,
+            198
+          ],
+          "original_range_sha256": "4bc4a947db6ec5eb5112b5ea0153bfc16500c733a493424e7987784697a6ce6e",
+          "current_full_range_sha256": "4bc4a947db6ec5eb5112b5ea0153bfc16500c733a493424e7987784697a6ce6e",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/20",
+          "name": "UiInputTimerState::double_click_target",
+          "before_lines": [
+            153,
+            158
+          ],
+          "after_lines": [
+            201,
+            207
+          ],
+          "original_range_sha256": "7a0e0358251ac742dbef045b474786572d697b5fe4f8d839c40148022cd9dd70",
+          "current_full_range_sha256": "2ce56ac8198b6fe9f5f21d6333074047f900a534bcad3842c41eb29347b49c3f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/20/control_points/0",
+          "name": "双击目标投影",
+          "before_lines": [
+            154,
+            156
+          ],
+          "after_lines": [
+            203,
+            205
+          ],
+          "original_range_sha256": "4d39e454285925d86038b9b1ec890ac6a03114e103036925b7c305aed9e4e7ad",
+          "current_full_range_sha256": "4d39e454285925d86038b9b1ec890ac6a03114e103036925b7c305aed9e4e7ad",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/21",
+          "name": "UiInputTimerState::double_click_count",
+          "before_lines": [
+            159,
+            164
+          ],
+          "after_lines": [
+            208,
+            214
+          ],
+          "original_range_sha256": "4cd345bc74739fd05d69fd9195a998865b918fd9b731944e6500046796358de6",
+          "current_full_range_sha256": "69a3bc8f500e46696a948d9234ae4445534ea59d3cebc39fe70cf578445773d9",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/21/control_points/0",
+          "name": "已存次数投影",
+          "before_lines": [
+            160,
+            162
+          ],
+          "after_lines": [
+            210,
+            212
+          ],
+          "original_range_sha256": "5a386ed154de63dfb287456f706e1fbd6852f3ad1e2d69a5a88e28ad2a986d64",
+          "current_full_range_sha256": "5a386ed154de63dfb287456f706e1fbd6852f3ad1e2d69a5a88e28ad2a986d64",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/22",
+          "name": "UiInputTimerState::arm_typeahead_expiration",
+          "before_lines": [
+            165,
+            177
+          ],
+          "after_lines": [
+            215,
+            233
+          ],
+          "original_range_sha256": "dd93b58e1a37ad541f7e7885d9f9793565afdaf361909eeda150b40a6d8dd754",
+          "current_full_range_sha256": "94ed3a9a975030351c67f44d81ac9f0ca6da860dbb285695d286549e4d7c567f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/22/control_points/0",
+          "name": "毫秒饱和换算",
+          "before_lines": [
+            171,
+            171
+          ],
+          "after_lines": [
+            227,
+            227
+          ],
+          "original_range_sha256": "014448ea57d847f7613b9329236749177fac2145fd99cce8bb5e452ac808317f",
+          "current_full_range_sha256": "014448ea57d847f7613b9329236749177fac2145fd99cce8bb5e452ac808317f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/22/control_points/1",
+          "name": "截止饱和加法",
+          "before_lines": [
+            172,
+            174
+          ],
+          "after_lines": [
+            228,
+            230
+          ],
+          "original_range_sha256": "b07da2f3a37e6bc8daacb57c2e22595fcf3a93e2e7f2f58679e7732a358d177a",
+          "current_full_range_sha256": "b07da2f3a37e6bc8daacb57c2e22595fcf3a93e2e7f2f58679e7732a358d177a",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/22/control_points/2",
+          "name": "单节点覆盖",
+          "before_lines": [
+            175,
+            175
+          ],
+          "after_lines": [
+            231,
+            231
+          ],
+          "original_range_sha256": "6c89f107c51eb7146213d7d06dab6c82b1cc391b8f8514e23f6fc890c794828b",
+          "current_full_range_sha256": "6c89f107c51eb7146213d7d06dab6c82b1cc391b8f8514e23f6fc890c794828b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/23",
+          "name": "UiInputTimerState::arm_submenu_hover_expiration",
+          "before_lines": [
+            178,
+            196
+          ],
+          "after_lines": [
+            234,
+            256
+          ],
+          "original_range_sha256": "584cfdd3de70d7af8cfb282bbd65bd86619852dab4340bd4b687346b4a361066",
+          "current_full_range_sha256": "c1d2d95b48f01dc1d2734573381709f6d440d80ee1f00dcf3f552d566fbe5c17",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/23/control_points/0",
+          "name": "延迟到饱和截止",
+          "before_lines": [
+            185,
+            187
+          ],
+          "after_lines": [
+            245,
+            247
+          ],
+          "original_range_sha256": "fc4a2365e44092cab05ad94a4b2f968c20293d0a929f1070d89bcc472f54aecc",
+          "current_full_range_sha256": "fc4a2365e44092cab05ad94a4b2f968c20293d0a929f1070d89bcc472f54aecc",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/23/control_points/1",
+          "name": "拥有标识并覆盖",
+          "before_lines": [
+            188,
+            194
+          ],
+          "after_lines": [
+            248,
+            254
+          ],
+          "original_range_sha256": "d5ffd63de2acb38ad97ade5ff7c31d10ccb34fd959b5985ce45b0730399c71a7",
+          "current_full_range_sha256": "d5ffd63de2acb38ad97ade5ff7c31d10ccb34fd959b5985ce45b0730399c71a7",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/24",
+          "name": "UiInputTimerState::arm_tooltip_expiration",
+          "before_lines": [
+            197,
+            215
+          ],
+          "after_lines": [
+            257,
+            279
+          ],
+          "original_range_sha256": "2d0ae9e10d5c0892654a6bca0e14fd990ea98d8fd5d6d780f23df569d5f6bfe8",
+          "current_full_range_sha256": "e1010390b9d1745b7829dcd5e81d466c901b74d0ea9bff91d2053112c70d8c55",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/24/control_points/0",
+          "name": "延迟到饱和截止",
+          "before_lines": [
+            204,
+            206
+          ],
+          "after_lines": [
+            268,
+            270
+          ],
+          "original_range_sha256": "fc4a2365e44092cab05ad94a4b2f968c20293d0a929f1070d89bcc472f54aecc",
+          "current_full_range_sha256": "fc4a2365e44092cab05ad94a4b2f968c20293d0a929f1070d89bcc472f54aecc",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/24/control_points/1",
+          "name": "拥有提示ID并覆盖",
+          "before_lines": [
+            207,
+            213
+          ],
+          "after_lines": [
+            271,
+            277
+          ],
+          "original_range_sha256": "d7f5cc181dd9707e1154cab406ba2ac0bdc14385cebba5aa75a5df8c41967e8b",
+          "current_full_range_sha256": "d7f5cc181dd9707e1154cab406ba2ac0bdc14385cebba5aa75a5df8c41967e8b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/25",
+          "name": "UiInputTimerState::clear_submenu_hover_expiration",
+          "before_lines": [
+            216,
+            219
+          ],
+          "after_lines": [
+            280,
+            284
+          ],
+          "original_range_sha256": "e540b4937a6aa8b51269486652918fb19dad884b7a51a91639c729f77d5c7eb5",
+          "current_full_range_sha256": "35bc762aa3319275496318d0331bd13179d6ad3f2162eaf03a67147bc56b24ee",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/25/control_points/0",
+          "name": "局部删除",
+          "before_lines": [
+            217,
+            217
+          ],
+          "after_lines": [
+            282,
+            282
+          ],
+          "original_range_sha256": "3045095b8dab0e24de90f8b1f9ffcbbc7952d8ae0b60487d322b65fd891d3bb7",
+          "current_full_range_sha256": "3045095b8dab0e24de90f8b1f9ffcbbc7952d8ae0b60487d322b65fd891d3bb7",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/26",
+          "name": "UiInputTimerState::clear_tooltip_expiration",
+          "before_lines": [
+            220,
+            223
+          ],
+          "after_lines": [
+            285,
+            289
+          ],
+          "original_range_sha256": "7ba52c966902c4bec5a200ea011de9c7d565540ad7dacfff9e2b652a823a3bfb",
+          "current_full_range_sha256": "67bcf05cd847fc7494f8ef28f182563fbe4b5a24d79e93373bf862ca8e57aeaf",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/26/control_points/0",
+          "name": "局部提示候选删除",
+          "before_lines": [
+            221,
+            221
+          ],
+          "after_lines": [
+            287,
+            287
+          ],
+          "original_range_sha256": "70af98c5d1b19f7e369deb8604864b278fcb090d0f7e1fd02d5b86f9b7b28eec",
+          "current_full_range_sha256": "70af98c5d1b19f7e369deb8604864b278fcb090d0f7e1fd02d5b86f9b7b28eec",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/27",
+          "name": "UiInputTimerState::clear_tooltip_expirations",
+          "before_lines": [
+            224,
+            227
+          ],
+          "after_lines": [
+            290,
+            294
+          ],
+          "original_range_sha256": "cc8fe6fb6a73dfab7533eb201d5a6463a5da71dd18825201fc1c717351ae1d7d",
+          "current_full_range_sha256": "9687fdfcc39d7d6887be21d2a0176779fc4f5af103e31800eef395f39db6ebbf",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/27/control_points/0",
+          "name": "仅提示Map全清",
+          "before_lines": [
+            225,
+            225
+          ],
+          "after_lines": [
+            292,
+            292
+          ],
+          "original_range_sha256": "694ea4a8dea437ac37048436f47444e70ba11bce78d38aa2db50bf800b12a80b",
+          "current_full_range_sha256": "694ea4a8dea437ac37048436f47444e70ba11bce78d38aa2db50bf800b12a80b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/28",
+          "name": "UiInputTimerState::arm_tooltip_intro",
+          "before_lines": [
+            228,
+            237
+          ],
+          "after_lines": [
+            295,
+            308
+          ],
+          "original_range_sha256": "b5d55d36730c14a43dbc224a345b252ae6f198fc7c20b6c38479ecda1b573383",
+          "current_full_range_sha256": "9a3948efe97925aff0959e11baa47284444caa86c1c4787798998a1b6e1f582c",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/28/control_points/0",
+          "name": "默认持续时间换算",
+          "before_lines": [
+            229,
+            229
+          ],
+          "after_lines": [
+            300,
+            300
+          ],
+          "original_range_sha256": "f266373605e7caf5a9402ffc73c6957906734ce47f4f448baa45d4b5c1a93d87",
+          "current_full_range_sha256": "f266373605e7caf5a9402ffc73c6957906734ce47f4f448baa45d4b5c1a93d87",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/28/control_points/1",
+          "name": "覆盖唯一动画区间",
+          "before_lines": [
+            230,
+            235
+          ],
+          "after_lines": [
+            301,
+            306
+          ],
+          "original_range_sha256": "b8799ca232fa97b865001cfdab108516ecde88e22ef5303682cff2b7c8205aff",
+          "current_full_range_sha256": "b8799ca232fa97b865001cfdab108516ecde88e22ef5303682cff2b7c8205aff",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/29",
+          "name": "UiInputTimerState::clear_tooltip_intro",
+          "before_lines": [
+            238,
+            241
+          ],
+          "after_lines": [
+            309,
+            313
+          ],
+          "original_range_sha256": "5b8c651467eadbeff738017fd967f6eccf94d942fa92ecc4044c802d0e337be4",
+          "current_full_range_sha256": "3a375f9ac9eafa649fbc8d716446557396603d1e88c593441a288b018f8d9da6",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/29/control_points/0",
+          "name": "动画槽清空",
+          "before_lines": [
+            239,
+            239
+          ],
+          "after_lines": [
+            311,
+            311
+          ],
+          "original_range_sha256": "7a0a90533cf3fe70b92b1254365c59e4b366a5bac454184671f530a86f4c3750",
+          "current_full_range_sha256": "7a0a90533cf3fe70b92b1254365c59e4b366a5bac454184671f530a86f4c3750",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/30",
+          "name": "UiInputTimerState::expire_tooltip_intro",
+          "before_lines": [
+            242,
+            250
+          ],
+          "after_lines": [
+            314,
+            323
+          ],
+          "original_range_sha256": "9620b2837670b8f8e7bc4ea526c671ffef5f748b271da030442fd8fa5a1cb1ca",
+          "current_full_range_sha256": "dfd3839974b503423a187f7f23bed583c1ad85c26915d6e239b12a03122b49f2",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/30/control_points/0",
+          "name": "含等号到期门",
+          "before_lines": [
+            243,
+            246
+          ],
+          "after_lines": [
+            316,
+            319
+          ],
+          "original_range_sha256": "ac9281d4262f8400f5efe3cb53e154fcee14597545bf35a1f3016b6b7f08cb00",
+          "current_full_range_sha256": "ac9281d4262f8400f5efe3cb53e154fcee14597545bf35a1f3016b6b7f08cb00",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/30/control_points/1",
+          "name": "显式清除",
+          "before_lines": [
+            247,
+            247
+          ],
+          "after_lines": [
+            320,
+            320
+          ],
+          "original_range_sha256": "d1e7a082eda13fcdb75aa35e19b92167b3b96c9834ec638d8f252eb7fec72b6b",
+          "current_full_range_sha256": "d1e7a082eda13fcdb75aa35e19b92167b3b96c9834ec638d8f252eb7fec72b6b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/31",
+          "name": "UiInputTimerState::double_click_count_for_release",
+          "before_lines": [
+            251,
+            270
+          ],
+          "after_lines": [
+            324,
+            352
+          ],
+          "original_range_sha256": "8ffc8c34b9baf42e9a097fcf2a7296c50fab7a1154fa91d9fe9f2e11299f253d",
+          "current_full_range_sha256": "8481ef679eb963507717d27d0fdde36280bb3898527526ed464137e462d0c528",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/31/control_points/0",
+          "name": "联合身份及有效截止",
+          "before_lines": [
+            259,
+            266
+          ],
+          "after_lines": [
+            341,
+            348
+          ],
+          "original_range_sha256": "39937b6799d9b49e156cf4edd79c685d8a32ba3ccee67c873222a578d8002870",
+          "current_full_range_sha256": "39937b6799d9b49e156cf4edd79c685d8a32ba3ccee67c873222a578d8002870",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/31/control_points/1",
+          "name": "匹配饱和递增",
+          "before_lines": [
+            267,
+            267
+          ],
+          "after_lines": [
+            349,
+            349
+          ],
+          "original_range_sha256": "51be11ea7f4067296fd1e3f55f25f4cac2b42b7a3ac45a53d99c062bb51f1a58",
+          "current_full_range_sha256": "51be11ea7f4067296fd1e3f55f25f4cac2b42b7a3ac45a53d99c062bb51f1a58",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/31/control_points/2",
+          "name": "无匹配回退",
+          "before_lines": [
+            268,
+            268
+          ],
+          "after_lines": [
+            350,
+            350
+          ],
+          "original_range_sha256": "537f841abe1ee3d76c9b475e0b110a6c6679cc6c57a9c54f97d453e59a70cbbd",
+          "current_full_range_sha256": "537f841abe1ee3d76c9b475e0b110a6c6679cc6c57a9c54f97d453e59a70cbbd",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/32",
+          "name": "UiInputTimerState::arm_double_click_candidate",
+          "before_lines": [
+            271,
+            293
+          ],
+          "after_lines": [
+            353,
+            379
+          ],
+          "original_range_sha256": "6704ee5eb1d288135ff94f4aed942c361d52696290913b039edd2801a2f95d9a",
+          "current_full_range_sha256": "0520102a8b9612511aeeaf0cee0da9abd83d6bc66311c8ed9e87037b86526258",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/32/control_points/0",
+          "name": "固定窗口饱和截止",
+          "before_lines": [
+            280,
+            283
+          ],
+          "after_lines": [
+            366,
+            369
+          ],
+          "original_range_sha256": "591db714a7202fa64a94ddfa5a549b51ac7c5785bdbf771d7ec70de08d375780",
+          "current_full_range_sha256": "591db714a7202fa64a94ddfa5a549b51ac7c5785bdbf771d7ec70de08d375780",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/32/control_points/1",
+          "name": "替换候选并规范次数",
+          "before_lines": [
+            284,
+            291
+          ],
+          "after_lines": [
+            370,
+            377
+          ],
+          "original_range_sha256": "da12a5572cca806dfbbe138bd7a382a8a9cb7cab2ca681e2ad04ab6078ce9660",
+          "current_full_range_sha256": "da12a5572cca806dfbbe138bd7a382a8a9cb7cab2ca681e2ad04ab6078ce9660",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/33",
+          "name": "UiInputTimerState::clear_double_click_candidate",
+          "before_lines": [
+            294,
+            297
+          ],
+          "after_lines": [
+            380,
+            384
+          ],
+          "original_range_sha256": "6c1daab88feae7a23413ad2ef17ac5b8ec3364a641fd7ed8a342547a3edca113",
+          "current_full_range_sha256": "2e17bb5a7f6911247368b976c24e3d8046bb5195107a1b83de59bcb41769ec47",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/33/control_points/0",
+          "name": "唯一候选清空",
+          "before_lines": [
+            295,
+            295
+          ],
+          "after_lines": [
+            382,
+            382
+          ],
+          "original_range_sha256": "b8b4a6bb6406fb9d62c423750b14b843c5739385d4853e4434ce92b67124cdd7",
+          "current_full_range_sha256": "b8b4a6bb6406fb9d62c423750b14b843c5739385d4853e4434ce92b67124cdd7",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/34",
+          "name": "UiInputTimerState::expire_double_click_candidate",
+          "before_lines": [
+            298,
+            306
+          ],
+          "after_lines": [
+            385,
+            394
+          ],
+          "original_range_sha256": "4312c816eec0cacc5a170f325b838a412f2f8be313f07f5687140ac168e7ad9d",
+          "current_full_range_sha256": "d7d76501ef6c1072cb47c234a5852bb643520c3dd416994d43d8af4c61af9dac",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/34/control_points/0",
+          "name": "含等号清除门",
+          "before_lines": [
+            299,
+            302
+          ],
+          "after_lines": [
+            387,
+            390
+          ],
+          "original_range_sha256": "13d2724928b6a06c87080d2d152fc39a842246a1d47934915aff056fd1a5e8c9",
+          "current_full_range_sha256": "13d2724928b6a06c87080d2d152fc39a842246a1d47934915aff056fd1a5e8c9",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/34/control_points/1",
+          "name": "调用显式清除",
+          "before_lines": [
+            303,
+            303
+          ],
+          "after_lines": [
+            391,
+            391
+          ],
+          "original_range_sha256": "434a7f727422fcb70e4b1a51f1edee0848872a167bed24d0385d8d8f9b6f2415",
+          "current_full_range_sha256": "434a7f727422fcb70e4b1a51f1edee0848872a167bed24d0385d8d8f9b6f2415",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/35",
+          "name": "UiInputTimerState::arm_toast_expiration",
+          "before_lines": [
+            307,
+            323
+          ],
+          "after_lines": [
+            395,
+            415
+          ],
+          "original_range_sha256": "55b8812d29031e2e614b5907939fe180d6bea5d38307f7e6e1169bb4dd852fd9",
+          "current_full_range_sha256": "19c1b0f29c4c987a5a20a0af882aa6d464684a13084dd3bebdeb21abd58e404c",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/35/control_points/0",
+          "name": "共用截止计算",
+          "before_lines": [
+            314,
+            314
+          ],
+          "after_lines": [
+            406,
+            406
+          ],
+          "original_range_sha256": "b9ceaea6761d10d3d1950e43453a25f086bceaa9df4b2b0f3d04c2d7bd34dcf8",
+          "current_full_range_sha256": "b9ceaea6761d10d3d1950e43453a25f086bceaa9df4b2b0f3d04c2d7bd34dcf8",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/35/control_points/1",
+          "name": "拥有ID完整覆盖",
+          "before_lines": [
+            315,
+            321
+          ],
+          "after_lines": [
+            407,
+            413
+          ],
+          "original_range_sha256": "404071f42eb980a52770295048390393a4620e78889fc88b56134ed6f957b145",
+          "current_full_range_sha256": "404071f42eb980a52770295048390393a4620e78889fc88b56134ed6f957b145",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/36",
+          "name": "UiInputTimerState::arm_toast_expiration_ref",
+          "before_lines": [
+            324,
+            348
+          ],
+          "after_lines": [
+            416,
+            444
+          ],
+          "original_range_sha256": "11b6861895c462c96b3cd17fc72d60409773ac89ad9ec54c05c5169b03e49c6b",
+          "current_full_range_sha256": "7a557cc7ce50c15555f684a8ccf5bab2bd0799a2b4fdc9b51296e31775caf7f1",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/36/control_points/0",
+          "name": "先算公共截止",
+          "before_lines": [
+            331,
+            331
+          ],
+          "after_lines": [
+            427,
+            427
+          ],
+          "original_range_sha256": "b9ceaea6761d10d3d1950e43453a25f086bceaa9df4b2b0f3d04c2d7bd34dcf8",
+          "current_full_range_sha256": "b9ceaea6761d10d3d1950e43453a25f086bceaa9df4b2b0f3d04c2d7bd34dcf8",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/36/control_points/1",
+          "name": "已有节点载荷",
+          "before_lines": [
+            333,
+            339
+          ],
+          "after_lines": [
+            429,
+            435
+          ],
+          "original_range_sha256": "ac49fa3b1005fbfda6a315b6883b5ea4f44daa8e7e8769075bc74e2b565b60ff",
+          "current_full_range_sha256": "ac49fa3b1005fbfda6a315b6883b5ea4f44daa8e7e8769075bc74e2b565b60ff",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/36/control_points/2",
+          "name": "空缺节点插入",
+          "before_lines": [
+            340,
+            345
+          ],
+          "after_lines": [
+            436,
+            441
+          ],
+          "original_range_sha256": "bd5210939ebbd1204ae7fdbb49e0c624db26a86540d2248d46f68cf2e2a0548d",
+          "current_full_range_sha256": "bd5210939ebbd1204ae7fdbb49e0c624db26a86540d2248d46f68cf2e2a0548d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/37",
+          "name": "UiInputTimerState::clear_toast_expiration",
+          "before_lines": [
+            349,
+            352
+          ],
+          "after_lines": [
+            445,
+            449
+          ],
+          "original_range_sha256": "5cc84ac96b9e09e2600ddf0c822091ff20f9195d44358612852b03887fa1e3b7",
+          "current_full_range_sha256": "5f966da8dc5dd307db5218bd0b06520f7a83c5ced1e428ea8372d6c2bb5b27ae",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/37/control_points/0",
+          "name": "通知候选删除",
+          "before_lines": [
+            350,
+            350
+          ],
+          "after_lines": [
+            447,
+            447
+          ],
+          "original_range_sha256": "d779f9d34aa79368b0fab84957551b678ec2ffadcf4b6806b881cb5adf61c1a7",
+          "current_full_range_sha256": "d779f9d34aa79368b0fab84957551b678ec2ffadcf4b6806b881cb5adf61c1a7",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/38",
+          "name": "UiInputTimerState::drain_expired_typeahead",
+          "before_lines": [
+            353,
+            369
+          ],
+          "after_lines": [
+            450,
+            475
+          ],
+          "original_range_sha256": "3842896081698a3b99dedeabe29d218a118c50a87c5ed800c8220c941476defd",
+          "current_full_range_sha256": "89d3b362513bfad9f741cb415beaadd727dc5570653836a1bd5ca3fc2f63f742",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/38/control_points/0",
+          "name": "空输出与表长",
+          "before_lines": [
+            354,
+            355
+          ],
+          "after_lines": [
+            460,
+            461
+          ],
+          "original_range_sha256": "efd39ddc708d282d2c85b4b04a20e12e25177f85217049798cbfe49851f0fe35",
+          "current_full_range_sha256": "efd39ddc708d282d2c85b4b04a20e12e25177f85217049798cbfe49851f0fe35",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/38/control_points/1",
+          "name": "按键序到期门",
+          "before_lines": [
+            356,
+            357
+          ],
+          "after_lines": [
+            462,
+            463
+          ],
+          "original_range_sha256": "503e85a7212d294a80908d9b2cd8e49420a2e13c660e97904dfc8cde28c9405b",
+          "current_full_range_sha256": "503e85a7212d294a80908d9b2cd8e49420a2e13c660e97904dfc8cde28c9405b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/38/control_points/2",
+          "name": "首项懒预留并取键",
+          "before_lines": [
+            358,
+            362
+          ],
+          "after_lines": [
+            464,
+            468
+          ],
+          "original_range_sha256": "b9bcffbe99e3e61b5d754568af693eedc5d7a18b301dcb001873a54c828e3841",
+          "current_full_range_sha256": "b9bcffbe99e3e61b5d754568af693eedc5d7a18b301dcb001873a54c828e3841",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/38/control_points/3",
+          "name": "未到期保留",
+          "before_lines": [
+            363,
+            365
+          ],
+          "after_lines": [
+            469,
+            471
+          ],
+          "original_range_sha256": "b51fc657d957bc015cccd07618b80446be06aee207c9eaef054e313b983eb10b",
+          "current_full_range_sha256": "b51fc657d957bc015cccd07618b80446be06aee207c9eaef054e313b983eb10b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/39",
+          "name": "UiInputTimerState::drain_expired_submenu_hover",
+          "before_lines": [
+            370,
+            389
+          ],
+          "after_lines": [
+            476,
+            497
+          ],
+          "original_range_sha256": "068a64d3c29119980711d71e5ce8ef3a8fe7cfb185acd0257900742fe86bfa4c",
+          "current_full_range_sha256": "da2d974d0bfa414619c03c3848541b9944657ff76f400d1cb90220c0202b4eb0",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/39/control_points/0",
+          "name": "输出和旧表长",
+          "before_lines": [
+            374,
+            375
+          ],
+          "after_lines": [
+            482,
+            483
+          ],
+          "original_range_sha256": "74c469f2716a752082af057610b425ca3592f2fcb245fb499710839c075e6e87",
+          "current_full_range_sha256": "74c469f2716a752082af057610b425ca3592f2fcb245fb499710839c075e6e87",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/39/control_points/1",
+          "name": "含等号到期分支",
+          "before_lines": [
+            376,
+            380
+          ],
+          "after_lines": [
+            484,
+            488
+          ],
+          "original_range_sha256": "39ce7c1631499520b7628855692044ff161a5c27eb0416d67a86568589e84e81",
+          "current_full_range_sha256": "39ce7c1631499520b7628855692044ff161a5c27eb0416d67a86568589e84e81",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/39/control_points/2",
+          "name": "选项ID移出并删除",
+          "before_lines": [
+            381,
+            382
+          ],
+          "after_lines": [
+            489,
+            490
+          ],
+          "original_range_sha256": "cd377cbe147e29a85d849ca3a2d744cadf6a6715318922fc01165de1cae192db",
+          "current_full_range_sha256": "cd377cbe147e29a85d849ca3a2d744cadf6a6715318922fc01165de1cae192db",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/39/control_points/3",
+          "name": "未到期保留",
+          "before_lines": [
+            383,
+            385
+          ],
+          "after_lines": [
+            491,
+            493
+          ],
+          "original_range_sha256": "b51fc657d957bc015cccd07618b80446be06aee207c9eaef054e313b983eb10b",
+          "current_full_range_sha256": "b51fc657d957bc015cccd07618b80446be06aee207c9eaef054e313b983eb10b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/40",
+          "name": "UiInputTimerState::drain_expired_tooltips",
+          "before_lines": [
+            390,
+            406
+          ],
+          "after_lines": [
+            498,
+            516
+          ],
+          "original_range_sha256": "dad38431290ebe2868f83111b30d603f5740fb34adeb90c147b82c331f394106",
+          "current_full_range_sha256": "46c568c389dbcd91c47ba8612c7ba93dd93df2667a8720451dc3d1ce671f9c14",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/40/control_points/0",
+          "name": "输出和旧表长",
+          "before_lines": [
+            391,
+            392
+          ],
+          "after_lines": [
+            501,
+            502
+          ],
+          "original_range_sha256": "b791de1ff91c5c388e0c15b5632afb996e67e05d824fec60ba65e3991c3545c1",
+          "current_full_range_sha256": "b791de1ff91c5c388e0c15b5632afb996e67e05d824fec60ba65e3991c3545c1",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/40/control_points/1",
+          "name": "含等号与首项预留",
+          "before_lines": [
+            393,
+            397
+          ],
+          "after_lines": [
+            503,
+            507
+          ],
+          "original_range_sha256": "9e29fa71b4c99e732a0d6d49378c8da730440ce792334e0b3eeebe745acc95bb",
+          "current_full_range_sha256": "9e29fa71b4c99e732a0d6d49378c8da730440ce792334e0b3eeebe745acc95bb",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/40/control_points/2",
+          "name": "提示ID移出并删除",
+          "before_lines": [
+            398,
+            399
+          ],
+          "after_lines": [
+            508,
+            509
+          ],
+          "original_range_sha256": "f10d4b71aa76e86d728dcb0762c4ed46dfd3e8bfecfce49a0b0e94c9a496b9d1",
+          "current_full_range_sha256": "f10d4b71aa76e86d728dcb0762c4ed46dfd3e8bfecfce49a0b0e94c9a496b9d1",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/40/control_points/3",
+          "name": "未到期保留",
+          "before_lines": [
+            400,
+            402
+          ],
+          "after_lines": [
+            510,
+            512
+          ],
+          "original_range_sha256": "b51fc657d957bc015cccd07618b80446be06aee207c9eaef054e313b983eb10b",
+          "current_full_range_sha256": "b51fc657d957bc015cccd07618b80446be06aee207c9eaef054e313b983eb10b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/41",
+          "name": "UiInputTimerState::drain_expired_toasts",
+          "before_lines": [
+            407,
+            424
+          ],
+          "after_lines": [
+            517,
+            536
+          ],
+          "original_range_sha256": "6f9026d69f8943b7a999843ec4495b6729143796fd7eefa95aead9faa1c83da3",
+          "current_full_range_sha256": "b2b91b39522dae29ef6dff817e0859e1ffd041e5150435f613566ecae9b89bae",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/41/control_points/0",
+          "name": "输出和旧表长",
+          "before_lines": [
+            408,
+            409
+          ],
+          "after_lines": [
+            520,
+            521
+          ],
+          "original_range_sha256": "cf404fe16d8c5902c28574082ce063e9ba8bd378028bb81d5b5cac8d95f42a2b",
+          "current_full_range_sha256": "cf404fe16d8c5902c28574082ce063e9ba8bd378028bb81d5b5cac8d95f42a2b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/41/control_points/1",
+          "name": "含等号与首项预留",
+          "before_lines": [
+            410,
+            414
+          ],
+          "after_lines": [
+            522,
+            526
+          ],
+          "original_range_sha256": "b30b148d0474e215d508475419cbf68be6fd99a8d3100f3c9e13970aab38602d",
+          "current_full_range_sha256": "b30b148d0474e215d508475419cbf68be6fd99a8d3100f3c9e13970aab38602d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/41/control_points/2",
+          "name": "通知ID移出并删除",
+          "before_lines": [
+            415,
+            416
+          ],
+          "after_lines": [
+            527,
+            528
+          ],
+          "original_range_sha256": "a67042ed10edd724d3ce16ad33c684c27ece041785055866c8a28a3f2e4bda90",
+          "current_full_range_sha256": "a67042ed10edd724d3ce16ad33c684c27ece041785055866c8a28a3f2e4bda90",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/41/control_points/3",
+          "name": "未到期保留",
+          "before_lines": [
+            417,
+            419
+          ],
+          "after_lines": [
+            529,
+            531
+          ],
+          "original_range_sha256": "b51fc657d957bc015cccd07618b80446be06aee207c9eaef054e313b983eb10b",
+          "current_full_range_sha256": "b51fc657d957bc015cccd07618b80446be06aee207c9eaef054e313b983eb10b",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/42",
+          "name": "通知共用饱和截止计算",
+          "before_lines": [
+            425,
+            429
+          ],
+          "after_lines": [
+            537,
+            542
+          ],
+          "original_range_sha256": "fc43f4e07c26ed6ad181385553615deae078e2ce8783caa3a94b93a9c489eb02",
+          "current_full_range_sha256": "ad28aab9aed048aa10dbea6fae4afb94cb970ce6ae76f4e80365a9940e97a72d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/42/control_points/0",
+          "name": "饱和乘法",
+          "before_lines": [
+            426,
+            426
+          ],
+          "after_lines": [
+            539,
+            539
+          ],
+          "original_range_sha256": "ba5a3704987fbed516f49b343d1da9a2069c941108bd8a2152584b28cfa6b74d",
+          "current_full_range_sha256": "ba5a3704987fbed516f49b343d1da9a2069c941108bd8a2152584b28cfa6b74d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/42/control_points/1",
+          "name": "饱和加法构造",
+          "before_lines": [
+            427,
+            427
+          ],
+          "after_lines": [
+            540,
+            540
+          ],
+          "original_range_sha256": "a06087632ae112a54f6b1bd55bf587aefb094710d5983eb9a4156e525cebaf40",
+          "current_full_range_sha256": "a06087632ae112a54f6b1bd55bf587aefb094710d5983eb9a4156e525cebaf40",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/43",
+          "name": "进入动画下一采样计算",
+          "before_lines": [
+            430,
+            438
+          ],
+          "after_lines": [
+            543,
+            552
+          ],
+          "original_range_sha256": "c64dc9033561815e45cad09c909a90d1952e7b1225c9dfedddaf51d6816feae8",
+          "current_full_range_sha256": "31bcba434bbb2c505c810783253c2d7238549ee55efa50498f346b2efaa0a40a",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/43/control_points/0",
+          "name": "最早采样/截止",
+          "before_lines": [
+            432,
+            436
+          ],
+          "after_lines": [
+            546,
+            550
+          ],
+          "original_range_sha256": "9b4f3d1086888e26caea18368663efc11766f7b919584b880515e70e48912f9e",
+          "current_full_range_sha256": "9b4f3d1086888e26caea18368663efc11766f7b919584b880515e70e48912f9e",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/44",
+          "name": "进入动画归一化进度",
+          "before_lines": [
+            439,
+            454
+          ],
+          "after_lines": [
+            553,
+            569
+          ],
+          "original_range_sha256": "3bbe2d4a359c2e9da32cd211f091aa1558ab2739e9fd54ce31d725b3a973fe76",
+          "current_full_range_sha256": "42e7c0196e8e26143395a7ed49e673148a57c5bc50fe6bf8740fe8a94184ff8f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/44/control_points/0",
+          "name": "饱和区间长度",
+          "before_lines": [
+            440,
+            443
+          ],
+          "after_lines": [
+            554,
+            557
+          ],
+          "original_range_sha256": "8c5938a32f0d5bb5e0c851f4cbf56cbe93dfae44a3bcb50a755d0ee04891b1bd",
+          "current_full_range_sha256": "8c5938a32f0d5bb5e0c851f4cbf56cbe93dfae44a3bcb50a755d0ee04891b1bd",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/44/control_points/1",
+          "name": "零区间短路",
+          "before_lines": [
+            444,
+            446
+          ],
+          "after_lines": [
+            559,
+            561
+          ],
+          "original_range_sha256": "bfe5f962a014bc6e379dbabe85dc0ec5e2735b6aca53844edccddd5586e84a84",
+          "current_full_range_sha256": "bfe5f962a014bc6e379dbabe85dc0ec5e2735b6aca53844edccddd5586e84a84",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/44/control_points/2",
+          "name": "夹紧elapsed和比例",
+          "before_lines": [
+            447,
+            451
+          ],
+          "after_lines": [
+            562,
+            566
+          ],
+          "original_range_sha256": "475a1ef33420f8fe08e926e525f3442e0d6571df77c2b2133f565b0dde8f0dfd",
+          "current_full_range_sha256": "475a1ef33420f8fe08e926e525f3442e0d6571df77c2b2133f565b0dde8f0dfd",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/45",
+          "name": "直接测试模块配置挂载",
+          "before_lines": [
+            455,
+            457
+          ],
+          "after_lines": [
+            570,
+            572
+          ],
+          "original_range_sha256": "d0320b16de3a8994aa0b7ca16c005ef0b5ab1a8d317178ee929254bbda3b130f",
+          "current_full_range_sha256": "d0320b16de3a8994aa0b7ca16c005ef0b5ab1a8d317178ee929254bbda3b130f",
+          "original_bytes_preserved": true
+        }
+      ],
+      "gapfree_block_count": 46,
+      "all_model_ranges_pass": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs",
+      "before": {
+        "sha256": "06d7bb471dbf5257cf88b302697c464de890fc1878c66a7dad2a952887af905f",
+        "bytes": 11714,
+        "lines": 344
+      },
+      "after": {
+        "sha256": "e9f6256ad356802073f30743a1c8de0372a03e39c609d37d8324338ca377051b",
+        "bytes": 12401,
+        "lines": 352
+      },
+      "child_final_sha256": "5673dfba564beb0a11ef03d050bb9d37e123cf8de0a70edeaf7201520abbaef8",
+      "raw_HEAD_sha256": "06d7bb471dbf5257cf88b302697c464de890fc1878c66a7dad2a952887af905f",
+      "inverse_equals_grant_and_raw_HEAD": true,
+      "original_lines_and_EOL_preserved": true,
+      "all_added_lines_comments_or_blank": true,
+      "insertion_groups": 5,
+      "inserted_lines": 8,
+      "range_pairs": [
+        {
+          "location": "objects/0",
+          "name": "SAMPLE_PAIRS",
+          "before_lines": [
+            7,
+            7
+          ],
+          "after_lines": [
+            11,
+            11
+          ],
+          "original_range_sha256": "e40b7beb14a0bc7856a29924cabff4d691f448c354893a1bb2f91859661fb887",
+          "current_full_range_sha256": "e40b7beb14a0bc7856a29924cabff4d691f448c354893a1bb2f91859661fb887",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/1",
+          "name": "optimization_batch_20260826al_input_timer_retain_drain_preserves_order_and_pending_entries",
+          "before_lines": [
+            9,
+            55
+          ],
+          "after_lines": [
+            13,
+            59
+          ],
+          "original_range_sha256": "ac860eec7ea3bfdf19c41d7fa70bed28315556e7523c15cce3f16399887cba76",
+          "current_full_range_sha256": "ac860eec7ea3bfdf19c41d7fa70bed28315556e7523c15cce3f16399887cba76",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/2",
+          "name": "optimization_batch_20260826al_input_timer_uses_single_pass_retain_drains",
+          "before_lines": [
+            57,
+            65
+          ],
+          "after_lines": [
+            61,
+            69
+          ],
+          "original_range_sha256": "4dcbec49b6d05f77ba3e39a0818be65f1eb2d1c145531259119c46cdf4ec2a23",
+          "current_full_range_sha256": "4dcbec49b6d05f77ba3e39a0818be65f1eb2d1c145531259119c46cdf4ec2a23",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/3",
+          "name": "optimization_batch_20260909_runtime274_toast_ref_arm_reuses_same_id_allocation_and_updates_deadline",
+          "before_lines": [
+            67,
+            88
+          ],
+          "after_lines": [
+            71,
+            92
+          ],
+          "original_range_sha256": "a07997d200d7070bb37ca0060434529288edab2126ad9070c5da5833b88adc28",
+          "current_full_range_sha256": "a07997d200d7070bb37ca0060434529288edab2126ad9070c5da5833b88adc28",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/4",
+          "name": "optimization_batch_20260909_runtime274_toast_ref_arm_replaces_changed_id_without_changing_deadline_semantics",
+          "before_lines": [
+            90,
+            103
+          ],
+          "after_lines": [
+            94,
+            107
+          ],
+          "original_range_sha256": "da23362f0f1869f1908a62da1150b7adc7393e7e276b18c8e96a8d9060e8171c",
+          "current_full_range_sha256": "da23362f0f1869f1908a62da1150b7adc7393e7e276b18c8e96a8d9060e8171c",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/5",
+          "name": "runtime824_input_timer_drain_capacity_preserves_order_and_pending_entries",
+          "before_lines": [
+            105,
+            181
+          ],
+          "after_lines": [
+            109,
+            185
+          ],
+          "original_range_sha256": "df02fbc265826f4d7c7b9d5afa580f2d9f2737b6e4c57a94fc4a9161d642d14f",
+          "current_full_range_sha256": "df02fbc265826f4d7c7b9d5afa580f2d9f2737b6e4c57a94fc4a9161d642d14f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/6",
+          "name": "runtime824_input_timer_drain_capacity_release_benchmark",
+          "before_lines": [
+            183,
+            206
+          ],
+          "after_lines": [
+            188,
+            211
+          ],
+          "original_range_sha256": "9cbf67ac73ba14b2b8c8306c6435c0c142013c74d4c4e699802ae447f2d4d976",
+          "current_full_range_sha256": "9cbf67ac73ba14b2b8c8306c6435c0c142013c74d4c4e699802ae447f2d4d976",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/7",
+          "name": "runtime824_input_timer_drain_capacity_release_benchmark::TIMERS",
+          "before_lines": [
+            186,
+            186
+          ],
+          "after_lines": [
+            191,
+            191
+          ],
+          "original_range_sha256": "331f3daefa43f362bd036141db40af91e63a193bf8d9df334a0238a73498aa56",
+          "current_full_range_sha256": "331f3daefa43f362bd036141db40af91e63a193bf8d9df334a0238a73498aa56",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/8",
+          "name": "runtime824_input_timer_drain_capacity_release_benchmark::SAMPLES",
+          "before_lines": [
+            187,
+            187
+          ],
+          "after_lines": [
+            192,
+            192
+          ],
+          "original_range_sha256": "0255681b1a382531f9f1ffcc756b5285cade7bec8f39735dfad69b3b515f9988",
+          "current_full_range_sha256": "0255681b1a382531f9f1ffcc756b5285cade7bec8f39735dfad69b3b515f9988",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/9",
+          "name": "measure_growth",
+          "before_lines": [
+            208,
+            225
+          ],
+          "after_lines": [
+            213,
+            230
+          ],
+          "original_range_sha256": "7427dec1ba2bdd1665ec5b80df1c6d58756c9149ae8a4c71e2a573b4da3f69ef",
+          "current_full_range_sha256": "7427dec1ba2bdd1665ec5b80df1c6d58756c9149ae8a4c71e2a573b4da3f69ef",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/10",
+          "name": "growth_events",
+          "before_lines": [
+            227,
+            241
+          ],
+          "after_lines": [
+            233,
+            247
+          ],
+          "original_range_sha256": "1ffa0e8352d5985eca1b582f84d48c6f9ff5a8a2306cfb47c4f4f05c17288e22",
+          "current_full_range_sha256": "1ffa0e8352d5985eca1b582f84d48c6f9ff5a8a2306cfb47c4f4f05c17288e22",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/11",
+          "name": "optimization_batch_20260826al_input_timer_retain_drain_p95",
+          "before_lines": [
+            243,
+            299
+          ],
+          "after_lines": [
+            250,
+            306
+          ],
+          "original_range_sha256": "fe52a5ec4262bbc0191a59a1e88df981d50b8e3d56edace6962082d1f9d9c23d",
+          "current_full_range_sha256": "fe52a5ec4262bbc0191a59a1e88df981d50b8e3d56edace6962082d1f9d9c23d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/12",
+          "name": "optimization_batch_20260826al_input_timer_retain_drain_p95::TIMERS",
+          "before_lines": [
+            246,
+            246
+          ],
+          "after_lines": [
+            253,
+            253
+          ],
+          "original_range_sha256": "9795637461cbfc7b994e4a17fa284ecff03d6f109b5c5f2acecd3d772b4ba39f",
+          "current_full_range_sha256": "9795637461cbfc7b994e4a17fa284ecff03d6f109b5c5f2acecd3d772b4ba39f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/13",
+          "name": "legacy_drain_expired_tooltips",
+          "before_lines": [
+            301,
+            316
+          ],
+          "after_lines": [
+            308,
+            323
+          ],
+          "original_range_sha256": "bdfcd4af231b10748e75bd1464584b115ebe402d20bc70b3e6faff5d0506f63c",
+          "current_full_range_sha256": "bdfcd4af231b10748e75bd1464584b115ebe402d20bc70b3e6faff5d0506f63c",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/14",
+          "name": "measure_ns",
+          "before_lines": [
+            318,
+            329
+          ],
+          "after_lines": [
+            325,
+            336
+          ],
+          "original_range_sha256": "2970ac4877de69147beb4f16a13a6b196bbf539599046ddf65a80b010c5cf109",
+          "current_full_range_sha256": "2970ac4877de69147beb4f16a13a6b196bbf539599046ddf65a80b010c5cf109",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/14/assertions/0",
+          "name": "测量输出长度",
+          "before_lines": [
+            326,
+            326
+          ],
+          "after_lines": [
+            333,
+            333
+          ],
+          "original_range_sha256": "a39bce83a54ea737b3a070db5cead67e786215e4c5e31891271f1e4af195096f",
+          "current_full_range_sha256": "a39bce83a54ea737b3a070db5cead67e786215e4c5e31891271f1e4af195096f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/14/assertions/1",
+          "name": "测量后剩余项",
+          "before_lines": [
+            327,
+            327
+          ],
+          "after_lines": [
+            334,
+            334
+          ],
+          "original_range_sha256": "1dc85c54eea87d7b19b66cee8123b85a68e94ef9e9394379acb25a9e7a728123",
+          "current_full_range_sha256": "1dc85c54eea87d7b19b66cee8123b85a68e94ef9e9394379acb25a9e7a728123",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/15",
+          "name": "nearest_rank",
+          "before_lines": [
+            331,
+            336
+          ],
+          "after_lines": [
+            339,
+            344
+          ],
+          "original_range_sha256": "a0bd38c77f7b21e7cd90d6634beb0b0be12ff913f3deb8acb39b7ad6a5fc0a04",
+          "current_full_range_sha256": "a0bd38c77f7b21e7cd90d6634beb0b0be12ff913f3deb8acb39b7ad6a5fc0a04",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "objects/16",
+          "name": "join_samples",
+          "before_lines": [
+            338,
+            344
+          ],
+          "after_lines": [
+            346,
+            352
+          ],
+          "original_range_sha256": "cfac1d50b0bbc53a4b380cceaa9268767b53f407d32d15e580601dbfbb34874f",
+          "current_full_range_sha256": "cfac1d50b0bbc53a4b380cceaa9268767b53f407d32d15e580601dbfbb34874f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/0",
+          "name": "测试导入与配对样本常量",
+          "before_lines": [
+            1,
+            8
+          ],
+          "after_lines": [
+            1,
+            12
+          ],
+          "original_range_sha256": "2fe10b18802ce6fd514fab575668f7c7a0a68b8bf7e3cb6ae84e416cdb54b247",
+          "current_full_range_sha256": "693bb70efc31f43aad65f263ada94f62ce0dcc45413bfb991b8f08fde5af9a6c",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/1",
+          "name": "排序与未来载荷语义样例",
+          "before_lines": [
+            9,
+            56
+          ],
+          "after_lines": [
+            13,
+            60
+          ],
+          "original_range_sha256": "13de9a5f3b53ca035f9a875a51e11dd05c2f230923cf74cd200aeb323068fb41",
+          "current_full_range_sha256": "13de9a5f3b53ca035f9a875a51e11dd05c2f230923cf74cd200aeb323068fb41",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/1/control_points/0",
+          "name": "乱序插入夹具",
+          "before_lines": [
+            11,
+            34
+          ],
+          "after_lines": [
+            15,
+            38
+          ],
+          "original_range_sha256": "a147c6b60f87ad512ad9f14e4f6f6c9770e0c6cc3c081c349a971db445781129",
+          "current_full_range_sha256": "a147c6b60f87ad512ad9f14e4f6f6c9770e0c6cc3c081c349a971db445781129",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/1/control_points/1",
+          "name": "四个语义断言",
+          "before_lines": [
+            36,
+            54
+          ],
+          "after_lines": [
+            40,
+            58
+          ],
+          "original_range_sha256": "7f73029e767d298f7b1fdbc47b75487c0798d775278ef51bfad7dae211d93943",
+          "current_full_range_sha256": "7f73029e767d298f7b1fdbc47b75487c0798d775278ef51bfad7dae211d93943",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/2",
+          "name": "完整原始源码文本守卫",
+          "before_lines": [
+            57,
+            66
+          ],
+          "after_lines": [
+            61,
+            70
+          ],
+          "original_range_sha256": "97e230c036dfdece5783a8eeecd9f5ab47868eabcb6fe415f3bf30949c0b9cd4",
+          "current_full_range_sha256": "97e230c036dfdece5783a8eeecd9f5ab47868eabcb6fe415f3bf30949c0b9cd4",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/2/control_points/0",
+          "name": "编译期源码输入",
+          "before_lines": [
+            59,
+            59
+          ],
+          "after_lines": [
+            63,
+            63
+          ],
+          "original_range_sha256": "46e151eb8fc587123b2143fd775d1be42277a4f04bf6fa2a1c18f6ebf5ae6035",
+          "current_full_range_sha256": "46e151eb8fc587123b2143fd775d1be42277a4f04bf6fa2a1c18f6ebf5ae6035",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/2/control_points/1",
+          "name": "retain文本数",
+          "before_lines": [
+            61,
+            61
+          ],
+          "after_lines": [
+            65,
+            65
+          ],
+          "original_range_sha256": "7435d5f1cc5b206d414d7aafc60b3494bea7fb3e9b3013968026e4a65c9cbab1",
+          "current_full_range_sha256": "7435d5f1cc5b206d414d7aafc60b3494bea7fb3e9b3013968026e4a65c9cbab1",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/2/control_points/2",
+          "name": "两条旧循环禁用",
+          "before_lines": [
+            62,
+            63
+          ],
+          "after_lines": [
+            66,
+            67
+          ],
+          "original_range_sha256": "0acccef8d1deb8247d7d49a8ad3d50bdc5e36b096b73332542ab64c50ea4f166",
+          "current_full_range_sha256": "0acccef8d1deb8247d7d49a8ad3d50bdc5e36b096b73332542ab64c50ea4f166",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/2/control_points/3",
+          "name": "移出载荷下限",
+          "before_lines": [
+            64,
+            64
+          ],
+          "after_lines": [
+            68,
+            68
+          ],
+          "original_range_sha256": "92984992da49855dec9624753e301e4d75162b722fb2d2b365e77b51b9b0c2f4",
+          "current_full_range_sha256": "92984992da49855dec9624753e301e4d75162b722fb2d2b365e77b51b9b0c2f4",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/3",
+          "name": "同ID重设保留存储",
+          "before_lines": [
+            67,
+            89
+          ],
+          "after_lines": [
+            71,
+            93
+          ],
+          "original_range_sha256": "ea4611126070b1f980cf38ecd392e7ddcb6a7c43ff8bf2f977dc0f7a7f215921",
+          "current_full_range_sha256": "ea4611126070b1f980cf38ecd392e7ddcb6a7c43ff8bf2f977dc0f7a7f215921",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/3/control_points/0",
+          "name": "旧存储地址采样",
+          "before_lines": [
+            72,
+            74
+          ],
+          "after_lines": [
+            76,
+            78
+          ],
+          "original_range_sha256": "b9da8d6e8d3c342ee9edec2ba18930c5b4034f873a191667de56a7606c057cec",
+          "current_full_range_sha256": "b9da8d6e8d3c342ee9edec2ba18930c5b4034f873a191667de56a7606c057cec",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/3/control_points/1",
+          "name": "同ID更新时间",
+          "before_lines": [
+            76,
+            76
+          ],
+          "after_lines": [
+            80,
+            80
+          ],
+          "original_range_sha256": "c6b67d6580507927dbb56204b031b4c9005be277e66d25f0520f1f2e249f0ee0",
+          "current_full_range_sha256": "c6b67d6580507927dbb56204b031b4c9005be277e66d25f0520f1f2e249f0ee0",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/3/control_points/2",
+          "name": "三断言",
+          "before_lines": [
+            78,
+            87
+          ],
+          "after_lines": [
+            82,
+            91
+          ],
+          "original_range_sha256": "98096d0c405c113ffeab0e4a994394fc130178baf988c00fb2c94736c6d2d657",
+          "current_full_range_sha256": "98096d0c405c113ffeab0e4a994394fc130178baf988c00fb2c94736c6d2d657",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/4",
+          "name": "不同ID重设覆盖载荷",
+          "before_lines": [
+            90,
+            104
+          ],
+          "after_lines": [
+            94,
+            108
+          ],
+          "original_range_sha256": "8cb8a17f70d102cb179b4a1ed1989f3d7856d4109791eadc005817690446d257",
+          "current_full_range_sha256": "8cb8a17f70d102cb179b4a1ed1989f3d7856d4109791eadc005817690446d257",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/4/control_points/0",
+          "name": "先空缺后占用",
+          "before_lines": [
+            95,
+            96
+          ],
+          "after_lines": [
+            99,
+            100
+          ],
+          "original_range_sha256": "fd02cbfc7d4be58c9f7e35bf134fd166e03afb0dd34081ce032a8e789f8ca806",
+          "current_full_range_sha256": "fd02cbfc7d4be58c9f7e35bf134fd166e03afb0dd34081ce032a8e789f8ca806",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/4/control_points/1",
+          "name": "两个输出断言",
+          "before_lines": [
+            98,
+            102
+          ],
+          "after_lines": [
+            102,
+            106
+          ],
+          "original_range_sha256": "70d9d439b1f0e35ea00f389f2aaac2bf1749f7c46b21b0045553141b2c14bdb5",
+          "current_full_range_sha256": "70d9d439b1f0e35ea00f389f2aaac2bf1749f7c46b21b0045553141b2c14bdb5",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/5",
+          "name": "四Map容量/键序/保留项与空输出",
+          "before_lines": [
+            105,
+            182
+          ],
+          "after_lines": [
+            109,
+            186
+          ],
+          "original_range_sha256": "849f09e5fcef993f387e0f485d8a86f02bdf55830d88571ace8c88b50568994d",
+          "current_full_range_sha256": "849f09e5fcef993f387e0f485d8a86f02bdf55830d88571ace8c88b50568994d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/5/control_points/0",
+          "name": "四类共同夹具",
+          "before_lines": [
+            109,
+            133
+          ],
+          "after_lines": [
+            113,
+            137
+          ],
+          "original_range_sha256": "717a98e0d58f54f4bdf3475dedd229f76f6629dfe740f07e2a47c51b01c88bfd",
+          "current_full_range_sha256": "717a98e0d58f54f4bdf3475dedd229f76f6629dfe740f07e2a47c51b01c88bfd",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/5/control_points/1",
+          "name": "四类结果/容量",
+          "before_lines": [
+            135,
+            164
+          ],
+          "after_lines": [
+            139,
+            168
+          ],
+          "original_range_sha256": "a073e8e3327c4d85c7947ea51ab7170065559067bb685b87621acba3cd57f251",
+          "current_full_range_sha256": "a073e8e3327c4d85c7947ea51ab7170065559067bb685b87621acba3cd57f251",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/5/control_points/2",
+          "name": "未来项仍保存",
+          "before_lines": [
+            166,
+            175
+          ],
+          "after_lines": [
+            170,
+            179
+          ],
+          "original_range_sha256": "c420ff139874a1767dbd63b357fe071a0cfb76cb7e5958147da2056d71aa0dfd",
+          "current_full_range_sha256": "c420ff139874a1767dbd63b357fe071a0cfb76cb7e5958147da2056d71aa0dfd",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/5/control_points/3",
+          "name": "无到期再取",
+          "before_lines": [
+            177,
+            180
+          ],
+          "after_lines": [
+            181,
+            184
+          ],
+          "original_range_sha256": "84cf92e957140bc20a65634054c24f1d28b157369390e8a85e2206c22fd912db",
+          "current_full_range_sha256": "84cf92e957140bc20a65634054c24f1d28b157369390e8a85e2206c22fd912db",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/6",
+          "name": "忽略的独立向量增长计时",
+          "before_lines": [
+            183,
+            207
+          ],
+          "after_lines": [
+            187,
+            212
+          ],
+          "original_range_sha256": "0a2161d71b517cb7ba623ed121ceb57e9615d77ba1759f30acc857d33ae0ac1a",
+          "current_full_range_sha256": "984d4d5c261bf38332cd48c94d1f7443c76ba690491b81cc6bef008ebb23beef",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/6/control_points/0",
+          "name": "样本采集次序交替",
+          "before_lines": [
+            190,
+            198
+          ],
+          "after_lines": [
+            195,
+            203
+          ],
+          "original_range_sha256": "919f462351f004607b4c7cca5d35500423f8951927072afa5f11255b836ccc36",
+          "current_full_range_sha256": "919f462351f004607b4c7cca5d35500423f8951927072afa5f11255b836ccc36",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/6/control_points/1",
+          "name": "P95及阈值",
+          "before_lines": [
+            199,
+            201
+          ],
+          "after_lines": [
+            204,
+            206
+          ],
+          "original_range_sha256": "161be0f3f416c7e1b5bcc6748bd9121f28e244cab4dbe5bd06050c2039255a9d",
+          "current_full_range_sha256": "161be0f3f416c7e1b5bcc6748bd9121f28e244cab4dbe5bd06050c2039255a9d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/6/control_points/2",
+          "name": "打印模型/时长",
+          "before_lines": [
+            202,
+            205
+          ],
+          "after_lines": [
+            207,
+            210
+          ],
+          "original_range_sha256": "a52025d35eb792bdd9b6fbab4385004e48f244a7dda0261979cd48aaab45bb7d",
+          "current_full_range_sha256": "a52025d35eb792bdd9b6fbab4385004e48f244a7dda0261979cd48aaab45bb7d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/7",
+          "name": "64轮独立Vec填充测量",
+          "before_lines": [
+            208,
+            226
+          ],
+          "after_lines": [
+            213,
+            231
+          ],
+          "original_range_sha256": "8b4d8b9cee352da46e5e111d15c286f52449c50be1260fa6149fb1523d1d787f",
+          "current_full_range_sha256": "8b4d8b9cee352da46e5e111d15c286f52449c50be1260fa6149fb1523d1d787f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/7/control_points/0",
+          "name": "预留分支",
+          "before_lines": [
+            211,
+            216
+          ],
+          "after_lines": [
+            216,
+            221
+          ],
+          "original_range_sha256": "6548c0c1fc5e04d359667ab921662325a60b1056ee9808e9800341a62cab0c38",
+          "current_full_range_sha256": "6548c0c1fc5e04d359667ab921662325a60b1056ee9808e9800341a62cab0c38",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/7/control_points/1",
+          "name": "填充与校验和",
+          "before_lines": [
+            217,
+            223
+          ],
+          "after_lines": [
+            222,
+            228
+          ],
+          "original_range_sha256": "5b505d832c72870aad57a81e81873dd2e4af98adf62f2e2fa99204856d7bdcff",
+          "current_full_range_sha256": "5b505d832c72870aad57a81e81873dd2e4af98adf62f2e2fa99204856d7bdcff",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/7/control_points/2",
+          "name": "最小时长",
+          "before_lines": [
+            224,
+            224
+          ],
+          "after_lines": [
+            229,
+            229
+          ],
+          "original_range_sha256": "b894d742baeeb540282b39d45df5bf917022f9e1a867d2518d1f4a43efabc592",
+          "current_full_range_sha256": "b894d742baeeb540282b39d45df5bf917022f9e1a867d2518d1f4a43efabc592",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/8",
+          "name": "增长次数诊断模型",
+          "before_lines": [
+            227,
+            242
+          ],
+          "after_lines": [
+            232,
+            248
+          ],
+          "original_range_sha256": "d6d9a1fb7f796ff3683e75f6f9d04c178fc0eb3dff43de490178c212c323575d",
+          "current_full_range_sha256": "c03d3956a1db7b8b10502b8181871e3ee39b2455bf8fdf618a39c65659e45627",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/8/control_points/0",
+          "name": "模型增长条件",
+          "before_lines": [
+            230,
+            238
+          ],
+          "after_lines": [
+            236,
+            244
+          ],
+          "original_range_sha256": "eecb5b0f09e7db14de6c8ee1105d1ba339757799737f5a9db46ccc08ca952197",
+          "current_full_range_sha256": "eecb5b0f09e7db14de6c8ee1105d1ba339757799737f5a9db46ccc08ca952197",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/9",
+          "name": "忽略的取出实现P95对照",
+          "before_lines": [
+            243,
+            300
+          ],
+          "after_lines": [
+            249,
+            307
+          ],
+          "original_range_sha256": "437135062f64b6c41ee73af2063c637cfed3d1337c72420df4440efca80b624b",
+          "current_full_range_sha256": "7a4858c31d4dfc9e21a582dc6076e2da3bbffa22f0ca61149e2404ce48bc4bf2",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/9/control_points/0",
+          "name": "一半到期夹具",
+          "before_lines": [
+            246,
+            257
+          ],
+          "after_lines": [
+            253,
+            264
+          ],
+          "original_range_sha256": "bc16a599fc0de8b179023e58eee962d2a77cd65dc11dccba779773ffee8852db",
+          "current_full_range_sha256": "bc16a599fc0de8b179023e58eee962d2a77cd65dc11dccba779773ffee8852db",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/9/control_points/1",
+          "name": "配对采样次序",
+          "before_lines": [
+            259,
+            281
+          ],
+          "after_lines": [
+            266,
+            288
+          ],
+          "original_range_sha256": "430c21f2644cff45c5d1c745c62189b8c3a20bd938e205ce2887a6e11f3ae583",
+          "current_full_range_sha256": "430c21f2644cff45c5d1c745c62189b8c3a20bd938e205ce2887a6e11f3ae583",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/9/control_points/2",
+          "name": "分位阈值",
+          "before_lines": [
+            283,
+            290
+          ],
+          "after_lines": [
+            290,
+            297
+          ],
+          "original_range_sha256": "bd6fcf68da76c68e2a62444838c6c0b88cbd8421b4e2ecec9599536980c04bf0",
+          "current_full_range_sha256": "bd6fcf68da76c68e2a62444838c6c0b88cbd8421b4e2ecec9599536980c04bf0",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/9/control_points/3",
+          "name": "完整样本打印",
+          "before_lines": [
+            292,
+            298
+          ],
+          "after_lines": [
+            299,
+            305
+          ],
+          "original_range_sha256": "f42d0e9ceef3d5b6ac00f3031f963f0b95833b5cb12a1dcbdb88a89e08b50224",
+          "current_full_range_sha256": "f42d0e9ceef3d5b6ac00f3031f963f0b95833b5cb12a1dcbdb88a89e08b50224",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/10",
+          "name": "旧clone后逐键删除参考",
+          "before_lines": [
+            301,
+            317
+          ],
+          "after_lines": [
+            308,
+            324
+          ],
+          "original_range_sha256": "1ede52ab4b9d9dbe46d03f7bbb1c48f01f9e77b14a44da6794388d3ddc4986c0",
+          "current_full_range_sha256": "1ede52ab4b9d9dbe46d03f7bbb1c48f01f9e77b14a44da6794388d3ddc4986c0",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/10/control_points/0",
+          "name": "收集并克隆到期载荷",
+          "before_lines": [
+            305,
+            311
+          ],
+          "after_lines": [
+            312,
+            318
+          ],
+          "original_range_sha256": "2be32ad9ae8f21141d313a61d23b90acf0a56be3b406906de063111fb75d026a",
+          "current_full_range_sha256": "2be32ad9ae8f21141d313a61d23b90acf0a56be3b406906de063111fb75d026a",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/10/control_points/1",
+          "name": "第二阶段删除",
+          "before_lines": [
+            312,
+            314
+          ],
+          "after_lines": [
+            319,
+            321
+          ],
+          "original_range_sha256": "24264e4c74fe8f954377e81585abd9140e7df6b086b69e9694229faeb85455c1",
+          "current_full_range_sha256": "24264e4c74fe8f954377e81585abd9140e7df6b086b69e9694229faeb85455c1",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/11",
+          "name": "操作计时与固定半数校验",
+          "before_lines": [
+            318,
+            330
+          ],
+          "after_lines": [
+            325,
+            337
+          ],
+          "original_range_sha256": "270393948765a9f76c2f51be81f31109fc1358e755b83aa44a685cfb220d2c96",
+          "current_full_range_sha256": "270393948765a9f76c2f51be81f31109fc1358e755b83aa44a685cfb220d2c96",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/11/control_points/0",
+          "name": "计时操作",
+          "before_lines": [
+            323,
+            325
+          ],
+          "after_lines": [
+            330,
+            332
+          ],
+          "original_range_sha256": "96deb56b16b8927d3099f52508110d1fe36cad7ef86bcd91be55f146b60394ad",
+          "current_full_range_sha256": "96deb56b16b8927d3099f52508110d1fe36cad7ef86bcd91be55f146b60394ad",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/11/control_points/1",
+          "name": "固定夹具长度校验",
+          "before_lines": [
+            326,
+            327
+          ],
+          "after_lines": [
+            333,
+            334
+          ],
+          "original_range_sha256": "22d209ba2d584caabc32bf39f5f1d8a8c5f39ad4b49a03ebbfa2a39b142edbe2",
+          "current_full_range_sha256": "22d209ba2d584caabc32bf39f5f1d8a8c5f39ad4b49a03ebbfa2a39b142edbe2",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/12",
+          "name": "nearest-rank私有分位选择",
+          "before_lines": [
+            331,
+            337
+          ],
+          "after_lines": [
+            338,
+            345
+          ],
+          "original_range_sha256": "c58e3c30023173675a1a2ae00f6708d6f3f292cdd14c4c9a851cf98c432ebc66",
+          "current_full_range_sha256": "c2198425cef2c61de784d315389bb3f4a8167f64589c5d0924b012047ca12bf5",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/12/control_points/0",
+          "name": "排序与排名",
+          "before_lines": [
+            332,
+            335
+          ],
+          "after_lines": [
+            340,
+            343
+          ],
+          "original_range_sha256": "7d14d9165e0c798969fd4300fd8e5978c9ab08eda8a04946f4b5b96e1e4a2499",
+          "current_full_range_sha256": "7d14d9165e0c798969fd4300fd8e5978c9ab08eda8a04946f4b5b96e1e4a2499",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/13",
+          "name": "打印样本序列格式化",
+          "before_lines": [
+            338,
+            344
+          ],
+          "after_lines": [
+            346,
+            352
+          ],
+          "original_range_sha256": "cfac1d50b0bbc53a4b380cceaa9268767b53f407d32d15e580601dbfbb34874f",
+          "current_full_range_sha256": "cfac1d50b0bbc53a4b380cceaa9268767b53f407d32d15e580601dbfbb34874f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "block_audit/13/control_points/0",
+          "name": "格式化收集",
+          "before_lines": [
+            339,
+            343
+          ],
+          "after_lines": [
+            347,
+            351
+          ],
+          "original_range_sha256": "92fb0e088cd22a0d93b07a0d1bdcb7ca0ba12304c6559d1e246ec52f1d7ec2cc",
+          "current_full_range_sha256": "92fb0e088cd22a0d93b07a0d1bdcb7ca0ba12304c6559d1e246ec52f1d7ec2cc",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/0",
+          "name": "optimization_batch_20260826al_input_timer_retain_drain_preserves_order_and_pending_entries",
+          "before_lines": [
+            9,
+            55
+          ],
+          "after_lines": [
+            13,
+            59
+          ],
+          "original_range_sha256": "ac860eec7ea3bfdf19c41d7fa70bed28315556e7523c15cce3f16399887cba76",
+          "current_full_range_sha256": "ac860eec7ea3bfdf19c41d7fa70bed28315556e7523c15cce3f16399887cba76",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/0/assertions/0",
+          "name": "到期键按节点排序",
+          "before_lines": [
+            36,
+            39
+          ],
+          "after_lines": [
+            40,
+            43
+          ],
+          "original_range_sha256": "363fadcd58c4d580b1cecee2506aa2ffb05589039094d8f99315ad5e04d953c1",
+          "current_full_range_sha256": "363fadcd58c4d580b1cecee2506aa2ffb05589039094d8f99315ad5e04d953c1",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/0/assertions/1",
+          "name": "到期子菜单ID随键排序",
+          "before_lines": [
+            40,
+            46
+          ],
+          "after_lines": [
+            44,
+            50
+          ],
+          "original_range_sha256": "430a786e1933756a8a9021b37b9d6f172109dcd8f288eeb535059ab825c9a06a",
+          "current_full_range_sha256": "430a786e1933756a8a9021b37b9d6f172109dcd8f288eeb535059ab825c9a06a",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/0/assertions/2",
+          "name": "未来typeahead保留",
+          "before_lines": [
+            47,
+            50
+          ],
+          "after_lines": [
+            51,
+            54
+          ],
+          "original_range_sha256": "523e63280eaf86fd6b06c40572b6f416410f444e0142f0847a49bbf1fc97b3dd",
+          "current_full_range_sha256": "523e63280eaf86fd6b06c40572b6f416410f444e0142f0847a49bbf1fc97b3dd",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/0/assertions/3",
+          "name": "未来submenu载荷保留",
+          "before_lines": [
+            51,
+            54
+          ],
+          "after_lines": [
+            55,
+            58
+          ],
+          "original_range_sha256": "1abb7491e0c47528766bad7a3c992e6ba5c65782b5aeefada7598808d4d84180",
+          "current_full_range_sha256": "1abb7491e0c47528766bad7a3c992e6ba5c65782b5aeefada7598808d4d84180",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/1",
+          "name": "optimization_batch_20260826al_input_timer_uses_single_pass_retain_drains",
+          "before_lines": [
+            57,
+            65
+          ],
+          "after_lines": [
+            61,
+            69
+          ],
+          "original_range_sha256": "4dcbec49b6d05f77ba3e39a0818be65f1eb2d1c145531259119c46cdf4ec2a23",
+          "current_full_range_sha256": "4dcbec49b6d05f77ba3e39a0818be65f1eb2d1c145531259119c46cdf4ec2a23",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/1/assertions/0",
+          "name": "四处retain文本",
+          "before_lines": [
+            61,
+            61
+          ],
+          "after_lines": [
+            65,
+            65
+          ],
+          "original_range_sha256": "7435d5f1cc5b206d414d7aafc60b3494bea7fb3e9b3013968026e4a65c9cbab1",
+          "current_full_range_sha256": "7435d5f1cc5b206d414d7aafc60b3494bea7fb3e9b3013968026e4a65c9cbab1",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/1/assertions/1",
+          "name": "禁止旧键列表再删除循环",
+          "before_lines": [
+            62,
+            62
+          ],
+          "after_lines": [
+            66,
+            66
+          ],
+          "original_range_sha256": "21f3487157fe968d7fe9958950d0001a1824d755d24b6e2625339d5ac7f22119",
+          "current_full_range_sha256": "21f3487157fe968d7fe9958950d0001a1824d755d24b6e2625339d5ac7f22119",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/1/assertions/2",
+          "name": "禁止旧pair列表再删除循环",
+          "before_lines": [
+            63,
+            63
+          ],
+          "after_lines": [
+            67,
+            67
+          ],
+          "original_range_sha256": "166ac5dddde369e41e2d1ecc287b518505e195c5403c534520f291bf0ff993ea",
+          "current_full_range_sha256": "166ac5dddde369e41e2d1ecc287b518505e195c5403c534520f291bf0ff993ea",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/1/assertions/3",
+          "name": "至少三处载荷取走文本",
+          "before_lines": [
+            64,
+            64
+          ],
+          "after_lines": [
+            68,
+            68
+          ],
+          "original_range_sha256": "92984992da49855dec9624753e301e4d75162b722fb2d2b365e77b51b9b0c2f4",
+          "current_full_range_sha256": "92984992da49855dec9624753e301e4d75162b722fb2d2b365e77b51b9b0c2f4",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/2",
+          "name": "optimization_batch_20260909_runtime274_toast_ref_arm_reuses_same_id_allocation_and_updates_deadline",
+          "before_lines": [
+            67,
+            88
+          ],
+          "after_lines": [
+            71,
+            92
+          ],
+          "original_range_sha256": "a07997d200d7070bb37ca0060434529288edab2126ad9070c5da5833b88adc28",
+          "current_full_range_sha256": "a07997d200d7070bb37ca0060434529288edab2126ad9070c5da5833b88adc28",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/2/assertions/0",
+          "name": "通知ID保持相同",
+          "before_lines": [
+            78,
+            78
+          ],
+          "after_lines": [
+            82,
+            82
+          ],
+          "original_range_sha256": "393b1fdab9e3e26e44ff1b34a7b3b5c2401eacdb564f7747c08472aa6ccac217",
+          "current_full_range_sha256": "393b1fdab9e3e26e44ff1b34a7b3b5c2401eacdb564f7747c08472aa6ccac217",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/2/assertions/1",
+          "name": "通知String指针保持",
+          "before_lines": [
+            79,
+            83
+          ],
+          "after_lines": [
+            83,
+            87
+          ],
+          "original_range_sha256": "d6cda82b908676041ab502aa4532564473cbca5a256466d617daf1a5f3f0edab",
+          "current_full_range_sha256": "d6cda82b908676041ab502aa4532564473cbca5a256466d617daf1a5f3f0edab",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/2/assertions/2",
+          "name": "同ID也更新截止",
+          "before_lines": [
+            84,
+            87
+          ],
+          "after_lines": [
+            88,
+            91
+          ],
+          "original_range_sha256": "b2039a47c7d426a7529ae57442d6887ed5feb20805c8b8ddf3cbedd3385750f5",
+          "current_full_range_sha256": "b2039a47c7d426a7529ae57442d6887ed5feb20805c8b8ddf3cbedd3385750f5",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/3",
+          "name": "optimization_batch_20260909_runtime274_toast_ref_arm_replaces_changed_id_without_changing_deadline_semantics",
+          "before_lines": [
+            90,
+            103
+          ],
+          "after_lines": [
+            94,
+            107
+          ],
+          "original_range_sha256": "da23362f0f1869f1908a62da1150b7adc7393e7e276b18c8e96a8d9060e8171c",
+          "current_full_range_sha256": "da23362f0f1869f1908a62da1150b7adc7393e7e276b18c8e96a8d9060e8171c",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/3/assertions/0",
+          "name": "不同ID替换",
+          "before_lines": [
+            98,
+            98
+          ],
+          "after_lines": [
+            102,
+            102
+          ],
+          "original_range_sha256": "ce319b61a853cf3818c33100aadfc1563146eb5085904d62663ddcdeecc9df49",
+          "current_full_range_sha256": "ce319b61a853cf3818c33100aadfc1563146eb5085904d62663ddcdeecc9df49",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/3/assertions/1",
+          "name": "不同ID仍更新截止",
+          "before_lines": [
+            99,
+            102
+          ],
+          "after_lines": [
+            103,
+            106
+          ],
+          "original_range_sha256": "b2039a47c7d426a7529ae57442d6887ed5feb20805c8b8ddf3cbedd3385750f5",
+          "current_full_range_sha256": "b2039a47c7d426a7529ae57442d6887ed5feb20805c8b8ddf3cbedd3385750f5",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4",
+          "name": "runtime824_input_timer_drain_capacity_preserves_order_and_pending_entries",
+          "before_lines": [
+            105,
+            181
+          ],
+          "after_lines": [
+            109,
+            185
+          ],
+          "original_range_sha256": "df02fbc265826f4d7c7b9d5afa580f2d9f2737b6e4c57a94fc4a9161d642d14f",
+          "current_full_range_sha256": "df02fbc265826f4d7c7b9d5afa580f2d9f2737b6e4c57a94fc4a9161d642d14f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/0",
+          "name": "typeahead结果",
+          "before_lines": [
+            136,
+            136
+          ],
+          "after_lines": [
+            140,
+            140
+          ],
+          "original_range_sha256": "cdd24adeb0a99f03ab64a93bda49f4a2539e2ac3416d8299a595a8bf9c902a2f",
+          "current_full_range_sha256": "cdd24adeb0a99f03ab64a93bda49f4a2539e2ac3416d8299a595a8bf9c902a2f",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/1",
+          "name": "typeahead懒预留",
+          "before_lines": [
+            137,
+            137
+          ],
+          "after_lines": [
+            141,
+            141
+          ],
+          "original_range_sha256": "0d2f9e61dc95b403c1054d653c65e95664d2218fa66d43c3e2b295515a849907",
+          "current_full_range_sha256": "0d2f9e61dc95b403c1054d653c65e95664d2218fa66d43c3e2b295515a849907",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/2",
+          "name": "submenu结果",
+          "before_lines": [
+            139,
+            145
+          ],
+          "after_lines": [
+            143,
+            149
+          ],
+          "original_range_sha256": "bab7d90c9c5f46ac06d69ea7a598602f770fbc542d3a09e4bde36c33e589d545",
+          "current_full_range_sha256": "bab7d90c9c5f46ac06d69ea7a598602f770fbc542d3a09e4bde36c33e589d545",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/3",
+          "name": "submenu懒预留",
+          "before_lines": [
+            146,
+            146
+          ],
+          "after_lines": [
+            150,
+            150
+          ],
+          "original_range_sha256": "bd6da5a13344939951cfeab67210d8ab3d1348c2b14f1d626075f87f998fec19",
+          "current_full_range_sha256": "bd6da5a13344939951cfeab67210d8ab3d1348c2b14f1d626075f87f998fec19",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/4",
+          "name": "tooltip结果",
+          "before_lines": [
+            148,
+            154
+          ],
+          "after_lines": [
+            152,
+            158
+          ],
+          "original_range_sha256": "1bde672598d118104d05a4d9c1ac2e9adfd9828488b4706e849eddd6d664b888",
+          "current_full_range_sha256": "1bde672598d118104d05a4d9c1ac2e9adfd9828488b4706e849eddd6d664b888",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/5",
+          "name": "tooltip懒预留",
+          "before_lines": [
+            155,
+            155
+          ],
+          "after_lines": [
+            159,
+            159
+          ],
+          "original_range_sha256": "50607030d052a05a6f418b2d85f62658d95d722577566f3a5474e4e10f1ac45a",
+          "current_full_range_sha256": "50607030d052a05a6f418b2d85f62658d95d722577566f3a5474e4e10f1ac45a",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/6",
+          "name": "toast结果",
+          "before_lines": [
+            157,
+            163
+          ],
+          "after_lines": [
+            161,
+            167
+          ],
+          "original_range_sha256": "f5347a36efb8bcaf052f977871b191b5a6b1531d4367883ef7320aa5d450b9a8",
+          "current_full_range_sha256": "f5347a36efb8bcaf052f977871b191b5a6b1531d4367883ef7320aa5d450b9a8",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/7",
+          "name": "toast懒预留",
+          "before_lines": [
+            164,
+            164
+          ],
+          "after_lines": [
+            168,
+            168
+          ],
+          "original_range_sha256": "9e2a81691cf9ac2786c6f6c035eb535852bd7ee2c41d94c33744642b7f006567",
+          "current_full_range_sha256": "9e2a81691cf9ac2786c6f6c035eb535852bd7ee2c41d94c33744642b7f006567",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/8",
+          "name": "未来typeahead截止",
+          "before_lines": [
+            166,
+            169
+          ],
+          "after_lines": [
+            170,
+            173
+          ],
+          "original_range_sha256": "523e63280eaf86fd6b06c40572b6f416410f444e0142f0847a49bbf1fc97b3dd",
+          "current_full_range_sha256": "523e63280eaf86fd6b06c40572b6f416410f444e0142f0847a49bbf1fc97b3dd",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/9",
+          "name": "未来submenu标识",
+          "before_lines": [
+            170,
+            173
+          ],
+          "after_lines": [
+            174,
+            177
+          ],
+          "original_range_sha256": "6f6c81c9b071ad83e0e8520be7ba303a78756eebbb99c359a366bfcefaee88d1",
+          "current_full_range_sha256": "6f6c81c9b071ad83e0e8520be7ba303a78756eebbb99c359a366bfcefaee88d1",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/10",
+          "name": "未来tooltip标识",
+          "before_lines": [
+            174,
+            174
+          ],
+          "after_lines": [
+            178,
+            178
+          ],
+          "original_range_sha256": "05fd0fa26ad98b63b1d63fe19acf11b1411d6e74d2c210a3c15a30cc8af0c1c5",
+          "current_full_range_sha256": "05fd0fa26ad98b63b1d63fe19acf11b1411d6e74d2c210a3c15a30cc8af0c1c5",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/11",
+          "name": "未来toast标识",
+          "before_lines": [
+            175,
+            175
+          ],
+          "after_lines": [
+            179,
+            179
+          ],
+          "original_range_sha256": "a71b8afe888a4ad117d17f714c84e9619233e7ad4198e7d804b5e75b37a356c3",
+          "current_full_range_sha256": "a71b8afe888a4ad117d17f714c84e9619233e7ad4198e7d804b5e75b37a356c3",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/12",
+          "name": "再次取出为空",
+          "before_lines": [
+            178,
+            178
+          ],
+          "after_lines": [
+            182,
+            182
+          ],
+          "original_range_sha256": "45d7033abfd344938b0cf8b7ce1eb71d354ea79638fa459b837d9301185f12f7",
+          "current_full_range_sha256": "45d7033abfd344938b0cf8b7ce1eb71d354ea79638fa459b837d9301185f12f7",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/4/assertions/13",
+          "name": "无到期不预留",
+          "before_lines": [
+            179,
+            179
+          ],
+          "after_lines": [
+            183,
+            183
+          ],
+          "original_range_sha256": "05159625882ac6c5cc58d5b3670615e1ce526a7d182074af2e674561b166351e",
+          "current_full_range_sha256": "05159625882ac6c5cc58d5b3670615e1ce526a7d182074af2e674561b166351e",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/5",
+          "name": "runtime824_input_timer_drain_capacity_release_benchmark",
+          "before_lines": [
+            183,
+            206
+          ],
+          "after_lines": [
+            188,
+            211
+          ],
+          "original_range_sha256": "9cbf67ac73ba14b2b8c8306c6435c0c142013c74d4c4e699802ae447f2d4d976",
+          "current_full_range_sha256": "9cbf67ac73ba14b2b8c8306c6435c0c142013c74d4c4e699802ae447f2d4d976",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/5/assertions/0",
+          "name": "Vec预留计时阈值",
+          "before_lines": [
+            201,
+            201
+          ],
+          "after_lines": [
+            206,
+            206
+          ],
+          "original_range_sha256": "9b75e29d08d3b9bc1caa9665041f951805ad7c50b545024b789b5fb8beb0eeaa",
+          "current_full_range_sha256": "9b75e29d08d3b9bc1caa9665041f951805ad7c50b545024b789b5fb8beb0eeaa",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/6",
+          "name": "optimization_batch_20260826al_input_timer_retain_drain_p95",
+          "before_lines": [
+            243,
+            299
+          ],
+          "after_lines": [
+            250,
+            306
+          ],
+          "original_range_sha256": "fe52a5ec4262bbc0191a59a1e88df981d50b8e3d56edace6962082d1f9d9c23d",
+          "current_full_range_sha256": "fe52a5ec4262bbc0191a59a1e88df981d50b8e3d56edace6962082d1f9d9c23d",
+          "original_bytes_preserved": true
+        },
+        {
+          "location": "test_contracts/6/assertions/0",
+          "name": "取出实现P95阈值",
+          "before_lines": [
+            287,
+            290
+          ],
+          "after_lines": [
+            294,
+            297
+          ],
+          "original_range_sha256": "96072e8a9a4ee878d56ae131f1140722bb41802030218306476f64b8cd5a0f0d",
+          "current_full_range_sha256": "96072e8a9a4ee878d56ae131f1140722bb41802030218306476f64b8cd5a0f0d",
+          "original_bytes_preserved": true
+        }
+      ],
+      "gapfree_block_count": 14,
+      "all_model_ranges_pass": true
+    }
+  ],
+  "context_pins": [
+    {
+      "path": "zircon_runtime/src/ui/dispatch/mod.rs",
+      "sha256": "e67edf6c955fa4b3e71840eda052b05c41d90223048f38e79fa681c79c0b8d04",
+      "bytes": 1190,
+      "lines": 28,
+      "root_full_read_reused_from": "docs/plans/source-comments/reviews/R057-main.json",
+      "record_sha256": "a8f11bdab70705a5009c5a5f84f1ecde708747f334ee6a2f28f58161ece467ad",
+      "fresh_pin_check": "7fa6fe exit0/PID36736",
+      "purpose": "Facade/manager lifecycle, tick and dispatch/click classification/renewal, borrowed toast queue and actual state tests."
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/mod.rs",
+      "sha256": "34e208ea2439c40f95e9da698d4c02ab4e32ed1ad283675386e49d5fbf8250f1",
+      "bytes": 1575,
+      "lines": 42,
+      "root_full_read_reused_from": "docs/plans/source-comments/reviews/R057-main.json",
+      "record_sha256": "a8f11bdab70705a5009c5a5f84f1ecde708747f334ee6a2f28f58161ece467ad",
+      "fresh_pin_check": "7fa6fe exit0/PID36736",
+      "purpose": "Facade/manager lifecycle, tick and dispatch/click classification/renewal, borrowed toast queue and actual state tests."
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "sha256": "53f765ce0479c1f1775cc62e853251ca65fd7c1d94e1527f3305a761b71332f3",
+      "bytes": 31169,
+      "lines": 796,
+      "root_full_read_reused_from": "docs/plans/source-comments/reviews/R057-main.json",
+      "record_sha256": "a8f11bdab70705a5009c5a5f84f1ecde708747f334ee6a2f28f58161ece467ad",
+      "fresh_pin_check": "7fa6fe exit0/PID36736",
+      "purpose": "Facade/manager lifecycle, tick and dispatch/click classification/renewal, borrowed toast queue and actual state tests."
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager/toast_timer_queue.rs",
+      "sha256": "6fd354151cde36e9be0f8158374b951a5dccb2643aaeafa443028127bc22220d",
+      "bytes": 3635,
+      "lines": 99,
+      "root_full_read_reused_from": "docs/plans/source-comments/reviews/R057-main.json",
+      "record_sha256": "a8f11bdab70705a5009c5a5f84f1ecde708747f334ee6a2f28f58161ece467ad",
+      "fresh_pin_check": "7fa6fe exit0/PID36736",
+      "purpose": "Facade/manager lifecycle, tick and dispatch/click classification/renewal, borrowed toast queue and actual state tests."
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/cases.rs",
+      "sha256": "ddd230fde5e32a88c854fa661157b97dd9cc44d70fcf75e1a65c0c57c5fca74c",
+      "bytes": 21114,
+      "lines": 621,
+      "root_full_read_reused_from": "docs/plans/source-comments/reviews/R057-main.json",
+      "record_sha256": "a8f11bdab70705a5009c5a5f84f1ecde708747f334ee6a2f28f58161ece467ad",
+      "fresh_pin_check": "7fa6fe exit0/PID36736",
+      "purpose": "Facade/manager lifecycle, tick and dispatch/click classification/renewal, borrowed toast queue and actual state tests."
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/toast_timer_queue.rs",
+      "sha256": "68efff9d862a7c906d87f543b61659fea64e7125044c0d2a2c1a4ed35a4106b7",
+      "bytes": 2264,
+      "lines": 60,
+      "root_full_read_reused_from": "docs/plans/source-comments/reviews/R057-main.json",
+      "record_sha256": "a8f11bdab70705a5009c5a5f84f1ecde708747f334ee6a2f28f58161ece467ad",
+      "fresh_pin_check": "7fa6fe exit0/PID36736",
+      "purpose": "Facade/manager lifecycle, tick and dispatch/click classification/renewal, borrowed toast queue and actual state tests."
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/dispatch/input/metadata.rs",
+      "sha256": "22a9068825dce3e6fe02af8df0801d7ae5a30a657f86f2c564e9e4edb5124d6c",
+      "bytes": 3869,
+      "lines": 135,
+      "root_read_spans": [
+        [
+          60,
+          108
+        ]
+      ],
+      "receipt": "136e64 exit0/PID6612",
+      "purpose": "Monotonic microsecond u64 DTO; no validation by constructor.",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/surface/default_interactions/timers.rs",
+      "sha256": "645fcbd910f42a5392de83f1ea2258baceead2b3953c2c0cd4b57286eaabed30",
+      "bytes": 5196,
+      "lines": 160,
+      "root_read_spans": [
+        [
+          1,
+          80
+        ]
+      ],
+      "receipt": "136e64 exit0/PID6612",
+      "purpose": "Default tooltip delay and live-node/config checks before arming; different raw-source domain from R063.",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/retained/dispatch/templates/workbench/icon_tooltip.rs",
+      "sha256": "b8cec88c728db549410209b7285c177f3ee181c8477264ac949e8a5e9526c6d9",
+      "bytes": 20060,
+      "lines": 555,
+      "root_read_spans": [
+        [
+          111,
+          132
+        ],
+        [
+          198,
+          211
+        ],
+        [
+          225,
+          239
+        ]
+      ],
+      "receipt": "136e64 exit0/PID6612",
+      "purpose": "Editor forwards visible-frame delay and selects tooltip delay defaults.",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/event_ui/reflection.rs",
+      "sha256": "e91dfe9b80eabee8e63e0106b9ae983dc22052b46d82d375874d9a974ad80de7",
+      "bytes": 24164,
+      "lines": 673,
+      "root_read_spans": [
+        [
+          1,
+          85
+        ]
+      ],
+      "receipt": "136e64 exit0/PID6612",
+      "purpose": "Actual current UiNodeId macro/derives and raw numeric identity; child older context pin superseded by R064 task comments.",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_surface_default_interactions.rs",
+      "sha256": "a0ed5ecd0c674937c88286839fa8f1f07b34168a1474fa0f6d5847912c5cc9af",
+      "bytes": 5261,
+      "lines": 118,
+      "root_read_spans": [
+        [
+          1,
+          118
+        ]
+      ],
+      "receipt": "136e64 exit0/PID6612",
+      "purpose": "Locator false positive: reads surface-side timers, not either R063 source.",
+      "formal_coverage": false
+    },
+    {
+      "path": "tools/tests/test_runtime_input_timer_drain_capacity_performance_contract.py",
+      "sha256": "608945c7adc5b6027030a4c9c31fd682af3b708cec845e5d3ed1681633d2a1b6",
+      "bytes": 2139,
+      "lines": 54,
+      "root_read_spans": [
+        [
+          1,
+          54
+        ]
+      ],
+      "full_read_receipt": "fae250/native48310->32be1d exit0/PID4000",
+      "raw_predicate_receipt": "4ba183 exit0/PID36376",
+      "purpose": "Complete original source-string consumer; no unittest execution, no formal coverage claim.",
+      "formal_coverage": false
+    },
+    {
+      "path": "tools/tests/test_editor_zui_runtime_tooltip_contract.py",
+      "sha256": "52d057150d2598577aa3591ea10c1c29f979b56014a610af7de1aaf7d0b8a46a",
+      "bytes": 13568,
+      "lines": 285,
+      "root_read_spans": [
+        [
+          1,
+          285
+        ]
+      ],
+      "full_read_receipt": "fae250/native48310->32be1d exit0/PID4000",
+      "raw_predicate_receipt": "4ba183 exit0/PID36376",
+      "purpose": "Complete original source-string consumer; no unittest execution, no formal coverage claim.",
+      "formal_coverage": false
+    }
+  ],
+  "root_decisions": [
+    {
+      "scope": "模块与六种状态类型、21字段",
+      "finding": "该状态只保存由调用者提供的同一单调微秒时间域，不拥有时钟、线程、Surface或节点生命周期。Default为空，Clone独立复制Map/String，NodeId仅数值身份。查询返回保存值或受self约束的借用，不自动清理。"
+    },
+    {
+      "scope": "可见工作等待与最近tick",
+      "finding": "等待值只合并四张节点Map与intro下一采样点，排除双击候选和last_tick。无工作None、过期或相等截止Duration零；record_tick只覆盖一个字段。16ms采样是计算候选，不保证帧率。"
+    },
+    {
+      "scope": "所有arm与单节点清理入口",
+      "finding": "毫秒先饱和乘1000，起点微秒再饱和加；零延迟为起点。Map按键覆盖，String自有；不验证节点/选项/提示当前存在。清理单种计时状态，不替消费者改变Surface。"
+    },
+    {
+      "scope": "tooltip intro",
+      "finding": "唯一100ms区间在消费者确认实际可见后启动；arm_tooltip_expiration自身不启动。查询裁剪0..1且不删除；expire在deadline<=now删除。起点u64MAX使饱和截止等于起点，零区间返回1分支可达。"
+    },
+    {
+      "scope": "双击候选与调用顺序",
+      "finding": "只有一个联合target/pointer/source/button身份候选。分类deadline>=now且只读、次数饱和加1；arm最少1、固定500ms。expire用deadline<=now。相等边界取决于先清理还是先分类，不能据此推定缺陷。相同SHA的manager完整证据复用R057，tick先清理，正常dispatch先准备分类、成功后续期；fresh2f068a复核真实prepare_double_click_pointer_release/arm_double_click_from_pointer_release方法、输入click_count.max和身份原样传递。"
+    },
+    {
+      "scope": "通知borrowed arm",
+      "finding": "Occupied总更新新deadline，只有ID不同时to_owned替换；Vacant复制。相同ID保留该String存储，对应指针相等样例，不扩张为全局零分配承诺。owned/ref共享截止计算。"
+    },
+    {
+      "scope": "四个到期drain",
+      "finding": "逐张Map的单次retain遍历以deadline<=now移除；返回BTreeMap节点键序，非截止时间或插入序。首个命中按原Map.len预留，完全无到期则Vec容量零。三种String用mem::take移出，方法内不clone；不派发事件或验证当前提示身份，消费者再判断。"
+    },
+    {
+      "scope": "五个普通测试与31断言点",
+      "finding": "顺序/未到期保留、同ID存储与新deadline、不同ID替换、容量下限/无到期等均为固定状态样例。31宏点含measure_ns共享2点，不能按其多次调用重复计数；7测试入口中2ignored，实际运行均0。未覆盖的饱和、等号、全部四类空容量和目标失效不伪称测试通过。"
+    },
+    {
+      "scope": "两个ignored基准",
+      "finding": "第一个测64轮独立Vec构造、填充与释放，不调用计时器drain；增长次数是0→4→倍增模型。第二个只测tooltip取出操作，旧/新各自从fixture独立clone，clone在调用前、两个断言和结果/状态析构在计时后。17对交替顺序为9旧先/8新先，nearest-rank95在17样本取最大值，阈值不构成实际性能证据。"
+    },
+    {
+      "scope": "私有helper与保留文档",
+      "finding": "nearest_rank当前非空17样本、50/95百分位满足索引前提，不改成通用验证API；join_samples只在计时后分配打印。用途清楚的常量、test入口、私有简单helper审查后保留既有说明。"
+    },
+    {
+      "scope": "独立文档修正",
+      "finding": "只将本任务新增tests249一行改为同一初始状态的独立副本，避免暗示两种操作共用一个已变状态。原801行逐字节/EOL不变；不可变child记录保留，差异由root amendment记录。"
+    },
+    {
+      "scope": "宏、trait、动态入口与FFI",
+      "finding": "本模块仅内建派生和inherent impl，无Serde实现/注册、动态handler注册或FFI/unsafe入口。NodeId外部宏已读实际当前版本，派生排序决定Map顺序，不能把数值身份当有效树节点证明。"
+    },
+    {
+      "scope": "跨语言原文消费者",
+      "finding": "四条Rust全文谓词、容量Python的四个正则完整匹配域与22源码谓词、两个常量tooltip谓词均保持原计数/选择域且新增注释贡献0。容量另3条常量模型断言静态真。tooltip方法首个旧物理路径在101行缺失，9次读取中第1次即阻断，其两条常量谓词仅独立观察为真，实际不可达；不使用替换路径冒充输入。"
+    }
+  ],
+  "issues": [],
+  "command_results": [
+    {
+      "argv": [
+        "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--check",
+        "--",
+        "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+        "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/ui/dispatch/input_manager/timers.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs.\nThe file will have its original line endings in your working directory\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--cached",
+        "--name-only",
+        "--",
+        "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+        "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--numstat",
+        "--",
+        "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+        "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs"
+      ],
+      "exit_code": 0,
+      "stdout": "115\t0\tzircon_runtime/src/ui/dispatch/input_manager/timers.rs\n8\t0\tzircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs\n",
+      "stderr_reused_from_command_index": 1
+    }
+  ],
+  "validation": {
+    "actual_receipt": "d0fe6c/native82152->73edc5 exit0/PID34960",
+    "all_original_bytes_and_EOL_comments_code_API_strings_assertions_macro_inputs_preserved": true,
+    "all286_model_ranges_original_bytes_preserved": true,
+    "all60_blocks_gapfree_original_source": true,
+    "format_affected_test": {
+      "argv": [
+        "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "format_timer_same_source_reuse": {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+      "sha256": "37bb04981b0ad8166f22a9cffbd5fdb08740ff98f9fbb3517ce4945fb11721a8",
+      "actual_prior": "d35f15/native51929->91b2e0 exit0/PID2468 exact2 fmt0",
+      "same_source_and_config": true
+    },
+    "patch": {
+      "sha256": "979c62e2f504169f282bd91c113a565787e86adc387a60a85a7fe33784fbcc5c",
+      "bytes": 19005,
+      "stderr_reused_from_command_index": 1
+    },
+    "change_guard": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "979c62e2f504169f282bd91c113a565787e86adc387a60a85a7fe33784fbcc5c",
+        "base": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+        "files": [
+          "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+          "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs"
+        ],
+        "declaredPaths": [
+          "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+          "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": []
+    },
+    "rust_raw4": {
+      "domain": "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+      "consumer": "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs",
+      "read": "Rust include_str complete UTF8 source; comments included",
+      "needles": [
+        ".retain(",
+        "for target in &expired",
+        "for (target, _) in &expired",
+        "std::mem::take("
+      ],
+      "before_counts": [
+        4,
+        0,
+        0,
+        3
+      ],
+      "after_counts": [
+        4,
+        0,
+        0,
+        3
+      ],
+      "complete_predicates": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "new_comment_contributions": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rust_test_execution": "not-run"
+    },
+    "external_python": {
+      "capacity_consumer": {
+        "path": "tools/tests/test_runtime_input_timer_drain_capacity_performance_contract.py",
+        "sha256": "608945c7adc5b6027030a4c9c31fd682af3b708cec845e5d3ed1681633d2a1b6",
+        "function_rows": [
+          {
+            "function": "drain_expired_typeahead",
+            "bound": "self.typeahead_expirations.len()",
+            "selector_regex": "pub fn\\s+drain_expired_typeahead\\(.*?\\n\\s*}\\n",
+            "before_span": [
+              11097,
+              11478
+            ],
+            "after_span": [
+              14634,
+              15015
+            ],
+            "selected_body_sha256": "a199e2d9b79dad7eec2605e8ac00139a0e82b6f53d751fe220e4c09811fd6c4f",
+            "selected_body_identical": true,
+            "all_five_predicates": true,
+            "new_comment_contribution": 0
+          },
+          {
+            "function": "drain_expired_submenu_hover",
+            "bound": "self.submenu_hover_expirations.len()",
+            "selector_regex": "pub fn\\s+drain_expired_submenu_hover\\(.*?\\n\\s*}\\n",
+            "before_span": [
+              11634,
+              12072
+            ],
+            "after_span": [
+              15271,
+              15709
+            ],
+            "selected_body_sha256": "27781ab455a3dc84096d3e4d16abfaad2668e1ed0816cbc573de4da7dc997d3b",
+            "selected_body_identical": true,
+            "all_five_predicates": true,
+            "new_comment_contribution": 0
+          },
+          {
+            "function": "drain_expired_tooltips",
+            "bound": "self.tooltip_expirations.len()",
+            "selector_regex": "pub fn\\s+drain_expired_tooltips\\(.*?\\n\\s*}\\n",
+            "before_span": [
+              12273,
+              12671
+            ],
+            "after_span": [
+              16010,
+              16408
+            ],
+            "selected_body_sha256": "715a6246653ea6383bffb5074f8fc00bd639c1781dbd6481caeba0dfd8ce4573",
+            "selected_body_identical": true,
+            "all_five_predicates": true,
+            "new_comment_contribution": 0
+          },
+          {
+            "function": "drain_expired_toasts",
+            "bound": "self.toast_expirations.len()",
+            "selector_regex": "pub fn\\s+drain_expired_toasts\\(.*?\\n\\s*}\\n",
+            "before_span": [
+              12873,
+              13265
+            ],
+            "after_span": [
+              16709,
+              17101
+            ],
+            "selected_body_sha256": "d3f290e2f399f314e44c2db94c714ee761119d12c088cbb184dd7d978ee5ec55",
+            "selected_body_identical": true,
+            "all_five_predicates": true,
+            "new_comment_contribution": 0
+          }
+        ],
+        "lower_predicates": [
+          {
+            "needle": "runtime824_input_timer_drain_capacity_preserves_order_and_pending_entries",
+            "before_count": 1,
+            "after_count": 1,
+            "assertIn": true,
+            "new_comment_contribution": 0
+          },
+          {
+            "needle": "RUNTIME824_INPUT_TIMER_DRAIN_CAPACITY_BENCH_V1",
+            "before_count": 1,
+            "after_count": 1,
+            "assertIn": true,
+            "new_comment_contribution": 0
+          }
+        ],
+        "constant_model_predicates": [
+          true,
+          true,
+          true
+        ],
+        "source_dependent_predicates": 22,
+        "constant_model_predicates_count": 3,
+        "all25_static_predicates_true": true,
+        "unittest_execution": "not-run",
+        "selector_offsets_unit": "Python str character indices in UTF8-decoded input, not bytes",
+        "common_function_predicates": [
+          "assertIsNotNone(match,function)",
+          "assertIn(let mut expired = Vec::new();,body)",
+          "assertIn(let capacity = <bound>;,body)",
+          "assertIn(if expired.is_empty(),body)",
+          "assertIn(expired.reserve(capacity);,body)"
+        ]
+      },
+      "tooltip_consumer": {
+        "path": "tools/tests/test_editor_zui_runtime_tooltip_contract.py",
+        "sha256": "52d057150d2598577aa3591ea10c1c29f979b56014a610af7de1aaf7d0b8a46a",
+        "two_direct_predicates": [
+          {
+            "line": 149,
+            "needle": "pub const DEFAULT_TOOLTIP_DELAY_MS: u64 = 150;",
+            "before_count": 1,
+            "after_count": 1,
+            "complete_predicate": true,
+            "new_comment_contribution": 0
+          },
+          {
+            "line": 150,
+            "needle": "pub const DEFAULT_TOOLTIP_INTRO_DURATION_MS: u64 = 100;",
+            "before_count": 1,
+            "after_count": 1,
+            "complete_predicate": true,
+            "new_comment_contribution": 0
+          }
+        ],
+        "first_missing_read": {
+          "line": 101,
+          "variable": "WORKBENCH_TOOLTIP",
+          "path": "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/icon_tooltip.rs",
+          "exists": false
+        },
+        "unittest_execution": "not-run",
+        "read_sequence_count": 9,
+        "later_reads_blocked": 8,
+        "predicates_execution": "blocked by first missing read; independently true"
+      },
+      "exact_path_locator": {
+        "argv_mode": "rg --hidden --no-ignore *.py/*.rs exact path in scoped first-party source/test roots",
+        "exit_code": 0,
+        "files": [
+          "tools/tests\\test_editor_zui_runtime_tooltip_contract.py",
+          "tools/tests\\test_runtime_input_timer_drain_capacity_performance_contract.py"
+        ],
+        "stderr": ""
+      }
+    },
+    "executed_tests": 0
+  },
+  "receipts": {
+    "source_full_root_reads": [
+      "3ac730/native81629->279214 exit0/PID7920 timer572L; stored native output was intact before outward view truncation",
+      "24d9d5 exit0/PID11416 tests352L"
+    ],
+    "models": [
+      "ae0864/native38318->1d01fc exit0/PID25524 full native output truncated;51primary objects+21members recovered from complete prefix only",
+      "750cff exit0/PID19248 complete46primary blocks67controls",
+      "a55f5a/native72540->af8329 exit0/PID36224 complete17test objects14blocks32controls7testcontracts31assertions and actual R057 sources schema"
+    ],
+    "doc_amendment": "821d48 exit0/PID30036",
+    "validation": "d0fe6c/native82152->73edc5 exit0/PID34960",
+    "bounded_range_summary": "fae250/native48310->32be1d exit0/PID4000",
+    "expanded_python_raw_guards": "4ba183 exit0/PID36376",
+    "fresh_context": "136e64 exit0/PID6612",
+    "prior_root_source_reuse_pin_check": "7fa6fe exit0/PID36736",
+    "actual_manager_click_helpers": "2f068a exit0/PID10144",
+    "advisor": {
+      "agent": "core_timer_sol",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "max",
+      "full_source_reads": [
+        "efe1ad",
+        "b1ab89",
+        "b78fa2"
+      ],
+      "context_consumers": [
+        "af7442",
+        "f27d4d",
+        "c2e8db",
+        "bc239d"
+      ],
+      "last_context": "1533b3 exit0",
+      "final_source_readback": "e3e94c exit0; PID not supplied",
+      "conclusion": "Only test249 new-doc ambiguity, corrected; no proved new BUG; no source or metadata writes."
+    }
+  },
+  "limitations": [
+    "Tests and benchmarks not run; scoped static evidence is not formal acceptance.",
+    "Validation native73edc5 returned exit0 but its middle range list was truncated; complete suffix commands/guard were recovered, all286 ranges independently rechecked in bounded32be1d and reconstructed here with the exact same digests.",
+    "Readonly schema failure3cd661 exit1 used nonexistent R057 files key before final buffered print; no model read counted; actual R057 sources structure recovered.",
+    "Default rg exact-path locator in32be1d respected ignore rules and returned1; hidden/no-ignore locator4ba183 found the two actual Python consumers.",
+    "Core advisor first child/overwide filename output truncated and two guessed source-size paths returned2; not used as full coverage. Actual surface-side guard read by root is a separate input.",
+    "Git reports future LF->CRLF conversion; physical source LF and every original byte were checked unchanged.",
+    "Unknown foreign writers and existing index.lock preserved; no lock ownership, profile enforcement or managed acceptance inferred."
+  ],
+  "writer_lifecycle": {
+    "actual_source_writer_terminal_known": true,
+    "child_fixed_agent_processes_known_terminal": true,
+    "root_doc_writer_terminal_known": true,
+    "validation_actual_terminal_known": true,
+    "metadata_writer_pid": 33824,
+    "metadata_terminal_receipt": "To be reconciled from actual tool result after this write and independent fixed readback, before ledger.",
+    "formal_acceptance": false,
+    "phase_commit": false,
+    "wecom_notification": false
+  },
+  "cleanup": {
+    "temporary_helpers": 0,
+    "source_copies": 0,
+    "deleted_files": 0,
+    "released_bytes": 0,
+    "retained": "Fixed child/amendment/main/post, scoped source evidence and necessary failure/async receipt evidence."
+  }
+}

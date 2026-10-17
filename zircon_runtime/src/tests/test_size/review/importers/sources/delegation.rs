@@ -73,5 +73,5 @@ pub(super) fn assert_plugin_importer_dx_source_inventory_is_child_owner(
 
 #[test]
 fn runtime_15_plugin_importer_dx_source_inventory_guard_is_folder_backed() {
-    let child_blob = plugin_importer_dx_source_inventory_child_source_blob();
+    let _child_blob = plugin_importer_dx_source_inventory_child_source_blob();
 }

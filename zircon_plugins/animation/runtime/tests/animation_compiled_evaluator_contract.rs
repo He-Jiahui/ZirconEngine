@@ -1,16 +1,16 @@
 //! 剪辑评估缓存、资产修订失效、诊断及无字符串目标解析的生产契约。
 use zircon_plugin_animation_runtime::{
     AnimationAssetRevision, AnimationClipEvaluator, AnimationEvaluationError,
-    AnimationTransformChannel, DefaultAnimationManager,
+    AnimationTransformChannel, DefaultAnimationManager, PoseBufferError,
 };
 use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::animation::AnimationManager;
 use zircon_runtime::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
-    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationInterpolationAsset,
+    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationError, AnimationInterpolationAsset,
     AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
 };
-use zircon_runtime::core::math::Vec3;
+use zircon_runtime::core::math::{Quat, Vec3};
 use zircon_runtime::core::resource::ResourceId;
 use zircon_runtime::core::resource::{
     AnimationClipMarker, AnimationSkeletonMarker, ResourceHandle, ResourceKind, ResourceManager,
@@ -472,6 +472,171 @@ fn production_scene_sampling_routes_through_the_compiled_evaluator() {
     assert!(!tick.contains("insert_resource(AnimationClipEvaluator"));
 }
 
+#[test]
+fn quaternion_hermite_public_samplers_use_component_derivatives_and_duration() {
+    let tiny_duration = 2.0_f32.powi(-30);
+    for (start, duration, tangent) in [
+        (0.0, 1.0, 1.0),
+        (-1.0, 4.0, 1.0),
+        (0.0, tiny_duration, tiny_duration.recip()),
+    ] {
+        for (outgoing, incoming) in [
+            (Some(tangent), Some(-tangent)),
+            (Some(tangent), None),
+            (None, Some(-tangent)),
+            (None, None),
+        ] {
+            let mut clip = quaternion_rotation_clip(
+                [0.0, 0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.0, 1.0],
+                AnimationInterpolationAsset::Hermite,
+            );
+            clip.duration_seconds = (start + duration).max(1.0);
+            let keys = &mut clip.tracks[0].rotation.keys;
+            keys[0].time_seconds = start;
+            keys[1].time_seconds = start + duration;
+            keys[0].out_tangent =
+                outgoing.map(|z| AnimationChannelValueAsset::Quaternion([0.0, 0.0, z, 0.0]));
+            keys[1].in_tangent =
+                incoming.map(|z| AnimationChannelValueAsset::Quaternion([0.0, 0.0, z, 0.0]));
+            // These tangents belong to adjacent intervals and must not affect this one.
+            keys[0].in_tangent = Some(AnimationChannelValueAsset::Quaternion([13.0; 4]));
+            keys[1].out_tangent = Some(AnimationChannelValueAsset::Quaternion([17.0; 4]));
+
+            let z = (outgoing.unwrap_or(0.0) - incoming.unwrap_or(0.0)) * duration * 0.125;
+            let inverse_length = (1.0 + z * z).sqrt().recip();
+            let expected = Quat::from_xyzw(0.0, 0.0, z * inverse_length, inverse_length);
+            assert_public_rotation_samples(&clip, start + duration * 0.5, expected);
+        }
+    }
+}
+
+#[test]
+fn quaternion_hermite_public_samplers_preserve_authored_signs_and_magnitudes() {
+    let clip = quaternion_rotation_clip(
+        [0.0, 0.0, 0.0, 2.0],
+        [0.0, 0.0, -1.0, -1.0],
+        AnimationInterpolationAsset::Hermite,
+    );
+    let half_sqrt = std::f32::consts::FRAC_1_SQRT_2;
+    assert_public_rotation_samples(&clip, 0.5, Quat::from_xyzw(0.0, 0.0, -half_sqrt, half_sqrt));
+    assert_public_rotation_samples(&clip, 0.0, Quat::IDENTITY);
+    assert_public_rotation_samples(
+        &clip,
+        1.0,
+        Quat::from_xyzw(0.0, 0.0, -half_sqrt, -half_sqrt),
+    );
+}
+
+#[test]
+fn quaternion_linear_and_step_public_samplers_preserve_existing_contracts() {
+    for (interpolation, expected) in [
+        (
+            AnimationInterpolationAsset::Linear,
+            Quat::from_rotation_z(std::f32::consts::FRAC_PI_4),
+        ),
+        (AnimationInterpolationAsset::Step, Quat::IDENTITY),
+    ] {
+        let mut clip =
+            quaternion_rotation_clip([0.0, 0.0, 0.0, 2.0], [0.0, 0.0, -1.0, -1.0], interpolation);
+        clip.tracks[0].rotation.keys[0].out_tangent =
+            Some(AnimationChannelValueAsset::Quaternion([100.0; 4]));
+        clip.tracks[0].rotation.keys[1].in_tangent =
+            Some(AnimationChannelValueAsset::Quaternion([-100.0; 4]));
+        assert_public_rotation_samples(&clip, 0.5, expected);
+    }
+}
+
+#[test]
+fn quaternion_hermite_public_samplers_reject_degenerate_samples_and_recover() {
+    let skeleton = skeleton(&[("Root", None)]);
+    let skeleton_revision = AnimationAssetRevision::new(ResourceId::new(), 1);
+    let mut evaluator = AnimationClipEvaluator::with_pool_size(1);
+    let manager = DefaultAnimationManager::default();
+    for (right, tangent, duration, non_finite) in [
+        ([0.0, 0.0, 0.0, -1.0], 0.0, 1.0, false),
+        ([0.0, 0.0, 0.0, 1.0], f32::MAX, 16.0, true),
+        ([0.0, 0.0, 0.0, 1.0], 1.0e20, 1.0, true),
+    ] {
+        let mut clip = quaternion_rotation_clip(
+            [0.0, 0.0, 0.0, 1.0],
+            right,
+            AnimationInterpolationAsset::Hermite,
+        );
+        clip.duration_seconds = duration;
+        clip.tracks[0].rotation.keys[1].time_seconds = duration;
+        if tangent != 0.0 {
+            clip.tracks[0].rotation.keys[0].out_tangent =
+                Some(AnimationChannelValueAsset::Quaternion([
+                    0.0, 0.0, tangent, 0.0,
+                ]));
+            clip.tracks[0].rotation.keys[1].in_tangent =
+                Some(AnimationChannelValueAsset::Quaternion([
+                    0.0, 0.0, -tangent, 0.0,
+                ]));
+        }
+        let clip_revision = AnimationAssetRevision::new(ResourceId::new(), 1);
+        let pose_error = if non_finite {
+            PoseBufferError::NonFiniteTransform { index: 0 }
+        } else {
+            PoseBufferError::ZeroLengthRotation { index: 0 }
+        };
+        assert_eq!(
+            evaluator
+                .sample_clip(
+                    skeleton_revision,
+                    clip_revision,
+                    &skeleton,
+                    &clip,
+                    duration * 0.5,
+                    false,
+                )
+                .unwrap_err(),
+            AnimationEvaluationError::PoseBuffer(pose_error),
+        );
+        let manager_error = if non_finite {
+            AnimationError::NonFiniteSample {
+                sample_kind: "quaternion",
+            }
+        } else {
+            AnimationError::ZeroLengthQuaternionSample
+        };
+        assert_eq!(
+            manager
+                .sample_clip_pose(&skeleton, &clip, duration * 0.5, false)
+                .unwrap_err(),
+            manager_error,
+        );
+
+        let recovered = evaluator
+            .sample_clip(
+                skeleton_revision,
+                clip_revision,
+                &skeleton,
+                &clip,
+                0.0,
+                false,
+            )
+            .unwrap();
+        assert!(recovered.bones[0]
+            .local_transform
+            .rotation
+            .abs_diff_eq(Quat::IDENTITY, 0.00001));
+        let recovered = manager
+            .sample_clip_pose(&skeleton, &clip, 0.0, false)
+            .unwrap();
+        assert!(recovered.bones[0]
+            .local_transform
+            .rotation
+            .abs_diff_eq(Quat::IDENTITY, 0.00001));
+    }
+    let stats = evaluator.stats();
+    assert_eq!(stats.skeleton_compile_count, 1);
+    assert_eq!(stats.clip_compile_count, 3);
+    assert_eq!(stats.clip_cache_hit_count, 3);
+    assert_eq!(stats.pose_pool_miss_count, 0);
+}
+
 fn sample_error(clip: &AnimationClipAsset) -> AnimationEvaluationError {
     AnimationClipEvaluator::default()
         .sample_clip(
@@ -542,6 +707,47 @@ fn constant_quaternion_channel(value: [f32; 4]) -> AnimationChannelAsset {
     AnimationChannelAsset {
         interpolation: AnimationInterpolationAsset::Linear,
         keys: vec![key(0.0, AnimationChannelValueAsset::Quaternion(value))],
+    }
+}
+
+fn quaternion_rotation_clip(
+    left: [f32; 4],
+    right: [f32; 4],
+    interpolation: AnimationInterpolationAsset,
+) -> AnimationClipAsset {
+    let mut clip = clip("Root", constant_vec3_channel([0.0; 3]));
+    clip.tracks[0].rotation = AnimationChannelAsset {
+        interpolation,
+        keys: vec![
+            key(0.0, AnimationChannelValueAsset::Quaternion(left)),
+            key(1.0, AnimationChannelValueAsset::Quaternion(right)),
+        ],
+    };
+    clip
+}
+
+fn assert_public_rotation_samples(clip: &AnimationClipAsset, time: f32, expected: Quat) {
+    let skeleton = skeleton(&[("Root", None)]);
+    let compiled = AnimationClipEvaluator::default()
+        .sample_clip(
+            AnimationAssetRevision::new(ResourceId::new(), 1),
+            AnimationAssetRevision::new(ResourceId::new(), 1),
+            &skeleton,
+            clip,
+            time,
+            false,
+        )
+        .unwrap();
+    let manager = DefaultAnimationManager::default()
+        .sample_clip_pose(&skeleton, clip, time, false)
+        .unwrap();
+    for rotation in [
+        compiled.bones[0].local_transform.rotation,
+        manager.bones[0].local_transform.rotation,
+    ] {
+        assert!(rotation.is_finite());
+        assert!((rotation.length_squared() - 1.0).abs() <= 0.00001);
+        assert!(rotation.abs_diff_eq(expected, 0.00001));
     }
 }
 

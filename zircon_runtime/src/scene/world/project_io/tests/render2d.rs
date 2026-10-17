@@ -205,6 +205,10 @@ fn third_provider_roundtrips_through_world_save_and_reopen_with_references() {
 
     let (mut extensions, owner) = register_third_provider(&project).unwrap();
 
+    let source_revision = World::load_scene_document(&project, &scene_uri)
+        .unwrap()
+        .into_parts()
+        .1;
     let mut world = World::empty_for_project(&project).unwrap();
     let entity = world.spawn_node(NodeKind::Empty).unwrap();
     let original_payload = serde_json::json!({
@@ -216,7 +220,11 @@ fn third_provider_roundtrips_through_world_save_and_reopen_with_references() {
         .set_dynamic_component(entity, THIRD_TYPE_ID, original_payload.clone())
         .unwrap();
 
-    world.save_scene_to_project(&project, &scene_uri).unwrap();
+    world
+        .save_scene_to_project(&project, &scene_uri, &source_revision)
+        .unwrap()
+        .ensure_durable()
+        .expect("scene publication must be durable");
     project.scan_and_import().unwrap();
     let saved = project
         .load_artifact(&scene_uri)
@@ -263,6 +271,10 @@ fn mixed_provider_and_render2d_rows_roundtrip_with_parent_identity_after_reopen(
     let mut project = create_test_project(&root);
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
     let (extensions, _owner) = register_third_provider(&project).unwrap();
+    let source_revision = World::load_scene_document(&project, &scene_uri)
+        .unwrap()
+        .into_parts()
+        .1;
     let mut world = World::empty_for_project(&project).unwrap();
     let parent = world.spawn_node(NodeKind::Empty).unwrap();
     let child_entity = world.spawn_node(NodeKind::Empty).unwrap();
@@ -299,8 +311,10 @@ fn mixed_provider_and_render2d_rows_roundtrip_with_parent_identity_after_reopen(
 
     let mixed_world = World::from_scene_asset(&project, &scene).unwrap();
     mixed_world
-        .save_scene_to_project(&project, &scene_uri)
-        .unwrap();
+        .save_scene_to_project(&project, &scene_uri, &source_revision)
+        .unwrap()
+        .ensure_durable()
+        .expect("scene publication must be durable");
     project.scan_and_import().unwrap();
     drop(extensions);
     drop(project);
@@ -442,25 +456,35 @@ fn revoked_live_dynamic_rows_reject_save_without_changing_previous_bytes() {
     let mut project = create_test_project(&root);
     let (mut extensions, owner) = register_third_provider(&project).unwrap();
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
+    let source_revision = World::load_scene_document(&project, &scene_uri)
+        .unwrap()
+        .into_parts()
+        .1;
     let mut world = World::empty_for_project(&project).unwrap();
     let entity = world.spawn_node(NodeKind::Empty).unwrap();
     world
         .set_dynamic_component(entity, THIRD_TYPE_ID, serde_json::json!({"enabled": true}))
         .unwrap();
-    world.save_scene_to_project(&project, &scene_uri).unwrap();
+    let receipt = world
+        .save_scene_to_project(&project, &scene_uri, &source_revision)
+        .unwrap();
     let path = project
         .existing_or_primary_project_source_path_for_uri(&scene_uri)
         .unwrap();
     let previous_bytes = std::fs::read(&path).unwrap();
 
     extensions.revoke_owner_registrations(owner);
-    assert!(world.save_scene_to_project(&project, &scene_uri).is_err());
+    assert!(world
+        .save_scene_to_project(&project, &scene_uri, receipt.source_revision())
+        .is_err());
     assert_eq!(std::fs::read(path).unwrap(), previous_bytes);
 
     let (_retry_extensions, _retry_owner) = register_third_provider(&project).unwrap();
     world
-        .save_scene_to_project(&project, &scene_uri)
-        .expect("a re-admitted owner can retry the failed save");
+        .save_scene_to_project(&project, &scene_uri, receipt.source_revision())
+        .expect("a re-admitted owner can retry the failed save")
+        .ensure_durable()
+        .expect("scene publication must be durable");
     project.scan_and_import().unwrap();
     let reopened = World::load_scene_from_uri(&project, &scene_uri).unwrap();
     assert_eq!(

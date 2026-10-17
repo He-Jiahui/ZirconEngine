@@ -439,5 +439,141 @@ class PreparedWorktreeFlowTests(unittest.TestCase):
             self.assertEqual(previous, f.state.get("sealed_cargo_evidence", source_digest))
 
 
+    @contextmanager
+    def claimed_prepared_flow(self):
+        from tools.jenkins.workflow.execution import ExecutionEngine
+        with self.prepared() as value:
+            f, actor = value.f, value.actor
+            flow_payload = actor.prepare_flow()["flowPayload"]
+            reference = flow_payload["currentSourceRef"]
+            result = f.state.get("current_source_preparation", reference)["payload"]["result"]
+            identity = result["identity"]
+            active = {"digest": "d" * 64, "generation": "start-test", "runtimeOperationId": "start-test"}
+            with patch("tools.jenkins.deployment.driver.active_driver_binding", return_value=active):
+                handler.handle("register-flow", {"identity": identity, "sealedInputRef": result["sealedInputRef"],
+                    "sourcePreparationRef": result["sourcePreparationRef"], "buildRoot": result["buildRoot"]},
+                    f.state, f.repo)
+                handler.handle("compose-flow", {"identity": identity}, f.state, f.repo)
+                key = ":".join(identity[name] for name in ("sessionId", "requestId", "attemptId"))
+                preparation = digest("prepared-flow-execution-fixture")
+                recipe = {"kind": "cargo", "buildRoot": result["buildRoot"], "preparationKey": preparation,
+                    "preparationRoot": str(f.cas / "preparations" / preparation / "inputs/source"),
+                    "resourceEstimates": {"cpu": 1, "memoryBytes": 256, "diskBytes": 64},
+                    "phases": ["compile", "list", "test"], "requiredTestStages": ["unit_test"]}
+                recipe_ref = digest(recipe)
+                driver = {"digest": active["digest"], "generation": "1", "runtimeOperationId": "start-test"}
+                f.state.put("resource_policy", "default", {"cpuBudget": 2, "memoryBudget": 1024, "diskBudget": 2048})
+                f.state.put("recipe_plan", recipe_ref, {"recipe": recipe, "recipeDigest": recipe_ref,
+                    "sourceRef": result["sealedInputRef"], "coverageRef": identity["coverageDigest"],
+                    "driver": driver, "generation": "1"})
+                engine = ExecutionEngine(f.state, repo_root=f.repo, build_root=result["buildRoot"])
+                claim = engine.claim(source=result["sealedInputRef"], recipe=recipe_ref, driver=driver, consumer_id=key)
+                workflow = f.state.get("workflow", key)
+                f.state.put("workflow", key, {**workflow["payload"], "executionId": claim["executionId"],
+                    "recipeRef": recipe_ref, "executionStatus": claim["status"]}, expected_version=workflow["version"])
+                actor.session = identity["sessionId"]
+                actor.action = "submit-flow"
+                actor.payload = {"flowPayload": {**flow_payload, "resumeExecution": {
+                    "executionId": claim["executionId"], "recipeRef": recipe_ref, "phase": "dispatch"}}}
+                marker = ":".join([f.repo_id, actor.session, identity["requestId"],
+                                  identity["requestId"] + ":execution:" + recipe_ref[:16]])
+                self.assertIsNone(f.state.get("jenkins_submission", marker))
+                yield SimpleNamespace(value=value, f=f, actor=actor, identity=identity, result=result,
+                    reference=reference, key=key, marker=marker, execution=claim["executionId"],
+                    recipe=recipe_ref, engine=engine)
+
+    def test_typed_execution_dispatch_inherits_registered_identity_and_reuses_one_delivery(self):
+        from urllib.parse import parse_qs
+        with self.claimed_prepared_flow() as value:
+            f, identity = value.f, value.identity
+            original = f.state.get_request(f.repo_id, identity["sessionId"], identity["requestId"])
+            typed = f.state.get_operation(value.result["sourcePreparationRef"])
+            requests = []
+            def transport(request):
+                requests.append(request)
+                return SimpleNamespace(status=201, headers={"Location": "http://127.0.0.1:18080/queue/item/9/"})
+            arguments = {"identity": {**identity, "executionId": value.execution},
+                "source_ref": value.result["sealedInputRef"], "coverage_digest": identity["coverageDigest"],
+                "recipe_ref": value.recipe, "repo_root": f.repo, "transport": transport}
+            first = handler._ensure_execution_job(f.state, **arguments)
+            again = handler._ensure_execution_job(f.state, **arguments)
+            self.assertEqual("submitted", first["delivery"])
+            self.assertTrue(again["reused"])
+            self.assertEqual(1, len(requests))
+            fields = parse_qs(requests[0].data.decode())
+            for name, expected in {"CURRENT_SOURCE_REF": value.reference,
+                    "SOURCE_PREPARATION_REF": value.result["sourcePreparationRef"],
+                    "STAGE_IMPLEMENTATION_DIGEST": "d" * 64, "RUNTIME_OPERATION_ID": "start-test",
+                    "BUILD_ROOT": original["payload"]["buildRoot"], "EXECUTION_ID": value.execution,
+                    "ATTEMPT_ID": identity["attemptId"], "GENERATION": "1"}.items():
+                self.assertEqual([expected], fields[name])
+            self.assertEqual(original, f.state.get_request(f.repo_id, identity["sessionId"], identity["requestId"]))
+            self.assertEqual(typed, f.state.get_operation(value.result["sourcePreparationRef"]))
+            with self.assertRaises(JenkinsError) as failure:
+                handler._ensure_execution_job(f.state, **{**arguments,
+                    "identity": {**identity, "executionId": value.execution, "generation": 2}})
+            self.assertEqual("submission_identity_mismatch", failure.exception.code)
+            self.assertEqual(1, len(requests))
+
+    def test_explicit_resume_dispatches_original_claim_once_and_cannot_accept_pending_work(self):
+        with self.claimed_prepared_flow() as value:
+            f, actor = value.f, value.actor
+            original = f.state.get_request(f.repo_id, actor.session, value.identity["requestId"])
+            typed = f.state.get_operation(value.result["sourcePreparationRef"])
+            execution = f.state.get("execution", value.execution)
+            calls = []
+            def request(path, **arguments):
+                calls.append((path, arguments["data"]))
+                return 201, b"", {"Location": "http://127.0.0.1:18080/queue/item/10/"}
+            actor.manager = SimpleNamespace(base_url="http://127.0.0.1:18080", _request_with_headers=request)
+            first, again = actor._dispatch(), actor._dispatch()
+            self.assertEqual("submitted", first["status"])
+            self.assertEqual(value.execution, first["executionId"])
+            self.assertTrue(again["submission"]["reused"])
+            self.assertEqual(1, len(calls))
+            self.assertEqual("job/zircon-execution/buildWithParameters", calls[0][0])
+            actor.payload["flowPayload"]["resumeExecution"]["phase"] = "collect"
+            observed = actor._dispatch()
+            self.assertEqual("pending", observed["status"])
+            self.assertNotIn("acceptance", observed)
+            self.assertNotEqual("accepted", f.state.get("workflow", value.key)["payload"]["status"])
+            self.assertEqual(original, f.state.get_request(f.repo_id, actor.session, value.identity["requestId"]))
+            self.assertEqual(typed, f.state.get_operation(value.result["sourcePreparationRef"]))
+            self.assertEqual(execution, f.state.get("execution", value.execution))
+            self.assertEqual(1, len(f.state.list("execution_consumer")))
+            self.assertEqual(1, len(calls))
+
+    def test_resume_identity_runtime_and_recipe_drift_refuse_before_any_post(self):
+        with self.claimed_prepared_flow() as value:
+            f, actor = value.f, value.actor
+            payload, config = copy.deepcopy(actor.payload), copy.deepcopy(actor.config)
+            plan = f.state.get("recipe_plan", value.recipe)
+            original = f.state.get_request(f.repo_id, actor.session, value.identity["requestId"])
+            execution = f.state.get("execution", value.execution)
+            calls = []
+            def transport(request):
+                calls.append(request)
+                raise AssertionError("Drift must be rejected before HTTP")
+            for boundary in ("identity", "runtime", "recipe-ref", "recipe-bytes"):
+                with self.subTest(boundary=boundary):
+                    actor.payload, actor.config = copy.deepcopy(payload), copy.deepcopy(config)
+                    if boundary == "identity":
+                        actor.payload["flowPayload"]["identity"]["requestId"] = "other-request"
+                    elif boundary == "runtime":
+                        actor.config["runtimeOperationId"] = "other-runtime"
+                    elif boundary == "recipe-ref":
+                        actor.payload["flowPayload"]["resumeExecution"]["recipeRef"] = "0" * 64
+                    else:
+                        f.state.put("recipe_plan", value.recipe, {**plan["payload"],
+                            "recipe": {**plan["payload"]["recipe"], "phases": ["test"]}})
+                    with self.assertRaises(JenkinsError):
+                        helper.resume_prepared_flow_execution(actor, actor.payload["flowPayload"], transport=transport)
+                    self.assertEqual([], calls)
+                    self.assertIsNone(f.state.get("jenkins_submission", value.marker))
+                    self.assertEqual(original, f.state.get_request(f.repo_id, actor.session, value.identity["requestId"]))
+                    self.assertEqual(execution, f.state.get("execution", value.execution))
+                    if boundary == "recipe-bytes":
+                        f.state.put("recipe_plan", value.recipe, plan["payload"])
+
 if __name__ == "__main__":
     unittest.main()

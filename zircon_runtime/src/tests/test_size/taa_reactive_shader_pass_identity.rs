@@ -10,7 +10,7 @@ fn runtime_15_taa_reactive_shader_pass_identity_is_wired() {
     let registry = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs",
     );
-    let taa_cache = read_runtime_src(
+    let _taa_cache = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_taa_reactive_mask_pipeline.rs",
     );
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");

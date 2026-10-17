@@ -1,9 +1,8 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_d13_native_fixture_importer_is_manifest_described() {
-    let fixture = include_str!(
-        "../../../../../../zircon_plugins/native_dynamic_fixture/native/src/lib.rs"
-    );
+    let fixture =
+        include_str!("../../../../../../zircon_plugins/native_dynamic_fixture/native/src/lib.rs");
     let plugin_toml =
         include_str!("../../../../../../zircon_plugins/native_dynamic_fixture/plugin.toml");
     let review_findings =

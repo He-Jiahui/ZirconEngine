@@ -522,15 +522,30 @@ pub(crate) fn build_product_workbench_presentation_with_context(
     // Model-only checks above precede Source projection. Validate the observed
     // Header contract here against the actual consuming models and their refs.
     if !expected.dock_headers.is_empty() && expected.dock_headers != headers.snapshots {
-        return Err("product Header Source input/rows differ from the successful normal case publication".into());
+        return Err(
+            "product Header Source input/rows differ from the successful normal case publication"
+                .into(),
+        );
     }
     source_document_ids.extend(headers.document_ids);
     source_document_ids.sort();
     source_document_ids.dedup();
     source_receipts.extend(headers.receipts);
     source_receipts.sort_by(|left, right| {
-        (&left.asset_id, &left.source_path, &left.resource_uri, &left.physical_path, &left.sha256)
-            .cmp(&(&right.asset_id, &right.source_path, &right.resource_uri, &right.physical_path, &right.sha256))
+        (
+            &left.asset_id,
+            &left.source_path,
+            &left.resource_uri,
+            &left.physical_path,
+            &left.sha256,
+        )
+            .cmp(&(
+                &right.asset_id,
+                &right.source_path,
+                &right.resource_uri,
+                &right.physical_path,
+                &right.sha256,
+            ))
     });
     source_receipts.dedup();
     source_unresolved_imports.extend(headers.unresolved_imports);

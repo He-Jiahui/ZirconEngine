@@ -30,6 +30,10 @@ impl ProjectManager {
 
     fn open_paths(paths: ProjectPaths) -> Result<Self, AssetImportError> {
         let _generation = crate::asset::project::lock_project_generation(paths.root())?;
+        super::super::plugin_apply::recover_plugin_apply_files_locked(&paths)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        super::super::plugin_apply::ensure_plugin_apply_preflight_ready(&paths)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
         let manifest = ProjectManifest::load(paths.manifest_path())?;
         paths.ensure_derived_layout()?;
         paths.ensure_asset_roots(&manifest.asset_roots)?;

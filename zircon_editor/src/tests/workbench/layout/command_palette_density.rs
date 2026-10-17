@@ -1,9 +1,8 @@
 //! 命令面板弹层尺寸来自共享density级联，主题必须登记相同token。
 const EDITOR_TOKENS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
-const COMMAND_PALETTE_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/workbench/primitives/feedback/command_palette.zui"
-);
+const COMMAND_PALETTE_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/workbench/primitives/feedback/command_palette.zui");
 
 #[test]
 /// 同时核对消费资产和token定义，防止局部像素约束绕过全局密度设置。

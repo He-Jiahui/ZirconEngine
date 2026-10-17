@@ -1,24 +1,21 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_native_plugin_manifest_collection_uses_typed_error() {
-    let collect_manifests =
-        include_str!("../../../../plugin/loader/collect_manifests.rs");
-    let discovery_authority =
-        include_str!("../../../../plugin/loader/discover/authority.rs");
-    let native_boundary =
+    let collect_manifests = include_str!("../../../../plugin/loader/collect_manifests.rs");
+    let discovery_authority = include_str!("../../../../plugin/loader/discover/authority.rs");
+    let _native_boundary =
         include_str!("../../../../../../docs/architecture/native-plugin-boundary.md");
-    let review_findings =
+    let _review_findings =
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
-    let module_convention = include_str!(
-        "../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
-    );
+    let _module_convention =
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
     for required in [
         "type NativePluginManifestCollectionResult<T>",
@@ -67,20 +64,19 @@ fn review_f5_native_plugin_manifest_collection_uses_typed_error() {
 fn review_f5_native_plugin_manifest_candidate_uses_typed_error() {
     let candidate_from_manifest =
         include_str!("../../../../plugin/loader/candidate_from_manifest.rs");
-    let native_boundary =
+    let _native_boundary =
         include_str!("../../../../../../docs/architecture/native-plugin-boundary.md");
-    let review_findings =
+    let _review_findings =
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
-    let module_convention = include_str!(
-        "../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
-    );
+    let _module_convention =
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
     for required in [
         "type NativePluginManifestCandidateResult<T>",

@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::time::Instant;
+use web_time::Instant;
 
 use zr_rhi::RenderDeviceProfile;
 
@@ -80,7 +80,7 @@ impl SceneRendererCore {
         let resolved_asset_manager = asset_manager
             .resolve()
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
-        #[cfg(test)]
+        #[cfg(all(test, feature = "native-host"))]
         let project_root = resolved_asset_manager
             .current_project_manager()
             .map(|project| project.paths().root().to_path_buf())
@@ -89,7 +89,7 @@ impl SceneRendererCore {
             .unwrap_or_else(|| {
                 std::env::current_dir().expect("graphics unit tests require a working directory")
             });
-        #[cfg(not(test))]
+        #[cfg(all(not(test), feature = "native-host"))]
         let project_root = resolved_asset_manager
             .current_project_manager()
             .ok_or_else(|| {
@@ -101,6 +101,8 @@ impl SceneRendererCore {
             .paths()
             .root()
             .to_path_buf();
+        #[cfg(not(feature = "native-host"))]
+        let project_root = std::path::PathBuf::new();
         let plugin_shading_models = plugin_shading_models.into_iter().collect::<Vec<_>>();
         let scene_bind_group_bundle = create_scene_bind_group_bundle(device, &system_textures);
         let skinned_joint_palette_arena_buffer =
@@ -281,6 +283,8 @@ impl SceneRendererCore {
                 mesh_indirect_draw_workspace: MeshIndirectDrawWorkspace::default(),
                 neutral_graph_buffers: Default::default(),
                 gpu_scene,
+                #[cfg(target_arch = "wasm32")]
+                browser_scene_history_pending: false,
                 hit_proxy_resources: Default::default(),
                 hzb_occlusion_culler,
                 scene_clear,
@@ -296,6 +300,7 @@ impl SceneRendererCore {
                 screen_space_ui_renderer,
                 transient_resource_pool: Default::default(),
                 diagnostic_frame_index: 0,
+                #[cfg(feature = "native-host")]
                 ibl_bake_runtime_writebacks: Default::default(),
                 advanced_plugin_resources,
             },

@@ -13,10 +13,12 @@ use crate::ui::tree::UiDirtyFlags;
 
 use super::{event::UiTextByteRange, UiClipboardRequest, UiDragSessionId, UiPointerId};
 
+/// 周边文本按 UTF-8 字节计长；校验拒绝长度大于或等于此上限的内容。
 pub const UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT: usize = 4000;
 
 /// Effects are ordered transient dispatch commands; widgets must persist state through normal data paths.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 这些值描述有序的瞬态派发命令；Runtime 再检查目标与策略并执行，不能替代持久控件状态。
 pub enum UiDispatchEffect {
     SetFocus {
         target: UiNodeId,
@@ -183,6 +185,7 @@ pub enum UiTransientDismissalReason {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 发给宿主输入法服务的请求；位置字段使用 surface 坐标，周边文本使用 UTF-8 字节偏移。
 pub struct UiInputMethodRequest {
     pub kind: UiInputMethodRequestKind,
     pub owner: UiNodeId,
@@ -198,6 +201,7 @@ pub struct UiInputMethodRequest {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+/// 输入法服务请求类别；UpdateCursor 更新输入位置，Enable/Disable/Reset 控制会话状态。
 pub enum UiInputMethodRequestKind {
     Enable,
     Disable,
@@ -206,6 +210,7 @@ pub enum UiInputMethodRequestKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 输入法周边文本及光标、锚点和组合区间；所有位置均为 UTF-8 字节偏移。构造和 validate 会检查长度与字符边界，反序列化本身不调用 validate。
 pub struct UiInputMethodSurroundingText {
     pub text: String,
     pub cursor_byte: u32,
@@ -216,6 +221,7 @@ pub struct UiInputMethodSurroundingText {
 }
 
 impl UiInputMethodSurroundingText {
+    /// 创建并校验周边文本；cursor_byte 与 anchor_byte 必须落在文本的 UTF-8 字符边界内。
     pub fn new(
         text: impl Into<String>,
         cursor_byte: u32,
@@ -231,6 +237,7 @@ impl UiInputMethodSurroundingText {
         Ok(value)
     }
 
+    /// 设置并校验相对 text 的组合字节区间；失败时返回对应位置错误。
     pub fn with_composition_range(
         mut self,
         composition_range: UiTextByteRange,
@@ -240,6 +247,7 @@ impl UiInputMethodSurroundingText {
         Ok(self)
     }
 
+    /// 返回 cursor_byte 与 anchor_byte 之间按起止顺序排列的字节区间。
     pub fn selection_range(&self) -> UiTextByteRange {
         UiTextByteRange::new(
             self.cursor_byte.min(self.anchor_byte),
@@ -247,6 +255,7 @@ impl UiInputMethodSurroundingText {
         )
     }
 
+    /// 检查字节长度上限、光标/锚点字符边界及可选组合区间。
     pub fn validate(&self) -> Result<(), UiInputMethodSurroundingTextError> {
         if self.text.len() >= UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT {
             return Err(UiInputMethodSurroundingTextError::TextTooLong);
@@ -279,6 +288,7 @@ impl UiInputMethodSurroundingText {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 周边文本长度或 UTF-8 字节位置校验失败的分类。
 pub enum UiInputMethodSurroundingTextError {
     TextTooLong,
     CursorBadPosition,

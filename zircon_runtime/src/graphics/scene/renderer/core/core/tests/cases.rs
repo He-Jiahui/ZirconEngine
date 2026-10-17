@@ -247,9 +247,7 @@ fn environment_frame_guard_wraps_every_submission_entrypoint() {
     }
     for source in [
         include_str!("../../render_scene/render_scene.rs"),
-        include_str!(
-            "../../../../core/render/submit_compiled_scene_frame.rs"
-        ),
+        include_str!("../../../../core/render/submit_compiled_scene_frame.rs"),
         include_str!("../../environment_capture.rs"),
     ] {
         let submit = source

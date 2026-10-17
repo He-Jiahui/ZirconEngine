@@ -18,7 +18,9 @@ pub(crate) struct ViewTemplateNodeProjection {
 }
 
 impl ViewTemplateNodeProjection {
-    pub(crate) fn unreal_dock_header_source(&self) -> Option<Arc<super::build::UnrealDockHeaderSource>> {
+    pub(crate) fn unreal_dock_header_source(
+        &self,
+    ) -> Option<Arc<super::build::UnrealDockHeaderSource>> {
         self.unreal_dock_header.as_ref().map(Arc::clone)
     }
 

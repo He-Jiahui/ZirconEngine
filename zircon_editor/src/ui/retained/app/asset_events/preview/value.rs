@@ -12,14 +12,16 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "preview.mock.value.set" => self.editor_manager
+            "preview.mock.value.set" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
                     manager.set_ui_asset_editor_selected_preview_mock_value(&instance_id, value)
                 })
                 .map(|_| ()),
-            "preview.mock.clear" => self.editor_manager
+            "preview.mock.clear" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {

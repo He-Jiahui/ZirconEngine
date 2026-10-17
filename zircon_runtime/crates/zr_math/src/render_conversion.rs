@@ -20,7 +20,8 @@ pub enum RenderNarrowingError {
     NonFiniteResult,
 }
 
-/// Evidence emitted by an explicit runtime-to-render scalar conversion.
+/// 显式运行时到渲染标量转换的记录，误差为源值与渲染值之差的绝对值。
+/// 派生的 Deserialize 只恢复字段数据，不重新执行转换或验证误差关系。
 #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderNarrowingReceipt {
     source: Real,
@@ -70,12 +71,14 @@ pub fn is_finite_mat4(value: Mat4) -> bool {
     value.is_finite()
 }
 
+/// 尝试窄化单个标量；失败时丢弃错误详情，需要区分失败原因时使用 try_to_render_scalar。
 pub fn to_render_scalar(value: Real) -> Option<RenderScalar> {
     try_to_render_scalar(value)
         .ok()
         .map(RenderNarrowingReceipt::rendered)
 }
 
+/// 校验源值有限且在渲染标量范围内，成功时返回转换值和绝对误差记录。
 pub fn try_to_render_scalar(value: Real) -> Result<RenderNarrowingReceipt, RenderNarrowingError> {
     if !is_finite_scalar(value) {
         return Err(RenderNarrowingError::NonFiniteSource);
@@ -150,6 +153,7 @@ pub fn to_render_mat4(value: Mat4) -> Option<RenderMat4> {
     ]))
 }
 
+/// 将视口宽、高分别限制为至少 1，避免后续按零尺寸计算。
 pub fn clamp_viewport_size(size: UVec2) -> UVec2 {
     UVec2::new(size.x.max(1), size.y.max(1))
 }

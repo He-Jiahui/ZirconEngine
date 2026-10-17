@@ -7,7 +7,8 @@ const LOCK_UNWRAP_CALL: &str = concat!(".lock().", "unwrap()");
 #[test]
 fn runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_state() {
     let wgpu_device = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/tests/device.rs");
-    let structure_parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
+    let structure_parent = read_runtime_src("tests/contracts/structure.rs");
+    let device_tests = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device/tests/cases.rs");
 
     assert_contains_all(
         "RHI WGPU render device poison recovery",
@@ -17,14 +18,18 @@ fn runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_st
             "fn lock_state(&self) -> MutexGuard<'_, DeterministicRhiContractDeviceState>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "self.lock_state().transient_allocator_stats()",
-            "deterministic_rhi_contract_device_state_accessors_recover_poisoned_lock",
         ],
+    );
+    assert_contains_all(
+        "RHI WGPU device-state poison recovery test",
+        &device_tests,
+        &["deterministic_rhi_contract_device_state_accessors_recover_poisoned_lock"],
     );
     assert_contains_all(
         "RHI WGPU lock poison guard mount",
         &structure_parent,
         &[
-            "#[path = \"structure_convention/rhi_wgpu_lock_poison.rs\"]",
+            "#[path = \"structure/rhi_wgpu_lock_poison.rs\"]",
             "mod rhi_wgpu_lock_poison;",
         ],
     );

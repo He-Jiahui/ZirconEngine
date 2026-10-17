@@ -102,10 +102,9 @@ pub(super) fn bind_compiled_scene_graph_resources(
                 && flags.hzb_history_enabled,
             hybrid_global_illumination: flags.runtime_features.hybrid_global_illumination_enabled,
             exposure: flags.exposure_history_enabled,
-            volumetric_scattering: flags
-                .history_availability
-                .is_available(SceneHistoryDomain::VolumetricScattering)
-                && flags.volumetric_history_enabled,
+            // The allocated texture is required on the first frame too. Content validity
+            // separately controls temporal reprojection in the scattering executor.
+            volumetric_scattering: flags.volumetric_history_enabled,
         },
     );
     bind_ssao_compute_graph_resources(
@@ -141,7 +140,8 @@ pub(super) fn bind_compiled_scene_graph_resources(
         graph_resources,
         mesh_draw_lists,
         hzb_occlusion_culler,
-    );
+    )
+    .map_err(GraphicsError::Asset)?;
     bind_plugin_graph_resources(
         device,
         neutral_graph_buffers,

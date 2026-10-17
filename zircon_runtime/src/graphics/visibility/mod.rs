@@ -34,3 +34,5 @@ pub use static_index::VisibilityStaticIndexReport;
 pub use view_context::{
     FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityViewKey,
 };
+
+pub(crate) use planning::cluster_ids_for_stable_instance_key;

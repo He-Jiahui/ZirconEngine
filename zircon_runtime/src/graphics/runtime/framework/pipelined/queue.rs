@@ -253,6 +253,11 @@ impl RenderSubmissionScheduler {
         config: RenderSubmissionConfig,
     ) -> Result<(), RenderFrameworkError> {
         self.finish_pending()?;
+        #[cfg(target_arch = "wasm32")]
+        let config = RenderSubmissionConfig {
+            pipelined_render: false,
+            ..config
+        };
         if !config.pipelined_render {
             self.queue = None;
         } else {
@@ -294,7 +299,7 @@ impl RenderSubmissionScheduler {
         core: Arc<WgpuRenderFrameworkCore>,
         submission: FrameSubmission,
     ) -> Result<(), RenderFrameworkError> {
-        if !self.config.pipelined_render {
+        if cfg!(target_arch = "wasm32") || !self.config.pipelined_render {
             self.finish_pending()?;
             let _operation_guard = core.lock_operation();
             return submission.execute(core.as_ref());

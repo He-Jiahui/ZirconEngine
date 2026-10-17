@@ -14,7 +14,8 @@ fn inspector_draft_field_dispatch_updates_live_snapshot_without_scene_side_effec
     assert_eq!(
         harness
             .runtime
-            .editor_snapshot().unwrap()
+            .editor_snapshot()
+            .unwrap()
             .inspector
             .as_ref()
             .map(|inspector| inspector.name.as_str()),

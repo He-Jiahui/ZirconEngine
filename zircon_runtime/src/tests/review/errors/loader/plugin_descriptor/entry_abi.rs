@@ -1,23 +1,16 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_native_plugin_entry_abi_uses_typed_error() {
-    let native_plugin_abi =
-        include_str!("../../../../../plugin/loader/native_plugin_abi.rs");
-    let plugin_load_error =
-        include_str!("../../../../../plugin/loader/plugin_load_error.rs");
-    let load_discovered =
-        include_str!("../../../../../plugin/loader/load_discovered.rs");
-    let runtime_abi =
-        include_str!("../../../../../plugin/loader/abi_declarations.rs");
-    let sdk_native =
-        include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/native.rs");
+    let native_plugin_abi = include_str!("../../../../../plugin/loader/native_plugin_abi.rs");
+    let plugin_load_error = include_str!("../../../../../plugin/loader/plugin_load_error.rs");
+    let load_discovered = include_str!("../../../../../plugin/loader/load_discovered.rs");
+    let runtime_abi = include_str!("../../../../../plugin/loader/abi_declarations.rs");
+    let sdk_native = include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/native.rs");
     let sdk_dist = include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/dist.rs");
     let fixture_manifest = include_str!(
         "../../../../../../../zircon_plugins/native_dynamic_fixture/native/Cargo.toml"
     );
-    let real_fixture = include_str!(
-        "../../../../plugins/loader/real_fixture.rs"
-    );
+    let real_fixture = include_str!("../../../../plugins/loader/real_fixture.rs");
     let native_boundary =
         include_str!("../../../../../../../docs/architecture/native-plugin-boundary.md");
 

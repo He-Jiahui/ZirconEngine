@@ -10,10 +10,11 @@ use std::path::{Path, PathBuf};
 use crate::asset::project::{ProjectManifest, ProjectPaths, ResolvedProjectPathIdentity};
 use crate::asset::{AssetImportError, AssetUri};
 use crate::core::resource::io::transaction::{
-    commit_prepared_files as commit_core_files, recover_pending_transactions,
-    DurableCommitDisposition, DurableCommitReport, JournalDocument, RecoveryPolicy,
+    commit_prepared_files_with_revisions as commit_core_files, recover_pending_transactions,
+    DurableCommitDisposition, DurableCommitReport, DurableTransactionError, JournalDocument,
+    RecoveryPolicy,
 };
-use crate::scene::world::SceneProjectError;
+use crate::scene::world::{SceneProjectError, ScenePublicationReceipt, SceneSourceRevision};
 use crate::scene::Scene;
 
 use super::durable_transaction::{
@@ -25,6 +26,12 @@ use super::ProjectManager;
 const JOURNAL_DIRECTORY: &str = "editor-document";
 const TRANSACTION_TAG: &str = "editor-document";
 const WORKSPACE_FILE: &str = "editor-workspace.json";
+
+enum WorkspacePublication<'a> {
+    Preserve,
+    Write(&'a [u8]),
+    Retire,
+}
 
 /// Physical project identity and catalog generation admitted by one editor-document operation.
 ///
@@ -70,6 +77,8 @@ pub enum EditorDocumentCommitFault {
     CrashAfterTargetReplace(usize),
     #[cfg(any(test, feature = "test-support"))]
     CrashAfterRetiredDelete(usize),
+    #[cfg(any(test, feature = "test-support"))]
+    FailCommitPointSync,
 }
 
 #[cfg(any(test, feature = "test-support"))]
@@ -83,6 +92,7 @@ impl EditorDocumentCommitFault {
             Self::CrashAfterRetiredDelete(index) => {
                 ProjectTransactionFault::CrashAfterRetiredDelete(index)
             }
+            Self::FailCommitPointSync => ProjectTransactionFault::FailCommitPointSync,
         }
     }
 }
@@ -155,12 +165,14 @@ impl<'project> ScopedRuntimeProjectManager<'project> {
         &self,
         scene_uri: &AssetUri,
         scene: &Scene,
+        expected: &SceneSourceRevision,
         workspace_bytes: &[u8],
-    ) -> Result<EditorDocumentCommitOutcome, SceneProjectError> {
+    ) -> Result<ScenePublicationReceipt, SceneProjectError> {
         self.commit_scene_workspace_with_fault(
             scene_uri,
             scene,
-            Some(workspace_bytes),
+            expected,
+            WorkspacePublication::Write(workspace_bytes),
             ProjectTransactionFault::None,
         )
     }
@@ -174,11 +186,29 @@ impl<'project> ScopedRuntimeProjectManager<'project> {
         &self,
         scene_uri: &AssetUri,
         scene: &Scene,
-    ) -> Result<EditorDocumentCommitOutcome, SceneProjectError> {
+        expected: &SceneSourceRevision,
+    ) -> Result<ScenePublicationReceipt, SceneProjectError> {
         self.commit_scene_workspace_with_fault(
             scene_uri,
             scene,
-            None,
+            expected,
+            WorkspacePublication::Retire,
+            ProjectTransactionFault::None,
+        )
+    }
+
+    /// Publishes only the Scene source, preserving the editor-owned companion document.
+    pub fn commit_scene_source(
+        &self,
+        scene_uri: &AssetUri,
+        scene: &Scene,
+        expected: &SceneSourceRevision,
+    ) -> Result<ScenePublicationReceipt, SceneProjectError> {
+        self.commit_scene_workspace_with_fault(
+            scene_uri,
+            scene,
+            expected,
+            WorkspacePublication::Preserve,
             ProjectTransactionFault::None,
         )
     }
@@ -190,13 +220,15 @@ impl<'project> ScopedRuntimeProjectManager<'project> {
         &self,
         scene_uri: &AssetUri,
         scene: &Scene,
+        expected: &SceneSourceRevision,
         workspace_bytes: &[u8],
         fault: EditorDocumentCommitFault,
-    ) -> Result<EditorDocumentCommitOutcome, SceneProjectError> {
+    ) -> Result<ScenePublicationReceipt, SceneProjectError> {
         self.commit_scene_workspace_with_fault(
             scene_uri,
             scene,
-            Some(workspace_bytes),
+            expected,
+            WorkspacePublication::Write(workspace_bytes),
             fault.into_runtime_fault(),
         )
     }
@@ -208,18 +240,26 @@ impl<'project> ScopedRuntimeProjectManager<'project> {
         &self,
         scene_uri: &AssetUri,
         scene: &Scene,
+        expected: &SceneSourceRevision,
         fault: EditorDocumentCommitFault,
-    ) -> Result<EditorDocumentCommitOutcome, SceneProjectError> {
-        self.commit_scene_workspace_with_fault(scene_uri, scene, None, fault.into_runtime_fault())
+    ) -> Result<ScenePublicationReceipt, SceneProjectError> {
+        self.commit_scene_workspace_with_fault(
+            scene_uri,
+            scene,
+            expected,
+            WorkspacePublication::Retire,
+            fault.into_runtime_fault(),
+        )
     }
 
     fn commit_scene_workspace_with_fault(
         &self,
         scene_uri: &AssetUri,
         scene: &Scene,
-        workspace_bytes: Option<&[u8]>,
+        expected: &SceneSourceRevision,
+        workspace: WorkspacePublication<'_>,
         fault: ProjectTransactionFault,
-    ) -> Result<EditorDocumentCommitOutcome, SceneProjectError> {
+    ) -> Result<ScenePublicationReceipt, SceneProjectError> {
         self.ensure_generation()?;
         let scene_path = self
             .project
@@ -238,13 +278,15 @@ impl<'project> ScopedRuntimeProjectManager<'project> {
         self.ensure_generation()?;
         let journal_directory = self.journal_directory();
         validate_journal_owner(&journal_directory)?;
-        let scene_write = PreparedFileWrite::new(scene_path, scene_document.into_bytes());
-        let writes = match workspace_bytes {
-            Some(workspace_bytes) => vec![
+        let scene_write = PreparedFileWrite::new(scene_path.clone(), scene_document.into_bytes())
+            .expecting_source(expected.clone());
+        let writes = match workspace {
+            WorkspacePublication::Preserve => vec![scene_write],
+            WorkspacePublication::Write(workspace_bytes) => vec![
                 scene_write,
                 PreparedFileWrite::new(workspace_path, workspace_bytes.to_vec()),
             ],
-            None => {
+            WorkspacePublication::Retire => {
                 let workspace_present = match std::fs::symlink_metadata(&workspace_path) {
                     Ok(_) => true,
                     Err(error) if error.kind() == io::ErrorKind::NotFound => false,
@@ -258,23 +300,51 @@ impl<'project> ScopedRuntimeProjectManager<'project> {
             }
         };
         let mut report = DurableCommitReport::default();
-        let disposition = commit_core_files(
+        let receipt = commit_core_files(
             &journal_directory,
             TRANSACTION_TAG,
             writes,
             fault,
             &mut report,
         )
-        .map_err(transaction_error)?;
+        .map_err(|error| match error {
+            DurableTransactionError::SourceConflict {
+                path,
+                expected,
+                actual,
+            } => SceneProjectError::SourceConflict {
+                path,
+                expected,
+                actual,
+            },
+            error => SceneProjectError::Asset(transaction_error(error)),
+        })?;
         record_commit_report(report);
-        Ok(match disposition {
+        let (disposition, revisions) = receipt.into_parts();
+        // Only the Scene write carries a source revision; retain the publisher's normalized
+        // target spelling together with the identity of the actual staged object.
+        assert_eq!(
+            revisions.len(),
+            1,
+            "one Scene write owns one publication revision"
+        );
+        let (published_path, source_revision) = revisions
+            .into_iter()
+            .next()
+            .expect("a revision-bound Scene write must return its staged publication revision");
+        let outcome = match disposition {
             DurableCommitDisposition::CommitRecoveryDeferred => {
                 EditorDocumentCommitOutcome::RecoveryDeferred { journal_directory }
             }
             DurableCommitDisposition::Durable | DurableCommitDisposition::CleanupDeferred => {
                 EditorDocumentCommitOutcome::Durable
             }
-        })
+        };
+        Ok(ScenePublicationReceipt::new(
+            published_path,
+            source_revision,
+            outcome,
+        ))
     }
 
     fn ensure_generation(&self) -> Result<(), SceneProjectError> {
@@ -370,10 +440,17 @@ impl<'project> ScopedRuntimeProjectManager<'project> {
         &self,
         scene_uri: &AssetUri,
         scene: &Scene,
+        expected: &SceneSourceRevision,
         workspace_bytes: &[u8],
         fault: ProjectTransactionFault,
-    ) -> Result<EditorDocumentCommitOutcome, SceneProjectError> {
-        self.commit_scene_workspace_with_fault(scene_uri, scene, Some(workspace_bytes), fault)
+    ) -> Result<ScenePublicationReceipt, SceneProjectError> {
+        self.commit_scene_workspace_with_fault(
+            scene_uri,
+            scene,
+            expected,
+            WorkspacePublication::Write(workspace_bytes),
+            fault,
+        )
     }
 
     #[cfg(any(test, feature = "test-support"))]
@@ -381,9 +458,16 @@ impl<'project> ScopedRuntimeProjectManager<'project> {
         &self,
         scene_uri: &AssetUri,
         scene: &Scene,
+        expected: &SceneSourceRevision,
         fault: ProjectTransactionFault,
-    ) -> Result<EditorDocumentCommitOutcome, SceneProjectError> {
-        self.commit_scene_workspace_with_fault(scene_uri, scene, None, fault)
+    ) -> Result<ScenePublicationReceipt, SceneProjectError> {
+        self.commit_scene_workspace_with_fault(
+            scene_uri,
+            scene,
+            expected,
+            WorkspacePublication::Retire,
+            fault,
+        )
     }
 }
 

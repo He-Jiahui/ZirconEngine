@@ -46,6 +46,7 @@ pub struct ProductTimePolicy {
 }
 
 impl ProductTimePolicy {
+    /// 当前产品时间配置的契约版本；[validate](Self::validate) 仅接受完全相等的版本值。
     pub const VERSION: u16 = 1;
 
     /// 构造待验证的产品时间配置。

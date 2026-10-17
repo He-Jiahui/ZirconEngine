@@ -22,6 +22,7 @@ if (!codex || codex.contains('"') || codex.contains('\r') || codex.contains('\n'
 def suppliedRunId = params.RUN_ID == null ? '' : params.RUN_ID.toString().trim()
 def runId = suppliedRunId ? suppliedRunId : "jenkins-${env.BUILD_NUMBER}"
 if (!(runId ==~ /[A-Za-z0-9][A-Za-z0-9_.-]{0,79}/)) error('Invalid Jenkins run identifier')
+def suite = runId.startsWith('workflow-routing-') ? 'workflow-routing' : 'ordinary'
 def reportRoot = 'E:/cargo-targets/zircon-local/reports/jenkins-parallel-activation-20261011/ordinary-management-regression'
 def reportPath = "${reportRoot}/${runId}"
 def runner = "${repository}/tools/jenkins-management/run_checks.py"
@@ -32,7 +33,7 @@ node(agentLabel) {
         // The fixed agent inherits the verified official strict runtime Job.
         def command = "\"${python}\" -B -Xutf8 \"${runner}\" " +
             "--expected-driver \"${driver}\" --expected-runtime \"${runtime}\" " +
-            "--run-id \"${runId}\" --repo-root \"${repository}\""
+            "--run-id \"${runId}\" --suite \"${suite}\" --repo-root \"${repository}\""
         def status
         withEnv([
             'USERPROFILE=C:/Users/HeJiahui',

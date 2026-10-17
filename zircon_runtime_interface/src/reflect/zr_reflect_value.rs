@@ -141,6 +141,8 @@ impl ZrReflectValue for String {
     }
 }
 
+// 实体引用字段使用 Entity 保存 Option，包括 Entity(None)；反向转换也接受 Null 并映射为 None。
+// 这里转换数值形状，不查询实体是否存在，也不持有实体生命周期；调用者另行解析和校验引用。
 impl ZrReflectValue for Option<u64> {
     fn to_reflected_value(&self) -> ReflectedValue {
         ReflectedValue::Entity(*self)

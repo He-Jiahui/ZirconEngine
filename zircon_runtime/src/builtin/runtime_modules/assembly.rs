@@ -46,7 +46,10 @@ pub fn runtime_modules_for_compiled_project_plugin_plan(
 }
 
 /// Materializes a profile-constrained module report from one immutable plugin plan generation.
-/// A plan compiled for another target is rejected before any module is returned.
+/// Requires a plan admitted for this runtime profile and its preset maturity floor.
+/// Target-only or differently admitted plans are rejected;
+/// this wrapper cannot re-admit an immutable plan. For an explicit maturity override use
+/// `RuntimeModuleCompositionCompiler::new(plan)` with its matching applied policy.
 pub fn runtime_modules_for_runtime_profile_compiled_project_plugin_plan(
     profile_id: RuntimeProfileId,
     plan: &crate::plugin::CompiledProjectPluginPlan,

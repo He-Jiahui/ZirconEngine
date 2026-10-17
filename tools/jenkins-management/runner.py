@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 import hashlib
 import importlib.util
 import json
@@ -10,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import string
+import stat
 import subprocess
 import sys
 import time
@@ -31,16 +33,29 @@ MANAGED_PATH_BUDGET = 259
 # interruption.
 GIT_PROGRESS = re.compile(r"^(?:Updating files|Checking out files|Receiving objects|"
                           r"Resolving deltas|remote:|Counting objects|Compressing objects)")
+PREVIEW_ACTION = "preview-current-editor-r34"
+PREVIEW_REPOSITORY = Path("E:/Git/ZirconEngine")
+PREVIEW_REPORTS = Path("E:/cargo-targets/zircon-local/reports/penpot-unreal-01a0f04d")
+PREVIEW_PROOF = PREVIEW_REPORTS / "ordinary-window-unreal-current/unreal-chrome-cutover-current/jenkins-fixed-editor-preview-current"
+PREVIEW_SCRIPT = Path("E:/cargo-targets/zircon-local/tmp/penpot-unreal-01a0f04d/launch-current-normal-editor-preview-r34.py")
+PREVIEW_SCRIPT_SHA256 = "41ca2d510a2331373b5c34b8eecca55534fada274ab44606c14bfb2ba063457f"
+PREVIEW_PYTHON = Path("E:/cargo-targets/zircon-local/tools/penpot-unreal-01a0f04d/python-3.14.4-embed-amd64/runtime/python.exe")
+PREVIEW_PYTHON_SHA256 = "7ca24f26d6e3f463419ee4f537ddd3acd312c38fe45e678cce08572f26a8bd1a"
+PREVIEW_OUTPUT = Path("E:/cargo-targets/zircon-local/tests/penu-01a0f04d/ordinary-normal-preview-r34")
+PREVIEW_TIMEOUT_SECONDS = 900
+
+
 ACTIONS = {"create-branch", "create-worktree", "prepare-merge", "apply-patch",
            "commit-worktree", "release-worktree", "recover-worktree", "validate", "generate",
-           "prepare-flow", "submit-flow"}
+           "prepare-flow", "submit-flow", "prepare-worktree", "inspect-worktree", "retire-worktree-reader", PREVIEW_ACTION}
 GIT_ACTIONS = {"create-branch", "create-worktree", "prepare-merge", "apply-patch", "commit-worktree",
-               "release-worktree", "recover-worktree"}
-AUTH = {"create-branch": "implementation", "create-worktree": "implementation",
+               "release-worktree", "recover-worktree", "prepare-worktree"}
+AUTH = {PREVIEW_ACTION: "validation", "create-branch": "implementation", "create-worktree": "implementation",
         "prepare-merge": "implementation", "generate": "implementation",
         "apply-patch": "implementation", "commit-worktree": "commit", "release-worktree": "gc",
         "recover-worktree": "gc", "validate": "validation", "prepare-flow": "validation",
-        "submit-flow": "validation"}
+        "submit-flow": "validation", "prepare-worktree": "validation",
+        "inspect-worktree": "validation", "retire-worktree-reader": "validation"}
 
 
 def encoded(value):
@@ -51,6 +66,12 @@ def encoded(value):
 def sha(value):
     return hashlib.sha256(value).hexdigest()
 
+
+MANAGED_WORKTREE_CAPABILITY = {
+    "enabled": True, "schemaVersion": 1, "actions": sorted(ACTIONS - {PREVIEW_ACTION}),
+    "sourcePreparation": "managed-worktree-source-preparation-v1",
+    "compilerInputs": "managed-worktree-product-inputs-v1", "formalAcceptance": False,
+}
 
 def stderr_tail(raw, *, limit=3000):
     """Keep the diagnosable part of git stderr.
@@ -106,9 +127,14 @@ def source_component(source):
         if isinstance(value, dict) and isinstance(value.get("source"), dict):
             gitlinks[path] = {"gitlinkCommit": value.get("gitlinkCommit"),
                               "source": source_component(value["source"])}
-    return {"head": source["head"], "sourceDigest": source["sourceDigest"],
-            "diffSha256": source["diffSha256"], "filesDigest": sha(encoded(files)),
-            "fileCount": len(files), "gitlinks": gitlinks}
+    value = {"head": source["head"], "sourceDigest": source["sourceDigest"],
+             "filesDigest": sha(encoded(files)), "fileCount": len(files), "gitlinks": gitlinks}
+    if source.get("sourceEvidencePolicy") == "full-file-index-v2":
+        return {**value, "sourceEvidencePolicy": source["sourceEvidencePolicy"],
+                "gitIndexDigest": sha(encoded(source["gitIndex"])),
+                "gitIndexEntryCount": len(source["gitIndex"]["entries"]),
+                "gitIndexMetadataSha256": source["gitIndex"]["metadataSha256"]}
+    return {**value, "diffSha256": source["diffSha256"]}
 
 
 def source_components(snapshot):
@@ -203,6 +229,26 @@ def input_changes(before, after, limit=128):
 
 class CheckoutInputIncomplete(ValueError):
     code = "checkout_input_incomplete"
+
+
+class CheckoutInputIdentityConflict(ValueError):
+    code = "checkout_input_identity_conflict"
+
+    def __init__(self, path, previous_path, before_sha256, after_sha256):
+        self.path = path
+        self.previous_path = previous_path
+        self.before_sha256 = before_sha256
+        self.after_sha256 = after_sha256
+        super().__init__("Conflicting checkout input identity: " + path)
+
+
+def _record_checkout_input_identity(files, folded, path, checksum):
+    name, key = str(path), str(path).casefold()
+    prior = folded.get(key)
+    if prior is not None and files[prior] != checksum:
+        raise CheckoutInputIdentityConflict(name, prior, files[prior], checksum)
+    files[prior or name] = checksum
+    folded[key] = prior or name
 
 
 def checkout_expected_inputs_digest(inputs):
@@ -301,9 +347,12 @@ def plain(path):
     if ".." in Path(path).parts:
         raise ValueError("Physical paths cannot contain parent traversal")
     for part in (path, *path.parents):
-        if part.exists() or part.is_symlink():
-            if part.is_symlink() or getattr(part.lstat(), "st_file_attributes", 0) & 0x400:
-                raise ValueError("Physical paths only; alias/reparse point rejected")
+        try:
+            info = part.lstat()
+        except FileNotFoundError:
+            continue
+        if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
+            raise ValueError("Physical paths only; alias/reparse point rejected")
     return path
 
 
@@ -324,6 +373,57 @@ def write_json(path, value):
         with path.open("xb") as stream:
             stream.write(data)
     return {"path": str(path), "sha256": sha(data)}
+
+
+def fixed_editor_preview_recipe(payload):
+    """Accept identity plus two descriptor inputs; execution controls are fixed."""
+    fields = {"action", "repositoryId", "sessionId", "requestId", "operationId",
+              "driverDigest", "runtimeOperationId", "ownedPaths",
+              "productDescriptor", "productDescriptorSha256"}
+    if (not isinstance(payload, dict) or not fields <= set(payload)
+            or set(payload) - fields - {"observationOnly"}
+            or payload["action"] != PREVIEW_ACTION
+            or type(payload.get("observationOnly", False)) is not bool):
+        raise ValueError("Only the fixed Editor preview descriptor schema is supported")
+    name, digest = payload["productDescriptor"], payload["productDescriptorSha256"]
+    if (not isinstance(name, str) or any(c in name for c in "\0\r\n")
+            or not Path(name).is_absolute() or ".." in Path(name).parts
+            or not Path(name).is_relative_to(PREVIEW_REPORTS)
+            or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)):
+        raise ValueError("An exact task-owned absolute descriptor path and SHA256 are required")
+    descriptor = {"path": str(Path(name)), "sha256": digest}
+    return {"descriptor": descriptor,
+            "command": [str(PREVIEW_PYTHON), "-B", "-X", "utf8", str(PREVIEW_SCRIPT),
+                        "--product-descriptor", descriptor["path"],
+                        "--product-descriptor-sha256", digest]}
+
+
+def fixed_editor_preview_native(native, native_ref, command, repo):
+    proof = native_terminal_proof(native, native_ref)
+    proof["complete"] = (proof["complete"] and native["command"] == command
+                         and native["cwd"] == str(repo))
+    proof["naturalSuccess"] = (proof["complete"] and native["rootExitCode"] == 0
+                               and native.get("cleanup", {}).get("attempted") is False)
+    return proof
+
+
+def fixed_editor_preview_receipt(terminal, descriptor, pixel):
+    def exited(rows):
+        return (isinstance(rows, list) and bool(rows)
+                and all(isinstance(row, dict) and row.get("waitedForExit") is True
+                        and type(row.get("exitCode")) is int and row["exitCode"] == 0 for row in rows))
+    desktop = terminal.get("existingDesktop", {})
+    if (terminal.get("schema") != "current-unreal-ordinary-window-preview/v1"
+            or terminal.get("status") != "preview-pixel-verified"
+            or terminal.get("productDescriptor") != descriptor
+            or terminal.get("failure") is not None or terminal.get("pixelFrameVerified") is not True
+            or terminal.get("formalAcceptance") is not False or terminal.get("wholeUiAccepted") is not False
+            or terminal.get("sourceCopiesCreated") is not False
+            or desktop.get("windowStation") != "WinSta0" or desktop.get("desktop") != "Default"
+            or type(desktop.get("foregroundWindow")) is not int or desktop["foregroundWindow"] <= 0
+            or not exited(terminal.get("cleanup")) or not exited(terminal.get("auxiliaryCleanup"))
+            or pixel.get("pixelFrameVerified") is not True):
+        raise ValueError("This preview lacks its actual desktop, same-frame pixels or owned process closure")
 
 
 def native_terminal_proof(native, native_ref):
@@ -441,6 +541,29 @@ def checkout_guard_helper():
     return module
 
 
+CHECKOUT_PRODUCT_CAPABILITIES = (
+    {"enabled": True, "kind": "zircon-development-editor-preview", "schemaVersion": 1, "helper": "checkout_product.py"},
+    {"enabled": True, "kind": "zircon-development-editor-preview", "schemaVersion": 2, "helper": "checkout_product.py"},
+)
+
+
+def checkout_product_helper(config, *, required_schema=1):
+    checksum = config.get("files", {}).get("checkout_product.py")
+    capability = config.get("checkoutProduct")
+    if (capability not in CHECKOUT_PRODUCT_CAPABILITIES
+            or type(required_schema) is not int or required_schema not in {1, 2}
+            or capability["schemaVersion"] < required_schema
+            or not isinstance(checksum, str) or not re.fullmatch(r"[0-9a-f]{64}", checksum)):
+        raise ValueError("Fixed checkout product requires its installed pinned helper")
+    path = plain(Path(__file__).with_name("checkout_product.py"))
+    if sha(path.read_bytes()) != checksum:
+        raise ValueError("Pinned checkout product helper changed")
+    spec = importlib.util.spec_from_file_location("verified_checkout_product", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def boot(capsule):
     capsule = plain(capsule)
     raw = (capsule / "capsule.json").read_bytes()
@@ -449,12 +572,20 @@ def boot(capsule):
         raise ValueError("Management capsule identity differs")
     legacy_files = {"runner.py", "source_preparation.py", "zircon-management.groovy"}
     checkout_files = legacy_files | {"checkout_guard.py"}
-    if set(config["files"]) not in (legacy_files, checkout_files):
+    product_files = checkout_files | {"checkout_product.py"}
+    if set(config["files"]) not in (legacy_files, checkout_files, product_files):
         raise ValueError("Management capsule has an incomplete pinned implementation inventory")
     checkout_policy = config.get("checkoutValidation")
-    if checkout_policy is not None and (set(config["files"]) != checkout_files or checkout_policy != {
+    if checkout_policy is not None and (set(config["files"]) not in (checkout_files, product_files) or checkout_policy != {
             "enabled": True, "policy": "actual-checkout", "guard": "checkout_guard.py"}):
         raise ValueError("Actual checkout metadata requires its complete pinned guard inventory")
+    product_capability = config.get("checkoutProduct")
+    if ((set(config["files"]) == product_files and product_capability not in CHECKOUT_PRODUCT_CAPABILITIES)
+            or (set(config["files"]) != product_files and product_capability is not None)):
+        raise ValueError("Checkout product capability differs from its exact pinned inventory")
+    if set(config["files"]) == product_files and checkout_policy != {
+            "enabled": True, "policy": "actual-checkout", "guard": "checkout_guard.py"}:
+        raise ValueError("Checkout product requires its continuous pinned guard")
     for name, checksum in config["files"].items():
         if sha(plain(capsule / name).read_bytes()) != checksum:
             raise ValueError("Pinned management code changed")
@@ -484,6 +615,11 @@ def boot(capsule):
         data = plain(driver / relative).read_bytes()
         if len(data) != fact["bytes"] or sha(data) != fact["sha256"]:
             raise ValueError("Pinned driver source changed")
+    if config.get("managedWorktree") is not None:
+        if (config["managedWorktree"] != MANAGED_WORKTREE_CAPABILITY
+                or not {"tools/jenkins/managed_worktree.py", "tools/jenkins/managed_worktree_lifetime.py",
+                        "tools/jenkins/product_inputs.py"} <= set(manifest["files"])):
+            raise ValueError("Managed worktree capability lacks its exact sealed implementation")
     sys.path.insert(0, str(driver))
     from tools.jenkins.deployment.driver import active_driver_binding, driver_environment
     os.environ.update(driver_environment({"root": str(driver), "driverDigest": config["driverDigest"]},
@@ -508,19 +644,92 @@ def boot(capsule):
     return config, repo, manager
 
 
+def route_request_context(config, repo, manager, payload, *, state=None, query_only=False):
+    """Bind managed writer/reader identities before durable request claims."""
+    if payload.get("action") not in {
+            "create-worktree", "prepare-merge", "prepare-worktree", "prepare-flow",
+            "submit-flow", "inspect-worktree", "apply-patch", "generate"}:
+        return dict(payload), None
+    return source_helper().route_managed_context(
+        config, repo, manager, payload, state=state, query_only=query_only)
+
+
+def ensure_request_context(config, repo, manager, payload, *, state=None, record_request=True):
+    """Admit an ordinary local request without manual chat registration."""
+    action = payload.get("action")
+    if (AUTH.get(action) not in {"implementation", "validation"}
+            or action in {"prepare-worktree", "prepare-flow", "submit-flow", "retire-worktree-reader"}
+            or payload.get("worktreePreparationRef") or payload.get("observationOnly") is True):
+        return None
+    if state is None:
+        from tools.jenkins.state import State
+        state = State(repo / ".jenkins/state/coordination.sqlite3")
+    helper = source_helper()
+    return helper.admit_ordinary_context(
+        state, repo, payload, principal=helper.local_request_principal(manager),
+        driver_digest=config["driverDigest"], runtime_operation_id=config["runtimeOperationId"],
+        actions=[AUTH[action]], record_request=record_request)
+
+
+def reconcile_prepared_external_capture(captured, original, *, legacy_sealed=False):
+    """Reproduce the sealed v1 producer's path spelling from current verified bytes."""
+    evidence = source_helper()
+    evidence.checked_source_evidence(captured)
+    evidence.checked_source_evidence(original)
+    if captured == original:
+        return captured, None
+    legacy_keys = {"head", "files", "diffSha256", "sourceDigest"}
+    if not legacy_sealed or set(captured) != legacy_keys or set(original) != legacy_keys:
+        raise ValueError("External source differs from its exact original prepared evidence")
+    rewrites = []
+
+    def legacy(value, repository=""):
+        if set(value) != legacy_keys:
+            raise ValueError("Legacy sealed external reconciliation requires v1 at every Git root")
+        files, seen = {}, set()
+        for name, checksum in value["files"].items():
+            folded = name.casefold()
+            if folded in seen:
+                raise ValueError("External source paths collide after case folding")
+            seen.add(folded)
+            if isinstance(checksum, dict):
+                # The sealed producer preserves Gitlink spelling, including each child root.
+                files[name] = {"gitlinkCommit": checksum["gitlinkCommit"],
+                               "source": legacy(checksum["source"], repository + name + "/")}
+            else:
+                files[folded] = checksum
+                if folded != name:
+                    rewrites.append({"repository": repository.rstrip("/"), "from": name, "to": folded})
+        current = {"head": value["head"], "files": files, "diffSha256": value["diffSha256"]}
+        return {**current, "sourceDigest": sha(encoded(current))}
+
+    reconciled = legacy(captured)
+    if reconciled != original:
+        changed = [field for field in ("head", "diffSha256", "files", "sourceDigest")
+                   if reconciled[field] != original[field]]
+        raise ValueError("External source differs from its exact original prepared evidence; changed fields: "
+                         + ", ".join(changed))
+    rewrites.sort(key=lambda value: (value["repository"], value["from"], value["to"]))
+    return reconciled, {"kind": "sealed-legacy-v1-external-path-reconciliation",
+        "comparisonPolicy": "casefold-ordinary-files-preserve-gitlinks-v1",
+        "actualCaptureDigest": captured["sourceDigest"], "reconciledCaptureDigest": reconciled["sourceDigest"],
+        "preparedCaptureDigest": original["sourceDigest"], "pathRewrites": rewrites,
+        "exactHeadDiffFilesAndNestedGitlinks": True, "originalEvidencePreserved": True}
+
+
 class Management:
     def __init__(self, config, repo, manager, payload):
         from tools.jenkins.state import State
         from tools.jenkins.source import repository_id
         self.config, self.repo, self.manager, self.payload = config, repo, manager, payload
-        self.state = State(repo / ".jenkins/state/coordination.sqlite3")
+        self.state = source_helper().scoped_authorization_state(State(repo / ".jenkins/state/coordination.sqlite3"))
         self.action = payload["action"]
         self.source_view = payload.get("sourceView", "worktree")
         if self.source_view not in {"worktree", "checkout"}:
             raise ValueError("Unsupported validation source view")
         if self.source_view == "checkout" and self.action != "validate":
             raise ValueError("The current checkout source view is validation-only")
-        if self.action != "validate" and "externalRoots" in payload:
+        if self.action not in {"validate", "prepare-worktree", "inspect-worktree"} and "externalRoots" in payload:
             raise ValueError("External roots are validation-only")
         self.session = identifier(payload["sessionId"])
         self.request = identifier(payload["requestId"])
@@ -533,9 +742,13 @@ class Management:
                 or payload.get("driverDigest") != config["driverDigest"]
                 or payload.get("runtimeOperationId") != config["runtimeOperationId"]):
             raise ValueError("Management identity or action differs")
+        if ((self.action in {"prepare-worktree", "inspect-worktree", "retire-worktree-reader"} or payload.get("worktreePreparationRef"))
+                and config.get("managedWorktree") != MANAGED_WORKTREE_CAPABILITY):
+            raise ValueError("Managed source preparation is not installed")
         self.owned = payload.get("ownedPaths", [])
         if not isinstance(self.owned, list) or not self.owned or any(not isinstance(p, str) for p in self.owned):
             raise ValueError("ownedPaths must be an explicit path list")
+        ensure_request_context(config, repo, manager, payload, state=self.state)
         self.state.check_authorization(self.repo_id, self.session, AUTH[self.action], self.owned)
         self.key = sha(encoded({"repositoryId": self.repo_id, "sessionId": self.session,
                                "requestId": self.request, "operationId": self.operation}))
@@ -550,13 +763,43 @@ class Management:
                 "-c", "core.autocrlf=false", "-C", str(root), *args]
 
     def git(self, root, *args, check=True):
+        from tools.jenkins.pilot.native.process_supervisor import ProcessSupervisor
         command = self.git_command(root, *args)
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                timeout=1800 if args[:2] == ('worktree', 'add') else 600, check=False,
-                                env={**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_OPTIONAL_LOCKS": "0"})
-        if check and result.returncode:
-            raise ValueError(stderr_tail(result.stderr))
-        return result
+        digest_only = args == ("diff", "--no-ext-diff", "--no-textconv", "--binary", "--full-index", "HEAD", "--")
+        stdout, stderr, checksum, size = bytearray(), bytearray(), hashlib.sha256(), [0]
+
+        def output(_owner, channel, raw):
+            if channel == "stdout":
+                size[0] += len(raw)
+                checksum.update(raw)
+                if not digest_only:
+                    stdout.extend(raw)
+            else:
+                stderr.extend(raw)
+                del stderr[:-65536]
+
+        supervisor = ProcessSupervisor(maximum_output_bytes=65536, output_callback=output, job_terminal_timeout=8)
+        process = None
+        try:
+            process = supervisor.start(command, cwd=root,
+                env={**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_OPTIONAL_LOCKS": "0"},
+                owner=(getattr(self, "key", "management-git"), "git", 0, 0))
+            try:
+                code = process.wait(timeout=1800 if args[:2] == ("worktree", "add") else 600)
+            except subprocess.TimeoutExpired:
+                process.terminate(reason="management_git_timeout")
+                process.wait(timeout=8)
+                raise
+            result = subprocess.CompletedProcess(command, code, bytes(stdout), bytes(stderr))
+            result.stdoutSha256, result.stdoutBytes = checksum.hexdigest(), size[0]
+            result.nativeProof = {"pid": process.pid, "creationTime": str(process.creation_time),
+                "commandDigest": sha(encoded(command)), "rootExitCode": code,
+                "terminalScope": process.terminal_scope, "stdoutAndStderrEof": True}
+            if check and code:
+                raise ValueError(stderr_tail(result.stderr))
+            return result
+        finally:
+            supervisor.close()
 
     def text(self, root, *args):
         return self.git(root, *args).stdout.decode("utf-8", "strict").strip()
@@ -583,8 +826,13 @@ class Management:
 
     def source(self, root, *, payload=None):
         payload = self.payload if payload is None else payload
-        names = self.git(root, "ls-files", "--cached", "--others", "--exclude-standard", "-z").stdout
-        names = list(dict.fromkeys(raw.decode("utf-8", "strict") for raw in names.split(b"\0") if raw))
+        evidence = source_helper() if "sourceEvidencePolicy" in payload else None
+        metadata = evidence.full_file_index_metadata(self, root) if evidence is not None and evidence.full_file_index_requested(payload) else None
+        if metadata is None:
+            names = self.git(root, "ls-files", "--cached", "--others", "--exclude-standard", "-z").stdout
+            names = list(dict.fromkeys(raw.decode("utf-8", "strict") for raw in names.split(b"\0") if raw))
+        else:
+            names = metadata["names"]
         files, gitlinks = {}, {}
         if str(root).casefold() == r"E:\Git\zr_vm".casefold():
             stage = self.git(root, "ls-files", "--stage", "-z").stdout
@@ -610,6 +858,10 @@ class Management:
                     raise ValueError("Registered external submodule HEAD changed: " + name)
                 gitlinks[name] = {"gitlinkCommit": requested_input["indexCommit"], "source": child_source}
         def capture(name):
+            if name.startswith((".git/", "target/")):
+                raise ValueError("Unexpected source path: " + name)
+            if input_stage is not None:
+                return name, input_stage.checksum(name)
             path = plain(root / name)
             if not path.is_relative_to(root) or name.startswith((".git/", "target/")):
                 raise ValueError("Unexpected source path: " + name)
@@ -625,17 +877,25 @@ class Management:
         ordinary = [name for name in names if name not in gitlinks]
         print("[management] Capturing input " + str(root) + ": " + str(len(ordinary)) + " files", flush=True)
         # Bounded readers preserve every physical path and file hash check.
-        with ThreadPoolExecutor(max_workers=4) as readers:
-            for start in range(0, len(ordinary), 128):
-                for name, checksum in readers.map(capture, ordinary[start:start + 128]):
-                    files[name] = checksum
-                if start and start % 4096 == 0:
-                    print("[management] Input files captured: " + str(start) + "/" + str(len(ordinary)), flush=True)
+        stage = (source_helper().managed_input_stage(root, "capture-input")
+                 if getattr(self, "action", payload.get("action")) in {"inspect-worktree", "prepare-worktree", "validate"}
+                 else nullcontext())
+        with stage as input_stage:
+            with ThreadPoolExecutor(max_workers=4) as readers:
+                for start in range(0, len(ordinary), 128):
+                    for name, checksum in readers.map(capture, ordinary[start:start + 128]):
+                        files[name] = checksum
+                    if start and start % 4096 == 0:
+                        print("[management] Input files captured: " + str(start) + "/" + str(len(ordinary)), flush=True)
         files.update(gitlinks)
-        value = {"head": self.text(root, "rev-parse", "HEAD"), "files": files,
-                 "diffSha256": sha(self.git(root, "diff", "--no-ext-diff", "--no-textconv", "--binary", "--full-index", "HEAD", "--").stdout)}
+        if metadata is not None:
+            source = evidence.finish_full_file_index(self, root, files, metadata)
+        else:
+            value = {"head": self.text(root, "rev-parse", "HEAD"), "files": files,
+                     "diffSha256": source_helper().source_diff_digest(self, root)}
+            source = {**value, "sourceDigest": sha(encoded(value))}
         print("[management] Input capture complete: " + str(root), flush=True)
-        return {**value, "sourceDigest": sha(encoded(value))}
+        return source
 
     def validation_root(self, *, payload=None):
         payload = self.payload if payload is None else payload
@@ -664,14 +924,51 @@ class Management:
             # Verify the entire owned engine before reading the mutable foreign
             # closure or admitting preparation. Observations remain independent.
             self.verify_declared_engine(engine, payload)
-        external = []
-        for item in requested:
+        external, external_compatibility = [], []
+        pinned_external = None
+        if payload.get("sourceEvidencePolicy") == "full-file-index-v2" and payload.get("worktreePreparationRef"):
+            helper = source_helper()
+            row, _ = helper._managed_route_preparation(self.state, payload["worktreePreparationRef"],
+                payload["worktreeId"], self.repo_id, self.config)
+            prepared = row["payload"]
+            if prepared.get("path") != str(root) or prepared.get("writerSessionId") != self.session:
+                raise ValueError("Validation must retain its exact prepared worktree writer")
+            pinned_external = prepared["externalRoots"]
+            if [value["path"] for value in pinned_external] != requested:
+                raise ValueError("Validation external roots differ from their completed preparation")
+            for captured in pinned_external:
+                helper.checked_source_evidence(captured["source"])
+        prepared_context = None
+        if pinned_external is not None and prepared.get("sourceKind") == "sealed-observed-canonical-input" and prepared.get("sourcePreparation") is True:
+            engine = engine if engine is not None else self.source(root, payload=payload)
+            prepared_context = helper.prepared_validation_context(self, root, engine, payload=payload)
+            # These are verified original CAS tuples, never a claim about the live sibling.
+            external = prepared_context["captures"]
+        for item in ([] if prepared_context is not None else requested):
             try:
                 dependency = plain(Path(item))
                 if (not dependency.is_dir()
                         or plain(self.text(dependency, "rev-parse", "--show-toplevel")) != dependency):
                     raise ValueError("External input must be its actual physical Git root")
-                external.append({"path": str(dependency), "source": self.source(dependency, payload=payload)})
+                if view == "checkout" and "externalGitlinks" not in payload:
+                    from tools.jenkins import managed_worktree as formal
+                    # Bind omitted Gitlinks to the complete observed external input.
+                    _, captures, _ = formal._external_capture(
+                        self, source_helper(), inspection=True, payload=payload)
+                    external.extend(captures)
+                else:
+                    external_payload = payload
+                    original_external = None
+                    if pinned_external is not None:
+                        original_external = next(value["source"] for value in pinned_external if value["path"] == item)
+                        external_payload = helper.source_evidence_payload(payload, original_external)
+                    captured = self.source(dependency, payload=external_payload)
+                    if original_external is not None:
+                        captured, compatibility = reconcile_prepared_external_capture(captured, original_external,
+                            legacy_sealed=prepared.get("sourceKind") == "sealed-observed-canonical-input")
+                        if compatibility is not None:
+                            external_compatibility.append({"path": str(dependency), **compatibility})
+                    external.append({"path": str(dependency), "source": captured})
             except Exception as error:
                 if observation_errors is None:
                     raise
@@ -681,7 +978,23 @@ class Management:
         value = {"sourceView": view, "sourceRoot": str(root),
                  "source": engine if engine is not None else self.source(root, payload=payload),
                  "externalRoots": external}
+        if external_compatibility:
+            value["externalCompatibility"] = external_compatibility
+        if prepared_context is not None:
+            value["externalInputPolicy"] = "prepared-sealed-CAS"
+            value["preparedSealedInput"] = prepared_context["provenance"]
         return root, {**value, "sourceDigest": sha(encoded(value)) if not observation_errors else None}
+
+    def worktree_writer_binding(self):
+        writer = self.state.check_authorization(self.repo_id, self.session, "implementation", self.owned)
+        validation = self.state.check_authorization(self.repo_id, self.session, "validation", self.owned)
+        if writer["snapshotDigest"] != validation["snapshotDigest"]:
+            raise ValueError("Worktree writer authorization changed during creation")
+        key = sha(encoded({"repositoryId": self.repo_id, "sessionId": self.session,
+                           "requestId": self.request, "operationId": self.operation}))
+        return {"repositoryId": self.repo_id, "runtimeOperationId": self.config["runtimeOperationId"],
+                "creationOperationKey": key, "writerPrincipal": writer["principal"],
+                "writerAuthorizationSnapshot": writer["snapshotDigest"]}
 
     def new_worktree(self, *, merge=False):
         name = identifier(self.payload["name"])
@@ -697,6 +1010,10 @@ class Management:
         # a false drift whenever the two spellings differ.
         base = self.text(self.repo, "rev-parse", base + "^{commit}")
         existing = self.state.get("management_worktree", reference)
+        if self.payload.get("resumeFromOperationKey") is not None and existing is None:
+            raise WorktreeConflict(
+                "Explicit resume requires an existing managed worktree record",
+                reason="resume_record_missing", details={"reference": reference, "path": str(path)})
         if existing or path.exists():
             return self.existing_worktree(reference, path, existing, base, merge=merge)
         deepest_file, deepest_dir = deepest_tracked_paths(self.repo)
@@ -708,13 +1025,14 @@ class Management:
                 details={"worktree": str(path), "requiredBudget": budget,
                          "deepestFile": deepest_file, "deepestDir": deepest_dir,
                          "limit": MANAGED_PATH_BUDGET})
+        binding = self.worktree_writer_binding()
         self.worktrees.mkdir(parents=True, exist_ok=True)
         branch = None if merge else "codex/jenkins/" + self.session + "/" + name
         args = ["worktree", "add", "--detach"] if merge else ["worktree", "add", "-b", branch]
         self.git(self.repo, *args, "--", str(path), base)
         record = {"status": "ready", "path": str(path), "branch": branch, "baseHead": base,
                   "sessionId": self.session, "requestId": self.request, "operationId": self.operation,
-                  "ownedPaths": self.owned, "driverDigest": self.config["driverDigest"]}
+                  "ownedPaths": self.owned, "driverDigest": self.config["driverDigest"], **binding}
         self.state.put("management_worktree", reference, record, expected_version=0)
         return reference, path, record
 
@@ -730,8 +1048,11 @@ class Management:
         name = reference.split("-", 1)[-1] if reference.startswith(self.session + "-") else reference
         branch = None if merge else "codex/jenkins/" + self.session + "/" + name
         if existing is not None:
+            if self.payload.get("resumeFromOperationKey") is not None:
+                return self.resume_existing_worktree(reference, path, existing, base, merge=merge)
             value = existing["payload"]
             same_request = (value.get("sessionId") == self.session
+                            and value.get("requestId") == self.request
                             and value.get("operationId") == self.operation
                             and value.get("baseHead") == base
                             and (value.get("branch") is None) == merge)
@@ -785,7 +1106,7 @@ class Management:
         record = {"status": "ready", "path": str(path), "branch": branch, "baseHead": base,
                   "sessionId": self.session, "requestId": self.request, "operationId": self.operation,
                   "ownedPaths": self.owned, "driverDigest": self.config["driverDigest"],
-                  "adopted": True}
+                  "adopted": True, **self.worktree_writer_binding()}
         self.state.put("management_worktree", reference, record, expected_version=0)
         return reference, path, record
 
@@ -868,6 +1189,389 @@ class Management:
             raise ValueError("Patch differs from this task's ownedPaths")
         self.scoped(paths)
         return patch
+
+
+    def same_boot_worktree_resume_guard(self, original, pins, *, reserved=False):
+        """Retain a reviewed read-only UNKNOWN; never reconcile an old native/write claim."""
+        from tools.jenkins.managed_worktree_lifetime import active_readers, assert_no_writer
+        reference = self.payload["worktreeId"]
+        worktree = self.state.get("management_worktree", reference)
+        if not worktree:
+            raise ValueError("Same-boot resume requires its exact reviewed WT record")
+        record, operations = worktree["payload"], []
+        required = {("management_worktree", reference), ("management_operation", original["key"])}
+        observed = set()
+        for pin in pins:
+            identity = (pin.get("domain"), pin.get("key"))
+            row = self.state.get(*identity)
+            if (identity in observed or row is None or row["version"] != pin.get("version")
+                    or sha(encoded(row["payload"])) != pin.get("payloadDigest")):
+                raise ValueError("Same-boot resume reviewed State pin changed")
+            observed.add(identity)
+            if identity[0] == "management_operation":
+                value = row["payload"]
+                request, result = value.get("payload", {}), value.get("result", {})
+                if request.get("worktreeId") == reference or result.get("worktreeId") == reference or row["key"] == original["key"]:
+                    operations.append(row)
+        if not required <= observed or record.get("sessionId") != self.session:
+            raise ValueError("Same-boot resume lacks its reviewed original WT and creation")
+        unknown = []
+        for row in operations:
+            if row["key"] == original["key"]:
+                if row != original:
+                    raise ValueError("Same-boot resume original creation changed")
+                continue
+            value, request = row["payload"], row["payload"].get("payload", {})
+            if (value.get("phase") != "unknown" or value.get("action") != "inspect-worktree"
+                    or request.get("action") != "inspect-worktree"
+                    or request.get("sessionId") != self.session
+                    or request.get("runtimeOperationId") != record.get("runtimeOperationId")
+                    or request.get("driverDigest") != record.get("driverDigest")
+                    or sorted(request.get("ownedPaths", [])) != sorted(self.owned)
+                    or value.get("inputDigest") != sha(encoded(
+                        {name: item for name, item in request.items() if name != "observationOnly"}))):
+                raise ValueError("Same-boot resume supports only the exact quarantined read-only UNKNOWN inspection")
+            unknown.append(row["key"])
+        root = plain(record["path"])
+        if active_readers(self.state, reference, root):
+            raise ValueError("A registered source reader freezes this worktree")
+        writer = self.state.get("managed_worktree_writer", reference)
+        if reserved:
+            if not writer or writer["payload"] != {"worktreeId": reference, "operationKey": self.key,
+                    "inputDigest": self.input_digest, "status": "active"}:
+                raise ValueError("Same-boot resume writer reservation changed")
+        else:
+            assert_no_writer(self.state, reference)
+        owners = {"management-" + row["key"] for row in operations}
+        for domain in ("execution", "execution_launch", "execution_host", "management_prelaunch", "native_job"):
+            for row in self.state.list(domain):
+                value = row["payload"]
+                if (row["key"] in owners or value.get("owner") in owners or value.get("executionId") in owners
+                        or (value.get("worktreeId") == reference or value.get("sourceRoot") == str(root))
+                           and value.get("owner") != "management-" + self.key):
+                    raise ValueError("Same-boot read-only resume cannot reconcile an existing execution or native claim")
+        return sorted(unknown)
+
+    def worktree_resume_release(self, reference):
+        """Read historical runtime authority for metadata resume, without issuing a service action."""
+        from tools.jenkins.deployment import recovery_keeper as keeper
+        from tools.jenkins.deployment.lost_recovery_runtime import reviewed_marker
+        repo, state = self.manager.paths.repo.absolute(), self.manager.paths.state.absolute()
+        paths = {"config": repo / ".codex/config.toml",
+                 "deploymentSpec": self.manager.spec.path.absolute(),
+                 "workflowSpec": repo / ".jenkins/workflow-spec.json"}
+        config_path = plain(paths["config"])
+
+        def identity(value):
+            return (value.st_dev, value.st_ino, value.st_mode, value.st_size,
+                    value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
+
+        with config_path.open("rb") as stream:
+            config_stat = os.fstat(stream.fileno())
+            path_stat = config_path.stat()
+            if (config_stat.st_dev, config_stat.st_ino) != (path_stat.st_dev, path_stat.st_ino):
+                raise ValueError("Current metadata configuration handle differs from its physical path")
+            if not stat.S_ISREG(config_stat.st_mode):
+                raise ValueError("Current metadata configuration must be an ordinary physical file")
+            current = {"config": {"path": str(config_path), "sha256": sha(stream.read())}}
+            if identity(os.fstat(stream.fileno())) != identity(config_stat):
+                raise ValueError("Current metadata configuration changed while reading")
+            for field in ("deploymentSpec", "workflowSpec"):
+                current[field] = {"path": str(paths[field]), "sha256": keeper._sha(paths[field])}
+            document = keeper._reference(state, reference, release=True)
+            for field, path in paths.items():
+                value = document.get(field)
+                keeper._require(isinstance(value, dict) and set(value) == {"path", "sha256"}
+                                and value["path"] == str(path),
+                                "Historical metadata configuration reference differs")
+                keeper.require_digest(value["sha256"], field)
+                if field != "config":
+                    keeper._require(value == current[field], "Recovery specification changed")
+            changed = document["config"] != current["config"]
+            if not changed:
+                document, verified = keeper._release(self.manager, reference, current_source=False)
+            else:
+                # This reader consumes an already issued runtime. It cannot start, stop or transfer one.
+                keeper._require(document.get("schemaVersion") == 1
+                                and document.get("kind") == keeper.RELEASE_KIND
+                                and document.get("scope") == "execution-runtime"
+                                and re.fullmatch("[0-9a-f]{32}", str(document.get("requestId", "")))
+                                and isinstance(document.get("lostRecoveryRuntime"), dict)
+                                and all(document.get(name) is None for name in ("ownedUpgrade", "failedOwnStart"))
+                                and all(document.get(name) is False for name in
+                                        ("runtimeAcceptance", "cargoAcceptance", "automaticRestart", "queueReplayRequested")),
+                                "Historical configuration compatibility is metadata-only lost-runtime recovery")
+                target = document.get("targetDriver")
+                keeper._require(isinstance(target, dict), "Recovery target driver is missing")
+                root = repo / ".jenkins/runtime/drivers" / keeper.require_digest(
+                    target.get("driverDigest"), "targetDriverDigest")
+                keeper._require(target.get("root") == str(root)
+                                and document.get("actorCodeRoot") == str(root)
+                                and Path(keeper.__file__).absolute().parents[3] == root,
+                                "Metadata reader must use the exact sealed recovery actor")
+                verified = keeper.verify_driver(root, expected_digest=target["driverDigest"])
+                keeper._require(target == verified, "Recovery release must pin the complete sealed target snapshot")
+                required_operators = (*keeper._OPERATOR_FILES, "tools/jenkins/deployment/lost_recovery_runtime.py")
+                required = {repo / name for name in required_operators} | {
+                    state / "migration-baseline/jenkins_desktop_holder.py"}
+                operators = document.get("operatorFiles")
+                keeper._require(isinstance(operators, dict) and {str(path) for path in required} <= set(operators),
+                                "Recovery release must retain its complete historical operator inventory")
+                for name, checksum in operators.items():
+                    keeper.require_digest(checksum, "operatorSha256")
+                    path = keeper._operator_path(repo, verified, name, sealed=True)
+                    keeper._require(keeper._sha(path) == checksum, "Reviewed recovery operator bytes changed")
+                historical = keeper._historical_regression(repo, state, document.get("regression", {}), verified,
+                                                            required_operators=required_operators)
+                for field, name in (("deploymentSpec", ".jenkins/deployment-spec.json"),
+                                    ("workflowSpec", ".jenkins/workflow-spec.json")):
+                    keeper._require(historical["sourceFiles"].get(name) == document[field]["sha256"],
+                                    "Historical tested specification changed")
+                keeper._require(all(historical["sourceFiles"].get(Path(name).relative_to(repo).as_posix()) == checksum
+                                    for name, checksum in operators.items()
+                                    if Path(name).is_relative_to(repo / "tools/jenkins")
+                                    and "/tests/" not in Path(name).relative_to(repo).as_posix()),
+                                "Reviewed lifecycle operator differs from its historical tested implementation")
+                preparation = keeper._reference(state, document.get("preparation"))
+                keeper._require(preparation.get("schemaVersion") == 1
+                                and preparation.get("state") == "prepared-not-selected"
+                                and preparation.get("driver") == target
+                                and preparation.get("supportRegression", preparation.get("regression")) == document["regression"]
+                                and preparation.get("protectedHolds") == document.get("protectedHolds"),
+                                "Recovery target lacks its exact historical preparation")
+                holds = document.get("protectedHolds")
+                current_holds = keeper.protected_holds(state)
+                # Metadata resume preserves the historical rows; unrelated current work may add holds.
+                keeper._require(isinstance(holds, list) and len(holds) == 4
+                                and len({(row.get("domain"), row.get("key")) for row in holds
+                                         if isinstance(row, dict)}) == 4
+                                and all(row in current_holds for row in holds),
+                                "The four protected historical holds must remain exact")
+                keeper._failed_start_marker(state, document)
+                keeper._owned_upgrade_marker(state, document)
+                reviewed_marker(state, document)
+                owner, fence = document.get("expectedPreviousOwner"), document.get("expectedLifecycleFence")
+                fence_names = {"deployment-operation.json", "deployment/host.json",
+                               "deployment/driver.json", *keeper._LEGACY_FILES}
+                keeper._require(isinstance(owner, dict) and isinstance(fence, dict) and set(fence) == fence_names
+                                and all(fence[name] is not None for name in
+                                        fence_names - {"deployment/formal-lifecycle-command.json"}),
+                                "Reviewed complete predecessor binding is missing")
+                for checksum in fence.values():
+                    if checksum is not None:
+                        keeper.require_digest(checksum, "lifecycleFenceSha256")
+                previous = preparation.get("previousSelectedDriver")
+                keeper._require(isinstance(previous, dict), "Prepared predecessor selector is missing")
+                old_root = repo / ".jenkins/runtime/drivers" / keeper.require_digest(
+                    previous.get("driverDigest"), "previousDriverDigest")
+                keeper._require(previous.get("root") == str(old_root)
+                                and preparation.get("previousSelectorSha256") == fence["deployment/driver.json"]
+                                and previous.get("runtimeOperationId") == owner.get("operation", {}).get("operationId"),
+                                "Prepared predecessor selector changed")
+                old_verified = keeper.verify_driver(old_root, expected_digest=previous["driverDigest"])
+                keeper._require(all(previous.get(key) == value for key, value in old_verified.items()),
+                                "Prepared predecessor driver bytes changed")
+            plain(config_path)
+            stream.seek(0)
+            keeper._require(identity(os.fstat(stream.fileno())) == identity(config_stat)
+                            and identity(config_path.stat()) == identity(path_stat)
+                            and sha(stream.read()) == current["config"]["sha256"]
+                            and identity(os.fstat(stream.fileno())) == identity(config_stat)
+                            and all(keeper._sha(paths[field]) == current[field]["sha256"]
+                                    for field in ("deploymentSpec", "workflowSpec")),
+                            "Current metadata configuration or specification changed during observation")
+        return document, verified, {
+            "kind": "historical-runtime-configuration-observation",
+            "purpose": "worktree-metadata-resume", "historicalConfig": document["config"],
+            "currentConfig": current["config"], "currentDeploymentSpec": current["deploymentSpec"],
+            "currentWorkflowSpec": current["workflowSpec"],
+            "currentConfigFileIdentity": {"device": config_stat.st_dev, "inode": config_stat.st_ino},
+            "configurationChangedSinceRuntimeSpawn": changed,
+            "runtimeReissued": False, "serviceLifecyclePerformed": False}
+
+    def worktree_resume_lineage(self, previous_runtime, original, *, reserved=False):
+        """Bind metadata resume to its exact reviewed predecessor and current native owner."""
+        from tools.jenkins.deployment.lost_recovery_runtime import (
+            SAME_BOOT_VARIANT, reviewed_marker, validate_interruption_receipt, _departure_binding)
+        from tools.jenkins.deployment.owned_upgrade import _committed_command, _departure
+        from tools.jenkins.deployment.recovery_keeper import (
+            DESCRIPTOR_KIND, _read, _reference, _runtime_receipt)
+        from tools.jenkins.processes.boot import windows_boot_filetime
+        state = plain(self.repo / ".jenkins/state")
+        descriptor = _read(state / "formal-lifecycle/recovery-keeper.json")
+        command = _read(state / "recovery-lifecycle/command.json")
+        release, target, configuration = self.worktree_resume_release(descriptor.get("release"))
+        planned = reviewed_marker(state, release)
+        boot = str(windows_boot_filetime())
+        runtime = descriptor.get("runtime", {})
+        previous_driver = original["payload"]["payload"].get("driverDigest")
+        if (not isinstance(previous_driver, str) or not re.fullmatch(r"[0-9a-f]{64}", previous_driver)
+                or descriptor.get("schemaVersion") != 1 or descriptor.get("kind") != DESCRIPTOR_KIND
+                or descriptor.get("admission") != "idle" or descriptor.get("automaticRestart") is not False
+                or any(descriptor.get(name) is not False for name in
+                       ("runtimeAcceptance", "cargoAcceptance", "historicalHoldsReleased"))
+                or runtime.get("state") != "running"
+                or not planned or planned.get("recoveryVariant") != SAME_BOOT_VARIANT
+                or planned.get("originalCommandStatus") != "committed"
+                or planned.get("operationId") != previous_runtime
+                or planned.get("bootFileTime") != boot or descriptor.get("bootFileTime") != boot
+                or not str(planned.get("previousBootFileTime", "")).isdigit()
+                or int(planned["previousBootFileTime"]) > int(boot)
+                or runtime.get("operation", {}).get("operationId") != self.config["runtimeOperationId"]
+                or runtime.get("selected", {}).get("runtimeOperationId") != self.config["runtimeOperationId"]
+                or runtime.get("selected", {}).get("driverDigest") != self.config["driverDigest"]
+                or target.get("driverDigest") != self.config["driverDigest"]):
+            raise ValueError("Worktree resume requires the exact committed reviewed recovery")
+        receipt = _runtime_receipt(self.manager, descriptor, release, target)
+        _committed_command(state, descriptor, receipt, command)
+        interruption = validate_interruption_receipt(state, descriptor, release)
+        archives = interruption["originalArtifacts"]
+        archived = {name: _reference(state, binding["archive"]) for name, binding in archives.items()}
+        old_descriptor, old_receipt = archived["originalDescriptor"], archived["previousRuntimeReceipt"]
+        old_runtime = old_descriptor.get("runtime", {})
+        old_selected = old_runtime.get("selected", {})
+        # The reviewed preparation verifies the sealed old driver. Its exact
+        # selector and archived native issuance must also name this WT's driver.
+        preparation = _reference(state, release["preparation"])
+        if (old_descriptor.get("schemaVersion") != 1 or old_descriptor.get("kind") != DESCRIPTOR_KIND
+                or old_descriptor.get("admission") != "idle" or old_runtime.get("state") != "running"
+                or old_runtime.get("operation", {}).get("operationId") != previous_runtime
+                or old_selected.get("runtimeOperationId") != previous_runtime
+                or old_selected.get("driverDigest") != previous_driver
+                or old_selected != preparation.get("previousSelectedDriver")
+                or archives["previousSelector"]["original"]["sha256"] != preparation.get("previousSelectorSha256")
+                or sha(encoded(old_selected)) != planned.get("selectedDriverDigest")
+                or old_runtime.get("operation") != archived["previousOperation"]
+                or old_runtime.get("host") != archived["previousHost"]
+                or old_selected != archived["previousSelector"]
+                or old_descriptor.get("runtimeReceipt") != planned.get("previousRuntimeReceipt")
+                or old_descriptor.get("release") != planned.get("previousRecoveryRelease")
+                or old_descriptor.get("bootFileTime") != planned["previousBootFileTime"]
+                or old_receipt.get("kind") != "recovery-keeper-runtime"
+                or old_receipt.get("runtime") != old_runtime
+                or old_receipt.get("keeper") != old_descriptor.get("keeper")
+                or old_receipt.get("release") != old_descriptor.get("release")
+                or old_receipt.get("bootFileTime") != planned["previousBootFileTime"]
+                or any(old_receipt.get(name) is not False for name in
+                       ("runtimeAcceptance", "cargoAcceptance", "nativeProofSynthesized",
+                        "historicalHoldsReleased", "queueReplayRequested"))
+                or self.manager._read() != runtime["operation"]
+                or _read(state / "deployment/host.json") != runtime["host"]
+                or _read(state / "deployment/driver.json") != runtime["selected"]):
+            raise ValueError("Worktree resume driver lineage differs from the archived and current native runtime")
+        pin = {"domain": "management_operation", "key": original["key"],
+               "version": original["version"], "payloadDigest": sha(encoded(original["payload"]))}
+        quarantine = planned.get("managementQuarantine", {})
+        if pin not in quarantine.get("records", []):
+            raise ValueError("Worktree creation differs from the reviewed predecessor operation")
+        same_boot = planned["previousBootFileTime"] == boot
+        extra = {}
+        if same_boot:
+            if (not isinstance(quarantine.get("currentRecords"), list)
+                    or any(quarantine.get(name) is not False for name in
+                           ("nativeProofIssued", "artifactAcceptance", "executionHoldsReleaseAllowed"))):
+                raise ValueError("Same-boot WT resume requires the exact non-accepting management quarantine")
+            indexed = {(value.get("domain"), value.get("key")): value for value in quarantine["records"]}
+            pins = []
+            for binding in quarantine["currentRecords"]:
+                selected = indexed.get((binding.get("domain"), binding.get("key")))
+                if selected is None:
+                    raise ValueError("Same-boot WT resume has an unpinned current record")
+                pins.append(selected)
+            unknown = self.same_boot_worktree_resume_guard(original, pins, reserved=reserved)
+            identities = {**old_runtime.get("owner", {}), "keeper": old_descriptor.get("keeper")}
+            if (set(identities) != {"supervisor", "controller", "agent", "keeper"}
+                    or any(planned.get("owner", {}).get(role) != identities[role]
+                           for role in ("supervisor", "controller", "agent"))
+                    or planned.get("departedKeeper") != identities["keeper"]):
+                raise ValueError("Same-boot WT resume departed owners differ from the exact archived identities")
+            departures = {}
+            for role, identity in identities.items():
+                reviewed = _departure_binding(planned.get("departedIdentities", {}).get(role))
+                if (reviewed != {"pid": identity["pid"], "expectedCreationTime": identity["creationTime"]}
+                        or int(identity["creationTime"]) < int(boot)):
+                    raise ValueError("Same-boot WT resume owner birth differs from its reviewed departure")
+                departures[role] = _departure(identity)
+            extra = {"reviewedStatePins": pins, "preservedUnknownInspectOperationKeys": unknown,
+                "currentDepartureObservations": departures,
+                "oldNativeTerminationClaimed": False, "historicalEofClaimed": False,
+                "historicalHoldsReleased": False, "queueReplayRequested": False}
+        return {"kind": "managed-worktree-same-boot-resume" if same_boot else "managed-worktree-later-boot-resume",
+                "release": descriptor["release"],
+                "configurationEvidence": configuration,
+                "reviewedPlan": release["lostRecoveryRuntime"]["plan"],
+                "interruption": descriptor["lostRecoveryRuntimeInterruption"],
+                "predecessorArtifacts": archives, "preparation": release["preparation"],
+                "previousRuntimeOperationId": previous_runtime, "previousDriverDigest": previous_driver,
+                "runtimeOperationId": self.config["runtimeOperationId"], "targetDriverDigest": target["driverDigest"],
+                "previousBootFileTime": planned["previousBootFileTime"], "bootFileTime": boot,
+                "originalOperationPin": pin, "nativeProofIssued": False, **extra}
+
+    def resume_existing_worktree(self, reference, path, existing, base, *, merge):
+        """Rebind verified unchanged WT metadata; never rewrite its original result."""
+        from tools.jenkins.managed_worktree_lifetime import writer_hold
+        value = existing["payload"]
+        key = self.payload.get("resumeFromOperationKey")
+        branch = "codex/jenkins/" + self.session + "/" + self.payload["name"]
+        if (merge or self.config.get("managedWorktree") != MANAGED_WORKTREE_CAPABILITY
+                or self.payload.get("worktreeId") != reference
+                or not isinstance(key, str) or not re.fullmatch(r"[0-9a-f]{64}", key)
+                or key != value.get("creationOperationKey") or value.get("status") != "ready"
+                or value.get("repositoryId") != self.repo_id or value.get("sessionId") != self.session
+                or not isinstance(value.get("driverDigest"), str)
+                or not re.fullmatch(r"[0-9a-f]{64}", value["driverDigest"])
+                or value.get("runtimeOperationId") == self.config["runtimeOperationId"]
+                or plain(value["path"]) != path or value.get("baseHead") != base
+                or value.get("branch") != branch or sorted(value.get("ownedPaths", [])) != sorted(self.owned)):
+            raise ValueError("Worktree resume requires its exact ready predecessor and original writer")
+        original = self.state.get("management_operation", key)
+        operation = original["payload"] if original else {}
+        payload, result = operation.get("payload", {}), operation.get("result", {})
+        identities = {name: payload.get(name) for name in ("repositoryId", "sessionId", "requestId", "operationId")}
+        if (operation.get("phase") != "complete" or operation.get("action") != "create-worktree"
+                or sha(encoded(identities)) != key
+                or operation.get("inputDigest") != sha(encoded({k: v for k, v in payload.items() if k != "observationOnly"}))
+                or any(payload.get(n) != value.get(n) for n in
+                       ("repositoryId", "sessionId", "requestId", "operationId", "driverDigest", "runtimeOperationId"))
+                or result.get("status") != "complete" or result.get("operationKey") != key
+                or result.get("worktreeId") != reference or result.get("baseHead") != base
+                or any(result.get(n) != value.get(n) for n in
+                       ("driverDigest", "runtimeOperationId", "writerPrincipal"))
+                or result.get("writerAuthorizationSnapshot") != value.get("writerAuthorizationSnapshot")):
+            raise ValueError("Worktree resume requires its original completed creation receipt")
+        lineage = self.worktree_resume_lineage(value["runtimeOperationId"], original)
+        binding = self.worktree_writer_binding()
+        if (binding["writerPrincipal"] != value.get("writerPrincipal")
+                or binding["writerAuthorizationSnapshot"] != value.get("writerAuthorizationSnapshot")):
+            raise ValueError("Worktree resume cannot replace its original writer authority")
+        with writer_hold(self):
+            # Resume changes authority metadata only; a failed read leaves no partial source mutation.
+            self._worktree_mutation_started = False
+            if (plain(self.text(path, "rev-parse", "--path-format=absolute", "--git-common-dir")) != plain(self.repo / ".git")
+                    or self.text(path, "rev-parse", "HEAD") != base
+                    or self.text(path, "symbolic-ref", "--short", "HEAD") != branch
+                    or self.source(path) != result.get("source")):
+                raise ValueError("Worktree source or physical Git identity changed; preserve it for reconciliation")
+            if lineage["kind"] == "managed-worktree-same-boot-resume":
+                lineage = self.worktree_resume_lineage(value["runtimeOperationId"], original, reserved=True)
+            record = {**value, **binding, "requestId": self.request, "operationId": self.operation,
+                      "driverDigest": self.config["driverDigest"],
+                      "resumedFrom": {"creationOperationKey": key, "runtimeOperationId": value["runtimeOperationId"],
+                                      "driverDigest": value["driverDigest"],
+                                      "recordDigest": sha(encoded(value)), "recovery": lineage},
+                      "sourceUnchangedDuringResume": True}
+            if lineage["kind"] == "managed-worktree-same-boot-resume":
+                with self.state.transaction() as connection:
+                    for pin in lineage["reviewedStatePins"]:
+                        current = self.state.get(pin["domain"], pin["key"], connection=connection)
+                        if (current is None or current["version"] != pin["version"]
+                                or sha(encoded(current["payload"])) != pin["payloadDigest"]):
+                            raise ValueError("Same-boot WT resume State authority changed before publication")
+                    self.state.put("management_worktree", reference, record,
+                                   expected_version=existing["version"], connection=connection)
+            else:
+                self.state.put("management_worktree", reference, record, expected_version=existing["version"])
+        return reference, path, record
 
     def historical_patch_continuation(self, key, row):
         """Consume one pinned completed patch from a reviewed same-boot predecessor."""
@@ -1442,6 +2146,19 @@ class Management:
                 "directories": sorted(directories), "fileCount": len(files),
                 "logicalBytes": sum(value["bytes"] for value in files)}
 
+    def assert_no_current_source_readers(self, reference, root, *, connection):
+        if self.config.get("managedWorktree") == MANAGED_WORKTREE_CAPABILITY:
+            from tools.jenkins.managed_worktree_lifetime import active_readers
+            if active_readers(self.state, reference, root, connection=connection):
+                raise ValueError("Managed worktree has a retained current-source reader; release requires separate reconciliation")
+            return
+        for row in self.state.list("current_source_intent", connection=connection):
+            intent = row["payload"]
+            source = intent.get("sourceRoot")
+            if (intent.get("worktreeId") == reference
+                    or isinstance(source, str) and Path(source).resolve() == root.resolve()):
+                raise ValueError("Managed worktree has a retained current-source reader; release requires separate reconciliation")
+
     def release_worktree(self):
         """Remove one validated input worktree through Jenkins' retained native Git owner."""
         from tools.jenkins.workflow.planning import _environment_policy
@@ -1543,6 +2260,7 @@ class Management:
             current = self.state.get("management_worktree", reference, connection=connection)
             if not current or current["payload"] != record:
                 raise ValueError("Input worktree changed before release admission")
+            self.assert_no_current_source_readers(reference, root, connection=connection)
             patch_rows = []
             related_keys = set(keys)
             for row in self.state.list("management_operation", connection=connection):
@@ -1776,18 +2494,34 @@ class Management:
         if not isinstance(identity_value, dict):
             raise ValueError("A flow identity is required")
         identity = {**identity_value, "repositoryId": repository_id(self.repo)}
-        if (identity.get("sessionId") != self.session
+        if (not isinstance(identity.get("sessionId"), str) or identity["sessionId"] == self.session
                 or identity.get("generation") not in (1, "1")):
-            raise ValueError("Flow identity must retain this session at generation 1")
+            raise ValueError("Flow identity requires a separate validation reader at generation 1")
+        identifier(identity["sessionId"])
         captured = self.source(root)
         # Flow refuses checkout control and compiler output as product input,
         # and this repository tracks files under .jenkins and .codex, so an
         # unfiltered closure always trips that guard.  Only the product source
         # crosses the bridge.
         control = {".git", ".codex", ".jenkins", ".opencode", "target"}
-        hashes = {name: checksum for name, checksum in captured["files"].items()
-                  if (checksum is None or isinstance(checksum, str))
-                  and name.split("/", 1)[0] not in control}
+        prepared_ref = self.payload.get("worktreePreparationRef")
+        prepared_fields = {}
+        if prepared_ref is not None:
+            from tools.jenkins.managed_worktree import preparation
+            from tools.jenkins.product_inputs import product_path
+            prepared = preparation(self.state, prepared_ref, self.payload["worktreeId"])["payload"]
+            hashes = dict(prepared["currentHashes"])
+            hashes.update({name.casefold(): checksum for name, checksum in captured["files"].items()
+                           if product_path(name.casefold())})
+            prepared_fields = {"worktreePreparationRef": prepared_ref,
+                               "compilerControlInputs": prepared["compilerControlInputs"],
+                               "patchOperationKeys": self.payload.get("patchOperationKeys", [])}
+            external_inputs = prepared["externalInputs"]
+        else:
+            hashes = {name: checksum for name, checksum in captured["files"].items()
+                      if (checksum is None or isinstance(checksum, str))
+                      and name.split("/", 1)[0] not in control}
+            external_inputs = self.payload.get("externalInputs", [])
         owned = [name for name in self.owned if name in hashes]
         if not owned:
             raise ValueError("Flow preparation needs at least one owned product source path; "
@@ -1797,14 +2531,15 @@ class Management:
         tracked = set()
         for raw in self.git(root, "ls-files", "--cached", "-z").stdout.split(b"\0"):
             if raw:
-                tracked.add(raw.decode("utf-8", "strict"))
+                name = raw.decode("utf-8", "strict")
+                tracked.add(name.casefold() if prepared_ref is not None else name)
         untracked = sorted(name for name, checksum in hashes.items()
                            if checksum is not None and name not in tracked)
         authored = self.payload.get("attemptId") or ("attempt-" + self.operation)
         coverage = self.payload.get("coverage")
         if not isinstance(coverage, dict):
             raise ValueError("Flow preparation requires an explicit product coverage template")
-        registered = current_source.handle("register", {
+        registration = {
             "identity": {**identity, "attemptId": authored, "generation": 1,
                          "stageImplementationDigest": self.config["driverDigest"]},
             "baseHead": captured["head"],
@@ -1813,10 +2548,16 @@ class Management:
             "untrackedPaths": untracked,
             "coverage": coverage,
             "buildRoot": self.build_root(),
-            "sourceRoot": str(root),
+            "sourceRoot": str(root), "worktreeId": self.payload["worktreeId"],
             "runtimeOperationId": self.config["runtimeOperationId"],
-            "externalInputs": [],
-        }, self.state, self.repo)
+            "externalInputs": external_inputs,
+            **prepared_fields,
+        }
+        # Only a completed prepared WT can retain unchanged owned absences.
+        absent_owned = prepared_ref is not None and any(
+            hashes[name] is None and name not in tracked for name in owned)
+        registered = (source_helper().register_prepared_worktree_flow(self, registration) if absent_owned
+                      else current_source.handle("register", registration, self.state, self.repo))
         if registered.get("status") != "registered":
             raise ValueError("Flow preparation did not register a current source: "
                              + str(registered.get("reasonCode")))
@@ -1958,6 +2699,10 @@ class Management:
 
     def validation_batch(self, *, payload=None):
         payload = self.payload if payload is None else payload
+        if "checkoutProduct" in payload:
+            product = payload.get("checkoutProduct")
+            schema = product.get("schemaVersion") if isinstance(product, dict) else None
+            return checkout_product_helper(self.config, required_schema=schema).validation_batch(payload, self.repo)
         batch = payload.get("batch")
         fields = {"verb", "packages", "features", "profile", "offline", "noDefaultFeatures", "lib",
                   "tests", "testFilter", "noRun", "allFeatures", "locked", "jobs", "testThreads",
@@ -2122,6 +2867,8 @@ class Management:
                 cache, ["zr_vm"] if self.payload.get("externalRoots") else []))
         configurations = sorted(keys)
         pool = configurations[0] if len(configurations) == 1 else sha(encoded({"configurationSet": configurations}))
+        if self.payload.get("checkoutProduct"):
+            pool = sha(encoded({"configuration": pool, "checkoutProductOperation": self.key}))
         return pool, cargo_configuration
 
     def batch_claims(self):
@@ -2371,6 +3118,10 @@ class Management:
         execution_required = arguments[0] == "test" and "--no-run" not in arguments
         floor = original.get("minimumExpectedMatchedTests", 1)
         counted = sum(value["passed"] for value in summaries)
+        if self.payload.get("checkoutProduct"):
+            # Fixed rustc argv has no JSON format option. Complete Native exit is
+            # step evidence; the pinned packaging helper verifies both PE bytes.
+            build_finished = native["rootExitCode"] == 0
         evidence_complete = (build_finished and not failed and not pending and not missing_names
             and not missing_binaries and not missing_markers
             and (not execution_required or bool(summaries) and len(passed) >= floor and counted == len(passed)
@@ -2609,7 +3360,8 @@ class Management:
         else:
             sealed = preparation.seal_source(self.state, source_root=root, snapshot=before,
                 repository_root=self.repo, repository_id=self.repo_id, session_id=self.session,
-                owner=owner, approved=approved, coverage=coverage)
+                owner=owner, approved=approved, coverage=coverage,
+                management=self if before.get("externalInputPolicy") == "prepared-sealed-CAS" else None)
             sealed_ref = write_json(sealed_path, sealed)
         if (checkpoint.get("sealed") not in (None, sealed_ref) or sealed.get("capturedInputVerified") is not True
                 or sealed["capturedSourceDigest"] != before["sourceDigest"]
@@ -2768,9 +3520,16 @@ class Management:
                    "allFeatures", "locked", "jobs", "testThreads", "requestedTargetDir",
                    "expectedSourceDigest", "expectedEngineSourceDigest", "externalCapturePolicy",
                    "sourceHashes", "dependencyHashes", "bins", "allTests", "harnessFilters",
-                   "exact", "ignored", "nocapture"}
+                   "exact", "ignored", "nocapture", "worktreePreparationRef", "sourceEvidencePolicy"}
         if set(self.payload) - allowed:
             raise ValueError("Unsupported Cargo fields: " + ", ".join(sorted(set(self.payload) - allowed)))
+        if ("sourceEvidencePolicy" in self.payload
+                and self.payload["sourceEvidencePolicy"] != "full-file-index-v2"):
+            raise ValueError("Unsupported source evidence policy")
+        if ("worktreePreparationRef" in self.payload
+                and (not isinstance(self.payload["worktreePreparationRef"], str)
+                     or not re.fullmatch(r"[0-9a-f]{64}", self.payload["worktreePreparationRef"]))):
+            raise ValueError("Worktree preparation requires an exact operation reference")
         if {"externalCapturePolicy", "expectedEngineSourceDigest"} & set(self.payload):
             engine_digest = self.payload.get("expectedEngineSourceDigest")
             if (self.payload.get("externalCapturePolicy") != "jenkins-admission"
@@ -2871,7 +3630,8 @@ class Management:
             requested = payload.get(field)
             if requested is None:
                 continue
-            if not isinstance(requested, dict) or not 1 <= len(requested) <= 128:
+            maximum = 128 if field == "sourceHashes" else 4096
+            if not isinstance(requested, dict) or not 1 <= len(requested) <= maximum:
                 raise ValueError("Input hash declarations must be explicit bounded maps")
             for path, checksum in requested.items():
                 if (not isinstance(path, str) or not path or "\\" in path or ":" in path
@@ -3204,12 +3964,7 @@ class Management:
 
         def add(path, checksum):
             path = plain(path)
-            name, key = str(path), str(path).casefold()
-            prior = folded.get(key)
-            if prior is not None and files[prior] != checksum:
-                raise ValueError("Conflicting checkout input identity: " + name)
-            files[prior or name] = checksum
-            folded[key] = prior or name
+            _record_checkout_input_identity(files, folded, path, checksum)
             # Full roots are added separately; narrow ancestors also observe
             # creation of a missing configuration directory along this path.
             monitor_file(path)
@@ -3656,7 +4411,9 @@ class Management:
             observed_root, after, observation = self.validation_observation(before)
             if observed_root != root:
                 raise ValueError("Actual checkout source root changed")
-            compiler = context["helper"]._toolchain_facts(root)
+            compiler = context["preparation"].trusted_toolchain_facts(
+                context["trustedToolchain"], context["helper"]._file_fact,
+                environment=context["toolchainEnvironment"])
             inputs_after, _roots = self.checkout_read_inputs(
                 after, compiler, context["preparation"], context["helper"])
         except Exception as error:
@@ -3702,6 +4459,62 @@ class Management:
         context["readReleased"] = True
         return True
 
+    def verify_checkout_product_delivery(self, result):
+        product = self.payload.get("checkoutProduct")
+        schema = product.get("schemaVersion") if isinstance(product, dict) else None
+        helper = checkout_product_helper(self.config, required_schema=schema)
+        report = plain(self.outputs() / "reports" / self.key)
+        checkpoint = self.batch_checkpoint()
+        saved = read_reference(checkpoint["receipt"], expected_path=report / "receipt.json",
+                               max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+        envelope = {"operationKey", "requestId", "operationId", "sessionId", "driverDigest", "runtimeOperationId"}
+        if saved != {k: v for k, v in result.items() if k not in envelope} or saved.get("status") != "passed":
+            raise ValueError("Original editor delivery receipt changed")
+        request = read_reference(saved["request"], expected_path=report / "request.json",
+                                 max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+        helper.validate_admission_capture(request.get("payload", {}), request.get("source"), self.repo)
+        guard = read_reference(saved["checkoutGuardRef"], expected_path=report / "checkout-guard.json",
+                               max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+        if (saved.get("checkoutGuard") != guard or not validation_inputs_verified(saved, request)
+                or {k: v for k, v in request.get("payload", {}).items() if k != "observationOnly"}
+                   != {k: v for k, v in self.payload.items() if k != "observationOnly"}):
+            raise ValueError("Original editor delivery source guard changed")
+        owner = "management-" + self.key
+        reader = self.state.get("management_checkout_read", owner)
+        if (not reader or reader["payload"].get("status") != "released"
+                or reader["payload"].get("pinsReleased") is not True
+                or reader["payload"].get("continuousReadProven") is not True
+                or reader["payload"].get("checkoutGuardRef") != saved["checkoutGuardRef"]):
+            raise ValueError("Original editor checkout read closure changed")
+        claims = self.batch_claims()
+        if len(claims) != 2 or any(item["status"] != "complete" for item in claims):
+            raise ValueError("Original editor delivery lacks both native steps")
+        proofs = [self.batch_step_proof(item) for item in claims]
+        if [item[3] for item in proofs] != saved["nativeProofRefs"]:
+            raise ValueError("Original editor Cargo native evidence changed")
+        packaging = saved.get("packagingNativeProofs")
+        if not isinstance(packaging, list) or len(packaging) != 3:
+            raise ValueError("Original editor delivery lacks owned CRT verification")
+        for ordinal, item in enumerate(packaging, 1):
+            native = read_reference(item["nativeTerminal"],
+                expected_path=report / "packaging" / ("%04d" % ordinal) / "native-terminal.json")
+            proof = native_terminal_proof(native, item["nativeTerminal"])
+            key = owner + "-package-%04d-native" % ordinal
+            row = self.state.get("native_job", key)
+            recorded = row["payload"] if row else {}
+            if (item.get("nativeProofRef") != key or item.get("command") != native["command"]
+                    or item.get("terminalProof") != proof or proof["complete"] is not True
+                    or proof["processExitCode"] != 0 or native["cwd"] != str(self.repo)
+                    or recorded.get("owner") != owner or recorded.get("status") != "terminal"
+                    or recorded.get("role") != "management_editor_package"
+                    or recorded.get("requestId") != self.request or recorded.get("operationId") != self.operation
+                    or recorded.get("environmentDigest") != request["stepEnvironmentDigests"][-1]
+                    or recorded.get("nativeEvidence") != native or recorded.get("completeProof") != proof
+                    or recorded.get("terminalProof") != proof):
+                raise ValueError("Original editor packaging native evidence changed")
+        helper.verify_published_product(self.repo, saved["checkoutProduct"],
+                                        self.outputs() / "products" / self.key / "bundle")
+
     def checkout_batch_reconcile(self, checkpoint, resources, report):
         """Only already closed original batches may reconcile without a live guard."""
         owner = "management-" + self.key
@@ -3724,18 +4537,67 @@ class Management:
                 or read["payload"].get("checkoutInputsDigest") != result["checkoutInputsDigest"]):
             raise ValueError("Original completed checkout batch proof changed")
         claims = self.batch_claims()
-        if (len(claims) != len(self.payload["batch"]["recipes"])
+        expected_count = len(self.payload["batch"]["recipes"])
+        if self.payload.get("checkoutProduct") and result.get("status") == "failed":
+            expected_count = result.get("completedRecipeCount")
+            if type(expected_count) is not int or not 1 <= expected_count <= 2:
+                raise ValueError("Original failed product step count changed")
+        if (len(claims) != expected_count
                 or any(claim["status"] != "complete" for claim in claims)):
             raise ValueError("Original completed checkout batch has a missing native step")
         proofs = [self.batch_step_proof(claim) for claim in claims]
         if [item[3] for item in proofs] != result["nativeProofRefs"]:
             raise ValueError("Original batch Native proof bindings changed")
+        if self.payload.get("checkoutProduct") and result.get("status") == "passed":
+            self.verify_checkout_product_delivery(result)
         reservation = self.state.get("resource_reservation", checkpoint["reservationKey"])
         if reservation and reservation["payload"].get("status") == "active":
             resources.release(checkpoint["reservationKey"], writer_key=checkpoint["writer"],
                               native_proof_ref=proofs[-1][3])
         return result
 
+
+    def checkout_input_conflict_result(self, error, *, owner, writer, guard, admitted):
+        if (admitted is not None or getattr(self, "_checkout_context", None) is not None
+                or getattr(self, "_validation_admission", None) is not None):
+            return None
+        try:
+            with self.state.connect() as connection:
+                claims = [
+                    self.state.get("management_checkout_read", owner, connection=connection),
+                    self.state.get("execution", owner, connection=connection),
+                    self.state.get("execution_launch", owner, connection=connection),
+                    self.state.get("execution_host", owner, connection=connection),
+                    self.state.get("management_prelaunch", owner, connection=connection),
+                    self.state.get("resource_reservation", owner + ":" + owner, connection=connection),
+                    self.state.get("pool_writer_hold", writer, connection=connection),
+                ]
+                native_claims = any(
+                    row["payload"].get("owner") == owner
+                    or row["payload"].get("executionId") == owner
+                    or row["key"] == owner + "-native"
+                    or row["key"].startswith(owner + "-package-")
+                    for row in self.state.list("native_job", connection=connection)
+                )
+        except Exception:
+            return None
+        if any(claims) or native_claims:
+            return None
+        if guard is not None:
+            guard.close()
+        return {
+            "status": "conflict",
+            "reasonCode": error.code,
+            "message": str(error),
+            "conflictingInput": {
+                "path": error.path,
+                "previousPath": error.previous_path,
+                "beforeSha256": error.before_sha256,
+                "afterSha256": error.after_sha256,
+            },
+            "compileStarted": False,
+            "formalAcceptance": False,
+        }
 
     def validate_checkout(self, *, batch=None):
         """Run real checkout Cargo with no sealed input or materialized source."""
@@ -3751,6 +4613,10 @@ class Management:
         if (not isinstance(guard_checksum, str) or not re.fullmatch(r"[0-9a-f]{64}", guard_checksum)
                 or sha(plain(Path(__file__).with_name("checkout_guard.py")).read_bytes()) != guard_checksum):
             raise ValueError("Actual checkout requires its capsule's hash-verified continuous read guard")
+        product = self.payload.get("checkoutProduct")
+        product_schema = product.get("schemaVersion") if isinstance(product, dict) else None
+        product_helper = (checkout_product_helper(self.config, required_schema=product_schema)
+                          if product is not None else None)
         root, owner = self.validation_root(), "management-" + self.key
         if root != plain(self.repo):
             raise ValueError("Actual checkout differs from the canonical repository")
@@ -3798,6 +4664,8 @@ class Management:
                 self._checkout_git_binding = checkout_guard_helper().capture_trusted_git_input()
                 try:
                     root, before = self.validation_with_cache()
+                    if product_helper is not None:
+                        product_helper.validate_admission_capture(self.payload, before, self.repo)
                 except SourceInputMismatch as error:
                     return {"status": "conflict", "reasonCode": "preparation-conflict", "message": str(error),
                             "preparationStarted": False, "compileStarted": False, "formalAcceptance": False,
@@ -3805,7 +4673,10 @@ class Management:
                 captured = self.state.get("management_source", self.key)
                 if captured and captured["payload"] != before:
                     raise ValueError("Original queued checkout source changed")
-                compiler = helper._toolchain_facts(root)
+                toolchain_binding = dict(trusted)
+                toolchain_environment = dict(environment)
+                compiler = preparation.trusted_toolchain_facts(
+                    toolchain_binding, helper._file_fact, environment=toolchain_environment)
                 for tool in ("cargo", "rustc"):
                     if (compiler["binaries"][tool]["path"] != trusted[tool + "Path"]
                             or compiler["binaries"][tool]["sha256"] != trusted[tool + "Sha256"]):
@@ -3829,14 +4700,18 @@ class Management:
                 target = physical_path_under(approved, output / "pools" / pool / "target")
                 scratch = plain(report / "tmp")
                 self._checkout_outputs = {"build": target.parent, "cache": cache, "reports": report, "tmp": scratch}
+                if product_helper is not None:
+                    self._checkout_outputs["product"] = physical_path_under(approved, output / "products" / self.key)
                 inputs, _watch_roots = self.checkout_read_inputs(before, compiler, preparation, helper)
                 inputs_digest = sha(encoded(inputs))
                 guard = self.acquire_checkout_guard(before, inputs)
                 # Capture names/HEAD/index and every byte again after all native
                 # pins and monitors have been acquired, before any process claim.
                 current_root, current, initial_observation = self.validation_observation(before)
+                current_compiler = preparation.trusted_toolchain_facts(
+                    toolchain_binding, helper._file_fact, environment=toolchain_environment)
                 current_inputs, _ = self.checkout_read_inputs(
-                    current, helper._toolchain_facts(root), preparation, helper)
+                    current, current_compiler, preparation, helper)
                 guard.assert_stable()
                 if current_root != root or current != before or current_inputs != inputs:
                     raise ValueError("Checkout inputs changed during native read admission")
@@ -3866,6 +4741,8 @@ class Management:
                     "reservationKey": admitted["key"], "root": root, "report": report, "target": target,
                     "before": before, "inputs": inputs, "inputsDigest": inputs_digest, "guard": guard,
                     "guardFacts": guard_facts, "helper": helper, "preparation": preparation,
+                    "trustedToolchain": toolchain_binding,
+                    "toolchainEnvironment": toolchain_environment,
                     "nativeProofRefs": [], "launched": False, "readReleased": False}
                 if admitted["key"] != owner + ":" + owner:
                     raise ValueError("Original checkout reservation identity changed")
@@ -3903,6 +4780,8 @@ class Management:
             for ordinal, recipe in enumerate(recipes):
                 if batch is None:
                     raw = list(recipe["command"])
+                elif product_helper is not None:
+                    raw = ["cargo", *self.payload["batch"]["recipes"][ordinal]["cargoArguments"]]
                 else:
                     raw = list(self.payload["batch"]["recipes"][ordinal]["cargoArguments"])
                     separator = raw.index("--") if "--" in raw else len(raw)
@@ -3911,8 +4790,11 @@ class Management:
                                for value in raw[:separator]):
                         controls += ["--jobs", str(recipe["jobs"])]
                     raw = [*raw[:separator], *controls, *raw[separator:]]
-                command = helper.prepare_command(raw, target, locked=recipe["locked"])
-                command[0] = trusted["cargoPath"]
+                if product_helper is not None:
+                    command = [trusted["cargoPath"], *raw[1:]]
+                else:
+                    command = helper.prepare_command(raw, target, locked=recipe["locked"])
+                    command[0] = trusted["cargoPath"]
                 commands.append(command)
                 environments.append({**environment, "CARGO_NET_OFFLINE": "true" if recipe["offline"] else "false",
                                      **(batch["stepEnvironments"][ordinal] if batch is not None else {})})
@@ -3948,6 +4830,41 @@ class Management:
             if batch is not None:
                 self.batch_checkpoint(request=request_ref, stage="prepared")
             completed, native, native_ref, proof_id = [], None, None, None
+            product, product_error, product_native = None, None, []
+            packaging_proofs = []
+            def packaging_run(command, **options):
+                shell = Path(environments[-1].get("SYSTEMROOT") or environments[-1].get("SystemRoot") or r"C:\Windows") / "System32/WindowsPowerShell/v1.0/powershell.exe"
+                if (not isinstance(command, list) or len(command) != 5
+                        or plain(command[0]) != plain(shell)
+                        or command[1:4] != ["-NoProfile", "-NonInteractive", "-Command"]
+                        or not command[4].startswith("$s = Get-AuthenticodeSignature -LiteralPath ")
+                        or options.get("env") != environments[-1]
+                        or options.get("capture_output") is not True or options.get("check") is not False):
+                    raise ValueError("Packaging may only execute the pinned CRT signature check")
+                guard.assert_stable()
+                pools._hold(self.state, owner, writer)
+                evidence = report / "packaging" / ("%04d" % (len(packaging_proofs) + 1))
+                evidence.mkdir(parents=True, exist_ok=False)
+                package_native = helper._run_owned_command(command, root, environments[-1], evidence, 120)
+                package_ref = write_json(evidence / "native-terminal.json", package_native)
+                proof = native_terminal_proof(package_native, package_ref)
+                if (proof["complete"] is not True or package_native["command"] != command
+                        or package_native["cwd"] != str(root)):
+                    raise RuntimeError("checkout_packaging_termination_unproven")
+                package_id = owner + "-package-%04d-native" % (len(packaging_proofs) + 1)
+                self.state.put("native_job", package_id, {
+                    "owner": owner, "executionId": owner, "role": "management_editor_package",
+                    "status": "terminal", "terminalProof": proof, "completeProof": proof,
+                    "nativeEvidence": package_native, "pid": package_native["pid"],
+                    "creationTime": package_native["creationTime"], "birthToken": package_native["creationTime"],
+                    "executable": proof["identity"]["executable"], "commandDigest": proof["identity"]["commandDigest"],
+                    "requestId": self.request, "operationId": self.operation, "taskScratch": task_scratch,
+                    "environmentDigest": environment_digests[-1], "formalAcceptance": False}, expected_version=0)
+                packaging_proofs.append({"nativeProofRef": package_id, "nativeTerminal": package_ref,
+                                         "command": command, "terminalProof": proof})
+                guard.assert_stable()
+                return subprocess.CompletedProcess(command, package_native["rootExitCode"],
+                    (evidence / "stdout.bin").read_bytes(), (evidence / "stderr.bin").read_bytes())
             for ordinal, command in enumerate(commands, 1):
                 guard.assert_stable()
                 pools._hold(self.state, owner, writer)
@@ -3993,16 +4910,29 @@ class Management:
                         "checkoutReadRef": read_ref, "formalAcceptance": False}, expected_version=0)
                 context["nativeProofRefs"].append(proof_id)
                 guard.assert_stable()
+                if product_helper is not None:
+                    product_native.append({**terminal_proof, "command": command, "cwd": str(root)})
+                    if step["status"] != "passed":
+                        break
+            all_recipes_executed = len(completed) == len(recipes) if batch is not None else True
+            if product_helper is not None and all_recipes_executed and all(x["status"] == "passed" for x in completed):
+                try:
+                    product = product_helper.stage_and_publish(root, target, output, self.key,
+                        product_helper.source_inventory_from_capture(before), product_native, guard, environments[-1], packaging_run)
+                except (ValueError, OSError) as error:
+                    product_error = str(error)
             if not self.checkout_final_inputs():
                 return self.checkout_unknown("checkout_input_stability_unproven",
                     message=context["final"].get("inputError") or context["final"].get("guardError"))
             proof = context["proof"]
             if batch is not None:
                 self.batch_checkpoint(finalObservation=context["finalRef"], checkoutGuardRef=proof["checkoutGuardRef"],
-                                      stage="closed", allRecipesExecuted=True)
+                                      stage="closed", allRecipesExecuted=all_recipes_executed)
             task_cache = self.task_tmp(native=native, native_ref=native_ref, proof_id=proof_id)
             status = ("passed" if (all(step["status"] == "passed" for step in completed)
                         if batch is not None else native["rootExitCode"] == 0) else "failed")
+            if product_helper is not None and (product is None or product_error):
+                status = "failed"
             result = {"status": status, "request": request_ref, "nativeTerminal": native_ref,
                 "nativeProofRef": proof_id, **proof, "executionIdentity": execution_identity,
                 "inputObservations": {"afterPreparation": initial_observation,
@@ -4015,6 +4945,9 @@ class Management:
                 result.update(batch=True, steps=completed, recipeCount=len(recipes), completedRecipeCount=len(completed),
                               coverage=coverage, nativeProofRefs=list(context["nativeProofRefs"]),
                               performanceAccepted=False, productsAccepted=False)
+                if product_helper is not None:
+                    result.update(checkoutProduct=product, productError=product_error, packagingNativeProofs=packaging_proofs,
+                                  allRecipesExecuted=all_recipes_executed)
             else:
                 artifacts, fresh = [], 0
                 for line in (report / "stdout.bin").read_text(encoding="utf-8", errors="replace").splitlines():
@@ -4039,13 +4972,18 @@ class Management:
                 "nativeProofRef": proof_id, "nativeTerminal": native_ref, "receipt": receipt_ref,
                 **({"batchReceipt": receipt_ref} if batch is not None else {})}, expected_version=execution["version"])
             self.state.put("execution_launch", owner, {**launch["payload"], "status": "terminal",
-                "nativeProofRef": proof_id, **({"allRecipesExecuted": True} if batch is not None else {})},
+                "nativeProofRef": proof_id, **({"allRecipesExecuted": all_recipes_executed} if batch is not None else {})},
                 expected_version=launch["version"])
             if batch is not None:
-                self.batch_checkpoint(stage="complete", receipt=receipt_ref, allRecipesExecuted=True)
+                self.batch_checkpoint(stage="complete", receipt=receipt_ref, allRecipesExecuted=all_recipes_executed)
             resources.release(admitted["key"], writer_key=writer, native_proof_ref=proof_id)
             return result
         except Exception as error:
+            if getattr(error, "code", None) == "checkout_input_identity_conflict":
+                conflict = self.checkout_input_conflict_result(
+                    error, owner=owner, writer=writer, guard=guard, admitted=admitted)
+                if conflict is not None:
+                    return conflict
             if guard is not None and admitted is None:
                 guard.close()
             if getattr(error, "code", None) == "checkout_input_incomplete" and admitted is None:
@@ -4096,6 +5034,8 @@ class Management:
 
     def validation_observation(self, before, *, payload=None):
         """Observe live inputs without making the foreign checkout an execution dependency."""
+        if before.get("externalInputPolicy") == "prepared-sealed-CAS":
+            return self.validation_sealed_observation(before, payload=payload)
         errors = []
         root, source = self.validation_source(payload=payload, observation_errors=errors)
         cache = self.dependency_cache(payload=payload)
@@ -4211,7 +5151,8 @@ class Management:
         sealed = preparation.seal_source(self.state, source_root=root, snapshot=before,
                     repository_root=self.repo, repository_id=self.repo_id, session_id=self.session,
                     owner=owner, approved=approved, coverage={name: value for name, value in coverage.items()
-                                                           if name != "verb"})
+                                                           if name != "verb"},
+                    management=self if before.get("externalInputPolicy") == "prepared-sealed-CAS" else None)
         # No source copies or candidate workspaces are created by the agent.
         # The admitted Jenkins writer owns this stable formal preparation pool.
         prepared = preparation.materialize_source(self.state, approved=approved, owner=owner,
@@ -4336,11 +5277,93 @@ class Management:
 
 
     def dispatch(self):
+        if self.config.get("managedWorktree") == MANAGED_WORKTREE_CAPABILITY:
+            from tools.jenkins.managed_worktree import MUTATIONS, writer_hold
+            if (self.action == "prepare-worktree" and "resumePreparationFromOperationKey" in self.payload):
+                with source_helper().materialized_preparation_recovery_hold(self):
+                    return self._dispatch()
+            if self.action in MUTATIONS and self.payload.get("worktreeId"):
+                with writer_hold(self):
+                    return self._dispatch()
+        return self._dispatch()
+
+    def preview_current_editor(self):
+        recipe = fixed_editor_preview_recipe(self.payload)
+        if self.repo != plain(PREVIEW_REPOSITORY):
+            raise ValueError("The fixed preview belongs to its original physical checkout")
+        descriptor = {**recipe["descriptor"], "path": str(plain(recipe["descriptor"]["path"]))}
+        read_reference(descriptor)
+        command = [*recipe["command"]]
+        command[6] = descriptor["path"]
+        pins = ((PREVIEW_SCRIPT, PREVIEW_SCRIPT_SHA256), (PREVIEW_PYTHON, PREVIEW_PYTHON_SHA256))
+        def check_inputs():
+            for path, digest in pins:
+                if sha(plain(path).read_bytes()) != digest:
+                    raise ValueError("Reviewed fixed preview script or interpreter changed")
+            read_reference(descriptor)
+        check_inputs()
+        registration = json.loads(plain(PREVIEW_REPORTS / "artifacts.json").read_bytes())["jenkins_fixed_editor_preview_preparation"]
+        if plain(registration["proofDirectory"]) != plain(PREVIEW_PROOF):
+            raise ValueError("Fixed preview evidence is not registered to its task")
+        if plain(PREVIEW_OUTPUT).exists():
+            raise ValueError("Existing preview evidence is retained; reconcile its original operation")
+        report = plain(PREVIEW_PROOF / "native" / self.key)
+        report.mkdir(parents=True, exist_ok=False)
+        request_ref = write_json(report / "request.json", {
+            "schema": "fixed-current-editor-preview-request/v1", "owner": self.session,
+            "payload": self.payload, "inputDigest": self.input_digest, "command": command,
+            "cwd": str(self.repo), "productDescriptor": descriptor,
+            "scriptSha256": PREVIEW_SCRIPT_SHA256, "interpreterSha256": PREVIEW_PYTHON_SHA256,
+            "output": str(PREVIEW_OUTPUT), "timeoutSeconds": PREVIEW_TIMEOUT_SECONDS,
+            "formalAcceptance": False})
+        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        if sha(helper_path.read_bytes()) != self.config["clientSources"]["tools/dev/local_cargo.py"]:
+            raise ValueError("Pinned owned native command implementation changed")
+        spec = importlib.util.spec_from_file_location("jenkins_fixed_editor_preview_native", helper_path)
+        helper = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(helper)
+        environment = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONIOENCODING": "utf-8"}
+        native = helper._run_owned_command(command, self.repo, environment, report, PREVIEW_TIMEOUT_SECONDS)
+        native_ref = write_json(report / "native-terminal.json", native)
+        proof = fixed_editor_preview_native(native, native_ref, command, self.repo)
+        result = {"request": request_ref, "nativeEvidence": native_ref, "nativeTerminal": proof,
+                  "productDescriptor": descriptor, "output": str(PREVIEW_OUTPUT),
+                  "formalAcceptance": False, "m8Accepted": False, "wholeUiAccepted": False}
+        if not proof["complete"]:
+            return {**result, "status": "unknown", "reasonCode": "preview_native_termination_unproven"}
+        if not proof["naturalSuccess"]:
+            return {**result, "status": "failed", "reasonCode": "preview_native_command_failed"}
+        check_inputs()
+        terminal_path = plain(PREVIEW_OUTPUT / "preview-terminal.json")
+        terminal_ref = {"path": str(terminal_path), "sha256": sha(terminal_path.read_bytes())}
+        terminal = read_reference(terminal_ref, expected_path=terminal_path)
+        pixel_ref = terminal.get("pixelReceipt")
+        if (not isinstance(pixel_ref, dict)
+                or not plain(pixel_ref.get("path", "")).is_relative_to(plain(PREVIEW_OUTPUT / "pixels"))):
+            raise ValueError("Pixel receipt escaped the fixed preview output")
+        pixel = read_reference(pixel_ref)
+        read_reference(terminal["seed"])
+        fixed_editor_preview_receipt(terminal, descriptor, pixel)
+        return {**result, "status": "passed", "previewReceipt": terminal_ref, "pixelReceipt": pixel_ref,
+                "existingDesktop": terminal["existingDesktop"]}
+
+    def _dispatch(self):
+        if self.action == PREVIEW_ACTION:
+            return self.preview_current_editor()
+        if self.action == "prepare-worktree":
+            helper = source_helper()
+            return helper.managed_prepare_worktree(self, preparation_helper=helper)
+        if self.action == "inspect-worktree":
+            helper = source_helper()
+            return helper.managed_inspect_worktree(self, preparation_helper=helper)
+        if self.action == "retire-worktree-reader":
+            from tools.jenkins.managed_worktree_lifetime import retire_reader
+            return retire_reader(self)
         if self.action == "create-branch":
             return self.create_branch()
         if self.action == "create-worktree":
             ref, _path, value = self.new_worktree()
-            return {**value, "status": "complete", "worktreeId": ref}
+            return {**value, "status": "complete", "worktreeId": ref, "source": self.source(_path)}
         if self.action == "prepare-merge":
             return self.prepare_merge()
         if self.action == "apply-patch":
@@ -4362,6 +5385,8 @@ class Management:
             identity = self.payload["flowPayload"].get("identity", {})
             if identity.get("sessionId") != self.session or identity.get("repositoryId") != self.repo_id:
                 raise ValueError("Flow must retain this original author and repository")
+            if "resumeExecution" in self.payload["flowPayload"]:
+                return source_helper().resume_prepared_flow_execution(self, self.payload["flowPayload"])
             delivery = handle("submit", self.payload["flowPayload"], self.state, self.repo)
             return {"status": "submitted" if delivery.get("delivery") == "submitted" else "unknown",
                     "submission": delivery, "formalAcceptance": False}
@@ -4371,8 +5396,11 @@ class Management:
         value = row["payload"]
         if value["inputDigest"] != self.input_digest:
             raise ValueError("Original operation has different input")
-        return value.get("result", {"status": "unknown", "reasonCode": "original_operation_running",
-                                   "operation": value, "formalAcceptance": False})
+        result = value.get("result", {"status": "unknown", "reasonCode": "original_operation_running",
+                                     "operation": value, "formalAcceptance": False})
+        if self.payload.get("checkoutProduct") and result.get("status") == "passed":
+            self.verify_checkout_product_delivery(result)
+        return result
 
     def run(self):
         from tools.jenkins.state.locks import process_lock
@@ -4437,7 +5465,11 @@ def main():
         if source.parent != permitted or destination.parent != permitted or source.stat().st_size > 1024 * 1024:
             raise ValueError("Management controls must stay in the fixed State directory")
         payload = json.loads(source.read_bytes())
+        payload, routing = route_request_context(
+            config, repo, manager, payload, query_only=payload.get("observationOnly") is True)
         result = Management(config, repo, manager, payload).run()
+        if routing is not None:
+            result = {**result, "managedContext": routing}
     except Exception as error:
         result = {"status": "failed", "message": str(error), "formalAcceptance": False}
     # Control responses may be refreshed; immutable evidence lives in State/reports.
@@ -4446,7 +5478,7 @@ def main():
         return 2
     destination.write_bytes(encoded(result) + b"\n")
     print(encoded(result).decode("utf-8"))
-    return 0 if result.get("status") in {"complete", "passed", "waiting", "merge-prepared", "submitted", "released"} else 2
+    return 0 if result.get("status") in {"complete", "prepared", "passed", "waiting", "merge-prepared", "submitted", "released"} else 2
 
 
 if __name__ == "__main__":

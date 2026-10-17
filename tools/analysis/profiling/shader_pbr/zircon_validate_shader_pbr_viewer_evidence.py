@@ -29,7 +29,8 @@ _READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v1
 _V15_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v15"
 _V16_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v16"
 _V17_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v17"
-_CURRENT_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v18"
+_V18_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v18"
+_CURRENT_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v19"
 _V3_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v3"
 _V4_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v4"
 _V5_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v5"
@@ -61,6 +62,7 @@ _SUPPORTED_READY_FRAME_EVIDENCE_SCHEMAS = frozenset(
         _V15_READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
         _V17_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     }
 )
@@ -239,6 +241,11 @@ _V18_REQUIRED_METADATA_FIELDS = _V17_REQUIRED_METADATA_FIELDS + (
     "environment_cubemap_upload_observation_epoch",
     "environment_cubemap_upload_resident_texture_bytes",
 )
+_V19_REQUIRED_METADATA_FIELDS = tuple(
+    field
+    for field in _V18_REQUIRED_METADATA_FIELDS
+    if field != "scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns"
+) + ("scene_startup_renderer_system_texture_upload_batch_submission_ns",)
 
 
 @dataclass(frozen=True)
@@ -367,6 +374,7 @@ def ready_frame_evidence_summary(evidence: ReadyFrameEvidence) -> dict[str, obje
         _V15_READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
         _V17_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         summary["shader_pipeline_metrics"] = {
@@ -379,7 +387,10 @@ def ready_frame_evidence_summary(evidence: ReadyFrameEvidence) -> dict[str, obje
                 "scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait_ns",
                 "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization_ns",
             )
-            if evidence.metadata["schema"] == _CURRENT_READY_FRAME_EVIDENCE_SCHEMA
+            if evidence.metadata["schema"] in (
+                _V18_READY_FRAME_EVIDENCE_SCHEMA,
+                _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
+            )
             else (
                 "scene_startup_renderer_environment_brdf_lut_payload_cache_wait_ns",
                 "scene_startup_renderer_environment_brdf_lut_payload_build_ns",
@@ -390,7 +401,11 @@ def ready_frame_evidence_summary(evidence: ReadyFrameEvidence) -> dict[str, obje
             for field in (
                 "scene_startup_renderer_initialization_ns",
                 *brdf_lut_timing_fields,
-                "scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns",
+                (
+                    "scene_startup_renderer_system_texture_upload_batch_submission_ns"
+                    if evidence.metadata["schema"] == _CURRENT_READY_FRAME_EVIDENCE_SCHEMA
+                    else "scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns"
+                ),
                 "scene_startup_renderer_deferred_standard_pipeline_ns",
                 "scene_startup_ibl_restore_ns",
                 "scene_startup_total_ns",
@@ -399,7 +414,10 @@ def ready_frame_evidence_summary(evidence: ReadyFrameEvidence) -> dict[str, obje
                 "ready_frame_render_elapsed_ns",
             )
         }
-    if evidence.metadata["schema"] == _CURRENT_READY_FRAME_EVIDENCE_SCHEMA:
+    if evidence.metadata["schema"] in (
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
+        _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
+    ):
         summary["material_pipeline"] = {
             field: evidence.metadata[field]
             for field in (
@@ -497,15 +515,20 @@ def _validate_metadata(
         _V15_READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
         _V17_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         required_identity_bound_fields = (
-            _V18_REQUIRED_METADATA_FIELDS
+            _V19_REQUIRED_METADATA_FIELDS
             if metadata["schema"] == _CURRENT_READY_FRAME_EVIDENCE_SCHEMA
             else (
-                _V17_REQUIRED_METADATA_FIELDS
-                if metadata["schema"] == _V17_READY_FRAME_EVIDENCE_SCHEMA
-                else _V15_REQUIRED_METADATA_FIELDS
+                _V18_REQUIRED_METADATA_FIELDS
+                if metadata["schema"] == _V18_READY_FRAME_EVIDENCE_SCHEMA
+                else (
+                    _V17_REQUIRED_METADATA_FIELDS
+                    if metadata["schema"] == _V17_READY_FRAME_EVIDENCE_SCHEMA
+                    else _V15_REQUIRED_METADATA_FIELDS
+                )
             )
         )
         missing_identity_bound = [
@@ -520,7 +543,8 @@ def _validate_metadata(
             _V15_READY_FRAME_EVIDENCE_SCHEMA: "zircon_shader_pbr_viewer_ready_frame_v15",
             _V16_READY_FRAME_EVIDENCE_SCHEMA: "zircon_shader_pbr_viewer_ready_frame_v16",
             _V17_READY_FRAME_EVIDENCE_SCHEMA: "zircon_shader_pbr_viewer_ready_frame_v17",
-            _CURRENT_READY_FRAME_EVIDENCE_SCHEMA: "zircon_shader_pbr_viewer_ready_frame_v18",
+            _V18_READY_FRAME_EVIDENCE_SCHEMA: "zircon_shader_pbr_viewer_ready_frame_v18",
+            _CURRENT_READY_FRAME_EVIDENCE_SCHEMA: "zircon_shader_pbr_viewer_ready_frame_v19",
         }[metadata["schema"]]
         validate_ready_frame_identity(
             metadata,
@@ -552,7 +576,7 @@ def _validate_metadata(
             )
         _validate_v16_material_pipeline(metadata, screenshot_path=screenshot_path)
 
-    if metadata["schema"] == _CURRENT_READY_FRAME_EVIDENCE_SCHEMA:
+    if metadata["schema"] == _V18_READY_FRAME_EVIDENCE_SCHEMA:
         missing_v18 = [
             field for field in _V18_REQUIRED_METADATA_FIELDS if field not in metadata
         ]
@@ -560,6 +584,17 @@ def _validate_metadata(
             raise RuntimeError(
                 "ready-frame v18 provenance sidecar is missing required fields: "
                 f"{', '.join(missing_v18)} path={screenshot_path}"
+            )
+        _validate_v16_material_pipeline(metadata, screenshot_path=screenshot_path)
+
+    if metadata["schema"] == _CURRENT_READY_FRAME_EVIDENCE_SCHEMA:
+        missing_v19 = [
+            field for field in _V19_REQUIRED_METADATA_FIELDS if field not in metadata
+        ]
+        if missing_v19:
+            raise RuntimeError(
+                "ready-frame v19 provenance sidecar is missing required fields: "
+                f"{', '.join(missing_v19)} path={screenshot_path}"
             )
         _validate_v16_material_pipeline(metadata, screenshot_path=screenshot_path)
 
@@ -593,6 +628,7 @@ def _validate_metadata(
         _READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
         _V17_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         missing_v5 = [
@@ -614,6 +650,7 @@ def _validate_metadata(
         _READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
         _V17_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         missing_v6 = [
@@ -727,6 +764,7 @@ def _validate_metadata(
         _READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
         _V17_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         _require_boolean(
@@ -746,6 +784,7 @@ def _validate_metadata(
         _V13_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         _require_boolean(
@@ -757,6 +796,7 @@ def _validate_metadata(
             metadata["schema"]
             not in (
                 _V16_READY_FRAME_EVIDENCE_SCHEMA,
+                _V18_READY_FRAME_EVIDENCE_SCHEMA,
                 _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
             )
             and metadata["environment_only_base_pipeline_ready_at_capture"] != "true"
@@ -795,6 +835,7 @@ def _validate_metadata(
         not in (
             _V16_READY_FRAME_EVIDENCE_SCHEMA,
             _V17_READY_FRAME_EVIDENCE_SCHEMA,
+            _V18_READY_FRAME_EVIDENCE_SCHEMA,
             _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
         )
         and metadata["environment_only_base_prewarm_cache_scope"]
@@ -869,6 +910,7 @@ def _validate_metadata(
         _READY_FRAME_EVIDENCE_SCHEMA,
         _V15_READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         startup_phase_fields = (
@@ -897,7 +939,10 @@ def _validate_metadata(
             ),
             screenshot_path=screenshot_path,
         )
-    if metadata["schema"] == _CURRENT_READY_FRAME_EVIDENCE_SCHEMA:
+    if metadata["schema"] in (
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
+        _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
+    ):
         _require_boolean(
             metadata,
             "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized",
@@ -906,7 +951,11 @@ def _validate_metadata(
         for field in (
             "scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait_ns",
             "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization_ns",
-            "scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns",
+            (
+                "scene_startup_renderer_system_texture_upload_batch_submission_ns"
+                if metadata["schema"] == _CURRENT_READY_FRAME_EVIDENCE_SCHEMA
+                else "scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns"
+            ),
         ):
             _require_non_negative_integer(metadata, field, screenshot_path)
         _require_duration_hierarchy(
@@ -1005,6 +1054,7 @@ def _validate_metadata(
         _V13_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         _require_non_negative_integer(
@@ -1021,6 +1071,7 @@ def _validate_metadata(
         _V13_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         _require_non_negative_integer(
@@ -1042,6 +1093,7 @@ def _validate_metadata(
         _V13_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         _require_non_negative_integer(
@@ -1066,6 +1118,7 @@ def _validate_metadata(
         _V13_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         for field in (
@@ -1107,6 +1160,7 @@ def _validate_metadata(
         _V13_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         _require_staging_output_metrics(
@@ -1118,7 +1172,8 @@ def _validate_metadata(
                 _V13_READY_FRAME_EVIDENCE_SCHEMA: "v13",
                 _READY_FRAME_EVIDENCE_SCHEMA: "v14",
                 _V16_READY_FRAME_EVIDENCE_SCHEMA: "v16",
-                _CURRENT_READY_FRAME_EVIDENCE_SCHEMA: "v17",
+                _V18_READY_FRAME_EVIDENCE_SCHEMA: "v18",
+                _CURRENT_READY_FRAME_EVIDENCE_SCHEMA: "v19",
             }[metadata["schema"]],
             require_irradiance_cube_source_sample_visits=(
                 metadata["schema"]
@@ -1127,6 +1182,7 @@ def _validate_metadata(
                 _V13_READY_FRAME_EVIDENCE_SCHEMA,
                 _READY_FRAME_EVIDENCE_SCHEMA,
                 _V16_READY_FRAME_EVIDENCE_SCHEMA,
+                _V18_READY_FRAME_EVIDENCE_SCHEMA,
                 _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
             )
             ),
@@ -1135,6 +1191,7 @@ def _validate_metadata(
         _V13_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
         _V16_READY_FRAME_EVIDENCE_SCHEMA,
+        _V18_READY_FRAME_EVIDENCE_SCHEMA,
         _CURRENT_READY_FRAME_EVIDENCE_SCHEMA,
     ):
         _require_shader_pipeline_metrics(metadata, screenshot_path)
@@ -1539,7 +1596,7 @@ def _require_finite_float(metadata: Mapping[str, str], field: str, screenshot_pa
 
 def _parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Validate a Zircon PBR viewer ready-frame PNG and v15 provenance sidecar."
+        description="Validate a Zircon PBR viewer ready-frame PNG and v19 provenance sidecar."
     )
     parser.add_argument("png", type=Path, help="Ready-frame PNG written by zircon_shader_pbr_viewer")
     parser.add_argument("--expected-backend", help="Require the recorded backend, for example Dx12")

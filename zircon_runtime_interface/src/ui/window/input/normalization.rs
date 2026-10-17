@@ -11,6 +11,14 @@ use super::{UiWindowPlatformInputEvent, UiWindowPlatformInputEventKind};
 
 impl UiWindowPlatformInputEvent {
     /// 将平台事件转为共享分发事件；触摸分支在此补入指针身份与来源，拖拽载荷转为共享只读所有权。
+    ///
+    /// # 返回与生命周期
+    /// 消费事件并移走字符串、IME 和请求数据；拖拽载荷转为共享所有权，结果不借用原事件。
+    /// 仅上下文中的元数据进入结果，窗口度量与光标缓存不保留。
+    ///
+    /// # 约束
+    /// 不校验 IME 范围、浮点值或事件顺序，也不执行坐标换算、时间序号更新或输入分发。
+    /// 参见 [`super::UiWindowInputContext`] 与 [`UiWindowPlatformInputEventKind`]。
     pub fn normalize(self) -> UiInputEvent {
         let mut metadata = self.context.metadata;
         match self.kind {

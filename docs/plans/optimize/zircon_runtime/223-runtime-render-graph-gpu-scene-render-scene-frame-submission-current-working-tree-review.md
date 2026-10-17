@@ -262,3 +262,10 @@ P0 记账说明：本报告新增 **0 项 canonical P0**；表中的 7 行只是
 ## 8. 本轮交付边界
 
 本轮只写 review 和重构计划，没有实现代码修正。Runtime213/214 的旧结论已按当前工作树纠偏并保留 canonical ownership；Runtime223 记录的是 2026-09-02 选择集，实施前必须重新计算 fingerprint、dirty boundary 和调用点。下一阶段应按 M0-M2 先收口 scene identity、bounds 和 visibility-first，再进入 graph state/barrier/queue；不应通过增加更多 DTO、固定 workload、source-string test 或 ignored benchmark 来宣称工程化完成。
+
+
+## 2026-10-16 当前源码事实更正（RENDER223-P1-002 仍 OPEN）
+
+本段更新上述“GpuSceneJournalConsumer 没有产品 caller”及无条件完整 live-set 清理的当前源码判断。限定六个 owner 的 gpt-6.1-sol max 复核确认：生产 render_frame.rs:143/144 已 admission 与 stage，215 行在 submission 校验后 commit；render_scene.rs:110 使用 consumer plan 实际调用 apply_journal_membership，gpu_scene_sync.rs:120–123 仅在 journal 未接管成员关系的兼容路径完整清理。未发现本范围内可复现、适合小范围修复的缺陷，因此未改同步路径。
+
+历史条目保留；完整增量语义、失败路径、整帧性能和 native 接受继续 OPEN/UNKNOWN。本次没有执行测试、benchmark、guard 或 CI，逐 draw 遍历本身不构成已测得的性能缺陷。原始源码指纹及证据边界见[本次事实记录](2026-10-16-runtime223-product-journal-consumer-fact-record.md)。

@@ -255,8 +255,7 @@ fn compiled_graph_stats_are_materialized_during_graph_construction() {
 fn compile_resource_hazards_split_execution_and_provenance_adjacency() {
     let inference_source = include_str!("../builder/resource_dependency_inference.rs");
     let tracker_source = include_str!("../builder/access_scope_tracker.rs");
-    let buffer_scope_source =
-        include_str!("../access_scope_tracker/buffer_scope_history.rs");
+    let buffer_scope_source = include_str!("../access_scope_tracker/buffer_scope_history.rs");
 
     assert!(inference_source.contains("struct DependencyAdjacency"));
     assert!(inference_source.contains("membership: Vec<HashSet<RenderPassId>>"));
@@ -311,8 +310,7 @@ fn compute_packet_lowering_fails_closed_without_production_expect() {
 fn compile_resource_hazard_inference_tracks_writers_and_readers() {
     let inference_source = include_str!("../builder/resource_dependency_inference.rs");
     let tracker_source = include_str!("../builder/access_scope_tracker.rs");
-    let buffer_scope_source =
-        include_str!("../access_scope_tracker/buffer_scope_history.rs");
+    let buffer_scope_source = include_str!("../access_scope_tracker/buffer_scope_history.rs");
 
     assert!(
         inference_source.contains("execution_dependencies.add_dependency(writer.pass, pass.id);")

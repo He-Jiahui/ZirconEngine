@@ -39,6 +39,7 @@ use crate::scene::{EntityId, World};
 ///
 /// #[derive(Debug)]
 /// struct Health(u32);
+/// zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
 /// impl Component for Health {}
 /// type Base = &'static mut Health;
 /// struct Faithful;
@@ -69,6 +70,7 @@ use crate::scene::{EntityId, World};
 ///
 /// #[derive(Debug)]
 /// struct Health(u32);
+/// zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
 /// impl Component for Health {}
 /// type Base = &'static mut Health;
 /// struct Faithful;
@@ -162,6 +164,7 @@ pub trait QueryData: QueryDataAccess {
 ///
 /// #[derive(Debug)]
 /// struct Health(u32);
+/// zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
 /// impl Component for Health {}
 /// type Base = &'static mut Health;
 /// struct Faithful;
@@ -211,6 +214,7 @@ pub trait QueryData: QueryDataAccess {
 ///
 /// #[derive(Debug)]
 /// struct Health(u32);
+/// zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
 /// impl Component for Health {}
 /// type Base = &'static mut Health;
 /// struct Faithful;
@@ -272,6 +276,7 @@ pub unsafe trait QueryMutData: QueryDataAccess {
     /// use zircon_runtime::scene::{EntityId, World};
     /// use zircon_runtime::scene::ecs::{Component, QueryMutData};
     /// struct Health(u32);
+    /// zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
     /// impl Component for Health {}
     /// fn rejected(world: &mut World, entity: EntityId) {
     ///     let _ = <&mut Health as QueryMutData>::fetch_mut(world as *mut World, entity);
@@ -292,6 +297,7 @@ pub unsafe trait QueryMutData: QueryDataAccess {
     /// use zircon_runtime::scene::{EntityId, World};
     /// use zircon_runtime::scene::ecs::{Component, QueryMutData, ChangeTickWindow};
     /// struct Health(u32);
+    /// zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
     /// impl Component for Health {}
     /// fn rejected(world: &mut World, entity: EntityId, ticks: ChangeTickWindow) {
     ///     let _ = <&mut Health as QueryMutData>::fetch_mut_with_ticks(world as *mut World, entity, ticks);
@@ -321,6 +327,7 @@ pub unsafe trait QueryMutData: QueryDataAccess {
     /// use zircon_runtime::scene::{EntityId, World};
     /// use zircon_runtime::scene::ecs::{Component, QueryMutData, ChangeTickWindow, ComponentStorageLocation};
     /// struct Health(u32);
+    /// zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
     /// impl Component for Health {}
     /// fn rejected(world: &mut World, entity: EntityId, locations: &[ComponentStorageLocation], ticks: ChangeTickWindow) {
     ///     let _ = <&mut Health as QueryMutData>::fetch_mut_with_component_locations(world as *mut World, entity, locations, ticks);

@@ -33,20 +33,11 @@ fn shared_document_tab_callbacks_consume_the_committed_receipt_projection() {
 
 #[test]
 fn document_tab_pointer_consumes_native_action_without_a_mirror_hit_surface() {
-    let native_body = source(
-        "src/ui/contract/pointer/routing/chrome/tabs/document/body.rs",
-    );
-    let native_close = source(
-        "src/ui/contract/pointer/routing/chrome/tabs/document/close.rs",
-    );
-    let bridge =
-        source("src/ui/document_tab_pointer/host_document_tab_pointer_bridge.rs");
-    let activate = source(
-        "src/ui/host_document_tab_pointer_bridge_activate.rs",
-    );
-    let close = source(
-        "src/ui/host_document_tab_pointer_bridge_close.rs",
-    );
+    let native_body = source("src/ui/contract/pointer/routing/chrome/tabs/document/body.rs");
+    let native_close = source("src/ui/contract/pointer/routing/chrome/tabs/document/close.rs");
+    let bridge = source("src/ui/document_tab_pointer/host_document_tab_pointer_bridge.rs");
+    let activate = source("src/ui/host_document_tab_pointer_bridge_activate.rs");
+    let close = source("src/ui/host_document_tab_pointer_bridge_close.rs");
 
     assert!(native_body.contains("ChromePointerRoute::DocumentTab"));
     assert!(native_body.contains("close: false"));
@@ -71,10 +62,8 @@ fn document_tab_pointer_consumes_native_action_without_a_mirror_hit_surface() {
 
 #[test]
 fn document_tab_receipt_route_is_compact_and_identity_remains_typed() {
-    let route =
-        source("src/ui/document_tab_pointer/host_document_tab_pointer_route.rs");
-    let item =
-        source("src/ui/document_tab_pointer/host_document_tab_pointer_item.rs");
+    let route = source("src/ui/document_tab_pointer/host_document_tab_pointer_route.rs");
+    let item = source("src/ui/document_tab_pointer/host_document_tab_pointer_item.rs");
 
     assert!(route.contains("Clone, Copy"));
     assert!(!route.contains("String"));

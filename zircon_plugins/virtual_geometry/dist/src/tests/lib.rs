@@ -26,8 +26,7 @@ fn virtual_geometry_dist_descriptor_exports_runtime_entry() {
 
 #[test]
 fn virtual_geometry_dist_runtime_entry_reports_registration_manifest() {
-    let granted =
-        b"runtime.plugin.virtual_geometry\nruntime.render.advanced.virtual_geometry\0";
+    let granted = b"runtime.plugin.virtual_geometry\nruntime.render.advanced.virtual_geometry\0";
     let host = NativePluginHostFunctionTableV3 {
         abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
         host_handle: 47,

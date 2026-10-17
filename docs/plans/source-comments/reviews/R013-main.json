@@ -1,0 +1,277 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R013",
+  "reviewer": "root",
+  "reviewed_at_utc": "2026-10-15T03:54:43.912766+00:00",
+  "status": "independently-reviewed-and-scoped-static-validated",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R013.json",
+    "sha256": "6f9ebf6cf7cd01affc579fef96edeb84b81458388a797b9dbd4e457faf068d28"
+  },
+  "files": {
+    "zircon_runtime_interface/src/serialization/schema_id.rs": {
+      "before_sha256": "24db4fd7d2a41b25bafbbe18d6f2a7c4c7030e50689a930e6e77829ef59a4dff",
+      "reviewed_sha256": "0d7fa42798d6f96121fb4dcfb5042e15a9d73fb7c2d79430bfb8b168a46c8e07",
+      "bytes": 8700,
+      "lines": 228,
+      "full_source_review_spans": [
+        [
+          1,
+          228
+        ]
+      ],
+      "objects_reviewed": 5,
+      "insertion_blocks": 1,
+      "all_original_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/tests/schema_id_contract.rs": {
+      "before_sha256": "6e02f95f42352ce0b17af82a7b49b1d5b594aca35fda557dda406dc47b25bc58",
+      "reviewed_sha256": "6e02f95f42352ce0b17af82a7b49b1d5b594aca35fda557dda406dc47b25bc58",
+      "bytes": 2917,
+      "lines": 92,
+      "full_source_review_spans": [
+        [
+          1,
+          92
+        ]
+      ],
+      "objects_reviewed": 4,
+      "insertion_blocks": 0,
+      "all_original_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/mod.rs": {
+      "before_sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "reviewed_sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "bytes": 1689,
+      "lines": 53,
+      "full_source_review_spans": [
+        [
+          1,
+          53
+        ]
+      ],
+      "objects_reviewed": 3,
+      "insertion_blocks": 0,
+      "all_original_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/tests/mod.rs": {
+      "before_sha256": "497341e9ea1ad82fed314704cff7ae97b982f80fefa8c1a38cc73f87adbc12a3",
+      "reviewed_sha256": "55ae7bab29bd22dc3c0e7f0422a3d1d7aca12445131fb0401cccf76a09f50ed9",
+      "bytes": 3192,
+      "lines": 79,
+      "full_source_review_spans": [
+        [
+          1,
+          79
+        ]
+      ],
+      "objects_reviewed": 5,
+      "insertion_blocks": 5,
+      "all_original_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/versioned_schema.rs": {
+      "before_sha256": "cf1121e8f7cbcb918de31b9513cd534517ef6aa60d1c2416a430af6e00c34b9f",
+      "reviewed_sha256": "cf1121e8f7cbcb918de31b9513cd534517ef6aa60d1c2416a430af6e00c34b9f",
+      "bytes": 1389,
+      "lines": 26,
+      "full_source_review_spans": [
+        [
+          1,
+          26
+        ]
+      ],
+      "objects_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_bytes_reconstructed": true
+    }
+  },
+  "independent_review_evidence": {
+    "method": "independent complete owned-source and exact caller reads; local serde_json parser/Number inspection; closed static callback path",
+    "root_actual_read_receipts": [
+      {
+        "chunk_id": "bca968",
+        "exit_code": 0,
+        "scope": "All 478 current lines across exact five assigned sources; load_migrated_value and surrounding validation/decoding path."
+      },
+      {
+        "chunk_id": "47e609",
+        "exit_code": 0,
+        "scope": "Complete migration execute/validate and local serde_json positive-u64/as_u64 code; repository profile context only."
+      },
+      {
+        "chunk_id": "3ec386",
+        "exit_code": 0,
+        "scope": "Text raw-envelope ownership/header boundary, public loader entry dispatch, VersionedSchema implementation inventory and absence of formal FFI/registration."
+      },
+      {
+        "chunk_id": "d98a70",
+        "exit_code": 0,
+        "scope": "Fresh fixed child issue, conditional marker 75-76, helper arithmetic line 77 and all metadata pins."
+      }
+    ],
+    "conditional_trigger": "Test-only FixtureDocument schema zircon.tests.fixture-document, source version 1, count=u64::MAX, and a build with overflow checks enabled.",
+    "path": [
+      "load_versioned(..., Text) -> load_text_versioned checks schema and rejects future version before old payload parsing.",
+      "serde_json::Value retains the positive u64 maximum; as_u64 accepts it.",
+      "load_migrated_value -> migrate_value validates the complete 0->1->2 chain, then range 1..2 invokes v1 callback.",
+      "Fixture helper evaluates count + 1 before returning Value or decoding FixtureDocument.count: u32. With overflow checks enabled this overflows and panics."
+    ],
+    "scope_boundary": "Private shared serialization test fixture only. No universal product migration/default-profile/runtime reproduction claim.",
+    "default_profile_web_claim_used_for_confirmation": false,
+    "actual_Rust_tests_run": false
+  },
+  "context_review": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/payload_header.rs",
+      "sha256": "24de8fdb868a92f7176e78d154636d52361d2e6621626f31f5bc5e7a004882da",
+      "lines": [
+        15,
+        21
+      ],
+      "use": "PayloadHeader derives Serialize/Deserialize and owns schema_id: SchemaId and schema_version; header decode is the deserialization caller context.",
+      "formal_source_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/read.rs",
+      "sha256": "d789852bc154073e0baafb393d6a6e85d29ea9924cd47ab0e0b47112d07d3e6f",
+      "lines": [
+        34,
+        85
+      ],
+      "use": "Text inspection first borrows the raw envelope/payload and then strictly decodes PayloadHeader; header SchemaId ownership is separate from the borrowed payload.",
+      "formal_source_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/load.rs",
+      "sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+      "lines": [
+        41,
+        207
+      ],
+      "use": "Public versioned loading routes text to load_text_versioned; envelope schema/version are validated before old payload becomes Value; load_migrated_value then runs the chain and decodes the target type.",
+      "formal_source_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "sha256": "17f268b77bd73622bb2b1f69abc2e9f2e71e0cb77226995ef18e008c106c692a",
+      "lines": [
+        1,
+        51
+      ],
+      "use": "migrate_value validates the complete target chain and invokes each step for from_version..target_version; input 1/target 2 invokes fixture step 1.",
+      "formal_source_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/migration/validate.rs",
+      "sha256": "fa122993908ff320ad19260683fe722654507e6f101efab01c706b77446cb1e1",
+      "lines": [
+        1,
+        57
+      ],
+      "use": "The fixture chain must have every adjacent step from version 0 through target 2; this validation occurs before invoking the selected migration callback.",
+      "formal_source_coverage": false
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "2b8fbbd523ce4f6416a15215aaf37769ef6fda653fe1a8a930b88add66d69f0a",
+      "lines": [
+        69,
+        117
+      ],
+      "use": "dev profile has no overflow-check override; test profile lines 82-84 likewise do not override it; shipping separately sets overflow-checks=false and is not the test-only fixture path.",
+      "formal_source_coverage": false
+    },
+    {
+      "path": "C:/Users/HeJiahui/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/src/de.rs",
+      "sha256": "4998d7e252eb513be85b298e287048b4fb283882e9ba7df905f572f07200f3f3",
+      "lines": [
+        462,
+        527
+      ],
+      "use": "parse_integer keeps positive integer significands in u64 until actual overflow; parse_number emits ParserNumber::U64 for a positive integer, so the exact maximum is representable as an unsigned JSON integer.",
+      "formal_source_coverage": false
+    },
+    {
+      "path": "C:/Users/HeJiahui/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/src/number.rs",
+      "sha256": "70b83c36286f6c58123f544f27db2b54a1135f928fe33b08b521b2997773f862",
+      "lines": [
+        149,
+        159
+      ],
+      "use": "Number::as_u64 returns the positive-integer u64 value; u64::MAX therefore passes the fixture helper's as_u64 guard.",
+      "formal_source_coverage": false
+    }
+  ],
+  "all_objects_and_blocks_reviewed": true,
+  "review_conclusions": [
+    "SchemaId static construction borrows static text; dynamic conversion/deserialization owns validated text. The added lifetime sentence is consistent with Cow ownership and loader header ownership.",
+    "VersionedSchema supplies stable schema/current version and an ordered whole-chain migration contract; loader format/schema/version checks precede callbacks, and domain validation remains caller-owned.",
+    "Existing complete documentation covers clear module/trait/schema tests. Added fixture docs describe shared test scope, object input/return and ordering; originals remain exact.",
+    "No new FFI, dynamic registration or macro-generated behavioral entry exists in these five formal sources. The 38 cross-tree trait implementations are a symbol inventory and caller context, not coverage of their files."
+  ],
+  "issues": [
+    {
+      "id": "CR-ZCA-R013-0001",
+      "status": "open-confirmed-BUG",
+      "confirmation": {
+        "method": "independent complete owned-source and exact caller reads; local serde_json parser/Number inspection; closed static callback path",
+        "root_actual_read_receipts": [
+          {
+            "chunk_id": "bca968",
+            "exit_code": 0,
+            "scope": "All 478 current lines across exact five assigned sources; load_migrated_value and surrounding validation/decoding path."
+          },
+          {
+            "chunk_id": "47e609",
+            "exit_code": 0,
+            "scope": "Complete migration execute/validate and local serde_json positive-u64/as_u64 code; repository profile context only."
+          },
+          {
+            "chunk_id": "3ec386",
+            "exit_code": 0,
+            "scope": "Text raw-envelope ownership/header boundary, public loader entry dispatch, VersionedSchema implementation inventory and absence of formal FFI/registration."
+          },
+          {
+            "chunk_id": "d98a70",
+            "exit_code": 0,
+            "scope": "Fresh fixed child issue, conditional marker 75-76, helper arithmetic line 77 and all metadata pins."
+          }
+        ],
+        "conditional_trigger": "Test-only FixtureDocument schema zircon.tests.fixture-document, source version 1, count=u64::MAX, and a build with overflow checks enabled.",
+        "path": [
+          "load_versioned(..., Text) -> load_text_versioned checks schema and rejects future version before old payload parsing.",
+          "serde_json::Value retains the positive u64 maximum; as_u64 accepts it.",
+          "load_migrated_value -> migrate_value validates the complete 0->1->2 chain, then range 1..2 invokes v1 callback.",
+          "Fixture helper evaluates count + 1 before returning Value or decoding FixtureDocument.count: u32. With overflow checks enabled this overflows and panics."
+        ],
+        "scope_boundary": "Private shared serialization test fixture only. No universal product migration/default-profile/runtime reproduction claim.",
+        "default_profile_web_claim_used_for_confirmation": false,
+        "actual_Rust_tests_run": false
+      },
+      "next_action": "Separate behavior-fix work can make the private fixture addition checked and add a boundary case; this audit preserves callback, assertion and API behavior."
+    }
+  ],
+  "preexisting_context_markers": [
+    {
+      "id": "CR-SERIALIZATION-0001",
+      "path": "zircon_runtime_interface/src/serialization/migration/execute.rs",
+      "formal_source_coverage": false,
+      "note": "Preserved context TODO; R016 owns this file and must independently reconcile its issue evidence."
+    }
+  ],
+  "all_original_bytes_and_comments_preserved": true,
+  "builds_or_Rust_tests_executed": false,
+  "insertion_blocks": 6,
+  "comment_and_separator_lines_added": 13,
+  "formal_acceptance": false,
+  "coordinator_commit": "pending",
+  "validation_record": {
+    "path": "docs/plans/source-comments/reviews/R013-post-validation.json",
+    "sha256": "28845032e0e7c2ee17a8305e70938376f117502e123b4d51014423cafceb027d"
+  },
+  "metadata_wording_limits": [
+    "Child wording that Rust tests/Cargo are forbidden is not adopted as a global user rule; none were run because this pure-comment batch only needs scoped static checks.",
+    "The optional Cargo web-profile citation is child context only. Root confirmation uses the explicitly conditional overflow-enabled path and does not depend on a web claim or inferred default profile."
+  ]
+}

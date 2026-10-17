@@ -1,5 +1,5 @@
 use std::panic::{self, AssertUnwindSafe};
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::core::{CoreError, LifecycleState};
 
@@ -59,7 +59,7 @@ impl CoreHandle {
     pub fn activate_module_with_ready_timeout(
         &self,
         module_name: &str,
-        ready_timeout: std::time::Duration,
+        ready_timeout: web_time::Duration,
     ) -> Result<(), CoreError> {
         let ready_deadline = Instant::now()
             .checked_add(ready_timeout)
@@ -79,7 +79,7 @@ impl CoreHandle {
     fn activate_module_with_ready_deadline(
         &self,
         module_name: &str,
-        ready_timeout: std::time::Duration,
+        ready_timeout: web_time::Duration,
         ready_deadline: Option<Instant>,
         transition_deadline: Option<Instant>,
     ) -> Result<(), CoreError> {
@@ -177,7 +177,7 @@ impl CoreHandle {
         &self,
         graph: &FrozenModuleGraph,
         module_name: &str,
-        ready_timeout: std::time::Duration,
+        ready_timeout: web_time::Duration,
         ready_deadline: Option<Instant>,
     ) -> Result<(), CoreError> {
         let module_services = graph.module_services(module_name)?;
@@ -251,7 +251,7 @@ impl CoreHandle {
                         self.wait_for_service_calls_to_drain(
                             module_name,
                             module_services.shutdown_service_names().as_ref(),
-                            Some(std::time::Duration::ZERO),
+                            Some(web_time::Duration::ZERO),
                         )?;
                         self.cleanup_module(module_name)?;
                         self.mark_module_cleanup_completed(module_name);
@@ -305,7 +305,7 @@ impl CoreHandle {
     pub fn deactivate_module_with_drain_timeout(
         &self,
         module_name: &str,
-        drain_timeout: std::time::Duration,
+        drain_timeout: web_time::Duration,
     ) -> Result<(), CoreError> {
         self.deactivate_module_with_drain_timeout_inner(module_name, Some(drain_timeout))
     }
@@ -313,7 +313,7 @@ impl CoreHandle {
     fn deactivate_module_with_drain_timeout_inner(
         &self,
         module_name: &str,
-        drain_timeout: Option<std::time::Duration>,
+        drain_timeout: Option<web_time::Duration>,
     ) -> Result<(), CoreError> {
         crate::profile_scope!("runtime", "core", "deactivate_module");
         let deadline = match drain_timeout {
@@ -352,7 +352,7 @@ impl CoreHandle {
             return Err(CoreError::ModuleCleanupTimeout {
                 module: module_name.to_owned(),
                 operation: "module_deactivation".to_owned(),
-                budget: std::time::Duration::ZERO,
+                budget: web_time::Duration::ZERO,
                 incomplete_entries: 1,
                 failed: 0,
                 cancelled: 0,
@@ -369,7 +369,7 @@ impl CoreHandle {
     fn deactivate_module_with_deadline(
         &self,
         module_name: &str,
-        drain_timeout: Option<std::time::Duration>,
+        drain_timeout: Option<web_time::Duration>,
         deadline: Option<Instant>,
         transition_deadline: Option<Instant>,
     ) -> Result<(), CoreError> {
@@ -386,7 +386,7 @@ impl CoreHandle {
         &self,
         graph: &FrozenModuleGraph,
         module_name: &str,
-        drain_timeout: Option<std::time::Duration>,
+        drain_timeout: Option<web_time::Duration>,
         deadline: Option<Instant>,
     ) -> Result<(), CoreError> {
         let module_services = graph.module_services(module_name)?;
@@ -577,7 +577,7 @@ impl CoreHandle {
 
 fn check_deactivation_deadline(
     module_name: &str,
-    timeout: Option<std::time::Duration>,
+    timeout: Option<web_time::Duration>,
     deadline: Option<Instant>,
 ) -> Result<(), CoreError> {
     if let (Some(timeout), Some(deadline)) = (timeout, deadline) {

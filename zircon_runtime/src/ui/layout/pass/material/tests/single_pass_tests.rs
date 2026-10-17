@@ -1,3 +1,5 @@
+//! 覆盖布局度量、Dropdown caret 占位与源码文本谓词；p95 基准标记为 ignored。
+
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -37,6 +39,8 @@ fn optimization_batch_20260830bm_runtime_material_metrics_preserves_results() {
     let metadata = black_box(metadata());
     let measured = measure_material_content(Some(&metadata), UiSize::new(40.0, 12.0))
         .expect("authored material metrics should resolve");
+    // BUG: [CR-ZCA-R048-0001] 此 Button 仅设置 layout_icon_size，没有非空 icon/image/media/source，故 has_icon=false；
+    // 当前逻辑返回80×25，下面断言的99×29因此不成立（静态推导，未运行测试）。
     assert_eq!(measured, UiSize::new(99.0, 29.0));
     assert!(MaterialLayoutMetrics::resolve(&metadata).is_some());
 }
@@ -53,7 +57,9 @@ fn dropdown_measurement_reserves_explicit_native_caret_and_insets() {
         ("caret_size", 14.0),
         ("caret_gap", 3.0),
     ] {
-        metadata.attributes.insert(key.to_string(), Value::Float(value));
+        metadata
+            .attributes
+            .insert(key.to_string(), Value::Float(value));
     }
     let measured = measure_material_content(Some(&metadata), UiSize::new(80.0, 16.0))
         .expect("native dropdown reserves its painted adornments without layout metrics");

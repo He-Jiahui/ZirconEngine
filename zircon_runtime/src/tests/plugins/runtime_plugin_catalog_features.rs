@@ -435,10 +435,8 @@ fn runtime_plugin_catalog_reuses_completed_report_and_extension_snapshots() {
     assert!(first_extensions.is_success());
     assert_eq!(catalog.project_plan_metrics().project_plan_builds, 1);
     assert_eq!(catalog.cached_project_plan_count(), 1);
-    let project_source =
-        include_str!("../../plugin/runtime/catalog/project.rs");
-    let dependency_source =
-        include_str!("../../plugin/runtime/catalog/feature_dependencies.rs");
+    let project_source = include_str!("../../plugin/runtime/catalog/project.rs");
+    let dependency_source = include_str!("../../plugin/runtime/catalog/feature_dependencies.rs");
     assert!(!project_source.contains("serde_json::to_string(manifest)"));
     assert!(!dependency_source.contains(".feature_report().clone()"));
 }

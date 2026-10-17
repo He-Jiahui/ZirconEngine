@@ -34,15 +34,72 @@ impl LevelSystem {
         (self.world_replacement_epoch.load(Ordering::Acquire) == replacement_epoch).then_some(state)
     }
 
-    pub(crate) fn animation_requires_continuous_frame(&self) -> bool {
+    /// Combines explicit host demand, committed evaluator demand, and pending events.
+    pub fn animation_requires_continuous_frame(&self) -> bool {
         let state = self.lock_animation_state();
         state.animation_requires_continuous_frame
+            || (state.evaluated_animation_requires_continuous_frame
+                && state.evaluated_animation_replacement_epoch
+                    == self.world_replacement_epoch.load(Ordering::Acquire))
             || state.animation_event_backlog_requires_continuous_frame
     }
 
+    /// Sets the explicit host channel independently of frame-scoped evaluators.
     pub fn record_animation_requires_continuous_frame(&self, requires_continuous_frame: bool) {
         self.lock_animation_state()
             .animation_requires_continuous_frame = requires_continuous_frame;
+    }
+
+    /// Captures the current tick's identity before an evaluator starts work.
+    pub fn capture_animation_evaluation_frame(&self) -> Option<(u64, u64)> {
+        let state = self.lock_animation_state();
+        let (epoch, frame, _) = state.pending_animation_evaluation_frame?;
+        (epoch == self.world_replacement_epoch.load(Ordering::Acquire)).then_some((epoch, frame))
+    }
+
+    /// Adds one producer's result; only the entire successful tick can publish it.
+    pub fn stage_animation_evaluation_frame(
+        &self,
+        replacement_epoch: u64,
+        frame: u64,
+        requires_continuous_frame: bool,
+    ) -> bool {
+        let Some(mut state) = self.lock_animation_state_if_replacement_epoch(replacement_epoch)
+        else {
+            return false;
+        };
+        let Some(pending) = state.pending_animation_evaluation_frame.as_mut() else {
+            return false;
+        };
+        if (pending.0, pending.1) != (replacement_epoch, frame) {
+            return false;
+        }
+        pending.2 |= requires_continuous_frame;
+        true
+    }
+
+    pub(crate) fn begin_animation_evaluation_frame(&self) -> AnimationEvaluationFrame<'_> {
+        let identity = {
+            let mut state = self.lock_animation_state();
+            match state.animation_evaluation_frame_sequence.checked_add(1) {
+                Some(frame) => {
+                    let epoch = self.world_replacement_epoch.load(Ordering::Acquire);
+                    state.animation_evaluation_frame_sequence = frame;
+                    state.pending_animation_evaluation_frame = Some((epoch, frame, false));
+                    Some((epoch, frame))
+                }
+                None => {
+                    // Exhaustion retires this channel instead of recycling a producer token.
+                    state.pending_animation_evaluation_frame = None;
+                    state.evaluated_animation_requires_continuous_frame = false;
+                    None
+                }
+            }
+        };
+        AnimationEvaluationFrame {
+            level: self,
+            identity,
+        }
     }
 
     pub(crate) fn animation_playback_snapshot(&self) -> Arc<AnimationPlaybackStateSnapshot> {
@@ -275,5 +332,43 @@ impl LevelSystem {
     ) {
         *frame_state =
             Arc::new(frame_state.with_animation_poses(world_generation, animation_poses));
+    }
+}
+
+pub(crate) struct AnimationEvaluationFrame<'a> {
+    level: &'a LevelSystem,
+    identity: Option<(u64, u64)>,
+}
+
+impl AnimationEvaluationFrame<'_> {
+    pub(crate) fn commit(mut self) {
+        self.finish(true);
+    }
+
+    fn finish(&mut self, succeeded: bool) {
+        let Some(identity) = self.identity.take() else {
+            return;
+        };
+        let mut state = self.level.lock_animation_state();
+        let Some((epoch, frame, requires_continuous_frame)) =
+            state.pending_animation_evaluation_frame
+        else {
+            return;
+        };
+        if identity != (epoch, frame) {
+            return;
+        }
+        state.pending_animation_evaluation_frame = None;
+        state.evaluated_animation_replacement_epoch = epoch;
+        state.evaluated_animation_requires_continuous_frame = succeeded
+            && epoch == self.level.world_replacement_epoch.load(Ordering::Acquire)
+            && requires_continuous_frame;
+    }
+}
+
+impl Drop for AnimationEvaluationFrame<'_> {
+    fn drop(&mut self) {
+        // The caller has released callback and World guards before this cleanup.
+        self.finish(false);
     }
 }

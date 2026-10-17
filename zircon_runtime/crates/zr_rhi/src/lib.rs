@@ -106,8 +106,7 @@ pub use ui_surface::{
     UiSurfacePresentStats, UiSurfacePresentStatsAccumulator, UiSurfacePresenter, UiSurfaceRect,
     UiSurfaceResolvedCommandKind, UiSurfaceStyle, UiSurfaceStyleHandle, UiSurfaceStyledPayload,
     UiSurfaceTextFace, UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot, UiSurfaceTextLine,
-    UiSurfaceTextRequest,
-    UiSurfaceTextStyle,
+    UiSurfaceTextRequest, UiSurfaceTextStyle,
 };
 pub use upload::{BufferUpload, BufferUploadBatch, TextureUpload, TextureUploadBatch};
 

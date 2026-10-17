@@ -69,6 +69,8 @@ pub(crate) struct RenderSceneComponentProjector {
     geometry_dependents: HashMap<UntypedResourceHandle, BTreeSet<u64>>,
     geometry_primitive_dependencies: HashMap<u64, HashSet<UntypedResourceHandle>>,
     geometry_primitive_keys: BTreeSet<u64>,
+    // Component metadata only; no scene reference count, payload or lease survives retirement.
+    dormant_geometry: HashMap<u64, super::projection::DormantGeometryPrimitive>,
     geometry_resync_after: Option<u64>,
     geometry_replay_after: Option<u64>,
     geometry_replay_scope: HashSet<UntypedResourceHandle>,
@@ -89,6 +91,7 @@ impl RenderSceneComponentProjector {
             geometry_dependents: HashMap::new(),
             geometry_primitive_dependencies: HashMap::new(),
             geometry_primitive_keys: BTreeSet::new(),
+            dormant_geometry: HashMap::new(),
             geometry_resync_after: None,
             geometry_replay_after: None,
             geometry_replay_scope: HashSet::new(),
@@ -210,6 +213,153 @@ impl RenderSceneComponentProjector {
         .map(Some)
     }
 
+
+    /// The Resource streamer supplies only paired-snapshot, freshly revalidated tombstones.
+    /// The existing Missing/Pending routes stay unchanged when no tombstone/dormant source exists.
+    pub(crate) fn project_frame_with_resource_geometry_retirements_staging<StageOutput, StageError>(
+        &mut self,
+        frame: &RenderFrameExtract,
+        selection: &RenderSceneGeometryReplaySelection,
+        retired: &HashSet<UntypedResourceHandle>,
+        resolver: &mut impl RenderSceneGeometryResolver,
+        stage: impl FnOnce(&[RenderSceneResourceReferenceDelta]) -> Result<StageOutput, StageError>,
+    ) -> Result<
+        Option<RenderSceneComponentProjectionCommit<StageOutput>>,
+        RenderSceneComponentProjectionTransactionError<StageError>,
+    > {
+        if retired.is_empty() && self.dormant_geometry.is_empty() {
+            return self.project_frame_with_resource_geometry_staging(frame, selection, resolver, stage);
+        }
+        let artifact = self.validate_frame(frame)
+            .map_err(RenderSceneComponentProjectionTransactionError::Projection)?;
+        let incoming = artifact.filter(|artifact| !self.is_exact_artifact_replay(artifact));
+        if incoming.is_none() && selection.targets.is_empty() {
+            if selection.resync { self.geometry_resync_after = None; }
+            return Ok(artifact.map(|_| RenderSceneComponentProjectionCommit::Replayed));
+        }
+        self.apply_geometry_retirements_with_staging(
+            incoming, &selection.targets, selection.resync, retired, resolver, stage,
+        ).map(Some)
+    }
+
+    pub(crate) fn replay_resource_geometry_with_retirements_staging<StageOutput, StageError>(
+        &mut self,
+        resources: &[UntypedResourceHandle],
+        resync: bool,
+        limit: usize,
+        retired: &HashSet<UntypedResourceHandle>,
+        resolver: &mut impl RenderSceneGeometryResolver,
+        stage: impl FnOnce(&[RenderSceneResourceReferenceDelta]) -> Result<StageOutput, StageError>,
+    ) -> Result<
+        Option<RenderSceneComponentProjectionCommit<StageOutput>>,
+        RenderSceneComponentProjectionTransactionError<StageError>,
+    > {
+        let (targets, _, _) = self.geometry_replay_targets(resources, &HashMap::new(), resync, limit);
+        if targets.is_empty() {
+            if resync { self.geometry_resync_after = None; }
+            return Ok(None);
+        }
+        self.apply_geometry_retirements_with_staging(None, &targets, resync, retired, resolver, stage).map(Some)
+    }
+
+    fn apply_geometry_retirements_with_staging<StageOutput, StageError>(
+        &mut self,
+        artifact: Option<&RenderComponentChangeArtifact>,
+        targets: &[u64],
+        resync: bool,
+        retired: &HashSet<UntypedResourceHandle>,
+        resolver: &mut impl RenderSceneGeometryResolver,
+        stage: impl FnOnce(&[RenderSceneResourceReferenceDelta]) -> Result<StageOutput, StageError>,
+    ) -> Result<
+        RenderSceneComponentProjectionCommit<StageOutput>,
+        RenderSceneComponentProjectionTransactionError<StageError>,
+    > {
+        if let Some(artifact) = artifact {
+            self.validate_artifact(artifact)
+                .map_err(RenderSceneComponentProjectionTransactionError::Projection)?;
+        }
+        let prepared = super::projection::build_delta_with_geometry_retirements(
+            &self.scene, &self.dormant_geometry, artifact, targets, retired, resolver,
+        ).map_err(RenderSceneComponentProjectionTransactionError::Projection)?;
+        let super::projection::GeometryRetirementDelta {
+            delta, parked, awakened, forgotten, preserve_dependencies,
+        } = prepared;
+        let (journal, staging) = self.scene.apply_delta_with_staging(delta, stage).map_err(|error| match error {
+            RenderSceneDeltaTransactionError::Preflight(error) =>
+                RenderSceneComponentProjectionTransactionError::Projection(error.into()),
+            RenderSceneDeltaTransactionError::Staging(error) =>
+                RenderSceneComponentProjectionTransactionError::Staging(error),
+        })?;
+        // Only successful scene/residency staging changes dormant metadata or dependencies.
+        let parked_keys = parked.iter().map(|primitive| primitive.key()).collect::<HashSet<_>>();
+        for removal in journal.removals() {
+            let primitive = removal.primitive();
+            let key = primitive.stable_instance_key();
+            if !parked_keys.contains(&key) {
+                self.geometry_primitive_keys.remove(&key);
+                self.remove_geometry_dependencies(primitive);
+            }
+        }
+        for update in journal.updates() {
+            let key = update.primitive().stable_instance_key();
+            self.geometry_primitive_keys.insert(key);
+            self.remove_geometry_dependencies(update.previous_primitive());
+            self.add_geometry_dependencies(update.primitive(), resolver);
+        }
+        for addition in journal.additions() {
+            let primitive = addition.primitive();
+            let key = primitive.stable_instance_key();
+            self.remove_geometry_dependency_key(key);
+            self.geometry_primitive_keys.insert(key);
+            self.add_geometry_dependencies(primitive, resolver);
+        }
+        for key in forgotten {
+            self.dormant_geometry.remove(&key);
+            self.geometry_primitive_keys.remove(&key);
+            self.remove_geometry_dependency_key(key);
+        }
+        for key in awakened { self.dormant_geometry.remove(&key); }
+        for primitive in parked {
+            let key = primitive.key();
+            if !preserve_dependencies.contains(&key) || !self.geometry_primitive_dependencies.contains_key(&key) {
+                self.remove_geometry_dependency_key(key);
+                let mut dependencies = geometry_source_dependencies(&primitive.descriptor.mesh_source);
+                dependencies.extend(resolver.supplemental_geometry_dependencies(&primitive.descriptor.mesh_source));
+                self.add_geometry_dependency_set(key, dependencies);
+            }
+            self.geometry_primitive_keys.insert(key);
+            self.dormant_geometry.insert(key, primitive);
+        }
+        if let Some(artifact) = artifact {
+            self.bound_world = Some(artifact.world());
+            self.applied_journal_generation = artifact.journal_generation();
+            if Self::artifact_changes_geometry_dependencies(artifact) {
+                self.geometry_replay_after = None;
+                self.geometry_replay_scope.clear();
+                self.geometry_replay_revisions.clear();
+            }
+        }
+        self.advance_geometry_resync(targets, resync);
+        Ok(RenderSceneComponentProjectionCommit::Applied { journal, staging })
+    }
+
+    fn prune_dormant_components(&mut self, artifact: &RenderComponentChangeArtifact) {
+        let forgotten = if matches!(artifact.mode(), RenderComponentProjectionMode::Full(_)) {
+            let incoming = artifact.upserts().iter().map(|patch| patch.entity()).collect::<HashSet<_>>();
+            self.dormant_geometry.iter().filter(|(_, primitive)| !incoming.contains(&primitive.descriptor.node_id))
+                .map(|(key, _)| *key).collect::<Vec<_>>()
+        } else {
+            let removed = artifact.removals().iter().copied().collect::<HashSet<_>>();
+            self.dormant_geometry.iter().filter(|(_, primitive)| removed.contains(&primitive.descriptor.node_id))
+                .map(|(key, _)| *key).collect::<Vec<_>>()
+        };
+        for key in forgotten {
+            self.dormant_geometry.remove(&key);
+            self.geometry_primitive_keys.remove(&key);
+            self.remove_geometry_dependency_key(key);
+        }
+    }
+
     pub(crate) fn project_with_resource_geometry_staging<StageOutput, StageError>(
         &mut self,
         artifact: &RenderComponentChangeArtifact,
@@ -259,6 +409,9 @@ impl RenderSceneComponentProjector {
         if self.is_exact_artifact_replay(artifact) {
             return Ok(RenderSceneComponentProjectionCommit::Replayed);
         }
+        if !self.dormant_geometry.is_empty() {
+            return self.apply_geometry_retirements_with_staging(Some(artifact), &[], true, &HashSet::new(), resolver, stage);
+        }
         self.validate_artifact(artifact)
             .map_err(RenderSceneComponentProjectionTransactionError::Projection)?;
         let delta = build_delta(&self.scene, artifact, resolver)
@@ -283,6 +436,7 @@ impl RenderSceneComponentProjector {
             self.geometry_replay_revisions.clear();
         }
         self.apply_geometry_dependency_journal(&journal, resolver);
+        self.prune_dormant_components(artifact);
         Ok(RenderSceneComponentProjectionCommit::Applied { journal, staging })
     }
 
@@ -319,6 +473,9 @@ impl RenderSceneComponentProjector {
         RenderSceneComponentProjectionCommit<StageOutput>,
         RenderSceneComponentProjectionTransactionError<StageError>,
     > {
+        if !self.dormant_geometry.is_empty() {
+            return self.apply_geometry_retirements_with_staging(None, targets, resync, &HashSet::new(), resolver, stage);
+        }
         let upserts = {
             let read = self.scene.read();
             targets
@@ -361,6 +518,9 @@ impl RenderSceneComponentProjector {
         RenderSceneComponentProjectionCommit<StageOutput>,
         RenderSceneComponentProjectionTransactionError<StageError>,
     > {
+        if !self.dormant_geometry.is_empty() {
+            return self.apply_geometry_retirements_with_staging(Some(artifact), targets, resync, &HashSet::new(), resolver, stage);
+        }
         self.validate_artifact(artifact)
             .map_err(RenderSceneComponentProjectionTransactionError::Projection)?;
         let delta = build_delta_with_geometry_replay(&self.scene, artifact, targets, resolver)
@@ -384,6 +544,7 @@ impl RenderSceneComponentProjector {
             self.geometry_replay_revisions.clear();
         }
         self.apply_geometry_dependency_journal(&journal, resolver);
+        self.prune_dormant_components(artifact);
         self.advance_geometry_resync(targets, resync);
         Ok(RenderSceneComponentProjectionCommit::Applied { journal, staging })
     }
@@ -557,18 +718,14 @@ impl RenderSceneComponentProjector {
             .collect::<HashSet<_>>();
         let mut required = resources.iter().copied().collect::<HashSet<_>>();
         for key in &targets {
-            let Some(primitive) = read
-                .handle_for_stable_key(*key)
-                .and_then(|handle| read.get(handle))
-            else {
-                continue;
-            };
-            if full_component_projection
-                || component_geometry.contains(&primitive.descriptor().node_id)
-            {
-                continue;
-            }
-            required.extend(geometry_dependencies(primitive));
+            let live = read.handle_for_stable_key(*key).and_then(|handle| read.get(handle));
+            let (entity, dependencies) = if let Some(primitive) = live {
+                (primitive.descriptor().node_id, geometry_dependencies(primitive))
+            } else if let Some(primitive) = self.dormant_geometry.get(key) {
+                (primitive.descriptor.node_id, self.geometry_primitive_dependencies.get(key).cloned().unwrap_or_default())
+            } else { continue; };
+            if full_component_projection || component_geometry.contains(&entity) { continue; }
+            required.extend(dependencies);
         }
         RenderSceneGeometryReplaySelection {
             targets,
@@ -672,8 +829,9 @@ impl RenderSceneComponentProjector {
         resolver: &impl RenderSceneGeometryResolver,
     ) {
         for removal in journal.removals() {
-            self.geometry_primitive_keys
-                .remove(&removal.primitive().stable_instance_key());
+            let key = removal.primitive().stable_instance_key();
+            self.dormant_geometry.remove(&key);
+            self.geometry_primitive_keys.remove(&key);
             self.remove_geometry_dependencies(removal.primitive());
         }
         for update in journal.updates() {
@@ -699,18 +857,21 @@ impl RenderSceneComponentProjector {
         dependencies.extend(
             resolver.supplemental_geometry_dependencies(&primitive.descriptor().mesh_source),
         );
+        self.add_geometry_dependency_set(key, dependencies);
+    }
+
+    fn add_geometry_dependency_set(&mut self, key: u64, dependencies: HashSet<UntypedResourceHandle>) {
         for resource in &dependencies {
-            self.geometry_dependents
-                .entry(*resource)
-                .or_default()
-                .insert(key);
+            self.geometry_dependents.entry(*resource).or_default().insert(key);
         }
-        self.geometry_primitive_dependencies
-            .insert(key, dependencies);
+        self.geometry_primitive_dependencies.insert(key, dependencies);
     }
 
     fn remove_geometry_dependencies(&mut self, primitive: &super::super::RenderScenePrimitive) {
-        let key = primitive.stable_instance_key();
+        self.remove_geometry_dependency_key(primitive.stable_instance_key());
+    }
+
+    fn remove_geometry_dependency_key(&mut self, key: u64) {
         for resource in self
             .geometry_primitive_dependencies
             .remove(&key)
@@ -803,8 +964,11 @@ impl RenderSceneComponentProjector {
 fn geometry_dependencies(
     primitive: &super::super::RenderScenePrimitive,
 ) -> HashSet<UntypedResourceHandle> {
+    geometry_source_dependencies(&primitive.descriptor().mesh_source)
+}
+
+fn geometry_source_dependencies(source: &super::super::RenderSceneMeshSource) -> HashSet<UntypedResourceHandle> {
     let mut resources = HashSet::new();
-    let source = &primitive.descriptor().mesh_source;
     for level in std::iter::once(source.base()).chain(source.lods().iter().map(|lod| &lod.source)) {
         if let Some(mesh) = level.mesh {
             resources.insert(UntypedResourceHandle::new(mesh.id(), ResourceKind::Mesh));

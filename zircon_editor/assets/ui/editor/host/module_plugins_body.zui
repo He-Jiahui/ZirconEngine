@@ -13,7 +13,7 @@ component = "VerticalGroup"
 control_id = "ModulePluginsPaneBodyRoot"
 classes = ["editor-pane", "module-plugins-pane"]
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "header" }, { node = "summary" }, { node = "plugin_list_slot", slot = { name = "module_plugin_list_slot" } }]
+children = [{ node = "header" }, { node = "summary" }, { node = "plugin_list_slot", slot = { name = "module_plugin_list_slot" } }, { node = "details" }]
 
 [nodes.header]
 component = "HorizontalGroup"
@@ -39,3 +39,87 @@ component = "Container"
 control_id = "ModulePluginListPanel"
 props = { slot_name = "module_plugin_list_slot" }
 layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } }
+
+# One scrolling detail body; package actions stay in the existing list.
+[nodes.details]
+component = "VerticalGroup"
+control_id = "ModulePluginDetailsBody"
+props = { visible = false, visibility = "Collapsed" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } }
+children = [{ node = "back" }, { node = "detail_title" }, { node = "page_label" }, { node = "previous" }, { node = "next" }, { node = "empty" }, { node = "features" }, { node = "feature_name" }, { node = "feature_identity" }, { node = "feature_states" }, { node = "feature_reason" }, { node = "apply" }]
+
+[nodes.back]
+component = "Button"
+control_id = "ModulePluginDetailsBack"
+props = { label = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "ModulePlugins/DetailsBack", event = "Click", route = "workbench.plugin.details.back" }]
+
+[nodes.detail_title]
+component = "Text"
+control_id = "ModulePluginDetailsTitle"
+props = { text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.page_label]
+component = "Text"
+control_id = "ModulePluginDetailsPage"
+props = { text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, stretch = "Fixed" } }
+
+[nodes.previous]
+component = "Button"
+control_id = "ModulePluginDetailsPrevious"
+props = { label = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "ModulePlugins/DetailsPrevious", event = "Click", route = "workbench.plugin.details.previous" }]
+
+[nodes.next]
+component = "Button"
+control_id = "ModulePluginDetailsNext"
+props = { label = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "ModulePlugins/DetailsNext", event = "Click", route = "workbench.plugin.details.next" }]
+
+[nodes.empty]
+component = "Text"
+control_id = "ModulePluginFeatureEmpty"
+props = { text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.features]
+component = "Table"
+control_id = "ModulePluginFeatureRows"
+props = { rows = [], row_identity_field = "feature_id", selected_row_identity = "", focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 128.0, preferred = 128.0, stretch = "Fixed" } }
+
+[nodes.feature_name]
+component = "Text"
+control_id = "ModulePluginFeatureName"
+props = { text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.feature_identity]
+component = "Text"
+control_id = "ModulePluginFeatureIdentity"
+props = { text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, stretch = "Fixed" } }
+
+[nodes.feature_states]
+component = "Text"
+control_id = "ModulePluginFeatureStates"
+props = { text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 112.0, stretch = "Fixed" } }
+
+[nodes.feature_reason]
+component = "Text"
+control_id = "ModulePluginFeatureReason"
+props = { text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.apply]
+component = "Button"
+control_id = "ModulePluginDetailsApply"
+props = { label = "", disabled = true, intent_id = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "ModulePlugins/DetailsApply", event = "Click", route = "workbench.plugin.details.apply", payload = { intent = "=control.ModulePluginDetailsApply.prop.intent_id" } }]

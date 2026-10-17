@@ -1,7 +1,10 @@
+//! 验证解析结果借用输入存储，并保留解析器的源码契约。
+
 use std::collections::BTreeMap;
 
 use super::*;
 
+/// 比较底层地址，证明文本队列标识没有额外复制。
 #[test]
 fn optimization_batch_20260909_runtime274_queue_string_parser_borrows_id_storage() {
     let value = UiValue::String("save|autoHideDuration=40".to_string());
@@ -21,6 +24,7 @@ fn optimization_batch_20260909_runtime274_queue_string_parser_borrows_id_storage
     );
 }
 
+/// 映射标识也必须指向原值内存，而不是仅比较内容相等。
 #[test]
 fn optimization_batch_20260909_runtime274_queue_map_parser_borrows_id_storage() {
     let toast_id = "export".to_string();
@@ -44,6 +48,7 @@ fn optimization_batch_20260909_runtime274_queue_map_parser_borrows_id_storage() 
     assert!(std::ptr::eq(parsed_id.as_ptr(), source.as_ptr()));
 }
 
+/// 拼接旧形式作为禁用探针，避免探针文本本身误命中被扫描源码。
 #[test]
 fn optimization_batch_20260909_runtime274_queue_parser_source_contract_is_borrowed() {
     let source = include_str!("../toast_timer_queue.rs");

@@ -52,6 +52,14 @@ pub struct ViewportRenderFrame {
     pub(crate) output_target: super::ViewportRenderOutputTarget,
     pub(crate) previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
     pub(crate) frame_visibility: Option<FrameVisibility>,
+    pub(crate) virtual_geometry_readback_scope:
+        Option<crate::graphics::scene::VirtualGeometryReadbackScope>,
+    pub(crate) virtual_geometry_indexed_sources:
+        Vec<crate::graphics::VirtualGeometryIndexedSourceAdmission>,
+    pub(crate) virtual_geometry_execution_data:
+        Option<Arc<crate::core::framework::render::RenderVirtualGeometryExecutionData>>,
+    pub(crate) virtual_geometry_execution_inputs:
+        Arc<crate::core::framework::render::RenderVirtualGeometryExecutionInputs>,
     pub(crate) virtual_geometry_debug_snapshot: Option<Arc<RenderVirtualGeometryDebugSnapshot>>,
     pub(crate) runtime_overlay_override: Option<RenderOverlayExtract>,
     pub(crate) post_process_override: Option<Arc<RendererPostProcessSnapshot>>,

@@ -165,8 +165,9 @@ impl MeshPipelineCache {
             let primary_hit = self.has_pipeline(pipeline_kind, variant_id);
             let companion_hit =
                 companion.is_none_or(|(kind, variant_id)| self.has_pipeline(kind, variant_id));
-            let requires_oit =
-                pipeline_kind == MeshPassPipelineKind::Base && pipeline_key.is_transparent();
+            let requires_oit = self.oit_mesh_pipeline_layout.is_some()
+                && pipeline_kind == MeshPassPipelineKind::Base
+                && pipeline_key.is_transparent();
             let oit_hit =
                 !requires_oit || self.oit_mesh_variant_pipelines.contains_key(&variant_id);
             if primary_hit && companion_hit && oit_hit {
@@ -204,7 +205,7 @@ impl MeshPipelineCache {
 
             let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
             let shader = if !primary_hit || !companion_hit {
-                let creation_started = std::time::Instant::now();
+                let creation_started = web_time::Instant::now();
                 let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some("zircon-runtime-shader-pipeline-prewarm-module"),
                     source: wgpu::ShaderSource::Wgsl(source.wgsl_source.as_str().into()),
@@ -218,7 +219,7 @@ impl MeshPipelineCache {
             let (primary_pipeline, companion_pipeline) = match shader.as_ref() {
                 Some(shader) => {
                     let primary_pipeline = if !primary_hit {
-                        let creation_started = std::time::Instant::now();
+                        let creation_started = web_time::Instant::now();
                         let pipeline = self.create_prewarmed_pipeline(
                             device,
                             shader,
@@ -233,7 +234,7 @@ impl MeshPipelineCache {
                     };
                     let companion_pipeline = if let Some((kind, variant_id)) = companion {
                         if !companion_hit {
-                            let creation_started = std::time::Instant::now();
+                            let creation_started = web_time::Instant::now();
                             let pipeline =
                                 self.create_prewarmed_pipeline(device, shader, kind, &pipeline_key);
                             let creation_elapsed = creation_started.elapsed();
@@ -260,7 +261,7 @@ impl MeshPipelineCache {
                 }
             };
             let oit_pipeline = if let Some(source) = oit_source {
-                let shader_creation_started = std::time::Instant::now();
+                let shader_creation_started = web_time::Instant::now();
                 let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some("zircon-runtime-oit-shader-pipeline-prewarm-module"),
                     source: wgpu::ShaderSource::Wgsl(source.wgsl_source.as_str().into()),
@@ -270,10 +271,12 @@ impl MeshPipelineCache {
                     PipelineCreationTarget::Oit,
                     shader_creation_elapsed,
                 );
-                let pipeline_creation_started = std::time::Instant::now();
+                let pipeline_creation_started = web_time::Instant::now();
                 let pipeline = create_oit_mesh_pipeline(
                     device,
-                    &self.oit_mesh_pipeline_layout,
+                    self.oit_mesh_pipeline_layout
+                        .as_ref()
+                        .expect("OIT prewarm admission checked"),
                     &shader,
                     &pipeline_key,
                     self.runtime_pipeline_cache.cache(),
@@ -287,7 +290,7 @@ impl MeshPipelineCache {
             } else {
                 None
             };
-            if let Some(error) = pollster::block_on(error_scope.pop()) {
+            if let Some(error) = crate::graphics::validation_scope::finish(device, error_scope) {
                 report.record_failure(variant_index, error.to_string());
                 continue;
             }

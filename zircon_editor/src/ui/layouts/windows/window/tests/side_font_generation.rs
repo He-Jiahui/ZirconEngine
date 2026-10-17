@@ -18,7 +18,7 @@ fn sidebar_tabs() -> ModelRc<TabData> {
                 active,
                 closeable: true,
                 slot: "".into(),
-                icon_key: "".into()
+                icon_key: "".into(),
             })
             .collect(),
     )
@@ -36,7 +36,7 @@ fn side_header_active_titles_fit_the_physical_button_budget_at_both_scales() {
                 active: true,
                 closeable: true,
                 slot: "".into(),
-                icon_key: "".into()
+                icon_key: "".into(),
             }]),
         ] {
             let nodes = side_dock_header_nodes_with_metrics(

@@ -1,0 +1,4184 @@
+{
+  "schema": "zircon-source-comment-root-validation-v3",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R095",
+  "owner": "root",
+  "created_at_utc": "2026-10-17T08:52:14.257238+00:00",
+  "formal_acceptance": false,
+  "grant_canonical_sha256": "8c0489642034f61ba2f52af2806e0c7e6d798ec9bc33a676a776fc8880bf6de8",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R095.json",
+    "sha256": "1fd73125f4150247b5ef63b9417764dc939bae28e81b5b2c615ea8b90a765f37",
+    "bytes": 58987
+  },
+  "sources": [
+    {
+      "id": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "sha256": "ece1aaefcec332125490165daef3603bb2de789fb9884f24bf6eebfdbf613115",
+      "bytes": 3854,
+      "lines": 107,
+      "before_sha256": "7fe5c7ff010a83f5dfd120a0b744b49cfed298341a47d111f2da9c03096dc3a9",
+      "before_bytes": 2097,
+      "before_lines": 85,
+      "stage0_blob": "409d65232dd4267f1ed786ae969a70f1808baf32",
+      "inserted_groups": 14,
+      "inserted_lines": 22,
+      "inserted_bytes": 1757,
+      "deleted_lines": 0,
+      "original_bytes_inverse_equals_raw_HEAD": true,
+      "all_original_line_bytes_preserved": true
+    },
+    {
+      "id": "F2",
+      "path": "zircon_runtime/src/text/tests/identity.rs",
+      "sha256": "b9fdf5e1abc15cc27c14d652a820adfe0cb40ba01c9a145d95bd875d55204a2f",
+      "bytes": 1340,
+      "lines": 40,
+      "before_sha256": "644235f73c1eaf77aec66e188b003a262274d83403c744a03938ad5114fa2019",
+      "before_bytes": 1044,
+      "before_lines": 37,
+      "stage0_blob": "e470b01b07def4b8a178d5fbfbebf9c8f7e85fa1",
+      "inserted_groups": 3,
+      "inserted_lines": 3,
+      "inserted_bytes": 296,
+      "deleted_lines": 0,
+      "original_bytes_inverse_equals_raw_HEAD": true,
+      "all_original_line_bytes_preserved": true
+    }
+  ],
+  "counts": {
+    "functions": 14,
+    "normal_tests": 3,
+    "semantic_blocks": 20,
+    "object_groups": 28,
+    "types": 3,
+    "members": 3,
+    "impls": 5,
+    "files": 2,
+    "inserted_groups": 17,
+    "inserted_lines": 25,
+    "inserted_bytes": 2053,
+    "deleted_lines": 0,
+    "physical_ranges": 175,
+    "attributes": 9,
+    "assertion_sites": 6,
+    "ignored_tests": 0,
+    "tests_executed": 0,
+    "new_issues": 0
+  },
+  "ranges": {
+    "convention": "inclusive physical LF raw byte slices; exact insertions map original code lines; child partition includes opening inserted docs",
+    "proof": [
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "1",
+        "before": [
+          1,
+          1
+        ],
+        "current": [
+          1,
+          1
+        ],
+        "before_sha256": "11a6f9d99604a62a0f15a7c6ee2b98890c79bac44e7c6d1d7fbfcac2c354197d",
+        "current_sha256": "11a6f9d99604a62a0f15a7c6ee2b98890c79bac44e7c6d1d7fbfcac2c354197d"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "2",
+        "before": [
+          2,
+          2
+        ],
+        "current": [
+          2,
+          2
+        ],
+        "before_sha256": "b789315358f0bd8702584a813e804d0959a8c7055d7c597449f4f10370ecedb9",
+        "current_sha256": "b789315358f0bd8702584a813e804d0959a8c7055d7c597449f4f10370ecedb9"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "3",
+        "before": [
+          3,
+          3
+        ],
+        "current": [
+          3,
+          3
+        ],
+        "before_sha256": "e8b0c75dd04fbff7436c47e73e2fd97ffefdf3540f67d430d85b9cd9f2e55ebc",
+        "current_sha256": "e8b0c75dd04fbff7436c47e73e2fd97ffefdf3540f67d430d85b9cd9f2e55ebc"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "4",
+        "before": [
+          4,
+          4
+        ],
+        "current": [
+          4,
+          4
+        ],
+        "before_sha256": "aa1d1a63390229c798347e83a0405441c9400035284ad168c1bf6cdf1d70a370",
+        "current_sha256": "aa1d1a63390229c798347e83a0405441c9400035284ad168c1bf6cdf1d70a370"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "5",
+        "before": [
+          5,
+          5
+        ],
+        "current": [
+          5,
+          5
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "6",
+        "before": [
+          6,
+          6
+        ],
+        "current": [
+          6,
+          6
+        ],
+        "before_sha256": "8b0ca9320021bd475920230c32bd65e0e27554d34fddb57eac00071b27cda345",
+        "current_sha256": "8b0ca9320021bd475920230c32bd65e0e27554d34fddb57eac00071b27cda345"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "7",
+        "before": [
+          7,
+          7
+        ],
+        "current": [
+          7,
+          7
+        ],
+        "before_sha256": "911e8b62e33bc4841c86a52bbfd424ae41e0bbea82422d10e0d20b9f305fb40c",
+        "current_sha256": "911e8b62e33bc4841c86a52bbfd424ae41e0bbea82422d10e0d20b9f305fb40c"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "8",
+        "before": [
+          8,
+          8
+        ],
+        "current": [
+          8,
+          8
+        ],
+        "before_sha256": "cb8fe4a32db58f3eb9d2b40da40a960bf0e1c622e6aaad0bff4d5e13f1d539b3",
+        "current_sha256": "cb8fe4a32db58f3eb9d2b40da40a960bf0e1c622e6aaad0bff4d5e13f1d539b3"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "9",
+        "before": [
+          9,
+          9
+        ],
+        "current": [
+          9,
+          9
+        ],
+        "before_sha256": "824bb1f4af38a6ce9b9c63ae9a7e4984276e90e2a35581ed76dd9f189ac76cd6",
+        "current_sha256": "824bb1f4af38a6ce9b9c63ae9a7e4984276e90e2a35581ed76dd9f189ac76cd6"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "10",
+        "before": [
+          10,
+          10
+        ],
+        "current": [
+          14,
+          14
+        ],
+        "before_sha256": "23dc05039ff92bd33a89ce6a88a4db0349e373eade870bfb123c9b543de500c3",
+        "current_sha256": "23dc05039ff92bd33a89ce6a88a4db0349e373eade870bfb123c9b543de500c3"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "11",
+        "before": [
+          11,
+          11
+        ],
+        "current": [
+          15,
+          15
+        ],
+        "before_sha256": "fac1e82dd5c2e224a0faa08a6fbc9d5b781d2a6cf4f2ef623200548333ed924a",
+        "current_sha256": "fac1e82dd5c2e224a0faa08a6fbc9d5b781d2a6cf4f2ef623200548333ed924a"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "12",
+        "before": [
+          12,
+          12
+        ],
+        "current": [
+          16,
+          16
+        ],
+        "before_sha256": "315af330d2c6b4cbe632a2bad3e809d06fee7fbc252f8f2a5fcb70b258f73392",
+        "current_sha256": "315af330d2c6b4cbe632a2bad3e809d06fee7fbc252f8f2a5fcb70b258f73392"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "13",
+        "before": [
+          13,
+          13
+        ],
+        "current": [
+          17,
+          17
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "14",
+        "before": [
+          14,
+          14
+        ],
+        "current": [
+          18,
+          18
+        ],
+        "before_sha256": "52c7326b1623036e707ee70621b1b80bf02ba395e56c34c66df59fbfa5ccb83b",
+        "current_sha256": "52c7326b1623036e707ee70621b1b80bf02ba395e56c34c66df59fbfa5ccb83b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "15",
+        "before": [
+          15,
+          15
+        ],
+        "current": [
+          21,
+          21
+        ],
+        "before_sha256": "684df7f8ec8ab6110a890c50410ea30b6df8efa3a0dff1924fdecf1369afa4ac",
+        "current_sha256": "684df7f8ec8ab6110a890c50410ea30b6df8efa3a0dff1924fdecf1369afa4ac"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "16",
+        "before": [
+          16,
+          16
+        ],
+        "current": [
+          22,
+          22
+        ],
+        "before_sha256": "7bd158fc03e47644c743bb61c269c855c9368044462cd85f2cc5aa791597bc40",
+        "current_sha256": "7bd158fc03e47644c743bb61c269c855c9368044462cd85f2cc5aa791597bc40"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "17",
+        "before": [
+          17,
+          17
+        ],
+        "current": [
+          23,
+          23
+        ],
+        "before_sha256": "8935ba18c51905de495e92197375409c741a0c3f0e52560844ece3bcc7e59fb2",
+        "current_sha256": "8935ba18c51905de495e92197375409c741a0c3f0e52560844ece3bcc7e59fb2"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "18",
+        "before": [
+          18,
+          18
+        ],
+        "current": [
+          24,
+          24
+        ],
+        "before_sha256": "f9ca891bff7ac1f7ceaae40ef051066be9efe47b4e4281e86c319be2c55ebce4",
+        "current_sha256": "f9ca891bff7ac1f7ceaae40ef051066be9efe47b4e4281e86c319be2c55ebce4"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "19",
+        "before": [
+          19,
+          19
+        ],
+        "current": [
+          25,
+          25
+        ],
+        "before_sha256": "e1087bbcbf2ee140ad3eae7b3a08725f520bbea334b7b871f1ebdabb5e452774",
+        "current_sha256": "e1087bbcbf2ee140ad3eae7b3a08725f520bbea334b7b871f1ebdabb5e452774"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "20",
+        "before": [
+          20,
+          20
+        ],
+        "current": [
+          26,
+          26
+        ],
+        "before_sha256": "255b4a472359e411b5d3a970fd36d929131a2d7bdd5717c88c2cc10c88456dd9",
+        "current_sha256": "255b4a472359e411b5d3a970fd36d929131a2d7bdd5717c88c2cc10c88456dd9"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "21",
+        "before": [
+          21,
+          21
+        ],
+        "current": [
+          27,
+          27
+        ],
+        "before_sha256": "064c168f1fc396445dc15d0e2fc71a906eb7e11ffd2a1a7dff9c85f1a4a249fb",
+        "current_sha256": "064c168f1fc396445dc15d0e2fc71a906eb7e11ffd2a1a7dff9c85f1a4a249fb"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "22",
+        "before": [
+          22,
+          22
+        ],
+        "current": [
+          28,
+          28
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "23",
+        "before": [
+          23,
+          23
+        ],
+        "current": [
+          29,
+          29
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "24",
+        "before": [
+          24,
+          24
+        ],
+        "current": [
+          31,
+          31
+        ],
+        "before_sha256": "4159725ae20752854ca0b19b07768a27bba89afd0fda1acb0dc53cfd246f09bc",
+        "current_sha256": "4159725ae20752854ca0b19b07768a27bba89afd0fda1acb0dc53cfd246f09bc"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "25",
+        "before": [
+          25,
+          25
+        ],
+        "current": [
+          32,
+          32
+        ],
+        "before_sha256": "31e4edbc82705c32d3b22513683a28a11ef237554f63d9f4a1d62ad49a8f6c47",
+        "current_sha256": "31e4edbc82705c32d3b22513683a28a11ef237554f63d9f4a1d62ad49a8f6c47"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "26",
+        "before": [
+          26,
+          26
+        ],
+        "current": [
+          33,
+          33
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "27",
+        "before": [
+          27,
+          27
+        ],
+        "current": [
+          34,
+          34
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "28",
+        "before": [
+          28,
+          28
+        ],
+        "current": [
+          35,
+          35
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "29",
+        "before": [
+          29,
+          29
+        ],
+        "current": [
+          38,
+          38
+        ],
+        "before_sha256": "31c3bed09fa77dc85f07b6bcb935b9924fcdbaefb11e1c547bf7f7b9905b40c5",
+        "current_sha256": "31c3bed09fa77dc85f07b6bcb935b9924fcdbaefb11e1c547bf7f7b9905b40c5"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "30",
+        "before": [
+          30,
+          30
+        ],
+        "current": [
+          39,
+          39
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "31",
+        "before": [
+          31,
+          31
+        ],
+        "current": [
+          40,
+          40
+        ],
+        "before_sha256": "2eb2caca1abdd8cbed0d2fa6977092d85fc5c6a7ad4cd8e31207d5563e8fa381",
+        "current_sha256": "2eb2caca1abdd8cbed0d2fa6977092d85fc5c6a7ad4cd8e31207d5563e8fa381"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "32",
+        "before": [
+          32,
+          32
+        ],
+        "current": [
+          42,
+          42
+        ],
+        "before_sha256": "52b32c1f9440debef8f8b49209342d32f99153a26750e35d50879c8a5a3a6104",
+        "current_sha256": "52b32c1f9440debef8f8b49209342d32f99153a26750e35d50879c8a5a3a6104"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "33",
+        "before": [
+          33,
+          33
+        ],
+        "current": [
+          43,
+          43
+        ],
+        "before_sha256": "70e72421bdde0fdfa01d5dafc4acba115554426fcd963ab771a85ebca6e6c67e",
+        "current_sha256": "70e72421bdde0fdfa01d5dafc4acba115554426fcd963ab771a85ebca6e6c67e"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "34",
+        "before": [
+          34,
+          34
+        ],
+        "current": [
+          44,
+          44
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "35",
+        "before": [
+          35,
+          35
+        ],
+        "current": [
+          45,
+          45
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "36",
+        "before": [
+          36,
+          36
+        ],
+        "current": [
+          47,
+          47
+        ],
+        "before_sha256": "1a609da1098dbe243b54041671ebd435095f415cd1879c520bd8c5262cb32c07",
+        "current_sha256": "1a609da1098dbe243b54041671ebd435095f415cd1879c520bd8c5262cb32c07"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "37",
+        "before": [
+          37,
+          37
+        ],
+        "current": [
+          48,
+          48
+        ],
+        "before_sha256": "7bd158fc03e47644c743bb61c269c855c9368044462cd85f2cc5aa791597bc40",
+        "current_sha256": "7bd158fc03e47644c743bb61c269c855c9368044462cd85f2cc5aa791597bc40"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "38",
+        "before": [
+          38,
+          38
+        ],
+        "current": [
+          49,
+          49
+        ],
+        "before_sha256": "8935ba18c51905de495e92197375409c741a0c3f0e52560844ece3bcc7e59fb2",
+        "current_sha256": "8935ba18c51905de495e92197375409c741a0c3f0e52560844ece3bcc7e59fb2"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "39",
+        "before": [
+          39,
+          39
+        ],
+        "current": [
+          50,
+          50
+        ],
+        "before_sha256": "f9ca891bff7ac1f7ceaae40ef051066be9efe47b4e4281e86c319be2c55ebce4",
+        "current_sha256": "f9ca891bff7ac1f7ceaae40ef051066be9efe47b4e4281e86c319be2c55ebce4"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "40",
+        "before": [
+          40,
+          40
+        ],
+        "current": [
+          51,
+          51
+        ],
+        "before_sha256": "3c77ef95d05149474381414febd5417594335514a591980d0db6c61a49c0f5ad",
+        "current_sha256": "3c77ef95d05149474381414febd5417594335514a591980d0db6c61a49c0f5ad"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "41",
+        "before": [
+          41,
+          41
+        ],
+        "current": [
+          52,
+          52
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "42",
+        "before": [
+          42,
+          42
+        ],
+        "current": [
+          53,
+          53
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "43",
+        "before": [
+          43,
+          43
+        ],
+        "current": [
+          55,
+          55
+        ],
+        "before_sha256": "6e7ff3acfad87ad9e9fc24bab974961b8dfcda115c51a99241ad7355b0ae0d7c",
+        "current_sha256": "6e7ff3acfad87ad9e9fc24bab974961b8dfcda115c51a99241ad7355b0ae0d7c"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "44",
+        "before": [
+          44,
+          44
+        ],
+        "current": [
+          56,
+          56
+        ],
+        "before_sha256": "e6cfa2acaeb03455a621ded972a3361ed1a6a8db5098c604019a72f12c50e76f",
+        "current_sha256": "e6cfa2acaeb03455a621ded972a3361ed1a6a8db5098c604019a72f12c50e76f"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "45",
+        "before": [
+          45,
+          45
+        ],
+        "current": [
+          57,
+          57
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "46",
+        "before": [
+          46,
+          46
+        ],
+        "current": [
+          58,
+          58
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "47",
+        "before": [
+          47,
+          47
+        ],
+        "current": [
+          59,
+          59
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "48",
+        "before": [
+          48,
+          48
+        ],
+        "current": [
+          60,
+          60
+        ],
+        "before_sha256": "e8bcbd75e4eaa6be9256569caec076d994ed31635a6cd72ca3740a7418cc17f2",
+        "current_sha256": "e8bcbd75e4eaa6be9256569caec076d994ed31635a6cd72ca3740a7418cc17f2"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "49",
+        "before": [
+          49,
+          49
+        ],
+        "current": [
+          65,
+          65
+        ],
+        "before_sha256": "23dc05039ff92bd33a89ce6a88a4db0349e373eade870bfb123c9b543de500c3",
+        "current_sha256": "23dc05039ff92bd33a89ce6a88a4db0349e373eade870bfb123c9b543de500c3"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "50",
+        "before": [
+          50,
+          50
+        ],
+        "current": [
+          66,
+          66
+        ],
+        "before_sha256": "fac1e82dd5c2e224a0faa08a6fbc9d5b781d2a6cf4f2ef623200548333ed924a",
+        "current_sha256": "fac1e82dd5c2e224a0faa08a6fbc9d5b781d2a6cf4f2ef623200548333ed924a"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "51",
+        "before": [
+          51,
+          51
+        ],
+        "current": [
+          67,
+          67
+        ],
+        "before_sha256": "5e1f3af02bd8f64de00bff842991c2e80a1fd19257d34bd379682488361a8f9d",
+        "current_sha256": "5e1f3af02bd8f64de00bff842991c2e80a1fd19257d34bd379682488361a8f9d"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "52",
+        "before": [
+          52,
+          52
+        ],
+        "current": [
+          68,
+          68
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "53",
+        "before": [
+          53,
+          53
+        ],
+        "current": [
+          69,
+          69
+        ],
+        "before_sha256": "3d14b5d88a498614bc5b6e5b083c93968110958dc93295898c2075ec1a1e0894",
+        "current_sha256": "3d14b5d88a498614bc5b6e5b083c93968110958dc93295898c2075ec1a1e0894"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "54",
+        "before": [
+          54,
+          54
+        ],
+        "current": [
+          71,
+          71
+        ],
+        "before_sha256": "44957f147a6445f8851075d74287b663542f5b2142287921b1f8a58a7c944673",
+        "current_sha256": "44957f147a6445f8851075d74287b663542f5b2142287921b1f8a58a7c944673"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "55",
+        "before": [
+          55,
+          55
+        ],
+        "current": [
+          72,
+          72
+        ],
+        "before_sha256": "3adfdfdd36d08c8b083dfe68edb48404596debd5d239d2144e6e46ba54319a42",
+        "current_sha256": "3adfdfdd36d08c8b083dfe68edb48404596debd5d239d2144e6e46ba54319a42"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "56",
+        "before": [
+          56,
+          56
+        ],
+        "current": [
+          73,
+          73
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "57",
+        "before": [
+          57,
+          57
+        ],
+        "current": [
+          74,
+          74
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "58",
+        "before": [
+          58,
+          58
+        ],
+        "current": [
+          76,
+          76
+        ],
+        "before_sha256": "2eb3e0e7f0547f189e08762e5e3b53d5a89f25af0b653f2857723fa2a66ddf4b",
+        "current_sha256": "2eb3e0e7f0547f189e08762e5e3b53d5a89f25af0b653f2857723fa2a66ddf4b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "59",
+        "before": [
+          59,
+          59
+        ],
+        "current": [
+          77,
+          77
+        ],
+        "before_sha256": "ba08b2bfefac6eede4971d32d3bf50a537ff3284a5fed6ec4306e2b12676333a",
+        "current_sha256": "ba08b2bfefac6eede4971d32d3bf50a537ff3284a5fed6ec4306e2b12676333a"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "60",
+        "before": [
+          60,
+          60
+        ],
+        "current": [
+          78,
+          78
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "61",
+        "before": [
+          61,
+          61
+        ],
+        "current": [
+          79,
+          79
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "62",
+        "before": [
+          62,
+          62
+        ],
+        "current": [
+          81,
+          81
+        ],
+        "before_sha256": "32e3aadc520d6ee7d857150a26b0e4ecdb1abde932ac6f26768ae7f8b0239db8",
+        "current_sha256": "32e3aadc520d6ee7d857150a26b0e4ecdb1abde932ac6f26768ae7f8b0239db8"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "63",
+        "before": [
+          63,
+          63
+        ],
+        "current": [
+          82,
+          82
+        ],
+        "before_sha256": "fc23efbc99f766b070f3158669e3f915da6b5517683902c05c68f7e06e68f30f",
+        "current_sha256": "fc23efbc99f766b070f3158669e3f915da6b5517683902c05c68f7e06e68f30f"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "64",
+        "before": [
+          64,
+          64
+        ],
+        "current": [
+          83,
+          83
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "65",
+        "before": [
+          65,
+          65
+        ],
+        "current": [
+          84,
+          84
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "66",
+        "before": [
+          66,
+          66
+        ],
+        "current": [
+          86,
+          86
+        ],
+        "before_sha256": "3f130d063a9c9941b4fb82f30886ce899d4685d66b3ad359bf2efba8604c0310",
+        "current_sha256": "3f130d063a9c9941b4fb82f30886ce899d4685d66b3ad359bf2efba8604c0310"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "67",
+        "before": [
+          67,
+          67
+        ],
+        "current": [
+          87,
+          87
+        ],
+        "before_sha256": "4da7f652ac4c5d34738446760e89ed65d9694e7c1abac95048858703be171504",
+        "current_sha256": "4da7f652ac4c5d34738446760e89ed65d9694e7c1abac95048858703be171504"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "68",
+        "before": [
+          68,
+          68
+        ],
+        "current": [
+          88,
+          88
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "69",
+        "before": [
+          69,
+          69
+        ],
+        "current": [
+          89,
+          89
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "70",
+        "before": [
+          70,
+          70
+        ],
+        "current": [
+          90,
+          90
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "71",
+        "before": [
+          71,
+          71
+        ],
+        "current": [
+          92,
+          92
+        ],
+        "before_sha256": "37d3d226afb17f2e62279c0272de9344c592533bc291313517a1ca59f58f4874",
+        "current_sha256": "37d3d226afb17f2e62279c0272de9344c592533bc291313517a1ca59f58f4874"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "72",
+        "before": [
+          72,
+          72
+        ],
+        "current": [
+          93,
+          93
+        ],
+        "before_sha256": "631490014e02413ee295e7d062e19b9951f393487e324d2781db8a15678f37e8",
+        "current_sha256": "631490014e02413ee295e7d062e19b9951f393487e324d2781db8a15678f37e8"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "73",
+        "before": [
+          73,
+          73
+        ],
+        "current": [
+          94,
+          94
+        ],
+        "before_sha256": "ee403a7ddf1c9de66f7b97d8853d932caaad45f543466fa6baefec5f4977f837",
+        "current_sha256": "ee403a7ddf1c9de66f7b97d8853d932caaad45f543466fa6baefec5f4977f837"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "74",
+        "before": [
+          74,
+          74
+        ],
+        "current": [
+          95,
+          95
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "75",
+        "before": [
+          75,
+          75
+        ],
+        "current": [
+          96,
+          96
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "76",
+        "before": [
+          76,
+          76
+        ],
+        "current": [
+          97,
+          97
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "77",
+        "before": [
+          77,
+          77
+        ],
+        "current": [
+          99,
+          99
+        ],
+        "before_sha256": "70f559e9edd87bcf9a0d115b3f541863b3530530974615b548364b36e1ec4600",
+        "current_sha256": "70f559e9edd87bcf9a0d115b3f541863b3530530974615b548364b36e1ec4600"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "78",
+        "before": [
+          78,
+          78
+        ],
+        "current": [
+          100,
+          100
+        ],
+        "before_sha256": "21c32f83ddd07a581b640941d18ff13dce2540c245a3ca819e2eb20b8657deb8",
+        "current_sha256": "21c32f83ddd07a581b640941d18ff13dce2540c245a3ca819e2eb20b8657deb8"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "79",
+        "before": [
+          79,
+          79
+        ],
+        "current": [
+          101,
+          101
+        ],
+        "before_sha256": "d6b60e4c64b46897036239c3df0dcf45307373f6216504b492d5fa4dc9a0b695",
+        "current_sha256": "d6b60e4c64b46897036239c3df0dcf45307373f6216504b492d5fa4dc9a0b695"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "80",
+        "before": [
+          80,
+          80
+        ],
+        "current": [
+          102,
+          102
+        ],
+        "before_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413",
+        "current_sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "81",
+        "before": [
+          81,
+          81
+        ],
+        "current": [
+          103,
+          103
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "82",
+        "before": [
+          82,
+          82
+        ],
+        "current": [
+          104,
+          104
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "83",
+        "before": [
+          83,
+          83
+        ],
+        "current": [
+          105,
+          105
+        ],
+        "before_sha256": "25cf5fc23f2a6d23c3ea51e72f5e896c7555fbaa05cd5b1ea182bf9618a8e81b",
+        "current_sha256": "25cf5fc23f2a6d23c3ea51e72f5e896c7555fbaa05cd5b1ea182bf9618a8e81b"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "84",
+        "before": [
+          84,
+          84
+        ],
+        "current": [
+          106,
+          106
+        ],
+        "before_sha256": "dfe4042131fd7ee9520faced03e1b212736cc79cf7943d445fea123a7d9e39ba",
+        "current_sha256": "dfe4042131fd7ee9520faced03e1b212736cc79cf7943d445fea123a7d9e39ba"
+      },
+      {
+        "source": "F1",
+        "kind": "original-line-preserved",
+        "name": "85",
+        "before": [
+          85,
+          85
+        ],
+        "current": [
+          107,
+          107
+        ],
+        "before_sha256": "892fe092b779365f7c61e4cc0993e90b1e6eacea53c73fef1ff1a606f56c996e",
+        "current_sha256": "892fe092b779365f7c61e4cc0993e90b1e6eacea53c73fef1ff1a606f56c996e"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S001",
+        "before": [
+          1,
+          4
+        ],
+        "current": [
+          1,
+          4
+        ],
+        "before_sha256": "6d89080b2804c8dba8d1a1effd5124d8b4b0187e942ce6c8aea9648e0aaf2af8",
+        "current_sha256": "6d89080b2804c8dba8d1a1effd5124d8b4b0187e942ce6c8aea9648e0aaf2af8"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S002",
+        "before": [
+          6,
+          12
+        ],
+        "current": [
+          6,
+          16
+        ],
+        "before_sha256": "205799e7e1dd42d345e3a09cec9a1a301ebf5fa26d00b1f69aa3e0f9e58b87a9",
+        "current_sha256": "2a42d0458a5bce584912c10641e1848d8424109bf5f1ae440ca696d5189a50e4"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S003",
+        "before": [
+          12,
+          12
+        ],
+        "current": [
+          16,
+          16
+        ],
+        "before_sha256": "315af330d2c6b4cbe632a2bad3e809d06fee7fbc252f8f2a5fcb70b258f73392",
+        "current_sha256": "315af330d2c6b4cbe632a2bad3e809d06fee7fbc252f8f2a5fcb70b258f73392"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S004",
+        "before": [
+          14,
+          27
+        ],
+        "current": [
+          18,
+          34
+        ],
+        "before_sha256": "d0847cc87c7035494a3184aec0006687a1510a8120a1f4d543eddbdd44202687",
+        "current_sha256": "c11b0208495e135a4a47c120148e87cbf9fb26f41e21074b5e7dd7c3dbd696c8"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S005",
+        "before": [
+          15,
+          22
+        ],
+        "current": [
+          21,
+          28
+        ],
+        "before_sha256": "666165f18055ba4a111634288a5f9bd461dd10d5206ad7448b26d4dd85dae35e",
+        "current_sha256": "666165f18055ba4a111634288a5f9bd461dd10d5206ad7448b26d4dd85dae35e"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S006",
+        "before": [
+          24,
+          26
+        ],
+        "current": [
+          31,
+          33
+        ],
+        "before_sha256": "157ec8ce778884873c969bc5c5b1783b1b32ea017d295fbe8f4fb56b2e821e11",
+        "current_sha256": "157ec8ce778884873c969bc5c5b1783b1b32ea017d295fbe8f4fb56b2e821e11"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S007",
+        "before": [
+          29,
+          29
+        ],
+        "current": [
+          38,
+          38
+        ],
+        "before_sha256": "31c3bed09fa77dc85f07b6bcb935b9924fcdbaefb11e1c547bf7f7b9905b40c5",
+        "current_sha256": "31c3bed09fa77dc85f07b6bcb935b9924fcdbaefb11e1c547bf7f7b9905b40c5"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S008",
+        "before": [
+          31,
+          46
+        ],
+        "current": [
+          40,
+          58
+        ],
+        "before_sha256": "1c479ad6d9bdca1b626ba4076a06466e427fa25d18b6ac2555c286eee296f579",
+        "current_sha256": "2ff57f2f76304e2c024bcb728adfb8f2d412fd3075366ae7027c8fb51be703af"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S009",
+        "before": [
+          32,
+          34
+        ],
+        "current": [
+          42,
+          44
+        ],
+        "before_sha256": "be86093d59ea09b9f31fc9f084ee147b4364b89113e511a7f5ac4dcb78b4fb2a",
+        "current_sha256": "be86093d59ea09b9f31fc9f084ee147b4364b89113e511a7f5ac4dcb78b4fb2a"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S010",
+        "before": [
+          36,
+          41
+        ],
+        "current": [
+          47,
+          52
+        ],
+        "before_sha256": "ff141bc23d31ebc5220fbf9d57775f08e41ddf6c521e19414b912802812e8c16",
+        "current_sha256": "ff141bc23d31ebc5220fbf9d57775f08e41ddf6c521e19414b912802812e8c16"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S011",
+        "before": [
+          43,
+          45
+        ],
+        "current": [
+          55,
+          57
+        ],
+        "before_sha256": "9b2b9759be517ce720422d2e542af8717e2fede5091d605dbda31dbbe72c087d",
+        "current_sha256": "9b2b9759be517ce720422d2e542af8717e2fede5091d605dbda31dbbe72c087d"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S012",
+        "before": [
+          48,
+          51
+        ],
+        "current": [
+          60,
+          67
+        ],
+        "before_sha256": "254b090b03dec2f69701d19b589970cccb1979f783c56daa1c3689b7da9afc3b",
+        "current_sha256": "c33104099133ab3eba8bfecc39c7ea038c1ef39fad43b0dbd93788831945ebd5"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S013",
+        "before": [
+          51,
+          51
+        ],
+        "current": [
+          67,
+          67
+        ],
+        "before_sha256": "5e1f3af02bd8f64de00bff842991c2e80a1fd19257d34bd379682488361a8f9d",
+        "current_sha256": "5e1f3af02bd8f64de00bff842991c2e80a1fd19257d34bd379682488361a8f9d"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S014",
+        "before": [
+          53,
+          69
+        ],
+        "current": [
+          69,
+          89
+        ],
+        "before_sha256": "76999b891ddd23551100ab71e2640c2d2bfe80aae0cac5e4d24de32a50c9648b",
+        "current_sha256": "6efa783532ef90dbdce7d17abe5ea1a94ee21a8c95d2a71831d94dc0c3ae4c5b"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S015",
+        "before": [
+          54,
+          56
+        ],
+        "current": [
+          71,
+          73
+        ],
+        "before_sha256": "4e657a0a7089cc463169da65d3ca93c2ff610a3a9ed91b5961500cf5cda9beea",
+        "current_sha256": "4e657a0a7089cc463169da65d3ca93c2ff610a3a9ed91b5961500cf5cda9beea"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S016",
+        "before": [
+          58,
+          60
+        ],
+        "current": [
+          76,
+          78
+        ],
+        "before_sha256": "ca483d701f7dd16272ceed731ad0865414ea91183b4737c26cf413a8ba395644",
+        "current_sha256": "ca483d701f7dd16272ceed731ad0865414ea91183b4737c26cf413a8ba395644"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S017",
+        "before": [
+          62,
+          64
+        ],
+        "current": [
+          81,
+          83
+        ],
+        "before_sha256": "de461c613260fb4f951f7f1d5532d78a8e43fd405450e8f22eb7727c4ce47906",
+        "current_sha256": "de461c613260fb4f951f7f1d5532d78a8e43fd405450e8f22eb7727c4ce47906"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S018",
+        "before": [
+          66,
+          68
+        ],
+        "current": [
+          86,
+          88
+        ],
+        "before_sha256": "4a7c89c504fca0311c3eb13225248ee6f5eeb29326a0b0763fd745f667adb07a",
+        "current_sha256": "4a7c89c504fca0311c3eb13225248ee6f5eeb29326a0b0763fd745f667adb07a"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S019",
+        "before": [
+          71,
+          75
+        ],
+        "current": [
+          92,
+          96
+        ],
+        "before_sha256": "f979c08b498f793ea2ac776b0eb5fbeb9336ba138303610ccc367e48a2e65290",
+        "current_sha256": "f979c08b498f793ea2ac776b0eb5fbeb9336ba138303610ccc367e48a2e65290"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S020",
+        "before": [
+          72,
+          74
+        ],
+        "current": [
+          93,
+          95
+        ],
+        "before_sha256": "5ca5f826565167d65e6b8e3ea68484b8ec880819529c686d23fc42dc6750c1bf",
+        "current_sha256": "5ca5f826565167d65e6b8e3ea68484b8ec880819529c686d23fc42dc6750c1bf"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S021",
+        "before": [
+          77,
+          81
+        ],
+        "current": [
+          99,
+          103
+        ],
+        "before_sha256": "d3642c9a2740dc13c6c270978d4350f8f8e52663ece49fee84dbfdd6e23e28ec",
+        "current_sha256": "d3642c9a2740dc13c6c270978d4350f8f8e52663ece49fee84dbfdd6e23e28ec"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S022",
+        "before": [
+          78,
+          80
+        ],
+        "current": [
+          100,
+          102
+        ],
+        "before_sha256": "21265d7da3cb4d8e934d01565cf9450830f31632a90cdcf4881a7ba196387420",
+        "current_sha256": "21265d7da3cb4d8e934d01565cf9450830f31632a90cdcf4881a7ba196387420"
+      },
+      {
+        "source": "F1",
+        "kind": "child-exact",
+        "name": "S023",
+        "before": [
+          83,
+          85
+        ],
+        "current": [
+          105,
+          107
+        ],
+        "before_sha256": "49fa4d8a8a267fe4d2361a1f51824bc7210546a2130af74e439223291d87a7ca",
+        "current_sha256": "49fa4d8a8a267fe4d2361a1f51824bc7210546a2130af74e439223291d87a7ca"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S028",
+        "before": [
+          1,
+          5
+        ],
+        "current": [
+          1,
+          5
+        ],
+        "before_sha256": "d0500cc6c1e094461ddca81a63b7bc555212b1a1c916531cd4b3818483a4bd3d",
+        "current_sha256": "d0500cc6c1e094461ddca81a63b7bc555212b1a1c916531cd4b3818483a4bd3d"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S029",
+        "before": [
+          6,
+          13
+        ],
+        "current": [
+          6,
+          17
+        ],
+        "before_sha256": "b435b21b223eedcd5b5c21264b52aa82d504d482225eaa6c18c497f672289f1a",
+        "current_sha256": "a9f6f9fca4196cee8417da9960e86a9c16776654fa04ad9df53be15489af8e4e"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S030",
+        "before": [
+          14,
+          23
+        ],
+        "current": [
+          18,
+          29
+        ],
+        "before_sha256": "0984f1e976eaf0f30b1cf90fdc68111943b80370aa2c39e2e1cd483c9102ccb9",
+        "current_sha256": "b15615a9166d3f4daeaa8507020cdef6119e838b416cd03a640ca14c2ab19434"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S031",
+        "before": [
+          24,
+          28
+        ],
+        "current": [
+          30,
+          35
+        ],
+        "before_sha256": "4b371dc66dc7974de7ba1fc267d309a8f4cc75a16f92bc653a04d82799673349",
+        "current_sha256": "6617a35615a0a8ac87a8c3e78bae6b55133b777f00e54a18eb85d3019f16ad07"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S032",
+        "before": [
+          29,
+          30
+        ],
+        "current": [
+          36,
+          39
+        ],
+        "before_sha256": "68e84e58a47e813d250e0e49569bb5854503ac1c4532bff4a716d79f20091122",
+        "current_sha256": "17506819f51bd144da547fc5c80eb4addfd01f297cd73e3c0fed5456dcde6b24"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S033",
+        "before": [
+          31,
+          35
+        ],
+        "current": [
+          40,
+          45
+        ],
+        "before_sha256": "c2cf3b8a4fd053ada44c47a56a1800b58af041815141184fb5216f822a05dc06",
+        "current_sha256": "f7063cb1c89fedd4c7414cf70598042b069ba9544feb1c9367738d84e808d584"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S034",
+        "before": [
+          36,
+          42
+        ],
+        "current": [
+          46,
+          53
+        ],
+        "before_sha256": "455441fc13219fc58e5d23f70b13cb9e2b0941e4142d5b539dca20c3cf73351b",
+        "current_sha256": "2d0b98871bf194469621e83d4dc6d301930bda7bd3e2dd8fda41e2010bf4a866"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S035",
+        "before": [
+          43,
+          47
+        ],
+        "current": [
+          54,
+          59
+        ],
+        "before_sha256": "da433d4790d9bf1fe275e6d950c1af06dd23bf6ae810d7821fdfb42f564045dd",
+        "current_sha256": "21f9d8433207e3cef36651e5247a6c699ee3ece1494526f1e272e8bc27c28c04"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S036",
+        "before": [
+          48,
+          52
+        ],
+        "current": [
+          60,
+          68
+        ],
+        "before_sha256": "f7de5902a18d45d91e56b2733efa2e22ee9ba1b40450e0f82c03f42a08dc7e16",
+        "current_sha256": "7dc2a817107d4f506efc209b2482560cfac135006d01a6662581a7d506394929"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S037",
+        "before": [
+          53,
+          57
+        ],
+        "current": [
+          69,
+          74
+        ],
+        "before_sha256": "93360f47d294a0cc194186af317c537183375344e6fdddffa766c22d04a6bd27",
+        "current_sha256": "6a540e376077d4119447b0f0161befc88230c335a6b342130dda4e78cb2354d2"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S038",
+        "before": [
+          58,
+          61
+        ],
+        "current": [
+          75,
+          79
+        ],
+        "before_sha256": "5032427a0cadb77ba50db873bf1a7145ee485f38074e5c0d75b3505179efb0f5",
+        "current_sha256": "b59f7016a6742637fa214912dba4d083c1dfc8e6e40efbc4542e5ab4593b071b"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S039",
+        "before": [
+          62,
+          65
+        ],
+        "current": [
+          80,
+          84
+        ],
+        "before_sha256": "e7f66a2796cd739bd1a51654105cbf4b4beb269aba2f9332ec5fa2c110cd7e2b",
+        "current_sha256": "1ca0ccc434a0a3e863cf3709ff60b217fef1cd5de5cfa2a9e576fa44a7a47a37"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S040",
+        "before": [
+          66,
+          70
+        ],
+        "current": [
+          85,
+          90
+        ],
+        "before_sha256": "e62b731d442268a65ca9ea8c884e4af5952331806a0a2c42794aaddf06b66c4e",
+        "current_sha256": "66ecf9075e5e4032b74686f7cfd569d59b2d62364e4a35fcf2e01f2b941fbe2a"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S041",
+        "before": [
+          71,
+          76
+        ],
+        "current": [
+          91,
+          97
+        ],
+        "before_sha256": "c489a32b605a23cb899be74ec04228f020e1613f872aa974c6d2323b62a14a56",
+        "current_sha256": "e8aa5ea9046db6aa712e6c70654688f3b4406839cf791ee39fbf8a50dc812715"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S042",
+        "before": [
+          77,
+          82
+        ],
+        "current": [
+          98,
+          104
+        ],
+        "before_sha256": "ee6cbb43932ec48d009a58af65b7229a418de7033184bc58ba70bfa21bf3a58d",
+        "current_sha256": "ed590fb1f52db603cc30b78ca385bf268ccfa808110a12b9474059b7bccbad33"
+      },
+      {
+        "source": "F1",
+        "kind": "child-partition",
+        "name": "S043",
+        "before": [
+          83,
+          85
+        ],
+        "current": [
+          105,
+          107
+        ],
+        "before_sha256": "49fa4d8a8a267fe4d2361a1f51824bc7210546a2130af74e439223291d87a7ca",
+        "current_sha256": "49fa4d8a8a267fe4d2361a1f51824bc7210546a2130af74e439223291d87a7ca"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "1",
+        "before": [
+          1,
+          1
+        ],
+        "current": [
+          1,
+          1
+        ],
+        "before_sha256": "ae1d97e062d44c34f39bc779d6d49d934932f13775a2731fd44281e7b3c2a29d",
+        "current_sha256": "ae1d97e062d44c34f39bc779d6d49d934932f13775a2731fd44281e7b3c2a29d"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "2",
+        "before": [
+          2,
+          2
+        ],
+        "current": [
+          2,
+          2
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "3",
+        "before": [
+          3,
+          3
+        ],
+        "current": [
+          3,
+          3
+        ],
+        "before_sha256": "d2cd4db48a350e8f0b47944c46e3ffdbba132d2290a91d7012b56eb46c8ab4f6",
+        "current_sha256": "d2cd4db48a350e8f0b47944c46e3ffdbba132d2290a91d7012b56eb46c8ab4f6"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "4",
+        "before": [
+          4,
+          4
+        ],
+        "current": [
+          4,
+          4
+        ],
+        "before_sha256": "c806008feb9f7eb9048775aace912777baf4c9519a0076c30f565cc48d7d7b4c",
+        "current_sha256": "c806008feb9f7eb9048775aace912777baf4c9519a0076c30f565cc48d7d7b4c"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "5",
+        "before": [
+          5,
+          5
+        ],
+        "current": [
+          6,
+          6
+        ],
+        "before_sha256": "c480ca237872dae959c8265750b6e71f2afa1846f22bd7cf252f69a9318d4659",
+        "current_sha256": "c480ca237872dae959c8265750b6e71f2afa1846f22bd7cf252f69a9318d4659"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "6",
+        "before": [
+          6,
+          6
+        ],
+        "current": [
+          7,
+          7
+        ],
+        "before_sha256": "841f38cad12316c28d325298b84d3365333e8491e86bb3b7b2d644bf162e6f01",
+        "current_sha256": "841f38cad12316c28d325298b84d3365333e8491e86bb3b7b2d644bf162e6f01"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "7",
+        "before": [
+          7,
+          7
+        ],
+        "current": [
+          8,
+          8
+        ],
+        "before_sha256": "217988f977e331b9236ddd3275dcad412b05b2f3e194e416914733821c44da2c",
+        "current_sha256": "217988f977e331b9236ddd3275dcad412b05b2f3e194e416914733821c44da2c"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "8",
+        "before": [
+          8,
+          8
+        ],
+        "current": [
+          9,
+          9
+        ],
+        "before_sha256": "84e4208cd6ffb8c4a3547b2f54ada19978c3f365e78f9502ef5145cdd2aa8543",
+        "current_sha256": "84e4208cd6ffb8c4a3547b2f54ada19978c3f365e78f9502ef5145cdd2aa8543"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "9",
+        "before": [
+          9,
+          9
+        ],
+        "current": [
+          10,
+          10
+        ],
+        "before_sha256": "4517b7fe1b89a63cb237e2a3b85ab025b8fb9cac48ffc7ba6d4816c17552a63f",
+        "current_sha256": "4517b7fe1b89a63cb237e2a3b85ab025b8fb9cac48ffc7ba6d4816c17552a63f"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "10",
+        "before": [
+          10,
+          10
+        ],
+        "current": [
+          11,
+          11
+        ],
+        "before_sha256": "841f38cad12316c28d325298b84d3365333e8491e86bb3b7b2d644bf162e6f01",
+        "current_sha256": "841f38cad12316c28d325298b84d3365333e8491e86bb3b7b2d644bf162e6f01"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "11",
+        "before": [
+          11,
+          11
+        ],
+        "current": [
+          12,
+          12
+        ],
+        "before_sha256": "140c9524d9b3b65ef412c695b52935c046a2224ea9e218ae342e8e8c69799f70",
+        "current_sha256": "140c9524d9b3b65ef412c695b52935c046a2224ea9e218ae342e8e8c69799f70"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "12",
+        "before": [
+          12,
+          12
+        ],
+        "current": [
+          13,
+          13
+        ],
+        "before_sha256": "84e4208cd6ffb8c4a3547b2f54ada19978c3f365e78f9502ef5145cdd2aa8543",
+        "current_sha256": "84e4208cd6ffb8c4a3547b2f54ada19978c3f365e78f9502ef5145cdd2aa8543"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "13",
+        "before": [
+          13,
+          13
+        ],
+        "current": [
+          14,
+          14
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "14",
+        "before": [
+          14,
+          14
+        ],
+        "current": [
+          15,
+          15
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "15",
+        "before": [
+          15,
+          15
+        ],
+        "current": [
+          16,
+          16
+        ],
+        "before_sha256": "d2cd4db48a350e8f0b47944c46e3ffdbba132d2290a91d7012b56eb46c8ab4f6",
+        "current_sha256": "d2cd4db48a350e8f0b47944c46e3ffdbba132d2290a91d7012b56eb46c8ab4f6"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "16",
+        "before": [
+          16,
+          16
+        ],
+        "current": [
+          17,
+          17
+        ],
+        "before_sha256": "6b94db296c1ef9191d6f1373ee22a9db2512d927e84b2e7aa182f64346d8b751",
+        "current_sha256": "6b94db296c1ef9191d6f1373ee22a9db2512d927e84b2e7aa182f64346d8b751"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "17",
+        "before": [
+          17,
+          17
+        ],
+        "current": [
+          19,
+          19
+        ],
+        "before_sha256": "f6950a0296730458c850ab29c0acdabaaefd44b75c5b4aeb4d8e15def6bd28c0",
+        "current_sha256": "f6950a0296730458c850ab29c0acdabaaefd44b75c5b4aeb4d8e15def6bd28c0"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "18",
+        "before": [
+          18,
+          18
+        ],
+        "current": [
+          20,
+          20
+        ],
+        "before_sha256": "09726fbd82593a46c41ad1850fd9e0ba314803fe2ebd822b3e17b72b0a71a2b4",
+        "current_sha256": "09726fbd82593a46c41ad1850fd9e0ba314803fe2ebd822b3e17b72b0a71a2b4"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "19",
+        "before": [
+          19,
+          19
+        ],
+        "current": [
+          21,
+          21
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "20",
+        "before": [
+          20,
+          20
+        ],
+        "current": [
+          22,
+          22
+        ],
+        "before_sha256": "f060549c2b2bb60a91a268b4e812bcb062ff8bd825c1cb39b263b53ee15c6685",
+        "current_sha256": "f060549c2b2bb60a91a268b4e812bcb062ff8bd825c1cb39b263b53ee15c6685"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "21",
+        "before": [
+          21,
+          21
+        ],
+        "current": [
+          23,
+          23
+        ],
+        "before_sha256": "c480ca237872dae959c8265750b6e71f2afa1846f22bd7cf252f69a9318d4659",
+        "current_sha256": "c480ca237872dae959c8265750b6e71f2afa1846f22bd7cf252f69a9318d4659"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "22",
+        "before": [
+          22,
+          22
+        ],
+        "current": [
+          24,
+          24
+        ],
+        "before_sha256": "ac6d72d025d664d30cebbe609835d69640ed6100cfc297296a8848369c4a85fe",
+        "current_sha256": "ac6d72d025d664d30cebbe609835d69640ed6100cfc297296a8848369c4a85fe"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "23",
+        "before": [
+          23,
+          23
+        ],
+        "current": [
+          25,
+          25
+        ],
+        "before_sha256": "9abb4552d0fb275f2e17be3ca674dec6a5626871ae5c560c231ff67cb5644683",
+        "current_sha256": "9abb4552d0fb275f2e17be3ca674dec6a5626871ae5c560c231ff67cb5644683"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "24",
+        "before": [
+          24,
+          24
+        ],
+        "current": [
+          26,
+          26
+        ],
+        "before_sha256": "84e4208cd6ffb8c4a3547b2f54ada19978c3f365e78f9502ef5145cdd2aa8543",
+        "current_sha256": "84e4208cd6ffb8c4a3547b2f54ada19978c3f365e78f9502ef5145cdd2aa8543"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "25",
+        "before": [
+          25,
+          25
+        ],
+        "current": [
+          27,
+          27
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "26",
+        "before": [
+          26,
+          26
+        ],
+        "current": [
+          28,
+          28
+        ],
+        "before_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "current_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "27",
+        "before": [
+          27,
+          27
+        ],
+        "current": [
+          29,
+          29
+        ],
+        "before_sha256": "d2cd4db48a350e8f0b47944c46e3ffdbba132d2290a91d7012b56eb46c8ab4f6",
+        "current_sha256": "d2cd4db48a350e8f0b47944c46e3ffdbba132d2290a91d7012b56eb46c8ab4f6"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "28",
+        "before": [
+          28,
+          28
+        ],
+        "current": [
+          30,
+          30
+        ],
+        "before_sha256": "89f897914f8f965dbc0c3bf9c6b708ef6e0093f1ddc645768ed80f66ba4b471f",
+        "current_sha256": "89f897914f8f965dbc0c3bf9c6b708ef6e0093f1ddc645768ed80f66ba4b471f"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "29",
+        "before": [
+          29,
+          29
+        ],
+        "current": [
+          32,
+          32
+        ],
+        "before_sha256": "c480ca237872dae959c8265750b6e71f2afa1846f22bd7cf252f69a9318d4659",
+        "current_sha256": "c480ca237872dae959c8265750b6e71f2afa1846f22bd7cf252f69a9318d4659"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "30",
+        "before": [
+          30,
+          30
+        ],
+        "current": [
+          33,
+          33
+        ],
+        "before_sha256": "afc8875e924a42c5f25223c50638b3735335b68f6e9efe25f785a2055db3ff05",
+        "current_sha256": "afc8875e924a42c5f25223c50638b3735335b68f6e9efe25f785a2055db3ff05"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "31",
+        "before": [
+          31,
+          31
+        ],
+        "current": [
+          34,
+          34
+        ],
+        "before_sha256": "2169235fc3655aefb696319ce1febc4f6397cb3d4037c7010f6d1100d43e1815",
+        "current_sha256": "2169235fc3655aefb696319ce1febc4f6397cb3d4037c7010f6d1100d43e1815"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "32",
+        "before": [
+          32,
+          32
+        ],
+        "current": [
+          35,
+          35
+        ],
+        "before_sha256": "84e4208cd6ffb8c4a3547b2f54ada19978c3f365e78f9502ef5145cdd2aa8543",
+        "current_sha256": "84e4208cd6ffb8c4a3547b2f54ada19978c3f365e78f9502ef5145cdd2aa8543"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "33",
+        "before": [
+          33,
+          33
+        ],
+        "current": [
+          36,
+          36
+        ],
+        "before_sha256": "c480ca237872dae959c8265750b6e71f2afa1846f22bd7cf252f69a9318d4659",
+        "current_sha256": "c480ca237872dae959c8265750b6e71f2afa1846f22bd7cf252f69a9318d4659"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "34",
+        "before": [
+          34,
+          34
+        ],
+        "current": [
+          37,
+          37
+        ],
+        "before_sha256": "7fc774e17c58149042377aac8bea2158dee0aa9eb8673ad7573b3e778f0735bf",
+        "current_sha256": "7fc774e17c58149042377aac8bea2158dee0aa9eb8673ad7573b3e778f0735bf"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "35",
+        "before": [
+          35,
+          35
+        ],
+        "current": [
+          38,
+          38
+        ],
+        "before_sha256": "952a292a57f77ba0458e4a83d1a6a633bfc7f0df7ca927b0d439a199e361517a",
+        "current_sha256": "952a292a57f77ba0458e4a83d1a6a633bfc7f0df7ca927b0d439a199e361517a"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "36",
+        "before": [
+          36,
+          36
+        ],
+        "current": [
+          39,
+          39
+        ],
+        "before_sha256": "84e4208cd6ffb8c4a3547b2f54ada19978c3f365e78f9502ef5145cdd2aa8543",
+        "current_sha256": "84e4208cd6ffb8c4a3547b2f54ada19978c3f365e78f9502ef5145cdd2aa8543"
+      },
+      {
+        "source": "F2",
+        "kind": "original-line-preserved",
+        "name": "37",
+        "before": [
+          37,
+          37
+        ],
+        "current": [
+          40,
+          40
+        ],
+        "before_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+        "current_sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451"
+      },
+      {
+        "source": "F2",
+        "kind": "child-exact",
+        "name": "S024",
+        "before": [
+          1,
+          1
+        ],
+        "current": [
+          1,
+          1
+        ],
+        "before_sha256": "ae1d97e062d44c34f39bc779d6d49d934932f13775a2731fd44281e7b3c2a29d",
+        "current_sha256": "ae1d97e062d44c34f39bc779d6d49d934932f13775a2731fd44281e7b3c2a29d"
+      },
+      {
+        "source": "F2",
+        "kind": "child-exact",
+        "name": "S025",
+        "before": [
+          3,
+          13
+        ],
+        "current": [
+          3,
+          14
+        ],
+        "before_sha256": "5edbc2627934d85ee51f1ed6f8c5491ce525a668bfcc7e4dbbe9b4e170ac4e78",
+        "current_sha256": "a88aa4db95a6d1b19e8d28a27d57eec7be702817d55dd6a5e9543db4b5522aed"
+      },
+      {
+        "source": "F2",
+        "kind": "child-exact",
+        "name": "S026",
+        "before": [
+          15,
+          25
+        ],
+        "current": [
+          16,
+          27
+        ],
+        "before_sha256": "e746432d59c0386b709b1bda3869500f43a63e7ede3e33f578c5a3842e99d5b1",
+        "current_sha256": "38402044dd544dc760a857eb73e308338d7c0e158a263e601c2b566eb6ab0dd5"
+      },
+      {
+        "source": "F2",
+        "kind": "child-exact",
+        "name": "S027",
+        "before": [
+          27,
+          37
+        ],
+        "current": [
+          29,
+          40
+        ],
+        "before_sha256": "ea2317859bc8ed4d453fb0b5831a0aafa45b6b41543325604b08b424ab812056",
+        "current_sha256": "f37b7a9efeb3ff74a1a962d08d12b7a562c68b28ab65a753f104e59377cb31b0"
+      },
+      {
+        "source": "F2",
+        "kind": "child-partition",
+        "name": "S044",
+        "before": [
+          1,
+          2
+        ],
+        "current": [
+          1,
+          2
+        ],
+        "before_sha256": "ad64e73c6a183f49d3304ee9bacd89d12812327851ac18e4d4a19209750d1763",
+        "current_sha256": "ad64e73c6a183f49d3304ee9bacd89d12812327851ac18e4d4a19209750d1763"
+      },
+      {
+        "source": "F2",
+        "kind": "child-partition",
+        "name": "S045",
+        "before": [
+          3,
+          14
+        ],
+        "current": [
+          3,
+          15
+        ],
+        "before_sha256": "c780c60be2ea3569f7e53078f2f9c7a5dee07bfa4714494aaf071d334ae84c67",
+        "current_sha256": "b68a0af15e47a58e85b592bf850f9befefc7c4c650784cb44d2fc9eb6730a731"
+      },
+      {
+        "source": "F2",
+        "kind": "child-partition",
+        "name": "S046",
+        "before": [
+          15,
+          26
+        ],
+        "current": [
+          16,
+          28
+        ],
+        "before_sha256": "69b18172a945e5b4cc6e4b11973a05086267e238e7d68f16d357abefe45e7a77",
+        "current_sha256": "1454348e08324176ea3e67f0519abc030ee5feb12a21020d70505ab79d312e95"
+      },
+      {
+        "source": "F2",
+        "kind": "child-partition",
+        "name": "S047",
+        "before": [
+          27,
+          37
+        ],
+        "current": [
+          29,
+          40
+        ],
+        "before_sha256": "ea2317859bc8ed4d453fb0b5831a0aafa45b6b41543325604b08b424ab812056",
+        "current_sha256": "f37b7a9efeb3ff74a1a962d08d12b7a562c68b28ab65a753f104e59377cb31b0"
+      },
+      {
+        "source": "F2",
+        "kind": "child-exact",
+        "name": "S048",
+        "before": [
+          5,
+          8
+        ],
+        "current": [
+          6,
+          9
+        ],
+        "before_sha256": "c2f9fdee7856ecaa13b7b0382e3105b26bc5359af35b8f570bdf46635a045c59",
+        "current_sha256": "c2f9fdee7856ecaa13b7b0382e3105b26bc5359af35b8f570bdf46635a045c59"
+      },
+      {
+        "source": "F2",
+        "kind": "child-exact",
+        "name": "S049",
+        "before": [
+          9,
+          12
+        ],
+        "current": [
+          10,
+          13
+        ],
+        "before_sha256": "2bec1b7c02e855b367ea6b40a51e6f0afbbe368e164d609b06a3333b0397a31a",
+        "current_sha256": "2bec1b7c02e855b367ea6b40a51e6f0afbbe368e164d609b06a3333b0397a31a"
+      },
+      {
+        "source": "F2",
+        "kind": "child-exact",
+        "name": "S050",
+        "before": [
+          20,
+          20
+        ],
+        "current": [
+          22,
+          22
+        ],
+        "before_sha256": "f060549c2b2bb60a91a268b4e812bcb062ff8bd825c1cb39b263b53ee15c6685",
+        "current_sha256": "f060549c2b2bb60a91a268b4e812bcb062ff8bd825c1cb39b263b53ee15c6685"
+      },
+      {
+        "source": "F2",
+        "kind": "child-exact",
+        "name": "S051",
+        "before": [
+          21,
+          24
+        ],
+        "current": [
+          23,
+          26
+        ],
+        "before_sha256": "77fe13e0a5e256c21531faca17edc16ad70f7f4277699fbb01a5fe649ff89a11",
+        "current_sha256": "77fe13e0a5e256c21531faca17edc16ad70f7f4277699fbb01a5fe649ff89a11"
+      },
+      {
+        "source": "F2",
+        "kind": "child-exact",
+        "name": "S052",
+        "before": [
+          29,
+          32
+        ],
+        "current": [
+          32,
+          35
+        ],
+        "before_sha256": "e4f3c539cd3dcc1347c20c63e25fb108dbe059d982d1f8a3a3ac858bb0b51d38",
+        "current_sha256": "e4f3c539cd3dcc1347c20c63e25fb108dbe059d982d1f8a3a3ac858bb0b51d38"
+      },
+      {
+        "source": "F2",
+        "kind": "child-exact",
+        "name": "S053",
+        "before": [
+          33,
+          36
+        ],
+        "current": [
+          36,
+          39
+        ],
+        "before_sha256": "d11921a9e941439324282050b6c665fd9b31080a443527c26ec4024cd057ca59",
+        "current_sha256": "d11921a9e941439324282050b6c665fd9b31080a443527c26ec4024cd057ca59"
+      }
+    ],
+    "canonical_sha256": "afe7291841cc2630f396c812595332f159bd3df21c8abef12ec10ffb08d7bc04"
+  },
+  "insertions": [
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I01",
+      "before_offset": 325,
+      "current_offset": 325,
+      "current_lines": [
+        10,
+        13
+      ],
+      "bytes": 204,
+      "LF": 4,
+      "sha256": "86cc420009ca62f383c79b42d4668f98875957e5018ffd221b5ff989c51cf650"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I02",
+      "before_offset": 493,
+      "current_offset": 697,
+      "current_lines": [
+        19,
+        20
+      ],
+      "bytes": 194,
+      "LF": 2,
+      "sha256": "e0f2e83a498cdb97684848938ac7324322aa068e5e64051d6253a460a5ad44a8"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I03",
+      "before_offset": 703,
+      "current_offset": 1101,
+      "current_lines": [
+        30,
+        30
+      ],
+      "bytes": 104,
+      "LF": 1,
+      "sha256": "9f36766cf33ed1d24e99945d1d75fa5b68bcc98aab2180397fcd592f5d7dd421"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I04",
+      "before_offset": 796,
+      "current_offset": 1298,
+      "current_lines": [
+        36,
+        37
+      ],
+      "bytes": 192,
+      "LF": 2,
+      "sha256": "d714c8454ed17f1d14ac47251be737d085198644d4cad1739959539599875df4"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I05",
+      "before_offset": 880,
+      "current_offset": 1574,
+      "current_lines": [
+        41,
+        41
+      ],
+      "bytes": 81,
+      "LF": 1,
+      "sha256": "1f6069d082e51574c7d00da2124caf5d10f7828d38324b3ccd81cb1dfb0d706f"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I06",
+      "before_offset": 956,
+      "current_offset": 1731,
+      "current_lines": [
+        46,
+        46
+      ],
+      "bytes": 100,
+      "LF": 1,
+      "sha256": "a4633021ebfa7ce9fe4a9a8e96ddf9830e707741b517b2a5087b12eb9b95ade9"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I07",
+      "before_offset": 1087,
+      "current_offset": 1962,
+      "current_lines": [
+        54,
+        54
+      ],
+      "bytes": 105,
+      "LF": 1,
+      "sha256": "9537e8f9b95fe41e46fdb4e241510b10ec365bc71d48980c484791bd6c37993c"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I08",
+      "before_offset": 1262,
+      "current_offset": 2242,
+      "current_lines": [
+        61,
+        64
+      ],
+      "bytes": 201,
+      "LF": 4,
+      "sha256": "43628b719fe28901bb13417c27cecae656c35b8cb91fbbea3d4d05c6a6950294"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I09",
+      "before_offset": 1437,
+      "current_offset": 2618,
+      "current_lines": [
+        70,
+        70
+      ],
+      "bytes": 103,
+      "LF": 1,
+      "sha256": "07af3b6b9718db8ab25c029ec7592b83f8aef9ef99e4815018b4ac060de1549b"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I10",
+      "before_offset": 1539,
+      "current_offset": 2823,
+      "current_lines": [
+        75,
+        75
+      ],
+      "bytes": 95,
+      "LF": 1,
+      "sha256": "c896224efa4ab3845898d98d6d1332f4415c8f89a4872f48b4afe80c7eccbec5"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I11",
+      "before_offset": 1628,
+      "current_offset": 3007,
+      "current_lines": [
+        80,
+        80
+      ],
+      "bytes": 101,
+      "LF": 1,
+      "sha256": "98e2be86cce8251643a625395afaa805aa7fa79114870ff29552737a29bb75f3"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I12",
+      "before_offset": 1706,
+      "current_offset": 3186,
+      "current_lines": [
+        85,
+        85
+      ],
+      "bytes": 96,
+      "LF": 1,
+      "sha256": "4d8d46fb3bf408da1c50f76cbdae1a3a12c9a111f7c242277b3bdb673b8237cb"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I13",
+      "before_offset": 1785,
+      "current_offset": 3361,
+      "current_lines": [
+        91,
+        91
+      ],
+      "bytes": 80,
+      "LF": 1,
+      "sha256": "371d1ed77a296839c51bd9ed4c309ae8d58c37b8ff64619b70968731f21919d7"
+    },
+    {
+      "source": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "id": "I14",
+      "before_offset": 1911,
+      "current_offset": 3567,
+      "current_lines": [
+        98,
+        98
+      ],
+      "bytes": 101,
+      "LF": 1,
+      "sha256": "fe9c50d26ca8a0aee0ef70865ac72752d1c076c6011bd8ce8fb1a14a9c46c4f7"
+    },
+    {
+      "source": "F2",
+      "path": "zircon_runtime/src/text/tests/identity.rs",
+      "id": "I15",
+      "before_offset": 119,
+      "current_offset": 119,
+      "current_lines": [
+        5,
+        5
+      ],
+      "bytes": 101,
+      "LF": 1,
+      "sha256": "6606c231fd02b339b4ad213fd5f85c79ffd5b21d62b18504a8402ecde01c9666"
+    },
+    {
+      "source": "F2",
+      "path": "zircon_runtime/src/text/tests/identity.rs",
+      "id": "I16",
+      "before_offset": 464,
+      "current_offset": 565,
+      "current_lines": [
+        18,
+        18
+      ],
+      "bytes": 112,
+      "LF": 1,
+      "sha256": "f4adfab82c8621d6ba837175125f2c1245928c7f462c06ca298b2130d9948120"
+    },
+    {
+      "source": "F2",
+      "path": "zircon_runtime/src/text/tests/identity.rs",
+      "id": "I17",
+      "before_offset": 818,
+      "current_offset": 1031,
+      "current_lines": [
+        31,
+        31
+      ],
+      "bytes": 83,
+      "LF": 1,
+      "sha256": "26ddb2229ba4b7b64d18c6fa783f5dd39e532011910b5b0fdf5de9d661abff8f"
+    }
+  ],
+  "attributes": [
+    {
+      "source": "F1",
+      "before_line": 10,
+      "current_line": 14,
+      "text": "#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]"
+    },
+    {
+      "source": "F1",
+      "before_line": 11,
+      "current_line": 15,
+      "text": "#[repr(transparent)]"
+    },
+    {
+      "source": "F1",
+      "before_line": 49,
+      "current_line": 65,
+      "text": "#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]"
+    },
+    {
+      "source": "F1",
+      "before_line": 50,
+      "current_line": 66,
+      "text": "#[repr(transparent)]"
+    },
+    {
+      "source": "F1",
+      "before_line": 83,
+      "current_line": 105,
+      "text": "#[cfg(test)]"
+    },
+    {
+      "source": "F1",
+      "before_line": 84,
+      "current_line": 106,
+      "text": "#[path = \"tests/identity.rs\"]"
+    },
+    {
+      "source": "F2",
+      "before_line": 3,
+      "current_line": 3,
+      "text": "#[test]"
+    },
+    {
+      "source": "F2",
+      "before_line": 15,
+      "current_line": 16,
+      "text": "#[test]"
+    },
+    {
+      "source": "F2",
+      "before_line": 27,
+      "current_line": 29,
+      "text": "#[test]"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "A01",
+      "before": [
+        5,
+        8
+      ],
+      "current": [
+        6,
+        9
+      ],
+      "macro_sha256": "9c7544961e10e0b0a159ab5e7d9a6833e0d3b90549c8d705d460eea4bc80fa4c",
+      "full_physical_lines_sha256": "c2f9fdee7856ecaa13b7b0382e3105b26bc5359af35b8f570bdf46635a045c59",
+      "executed": false
+    },
+    {
+      "id": "A02",
+      "before": [
+        9,
+        12
+      ],
+      "current": [
+        10,
+        13
+      ],
+      "macro_sha256": "1d913fae6eed6d0770a5e9fc33c43725ff390ca4090e328d59458a06394345ff",
+      "full_physical_lines_sha256": "2bec1b7c02e855b367ea6b40a51e6f0afbbe368e164d609b06a3333b0397a31a",
+      "executed": false
+    },
+    {
+      "id": "A03",
+      "before": [
+        20,
+        20
+      ],
+      "current": [
+        22,
+        22
+      ],
+      "macro_sha256": "654f75f09f16cac50fa66ae98c9c2c7505cf5a5216edea1ca297e3d89491b32b",
+      "full_physical_lines_sha256": "f060549c2b2bb60a91a268b4e812bcb062ff8bd825c1cb39b263b53ee15c6685",
+      "executed": false
+    },
+    {
+      "id": "A04",
+      "before": [
+        21,
+        24
+      ],
+      "current": [
+        23,
+        26
+      ],
+      "macro_sha256": "5554ab9ea307ab8293a49b9150242439af9dea413b7b16c62d9a300423b215c6",
+      "full_physical_lines_sha256": "77fe13e0a5e256c21531faca17edc16ad70f7f4277699fbb01a5fe649ff89a11",
+      "executed": false
+    },
+    {
+      "id": "A05",
+      "before": [
+        29,
+        32
+      ],
+      "current": [
+        32,
+        35
+      ],
+      "macro_sha256": "df2706bb76d4a7cf5cdf4faae0b855d9a3d458873ff468c50b6c16739c1283e8",
+      "full_physical_lines_sha256": "e4f3c539cd3dcc1347c20c63e25fb108dbe059d982d1f8a3a3ac858bb0b51d38",
+      "executed": false
+    },
+    {
+      "id": "A06",
+      "before": [
+        33,
+        36
+      ],
+      "current": [
+        36,
+        39
+      ],
+      "macro_sha256": "83da99869bf569be506d60c684f614a2adb7a3b45de079cbfd4f92d15b683f67",
+      "full_physical_lines_sha256": "d11921a9e941439324282050b6c665fd9b31080a443527c26ec4024cd057ca59",
+      "executed": false
+    }
+  ],
+  "contexts": [
+    {
+      "id": "C01",
+      "path": "zircon_runtime/src/text/mod.rs",
+      "sha256": "38aef7102fa2a7850d4b7b2b8d644400ef0bb9e01cb5222cefbd642694201157",
+      "bytes": 7193,
+      "lines": 170,
+      "root_selected_spans": [
+        {
+          "lines": [
+            9,
+            10
+          ],
+          "sha256": "05edc87fed9802ef4206c50e2910ea54b002c8274d8c3435e42b4e54a0d28c5e"
+        },
+        {
+          "lines": [
+            82,
+            86
+          ],
+          "sha256": "93e18e7464bc2538a0ed9b9bb7e594d4f5c99423aeab593a6e55eee2f1a38afb"
+        },
+        {
+          "lines": [
+            116,
+            116
+          ],
+          "sha256": "20426bdf9eb83b84455fca662ee9ca7f8cfa3b70940f8da5a541a5d1a21b54ed"
+        }
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C02",
+      "path": "zircon_runtime/src/text/cache/shaped_cache.rs",
+      "sha256": "77122726efaf3549a972cd00e04788dc819cc602f529405aeaaea4a5f65f18d0",
+      "bytes": 33580,
+      "lines": 849,
+      "root_selected_spans": [
+        {
+          "lines": [
+            141,
+            161
+          ],
+          "sha256": "02168d98237a939e879e15fb0da21429be03b428802aa7a6bf92ce6f0b45546a"
+        },
+        {
+          "lines": [
+            225,
+            270
+          ],
+          "sha256": "f7f587fb1e6320ce067e550ab83a3126fa48fad0c83004ab95dde8ca336d2bca"
+        },
+        {
+          "lines": [
+            492,
+            547
+          ],
+          "sha256": "72106ddb7d89f836e5456e913d624d4b92b669c7bf7f6d359ff9fd348503b7d2"
+        },
+        {
+          "lines": [
+            817,
+            827
+          ],
+          "sha256": "24425c790171d80eba6d9d5b21aee3853777393c5b6aaf05d029fb44cffd53bc"
+        }
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C03",
+      "path": "zircon_runtime/src/text/sdf/offline/identity.rs",
+      "sha256": "ecacfd366b46d36723fa32a490247244f1f8ee85d50e58c1bb1c1772f102a9e6",
+      "bytes": 3169,
+      "lines": 78,
+      "root_selected_spans": [
+        {
+          "lines": [
+            1,
+            78
+          ],
+          "sha256": "ecacfd366b46d36723fa32a490247244f1f8ee85d50e58c1bb1c1772f102a9e6"
+        }
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C04",
+      "path": "zircon_runtime/src/text/sdf/generation_source.rs",
+      "sha256": "69679ca632600ee38ae91f4d9669b6c1eee9f35c00c72df20949f774c1b566e5",
+      "bytes": 7026,
+      "lines": 221,
+      "root_selected_spans": [
+        {
+          "lines": [
+            90,
+            150
+          ],
+          "sha256": "66d415a7c7e9fd74e15f4b60a2531f1cfc37399a90ed4ad971e7eff8ea1d8b20"
+        }
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C05",
+      "path": "zircon_runtime/src/text/sdf/font_bake/source_context.rs",
+      "sha256": "d99ee53cbf9223cb2b9c67a86c5c662a040b2ad145e4a41f0d7f4ccb751f4229",
+      "bytes": 7348,
+      "lines": 200,
+      "root_selected_spans": [
+        {
+          "lines": [
+            1,
+            75
+          ],
+          "sha256": "3a597916c07559c4773924204ca71cc353fb3d25cfa5774a2599037dc3ed5120"
+        }
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C06",
+      "path": "zircon_runtime/src/text/sdf/offline/codec.rs",
+      "sha256": "764ad4b6b5cbbd4b48507f572c045317dc33c122b36ba6969496cdfc661a64f8",
+      "bytes": 12285,
+      "lines": 327,
+      "root_selected_spans": [
+        {
+          "lines": [
+            40,
+            85
+          ],
+          "sha256": "b7b7abb66fa9ee0a2786ccf1c92e84f7efe06e2e6621c79bf9484d773544daf2"
+        }
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C07",
+      "path": "zircon_runtime/src/text/sdf/offline/path.rs",
+      "sha256": "da2e224a7d169677a9f84e5ab9767050c145ddbd0e5ceee45e9fb13e37b085bf",
+      "bytes": 1347,
+      "lines": 43,
+      "root_selected_spans": [
+        {
+          "lines": [
+            1,
+            40
+          ],
+          "sha256": "0b9f1454b2d112b80a5b3ccb3555ad8b2de4774409c51808a4b754bfec56d12d"
+        }
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C08",
+      "path": "zircon_runtime/src/tests/contracts/naming_boundary.rs",
+      "sha256": "365296f7f5ac5d0f9071af76bc7e258f9992c1c3a76620773de1d559e2c1e57d",
+      "bytes": 514,
+      "lines": 13,
+      "root_selected_spans": [
+        {
+          "lines": [
+            1,
+            13
+          ],
+          "sha256": "365296f7f5ac5d0f9071af76bc7e258f9992c1c3a76620773de1d559e2c1e57d"
+        }
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C09",
+      "path": "zircon_runtime/src/tests/contracts/naming_boundary/lexical_scan.rs",
+      "sha256": "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748",
+      "bytes": 3875,
+      "lines": 115,
+      "root_selected_spans": [
+        {
+          "lines": [
+            1,
+            115
+          ],
+          "sha256": "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748"
+        }
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C10",
+      "path": "zircon_runtime/src/tests/contracts/naming_boundary/top_level.rs",
+      "sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450",
+      "bytes": 3501,
+      "lines": 108,
+      "root_selected_spans": [
+        {
+          "lines": [
+            1,
+            108
+          ],
+          "sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450"
+        }
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C11",
+      "path": "zircon_runtime/src/tests/contracts/naming_boundary/classifiers.rs",
+      "sha256": "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651",
+      "bytes": 7987,
+      "lines": 224,
+      "root_selected_spans": [
+        {
+          "lines": [
+            1,
+            224
+          ],
+          "sha256": "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651"
+        }
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C12",
+      "path": "zircon_runtime/src/tests/contracts/lexical_scan/production_lines.rs",
+      "sha256": "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b",
+      "bytes": 2095,
+      "lines": 53,
+      "root_selected_spans": [
+        {
+          "lines": [
+            1,
+            53
+          ],
+          "sha256": "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b"
+        }
+      ],
+      "formal_coverage": false
+    }
+  ],
+  "reader_dependencies": [],
+  "reviewed_model": {
+    "object_columns": [
+      "id",
+      "file",
+      "kind",
+      "name",
+      "span",
+      "contract",
+      "refs"
+    ],
+    "objects": [
+      [
+        "O01",
+        "F1",
+        "imports",
+        "DefaultHasher/Hash/Hasher",
+        "S001",
+        "导入具体散列状态及泛型写入/完成所需trait；无运行期注册。",
+        [
+          "K_INTERNAL"
+        ]
+      ],
+      [
+        "O02",
+        "F1",
+        "type",
+        "EphemeralCacheHash",
+        "S002",
+        "透明u64候选身份；Clone/Copy/Default/Eq/Ord/Hash派生作用于载荷，不承诺无碰撞或持久化格式。",
+        [
+          "K_SHAPE",
+          "T01"
+        ]
+      ],
+      [
+        "M01",
+        "F1",
+        "tuple_member",
+        "EphemeralCacheHash.0",
+        "S003",
+        "私有u64载荷；仅包装/hasher内部生成，未暴露字节导出。",
+        [
+          "O02",
+          "F01",
+          "F02",
+          "F05"
+        ]
+      ],
+      [
+        "G01",
+        "F1",
+        "impl",
+        "EphemeralCacheHash",
+        "S004",
+        "拥有式候选值的两种构造入口；不保留输入借用。",
+        [
+          "F01",
+          "F02"
+        ]
+      ],
+      [
+        "F01",
+        "F1",
+        "function",
+        "from_hashable<T>",
+        "S005",
+        "借用T:Hash+?Sized，创建状态→调用Hash实现→消费完成，返回独立候选值；不保存原文。",
+        [
+          "K_INTERNAL",
+          "K_SHAPE",
+          "T01"
+        ]
+      ],
+      [
+        "F02",
+        "F1",
+        "function",
+        "from_process_hash",
+        "S006",
+        "按原样包装调用方u64；无散列、校验或持久性证明。外部rich_cache仅有检索调用行，不作其完整生命周期背书。",
+        [
+          "O02"
+        ]
+      ],
+      [
+        "O03",
+        "F1",
+        "type",
+        "EphemeralCacheHasher",
+        "S007",
+        "拥有一个DefaultHasher状态；每次write更新同一状态，finish消耗此包装值。",
+        [
+          "K_SHAPE",
+          "F03",
+          "F04",
+          "F05"
+        ]
+      ],
+      [
+        "M02",
+        "F1",
+        "tuple_member",
+        "EphemeralCacheHasher.0",
+        "S007",
+        "私有具体DefaultHasher，不是dyn Hasher；本层不公开算法/随机性/跨版本结果约定。",
+        [
+          "O03"
+        ]
+      ],
+      [
+        "G02",
+        "F1",
+        "impl",
+        "EphemeralCacheHasher",
+        "S008",
+        "单次增量候选计算的初始化、写入及完成边界。",
+        [
+          "F03",
+          "F04",
+          "F05"
+        ]
+      ],
+      [
+        "F03",
+        "F1",
+        "function",
+        "new",
+        "S009",
+        "创建新的DefaultHasher并拥有其状态；尚未经过本包装write。",
+        [
+          "F01",
+          "K_SHAPE"
+        ]
+      ],
+      [
+        "F04",
+        "F1",
+        "function",
+        "write<T>",
+        "S010",
+        "借用T:Hash+?Sized，经value.hash更新内部状态；不持有value引用，不等同固定字节串编码。",
+        [
+          "K_INTERNAL",
+          "K_SHAPE"
+        ]
+      ],
+      [
+        "F05",
+        "F1",
+        "function",
+        "finish",
+        "S011",
+        "消费self，调用内部Hasher::finish并包装u64；不验证碰撞。",
+        [
+          "K_INTERNAL",
+          "K_SHAPE"
+        ]
+      ],
+      [
+        "O04",
+        "F1",
+        "type",
+        "StableContentDigest",
+        "S012",
+        "透明32字节身份；派生Default是零数组。类型不自行核验算法、内容来源或密码摘要有效性。",
+        [
+          "K_SDF",
+          "K_BYTES",
+          "T02"
+        ]
+      ],
+      [
+        "M03",
+        "F1",
+        "tuple_member",
+        "StableContentDigest.0",
+        "S013",
+        "私有[u8;32]；构造可来自BLAKE3计算或任意调用方给定字节。",
+        [
+          "O04",
+          "F06",
+          "F07"
+        ]
+      ],
+      [
+        "G03",
+        "F1",
+        "impl",
+        "StableContentDigest",
+        "S014",
+        "明确区分计算摘要、原样构造、借用视图和拥有式取出。",
+        [
+          "F06",
+          "F07",
+          "F08",
+          "F09"
+        ]
+      ],
+      [
+        "F06",
+        "F1",
+        "function",
+        "blake3",
+        "S015",
+        "借用原始bytes调用blake3::hash，再复制其32字节结果；无文本规范化，返回拥有式值。",
+        [
+          "K_SDF",
+          "T02"
+        ]
+      ],
+      [
+        "F07",
+        "F1",
+        "function",
+        "from_bytes",
+        "S016",
+        "拥有式接收32字节并原样包装；不重算或验证来源。",
+        [
+          "K_SDF",
+          "F10",
+          "T02"
+        ]
+      ],
+      [
+        "F08",
+        "F1",
+        "function",
+        "as_bytes",
+        "S017",
+        "返回对内部数组的共享借用，有效期与self借用关联；不复制输出数组。",
+        [
+          "K_BYTES",
+          "T02"
+        ]
+      ],
+      [
+        "F09",
+        "F1",
+        "function",
+        "into_bytes",
+        "S018",
+        "按值接收包装并返回拥有的原始数组；不改变顺序，不承诺其他Copy副本失效。",
+        [
+          "F11",
+          "T02"
+        ]
+      ],
+      [
+        "G04",
+        "F1",
+        "trait_impl",
+        "From<[u8;32]> for StableContentDigest",
+        "S019",
+        "转换委托原样包装入口，无附加验证；没有证据声称外部通用转换被调用。",
+        [
+          "F10"
+        ]
+      ],
+      [
+        "F10",
+        "F1",
+        "function",
+        "From<[u8;32]>::from",
+        "S020",
+        "输入数组按值传递给from_bytes，返回同一字节身份。",
+        [
+          "F07",
+          "G04"
+        ]
+      ],
+      [
+        "G05",
+        "F1",
+        "trait_impl",
+        "From<StableContentDigest> for [u8;32]",
+        "S021",
+        "反向转换委托拥有式取出，不编码新格式。",
+        [
+          "F11"
+        ]
+      ],
+      [
+        "F11",
+        "F1",
+        "function",
+        "From<StableContentDigest>::from",
+        "S022",
+        "接收包装值并调用into_bytes返回数组。",
+        [
+          "F09",
+          "G05"
+        ]
+      ],
+      [
+        "X01",
+        "F1",
+        "mount",
+        "cfg(test) path tests/identity.rs",
+        "S023",
+        "只在测试配置挂载子模块；不是动态/FFI注册。",
+        [
+          "K_MOUNT",
+          "T01",
+          "T02",
+          "T03"
+        ]
+      ],
+      [
+        "O05",
+        "F2",
+        "imports",
+        "super identity types",
+        "S024",
+        "通过直接父模块读取两种身份类型，非测试脚本原文读取。",
+        [
+          "K_MOUNT"
+        ]
+      ],
+      [
+        "T01",
+        "F2",
+        "test",
+        "ephemeral_cache_hash_reuses_equal_runtime_inputs",
+        "S025",
+        "固定相同/不同文本夹具分别assert_eq/assert_ne；不证明不同输入普遍无碰撞。",
+        [
+          "F01",
+          "A01",
+          "A02"
+        ]
+      ],
+      [
+        "T02",
+        "F2",
+        "test",
+        "stable_content_digest_preserves_blake3_artifact_bytes",
+        "S026",
+        "同一BLAKE3库计算期望值，核对借用字节和构造/取出往返；不是独立黄金向量或安全性验证。",
+        [
+          "F06",
+          "F07",
+          "F08",
+          "F09",
+          "A03",
+          "A04"
+        ]
+      ],
+      [
+        "T03",
+        "F2",
+        "test",
+        "identity_newtypes_add_no_storage_overhead",
+        "S027",
+        "比较两个repr(transparent)值本体size_of；不测量算法分配、容器容量或进程内存。",
+        [
+          "M01",
+          "M03",
+          "A05",
+          "A06"
+        ]
+      ]
+    ],
+    "block_columns": [
+      "id",
+      "file",
+      "span",
+      "intent"
+    ],
+    "blocks": [
+      [
+        "B01",
+        "F1",
+        "S028",
+        "具体hasher与trait导入。"
+      ],
+      [
+        "B02",
+        "F1",
+        "S029",
+        "候选身份及透明载荷约束。"
+      ],
+      [
+        "B03",
+        "F1",
+        "S030",
+        "一次借用输入的new/write/finish流水。"
+      ],
+      [
+        "B04",
+        "F1",
+        "S031",
+        "原始进程哈希包装并结束impl。"
+      ],
+      [
+        "B05",
+        "F1",
+        "S032",
+        "增量状态的拥有边界。"
+      ],
+      [
+        "B06",
+        "F1",
+        "S033",
+        "初始化新的具体状态。"
+      ],
+      [
+        "B07",
+        "F1",
+        "S034",
+        "经Hash写入，不留输入借用。"
+      ],
+      [
+        "B08",
+        "F1",
+        "S035",
+        "完成并交出候选值。"
+      ],
+      [
+        "B09",
+        "F1",
+        "S036",
+        "稳定字节包装及派生语义。"
+      ],
+      [
+        "B10",
+        "F1",
+        "S037",
+        "从原始字节计算BLAKE3结果。"
+      ],
+      [
+        "B11",
+        "F1",
+        "S038",
+        "原样接收已有数组。"
+      ],
+      [
+        "B12",
+        "F1",
+        "S039",
+        "借用内部数组。"
+      ],
+      [
+        "B13",
+        "F1",
+        "S040",
+        "按值交出数组并结束impl。"
+      ],
+      [
+        "B14",
+        "F1",
+        "S041",
+        "数组到包装的From桥接。"
+      ],
+      [
+        "B15",
+        "F1",
+        "S042",
+        "包装到数组的From桥接。"
+      ],
+      [
+        "B16",
+        "F1",
+        "S043",
+        "仅测试配置的直接挂载。"
+      ],
+      [
+        "B17",
+        "F2",
+        "S044",
+        "导入测试对象。"
+      ],
+      [
+        "B18",
+        "F2",
+        "S045",
+        "固定文本值相等与不等断言。"
+      ],
+      [
+        "B19",
+        "F2",
+        "S046",
+        "同库参考结果及字节往返。"
+      ],
+      [
+        "B20",
+        "F2",
+        "S047",
+        "两项值本体尺寸断言。"
+      ]
+    ],
+    "callers": [
+      {
+        "id": "K_MOUNT",
+        "evidence": [
+          "C01:9-10/116",
+          "X01"
+        ],
+        "relation": "text父模块固定path挂载并crate内重导出；测试仅Rust cfg(test)下的标准#[test] harness，0执行。"
+      },
+      {
+        "id": "K_INTERNAL",
+        "evidence": [
+          "F01:19-21",
+          "F04:40",
+          "F05:44",
+          "F06:55",
+          "F10:73",
+          "F11:79"
+        ],
+        "relation": "实际直接调用链；Hash泛型分派、具体DefaultHasher及两个From桥接，无dyn/extern/注册表。"
+      },
+      {
+        "id": "K_SHAPE",
+        "evidence": [
+          "C02:141-161",
+          "C02:225-270",
+          "C02:492-547",
+          "C02:817-827"
+        ],
+        "relation": "文本/特征散列与组合指纹只选候选；精确键比较后仍按source_text==text核全文，不能用哈希值代替相等。"
+      },
+      {
+        "id": "K_SDF",
+        "evidence": [
+          "C03:61-78",
+          "C04:95-135",
+          "C05:16-25"
+        ],
+        "relation": "字体原字节调用blake3；变体排序编码后由调用方BLAKE3再from_bytes；上下文拥有/返回摘要，wrapper不校验来源。"
+      },
+      {
+        "id": "K_BYTES",
+        "evidence": [
+          "C06:60-61",
+          "C07:20",
+          "F08"
+        ],
+        "relation": "编码器原样追加借用的两摘要数组；路径只把variation数组转十六进制；不外推完整载入校验生命周期。"
+      }
+    ]
+  },
+  "root_manual_evidence": {
+    "source_full": "R094 root892/505a0f exit0/PID5960 full414LF; R095 root894/47a67c exit0/PID7160 full147LF",
+    "schemas_models": "root893/acf773 exit0/PID36508;894/92e7d9 PID48904 and d90df0 PID2740;895/68c0de PID52692,59748c PID46372,723bbe PID52596 all exit0 complete bounded models",
+    "call_contexts": "root896/d9a6dd exit0/PID27436 and e530a5 PID39708 all8 R094 fixed contexts;17f3b7 PID51704 R095 C03-C07. root902/5118e0 exit0/PID35952 confirms C01 selected and C02 complete-source reuse from R093 plus current exact call slices",
+    "raw_readers": "root898/284330 PID10208 and768b31 PID43844 exit0 complete five513LF Rust naming readers;0b4fef PID12328 exit0 Python selected114LF and29 exact assertion inputs",
+    "authority": "root903/b3e280 exit0/PID12912 compact exact grants and3prereg/batch",
+    "failed_reads_preserved": [
+      {
+        "receipt": "root904/b283c0 exit1/PIDnotexposed",
+        "effect": "eager dict.get default expression accessed missing test name; failed readonly model validation before write. root905/2bed90 exit0/PID42216 proves child and two final source pins unchanged, rootmain/post absent; checker only corrected."
+      },
+      {
+        "receipt": "root892/5a1d92 exit1/PID45700",
+        "effect": "wrong guessed model/identity.rs path before any source/schema read, zero writes; recovered actual child paths full147LF"
+      },
+      {
+        "receipt": "root899/2bd39e exit1/PIDnotprinted",
+        "effect": "stdout length34843>17500 guard before print, zero writes"
+      },
+      {
+        "receipt": "root900/4fd58d native67133 ->root901/d48e89 exit0/PID20024",
+        "effect": "output8518tokens truncated at7500; full grant body NOT counted complete. Compact exact projected authority recovered903/b3e280; no writes."
+      }
+    ],
+    "all_owned_objects_and_state_blocks_read": true,
+    "context_reading_does_not_expand_source_coverage": true
+  },
+  "raw_consumers": {
+    "local_zero_proofs": [
+      {
+        "path": "zircon_runtime/src/text/identity.rs",
+        "operand": "editor",
+        "lower_raw_counts": [
+          0,
+          0,
+          0
+        ],
+        "scope": "local sufficient zero witness, not aggregate gate execution"
+      },
+      {
+        "path": "zircon_runtime/src/text/identity.rs",
+        "operand": "legacy",
+        "lower_raw_counts": [
+          0,
+          0,
+          0
+        ],
+        "scope": "local sufficient zero witness, not aggregate gate execution"
+      },
+      {
+        "path": "zircon_runtime/src/text/identity.rs",
+        "operand": "server",
+        "lower_raw_counts": [
+          0,
+          0,
+          0
+        ],
+        "scope": "local sufficient zero witness, not aggregate gate execution"
+      },
+      {
+        "path": "zircon_runtime/src/text/tests/identity.rs",
+        "operand": "editor",
+        "lower_raw_counts": [
+          0,
+          0,
+          0
+        ],
+        "scope": "local sufficient zero witness, not aggregate gate execution"
+      },
+      {
+        "path": "zircon_runtime/src/text/tests/identity.rs",
+        "operand": "legacy",
+        "lower_raw_counts": [
+          0,
+          0,
+          0
+        ],
+        "scope": "local sufficient zero witness, not aggregate gate execution"
+      },
+      {
+        "path": "zircon_runtime/src/text/tests/identity.rs",
+        "operand": "server",
+        "lower_raw_counts": [
+          0,
+          0,
+          0
+        ],
+        "scope": "local sufficient zero witness, not aggregate gate execution"
+      }
+    ],
+    "actual_reader_contract": {
+      "reader": "C09:17-77 recursively .rs/read_to_string, then C12:2-39 production_source_lines; normal comments retained",
+      "operators": "C09:81-107 ASCII alphanumeric-or-underscore token splitting, lower contains(editor/legacy); server substring with observer/observers exclusions",
+      "consumers": "C10:14-29/32-73/75-108 aggregates all runtime src; C11 classifiers apply afterward. Owned local0 is not global assertions pass or execution.",
+      "naming_mount": "C08:2-5/12-13; deeper test root mount not read in this batch",
+      "bounded_queries": "Exact identity paths/type names in tools + runtime contract/integration test trees returned rg1/no hits; not global consumer absence. Framework filename/registration rg discovery was not interpreted as selected source coverage.",
+      "raw_apis_in_owned": "include_str!, read_to_string, read_text, read_repo_file: each 0 before/current; direct tests call APIs, not raw source guards."
+    },
+    "new_comment_braces_cfg_selectors_fences": 0,
+    "full_aggregate_tests_run": false,
+    "external_issue_CR_RUNTIME_TESTS_ABS_0008_unchanged": true
+  },
+  "validation": {
+    "commands": [
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "rev-parse",
+          "HEAD"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 41,
+        "stdout_sha256": "8aff4d29134332ce3b808dd52c85fea32bee4fc17bb210538a290f1b5c9bcfa6",
+        "stderr": "",
+        "stdout": "a450a2cfd0484f5c49893a18872e785b1aa3d6fb\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "ls-files",
+          "--stage",
+          "--",
+          "zircon_runtime/src/text/identity.rs",
+          "zircon_runtime/src/text/tests/identity.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 178,
+        "stdout_sha256": "11fca0a4a9d2fe3b34b2acdec4825ed038dc26ae2f64d1785fd9848acd24ae2e",
+        "stderr": "",
+        "stdout": "100644 409d65232dd4267f1ed786ae969a70f1808baf32 0\tzircon_runtime/src/text/identity.rs\n100644 e470b01b07def4b8a178d5fbfbebf9c8f7e85fa1 0\tzircon_runtime/src/text/tests/identity.rs\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/identity.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 2097,
+        "stdout_sha256": "7fe5c7ff010a83f5dfd120a0b744b49cfed298341a47d111f2da9c03096dc3a9",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/tests/identity.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 1044,
+        "stdout_sha256": "644235f73c1eaf77aec66e188b003a262274d83403c744a03938ad5114fa2019",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--check",
+          "--",
+          "zircon_runtime/src/text/identity.rs",
+          "zircon_runtime/src/text/tests/identity.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/identity.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/tests/identity.rs.\nThe file will have its original line endings in your working directory\n",
+        "stdout": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--numstat",
+          "--",
+          "zircon_runtime/src/text/identity.rs",
+          "zircon_runtime/src/text/tests/identity.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 87,
+        "stdout_sha256": "d35dec57402d9636668363f6c6d3998d449055d723639b5bd9c0f99a4c70e4c4",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/identity.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/tests/identity.rs.\nThe file will have its original line endings in your working directory\n",
+        "stdout": "22\t0\tzircon_runtime/src/text/identity.rs\n3\t0\tzircon_runtime/src/text/tests/identity.rs\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "zircon_runtime/src/text/identity.rs",
+          "zircon_runtime/src/text/tests/identity.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "argv": [
+          "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          ".codex/skills/zircon-change-guard/scripts/change_guard.py",
+          "--json",
+          "patch",
+          "--git",
+          "--base",
+          "HEAD",
+          "--path",
+          "zircon_runtime/src/text/identity.rs",
+          "--path",
+          "zircon_runtime/src/text/tests/identity.rs"
+        ],
+        "exit_code": 0,
+        "stdout_bytes": 814,
+        "stdout_sha256": "47d6bf50ed92ac14891294bc03ee3f2b5910975c60764de9c9d28c9ec787d914",
+        "stderr": "",
+        "stdout": "{\r\n  \"tool\": \"zircon-change-guard\",\r\n  \"version\": 2,\r\n  \"mode\": \"patch\",\r\n  \"status\": \"passed\",\r\n  \"input\": {\r\n    \"patchDigest\": \"b9196072649e488c025553a87f402eed18f85639e5a7cd1cade2f7870b1518c9\",\r\n    \"base\": \"a450a2cfd0484f5c49893a18872e785b1aa3d6fb\",\r\n    \"files\": [\r\n      \"zircon_runtime/src/text/identity.rs\",\r\n      \"zircon_runtime/src/text/tests/identity.rs\"\r\n    ],\r\n    \"declaredPaths\": [\r\n      \"zircon_runtime/src/text/identity.rs\",\r\n      \"zircon_runtime/src/text/tests/identity.rs\"\r\n    ],\r\n    \"writeGrantCheck\": true,\r\n    \"permissionRoot\": \"E:/Git/ZirconEngine\",\r\n    \"contributor\": false\r\n  },\r\n  \"summary\": {\r\n    \"errors\": 0,\r\n    \"warnings\": 0,\r\n    \"suppressed\": 0\r\n  },\r\n  \"markers\": {\r\n    \"closed\": [],\r\n    \"opened\": [],\r\n    \"moved\": []\r\n  },\r\n  \"findings\": [],\r\n  \"suppressed\": []\r\n}\r\n"
+      }
+    ],
+    "change_guard": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "b9196072649e488c025553a87f402eed18f85639e5a7cd1cade2f7870b1518c9",
+        "base": "a450a2cfd0484f5c49893a18872e785b1aa3d6fb",
+        "files": [
+          "zircon_runtime/src/text/identity.rs",
+          "zircon_runtime/src/text/tests/identity.rs"
+        ],
+        "declaredPaths": [
+          "zircon_runtime/src/text/identity.rs",
+          "zircon_runtime/src/text/tests/identity.rs"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": []
+    },
+    "guard_script_sha256": "bb9bf97836c3af3779447f5404c8afe39621356b2ad15ff4de3316d61b599734",
+    "config_sha256": "f54913846b1bbc8e203eddc734e9ba85a10069cc5cd743d3bcf0a3f9d4d07868",
+    "rustfmt": {
+      "reused_same_final_pins": true,
+      "actual": "R094 ad8c37 exit0/PID50208 exact2; R095 c5643b exit0/PID33388 exact2",
+      "args": [
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true"
+      ],
+      "tests_or_builds": 0
+    },
+    "head_observed": "a450a2cfd0484f5c49893a18872e785b1aa3d6fb",
+    "index": {
+      "bytes": 7481318,
+      "sha256": "6f9775afffb928d5acee9531c39274e531585d4427df7074ca9a30ad72f943c7"
+    },
+    "index_lock": {
+      "exists": false,
+      "touched": false,
+      "owner_or_release_inferred": false
+    }
+  },
+  "issues": {
+    "new": [],
+    "reserved_unused": "CR-ZCA-R095-0001",
+    "labels_preserved": true,
+    "external_issue_closures": []
+  },
+  "external_drift_boundary": {
+    "withdrawal": ".jenkins/records/source-comments-20261014-01a13a81-reviewed-source-drift-20261017.md",
+    "sha256": "f22e2dd4b796089f659245eced7d05f5f76436b46a4c18e61d4ee41c2d3e2961",
+    "needs_recheck": 42,
+    "scope_release_claimed": false,
+    "unknown_histories_closed": false
+  },
+  "artifact_lifecycle": {
+    "helpers": 0,
+    "temporary_files": 0,
+    "source_copies": 0,
+    "builds": 0,
+    "generated_fixtures": 0,
+    "released_bytes": 0,
+    "retained": "Canonical source, fixed child and root main/post/handoff; necessary failure evidence"
+  },
+  "writer": {
+    "pid": 9440,
+    "write_set": [
+      "docs/plans/source-comments/reviews/R095-post-validation.json"
+    ],
+    "source_writes": [],
+    "terminal_bound_externally": true
+  }
+}

@@ -213,3 +213,27 @@ fn nn_model_asset_rejects_op_count_that_cannot_fit_the_encoded_table() {
         } if declared == impossible_count as usize && maximum == (op_table_size / 8) as usize
     ));
 }
+
+#[test]
+fn nn_model_asset_rejects_valid_model_above_encoder_tensor_limit() {
+    let limit = 1_048_576usize;
+    let model = NnModelAsset {
+        tensors: vec![
+            NnTensorDesc::new(NnDataType::F32, NnTensorKind::Input, 1, [1, 1, 1, 1]);
+            limit + 1
+        ],
+        ops: Vec::new(),
+        weights: Vec::new(),
+    };
+    model
+        .validate()
+        .expect("unused input tensors form a structurally valid model");
+    assert_eq!(
+        model.to_znn_bytes(),
+        Err(NnModelFormatError::ResourceLimitExceeded {
+            resource: "tensor_count",
+            actual: (limit + 1) as u64,
+            limit: limit as u64,
+        })
+    );
+}

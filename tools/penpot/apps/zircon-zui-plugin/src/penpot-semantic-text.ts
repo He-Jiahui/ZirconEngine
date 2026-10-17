@@ -121,6 +121,8 @@ export function createSemanticTexts(
     setMetadata(text, ZUI_METADATA_EMPTY_TEXT, empty ? 'true' : 'false');
     if (key !== 'primary') setMetadata(text, TEXT_FRAGMENT_KEY, key);
     if (text.layoutChild) text.layoutChild.absolute = true;
+    if (node.component === 'Label' && node.props?.['overflow'] === 'elide')
+      setMetadata(text, SINGLE_LINE_OVERFLOW, 'ellipsis');
     if (projection.slider) layoutSliderText(board, text, projection.slider);
     if (projection.field) {
       setMetadata(text, SINGLE_LINE_OVERFLOW, 'ellipsis');

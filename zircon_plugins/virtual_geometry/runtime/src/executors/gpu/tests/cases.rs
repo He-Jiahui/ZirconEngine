@@ -6,9 +6,9 @@ use zircon_runtime::core::framework::render::{
 };
 
 use super::{
-    cluster_candidates, create_cluster_triangle_pipeline, resident_page_ids,
-    storage_buffer_layout_entry, ClusterTriangleTarget, ClusterVertex,
-    RenderVirtualGeometryDebugSnapshot,
+    cluster_candidates, create_cluster_triangle_pipeline,
+    create_indirect_cluster_triangle_pipeline, resident_page_ids, storage_buffer_layout_entry,
+    ClusterTriangleTarget, ClusterVertex, RenderVirtualGeometryDebugSnapshot,
 };
 
 #[test]
@@ -33,6 +33,10 @@ fn virtual_geometry_graph_gpu_execution_shaders_validate_on_wgpu_device() {
                 storage_buffer_layout_entry(0, true, wgpu::ShaderStages::COMPUTE),
                 storage_buffer_layout_entry(1, true, wgpu::ShaderStages::COMPUTE),
                 storage_buffer_layout_entry(2, false, wgpu::ShaderStages::COMPUTE),
+                storage_buffer_layout_entry(3, false, wgpu::ShaderStages::COMPUTE),
+                storage_buffer_layout_entry(4, false, wgpu::ShaderStages::COMPUTE),
+                storage_buffer_layout_entry(5, false, wgpu::ShaderStages::COMPUTE),
+                storage_buffer_layout_entry(6, true, wgpu::ShaderStages::COMPUTE),
             ],
         });
     let cull_pipeline_layout =
@@ -61,6 +65,10 @@ fn virtual_geometry_graph_gpu_execution_shaders_validate_on_wgpu_device() {
                 "../../cluster_triangles.wgsl"
             ))),
         });
+    let _indirect_raster = create_indirect_cluster_triangle_pipeline(
+        &backend.device,
+        wgpu::TextureFormat::Depth32Float,
+    );
     let error = pollster::block_on(error_scope.pop());
 
     assert!(
@@ -72,6 +80,7 @@ fn virtual_geometry_graph_gpu_execution_shaders_validate_on_wgpu_device() {
 #[test]
 fn virtual_geometry_graph_gpu_execution_keeps_real_encoding_operations() {
     let source = include_str!("../../gpu.rs");
+    let indirect_shader = include_str!("../../cluster_triangles_indirect.wgsl");
 
     assert!(source.contains("buffer_upload_recorder().write_buffer("));
     assert!(source.contains("begin_compute_pass("));
@@ -79,8 +88,16 @@ fn virtual_geometry_graph_gpu_execution_keeps_real_encoding_operations() {
     assert!(source.contains("copy_buffer_to_buffer("));
     assert!(source.contains("begin_render_pass("));
     assert!(source.contains("pass.draw("));
+    assert!(source.contains("pass.draw_indirect("));
+    assert!(source.contains("VISIBLE_CANDIDATES"));
+    assert!(source.contains("readback_completion_waiter"));
     assert!(source.contains("page.cluster_ranges"));
     assert!(source.contains("clip_from_world * transform"));
+    assert!(indirect_shader.contains("vertex.instance_index"));
+    assert!(indirect_shader.contains("authority_offset + 12u] == vertex.lineage_depth"));
+    assert!(indirect_shader.contains("authority_offset + 13u] == vertex.frontier_rank"));
+    assert!(indirect_shader.contains("authority_offset + 8u"));
+    assert!(indirect_shader.contains("authority_offset + 9u"));
 }
 
 #[test]
@@ -104,6 +121,7 @@ fn virtual_geometry_graph_gpu_execution_uses_resident_pages_and_cluster_candidat
     assert_eq!(candidates.len(), 1);
     assert_eq!(candidates[0].cluster_id, 9);
     assert_eq!(candidates[0].page_id, 17);
+    assert_eq!(candidates[0].candidate_index, 0);
 }
 
 #[test]
@@ -116,7 +134,42 @@ fn virtual_geometry_graph_gpu_execution_culls_nonresident_pages_and_reads_back_i
             contents: bytemuck::cast_slice(&[2_u32, 17, 21]),
             usage: wgpu::BufferUsages::STORAGE,
         });
-    let candidate_words = [3_u32, 0, 9, 17, 10, 44, 11, 21];
+    let candidate_words = [
+        3_u32, 0, 0, 0, 0, 9, 17, 0, 0, 0, 10, 44, 1, 0, 0, 11, 21, 2, 0, 0,
+    ];
+    let request_words = backend
+        .device
+        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-test-vg-nonresident-requests"),
+            contents: bytemuck::cast_slice(&[0_u32; 4]),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        });
+    let visbuffer_words = backend
+        .device
+        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-test-vg-visbuffer64"),
+            contents: bytemuck::cast_slice(&[0_u32; 7]),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        });
+    let cull_input = backend
+        .device
+        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-test-vg-cull-input"),
+            contents: bytemuck::cast_slice(&[3_u32, 2, 1, 3, 3, 1, 3, 2, 0, 0, 0, u32::MAX, 0, 0]),
+            usage: wgpu::BufferUsages::STORAGE,
+        });
+    let request_readback = backend.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-test-vg-page-request-readback"),
+        size: 16,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
+    let visbuffer_readback = backend.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-test-vg-visbuffer64-readback"),
+        size: 28,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
     let candidates = backend
         .device
         .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -131,8 +184,21 @@ fn virtual_geometry_graph_gpu_execution_culls_nonresident_pages_and_reads_back_i
             contents: bytemuck::cast_slice(&[0_u32; 4]),
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
         });
+    let visible_candidates = backend
+        .device
+        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-test-vg-visible-candidate-indices"),
+            contents: bytemuck::cast_slice(&[0_u32; 4]),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        });
     let readback = backend.device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("zircon-test-vg-visible-readback"),
+        size: 16,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
+    let candidate_readback = backend.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-test-vg-visible-candidate-readback"),
         size: 16,
         usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
         mapped_at_creation: false,
@@ -153,6 +219,10 @@ fn virtual_geometry_graph_gpu_execution_culls_nonresident_pages_and_reads_back_i
                 storage_buffer_layout_entry(0, true, wgpu::ShaderStages::COMPUTE),
                 storage_buffer_layout_entry(1, true, wgpu::ShaderStages::COMPUTE),
                 storage_buffer_layout_entry(2, false, wgpu::ShaderStages::COMPUTE),
+                storage_buffer_layout_entry(3, false, wgpu::ShaderStages::COMPUTE),
+                storage_buffer_layout_entry(4, false, wgpu::ShaderStages::COMPUTE),
+                storage_buffer_layout_entry(5, false, wgpu::ShaderStages::COMPUTE),
+                storage_buffer_layout_entry(6, true, wgpu::ShaderStages::COMPUTE),
             ],
         });
     let pipeline_layout = backend
@@ -190,6 +260,22 @@ fn virtual_geometry_graph_gpu_execution_culls_nonresident_pages_and_reads_back_i
                     binding: 2,
                     resource: visible.as_entire_binding(),
                 },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: visible_candidates.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: request_words.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: visbuffer_words.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 6,
+                    resource: cull_input.as_entire_binding(),
+                },
             ],
         });
     let mut encoder = backend
@@ -207,12 +293,32 @@ fn virtual_geometry_graph_gpu_execution_culls_nonresident_pages_and_reads_back_i
         pass.dispatch_workgroups(1, 1, 1);
     }
     encoder.copy_buffer_to_buffer(&visible, 0, &readback, 0, 16);
+    encoder.copy_buffer_to_buffer(&visible_candidates, 0, &candidate_readback, 0, 16);
+    encoder.copy_buffer_to_buffer(&request_words, 0, &request_readback, 0, 16);
+    encoder.copy_buffer_to_buffer(&visbuffer_words, 0, &visbuffer_readback, 0, 28);
     backend.queue.submit([encoder.finish()]);
 
     let mut words = read_u32_words(&backend.device, &readback, 4);
     assert_eq!(words[0], 2);
     words[1..3].sort_unstable();
     assert_eq!(&words[1..3], &[9, 11]);
+    let mut candidate_indices = read_u32_words(&backend.device, &candidate_readback, 4);
+    assert_eq!(candidate_indices[0], 2);
+    candidate_indices[1..3].sort_unstable();
+    assert_eq!(&candidate_indices[1..3], &[0, 2]);
+    let requests = read_u32_words(&backend.device, &request_readback, 4);
+    assert_eq!(&requests[..2], &[1, 44]);
+    let visbuffer = read_u32_words(&backend.device, &visbuffer_readback, 7);
+    assert_eq!(visbuffer[0], 2);
+    let packed = visbuffer[1..5]
+        .chunks_exact(2)
+        .map(|pair| u64::from(pair[0]) | (u64::from(pair[1]) << 32))
+        .collect::<Vec<_>>();
+    assert_eq!(packed, vec![
+        zircon_runtime::core::framework::render::RenderVirtualGeometryVisBuffer64Entry::packed_value_for(Some(0), 9, 17, 0, zircon_runtime::core::framework::render::RenderVirtualGeometryExecutionState::Resident),
+        zircon_runtime::core::framework::render::RenderVirtualGeometryVisBuffer64Entry::packed_value_for(Some(0), 11, 21, 0, zircon_runtime::core::framework::render::RenderVirtualGeometryExecutionState::Resident),
+    ]);
+    assert_eq!(&visbuffer[5..], &[0, 0]);
 }
 
 #[test]
@@ -220,7 +326,7 @@ fn virtual_geometry_graph_gpu_execution_pulls_cluster_vertices_into_color_pixels
     const EXTENT: u32 = 8;
     const ROW_BYTES: u32 = 256;
     let backend = RenderBackend::new_offscreen();
-    assert_eq!(std::mem::size_of::<ClusterVertex>(), 32);
+    assert_eq!(std::mem::size_of::<ClusterVertex>(), 48);
     let visible = backend
         .device
         .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -232,17 +338,32 @@ fn virtual_geometry_graph_gpu_execution_pulls_cluster_vertices_into_color_pixels
         ClusterVertex {
             clip_position: [-0.75, -0.75, 0.0, 1.0],
             cluster_id: 9,
-            _padding: [0; 3],
+            candidate_index: 0,
+            authority_index: 0,
+            instance_index: 0,
+            lineage_depth: 0,
+            frontier_rank: 0,
+            _padding: [0; 2],
         },
         ClusterVertex {
             clip_position: [0.75, -0.75, 0.0, 1.0],
             cluster_id: 9,
-            _padding: [0; 3],
+            candidate_index: 0,
+            authority_index: 0,
+            instance_index: 0,
+            lineage_depth: 0,
+            frontier_rank: 0,
+            _padding: [0; 2],
         },
         ClusterVertex {
             clip_position: [0.0, 0.75, 0.0, 1.0],
             cluster_id: 9,
-            _padding: [0; 3],
+            candidate_index: 0,
+            authority_index: 0,
+            instance_index: 0,
+            lineage_depth: 0,
+            frontier_rank: 0,
+            _padding: [0; 2],
         },
     ];
     let vertex_buffer = backend

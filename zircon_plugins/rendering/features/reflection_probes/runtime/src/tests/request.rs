@@ -107,9 +107,7 @@ fn capture_request_rejects_non_project_output_uri() {
     assert_eq!(
         request.validate(),
         Err(
-            ReflectionProbeCaptureRequestError::UnsupportedOutputUriScheme(
-                ResourceScheme::Library,
-            )
+            ReflectionProbeCaptureRequestError::UnsupportedOutputUriScheme(ResourceScheme::Library,)
         )
     );
 }

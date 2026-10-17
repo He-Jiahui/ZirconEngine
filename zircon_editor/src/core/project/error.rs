@@ -13,6 +13,12 @@ use zircon_runtime_interface::project::{
 
 #[derive(Debug, Error)]
 pub enum ProjectAuthorityError {
+    #[error("plugin enablement file recovery is required: {source}")]
+    PluginEnablementRecovery {
+        root: PathBuf,
+        #[source]
+        source: zircon_runtime::asset::project::plugin_apply::PluginApplyError,
+    },
     #[error("project name is invalid: {source}")]
     ProjectName {
         #[from]

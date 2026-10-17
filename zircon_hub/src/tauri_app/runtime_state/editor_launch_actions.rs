@@ -7,22 +7,21 @@ use zircon_runtime_interface::hub_protocol::{
 };
 
 use crate::engines::{
-    SourceEngineInstall, SourceEngineValidation, active_source_engine, validate_source_engine,
+    active_source_engine, validate_source_engine, SourceEngineInstall, SourceEngineValidation,
 };
 use crate::error::HubError;
 use crate::process::editor_focus::{
-    ProjectEditorSessionProbe, probe_project_editor_session, publish_project_editor_focus_signal,
-    wait_for_project_editor_focus_ack,
+    probe_project_editor_session, publish_project_editor_focus_signal,
+    wait_for_project_editor_focus_ack, ProjectEditorSessionProbe,
 };
 use crate::process::{
-    EditorLaunchCommand, EditorLaunchRequest, SupervisedChild,
     editor_handshake::wait_for_editor_handshake, launch_editor, staged_editor_executable,
-    staged_editor_executable_exists,
+    staged_editor_executable_exists, EditorLaunchCommand, EditorLaunchRequest, SupervisedChild,
 };
 use crate::projects::{
-    CreateProjectRequest, ProjectTemplateId, ProjectValidation, RecentProject,
     enabled_project_template_id, merge_recent_project_entries, project_paths_match,
-    validate_project_root,
+    validate_project_root, CreateProjectRequest, ProjectTemplateId, ProjectValidation,
+    RecentProject,
 };
 use crate::state::{
     HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId, ProcessMessageId,
@@ -30,10 +29,9 @@ use crate::state::{
 };
 
 use super::{
-    HubRuntimeSession,
     action_tasks::{BackgroundTask, BackgroundTaskContext},
     recent_project_display_name, source_engine_validation_detail,
-    source_engine_validation_recovery,
+    source_engine_validation_recovery, HubRuntimeSession,
 };
 use crate::tauri_app::action_request::{HubAction, HubActionRequest};
 

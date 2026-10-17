@@ -1,5 +1,8 @@
+//! 复用父模块夹具，核对输入泵的相邻重绘合并、平台规范化与显式 IME 范围准入。
+
 use super::*;
 
+/// 两个相邻重绘保留首项，后续光标与 IME 保持顺序；再核对整批 JSON 往返。
 #[test]
 fn ui_window_input_pump_wraps_window_and_shared_input_events_with_redraw_coalescing() {
     let metadata = sample_window_metadata();
@@ -40,6 +43,7 @@ fn ui_window_input_pump_wraps_window_and_shared_input_events_with_redraw_coalesc
     assert_eq!(round_trip(&batch), batch);
 }
 
+/// 经泵入口规范化平台事件，保留预编辑范围与来源元数据，并以触摸身份覆盖上下文指针。
 #[test]
 fn ui_window_input_pump_accepts_platform_input_events_through_normalization() {
     let metadata = sample_window_metadata().synthetic(true);
@@ -88,6 +92,7 @@ fn ui_window_input_pump_accepts_platform_input_events_through_normalization() {
     assert_eq!(round_trip(&batch), batch);
 }
 
+/// 确认经构造校验的光标和子句进入规范化结果，并保留转换态的序列化标签。
 #[test]
 fn ui_window_input_pump_preserves_validated_preedit_clauses() {
     let metadata = sample_window_metadata().synthetic(true);
@@ -130,6 +135,7 @@ fn ui_window_input_pump_preserves_validated_preedit_clauses() {
     assert_eq!(round_trip(&input), input);
 }
 
+/// 覆盖非 UTF-8 边界、越界、重叠与乱序；除乱序外，此处仅断言构造失败。
 #[test]
 fn ui_window_input_pump_rejects_invalid_preedit_clause_ranges() {
     let context = UiWindowInputContext::from_window_metadata(&sample_window_metadata());
@@ -196,6 +202,7 @@ fn ui_window_input_pump_rejects_invalid_preedit_clause_ranges() {
     ));
 }
 
+/// 直接构造提交事件后显式校验，确认预编辑子句不能附在非预编辑种类上。
 #[test]
 fn ui_ime_input_event_rejects_clauses_outside_preedit() {
     let event = UiImeInputEvent {

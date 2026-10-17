@@ -1,10 +1,19 @@
-use zr_rhi::{RenderDeviceFeature, RenderDeviceFeatureSet};
+use std::sync::Arc;
 
-use super::{device_request_policy_for_startup_options, SceneRendererStartupOptions};
+use zr_rhi::{RenderDeviceFeature, RenderDeviceFeatureSet, RenderDeviceNegotiationError};
 
-const OUTER_CONSTRUCT_SOURCE: &str = include_str!("../../../../scene_renderer_construct/new_with_icon_source.rs");
-const CORE_CONSTRUCT_SOURCE: &str =
-    include_str!("../construct/construct/construct.rs");
+use crate::graphics::{
+    RenderPassExecutionContext, RenderPassExecutor, RenderPassExecutorRegistration,
+};
+
+use super::{
+    device_request_policy_for_executors, device_request_policy_for_startup_options,
+    SceneRendererStartupOptions,
+};
+
+const OUTER_CONSTRUCT_SOURCE: &str =
+    include_str!("../../../../scene_renderer_construct/new_with_icon_source.rs");
+const CORE_CONSTRUCT_SOURCE: &str = include_str!("../construct/construct/construct.rs");
 const MESH_CONSTRUCT_SOURCE: &str = include_str!("../../mesh/mesh_pipeline_cache/construct.rs");
 const UI_CONSTRUCT_SOURCE: &str = include_str!("../../ui/construct.rs");
 
@@ -49,6 +58,50 @@ fn default_startup_leaves_optional_query_features_unrequested() {
             .expect("the baseline profile must negotiate on every adapter");
 
     assert!(negotiation.requested_features().is_empty());
+    assert!(negotiation.unavailable_features().is_empty());
+}
+
+#[test]
+fn executor_device_requirements_preserve_startup_policy_and_reject_unsupported_adapters() {
+    struct IndirectExecutor;
+    impl RenderPassExecutor for IndirectExecutor {
+        fn execute(&self, _: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn required_device_features(&self) -> &[RenderDeviceFeature] {
+            &[RenderDeviceFeature::IndirectFirstInstance]
+        }
+    }
+
+    let executors = vec![
+        RenderPassExecutorRegistration::new_executor("indirect-one", Arc::new(IndirectExecutor)),
+        RenderPassExecutorRegistration::new_executor("indirect-two", Arc::new(IndirectExecutor)),
+    ];
+    let policy = device_request_policy_for_executors(
+        device_request_policy_for_startup_options(
+            SceneRendererStartupOptions::default().with_gpu_timing(),
+        ),
+        &executors,
+    );
+    assert_eq!(
+        policy.negotiate(&RenderDeviceFeatureSet::default()),
+        Err(RenderDeviceNegotiationError::RequiredFeatureUnavailable {
+            feature: RenderDeviceFeature::IndirectFirstInstance,
+        })
+    );
+
+    let supported = supported_features(&[
+        RenderDeviceFeature::IndirectFirstInstance,
+        RenderDeviceFeature::GpuTimestamp,
+        RenderDeviceFeature::PipelineStatistics,
+    ]);
+    let negotiation = policy
+        .negotiate(&supported)
+        .expect("all requirements supported");
+    for feature in supported.iter() {
+        assert!(negotiation.requested_features().contains(feature));
+    }
     assert!(negotiation.unavailable_features().is_empty());
 }
 

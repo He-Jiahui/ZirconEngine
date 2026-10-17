@@ -132,6 +132,138 @@ def validate_inventory(repo, inventory):
     return inventory
 
 
+
+OUTCOME_STATUSES = {"input-provided", "route-ready", "pending", "execution-failed"}
+
+
+def outcome_provider(context):
+    return {**{name: context["config"][name] for name in ("driverDigest", "runtimeOperationId")},
+            "capsuleSha256": context["installed"]["capsuleSha256"]}
+
+
+def validate_requirement_outcome(context, value, original):
+    """Bind operator observations to existing requirements; never accept a task."""
+    if value is None:
+        return None
+    require(isinstance(value, dict), "Requirement outcome schema differs")
+    version = value.get("schemaVersion")
+    fields = {"schemaVersion", "taskId", "originalInventoryDigest", "originalIdentity",
+              "requirementsDigest", "provider", "outcomes", "formalAcceptance"}
+    if version == 2:
+        fields.add("requirementsSnapshot")
+    require(type(version) is int and version in {1, 2} and set(value) == fields,
+            "Requirement outcome schema differs")
+    # A queued observation covers its exact earlier requirements. Later
+    # append-only supplements do not invalidate those still-unchanged items.
+    # Legacy observations keep their exact-current-inventory contract.
+    covered = value.get("requirementsSnapshot", original["pendingRequirements"])
+    if version == 2:
+        require(isinstance(covered, list) and 0 < len(covered) <= 128
+                and all(isinstance(text, str) and text for text in covered),
+                "Explicit bounded requirement snapshot required")
+    require(value["formalAcceptance"] is False
+            and value["taskId"] == original["taskId"]
+            and value["originalInventoryDigest"] == original["inventoryDigest"]
+            and value["originalIdentity"] == original["originalIdentity"]
+            and value["requirementsDigest"] == sha(encoded(covered))
+            and (version == 1 or original["pendingRequirements"][:len(covered)] == covered)
+            and value["provider"] == outcome_provider(context),
+            "Requirement outcome original identity, requirements or provider changed")
+    entries = value["outcomes"]
+    require(isinstance(entries, list) and 0 < len(entries) <= 128, "Bounded requirement outcomes required")
+    seen = set()
+    for item in entries:
+        require(isinstance(item, dict) and set(item) == {
+            "requirementText", "requirementDigest", "status", "note", "evidenceRefs"},
+            "Requirement outcome item schema differs")
+        text = item["requirementText"]
+        require(isinstance(text, str) and text in covered
+                and item["requirementDigest"] == sha(text.encode("utf-8"))
+                and item["requirementDigest"] not in seen
+                and item["status"] in OUTCOME_STATUSES
+                and isinstance(item["note"], str) and 0 < len(item["note"]) <= 2000,
+                "Outcome must name one original requirement and a nonacceptance status")
+        seen.add(item["requirementDigest"])
+        refs = item["evidenceRefs"]
+        require(isinstance(refs, list) and 0 < len(refs) <= 8, "Exact outcome evidence required")
+        route_proven = False
+        for reference in refs:
+            require(isinstance(reference, dict) and set(reference) == {"path", "sha256"}
+                    and isinstance(reference["sha256"], str) and SHA.fullmatch(reference["sha256"]),
+                    "Outcome evidence reference differs")
+            path = plain(reference["path"])
+            roots = [context["repo"] / ".jenkins/state/management",
+                     context["repo"] / ".jenkins/state/records-queue",
+                     *(Path(d + ":/cargo-targets/zircon-local") for d in "DEF")]
+            require(any(path.is_relative_to(plain(root)) and path != plain(root) for root in roots),
+                    "Outcome evidence must be retained management or managed artifact evidence")
+            pin, raw = fingerprint(path)
+            require(pin["sha256"] == reference["sha256"], "Requirement outcome evidence changed")
+            if item["status"] == "route-ready" and path.suffix == ".json":
+                try:
+                    proof = json.loads(raw)
+                except (ValueError, UnicodeError):
+                    continue
+                if (isinstance(proof, dict) and proof.get("status") == "ready"
+                        and all(proof.get(k) == v for k, v in value["provider"].items())
+                        and proof.get("formalAcceptance") is False
+                        and isinstance(proof.get("regression"), dict)):
+                    regression, regression_pin = read_json(proof["regression"]["path"])
+                    require(regression_pin["sha256"] == proof["regression"]["sha256"],
+                            "Route regression evidence changed")
+                    archive = regression.get("archiveByteVerification")
+                    route_proven = (regression.get("jenkinsResult") == "SUCCESS"
+                                    and regression.get("nativeProofComplete") is True
+                                    and regression.get("sourceHashesMatch") is True
+                                    and regression.get("sameNativeOwner") is True
+                                    and isinstance(archive, list) and bool(archive)
+                                    and all(x.get("archiveMatches") is True for x in archive))
+        require(item["status"] != "route-ready" or route_proven,
+                "Route readiness requires actual tested deployment evidence")
+    return value
+
+
+def attach_requirement_outcome(current, value, *, followup_digest, response):
+    if value is None:
+        return
+    current.setdefault("requirementOutcomeHistory", []).append({
+        "followupDigest": followup_digest, "response": response, "projection": value})
+    latest = current.setdefault("currentRequirementOutcomes", {})
+    for item in value["outcomes"]:
+        latest[item["requirementDigest"]] = {
+            **item, "provider": value["provider"], "followupDigest": followup_digest,
+            "response": response, "formalAcceptance": False}
+
+
+def task_outcome_view(context, record):
+    """Expose fresh evidence separately from append-only historical requirements."""
+    if record is None:
+        return None
+    original = record["payload"]
+    latest = original.get("currentRequirementOutcomes", {})
+    outcomes = []
+    for text in dict.fromkeys(original.get("pendingRequirements", [])):
+        key = sha(text.encode("utf-8"))
+        item = latest.get(key)
+        status, note = "pending", "No current operator outcome has been attached"
+        refs = []
+        if item:
+            status, note, refs = item["status"], item["note"], item["evidenceRefs"]
+            try:
+                current = item["provider"] == outcome_provider(context)
+                current = current and all(fingerprint(ref["path"])[0]["sha256"] == ref["sha256"] for ref in refs)
+            except (OSError, ValueError):
+                current = False
+            if not current:
+                status, note = "stale-evidence", "Provider or referenced evidence changed; reconcile this requirement"
+        outcomes.append({"requirementText": text, "requirementDigest": key, "status": status,
+                         "note": note, "evidenceRefs": refs, "formalAcceptance": False})
+    view = {"schemaVersion": 1, "provider": outcome_provider(context),
+            "requirements": outcomes, "counts": {status: sum(x["status"] == status for x in outcomes)
+             for status in sorted({x["status"] for x in outcomes})},
+            "originalDone": original.get("done", False), "formalAcceptance": False}
+    return {**record, "payload": {**original, "currentOutcomeView": view}}
+
 def _template_text(raw):
     # Match read_text's newline conversion without changing source bytes.
     return raw.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
@@ -552,7 +684,7 @@ def main(argv=None):
             result = {"status": "passed", "nativeGuardVerified": True, "formalAcceptance": False}
         else:
             api, context, _ = binding(args.repo_root)
-            result = api.record(context["repo"], "records_queue_task", args.task_id)
+            result = task_outcome_view(context, api.record(context["repo"], "records_queue_task", args.task_id))
         print(encoded(result).decode())
         if args.command == "work" and not result.get("done"):
             # Distinguish durable waiting from failure without requiring any

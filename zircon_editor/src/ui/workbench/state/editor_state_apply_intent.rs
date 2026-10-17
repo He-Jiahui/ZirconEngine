@@ -220,11 +220,16 @@ impl EditorState {
         let history_context = self
             .active_scene_history_context()
             .ok_or(GizmoTransactionError::SceneDocumentNotActive)?;
+        let reservation = self
+            .interactive_transform
+            .as_ref()
+            .and_then(|session| session.retention_owner_v1())
+            .ok_or(GizmoTransactionError::TransactionContextMissing)?;
         self.bind_interactive_transform_context()?;
         let editor_context = Arc::clone(&self.context);
         let mut scope = editor_context
             .transactions()
-            .begin(label, history_context)
+            .begin_with_retention_v1(label, history_context, reservation)
             .map_err(|source| GizmoTransactionError::EditCommand {
                 phase: GizmoTransactionPhase::CommandExecution,
                 source,

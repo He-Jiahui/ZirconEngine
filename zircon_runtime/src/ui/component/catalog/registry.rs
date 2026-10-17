@@ -25,6 +25,7 @@ type UiComponentCategoryIter =
     std::iter::Flatten<std::array::IntoIter<Option<UiComponentCategory>, 8>>;
 
 /// 按稳定组件 ID 保存可编写契约。更换声明时返回变更标记并推进修订号，供编译调用链识别目录变化。
+/// 目录拥有传入的声明；查询引用受目录借用约束，克隆后的目录可独立修改。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiComponentDescriptorRegistry {
     descriptors: BTreeMap<String, UiComponentDescriptor>,
@@ -38,6 +39,17 @@ impl UiComponentDescriptorRegistry {
     }
 
     /// Registers or replaces a descriptor by component id.
+    /// 接管声明，并在结构校验通过后新增或替换同 ID 项。
+    ///
+    /// # 参数
+    /// - `descriptor`：调用方交付的完整声明；方法取得其所有权。
+    ///
+    /// # 返回与错误
+    /// `Ok(true)` 表示已写入变化，`Ok(false)` 表示与已有声明完全相同。
+    /// 校验错误直接返回，原目录及修订号保持不变。
+    ///
+    /// # 参考
+    /// [`Self::try_register`] 使用同一实现；[`validate_component_descriptor`] 定义准入检查。
     pub fn register(
         &mut self,
         descriptor: UiComponentDescriptor,
@@ -60,11 +72,13 @@ impl UiComponentDescriptorRegistry {
     }
 
     /// Returns the monotonic registry revision for descriptor-set changes.
+    /// 从零开始饱和增加；达到 `u64::MAX` 后，后续变更仍写入目录但不再改变此值。
     pub fn revision(&self) -> u64 {
         self.revision
     }
 
     /// Returns the descriptor for a component id.
+    /// `component_id` 按原字符串精确查找；未知 ID 返回 `None`，引用借用当前目录。
     pub fn descriptor(&self, component_id: &str) -> Option<&UiComponentDescriptor> {
         self.descriptors.get(component_id)
     }
@@ -85,11 +99,13 @@ impl UiComponentDescriptorRegistry {
     }
 
     /// Iterates registered component ids in deterministic order.
+    /// 顺序由字符串键决定；迭代项借用目录，不能跨越对目录的可变借用继续使用。
     pub fn component_ids(&self) -> impl Iterator<Item = &str> {
         self.descriptors.keys().map(String::as_str)
     }
 
     /// Iterates component categories represented by the registry.
+    /// 每类至多出现一次，遵循固定类别次序；结果拥有类别值，不借用描述符。
     pub fn categories(&self) -> UiComponentCategoryIter {
         unique_component_categories(
             self.descriptors
@@ -99,11 +115,13 @@ impl UiComponentDescriptorRegistry {
     }
 
     /// Iterates all registered descriptors in deterministic component-id order.
+    /// 迭代项借用目录；消费方可按需克隆描述符，形成独立快照。
     pub fn descriptors(&self) -> impl Iterator<Item = &UiComponentDescriptor> {
         self.descriptors.values()
     }
 
     /// Iterates registered descriptors that belong to a component category.
+    /// 过滤后仍保留组件 ID 次序；结果引用的有效期受目录借用约束。
     pub fn descriptors_in_category(
         &self,
         category: UiComponentCategory,
@@ -114,6 +132,10 @@ impl UiComponentDescriptorRegistry {
     }
 
     /// 按宿主能力选择可用声明；返回值借用当前目录。渲染能力还须由后续渲染或编译消费方检查。
+    ///
+    /// # 参数与返回
+    /// `host_capabilities` 是本次查询使用的能力集合；返回集合由调用方持有，条目仍借用目录。
+    /// 结果保持组件 ID 次序，不匹配的项直接省略；空结果不表示目录本身为空。
     pub fn descriptors_for_host(
         &self,
         host_capabilities: &UiHostCapabilitySet,
@@ -126,6 +148,8 @@ impl UiComponentDescriptorRegistry {
     }
 
     /// 给编写器生成拥有字段的调色板投影；仅声明调色板元数据且满足宿主能力的组件会出现。
+    /// 返回快照独立拥有字符串与模板，之后修改目录不会回写已有条目。
+    /// 排序依次比较类别、排序键、展示名与组件 ID；此入口不检查实际渲染端支持。
     pub fn palette_entries_for_host(
         &self,
         host_capabilities: &UiHostCapabilitySet,

@@ -6,11 +6,12 @@ use std::fmt;
 /// # 变体
 ///
 /// - `InvalidShape` 表示旧对象字段无法解析，或迁移结果无法序列化为 JSON。
+/// - `ResourceLimitExceeded` 表示预检计数严格超过调用方提供的预算。
+/// - `Resolve` 保留调用方解析器返回的原始错误值。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RetiredAssetRefMigrationError<E> {
-    InvalidShape {
-        message: String,
-    },
+    /// 引用字段的类型、UUID 或定位符无效，或迁移结果不能表示为 JSON；`message` 说明原因。
+    InvalidShape { message: String },
     /// 全树预算检查发现资源计数严格大于上限；该次检查尚未调用解析器。
     ResourceLimitExceeded {
         resource: &'static str,

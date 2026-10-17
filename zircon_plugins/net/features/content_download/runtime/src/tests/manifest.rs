@@ -153,3 +153,59 @@ fn content_download_manager_rejects_chunk_range_overflow_before_queueing() {
     );
     assert!(manager.progress(download).is_none());
 }
+
+#[test]
+fn content_download_manager_rejects_resume_at_exclusive_chunk_end_before_queueing() {
+    for (offset, length) in [(0, 1), (4, 8)] {
+        let manager = net_content_download_runtime_manager();
+        let download = NetDownloadId::new(21);
+        let manifest = NetDownloadManifest::new(download, "asset://download/completed-range")
+            .with_chunk(
+                NetDownloadChunk::new(
+                    "chunk-completed",
+                    "https://cdn.example/chunk",
+                    offset,
+                    length,
+                    zrpack_hash(b"hash"),
+                )
+                .with_resume_from_byte(offset + length),
+            );
+
+        let rejected = manager.queue_manifest(manifest);
+
+        assert_eq!(rejected.status, NetDownloadStatus::Failed);
+        assert_eq!(
+            rejected.diagnostic.as_deref(),
+            Some("download chunk resume offset outside range: chunk-completed")
+        );
+        assert!(manager.progress(download).is_none());
+        assert!(manager
+            .candidate_urls(download, "chunk-completed")
+            .is_none());
+    }
+}
+
+#[test]
+fn content_download_manager_accepts_resume_at_last_chunk_byte() {
+    for (offset, length) in [(0, 1), (4, 8)] {
+        let manager = net_content_download_runtime_manager();
+        let download = NetDownloadId::new(22);
+        let manifest = NetDownloadManifest::new(download, "asset://download/last-byte").with_chunk(
+            NetDownloadChunk::new(
+                "chunk-last-byte",
+                "https://cdn.example/chunk",
+                offset,
+                length,
+                zrpack_hash(b"hash"),
+            )
+            .with_resume_from_byte(offset + length - 1),
+        );
+
+        let accepted = manager.queue_manifest(manifest);
+
+        assert_eq!(accepted.status, NetDownloadStatus::Queued);
+        assert_eq!(accepted.total_bytes, length);
+        assert!(accepted.diagnostic.is_none());
+        assert!(manager.progress(download).is_some());
+    }
+}

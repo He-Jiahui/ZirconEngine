@@ -1,0 +1,525 @@
+{
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R002",
+  "owner": "reflection_luna",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "status": "read_only_review_complete",
+  "source_edit_status": "no_source_edits_authorized",
+  "scope_policy": "对象/语句块完整审查仅限 audited_files；context_files 只用于挂载、调用与测试关系证据，reflection_macros 实现留待 R003，不声称已完整审查。",
+  "audited_files": [
+    {
+      "path": "zircon_reflect_derive/src/tests/cases.rs",
+      "before_sha256": "9637d257aa51f5f31387f130a15fe6948c5d2c4da2083d06a4bf7d5e84901bb1",
+      "after_sha256": "9637d257aa51f5f31387f130a15fe6948c5d2c4da2083d06a4bf7d5e84901bb1",
+      "changed": false,
+      "hash_basis": "读审时实际 SHA-256；本批未写入该源文件。",
+      "mount": "zircon_reflect_derive/src/lib.rs:14-16 以 cfg(test) 和 #[path = \"tests/cases.rs\"] 挂载 mod tests。",
+      "module_doc_assessment": "已有 //! 说明：测试直接构造 syn::DeriveInput 并检查 token 展开或诊断；运行时 trait 调用另由 zircon_runtime 覆盖。足以划分本测试层职责。",
+      "fixture_policy": "无外部 fixture。10 个用例通过 syn::parse_quote! 内嵌 DeriveInput；平台位宽整数用例循环构造源码字符串并 syn::parse_str。测试直接调用 crate::derive::derive_zr_reflect_impl，不经过 proc_macro TokenStream 公共入口。",
+      "objects": [
+        {
+          "symbol": "derive_round_trips_reflect_type_info",
+          "lines": "8-49",
+          "fixture": "内嵌 Health struct，容器 component/identity/script_visibility/display_name；字段 identity/alias/editor_hint/readonly。",
+          "assertions": "把生成 TokenStream 转成字符串；检查 ZrReflect impl、Struct、默认 Value、component、无 plugin_owned、Public、remote_visible=false、稳定字段 ID、字段名/alias/提示/readonly editable=false、四种 name/slot 访问方法及 slot 0/1。",
+          "evidence_boundary": "仅断言展开 token 文本 contains；不编译展开代码、不调用生成 trait 方法、不验证运行时 registration round trip。",
+          "doc_assessment": "现有中文摘要精确说明显式元数据进入注册 token 并生成方法；无新增注释理由。"
+        },
+        {
+          "symbol": "derive_rejects_non_canonical_stable_identity_keys",
+          "lines": "53-74",
+          "fixture": "两个内嵌输入分别给 type identity 前导空格、field identity 尾随空格。",
+          "assertions": "两次直接调用展开函数均 expect_err，错误字符串包含 non-empty and already trimmed。",
+          "evidence_boundary": "覆盖错误文案片段，不断言 span、精确诊断或编译器展示。",
+          "doc_assessment": "现有摘要概括类型/字段稳定 identity 拒绝条件；无新增注释理由。"
+        },
+        {
+          "symbol": "derive_rejects_retired_plugin_owned_projection",
+          "lines": "77-92",
+          "fixture": "内嵌 struct 声明未知 plugin_owned 容器键。",
+          "assertions": "展开失败且错误包含 unknown zr_reflect type attribute。",
+          "evidence_boundary": "验证 parser 拒绝未知键，不检验历史插件投影在所有调用链都不存在。",
+          "doc_assessment": "现有摘要说明不重新生成旧投影；断言限定为未知属性错误；无新增注释理由。"
+        },
+        {
+          "symbol": "derive_preserves_enum_shape_without_inventing_fields",
+          "lines": "95-112",
+          "fixture": "带 private visibility 的 GameplayState enum，含 Idle/Running variants。",
+          "assertions": "成功展开；token 字符串包含 Enum、Vec::new 和 Private。",
+          "evidence_boundary": "只检查宏输出保留枚举种类/空普通字段列表；未执行注册。",
+          "doc_assessment": "现有摘要与断言边界一致；无新增注释理由。"
+        },
+        {
+          "symbol": "derive_rejects_conflicting_component_and_resource_flags",
+          "lines": "115-130",
+          "fixture": "同时设置 component 与 resource 的 struct。",
+          "assertions": "展开失败，错误字符串包含 cannot be both a component and a resource。",
+          "evidence_boundary": "检查错误消息片段，不检查 span。",
+          "doc_assessment": "现有摘要直接描述冲突及拒绝阶段；无新增注释理由。"
+        },
+        {
+          "symbol": "derive_rejects_unknown_field_type_without_explicit_value_path",
+          "lines": "133-147",
+          "fixture": "字段类型为未识别的 DomainSpecificValue，未给 value_type_path。",
+          "assertions": "展开失败，错误包含 requires value_type_path。",
+          "evidence_boundary": "只测宏期缺省推断失败；不验证显式路径的运行时值转换。",
+          "doc_assessment": "现有摘要与断言契约一致；无新增注释理由。"
+        },
+        {
+          "symbol": "derive_infers_typed_list_value_paths",
+          "lines": "150-164",
+          "fixture": "Vec<String> 与 Vec<Vec<f32>>。",
+          "assertions": "生成 token 含 List<String> 和 List<List<Scalar>> schema path。",
+          "evidence_boundary": "字符串检查推导结果，不编译字段读取/写入。",
+          "doc_assessment": "现有摘要说明递归嵌套列表推导；无新增注释理由。"
+        },
+        {
+          "symbol": "derive_requires_an_explicit_path_for_unknown_list_elements",
+          "lines": "168-181",
+          "fixture": "Vec<DomainSpecificValue> 且未提供显式 path。",
+          "assertions": "展开失败，错误包含 requires value_type_path。",
+          "evidence_boundary": "只测未知元素不能生成无元素类型 List；不覆盖所有泛型参数形状。",
+          "doc_assessment": "现有摘要准确概述失败条件；无新增注释理由。"
+        },
+        {
+          "symbol": "derive_expands_virtual_fields_through_custom_accessors",
+          "lines": "185-218",
+          "fixture": "LocalTransform 有 skipped 实体成员 transform，容器添加 translation 可写虚拟字段及 rotation readonly 虚拟字段。",
+          "assertions": "token 包含 read_translation(self)、write_translation(self,value)、read_rotation(self)、NonEditableField；且不包含 self.transform。",
+          "evidence_boundary": "检查回调调用 token 和字段过滤，不会编译/调用 callback；不验证 callback 参数/返回签名，签名错误留给生成后的 Rust 编译器。",
+          "doc_assessment": "现有摘要已说明自定义回调与 readonly 虚拟字段；无新增注释理由。"
+        },
+        {
+          "symbol": "derive_rejects_duplicate_reflected_field_names",
+          "lines": "223-245",
+          "fixture": "具名实体 value 和按名同为 value 的 readonly 虚拟字段。",
+          "assertions": "展开失败，错误包含 duplicate reflected field name `value`。",
+          "evidence_boundary": "检查错误文本，不验证 span 或所有重名排列顺序。",
+          "doc_assessment": "现有摘要精确说明共享唯一名称空间；无新增注释理由。"
+        },
+        {
+          "symbol": "derive_requires_explicit_accessors_for_platform_sized_integers",
+          "lines": "249-261",
+          "fixture": "循环用 isize/usize 动态构造 struct 源码，再 parse_str。",
+          "assertions": "两种类型均在未指定 value_type_path 时展开失败，错误包含 requires value_type_path。",
+          "evidence_boundary": "测试名中的 accessors 容易被理解成 read/write 回调；实际测试的是 schema value_type_path 必须显式指定，不测试自定义访问回调。",
+          "doc_assessment": "已有中文摘要正确说明必须显式选择反射值类型路径，已澄清测试名的窄义；无新增注释理由。"
+        }
+      ],
+      "coverage_summary": {
+        "expansion_assertions": "TokenStream::to_string 后用 contains / !contains 断言属性和生成方法片段。",
+        "diagnostics": "错误用 expect_err 并检查错误字符串子串；没有 compile-fail fixture、span 比较或实际 proc_macro 诊断展示。",
+        "runtime_boundary": "本文件不编译生成的实现，也不执行注册、getter/setter 或槽位调用；运行时契约须看独立 runtime tests。"
+      }
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs",
+      "before_sha256": "69447c0b6b87977013f8dc0955f0337a45cc151b6ef08e06cc3c68e5db883161",
+      "after_sha256": "69447c0b6b87977013f8dc0955f0337a45cc151b6ef08e06cc3c68e5db883161",
+      "changed": false,
+      "hash_basis": "读审时实际 SHA-256；本批未写入该源文件。",
+      "mount": "zircon_runtime/src/scene/mod.rs:166-168 cfg(test) 挂载 tests/mod.rs；tests/mod.rs:62-63 挂载 ecs_reflect/mod.rs；ecs_reflect/mod.rs:14 挂载 structure.rs。",
+      "module_doc_assessment": "现有 //! 说明结构守卫锁定 neutral catalog、derived adapter、dense slots。17 个测试函数均有清楚名称/断言失败消息；只有 reflection_hard_cut 前另有一条解释旧 adapter 删除边界的注释。",
+      "test_functions": [
+        {
+          "symbol": "type_registry_publication_uses_the_neutral_schema_catalog",
+          "lines": "4-22",
+          "fixtures": [
+            "../../reflect/type_registry.rs"
+          ],
+          "checks": "从 register 方法文本切片，要求 validate/publish/catalog try_insert 与 runtime registrations insert；不允许 short_paths/field_slots。",
+          "boundary": "源字符串结构检查，不执行 register。",
+          "docs": "名称、失败消息及模块文档说明目的；无逐函数重复注释理由。"
+        },
+        {
+          "symbol": "type_registry_contains_delegates_to_catalog_direct_indexes",
+          "lines": "25-39",
+          "fixtures": [
+            "../../reflect/type_registry.rs"
+          ],
+          "checks": "contains 委托 schema_catalog.contains；禁止 resolve error path 与 short_paths。",
+          "boundary": "文本检查，不测查找语义/性能。",
+          "docs": "已有名称与消息清楚。"
+        },
+        {
+          "symbol": "type_registry_runtime_registration_uses_direct_lookup_before_error_paths",
+          "lines": "42-61",
+          "fixtures": [
+            "../../reflect/type_registry.rs"
+          ],
+          "checks": "完整路径先查 registrations；缺省后 resolve catalog 并查 adapter；不得持有 short/ambiguous 索引。",
+          "boundary": "只核对源码分支形态。",
+          "docs": "已有名称与消息清楚。"
+        },
+        {
+          "symbol": "type_registry_registration_reads_the_catalog_authority",
+          "lines": "64-77",
+          "fixtures": [
+            "../../reflect/type_registry.rs"
+          ],
+          "checks": "registration 从 schema_catalog 读取中立 metadata，不委托 runtime_registration adapter projection。",
+          "boundary": "文本检查，不比较注册对象运行时值。",
+          "docs": "已有名称与消息清楚。"
+        },
+        {
+          "symbol": "type_registry_has_no_second_schema_identity_index",
+          "lines": "80-93",
+          "fixtures": [
+            "../../reflect/type_registry.rs",
+            "../../reflect/mod.rs"
+          ],
+          "checks": "确认 schema_catalog 字段存在、second field/short path indexes 和两个旧 module 声明不存在。",
+          "boundary": "限制在被读取的两个源码文件与固定字符串。",
+          "docs": "已有名称与消息清楚。"
+        },
+        {
+          "symbol": "reflection_conversion_vector_finite_checks_use_direct_loops",
+          "lines": "96-112",
+          "fixtures": [
+            "../../reflect/conversion.rs"
+          ],
+          "checks": "ensure_finite_vector 包含直接 for/finite/error；排除 iter/all/then_some。",
+          "boundary": "文本形状，不执行 NaN/Infinity 输入。",
+          "docs": "名称和失败消息明确。"
+        },
+        {
+          "symbol": "reflection_conversion_scalar_finite_check_uses_direct_branch",
+          "lines": "115-130",
+          "fixtures": [
+            "../../reflect/conversion.rs"
+          ],
+          "checks": "ensure_finite_scalar 对 finite 直接 Ok，非 finite 返回错误；排除 then_some/ok_or_else。",
+          "boundary": "文本形状，不调用转换逻辑。",
+          "docs": "名称和失败消息明确。"
+        },
+        {
+          "symbol": "reflection_json_persistence_stays_folder_backed_and_versioned",
+          "lines": "134-148",
+          "fixtures": [
+            "../../reflect/json_document/mod.rs",
+            "../../reflect/json_document/read.rs",
+            "../../reflect/json_document/write.rs",
+            "../../reflect/json_document/migration.rs"
+          ],
+          "checks": "核对 module migration/schema、versioned load/write marker 和 retired AssetRef migration delegation。",
+          "boundary": "仅检查源码包含的声明/调用，不读写 JSON 或执行迁移。",
+          "docs": "名称和失败消息明确。"
+        },
+        {
+          "symbol": "reflection_hard_cut_removes_the_manual_fixed_adapter_tree",
+          "lines": "154-163",
+          "fixtures": [
+            "../../reflect/mod.rs",
+            "CARGO_MANIFEST_DIR/src/scene/reflect/fixed/mod.rs existence"
+          ],
+          "checks": "固定 adapter 文件不存在且 reflect 根没有 mod fixed。",
+          "boundary": "文件系统/源码结构检查，不验证新 adapter 行为。",
+          "docs": "紧邻已有注释说明 derive + 统一 adapter 是维护入口、阻止旧分支回流；足够。"
+        },
+        {
+          "symbol": "builtin_reflection_registration_uses_derived_adapters_for_plain_components",
+          "lines": "166-193",
+          "fixtures": [
+            "../../reflect/builtin_reflection/registration.rs"
+          ],
+          "checks": "Name、LocalTransform、ActiveSelf、RenderLayerMask、Mobility、CameraComponent、MeshRenderer、各类灯光、RigidBody 使用 derived_component_registration；Hierarchy 与 ActiveInHierarchy 保留显式 adapter。",
+          "boundary": "检查 registration 源包含调用，不验证 registry 实际安装结果。",
+          "docs": "函数名和两条失败说明足够。"
+        },
+        {
+          "symbol": "builtin_reflection_special_adapters_only_enforce_world_owned_invariants",
+          "lines": "196-209",
+          "fixtures": [
+            "../../reflect/builtin_reflection/hierarchy.rs",
+            "../../reflect/builtin_reflection/active_in_hierarchy.rs"
+          ],
+          "checks": "Hierarchy 通过 set_parent_checked，ActiveInHierarchy 读取 world.active_in_hierarchy，且均使用 adapter helper。",
+          "boundary": "只核对这两个源码片段，不证明 invariant 实际执行。",
+          "docs": "函数名及断言信息足够。"
+        },
+        {
+          "symbol": "builtin_component_metadata_is_owned_by_zr_reflect_derives",
+          "lines": "212-299",
+          "fixtures": [
+            "../../components/scene/identity.rs",
+            "../../components/scene/hierarchy.rs",
+            "../../components/scene/transform.rs",
+            "../../components/scene/activation.rs",
+            "../../components/scene/camera.rs",
+            "../../components/scene/mesh_renderer.rs",
+            "../../components/scene/physics.rs",
+            "../../components/scene/lighting.rs",
+            "../../../core/framework/scene/mobility.rs"
+          ],
+          "checks": "局部 helper 要求 type path 在指定 source 恰出现一次；在此前缀找最近 #[derive( 并要求 zircon_reflect_derive::ZrReflect 标记且声明不是 pub struct/enum；额外检查五种灯光类型路径和 mobility/lighting derive token。",
+          "boundary": "词面 substring/前缀搜索，不解析 Rust AST，也不运行 derive；最多证明当前 source text 位置关系。",
+          "docs": "外层测试名/失败消息清楚；内部 assert_component_owner 的文本扫描算法和证明边界不显然，列入待补说明。"
+        },
+        {
+          "symbol": "derived_reflection_helpers_have_owner_scoped_visibility_and_world_lifetimes",
+          "lines": "301-322",
+          "fixtures": [
+            "../../reflect/builtin_reflection/registration.rs",
+            "../../reflect/builtin_reflection/component_support.rs",
+            "../../components/scene/reflection/local_transform.rs",
+            "../../components/scene/reflection/mesh_renderer.rs",
+            "../../components/scene/reflection/rigid_body.rs"
+          ],
+          "checks": "要求 registration 范围可见、component get 返回引用生命周期绑定到 World、相关 accessor 限于 component owner 而非 pub。",
+          "boundary": "检查签名字符串，不做 borrow checker 行为测试。",
+          "docs": "名字/失败消息清楚。"
+        },
+        {
+          "symbol": "derived_component_write_reinserts_through_world_with_direct_error_branches",
+          "lines": "325-342",
+          "fixtures": [
+            "../../reflect/derived/component_adapter.rs"
+          ],
+          "checks": "切片 write_field 到 remove；要求 world.insert 的 Ok/Err 直接分支；排除 map/map_err。",
+          "boundary": "源码形状守卫，不执行组件写入。",
+          "docs": "名字/失败消息清楚。"
+        },
+        {
+          "symbol": "derived_and_dynamic_component_adapters_expose_dense_field_slots",
+          "lines": "344-376",
+          "fixtures": [
+            "../../../../../zircon_runtime_interface/src/reflect/zr_reflect.rs",
+            "../../reflect/reflect_component.rs",
+            "../../reflect/derived/component_adapter.rs",
+            "../../reflect/dynamic_component.rs",
+            "../../reflect/builtin_reflection/hierarchy.rs",
+            "../../reflect/builtin_reflection/active_in_hierarchy.rs",
+            "../../reflect/world_reflection.rs"
+          ],
+          "checks": "跨 trait、component adapters、derived/dynamic/special adapters 和 world facade 检查 slot APIs、slot forwarding、批读取；排除旧 read_fields 投影。",
+          "boundary": "多文件字符串共现检查，不验证 slots 实际排序/读取值。",
+          "docs": "函数名和失败消息足够；模块说明已点出 dense slots。"
+        },
+        {
+          "symbol": "derived_component_registration_constructs_reflection_metadata_once",
+          "lines": "379-408",
+          "fixtures": [
+            "../../reflect/derived/component_adapter.rs"
+          ],
+          "checks": "分别切片默认/custom registration helper，要求 reflect_type_registration()? 文本各出现一次并传给 finish helper。",
+          "boundary": "字符串计数，不运行注册方法。",
+          "docs": "名字和失败消息足够。"
+        },
+        {
+          "symbol": "dynamic_component_bulk_read_is_owned_by_the_dense_world_facade",
+          "lines": "412-426",
+          "fixtures": [
+            "../../reflect/dynamic_component.rs",
+            "../../reflect/world_reflection.rs"
+          ],
+          "checks": "dynamic component 不定义 read_fields；world facade 枚举 fields 产生 slot 并用 read(slot)?；禁止比较 field.name。",
+          "boundary": "源码结构检查，不执行 bulk read。",
+          "docs": "名称和失败消息足够。"
+        }
+      ],
+      "fixture_import_assessment": "测试通过 include_str! 编译期嵌入被检查的源码；reflection_hard_cut 另用 CARGO_MANIFEST_DIR 检查路径存在性。它们不调用被检查函数。"
+    }
+  ],
+  "context_files": [
+    {
+      "path": "zircon_reflect_derive/src/lib.rs",
+      "sha256": "700988240f23c9d388569aeb162b1a55d0d88c24a1eccef79df94a37e0976793",
+      "depth": "mount/context",
+      "evidence": "cfg(test) path 挂载 audited derive cases.rs；R001 entry source，仅作 mount 证据。"
+    },
+    {
+      "path": "zircon_runtime/src/scene/mod.rs",
+      "sha256": "eb9f55d7dcb7a73c5f48b8eb6d1e43773f31c85db55d992c6bfda6f5dd4141d4",
+      "depth": "mount/context",
+      "evidence": "166-168 cfg(test) 挂载 scene/tests/mod.rs。"
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/mod.rs",
+      "sha256": "ddd19264efe3b3467b4787474522c6d635e083e9ff0ebe55da584bd077797d5c",
+      "depth": "mount/context",
+      "evidence": "62-63 挂载 ecs_reflect/mod.rs。"
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/mod.rs",
+      "sha256": "ffb12bee8ec1b7684f702573482af47506b83b8fc8254458ca48bc3434dbabb8",
+      "depth": "mount/context",
+      "evidence": "line 14 declares structure module."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/Cargo.toml",
+      "sha256": "dac6e34f66c103214035cb0efdb8ebf2578a01c3d5b099694b05b382a9f5c276",
+      "depth": "context_only",
+      "evidence": "proc-macro crate type and proc_macro2/quote/syn dependencies."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/lib.rs",
+      "sha256": "a4788f762e3ed05274c26dbe3892eb896c94a5bd9764614bab452991b54a13f6",
+      "depth": "entry_only",
+      "evidence": "Exports derive ZirconScriptType and attributes zircon_host_function/zircon_host_module; parse inputs, delegate to derive_type/function/module helpers, turn syn::Error into compile_error; cfg(test) mounts cases.rs."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/attrs.rs",
+      "sha256": "c78afc2b526b6e00ee131f69107ad847d1090549ad3a2684cae1f1b4faf75a78",
+      "depth": "context_only_not_audited",
+      "evidence": "Declaration inventory only; reserve full object/block audit for R003."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/args.rs",
+      "sha256": "5f4caefd6688290478ea8093533a207dbc093bac30e6869e99da058a6bdf43bc",
+      "depth": "context_only_not_audited",
+      "evidence": "Declaration inventory only; reserve full object/block audit for R003."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/derive_type.rs",
+      "sha256": "84d6e1450a700445e5a1e068a875632e0b4633770624c8fcf590d8a92e6796e1",
+      "depth": "context_only_not_audited",
+      "evidence": "Declaration inventory only; reserve full object/block audit for R003."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/function.rs",
+      "sha256": "d5adab3ced932f9a338923a4736e28d69cb182a0ac8a0f8c33cb60b06590a7e6",
+      "depth": "context_only_not_audited",
+      "evidence": "Declaration inventory only; reserve full object/block audit for R003."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/module.rs",
+      "sha256": "77ee67fc89eda911748531ff7a2d52bf6bd651e477e7c40cbef17a24efdca9f3",
+      "depth": "context_only_not_audited",
+      "evidence": "Declaration inventory only; reserve full object/block audit for R003."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/tokens.rs",
+      "sha256": "a0fdbe07543bbf8a9236a2408dcaec640e25687e17fae0aadc105bd72e3464ce",
+      "depth": "context_only_not_audited",
+      "evidence": "Declaration inventory only; reserve full object/block audit for R003."
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/tests/cases.rs",
+      "sha256": "578beccb8f4a2d5e9747c993dc01a5b0e5c876616e493b42ce64f15a4eee3804",
+      "depth": "related_tests_context_only",
+      "evidence": "Read for relationship context: cfg(test) entry mounts 12 functions, direct expansion tests and message-substring error tests; not an R002 audited object or a complete R003 review."
+    },
+    {
+      "path": "zircon_runtime/Cargo.toml",
+      "sha256": "9bd81600c618a38c95fc7211d54ee299e03d70cf74560917ce4c9acf0534ad0b",
+      "depth": "dependency_context",
+      "evidence": "Path dependency on zircon_runtime_reflection_macros."
+    },
+    {
+      "path": "zircon_runtime/src/lib.rs",
+      "sha256": "0dec0ee6e7ebd0280a1f04653e1aa1026d754bc08dc1c7d5e91f69d5243ed774",
+      "depth": "reexport_context",
+      "evidence": "Reexports zircon_host_function, zircon_host_module and ZirconScriptType."
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/mod.rs",
+      "sha256": "7895dab6ce7eb40601ad3b631b3047c20cc4267995140419dd44002aa7bb1609",
+      "depth": "mount_context",
+      "evidence": "cfg(test) path mounts vm/tests/cases.rs."
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/tests/cases.rs",
+      "sha256": "f9cd00b555d6dc82f3582de3aae2176ae295f14e0c2f5dc21c50e3aa93dda422",
+      "depth": "mount_context",
+      "evidence": "cfg(test) path mounts reflection_docs.rs; imports runtime script descriptors, host registry, capability helpers."
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/tests/reflection_docs.rs",
+      "sha256": "324cf4a7bab6c172d55df7d3dd59d64c6910b8d9f9bf7d43b28abba1b8f36f18",
+      "depth": "relevant_test_context_only",
+      "evidence": "Read lines 366 onward: builtin generated math docs test and rust_reflection_macros_generate_type_function_and_module_descriptors integration test; not full file audit."
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/host/builtin_host_modules.rs",
+      "sha256": "2d13c1bf04ce3ea33a8d0eba539881c78e45f971af238620d4d613b748b875c6",
+      "depth": "call_site_context_only",
+      "evidence": "Sampled math module: ZirconScriptType for Vec3/ColorRgba, host-function attributes for vec3_length/dot, generated descriptors consumed by host module registration."
+    }
+  ],
+  "test_mounts": [
+    {
+      "test_tree": "zircon_reflect_derive/src/tests/cases.rs",
+      "chain": [
+        "zircon_reflect_derive/src/lib.rs:14-16 cfg(test) path",
+        "direct internal helper calls, not public proc_macro TokenStream entry"
+      ]
+    },
+    {
+      "test_tree": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs",
+      "chain": [
+        "zircon_runtime/src/scene/mod.rs:166-168 cfg(test) module",
+        "zircon_runtime/src/scene/tests/mod.rs:62-63 ecs_reflect",
+        "zircon_runtime/src/scene/tests/ecs_reflect/mod.rs:14 structure"
+      ]
+    },
+    {
+      "test_tree": "reflection_macros internal unit tests",
+      "chain": [
+        "reflection_macros/src/lib.rs:17-19 cfg(test) path to src/tests/cases.rs",
+        "context only; R003 owns full review"
+      ]
+    },
+    {
+      "test_tree": "VM reflection macro integration tests",
+      "chain": [
+        "zircon_runtime/src/script/vm/mod.rs:29-31 cfg(test) tests module",
+        "zircon_runtime/src/script/vm/tests/cases.rs:59-61 cfg(test) path to reflection_docs.rs"
+      ]
+    }
+  ],
+  "macro_context": {
+    "distinct_macro_family": "zircon_reflect_derive::ZrReflect and zircon_runtime_reflection_macros::ZirconScriptType/host attributes are separate derive/attribute macro crates and traits; do not merge their contracts.",
+    "entry_flow": [
+      "Cargo declares zircon_runtime_reflection_macros as a proc-macro crate; zircon_runtime depends on it by path and reexports three macro names.",
+      "reflection_macros/src/lib.rs parses DeriveInput or attribute+ItemFn/ItemMod, delegates to implementation helpers, then maps syn::Error to compile_error tokens.",
+      "builtin_host_modules.rs samples derived Vec3/ColorRgba descriptors and annotated vec3_length/vec3_dot host functions.",
+      "VM integration test rust_reflection_macros_generate_type_function_and_module_descriptors declares inline derive/host-module/host-function fixtures, checks generated descriptors, registers module, then calls double with capability and expects Float(5.0)."
+    ],
+    "related_test_evidence": [
+      "reflection_macros/src/tests/cases.rs function list includes one source-pattern guard, eight negative-case test functions (async/generic/method/destructured parameter/non-inline module/generic type/union/identity split over cases), and metadata/type/function/module token expansion tests; error assertions inspect message substrings, not spans.",
+      "reflection_docs.rs:366 host_reflection_docs_include_macro_generated_builtin_math_module checks rendered built-in math types/functions/docs; :392 integration fixture checks derived type and enum descriptors, host module/function descriptors, module registration and invocation."
+    ],
+    "depth_limit": "The runtime macro entry and related tests are supporting evidence only. Macro implementation files were inventoried, not fully audited. R003 is required for their complete object/block review."
+  },
+  "evidence_boundaries": [
+    "No Cargo build or tests were run; all listed test results are assertions read from source, not claims that this session executed them.",
+    "derive cases exercise derive_zr_reflect_impl directly; textual token assertions do not prove generated output compiles, callback signatures resolve, or runtime methods behave.",
+    "derive diagnostic assertions check message substrings, not proc-macro span locations, rendered compiler output, or exact error text.",
+    "structure.rs is static architecture guarding: include_str!/split/contains checks and one file-existence test. It does not invoke the inspected registry/conversion/adapter functions.",
+    "VM reflection_docs.rs contains a real compiled macro-use integration fixture and runtime call assertion, but this review only read it; no test was executed.",
+    "Reflection macro implementation and its test suite are context for the R003 handoff, not complete R002 coverage."
+  ],
+  "comment_intents": [
+    {
+      "id": "pending-main-allocation",
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs",
+      "location": "module docs immediately after line 1",
+      "intent": "考虑补充一句：本文件通过 include_str!/文件存在性检查守护源码结构，不执行被检查函数；运行时行为由行为测试另行覆盖。该说明能界定 17 项结构断言的证明范围，避免把字符串匹配读成语义验证。",
+      "evidence": "17 个测试大多读取 source 字符串、split 方法区间并 contains/排除 token；hard-cut 用 Path.exists + reflect/mod 文本。"
+    },
+    {
+      "id": "pending-main-allocation",
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs",
+      "location": "builtin_component_metadata_is_owned_by_zr_reflect_derives 内部 helper assert_component_owner 前",
+      "intent": "考虑解释该 helper 以 type-path 子串、最近的 #[derive( 前缀做词面归属检查，不解析 AST；对证据边界的说明有价值。",
+      "evidence": "lines 213-233 使用 find/matches/rfind 与字符串切片定位，断言 derives 内容和非 pub 声明。"
+    }
+  ],
+  "no_additional_comments": [
+    {
+      "path": "zircon_reflect_derive/src/tests/cases.rs",
+      "reason": "模块文档区分 token expansion/diagnostic 与 runtime 层；11 个测试函数均有准确中文摘要，未见需要逐项重复的参数、fixture或错误契约。"
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs test functions",
+      "reason": "函数名及断言失败消息已为单项 guard 提供主题；除上列共性静态证据边界和嵌套 helper 外，逐函数加摘要会复述名称或 assertion。"
+    }
+  ],
+  "issues": [],
+  "validation": {
+    "files_read": "两份 audited_files 全文已读；context file 读取深度如 context_files.depth 所示。",
+    "format_or_tests": "未运行；R002 是只读源码注释审查，没有源码差异或验证请求。",
+    "ownership": "仅写 R002.json 记录获准；任何源码修改仍需单独归属和授权。"
+  }
+}
+

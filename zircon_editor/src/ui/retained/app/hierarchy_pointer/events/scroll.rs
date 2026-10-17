@@ -9,7 +9,13 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
-        (match self.prepare_hierarchy_pointer_target(width, height, true) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
+        (match self.prepare_hierarchy_pointer_target(width, height, true) {
+            Ok(value) => value,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        });
         let dispatch = self
             .hierarchy_pointer_bridge
             .handle_scroll(UiPoint::new(x, y), delta);

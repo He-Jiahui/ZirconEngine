@@ -14,7 +14,7 @@ use gilrs::ff::{
 use zircon_runtime::diagnostic_log::write_warn;
 #[cfg(feature = "gamepad-gilrs")]
 use zircon_runtime_interface::ZrRuntimeGamepadRumbleRequestKindV1;
-use zircon_runtime_interface::ZrRuntimeGamepadRumbleRequestV1;
+use zircon_runtime_interface::ZrRuntimeGamepadRumbleRequestV2;
 
 use super::super::RuntimeEntryApp;
 use super::events::gamepad_id;
@@ -40,8 +40,11 @@ impl RuntimeEntryApp {
     #[cfg(feature = "gamepad-gilrs")]
     pub(in crate::entry::runtime_entry_app) fn apply_runtime_gamepad_rumble_request(
         &mut self,
-        request: ZrRuntimeGamepadRumbleRequestV1,
+        request: ZrRuntimeGamepadRumbleRequestV2,
     ) -> Result<(), &'static str> {
+        // RuntimeEntryApp owns this producer and the backend on the same event-loop call.
+        // Validate the enqueue stamp before lookup, Add creation or Stop mutation.
+        admit_rumble_generation(&self.gamepad_producer, &request)?;
         let Some(gamepads) = self.gamepads.as_mut() else {
             return Err("runtime_gamepad_rumble_gilrs_unavailable");
         };
@@ -96,10 +99,27 @@ impl RuntimeEntryApp {
     #[cfg(not(feature = "gamepad-gilrs"))]
     pub(in crate::entry::runtime_entry_app) fn apply_runtime_gamepad_rumble_request(
         &mut self,
-        _request: ZrRuntimeGamepadRumbleRequestV1,
+        _request: ZrRuntimeGamepadRumbleRequestV2,
     ) -> Result<(), &'static str> {
         Err("runtime_gamepad_rumble_feature_disabled")
     }
+}
+
+#[cfg(feature = "gamepad-gilrs")]
+fn admit_rumble_generation(
+    producer: &super::producer::GamepadProducer,
+    request: &ZrRuntimeGamepadRumbleRequestV2,
+) -> Result<(), &'static str> {
+    let current = producer
+        .capture_sample(request.gamepad_id)
+        .ok_or("runtime_gamepad_rumble_connection_closed")?;
+    if request.generation < current.generation {
+        return Err("runtime_gamepad_rumble_stale_generation");
+    }
+    if request.generation > current.generation {
+        return Err("runtime_gamepad_rumble_future_generation");
+    }
+    Ok(())
 }
 
 #[cfg(feature = "gamepad-gilrs")]

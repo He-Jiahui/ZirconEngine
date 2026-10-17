@@ -1,3 +1,7 @@
+//! 将测量缓存与容器策略落实为节点矩形，并在同轮上下文记录访问和几何变化。
+//! 递归安排按层借出临时存储，在正常返回或 Result 错误返回后归还；先前树写入不会因此回滚。
+//! 裁剪沿祖先输入传播，布局内边距只缩小子节点内容区，节点缓存仍保存外壳矩形。
+
 use crate::ui::layout::plan_scrollable_virtual_window;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
@@ -29,6 +33,20 @@ use super::slot::{slot_for_container_child, slot_padding, UiLayoutSlotIndex};
 use super::taffy_arrange::try_arrange_taffy_owned_children;
 use super::workspace::UiLinearArrangeScratch;
 
+/// 安排一个节点及本次需要更新的后代；不占布局空间的节点转为清空子树几何。
+///
+/// # 参数
+/// - `tree`、`node_id`：本轮可变树与入口节点，子节点关系和槽位策略从同一树读取。
+/// - `frame`、`inherited_clip`：节点外壳矩形与祖先裁剪；子节点内容区另扣布局内边距。
+/// - `slot_index`：保留的槽位索引与临时存储；`engine_context` 决定增量复用及记录范围。
+///
+/// # 返回与约束
+/// 返回递归安排结果；成功也可表示满足增量几何复用条件而提前结束。
+/// 父节点缓存与 dirty 状态先于子节点安排写入，后续错误不撤销这些写入。
+/// 此处沿用各容器的数值处理，不承担统一的有限值或完整拓扑验证。
+///
+/// # 参考
+/// 裁剪传播见相邻 `clip` 模块，复用判定见 `engine` 模块。
 pub(crate) fn arrange_node(
     tree: &mut UiTree,
     node_id: UiNodeId,
@@ -140,6 +158,7 @@ pub(crate) fn arrange_node(
         child_scratch.children.extend_from_slice(&ordered_children);
     }
 
+    // 将递归的 Result 留到归还当前层缓冲之后再传播；这只是存储回收边界，不是布局事务。
     let arrange_result = (|| -> Result<(), UiTreeError> {
         let children = child_scratch.children.as_slice();
         match container {
@@ -352,6 +371,18 @@ pub(crate) fn arrange_node(
     Ok(())
 }
 
+/// 在纯根尺寸变化时，只重新安排依赖父尺寸的直接子节点。
+///
+/// # 参数
+/// 树、根节点、外壳矩形及两份上下文与通用递归入口相同；调用方须已同步尺寸依赖索引。
+///
+/// # 返回与约束
+/// 增量调用方只对无父节点的根使用此入口。可占位、无裁剪且子项独立定位的容器才走快捷路径，
+/// 其他情况回到通用安排；快捷路径将根裁剪设为无裁剪，并先更新根缓存再访问依赖子项。
+/// 返回该路径的安排结果；子项错误不撤销已更新的根几何，临时子项列表仍会归还。
+///
+/// # 参考
+/// 调用与索引同步时机见相邻 `incremental` 模块。
 pub(crate) fn arrange_resized_root(
     tree: &mut UiTree,
     node_id: UiNodeId,
@@ -443,6 +474,8 @@ fn add_layout_padding(size: UiSize, padding: UiMargin) -> UiSize {
     )
 }
 
+/// 在内容区内先做可选的居中等比适配，再按自由布局规则安排各子项。
+/// 比例无效或内容区宽高非正时沿用原矩形；子项的槽位策略仍交给子矩形计算处理。
 fn arrange_size_box_children(
     tree: &mut UiTree,
     parent_id: UiNodeId,
@@ -472,6 +505,9 @@ fn arrange_size_box_children(
     Ok(())
 }
 
+/// 按输入顺序纵向堆叠占位子项；不占位子树清空几何，随后继续处理下一项。
+/// 主轴游标使用期望高度与槽位内边距，横向内容范围使用期望宽度与槽位内边距。
+/// 全部子项成功后才更新父内容尺寸；这不撤销此前已安排的子项。
 fn arrange_block_children(
     tree: &mut UiTree,
     parent_id: UiNodeId,
@@ -534,6 +570,7 @@ fn arrange_block_children(
     Ok(())
 }
 
+// 有效正比例在给定内容区内居中 contain；只检查比例有限性，不在此验证整个矩形。
 fn size_box_content_frame(frame: UiFrame, aspect_ratio: f32) -> UiFrame {
     let Some(aspect_ratio) = normalized_aspect_ratio(aspect_ratio) else {
         return frame;
@@ -568,6 +605,8 @@ fn normalized_aspect_ratio(aspect_ratio: f32) -> Option<f32> {
         .filter(|ratio| *ratio > 0.0)
 }
 
+/// 以安排所用顺序收集占位子项的期望尺寸，再按当前内容宽度重新计算换行内容范围。
+/// 调用方列表会先清空、后复用容量；该计算不合并子项锚点或位置造成的实际外溢。
 fn wrap_content_size(
     tree: &UiTree,
     parent_id: UiNodeId,
@@ -597,6 +636,9 @@ fn wrap_content_size(
     ))
 }
 
+/// 先一次求解主轴外尺寸，再按同序号结果定位子项；间隙只插在两个占位项之间。
+/// `linear_scratch` 由当前递归层独占，子项递归另取自己的存储；解析结果不借给后代。
+/// 父内容尺寸在循环成功后更新，主轴取游标、交叉轴取占位项期望尺寸的最大值。
 fn arrange_linear_children(
     tree: &mut UiTree,
     parent_id: UiNodeId,
@@ -687,6 +729,12 @@ fn arrange_linear_children(
     Ok(())
 }
 
+/// 优先使用物化投影；无投影时按直接子项数量和已有内容尺寸规划滚动窗口。
+/// 普通路径按树顺序流式计算位置，窗口外子树清空几何；不占位项不推进游标或间隙计数。
+///
+/// # 返回与约束
+/// 直接子项存在性会在递归修改子树之前统一检查，但 owner 的滚动状态与窗口缓存已先写入。
+/// 后代错误仍可发生，不提供整段安排的原子回滚；物化路径有独立的逻辑索引定位规则。
 fn arrange_scrollable_children(
     tree: &mut UiTree,
     node_id: UiNodeId,
@@ -807,6 +855,8 @@ fn arrange_scrollable_children(
     Ok(())
 }
 
+/// 预检当前直接子项均存在，返回首个缺失子项的错误；不递归检查后代或验证完整拓扑。
+/// 这里只借读树，供滚动路径在首次修改子树前完成检查；调用前的 owner 写入不属于回滚保证。
 pub(super) fn validate_scrollable_children(
     tree: &UiTree,
     children: &[UiNodeId],
@@ -819,6 +869,9 @@ pub(super) fn validate_scrollable_children(
     Ok(())
 }
 
+/// 复用当前层的行列表，把占位子项按内容宽度依次分行并递归安排。
+/// 仅当已有行加入下一项会超宽时换行，首个超宽项仍独占该行；行高取该行外尺寸最大值。
+/// 行列表是本次计算的暂存，不是发布结果；错误可能留下此前行已写入的几何。
 fn arrange_wrap_children(
     tree: &mut UiTree,
     parent_id: UiNodeId,
@@ -947,6 +1000,7 @@ fn block_child_outer_height(
     Ok((node.layout_cache.desired_size.height + slot_padding(slot).vertical()).max(0.0))
 }
 
+// 行高已经由收集阶段决定；每项保留自己的外宽，行内间隙不再次计入该宽度。
 fn arrange_wrap_row(
     tree: &mut UiTree,
     parent_id: UiNodeId,
@@ -992,6 +1046,9 @@ fn arrange_wrap_row(
     Ok(())
 }
 
+/// 以可复用的显式栈将子树的 frame 清零、clip_frame 清除，并逐项记录几何变化。
+/// 增量上下文允许对无需访问且已为零几何的入口提前结束；不会同时清空期望尺寸或所有 dirty 位。
+/// 缺失后代时返回错误并归还栈，已清空的节点保持当前状态；此入口不做整棵子树的预检。
 pub(super) fn hide_subtree_layout(
     tree: &mut UiTree,
     node_id: UiNodeId,

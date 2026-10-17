@@ -263,7 +263,26 @@ impl ExclusiveTransition<'_> {
             self.restore_context(context, false);
             return Err(error);
         }
-        let selection_before = context.selection_snapshot();
+        // This rollback snapshot is transient, but still belongs to the real
+        // domain's finite staging allowance before its first Arc allocation.
+        let selection_retention = match super::super::retention::RootRetentionV1::new(
+            &self.engine.retention_domain,
+            0,
+            0,
+        ) {
+            Ok(owner) => owner,
+            Err(error) => {
+                self.restore_context(context, false);
+                return Err(error.into());
+            }
+        };
+        let selection_before = match selection_retention.capture_selection_v1(context.as_ref()) {
+            Ok(selection) => selection,
+            Err(error) => {
+                self.restore_context(context, false);
+                return Err(error);
+            }
+        };
         let Some(typed_context) = context.as_any_mut().downcast_mut::<T>() else {
             self.restore_context(context, false);
             return Err(EditCommandError::ContextTypeMismatch {

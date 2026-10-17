@@ -3,6 +3,7 @@ use std::time::Duration;
 use crate::core::framework::time::{ProductTimePolicy, ProductTimeProfile, TimePolicy};
 
 /// Runtime-owned product presets for the neutral time-policy contract.
+/// 产品角色到默认时间配置的无状态选择器；实际采纳由会话或宿主完成。
 pub struct ProductTimePolicies;
 
 impl ProductTimePolicies {
@@ -25,11 +26,14 @@ impl ProductTimePolicies {
 }
 
 /// Canonical BLAKE3 digest for a versioned product time-policy value.
+/// 保存策略值的 BLAKE3 摘要，不借用原策略，也不构成策略已验证或已应用的证明。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ProductTimePolicyDigest([u8; blake3::OUT_LEN]);
 
 impl ProductTimePolicyDigest {
     /// Hashes every policy field in a fixed little-endian representation.
+    /// 对 `policy` 的版本、角色、时钟值及预算按固定字段顺序编码并散列，不执行值域校验。
+    /// 时长分别编码秒与纳秒；倍率只统一正负零，其余位模式保留，不能据摘要推断配置有效。
     pub fn from_policy(policy: ProductTimePolicy) -> Self {
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"zircon.product-time-policy");
@@ -43,6 +47,7 @@ impl ProductTimePolicyDigest {
         Self(*hasher.finalize().as_bytes())
     }
 
+    /// 借用本摘要的固定长度字节；借用期受 `self` 限制，不返回策略或活动 Runtime 的引用。
     pub const fn as_bytes(&self) -> &[u8; blake3::OUT_LEN] {
         &self.0
     }

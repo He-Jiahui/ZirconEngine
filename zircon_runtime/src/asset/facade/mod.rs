@@ -13,6 +13,7 @@ mod handle;
 mod impls;
 #[path = "load_state.rs"]
 mod load_state;
+#[cfg(any(feature = "native-host", feature = "cooked-assets"))]
 #[path = "manager.rs"]
 mod manager;
 #[path = "readiness.rs"]

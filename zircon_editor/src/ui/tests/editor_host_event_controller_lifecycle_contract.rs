@@ -33,8 +33,8 @@ use crate::ui::workbench::state::EditorState;
 use zircon_runtime::plugin::PluginEventConsumerManifest;
 
 use super::{
-    emit_play_backend_diagnostics, play_backend_log_source, EditorHostEventController,
-    EditorError, EditorManager,
+    emit_play_backend_diagnostics, play_backend_log_source, EditorError, EditorHostEventController,
+    EditorManager,
 };
 
 unsafe extern "C" fn release_test_allocation(
@@ -780,8 +780,7 @@ fn controller_original_generation_rejects_after_real_module_reactivation_without
         UVec2::new(1280, 720),
         Arc::clone(&context),
     );
-    let original =
-        crate::tests::support::register_test_editor_manager(&core, Arc::clone(&manager));
+    let original = crate::tests::support::register_test_editor_manager(&core, Arc::clone(&manager));
     let controller = EditorHostEventController::new(state, original)
         .expect("the controller should capture the registered manager generation");
     let captured = controller.editor_manager_handle();

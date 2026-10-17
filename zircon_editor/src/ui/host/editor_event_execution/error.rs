@@ -13,6 +13,31 @@ use crate::ui::workbench::state::{EditorStateOperationError, EditorViewportState
 
 use super::super::editor_host_event_controller::EditorTerminalPlayDetachError;
 
+impl EditorEventExecutionError {
+    pub(crate) fn persisted_scene_receipt(
+        &self,
+    ) -> Option<&zircon_runtime::scene::world::ScenePublicationReceipt> {
+        match self {
+            Self::Menu(
+                MenuActionExecutionError::PersistedProjectionFailed { receipt, .. }
+                | MenuActionExecutionError::PersistedCheckpointFailed { receipt, .. },
+            ) => Some(receipt),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn is_scene_source_conflict(&self) -> bool {
+        matches!(
+            self,
+            Self::Menu(MenuActionExecutionError::Editor(
+                EditorError::SceneProject {
+                    source: zircon_runtime::scene::world::SceneProjectError::SourceConflict { .. }
+                }
+            ))
+        )
+    }
+}
+
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum AssetKindFilterError {
     #[error("unknown asset kind filter `{value}`")]
@@ -50,6 +75,19 @@ pub enum AssetEventExecutionError {
 
 #[derive(Debug, Error)]
 pub enum MenuActionExecutionError {
+    #[error("scene source was persisted, but {phase} failed; local history remains dirty")]
+    PersistedProjectionFailed {
+        receipt: Box<zircon_runtime::scene::world::ScenePublicationReceipt>,
+        phase: &'static str,
+    },
+    #[error(
+        "scene source was persisted, but its clean checkpoint could not be advanced: {source}"
+    )]
+    PersistedCheckpointFailed {
+        receipt: Box<zircon_runtime::scene::world::ScenePublicationReceipt>,
+        #[source]
+        source: EditCommandError,
+    },
     #[error("project save {phase} failed: {source}")]
     Transaction {
         phase: &'static str,

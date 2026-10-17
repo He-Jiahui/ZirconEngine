@@ -14,6 +14,7 @@ pub struct ZrRuntimeDigestV1(String);
 
 impl ZrRuntimeDigestV1 {
     /// 构建集清单、产物摘要和组合回执共用规范 SHA-256 文本；这里只校验 64 位小写十六进制，不代替对输入字节求哈希。
+    /// 这里的长度是 64 个字符，对应 256 位摘要；本方法不执行哈希，也不验证来源。
     pub fn parse(value: impl Into<String>) -> Result<Self, ZrRuntimeIdentityFormatError> {
         let value = value.into();
         let is_lowercase_hex = value.len() == 64
@@ -29,6 +30,7 @@ impl ZrRuntimeDigestV1 {
         Ok(Self(value))
     }
 
+    /// 对当前内存中的输入字节求 SHA-256；摘要值拥有自己的规范小写文本。
     pub fn sha256(bytes: impl AsRef<[u8]>) -> Self {
         let mut hasher = Sha256::new();
         hasher.update(bytes.as_ref());
@@ -36,6 +38,7 @@ impl ZrRuntimeDigestV1 {
     }
 
     /// Hashes a potentially large identity source without retaining it in memory.
+    /// 以固定 64 KiB 缓冲流式计算摘要，不把完整身份源保留在内存中。
     pub fn sha256_reader(mut reader: impl Read) -> io::Result<Self> {
         let mut hasher = Sha256::new();
         let mut buffer = vec![0_u8; STREAM_HASH_BUFFER_BYTES];
@@ -49,6 +52,7 @@ impl ZrRuntimeDigestV1 {
         Ok(Self(format!("{:x}", hasher.finalize())))
     }
 
+    /// 借用规范摘要文本；调用方不能通过该引用修改身份。
     pub fn as_str(&self) -> &str {
         &self.0
     }

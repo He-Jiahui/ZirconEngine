@@ -1,32 +1,26 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_native_live_host_registration_replay_uses_typed_error() {
-    let registration_replay = include_str!(
-        "../../../../plugin/loader/live/registration_replay.rs"
-    );
-    let registration_replay_error = include_str!(
-        "../../../../plugin/loader/live/registration_replay/error.rs"
-    );
-    let live_host_root =
-        include_str!("../../../../plugin/loader/live.rs");
-    let registration_replay_tests = include_str!(
-        "../../../../plugin/loader/live/tests/registration_replay.rs"
-    );
-    let native_boundary =
+    let registration_replay = include_str!("../../../../plugin/loader/live/registration_replay.rs");
+    let registration_replay_error =
+        include_str!("../../../../plugin/loader/live/registration_replay/error.rs");
+    let live_host_root = include_str!("../../../../plugin/loader/live.rs");
+    let registration_replay_tests =
+        include_str!("../../../../plugin/loader/live/tests/registration_replay.rs");
+    let _native_boundary =
         include_str!("../../../../../../docs/architecture/native-plugin-boundary.md");
-    let review_findings = include_str!(
+    let _review_findings = include_str!(
         "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
     );
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
-    let module_convention = include_str!(
-        "../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
-    );
+    let _module_convention =
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
     for required in [
         "type NativePluginRegistrationReplayResult<T>",

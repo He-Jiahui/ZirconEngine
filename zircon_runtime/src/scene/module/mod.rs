@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::asset::{AssetManager, AssetUri, ASSET_MODULE_NAME};
+use crate::asset::ASSET_MODULE_NAME;
+#[cfg(feature = "native-host")]
+use crate::asset::{AssetManager, AssetUri};
 use crate::core::framework::scene::{LevelManager, SCENE_MODULE_NAME};
 use crate::core::runtime::modules::TIME_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
@@ -20,8 +22,10 @@ mod level_display_name;
 mod level_manager_contract;
 #[path = "level_manager_lifecycle.rs"]
 mod level_manager_lifecycle;
+#[cfg(feature = "native-host")]
 #[path = "level_manager_project_io.rs"]
 mod level_manager_project_io;
+#[cfg(feature = "native-host")]
 #[path = "scene_artifact_io.rs"]
 mod scene_artifact_io;
 #[path = "world_driver.rs"]
@@ -122,6 +126,7 @@ pub fn prepare_level(
     Ok(PreparedLevel::new(manager, level))
 }
 
+#[cfg(feature = "native-host")]
 pub fn load_level_asset(
     core: &CoreHandle,
     asset_manager: &dyn AssetManager,

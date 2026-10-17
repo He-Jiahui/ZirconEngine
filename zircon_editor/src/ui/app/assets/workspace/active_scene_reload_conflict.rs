@@ -16,6 +16,7 @@ const ACTIVE_SCENE_RELOAD_KEEP_EDITING_OPTION: &str = "keep_editing";
 pub(in crate::ui::retained_host::app) struct ActiveSceneReloadConflict {
     pub(super) identity: ActiveSceneDocumentIdentity,
     pub(super) generation: ProjectAssetGenerationToken,
+    pub(super) observed_revision: zircon_runtime::scene::world::SceneSourceRevision,
     pub(super) state: ActiveSceneReloadConflictState,
 }
 
@@ -47,10 +48,12 @@ impl ActiveSceneReloadConflict {
     pub(super) fn awaiting_decision(
         identity: ActiveSceneDocumentIdentity,
         generation: ProjectAssetGenerationToken,
+        observed_revision: zircon_runtime::scene::world::SceneSourceRevision,
     ) -> Self {
         Self {
             identity,
             generation,
+            observed_revision,
             state: ActiveSceneReloadConflictState::awaiting_decision(),
         }
     }
@@ -182,12 +185,15 @@ impl RetainedEditorHost {
         &mut self,
         identity: ActiveSceneDocumentIdentity,
         generation: ProjectAssetGenerationToken,
+        observed_revision: zircon_runtime::scene::world::SceneSourceRevision,
     ) {
         if let Some(previous) = self.active_scene_reload_conflict.take() {
             self.dismiss_active_scene_reload_conflict_decision(&previous);
         }
         self.active_scene_reload_conflict = Some(ActiveSceneReloadConflict::awaiting_decision(
-            identity, generation,
+            identity,
+            generation,
+            observed_revision,
         ));
         self.reconcile_active_scene_reload_conflict();
     }
@@ -196,6 +202,7 @@ impl RetainedEditorHost {
         &mut self,
         identity: ActiveSceneDocumentIdentity,
         generation: ProjectAssetGenerationToken,
+        observed_revision: zircon_runtime::scene::world::SceneSourceRevision,
     ) {
         if {
             match self
@@ -213,7 +220,7 @@ impl RetainedEditorHost {
         .as_ref()
             == Some(&identity)
         {
-            self.install_active_scene_reload_conflict(identity, generation);
+            self.install_active_scene_reload_conflict(identity, generation, observed_revision);
         }
     }
 
@@ -392,7 +399,11 @@ impl RetainedEditorHost {
     }
 
     fn save_active_scene_reload_conflict(&mut self, mut conflict: ActiveSceneReloadConflict) {
-        match self.save_project_scene() {
+        let lease = crate::core::document::OverwriteLease::for_observed_source(
+            conflict.identity.clone(),
+            conflict.observed_revision.clone(),
+        );
+        match self.save_project_scene_with_overwrite(lease) {
             Ok(()) => match self.dirty_project_scene_token() {
                 Ok(None)
                     if {
@@ -410,7 +421,7 @@ impl RetainedEditorHost {
                         }
                     }
                     .as_ref()
-                        == Some(&conflict.identity) =>
+                    .is_some_and(|identity| identity.same_activation(&conflict.identity)) =>
                 {
                     self.queue_active_scene_reload_retry();
                     self.set_status_line(
@@ -433,9 +444,26 @@ impl RetainedEditorHost {
                 }
             },
             Err(error) => {
-                conflict.state = ActiveSceneReloadConflictState::awaiting_decision();
-                self.active_scene_reload_conflict = Some(conflict);
-                self.set_status_line(format!("The active scene could not be saved: {error}"));
+                if error.persisted {
+                    self.dismiss_active_scene_reload_conflict_decision(&conflict);
+                    self.queue_active_scene_reload_retry();
+                    self.set_status_line(error.message);
+                } else if error.source_conflict {
+                    self.dismiss_active_scene_reload_conflict_decision(&conflict);
+                    // The consumed B decision cannot authorize C. Prepare another real source load.
+                    self.queue_active_scene_reload_retry();
+                    self.set_status_line(
+                        "The scene source changed again; review the new reload decision."
+                            .to_owned(),
+                    );
+                } else {
+                    conflict.state = ActiveSceneReloadConflictState::awaiting_decision();
+                    self.active_scene_reload_conflict = Some(conflict);
+                    self.set_status_line(format!(
+                        "The active scene could not be saved: {}",
+                        error.message
+                    ));
+                }
             }
         }
     }

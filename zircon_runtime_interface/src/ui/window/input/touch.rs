@@ -6,11 +6,16 @@ use crate::ui::{
     surface::{UiPointerButton, UiPointerEventKind},
 };
 
+/// 触摸生命周期在规范化时映射为主按钮指针事件；不携带压力或手势状态。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum UiWindowTouchPhase {
+    /// 开始接触，对应主按钮按下。
     Started,
+    /// 接触点移动，对应指针移动。
     Moved,
+    /// 接触结束，对应主按钮抬起。
     Ended,
+    /// 接触被取消，对应指针取消。
     Canceled,
 }
 

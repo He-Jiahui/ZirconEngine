@@ -190,21 +190,50 @@ impl EditorState {
         let document = self
             .active_scene_document
             .ok_or(GizmoTransactionError::SceneDocumentNotActive)?;
-        let selected = self
-            .viewport_controller
-            .selection()
-            .active_items()
-            .iter()
-            .copied()
-            .collect::<Vec<_>>();
+        let selected = self.viewport_controller.selection().active_items();
+        let (model, budget) = self.transactions().retention_configuration_v1();
+        let (retained, peak) = self
+            .world
+            .with_world(|scene| {
+                InteractiveTransformSession::retention_projection_v1(
+                    scene,
+                    selected,
+                    model,
+                    budget.record_bytes,
+                )
+            })?
+            .ok_or(GizmoTransactionError::NoProjectOpen)?
+            .map_err(|source| GizmoTransactionError::EditCommand {
+                phase: GizmoTransactionPhase::MutationPreflight,
+                source,
+            })?;
+        // No world/document guard survives into the shared ledger reservation.
+        let history = crate::core::editing::engine::HistoryContextId::Document(document);
+        let reservation = self
+            .transactions()
+            .reserve_preview_retention_v1(history, retained, peak)
+            .map_err(|source| GizmoTransactionError::EditCommand {
+                phase: GizmoTransactionPhase::MutationPreflight,
+                source,
+            })?;
         let session = self
             .world
             .with_world(|scene| {
-                InteractiveTransformSession::begin(
-                    scene, &selected, primary, spec, pivot_mode, document,
+                InteractiveTransformSession::begin_reserved_v1(
+                    scene,
+                    selected,
+                    primary,
+                    spec,
+                    pivot_mode,
+                    document,
+                    reservation,
                 )
             })?
-            .ok_or(GizmoTransactionError::NoProjectOpen)??;
+            .ok_or(GizmoTransactionError::NoProjectOpen)?
+            .map_err(|source| GizmoTransactionError::EditCommand {
+                phase: GizmoTransactionPhase::MutationPreflight,
+                source,
+            })?;
         self.interactive_transform = Some(session);
         Ok(true)
     }

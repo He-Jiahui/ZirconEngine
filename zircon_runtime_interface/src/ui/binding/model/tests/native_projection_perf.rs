@@ -1,8 +1,14 @@
+//! 事件绑定单缓冲投影与历史拼接实现的结果比较。
+//!
+//! 普通测试检查带动作和无动作文本相等；显式忽略的微基准测量局部投影，
+//! 不注册 Runtime 处理器，也不证明事件已被派发。
+
 use std::{hint::black_box, time::Instant};
 
 use super::UiEventBinding;
 use crate::ui::binding::model::{UiBindingCall, UiBindingValue, UiEventKind, UiEventPath};
 
+/// 构造含较长数组参数的拥有型夹具，供两种文本生成路径复用。
 fn sample_binding() -> UiEventBinding {
     let values = (0..256)
         .map(|index| UiBindingValue::String(format!("value-{index:03}-{}", "x".repeat(96))))
@@ -17,6 +23,7 @@ fn sample_binding() -> UiEventBinding {
     )
 }
 
+/// 历史多字符串拼接比较实现；无动作分支只保留路径。
 fn native_binding_allocating(binding: &UiEventBinding) -> String {
     let prefix = binding.path.native_prefix();
     match &binding.action {
@@ -25,6 +32,7 @@ fn native_binding_allocating(binding: &UiEventBinding) -> String {
     }
 }
 
+/// 只断言两种投影方式在带动作与无动作夹具上的文本相同。
 #[test]
 fn single_buffer_event_binding_preserves_action_and_actionless_output() {
     let binding = sample_binding();
@@ -41,6 +49,7 @@ fn single_buffer_event_binding_preserves_action_and_actionless_output() {
     );
 }
 
+/// 显式忽略的局部投影微基准；交替测量顺序并比较采样分位值，不代表生产调用验收。
 #[test]
 #[ignore = "release-only single-buffer event binding projection benchmark"]
 fn runtime_interface03_batch39_single_buffer_event_binding_release_benchmark() {

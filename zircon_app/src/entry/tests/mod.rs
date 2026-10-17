@@ -10,6 +10,7 @@ mod product_composition;
 mod product_host_config;
 #[path = "profile_bootstrap.rs"]
 mod profile_bootstrap;
+pub(in crate::entry) use profile_bootstrap::IsolatedConfigFile;
 #[path = "runtime_entry_device_guards/mod.rs"]
 mod runtime_entry_device_guards;
 #[path = "runtime_entry_input_guards/mod.rs"]

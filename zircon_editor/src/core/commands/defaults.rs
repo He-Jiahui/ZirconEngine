@@ -43,6 +43,12 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
             .with_palette_visible(false)
             .with_callable_from_remote(false),
     );
+    commands.push(
+        EditorCommandDescriptor::operation(path("inspector.component.add"))
+            .with_category(EditorCommandCategory::Edit)
+            .with_palette_visible(false)
+            .with_callable_from_remote(false),
+    );
     commands.push(command(
         "help.workbench.guide",
         EditorCommandCategory::Help,
@@ -59,7 +65,7 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     commands
 }
 
-const DEFAULT_WORKBENCH_COMMAND_CAPACITY: usize = 68;
+const DEFAULT_WORKBENCH_COMMAND_CAPACITY: usize = 69;
 
 fn append_animation_asset_toolkit_open_operations(commands: &mut Vec<EditorCommandDescriptor>) {
     for operation in [

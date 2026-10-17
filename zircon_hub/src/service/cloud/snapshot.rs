@@ -1,11 +1,11 @@
-use super::{BlobStore, Manifest, authorization::authorize, quota::MAX_REVISIONS};
+use super::{authorization::authorize, quota::MAX_REVISIONS, BlobStore, Manifest};
 use crate::service::{
     error::ServiceError,
-    identity::{Principal, now_seconds},
+    identity::{now_seconds, Principal},
     organization,
     storage::receipt,
 };
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Deserialize)]

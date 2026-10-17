@@ -83,3 +83,15 @@ pub use render_manifest::{
     RENDER_ARTIFACT_MANIFEST_SCHEMA_VERSION, RENDER_ARTIFACT_STATIC_MESH_FORMAT_V1,
 };
 pub use store::ArtifactStore;
+
+#[path = "raw.rs"]
+mod raw;
+pub use raw::{
+    read_raw_asset, write_raw_asset, RawAssetCatalog, RawAssetCatalogEntry, RawAssetError,
+    RawSceneCatalogEntry, RAW_ASSET_MAX_BYTES, RAW_CATALOG_MAX_BYTES,
+};
+
+#[cfg(feature = "native-host")]
+mod web_bundle;
+#[cfg(feature = "native-host")]
+pub use web_bundle::{WebBundleError, WebBundleWriter, WEBGPU_ASSET_TARGET};

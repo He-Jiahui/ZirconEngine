@@ -1,34 +1,29 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f4_render_submit_capability_gaps_return_typed_errors() {
-    let viewport_guard = include_str!(
-        "../../../../graphics/runtime/framework/extract/viewport_generate_guard.rs"
-    );
-    let prepare_runtime_submission = include_str!(
-        "../../../../graphics/extract/prepare_runtime_submission/prepare.rs"
-    );
-    let submit_frame_extract = include_str!(
-        "../../../../graphics/runtime/framework/extract/submit/submit.rs"
-    );
-    let submit_runtime_frame = include_str!(
-        "../../../../graphics/runtime/extract/submit/submit_runtime_frame.rs"
-    );
-    let present_frame_extract = include_str!(
-        "../../../../graphics/runtime/extract/submit/present_frame_extract.rs"
-    );
+    let viewport_guard =
+        include_str!("../../../../graphics/runtime/framework/extract/viewport_generate_guard.rs");
+    let prepare_runtime_submission =
+        include_str!("../../../../graphics/extract/prepare_runtime_submission/prepare.rs");
+    let submit_frame_extract =
+        include_str!("../../../../graphics/runtime/framework/extract/submit/submit.rs");
+    let submit_runtime_frame =
+        include_str!("../../../../graphics/runtime/extract/submit/submit_runtime_frame.rs");
+    let present_frame_extract =
+        include_str!("../../../../graphics/runtime/extract/submit/present_frame_extract.rs");
     let review_findings = concat!(
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
-    let runtime_07_plan = include_str!(
+    let _runtime_07_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let render_index = include_str!("../../../../../../docs/plans/zircon_runtime/render/index.md");
-    let convention =
+    let _render_index = include_str!("../../../../../../docs/plans/zircon_runtime/render/index.md");
+    let _convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let advanced_doc = include_str!(
+    let _advanced_doc = include_str!(
         "../../../../../../docs/crates/zircon_runtime/core/framework/render/advanced.md"
     );
 

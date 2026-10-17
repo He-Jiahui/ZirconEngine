@@ -101,12 +101,21 @@ impl GeneratedBottomPane {
         }
         // The default startup subset remains unchanged. Only the actual visible pane loads this closure.
         let asset_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
+        let body_relative = zircon_runtime::asset::AssetRelativePath::parse(
+            "ui/editor/host/generated_bottom_body.zui",
+        )
+        .map_err(|error| unavailable(pane_id, format!("invalid Generated body path: {error}")))?;
         let physical = zircon_runtime::asset::runtime_asset_path_with_dev_asset_root(
-            "/assets/ui/editor/host/generated_bottom_body.zui",
+            &body_relative,
             &asset_root,
         );
+        let theme_relative =
+            zircon_runtime::asset::AssetRelativePath::parse("ui/theme/editor_workbench_strict.zui")
+                .map_err(|error| {
+                    unavailable(pane_id, format!("invalid Generated theme path: {error}"))
+                })?;
         let theme = zircon_runtime::asset::runtime_asset_path_with_dev_asset_root(
-            "/assets/ui/theme/editor_workbench_strict.zui",
+            &theme_relative,
             &asset_root,
         );
         let outcome = v2_template_file_cache()

@@ -127,8 +127,12 @@ impl UiHostWindowEventLoop {
             .is_some_and(|presenter| presenter.normal_capture_redraw_requested());
         if capture_requested {
             capture_trace::record("capture_demand", || {
-                format!("owner={:#x} cursor={capture_cursor:?} pending={:?} retry={:?}",
-                    self.host.state.as_ptr() as usize, self.pending_redraw, self.pending_surface_present_retry)
+                format!(
+                    "owner={:#x} cursor={capture_cursor:?} pending={:?} retry={:?}",
+                    self.host.state.as_ptr() as usize,
+                    self.pending_redraw,
+                    self.pending_surface_present_retry
+                )
             });
         }
         self.host
@@ -157,7 +161,10 @@ impl UiHostWindowEventLoop {
         }
         if self.host.take_background_event_wake() {
             capture_trace::record("idle_background_wake_consumed", || {
-                format!("owner={:#x} capture_requested={capture_requested}", self.host.state.as_ptr() as usize)
+                format!(
+                    "owner={:#x} capture_requested={capture_requested}",
+                    self.host.state.as_ptr() as usize
+                )
             });
             self.host.request_maintenance_frame_update();
         }
@@ -174,7 +181,11 @@ impl UiHostWindowEventLoop {
         let maintenance_frame_due = self.host.take_due_maintenance_frame_wake(now);
         let input_timer_frame_due = self.host.take_due_input_timer_frame_wake(now);
         let lifecycle_frame_due = self.host.take_due_lifecycle_frame_wake(now);
-        if runtime_frame_due || maintenance_frame_due || input_timer_frame_due || lifecycle_frame_due {
+        if runtime_frame_due
+            || maintenance_frame_due
+            || input_timer_frame_due
+            || lifecycle_frame_due
+        {
             capture_trace::record("due_wakes", || {
                 format!("owner={:#x} capture_requested={capture_requested} runtime={runtime_frame_due} maintenance={maintenance_frame_due} input_timer={input_timer_frame_due} lifecycle={lifecycle_frame_due} pending={:?}",
                     self.host.state.as_ptr() as usize, self.pending_redraw)

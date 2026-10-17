@@ -224,6 +224,11 @@ impl SessionGuard {
         Ok(durability)
     }
 
+    /// Verifies the retained OS lease and current record without changing either one.
+    pub(crate) fn validate_ownership(&self) -> Result<(), SessionGuardError> {
+        self.ensure_owned()
+    }
+
     fn ensure_owned(&self) -> Result<(), SessionGuardError> {
         if self.released
             || self.ownership.is_none()

@@ -1,7 +1,7 @@
 //! 文档 grapheme 查询和索引更新的运行时 profile 计数。
 //! 计数器名称集中在固定数组中，因为各 helper 通过位置索引调用 profile 宏。
 
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 const TEXT_DOCUMENT_GRAPHEME_PROFILE_COUNTER_NAMES: [&str; 12] = [
     "text_document_grapheme_query_count",

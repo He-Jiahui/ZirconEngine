@@ -25,7 +25,7 @@ fn reliable(events: usize, bytes: usize) -> EngineEventDeliveryPolicy {
 fn rejected_fanout_returns_owned_event_without_admitting_an_unfilled_peer() {
     let bus = EventBus::default();
     let full = bus.subscribe("admission.test", reliable(1, 4096)).unwrap();
-    bus.try_publish(event(1)).unwrap();
+    let _ = bus.try_publish(event(1)).unwrap();
     let peer = bus.subscribe("admission.test", reliable(4, 4096)).unwrap();
     let expected = event(2);
     let rejected = bus.try_publish(expected.clone()).unwrap_err();
@@ -45,7 +45,7 @@ fn rejected_fanout_returns_owned_event_without_admitting_an_unfilled_peer() {
 fn received_clones_stay_charged_after_unsubscribe_until_the_last_clone_drops() {
     let bus = EventBus::default();
     let sub = bus.subscribe("admission.test", reliable(1, 4096)).unwrap();
-    bus.try_publish(event(1)).unwrap();
+    let _ = bus.try_publish(event(1)).unwrap();
     let received = sub.recv().unwrap();
     let copy = received.clone();
     assert_eq!(bus.retention_snapshot().retained_events, 1);
@@ -64,11 +64,12 @@ fn exact_frozen_buffers_do_not_retain_spare_producer_string_capacity() {
     let sub = bus.subscribe("admission.test", reliable(2, 4096)).unwrap();
     let mut huge = String::with_capacity(1024 * 1024);
     huge.push('x');
-    bus.try_publish(EngineEvent {
-        topic: "admission.test".into(),
-        payload: serde_json::Value::String(huge),
-    })
-    .unwrap();
+    let _ = bus
+        .try_publish(EngineEvent {
+            topic: "admission.test".into(),
+            payload: serde_json::Value::String(huge),
+        })
+        .unwrap();
     let received = sub.recv().unwrap();
     assert_eq!(received.retained_bytes(), "admission.test".len() + 3);
     assert_eq!(
@@ -85,7 +86,7 @@ fn byte_pressure_is_independent_of_event_count_and_preserves_queue_on_oversize()
     let sub = bus
         .subscribe("admission.test", reliable(10, bytes))
         .unwrap();
-    bus.try_publish(event(1)).unwrap();
+    let _ = bus.try_publish(event(1)).unwrap();
     assert!(bus.try_publish(event(2)).is_err());
     assert_eq!(sub.recv().unwrap().decode_payload().unwrap()["n"], 1);
     let lossy = bus
@@ -97,7 +98,7 @@ fn byte_pressure_is_independent_of_event_count_and_preserves_queue_on_oversize()
         )
         .unwrap();
     drop(sub);
-    bus.try_publish(event(3)).unwrap();
+    let _ = bus.try_publish(event(3)).unwrap();
     let too_large = EngineEvent {
         topic: "admission.test".into(),
         payload: serde_json::json!({"blob":"x".repeat(100)}),
@@ -117,14 +118,14 @@ fn latest_replaces_only_queued_deliveries_and_reports_every_displacement() {
             },
         )
         .unwrap();
-    bus.try_publish(event(1)).unwrap();
+    let _ = bus.try_publish(event(1)).unwrap();
     let receipt = bus.try_publish(event(2)).unwrap();
     assert_eq!(receipt.replaced_events, 1);
     assert_eq!(receipt.subscribers, 1);
     let held = sub.recv().unwrap();
     let rejected = bus.try_publish(event(3)).unwrap_err();
     drop(held);
-    bus.try_publish(rejected.event).unwrap();
+    let _ = bus.try_publish(rejected.event).unwrap();
     assert_eq!(sub.recv().unwrap().decode_payload().unwrap()["n"], 3);
 }
 
@@ -136,7 +137,7 @@ fn no_subscriber_and_closed_rejections_preserve_the_input_and_close_is_idempoten
     assert_eq!(rejected.reason, EngineEventPublishRejection::NoSubscribers);
     assert_eq!(rejected.event, input);
     let sub = bus.subscribe("admission.test", reliable(4, 4096)).unwrap();
-    bus.try_publish(event(2)).unwrap();
+    let _ = bus.try_publish(event(2)).unwrap();
     let first = bus.close_admission();
     assert_eq!(first.drained_events, 1);
     assert_eq!(bus.close_admission().drained_events, 0);
@@ -163,7 +164,7 @@ fn mandatory_global_and_topic_limits_work_with_disabled_diagnostics() {
         }
         let bus = EventBus::with_limits(EventBusDiagnosticsMode::Disabled, limits);
         let sub = bus.subscribe("admission.test", reliable(10, 4096)).unwrap();
-        bus.try_publish(event(1)).unwrap();
+        let _ = bus.try_publish(event(1)).unwrap();
         assert!(bus.try_publish(event(2)).is_err());
         assert_eq!(bus.retention_snapshot().retained_events, 1);
         assert_eq!(bus.diagnostic_report().published, 0);
@@ -177,7 +178,7 @@ fn frozen_payload_is_shared_across_fanout_while_each_retention_lease_is_charged(
     let bus = EventBus::default();
     let a = bus.subscribe("admission.test", reliable(4, 4096)).unwrap();
     let b = bus.subscribe("admission.test", reliable(4, 4096)).unwrap();
-    bus.try_publish(event(1)).unwrap();
+    let _ = bus.try_publish(event(1)).unwrap();
     let av = a.recv().unwrap();
     let bv = b.recv().unwrap();
     assert!(av.shares_payload_with(&bv));
@@ -205,7 +206,7 @@ fn drop_oldest_can_displace_multiple_queued_events_for_one_larger_payload() {
         )
         .unwrap();
     for n in 0..3 {
-        bus.try_publish(event(n)).unwrap();
+        let _ = bus.try_publish(event(n)).unwrap();
     }
     let receipt = bus
         .try_publish(EngineEvent {
@@ -234,10 +235,10 @@ fn drop_oldest_can_displace_multiple_queued_events_for_one_larger_payload() {
 fn received_handle_survives_close_and_its_clone_releases_bytes_once() {
     let bus = EventBus::default();
     let sub = bus.subscribe("admission.test", reliable(4, 4096)).unwrap();
-    bus.try_publish(event(1)).unwrap();
+    let _ = bus.try_publish(event(1)).unwrap();
     let retained = sub.recv().unwrap();
     let clone = retained.clone();
-    bus.close_admission();
+    let _ = bus.close_admission();
     assert_eq!(bus.retention_snapshot().retained_events, 1);
     assert_eq!(retained.decode_payload().unwrap()["n"], 1);
     drop(retained);
@@ -278,7 +279,7 @@ fn registry_limits_and_payload_limit_return_typed_rejections() {
 fn poisoned_after_queue_mutation_fails_closed_without_new_admission() {
     let bus = EventBus::default();
     let sub = bus.subscribe("admission.test", reliable(4, 4096)).unwrap();
-    bus.try_publish(event(1)).unwrap();
+    let _ = bus.try_publish(event(1)).unwrap();
     let subscriber = bus
         .state
         .topic("admission.test")
@@ -318,7 +319,7 @@ fn close_race_preserves_successful_or_owned_rejected_publication_and_wakes_recei
             publisher.try_publish(event(1))
         });
         barrier.wait();
-        bus.close_admission();
+        let _ = bus.close_admission();
         match work.join().unwrap() {
             Ok(receipt) => assert_eq!(receipt.subscribers, 1),
             Err(rejected) => {
@@ -372,7 +373,7 @@ fn close_wakes_a_receiver_already_blocked_on_the_condition_variable() {
         );
         std::thread::yield_now();
     }
-    bus.close_admission();
+    let _ = bus.close_admission();
     assert!(matches!(
         result
             .recv_timeout(std::time::Duration::from_secs(5))
@@ -400,7 +401,7 @@ fn global_and_topic_byte_pressure_reject_all_peers_without_eviction() {
         let b = bus
             .subscribe("admission.test", reliable(100, 4096))
             .unwrap();
-        bus.try_publish(event(1)).unwrap();
+        let _ = bus.try_publish(event(1)).unwrap();
         let rejected = bus.try_publish(event(2)).unwrap_err();
         assert_eq!(
             rejected.reason,
@@ -417,7 +418,7 @@ fn global_and_topic_byte_pressure_reject_all_peers_without_eviction() {
         assert_eq!(a.recv().unwrap().decode_payload().unwrap()["n"], 1);
         assert_eq!(b.recv().unwrap().decode_payload().unwrap()["n"], 1);
         assert_eq!(bus.retention_snapshot().retained_bytes, 0);
-        bus.try_publish(rejected.event).unwrap();
+        let _ = bus.try_publish(rejected.event).unwrap();
     }
 }
 

@@ -12,12 +12,13 @@ import {
 } from './metadata';
 import {
   guardedPathContent,
-  isGeneratedPath,
+  normalizedIconPathContent,
+  parseIconPathContent,
   PATH_NUMBER,
 } from './penpot-icon-path-content';
 
 const EXPORT_GUARD = 'export-shapes-guard';
-const EXPORT_GUARD_VERSION = 5;
+const EXPORT_GUARD_VERSION = 6;
 const ICON_PATH_NUMERIC_TOLERANCE = 0.0001;
 type ShapeGuard = Record<string, unknown>;
 
@@ -173,25 +174,18 @@ function equivalentGeneratedIconPathContent(
     typeof after !== 'string'
   )
     return false;
-  if (
-    !isGeneratedPath(shape) ||
-    before.replace(PATH_NUMBER, '#') !== after.replace(PATH_NUMBER, '#')
-  )
-    return false;
-  const left = [...before.matchAll(PATH_NUMBER)].map(([value]) =>
-    Number(value),
-  );
-  const right = [...after.matchAll(PATH_NUMBER)].map(([value]) =>
-    Number(value),
-  );
+  if (normalizedIconPathContent(shape) === undefined) return false;
+  const left = parseIconPathContent(before);
+  const right = parseIconPathContent(after);
   return (
-    left.length > 0 &&
-    left.length === right.length &&
-    left.every(
+    left !== undefined &&
+    right !== undefined &&
+    left.skeleton === right.skeleton &&
+    left.coordinates.length === right.coordinates.length &&
+    left.coordinates.every(
       (value, index) =>
-        Number.isFinite(value) &&
-        Number.isFinite(right[index]) &&
-        Math.abs(value - right[index]) <= ICON_PATH_NUMERIC_TOLERANCE,
+        Math.abs(value - right.coordinates[index]!) <=
+        ICON_PATH_NUMERIC_TOLERANCE,
     )
   );
 }

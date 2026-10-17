@@ -1,3 +1,4 @@
+//! 模块与插件回调上下文；普通回访使用弱句柄，停止清理另用受限的借用能力。
 #[path = "module_cleanup_context.rs"]
 mod module_cleanup_context;
 #[path = "module_context.rs"]

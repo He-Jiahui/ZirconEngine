@@ -252,8 +252,7 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
         include_str!("../../../core/runtime/tasks/bounded_stream_io/tests/cases.rs");
     let retained_byte_budget_tests =
         include_str!("../../../core/runtime/tasks/retained_byte_budget/tests/cases.rs");
-    let dynamic_scene_spawn_tests =
-        include_str!("../../../scene/dynamic/spawn_task/loader.rs");
+    let dynamic_scene_spawn_tests = include_str!("../../../scene/dynamic/spawn_task/loader.rs");
     let level_manager_project_io_tests =
         include_str!("../../../scene/module/level_manager_project_io.rs");
     assert_sources_contain_all(

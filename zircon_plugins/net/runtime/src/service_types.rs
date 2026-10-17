@@ -89,6 +89,13 @@ impl DefaultNetManager {
         NetRouteId::new(self.state.next_route_id.fetch_add(1, Ordering::Relaxed) + 1)
     }
 
+    pub(in crate::service_types) fn admit_event(
+        &self,
+        build_event: impl FnOnce() -> Result<NetEvent, NetError>,
+    ) -> Result<(), NetError> {
+        self.state.try_admit_event(build_event)
+    }
+
     #[cfg(test)]
     pub(crate) fn shutdown_worker_for_tests(&self) -> crate::worker::NetWorkerShutdownReport {
         self.state.shutdown_worker_for_tests()

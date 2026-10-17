@@ -4,8 +4,8 @@ use std::io::{Read, Take};
 use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use zircon_runtime_interface::runtime_build_set::{
     ZrRuntimeArtifactIdentityV1, ZrRuntimeArtifactManifestV1, ZrRuntimeBuildModeV1,
     ZrRuntimeBuildSetExpectationV1, ZrRuntimeDigestV1, ZrRuntimeTargetModelV1,

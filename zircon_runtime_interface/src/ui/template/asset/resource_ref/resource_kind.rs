@@ -12,6 +12,14 @@ pub enum UiResourceKind {
 
 impl UiResourceKind {
     /// 先按资源声明所在字段路径推断，找不到已知类别时才看 URI 后缀；这里只分类，不访问资源存储。
+    ///
+    /// # 参数与返回
+    /// `path` 是声明字段的位置标签；只有路径没有类别时才借用 `uri` 推断后缀，返回粗资源种类。
+    /// # 调用与约束
+    /// 收集资源声明时调用，借用只持续到返回；分类不解析 URI、不访问存储，也不证明文件可用。
+    /// 路径分类得到 GenericAsset 也会直接返回，不再用 URI 后缀细化。
+    /// # 参考
+    /// [声明验证](super::value::UiResourceRef::validate) 是独立步骤，分类结果不能代替验证。
     pub fn infer_from_path_and_uri(path: &str, uri: &str) -> Self {
         infer_from_path(path).unwrap_or_else(|| infer_from_uri_extension(uri))
     }
@@ -55,6 +63,7 @@ fn infer_from_path_name(name: &str) -> Option<UiResourceKind> {
     }
 }
 
+// 仅识别列出的相邻字段组合；字段拆段不执行文件路径规范化。
 fn infer_from_path_pair(left: &str, right: &str) -> Option<UiResourceKind> {
     if left.eq_ignore_ascii_case("font") && right.eq_ignore_ascii_case("asset") {
         Some(UiResourceKind::Font)
@@ -113,12 +122,14 @@ fn infer_from_uri_extension(uri: &str) -> UiResourceKind {
     }
 }
 
+// 先守卫字节长度再借用尾部比较，切片不依赖 UTF-8 字符边界。
 fn ends_with_ascii_case(value: &str, suffix: &str) -> bool {
     let value = value.as_bytes();
     value.len() >= suffix.len()
         && value[value.len() - suffix.len()..].eq_ignore_ascii_case(suffix.as_bytes())
 }
 
+// 直属测试同时保留普通语义比较和 ignored 计时入口；二者有各自的执行条件。
 #[cfg(test)]
 #[path = "tests/perf.rs"]
 mod performance_tests;

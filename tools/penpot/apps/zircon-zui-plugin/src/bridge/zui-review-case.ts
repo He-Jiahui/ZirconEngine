@@ -399,6 +399,7 @@ const AUTHORED_POPUP_COMPONENTS = new Set([
   'Dropdown',
   'DropdownPopup',
   'Select',
+  'PopupMenu',
 ]);
 
 function authoredPopupNodes(document: ZuiDocument): ZuiNode[] {
@@ -407,6 +408,7 @@ function authoredPopupNodes(document: ZuiDocument): ZuiNode[] {
 
 function isAuthoredPopupNode(node: ZuiNode): boolean {
   if (!AUTHORED_POPUP_COMPONENTS.has(node.component)) return false;
+  if (node.component === 'PopupMenu') return true;
   const props = node.props ?? {};
   return ['open', 'popup_open'].some((key) => typeof props[key] === 'boolean');
 }
@@ -418,9 +420,14 @@ function applyAuthoredPopupReviewState(
   targets?: readonly ZuiNode[],
 ): boolean {
   if (!['open', 'closed', 'focus-return'].includes(state)) return false;
-  const nodes = targets
+  let nodes = targets
     ? targets.filter(isAuthoredPopupNode)
     : authoredPopupNodes(document);
+  if (!targets) {
+    const popupMenus = nodes.filter((node) => node.component === 'PopupMenu');
+    if (popupMenus.length > 1) return false;
+    if (popupMenus.length === 1) nodes = popupMenus;
+  }
   if (!nodes.length) return false;
   for (const node of nodes) {
     if (state === 'focus-return')
@@ -472,12 +479,10 @@ function focusInvokingPopupAnchor(
   )
     throw new Error('Workbench focus return popup has no authored source identity');
 
+  // UiPopupAnchor resolves a unique control in the whole mounted surface.
+  // The invoking control can belong to a sibling component of the popup.
   const matches = Object.values(document.nodes ?? {}).filter(
-    (node) =>
-      node.control_id === controlId &&
-      (!hasSourceIdentity ||
-        (node['penpot_review_source_path'] === sourcePath &&
-          node['penpot_review_instance_path'] === instancePath)),
+    (node) => node.control_id === controlId,
   );
   if (matches.length !== 1)
     throw new Error(

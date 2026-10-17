@@ -119,30 +119,34 @@ impl World {
         property: CompiledCameraProperty,
         value: ScenePropertyValue,
     ) -> SceneResult<bool> {
-        let changed = {
-            let Some(camera) = self.get_mut::<CameraComponent>(target.entity()) else {
-                return Err(SceneError::MissingRequiredComponent {
-                    operation: "write compiled camera property",
-                    entity: target.entity(),
-                    component: "Camera",
-                });
-            };
-            let next = Self::compiled_property_expect_scalar(value, &target.property_path)?;
-            let current = match property {
-                CompiledCameraProperty::FovYRadians => &mut camera.fov_y_radians,
-                CompiledCameraProperty::ZNear => &mut camera.z_near,
-                CompiledCameraProperty::ZFar => &mut camera.z_far,
-            };
-            if *current == next {
-                return Ok(false);
-            }
-            *current = next;
-            true
+        let missing_component = || SceneError::MissingRequiredComponent {
+            operation: "write compiled camera property",
+            entity: target.entity(),
+            component: "Camera",
         };
-        if changed {
-            self.mark_node_cache_dirty();
+        let camera = self
+            .get::<CameraComponent>(target.entity())
+            .ok_or_else(missing_component)?;
+        let next = Self::compiled_property_expect_scalar(value, &target.property_path)?;
+        let current = match property {
+            CompiledCameraProperty::FovYRadians => camera.fov_y_radians,
+            CompiledCameraProperty::ZNear => camera.z_near,
+            CompiledCameraProperty::ZFar => camera.z_far,
+        };
+        if current == next {
+            return Ok(false);
         }
-        Ok(changed)
+
+        let camera = self
+            .get_mut::<CameraComponent>(target.entity())
+            .ok_or_else(missing_component)?;
+        match property {
+            CompiledCameraProperty::FovYRadians => camera.fov_y_radians = next,
+            CompiledCameraProperty::ZNear => camera.z_near = next,
+            CompiledCameraProperty::ZFar => camera.z_far = next,
+        }
+        self.mark_node_cache_dirty();
+        Ok(true)
     }
 
     fn write_compiled_mesh_renderer_property(
@@ -151,52 +155,72 @@ impl World {
         property: CompiledMeshRendererProperty,
         value: ScenePropertyValue,
     ) -> SceneResult<bool> {
+        let missing_component = || SceneError::MissingRequiredComponent {
+            operation: "write compiled mesh renderer property",
+            entity: target.entity(),
+            component: "MeshRenderer",
+        };
         let changed = {
-            let Some(mesh) = self.get_mut::<MeshRenderer>(target.entity()) else {
-                return Err(SceneError::MissingRequiredComponent {
-                    operation: "write compiled mesh renderer property",
-                    entity: target.entity(),
-                    component: "MeshRenderer",
-                });
-            };
+            let mesh = self
+                .get::<MeshRenderer>(target.entity())
+                .ok_or_else(missing_component)?;
             match property {
                 CompiledMeshRendererProperty::RenderQueue => {
                     let next = Self::compiled_property_expect_i32(value, &target.property_path)?;
                     if mesh.render_queue == next {
                         return Ok(false);
                     }
-                    mesh.render_queue = next;
+                    self.get_mut::<MeshRenderer>(target.entity())
+                        .ok_or_else(missing_component)?
+                        .render_queue = next;
                 }
                 CompiledMeshRendererProperty::MaterialQueue => {
                     let next = Self::compiled_property_expect_i32(value, &target.property_path)?;
                     if mesh.material_queue == next {
                         return Ok(false);
                     }
-                    mesh.material_queue = next;
+                    self.get_mut::<MeshRenderer>(target.entity())
+                        .ok_or_else(missing_component)?
+                        .material_queue = next;
                 }
                 CompiledMeshRendererProperty::OrderInLayer => {
                     let next = Self::compiled_property_expect_i32(value, &target.property_path)?;
                     if mesh.order_in_layer == next {
                         return Ok(false);
                     }
-                    mesh.order_in_layer = next;
+                    self.get_mut::<MeshRenderer>(target.entity())
+                        .ok_or_else(missing_component)?
+                        .order_in_layer = next;
                 }
                 CompiledMeshRendererProperty::DepthBias => {
                     let next = Self::compiled_property_expect_scalar(value, &target.property_path)?;
                     if mesh.depth_bias == next {
                         return Ok(false);
                     }
-                    mesh.depth_bias = next;
+                    self.get_mut::<MeshRenderer>(target.entity())
+                        .ok_or_else(missing_component)?
+                        .depth_bias = next;
                 }
                 CompiledMeshRendererProperty::MorphWeight(index) => {
                     let next = Self::compiled_property_expect_scalar(value, &target.property_path)?;
-                    let resized = if mesh.morph_weights.len() <= index {
-                        let required_len = index.checked_add(1).ok_or_else(|| {
+                    if mesh.morph_weights.get(index).copied() == Some(next) {
+                        return Ok(false);
+                    }
+                    let required_len = if mesh.morph_weights.len() <= index {
+                        Some(index.checked_add(1).ok_or_else(|| {
                             SceneError::InvalidPropertyIndex {
                                 property_path: target.property_path.to_string(),
                                 index_kind: "morph weight index",
                             }
-                        })?;
+                        })?)
+                    } else {
+                        None
+                    };
+                    let mesh = self
+                        .get_mut::<MeshRenderer>(target.entity())
+                        .ok_or_else(missing_component)?;
+                    if let Some(required_len) = required_len {
+                        // Reserve stays in place; allocation failure retains get_mut's effects.
                         mesh.morph_weights
                             .try_reserve_exact(required_len - mesh.morph_weights.len())
                             .map_err(|_| SceneError::InvalidPropertyIndex {
@@ -204,12 +228,6 @@ impl World {
                                 index_kind: "morph weight index",
                             })?;
                         mesh.morph_weights.resize(required_len, 0.0);
-                        true
-                    } else {
-                        false
-                    };
-                    if !resized && mesh.morph_weights[index] == next {
-                        return Ok(false);
                     }
                     mesh.morph_weights[index] = next;
                 }
@@ -218,7 +236,9 @@ impl World {
                     if mesh.tint == next {
                         return Ok(false);
                     }
-                    mesh.tint = next;
+                    self.get_mut::<MeshRenderer>(target.entity())
+                        .ok_or_else(missing_component)?
+                        .tint = next;
                 }
             }
             true

@@ -67,10 +67,12 @@ pub(super) fn create_project_with_default_world(project_root: &Path) {
     project
         .scan_and_import()
         .expect("created manager test project should scan");
+    let source_document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     EditorProjectDocument::save_scene_to_project(
         &project,
         &project.manifest().default_scene,
         &world,
+        source_document.scene_source_revision.as_ref().unwrap(),
         None,
     )
     .expect("existing manager test project should save");

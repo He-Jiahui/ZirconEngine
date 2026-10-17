@@ -4,7 +4,8 @@ use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::{
-    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExecutionState,
+    RenderVirtualGeometryExecutionIdentity, RenderVirtualGeometryExecutionSegment,
+    RenderVirtualGeometryExecutionState,
 };
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::VirtualGeometrySubmissionDetail;
 use crate::graphics::types::ViewportRenderFrame;
@@ -60,15 +61,15 @@ pub(super) fn build_virtual_geometry_indirect_draw_plan(
     if !virtual_geometry_enabled {
         return VirtualGeometryIndirectDrawPlan::empty(pending_draws.len());
     }
-    let Some(snapshot) = frame.virtual_geometry_debug_snapshot.as_ref() else {
+    let Some(execution) = frame.virtual_geometry_execution_data.as_deref() else {
         return VirtualGeometryIndirectDrawPlan::empty(pending_draws.len());
     };
-    if snapshot.execution_segments.is_empty() {
+    if execution.execution_segments.is_empty() {
         return VirtualGeometryIndirectDrawPlan::empty(pending_draws.len());
     }
 
     let segments_by_stable_instance_key =
-        execution_segments_by_stable_instance_key(&snapshot.execution_segments);
+        execution_segments_by_stable_instance_key(&execution.execution_segments);
     if segments_by_stable_instance_key.is_empty() {
         return VirtualGeometryIndirectDrawPlan::empty(pending_draws.len());
     }
@@ -76,12 +77,30 @@ pub(super) fn build_virtual_geometry_indirect_draw_plan(
     let draw_segments = expand_pending_draws_for_execution_segments(
         pending_draws,
         &segments_by_stable_instance_key,
-        |pending_draw| pending_draw.stable_instance_key,
+        |pending_draw| {
+            let mut sources = frame
+                .virtual_geometry_indexed_sources
+                .iter()
+                .filter(|source| source.stable_instance_key() == pending_draw.stable_instance_key);
+            let Some(source) = sources.next() else {
+                return pending_draw.stable_instance_key;
+            };
+            // Ambiguous captures must not choose an arbitrary execution alias;
+            // the indexed admission stage rejects their non-unique provenance.
+            if sources.next().is_some() {
+                return pending_draw.stable_instance_key;
+            }
+            source.execution_stable_instance_key()
+        },
         |pending_draw, segment| {
             pending_draw.indirect_draw_ref = Some(indirect_draw_ref_for_segment(segment));
         },
     );
-    let Some(indirect_inputs) = build_indirect_inputs(pending_draws, &draw_segments) else {
+    let Some(indirect_inputs) = build_indirect_inputs_with_sources(
+        pending_draws,
+        &draw_segments,
+        &frame.virtual_geometry_indexed_sources,
+    ) else {
         return VirtualGeometryIndirectDrawPlan::empty(pending_draws.len());
     };
 
@@ -206,9 +225,18 @@ struct VirtualGeometryIndirectInputs {
     submission_details: Vec<Option<VirtualGeometrySubmissionDetail>>,
 }
 
+#[cfg(test)]
 fn build_indirect_inputs(
     pending_draws: &[PendingMeshDraw],
     draw_segments: &[Option<RenderVirtualGeometryExecutionSegment>],
+) -> Option<VirtualGeometryIndirectInputs> {
+    build_indirect_inputs_with_sources(pending_draws, draw_segments, &[])
+}
+
+fn build_indirect_inputs_with_sources(
+    pending_draws: &[PendingMeshDraw],
+    draw_segments: &[Option<RenderVirtualGeometryExecutionSegment>],
+    sources: &[crate::graphics::VirtualGeometryIndexedSourceAdmission],
 ) -> Option<VirtualGeometryIndirectInputs> {
     let indirect_draw_count = draw_segments
         .iter()
@@ -228,16 +256,37 @@ fn build_indirect_inputs(
     let mut draw_ref_indices = vec![None; pending_draws.len()];
     let mut per_draw_submission_tokens = vec![None; pending_draws.len()];
     let mut submission_details = vec![None; pending_draws.len()];
+    let mut authored_ranks = BTreeMap::<(u64, u32), u32>::new();
 
     for (draw_index, (pending_draw, segment)) in pending_draws.iter().zip(draw_segments).enumerate()
     {
         let Some(segment) = segment else {
             continue;
         };
-        let draw_ref_index = saturated_u32_len(args.len());
+        let draw_ref_index = u32::try_from(args.len()).ok()?;
         let args_offset = u64::from(draw_ref_index) * indirect_args_stride;
         let submission_index = segment.submission_index.unwrap_or(draw_ref_index);
-        let draw_ref_rank = segment.draw_ref_rank.unwrap_or(draw_ref_index);
+        let mut captured = sources
+            .iter()
+            .filter(|source| source.stable_instance_key() == pending_draw.stable_instance_key);
+        let source = captured.next();
+        if captured.next().is_some() {
+            return None;
+        }
+        let draw_ref_rank = if source.is_some_and(|source| source.has_authored_execution_binding())
+        {
+            let rank = authored_ranks
+                .entry((segment.entity, submission_index))
+                .or_default();
+            let current = *rank;
+            *rank = rank.checked_add(1)?;
+            if current > u32::from(u16::MAX) {
+                return None;
+            }
+            current
+        } else {
+            segment.draw_ref_rank.unwrap_or(draw_ref_index)
+        };
         let submission_token = submission_token(submission_index, draw_ref_rank);
         let segment_key = segment_key_for_execution_segment(segment);
 
@@ -265,22 +314,27 @@ fn build_indirect_inputs(
         args_offsets[draw_index] = Some(args_offset);
         draw_ref_indices[draw_index] = Some(draw_ref_index);
         per_draw_submission_tokens[draw_index] = Some(submission_token);
-        submission_details[draw_index] = Some(VirtualGeometrySubmissionDetail::new(
-            segment.instance_index,
-            segment.entity,
-            segment.page_id,
-            submission_index,
-            draw_ref_rank,
-            draw_ref_index,
-            segment.cluster_start_ordinal,
-            segment.cluster_span_count,
-            segment.cluster_total_count,
-            segment.submission_slot,
-            segment.state,
-            segment.lineage_depth,
-            segment.lod_level,
-            segment.frontier_rank,
-        ));
+        submission_details[draw_index] = Some(
+            VirtualGeometrySubmissionDetail::new(
+                segment.instance_index,
+                segment.entity,
+                segment.page_id,
+                submission_index,
+                draw_ref_rank,
+                draw_ref_index,
+                segment.cluster_start_ordinal,
+                segment.cluster_span_count,
+                segment.cluster_total_count,
+                segment.submission_slot,
+                segment.state,
+                segment.lineage_depth,
+                segment.lod_level,
+                segment.frontier_rank,
+            )
+            .with_execution_identity(
+                RenderVirtualGeometryExecutionIdentity::from_segment(segment),
+            ),
+        );
     }
 
     Some(VirtualGeometryIndirectInputs {

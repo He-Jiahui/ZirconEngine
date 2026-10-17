@@ -8,16 +8,16 @@ fn review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary() 
     let error = include_str!("../../../../dynamic_api/session/error.rs");
     let project = include_str!("../../../../dynamic_api/session/project.rs");
     let status = include_str!("../../../../dynamic_api/session/status.rs");
-    let review_findings =
+    let _review_findings =
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let session_doc =
+    let _session_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
 
     for required in [

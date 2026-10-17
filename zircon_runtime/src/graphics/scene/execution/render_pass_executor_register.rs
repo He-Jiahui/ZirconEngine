@@ -1,6 +1,8 @@
 use std::fmt;
 use std::sync::Arc;
 
+use zr_rhi::RenderDeviceFeature;
+
 use super::{RenderPassExecutionContext, RenderPassExecutorFn, RenderPassExecutorId};
 
 /// Declares whether an executor may record commands on a worker-owned encoder.
@@ -17,6 +19,12 @@ pub enum RenderPassRecordingPolicy {
 /// 默认串行录制，确认只读准备输入且无共享可变状态后才声明 ParallelSafe。
 pub trait RenderPassExecutor: Send + Sync {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String>;
+
+    /// Device features required by this executor, negotiated before renderer creation.
+    /// An unsupported requirement rejects construction through the RHI negotiation error.
+    fn required_device_features(&self) -> &[RenderDeviceFeature] {
+        &[]
+    }
 
     /// Defaults to serial so existing and third-party executors require an explicit audit.
     fn recording_policy(&self) -> RenderPassRecordingPolicy {
@@ -97,6 +105,10 @@ impl RenderPassExecutorRegistration {
 
     pub fn recording_policy(&self) -> RenderPassRecordingPolicy {
         self.executor.recording_policy()
+    }
+
+    pub fn required_device_features(&self) -> &[RenderDeviceFeature] {
+        self.executor.required_device_features()
     }
 }
 

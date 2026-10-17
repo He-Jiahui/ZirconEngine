@@ -13,22 +13,20 @@ fn graphics_surface_keeps_viewport_frame_and_icon_source_internal() {
     let scene_renderer_mod_source =
         std::fs::read_to_string(runtime_root.join("src/graphics/scene/renderer/mod.rs"))
             .unwrap_or_default();
-    let overlay_mod_source = std::fs::read_to_string(
-        runtime_root.join("src/graphics/scene/renderer/overlay/mod.rs"),
-    )
-    .unwrap_or_default();
+    let overlay_mod_source =
+        std::fs::read_to_string(runtime_root.join("src/graphics/scene/renderer/overlay/mod.rs"))
+            .unwrap_or_default();
     let icon_source_mod_source = std::fs::read_to_string(
         runtime_root.join("src/graphics/scene/renderer/overlay/icon_source/mod.rs"),
     )
     .unwrap_or_default();
     let icon_source_trait_source = std::fs::read_to_string(
-        runtime_root
-            .join("src/graphics/scene/overlay/icon_source/viewport_icon_source.rs"),
+        runtime_root.join("src/graphics/scene/overlay/icon_source/viewport_icon_source.rs"),
     )
     .unwrap_or_default();
-    let new_with_icon_source_source = std::fs::read_to_string(runtime_root.join(
-        "src/graphics/scene_renderer_construct/new_with_icon_source.rs",
-    ))
+    let new_with_icon_source_source = std::fs::read_to_string(
+        runtime_root.join("src/graphics/scene_renderer_construct/new_with_icon_source.rs"),
+    )
     .unwrap_or_default();
 
     assert!(

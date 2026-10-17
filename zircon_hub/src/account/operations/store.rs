@@ -1,6 +1,6 @@
 use super::{
-    AccountError, IdentityRevision, JournalFile, MAX_JOURNAL_BYTES, MAX_RECORDS, OperationJournal,
-    OperationPayload, OperationStatus,
+    AccountError, IdentityRevision, JournalFile, OperationJournal, OperationPayload,
+    OperationStatus, MAX_JOURNAL_BYTES, MAX_RECORDS,
 };
 use std::{
     collections::HashSet,

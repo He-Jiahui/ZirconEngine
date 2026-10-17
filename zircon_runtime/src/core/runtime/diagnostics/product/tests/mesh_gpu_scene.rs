@@ -165,6 +165,24 @@ fn render_product_diagnostics_record_mesh_indirect_batch_stats() {
         5.0,
         "count",
     );
+    assert_series(
+        &store,
+        "render.mesh.queue.indirect_workspace.created_buffer_count",
+        4.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.mesh.queue.indirect_workspace.uploaded_byte_count",
+        320.0,
+        "bytes",
+    );
+    assert_series(
+        &store,
+        "render.mesh.queue.indirect_workspace.upload_range_count",
+        3.0,
+        "count",
+    );
 }
 
 #[test]
@@ -392,24 +410,6 @@ fn render_product_diagnostics_record_mesh_command_cache_counts() {
         &store,
         "render.mesh.queue.replay_material_bind_group_skip_count",
         4.0,
-        "count",
-    );
-    assert_series(
-        &store,
-        "render.mesh.queue.indirect_workspace.created_buffer_count",
-        4.0,
-        "count",
-    );
-    assert_series(
-        &store,
-        "render.mesh.queue.indirect_workspace.uploaded_byte_count",
-        320.0,
-        "bytes",
-    );
-    assert_series(
-        &store,
-        "render.mesh.queue.indirect_workspace.upload_range_count",
-        3.0,
         "count",
     );
 }

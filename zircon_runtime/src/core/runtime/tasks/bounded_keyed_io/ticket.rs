@@ -1,5 +1,5 @@
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
-use std::time::Instant;
+use web_time::Instant;
 
 use super::BoundedKeyedIoCancelAuthority;
 

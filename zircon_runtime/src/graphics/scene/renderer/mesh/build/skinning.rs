@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::asset::{MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::animation::AnimationPoseOutput;
@@ -11,6 +12,7 @@ use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPale
 #[derive(Clone, Debug)]
 pub(super) struct SkinnedMeshJointPalette {
     joint_matrices: Vec<Mat4>,
+    storage: Option<Arc<SkinnedMeshJointPaletteStorage>>,
 }
 
 impl SkinnedMeshJointPalette {
@@ -19,15 +21,21 @@ impl SkinnedMeshJointPalette {
         pose: &AnimationPoseOutput,
     ) -> Result<Self, String> {
         let joint_matrices = build_joint_matrices(skeleton, pose)?;
-        Ok(Self { joint_matrices })
+        let storage = SkinnedMeshJointPaletteStorage::from_matrices(&joint_matrices)
+            .ok()
+            .map(Arc::new);
+        Ok(Self {
+            joint_matrices,
+            storage,
+        })
     }
 
     pub(super) fn matrices(&self) -> &[Mat4] {
         &self.joint_matrices
     }
 
-    pub(super) fn to_storage(&self) -> Result<SkinnedMeshJointPaletteStorage, String> {
-        SkinnedMeshJointPaletteStorage::from_matrices(&self.joint_matrices)
+    pub(super) fn to_storage(&self) -> Option<Arc<SkinnedMeshJointPaletteStorage>> {
+        self.storage.clone()
     }
 }
 
@@ -35,7 +43,7 @@ impl SkinnedMeshJointPalette {
 pub(super) struct SkinnedMeshPreparedPrimitive {
     pub(super) primitive: ModelPrimitiveAsset,
     pub(super) shader_skinning_source_primitive: ModelPrimitiveAsset,
-    pub(super) joint_palette_storage: Option<SkinnedMeshJointPaletteStorage>,
+    pub(super) joint_palette_storage: Option<Arc<SkinnedMeshJointPaletteStorage>>,
 }
 
 pub(super) fn skin_mesh_asset_primitive(
@@ -47,7 +55,11 @@ pub(super) fn skin_mesh_asset_primitive(
     let primitive = mesh
         .to_morphed_model_primitive(morph_weights)
         .map_err(|error| error.to_string())?;
-    skin_model_primitive(&primitive, skeleton, pose)
+    let joint_palette = SkinnedMeshJointPalette::from_skeleton_pose(skeleton, pose)?;
+    Ok(skin_owned_model_primitive_with_palette(
+        primitive,
+        &joint_palette,
+    ))
 }
 
 pub(super) fn prepare_skinned_mesh_asset_primitive(
@@ -59,7 +71,11 @@ pub(super) fn prepare_skinned_mesh_asset_primitive(
     let primitive = mesh
         .to_morphed_model_primitive(morph_weights)
         .map_err(|error| error.to_string())?;
-    prepare_skinned_model_primitive(&primitive, skeleton, pose)
+    let joint_palette = SkinnedMeshJointPalette::from_skeleton_pose(skeleton, pose)?;
+    Ok(prepare_skinned_owned_model_primitive(
+        primitive,
+        &joint_palette,
+    ))
 }
 
 pub(super) fn skin_model_primitive(
@@ -74,24 +90,42 @@ pub(super) fn skin_model_primitive(
 
 /// 构造 CPU 回退网格并保留未蒙皮源，供可用的 GPU 蒙皮路径读取。
 /// 两份数据必须对应同一骨架/姿态；GPU 存储失败仅取消 GPU 路径。
+#[cfg(test)]
 pub(super) fn prepare_skinned_model_primitive(
     primitive: &ModelPrimitiveAsset,
     skeleton: &AnimationSkeletonAsset,
     pose: &AnimationPoseOutput,
 ) -> Result<SkinnedMeshPreparedPrimitive, String> {
     let joint_palette = SkinnedMeshJointPalette::from_skeleton_pose(skeleton, pose)?;
-    let joint_palette_storage = joint_palette.to_storage().ok();
-    let source_primitive = primitive.clone();
-    let primitive = skin_model_primitive_with_palette(primitive, &joint_palette);
+    Ok(prepare_skinned_owned_model_primitive(
+        primitive.clone(),
+        &joint_palette,
+    ))
+}
 
-    Ok(SkinnedMeshPreparedPrimitive {
+#[cfg(test)]
+pub(super) fn prepare_skinned_model_primitive_with_palette(
+    primitive: &ModelPrimitiveAsset,
+    joint_palette: &SkinnedMeshJointPalette,
+) -> SkinnedMeshPreparedPrimitive {
+    prepare_skinned_owned_model_primitive(primitive.clone(), joint_palette)
+}
+
+fn prepare_skinned_owned_model_primitive(
+    source_primitive: ModelPrimitiveAsset,
+    joint_palette: &SkinnedMeshJointPalette,
+) -> SkinnedMeshPreparedPrimitive {
+    let joint_palette_storage = joint_palette.to_storage();
+    let primitive = skin_model_primitive_with_palette(&source_primitive, joint_palette);
+
+    SkinnedMeshPreparedPrimitive {
         primitive,
         shader_skinning_source_primitive: source_primitive,
         joint_palette_storage,
-    })
+    }
 }
 
-fn skin_model_primitive_with_palette(
+pub(super) fn skin_model_primitive_with_palette(
     primitive: &ModelPrimitiveAsset,
     joint_palette: &SkinnedMeshJointPalette,
 ) -> ModelPrimitiveAsset {
@@ -103,6 +137,28 @@ fn skin_model_primitive_with_palette(
             .map(|vertex| skin_vertex(vertex, joint_palette.matrices()))
             .collect(),
         indices: primitive.indices.clone(),
+        mesh: None,
+        mesh_sdf: None,
+        virtual_geometry: None,
+    }
+}
+
+// The direct-mesh conversion already owns its buffers; CPU skinning can reuse them.
+fn skin_owned_model_primitive_with_palette(
+    primitive: ModelPrimitiveAsset,
+    joint_palette: &SkinnedMeshJointPalette,
+) -> ModelPrimitiveAsset {
+    let ModelPrimitiveAsset {
+        mut vertices,
+        indices,
+        ..
+    } = primitive;
+    for vertex in &mut vertices {
+        *vertex = skin_vertex(*vertex, joint_palette.matrices());
+    }
+    ModelPrimitiveAsset {
+        vertices,
+        indices,
         mesh: None,
         mesh_sdf: None,
         virtual_geometry: None,
@@ -251,3 +307,7 @@ mod optimization_batch_de_runtime412_tests;
 #[cfg(test)]
 #[path = "skinning/tests/cases.rs"]
 mod tests;
+
+#[cfg(all(test, feature = "memory-validation"))]
+#[path = "skinning/tests/model_memory.rs"]
+mod model_memory;

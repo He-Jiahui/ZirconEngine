@@ -1,3 +1,7 @@
+//! 直接验证有限值恢复、预算拒绝和请求约束的数值契约。
+//!
+//! 本模块使用局部数值输入；各断言的边界不等同于完整 UI 发布或后端集成验收。
+
 use super::{
     finite_f32_or_geometry, finite_geometry, finite_sum, FiniteGeometryAccumulator,
     TextLayoutAxisConstraint, TextLayoutGeometryBudget, DEFAULT_MAX_EXACT_LAYOUT_EXTENT,

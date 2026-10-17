@@ -1,3 +1,7 @@
+//! 模式代数散列索引的行为、源码布局与忽略性能夹具。
+//!
+//! 描述符迭代仍按有序目录输出；散列表用于模式代数的逐键查询。
+
 use std::collections::{BTreeMap, HashMap};
 use std::hint::black_box;
 use std::time::Instant;
@@ -5,10 +9,12 @@ use std::time::Instant;
 use super::ComponentTypeRegistry;
 use crate::core::framework::scene::ComponentTypeDescriptor;
 
+// 512 个键、每样本 4096 次查询、17 对交错样本；这些预算只约束本微基准。
 const ENTRY_COUNT: usize = 512;
 const HIT_COUNT: usize = 4_096;
 const SAMPLE_COUNT: usize = 17;
 
+/// 分别核对登记代数递增、未知键为零，以及描述符仍按类型键排序。
 #[test]
 fn runtime63_batch_schema_generation_hash_index_preserves_generation_and_order() {
     let mut registry = ComponentTypeRegistry::default();
@@ -40,6 +46,7 @@ fn runtime63_batch_schema_generation_hash_index_preserves_generation_and_order()
     );
 }
 
+/// 只核对目录源码的三项容器声明；排序行为另由上一个测试实际调用目录验证。
 #[test]
 fn runtime63_batch_schema_generation_hash_index_keeps_descriptor_ordered() {
     let source = include_str!("../component_type_registry.rs");
@@ -49,6 +56,8 @@ fn runtime63_batch_schema_generation_hash_index_keeps_descriptor_ordered() {
     assert!(source.contains("schema_generations: HashMap<String, u64>"));
 }
 
+/// 对同一组末键查询比较两种容器的交错计时；这是忽略微基准，不代表完整字段写入耗时。
+/// 输出中的查询次数与分配字段来自固定预算和标签，不是独立的分配观测。
 #[test]
 #[ignore = "release performance evidence"]
 fn runtime63_batch_schema_generation_hash_index_p95() {
@@ -112,6 +121,7 @@ where
     total
 }
 
+/// 供基准统一调用两种容器的复制值查询，不参与 Runtime 目录发布。
 trait Lookup {
     fn lookup(&self, key: &str) -> Option<u64>;
 }
@@ -128,12 +138,14 @@ impl Lookup for HashMap<String, u64> {
     }
 }
 
+/// 仅计时一次查询批次，并检查校验和非零；返回纳秒值。
 fn measure_ns(operation: &mut impl FnMut() -> u64) -> u128 {
     let started = Instant::now();
     assert_ne!(black_box(operation()), 0);
     started.elapsed().as_nanos()
 }
 
+/// 复制并排序非空样本，返回上整秩的样本值；调用处固定使用 50 或 95 百分位。
 fn nearest_rank(samples: &[u128], percentile: usize) -> u128 {
     let mut sorted = samples.to_vec();
     sorted.sort_unstable();

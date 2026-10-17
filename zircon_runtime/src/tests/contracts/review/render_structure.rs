@@ -23,9 +23,8 @@ fn assert_not_contains(label: &str, source: &str, anchors: &[&str]) {
 fn render01_compiled_pipeline_cached_sources_are_immutable_and_frame_flags_are_precomputed() {
     let compiled_pipeline =
         include_str!("../../../graphics/pipeline/declarations/compiled_render_pipeline.rs");
-    let frame_context = include_str!(
-        "../../../graphics/runtime/framework/extract/submission/build.rs"
-    );
+    let frame_context =
+        include_str!("../../../graphics/runtime/framework/extract/submission/build.rs");
 
     assert_contains_all(
         "compiled pipeline immutable derived sources",
@@ -61,48 +60,30 @@ fn render01_compiled_pipeline_cached_sources_are_immutable_and_frame_flags_are_p
 
 #[test]
 fn review_f16_compiled_scene_render_path_uses_split_owners() {
-    let render_mod = include_str!(
-        "../../../graphics/scene/renderer/core/render/render/mod.rs"
-    );
-    let render = include_str!(
-        "../../../graphics/scene/renderer/core/render/render/render.rs"
-    );
-    let foundation = include_str!(
-        "../../../graphics/scene/core/render/compiled_scene_frame_foundation.rs"
-    );
-    let mesh_preparation = include_str!(
-        "../../../graphics/render/prepare_compiled_scene_mesh_submission.rs"
-    );
-    let graph_preparation = include_str!(
-        "../../../graphics/core/render/prepare_compiled_scene_graph_frame.rs"
-    );
-    let success_commit = include_str!(
-        "../../../graphics/core/render/commit_compiled_scene_frame_success.rs"
-    );
-    let bind = include_str!(
-        "../../../graphics/core/render/bind_compiled_scene_graph_resources.rs"
-    );
-    let bind_ssao = include_str!(
-        "../../../graphics/core/render/bind_ssao_compute_graph_resources.rs"
-    );
-    let execute = include_str!(
-        "../../../graphics/core/render/execute_compiled_scene_graph_stages.rs"
-    );
-    let submit = include_str!(
-        "../../../graphics/scene/core/render/submit_compiled_scene_frame.rs"
-    );
-    let submit_hzb = include_str!(
-        "../../../graphics/core/submit_compiled_scene_frame/hzb_readback.rs"
-    );
-    let submit_tests = include_str!(
-        "../../../graphics/scene/renderer/core/render/render/tests/cases.rs"
-    );
-    let sprite_stage_selection = include_str!(
-        "../../../graphics/scene/core/render/render/sprite_stage_selection.rs"
-    );
-    let pipeline_resource_usage = include_str!(
-        "../../../graphics/scene/core/render/render/pipeline_resource_usage.rs"
-    );
+    let render_mod = include_str!("../../../graphics/scene/renderer/core/render/render/mod.rs");
+    let render = include_str!("../../../graphics/scene/renderer/core/render/render/render.rs");
+    let foundation =
+        include_str!("../../../graphics/scene/core/render/compiled_scene_frame_foundation.rs");
+    let mesh_preparation =
+        include_str!("../../../graphics/render/prepare_compiled_scene_mesh_submission.rs");
+    let graph_preparation =
+        include_str!("../../../graphics/core/render/prepare_compiled_scene_graph_frame.rs");
+    let success_commit =
+        include_str!("../../../graphics/core/render/commit_compiled_scene_frame_success.rs");
+    let bind = include_str!("../../../graphics/core/render/bind_compiled_scene_graph_resources.rs");
+    let bind_ssao =
+        include_str!("../../../graphics/core/render/bind_ssao_compute_graph_resources.rs");
+    let execute =
+        include_str!("../../../graphics/core/render/execute_compiled_scene_graph_stages.rs");
+    let submit = include_str!("../../../graphics/scene/core/render/submit_compiled_scene_frame.rs");
+    let submit_hzb =
+        include_str!("../../../graphics/core/submit_compiled_scene_frame/hzb_readback.rs");
+    let submit_tests =
+        include_str!("../../../graphics/scene/renderer/core/render/render/tests/cases.rs");
+    let sprite_stage_selection =
+        include_str!("../../../graphics/scene/core/render/render/sprite_stage_selection.rs");
+    let pipeline_resource_usage =
+        include_str!("../../../graphics/scene/core/render/render/pipeline_resource_usage.rs");
     let review_findings = concat!(
         include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
         include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")

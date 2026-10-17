@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
-use crate::builtin::RuntimeModuleCompositionCompiler;
+use crate::builtin::{RuntimeModuleCompositionCompiler, RuntimePluginId};
 use crate::core::framework::platform::RuntimeTargetMode;
-use crate::core::framework::project::{ProjectPluginManifest, RuntimeProfileId};
+use crate::core::framework::project::{
+    ProjectPluginManifest, ProjectPluginSelection, RuntimeProfileId,
+};
 use crate::core::{ModuleDependencySpec, ModuleDescriptor};
 use crate::engine_module::EngineModule;
 use crate::plugin::RuntimePluginCatalog;
@@ -38,6 +40,83 @@ fn empty_client_plan() -> Arc<crate::plugin::CompiledProjectPluginPlan> {
             &ProjectPluginManifest::default(),
             RuntimeTargetMode::ClientRuntime,
         )
+}
+
+fn plugin_plan(descriptor: ModuleDescriptor) -> Arc<crate::plugin::CompiledProjectPluginPlan> {
+    let registration =
+        super::behavior::registration_with_modules(RuntimePluginId::Animation, [descriptor]);
+    RuntimePluginCatalog::from_registration_reports([registration], []).compiled_project_plan(
+        &ProjectPluginManifest {
+            selections: vec![ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::Animation,
+                true,
+                true,
+            )],
+        },
+        RuntimeTargetMode::ClientRuntime,
+    )
+}
+
+#[test]
+fn plugin_host_dependency_is_resolved_in_final_activation_graph() {
+    const PLUGIN: &str = "composition.plugin.host_dependent";
+    const HOST: &str = "composition.host.provider";
+    let plan = plugin_plan(
+        ModuleDescriptor::new(PLUGIN, "Plugin with a host dependency")
+            .with_module_dependency(ModuleDependencySpec::named(HOST)),
+    );
+    let composition = RuntimeModuleCompositionCompiler::new(&plan)
+        .with_host_module(Arc::new(TestModule::new(ModuleDescriptor::new(
+            HOST,
+            "Host provider",
+        ))))
+        .compile()
+        .expect("host dependencies must be resolved after the complete graph is assembled");
+    let names = composition
+        .modules()
+        .iter()
+        .map(|module| module.module_name())
+        .collect::<Vec<_>>();
+    let host = names.iter().position(|name| *name == HOST).unwrap();
+    let plugin = names.iter().position(|name| *name == PLUGIN).unwrap();
+    assert!(host < plugin);
+}
+
+#[test]
+fn missing_plugin_host_dependency_rejects_final_composition() {
+    const MISSING: &str = "composition.host.missing";
+    let plan = plugin_plan(
+        ModuleDescriptor::new("composition.plugin.missing_host", "Missing host fixture")
+            .with_module_dependency(ModuleDependencySpec::named(MISSING)),
+    );
+    let rejection = RuntimeModuleCompositionCompiler::new(&plan)
+        .compile()
+        .expect_err("missing host dependencies must reject the final activation graph");
+    assert!(rejection
+        .fatal_messages()
+        .iter()
+        .any(|message| message.contains(MISSING)));
+}
+
+#[test]
+fn plugin_host_dependency_cycle_rejects_final_composition() {
+    const PLUGIN: &str = "composition.plugin.cyclic";
+    const HOST: &str = "composition.host.cyclic";
+    let plan = plugin_plan(
+        ModuleDescriptor::new(PLUGIN, "Cyclic plugin fixture")
+            .with_module_dependency(ModuleDependencySpec::named(HOST)),
+    );
+    let rejection = RuntimeModuleCompositionCompiler::new(&plan)
+        .with_host_module(Arc::new(TestModule::new(
+            ModuleDescriptor::new(HOST, "Cyclic host fixture")
+                .with_module_dependency(ModuleDependencySpec::named(PLUGIN)),
+        )))
+        .compile()
+        .expect_err("cycles through plugin and host modules must reject the final graph");
+    let messages = rejection.fatal_messages().join("\n");
+    assert!(messages.contains("cycle"), "{messages}");
+    assert!(messages.contains(PLUGIN), "{messages}");
+    assert!(messages.contains(HOST), "{messages}");
 }
 
 #[test]

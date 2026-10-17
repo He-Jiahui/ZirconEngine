@@ -1,6 +1,205 @@
 use std::num::NonZeroU64;
 
 use super::*;
+use crate::entry::runtime_entry_app::RuntimeProductProofPolicy;
+use zircon_runtime_interface::{
+    RuntimeDiagnosticSeriesSnapshot, RuntimeDiagnosticsSnapshot, RuntimeInputDiagnosticsSnapshot,
+    RuntimeRenderDeviceDiagnosticsSnapshot, ZrRuntimeViewportSizeV1,
+};
+
+#[test]
+fn ordinary_project_present_completion_keeps_general_diagnostics_without_f2_content() {
+    let args = parse_runtime_session_startup_args(["--project=fixture"]).unwrap();
+    let capture = ProjectPaths::resolve_path(
+        "E:/cargo-targets/zircon-local/reports/runtime-first-frame.png",
+    )
+    .unwrap();
+    let config = runtime_entry_app_config_for_startup_args(
+        &args,
+        NonZeroU64::new(2),
+        Some(capture),
+    );
+    let mut emitted = false;
+    let mut count = 0;
+    let mut logs = Vec::new();
+
+    let exit = RuntimeEntryApp::complete_presented_frame_with_diagnostics(
+        config.product_proof_policy(),
+        ZrRuntimeViewportSizeV1::new(1280, 720),
+        (&mut emitted, &mut count),
+        config.exit_after_presented_frames(),
+        false,
+        || Ok(product_completion_snapshot(false)),
+        |diagnostic| logs.push(diagnostic),
+    )
+    .unwrap();
+
+    assert_eq!(config.product_proof_policy(), RuntimeProductProofPolicy::GeneralProject);
+    assert!(config.first_frame_capture_path().is_some());
+    assert!(emitted);
+    assert_eq!(count, 1);
+    assert_eq!(exit, None);
+    assert_eq!(logs.len(), 1);
+    assert!(logs[0].contains("mesh_draw_count=0"));
+    assert!(logs[0].contains("selected_model_resource_id=unavailable"));
+    assert!(logs[0].contains("proof_policy=general-project"));
+
+    let exit = RuntimeEntryApp::complete_presented_frame_with_diagnostics(
+        config.product_proof_policy(),
+        ZrRuntimeViewportSizeV1::new(1280, 720),
+        (&mut emitted, &mut count),
+        config.exit_after_presented_frames(),
+        false,
+        || panic!("the first-frame snapshot must not be requested twice"),
+        |_| panic!("the first-frame diagnostic must not be logged twice"),
+    )
+    .unwrap();
+
+    assert_eq!(count, 2);
+    assert_eq!(exit.as_deref(), Some("runtime_presented_frame_limit_reached limit=2 count=2"));
+}
+
+#[test]
+fn explicit_f2_present_completion_rejects_missing_content_without_committing_state() {
+    let args = parse_runtime_session_startup_args([
+        "--project=fixture",
+        "--runtime-product-proof=f2-lit-mesh",
+    ])
+    .unwrap();
+    let config = runtime_entry_app_config_for_startup_args(&args, Some(NonZeroU64::MIN), None);
+    let mut emitted = false;
+    let mut count = 0;
+    let mut logs = Vec::new();
+
+    let error = RuntimeEntryApp::complete_presented_frame_with_diagnostics(
+        config.product_proof_policy(),
+        ZrRuntimeViewportSizeV1::new(1280, 720),
+        (&mut emitted, &mut count),
+        config.exit_after_presented_frames(),
+        true,
+        || Ok(product_completion_snapshot(false)),
+        |diagnostic| logs.push(diagnostic),
+    )
+    .unwrap_err();
+
+    assert!(error.contains("metric=render.graph.executed_pass_count"));
+    assert!(!emitted);
+    assert_eq!(count, 0);
+    assert!(logs.is_empty());
+
+    let exit = RuntimeEntryApp::complete_presented_frame_with_diagnostics(
+        config.product_proof_policy(),
+        ZrRuntimeViewportSizeV1::new(1280, 720),
+        (&mut emitted, &mut count),
+        config.exit_after_presented_frames(),
+        true,
+        || Ok(product_completion_snapshot(true)),
+        |diagnostic| logs.push(diagnostic),
+    )
+    .unwrap();
+
+    assert!(emitted);
+    assert_eq!(count, 1);
+    assert_eq!(exit.as_deref(), Some("runtime_first_frame_presented"));
+    assert_eq!(logs.len(), 1);
+    assert!(logs[0].contains("proof_policy=f2-lit-mesh"));
+}
+
+#[test]
+fn general_project_snapshot_failure_does_not_commit_present_completion() {
+    let args = parse_runtime_session_startup_args(["--project=fixture"]).unwrap();
+    let config = runtime_entry_app_config_for_startup_args(&args, Some(NonZeroU64::MIN), None);
+    let mut emitted = false;
+    let mut count = 0;
+    let error = RuntimeEntryApp::complete_presented_frame_with_diagnostics(
+        config.product_proof_policy(),
+        ZrRuntimeViewportSizeV1::new(1280, 720),
+        (&mut emitted, &mut count),
+        config.exit_after_presented_frames(),
+        false,
+        || Err("runtime snapshot unavailable".to_owned()),
+        |_| panic!("a failed snapshot must not emit a success diagnostic"),
+    )
+    .unwrap_err();
+
+    assert_eq!(error, "runtime snapshot unavailable");
+    assert!(!emitted);
+    assert_eq!(count, 0);
+}
+
+#[test]
+fn invalid_f2_configuration_is_rejected_before_runtime_loading() {
+    for (args, cause) in [
+        (
+            vec!["--runtime-product-proof=f2-lit-mesh"],
+            "cause=F2 runtime product proof requires --project",
+        ),
+        (
+            vec!["--runtime-session-profile=headless", "--runtime-product-proof=f2-lit-mesh"],
+            "cause=F2 runtime product proof requires --project",
+        ),
+        (
+            vec!["--project=fixture", "--runtime-session-profile=minimal", "--runtime-product-proof=f2-lit-mesh"],
+            "cause=F2 runtime product proof requires a profile with a primary window",
+        ),
+        (
+            vec!["--project=fixture", "--runtime-session-profile=headless", "--runtime-product-proof=f2-lit-mesh"],
+            "cause=F2 runtime product proof requires a profile with a primary window",
+        ),
+    ] {
+        let error = EntryRunner::run_runtime_with_args(args).unwrap_err();
+        assert!(error.to_string().contains("argument=--runtime-product-proof"));
+        assert!(error.to_string().contains(cause), "unexpected startup error: {error}");
+    }
+}
+
+fn product_completion_snapshot(lit_mesh: bool) -> RuntimeDiagnosticsSnapshot {
+    let mut snapshot = RuntimeDiagnosticsSnapshot {
+        frame_index: 1,
+        project_identity: lit_mesh.then(|| "F2Fixture".to_owned()),
+        scene_uri: lit_mesh.then(|| "res://scenes/main.scene.toml".to_owned()),
+        selected_model_resource_id: lit_mesh.then(|| "fixture-model".to_owned()),
+        selected_material_resource_id: lit_mesh.then(|| "fixture-material".to_owned()),
+        render_backend_name: Some("wgpu(dx12)".to_owned()),
+        render_device: Some(RuntimeRenderDeviceDiagnosticsSnapshot {
+            adapter_name: "Fixture Adapter".to_owned(),
+            adapter_device_type: "discrete_gpu".to_owned(),
+            max_bind_groups: 5,
+            max_texture_dimension_2d: 16_384,
+            max_texture_array_layers: 256,
+            max_sampled_textures_per_shader_stage: 16,
+            max_storage_buffers_per_shader_stage: 8,
+            max_storage_buffer_binding_size: 134_217_728,
+            max_binding_array_elements_per_shader_stage: 4_096,
+            max_binding_array_sampler_elements_per_shader_stage: 1_024,
+        }),
+        ..RuntimeDiagnosticsSnapshot::default()
+    };
+    for path in [
+        "render.graph.executed_pass_count",
+        "render.mesh.queue.draw_count",
+        "render.light.directional.count",
+        "render.material.fallback_count",
+        "render.material.validation_error_count",
+    ] {
+        snapshot.diagnostic_series.push(RuntimeDiagnosticSeriesSnapshot {
+            path: path.to_owned(),
+            current: Some(if lit_mesh && !path.starts_with("render.material.") { 1.0 } else { 0.0 }),
+            ..RuntimeDiagnosticSeriesSnapshot::default()
+        });
+    }
+    if lit_mesh {
+        snapshot.input = RuntimeInputDiagnosticsSnapshot {
+            viewport_resize_count: 2,
+            pointer_move_count: 1,
+            mouse_button_press_count: 1,
+            mouse_button_release_count: 1,
+            keyboard_press_count: 1,
+            keyboard_release_count: 1,
+        };
+    }
+    snapshot
+}
 
 #[test]
 fn f0_runtime_project_fixture_roots_follow_the_resolved_test_binary_directory() {

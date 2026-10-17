@@ -4,7 +4,7 @@
 use zircon_runtime::core::framework::animation::{
     AnimationChannelKeyAsset, AnimationChannelValueAsset,
 };
-use zircon_runtime::core::math::{Quat, Real};
+use zircon_runtime::core::math::Real;
 
 pub(super) fn sample_hermite(
     left: &AnimationChannelKeyAsset,
@@ -67,11 +67,19 @@ pub(super) fn sample_hermite(
             AnimationChannelValueAsset::Quaternion(left_value),
             AnimationChannelValueAsset::Quaternion(right_value),
         ) => {
-            let left_quat = Quat::from_array(*left_value).normalize();
-            let right_quat = Quat::from_array(*right_value).normalize();
-            AnimationChannelValueAsset::Quaternion(
-                left_quat.slerp(right_quat, t).normalize().to_array(),
-            )
+            // Tangents are authored component derivatives per second, not rotations.
+            // Keep key signs and magnitudes; validate and normalize the final curve
+            // at the sampled-rotation boundary, without shortest-path sign changes.
+            let duration = right.time_seconds - left.time_seconds;
+            let weight = ((time_seconds - left.time_seconds) / duration).clamp(0.0, 1.0);
+            AnimationChannelValueAsset::Quaternion(hermite_array(
+                left_value,
+                tangent_array_4(left.out_tangent.as_ref()),
+                right_value,
+                tangent_array_4(right.in_tangent.as_ref()),
+                duration,
+                weight,
+            ))
         }
         _ => left.value.clone(),
     }

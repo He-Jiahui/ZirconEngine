@@ -531,3 +531,122 @@ fn manifest_with_project_derived_code(plugin_id: &str) -> String {
         current_manifest("Composition Policy")
     )
 }
+
+#[cfg(windows)]
+mod plugin_enablement_gate {
+    use super::*;
+    use std::{
+        fs,
+        path::{Path, PathBuf},
+        sync::atomic::{AtomicU64, Ordering},
+    };
+    use zircon_runtime::asset::project::{plugin_apply::*, ProjectManifest, ProjectPaths};
+    static NEXT: AtomicU64 = AtomicU64::new(1);
+    struct Fixture {
+        root: PathBuf,
+        paths: ProjectPaths,
+    }
+    impl Fixture {
+        fn new(label: &str) -> Self {
+            use std::os::windows::fs::MetadataExt;
+            let base = Path::new("E:/cargo-targets/zircon-local");
+            for ancestor in base.ancestors() {
+                assert_eq!(
+                    fs::symlink_metadata(ancestor).unwrap().file_attributes() & 0x400,
+                    0
+                );
+            }
+            let resolved = ProjectPaths::resolve_existing(base).unwrap();
+            let physical = resolved.operation_path();
+            let display = physical.to_str().unwrap().replace('\\', "/");
+            assert!(display
+                .strip_prefix("//?/")
+                .unwrap_or(&display)
+                .eq_ignore_ascii_case("E:/cargo-targets/zircon-local"));
+            let root = physical.join(format!(
+                "e06-preflight-{label}-{}-{}",
+                std::process::id(),
+                NEXT.fetch_add(1, Ordering::Relaxed)
+            ));
+            fs::create_dir(&root).unwrap();
+            let paths = ProjectPaths::from_root(&root).unwrap();
+            let mut manifest = ProjectManifest::new(
+                "Gate test",
+                zircon_runtime::asset::AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+                1,
+            );
+            manifest.plugins.selections.push(
+                serde_json::from_value(serde_json::json!({"id":"gate.fixture","enabled":true}))
+                    .unwrap(),
+            );
+            manifest.save(paths.manifest_path()).unwrap();
+            Self { root, paths }
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            fs::remove_dir_all(&self.root).unwrap();
+        }
+    }
+    #[test]
+    fn journal_gate_wins_before_malformed_authoritative_manifest_parse() {
+        let fixture = Fixture::new("journal");
+        let journal = fixture
+            .paths
+            .derived_root()
+            .join("plugin-enablement/journal");
+        fs::create_dir_all(&journal).unwrap();
+        fs::write(journal.join("unresolved-entry"), b"preserve for recovery").unwrap();
+        fs::write(fixture.paths.manifest_path(), b"not a valid manifest = [").unwrap();
+        let before = fs::read(fixture.paths.manifest_path()).unwrap();
+        let entries = fs::read_dir(fixture.paths.derived_root()).unwrap().count();
+        let error = ProjectAuthority::default()
+            .preflight_project(&fixture.root)
+            .unwrap_err();
+        match error {
+            ProjectAuthorityError::PluginEnablementRecovery { root, source } => {
+                assert_eq!(root, fixture.paths.root());
+                assert_eq!(source.kind, PluginApplyErrorKind::RecoveryRequired);
+            }
+            other => panic!("journal must block before parsing the manifest: {other}"),
+        }
+        assert_eq!(fs::read(fixture.paths.manifest_path()).unwrap(), before);
+        assert_eq!(
+            fs::read_dir(fixture.paths.derived_root()).unwrap().count(),
+            entries,
+            "data-only preflight must not create generation/admission files"
+        );
+    }
+    #[test]
+    fn durable_pending_gate_wins_before_malformed_authoritative_manifest_parse() {
+        let fixture = Fixture::new("pending");
+        let document = PluginApplyDocument::read(&fixture.paths).unwrap();
+        let mut candidate = document.manifest.clone();
+        candidate.plugins.selections[0].enabled = false;
+        let receipt = PendingPluginApply {
+            version: 1,
+            operation_id: "gate-operation".into(),
+            plugin_id: "gate.fixture".into(),
+            enabled: false,
+            previous_enabled: true,
+            project_guid: candidate.project_guid.to_string(),
+            manifest_digest: String::new(),
+            session_instance: "closed".into(),
+            session_generation: 1,
+            catalog_generation: 1,
+            acknowledged: false,
+            resolved_before_activation: false,
+        };
+        commit_plugin_apply(&fixture.paths, &document, &candidate, receipt, None).unwrap();
+        fs::write(fixture.paths.manifest_path(), b"malformed manifest = [").unwrap();
+        match ProjectAuthority::default()
+            .preflight_project(&fixture.root)
+            .unwrap_err()
+        {
+            ProjectAuthorityError::PluginEnablementRecovery { source, .. } => {
+                assert_eq!(source.kind, PluginApplyErrorKind::PendingOperation)
+            }
+            other => panic!("pending receipt must block before parsing the manifest: {other}"),
+        }
+    }
+}

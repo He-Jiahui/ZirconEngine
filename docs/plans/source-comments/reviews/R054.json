@@ -1,0 +1,3375 @@
+{
+  "schema_version": 1,
+  "batch": "R054",
+  "owner": "reflection_luna",
+  "model": "gpt-6-luna",
+  "reasoning_effort": "max",
+  "status": "fixed-child-local-review-complete-pending-parent-review",
+  "formal_acceptance": false,
+  "task": "source-comments-20261014-01a13a81",
+  "workspace": "E:/Git/ZirconEngine",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "scope": {
+    "audited_paths": [
+      "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+      "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+      "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+      "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+    ],
+    "metadata_path": "docs/plans/source-comments/reviews/R054.json",
+    "assignment_path": "docs/plans/source-comments/assignments.json",
+    "assignment_sha256_at_first_formal_read": "61acadaf7915ef4f55d49ae5944aebc0435a56214bba585ce4db18ad7f116324",
+    "assignment_sha256_at_source_write": "61acadaf7915ef4f55d49ae5944aebc0435a56214bba585ce4db18ad7f116324",
+    "assignment_sha256_at_context_read": "0514513d0603fc72184f32ff9ff6f22fb80e006fd9777a588b2f73b529b3e05d",
+    "grant_entry": "metadata_tasks.R054",
+    "root_grant_receipts": [
+      {
+        "chunk": "13abbf",
+        "exit": 0,
+        "pid": 19788
+      },
+      {
+        "chunk": "2673ff",
+        "exit": 0,
+        "kind": "independent exact4grant/pins/coverage readback"
+      }
+    ],
+    "standard_path": "docs/plans/source-comments/01-standard.md",
+    "standard_sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3",
+    "zircon_dev_skill_sha256": "2d699cd12492709facc84079838a836356e4f7dd8b7bac475b65d10a804ed957",
+    "source_write_boundary": "Only exact4 + own child. Root owns global ledger/main/post; context is readonly.",
+    "foreign_boundaries": {
+      "R049": "Frozen Interface input/reply/effect/result and navigation DTOs",
+      "R052": "Frozen Interface pointer8 + child",
+      "R053": {
+        "owner": "runtime_pointer_luna",
+        "status": "assigned-active-after-root-fresh-grant",
+        "audited_paths": [
+          "zircon_runtime/src/ui/dispatch/pointer/mod.rs",
+          "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+        ]
+      },
+      "R046": "Original writer HOLD; no replay or touching its29 sources/child",
+      "R033": "Historical native reconciliation unresolved; no replay"
+    },
+    "context_files_formal_coverage": false
+  },
+  "summary": {
+    "source_files": 4,
+    "changed_files": 3,
+    "unchanged_files": 1,
+    "insertions": 8,
+    "inserted_lf_lines": 57,
+    "before_bytes": 25314,
+    "after_bytes": 28615,
+    "before_physical_lines": 733,
+    "after_physical_lines": 790,
+    "objects": 39,
+    "continuous_semantic_blocks": 66,
+    "declared_fields": 2,
+    "test_functions": 6,
+    "ordinary_tests": 4,
+    "ignored_tests": 2,
+    "test_assertion_macros": 27,
+    "production_debug_assertion_macros": 1,
+    "new_bug_markers": 1,
+    "new_todo_markers": 0
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+      "before_sha256": "1a78860761d9f7dde18c047c50ed33fc71ef6340aa46542936e70e82c46bbb1c",
+      "after_sha256": "c3109871964871af8f37a4719cc534af5504616ad5250c3bff5b55fe39b1a359",
+      "before_bytes": 10267,
+      "after_bytes": 12824,
+      "before_lines": 285,
+      "after_lines": 333,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 285,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 333,
+        "bom": false
+      },
+      "insertions": [
+        {
+          "before_offset": 0,
+          "before_line": 1,
+          "length": 409,
+          "sha256": "12fd9bd473b563c329155449e6f553138adc1403eb3249929d7721d96ec0aff8",
+          "inserted_lines": 7,
+          "exact_text": "//! 将一次指针派发的记录投影为统一输入回复，并合并随后产生的文本结果。\n//!\n//! 路由和状态变更由调用方及专属 owner 完成；本模块组装拥有型效果与回执记录。\n//! 借入的指针结果只在投影期间使用，文本结果按值消费；返回记录不借用两者。\n//!\n//! 主要入口为 [`pointer_reply`] 和 [`merge_pointer_text_result`]。\n\n",
+          "after_offset": 0
+        },
+        {
+          "before_offset": 340,
+          "before_line": 10,
+          "length": 599,
+          "sha256": "ae902baf2d582d9a4856ca6066661831be025fbc066765567377c799a32a4bb2",
+          "inserted_lines": 12,
+          "exact_text": "/// 把已完成的一次指针派发投影为统一回复。\n///\n/// # 参数与返回值\n/// 借入派发记录，`pointer_id` 用于捕获及释放效果的身份；返回值拥有新建的效果列表。\n/// 返回记录选择阻断或处理节点，必要时以最后一个组件事件节点补足处理者。\n///\n/// # 约束与时机\n/// 本函数读取已产生的状态与事件，不再次调用处理器或应用效果。\n/// 阶段可采用兜底值，不能仅据此证明相应阶段实际执行过处理器。\n///\n/// # 参考\n/// [`UiDispatchReply`]、[`UiPointerDispatchResult`]。\n",
+          "after_offset": 749
+        },
+        {
+          "before_offset": 4980,
+          "before_line": 136,
+          "length": 417,
+          "sha256": "f6b467aa024aef6b2f13857b810a4826862606c480d93698b63eac4ebc4dfabf",
+          "inserted_lines": 8,
+          "exact_text": "/// 估计固定效果加逐项或兜底重绘所需的条目容量。\n///\n/// # 参数与返回值\n/// 三个计数分别来自固定状态变化、调用记录数和兜底目标数。\n/// 逐项已产生重绘时不会再追加兜底重绘，因而后两项取较大值后与固定数做饱和相加。\n///\n/// # 约束\n/// 这里只估计条目数；不设置内存预算，也不保证后续容量申请成功。\n",
+          "after_offset": 5988
+        },
+        {
+          "before_offset": 5389,
+          "before_line": 150,
+          "length": 523,
+          "sha256": "a217c0772466524e6a9d123314b949c361086ebfd35744dbf605e727519b17ce",
+          "inserted_lines": 9,
+          "exact_text": "/// 顺序投影非空 dirty 请求，并记录最后匹配的处理与重绘阶段。\n///\n/// # 参数与返回值\n/// 借入派发记录，按节点与可选处理者匹配；把新效果追加到传入向量，不清空原内容。\n/// 返回值分别保留最后一次节点匹配和最后一次 dirty/damage 调用的阶段。\n///\n/// # 约束\n/// damage 请求在此只参与阶段选择；此处不会为它另建 damage 效果。\n/// 记录阶段不要求 dirty 非空；只有非空 dirty 才追加重绘效果。\n",
+          "after_offset": 6814
+        },
+        {
+          "before_offset": 7114,
+          "before_line": 196,
+          "length": 609,
+          "sha256": "da7f17d55defe4ff1642ee7d6980bb84e92c1202be4cb79656e99c3eccb06d41",
+          "inserted_lines": 12,
+          "exact_text": "/// 消费文本侧结果，将其效果与回执按原有顺序附加到指针结果。\n///\n/// # 参数与所有权\n/// `result` 原地接收累计结果；`text_result` 按值消费，内部向量迁入累计结果。\n///\n/// # 约束\n/// 仅落在文本效果序列内的本地索引会平移；越界索引保持原值，由调用方保证回执身份有效。\n/// 本函数不校验两份结果是否属于同一输入，也不重新应用效果或执行宿主请求。\n/// 已有阻断结论只保护回复头部的选择，后续记录仍会附加。\n///\n/// # 参考\n/// [`UiInputDispatchResult`]。\n",
+          "after_offset": 9062
+        }
+      ],
+      "inverse_equal": true,
+      "objects": [
+        {
+          "name": "pointer_reply",
+          "kind": "fn",
+          "before_lines": [
+            10,
+            46
+          ],
+          "audit": "借入一次指针派发记录，选择显式 handler、组件末项 fallback、disposition 与 phase，并返回拥有新效果向量的统一回复。Blocked 优先；无显式 handler 时组件事件或效果也可令回复 Handled。",
+          "documentation_decision": "新增 summary/参数返回/时机/phase fallback 约束与类型参考；不用被源码守卫搜索的标识填充文档。",
+          "parameters": {
+            "routed_result": "只在本次投影借用的既有派发记录",
+            "pointer_id": "复制到捕获/释放效果的指针身份"
+          },
+          "returns": "拥有 effects 的 UiDispatchReply；phase 可为 fallback，不能由 Some 单独推出处理器实际执行",
+          "callers": [
+            "C1:pointer.rs89-90",
+            "T1:single_pass_tests40,51"
+          ],
+          "calls": [
+            "pointer_component_handler",
+            "pointer_reply_effects"
+          ],
+          "after_lines": [
+            17,
+            65
+          ]
+        },
+        {
+          "name": "pointer_component_handler",
+          "kind": "fn",
+          "before_lines": [
+            48,
+            55
+          ],
+          "audit": "只取组件事件列表末项的 node_id，为 wrapper 和父级派发收集同一候选处理者；空列表返回 None，不遍历绑定或执行事件。",
+          "documentation_decision": "不新增：last/map 的借用访问器清楚，wrapper 新文档说明其 fallback 用途。",
+          "parameters": {
+            "routed_result": "借入的组件事件序列"
+          },
+          "returns": "末项节点身份或 None",
+          "callers": [
+            "pointer_reply:14",
+            "C1:pointer.rs89"
+          ],
+          "after_lines": [
+            67,
+            74
+          ]
+        },
+        {
+          "name": "pointer_reply_effects",
+          "kind": "fn",
+          "before_lines": [
+            58,
+            134
+          ],
+          "audit": "先估计容量并按 capture/release/set-focus/clear-focus 顺序写效果，再扫描调用记录；仅在无任何 DirtyRedraw 时将聚合 dirty 投影给 target 或 roots。",
+          "documentation_decision": "保留原57行中文顺序说明；新的容量与 scan 文档补非显然依赖，不重复为该 helper 添同义正文。",
+          "parameters": {
+            "routed_result": "状态、调用和 route 的借用视图",
+            "pointer_id": "捕获效果身份",
+            "handler": "用于选择处理阶段的可选节点"
+          },
+          "returns": "新效果 Vec 与两类最后匹配阶段",
+          "callers": [
+            "pointer_reply:16"
+          ],
+          "calls": [
+            "pointer_release_target",
+            "pointer_reply_effect_capacity_hint",
+            "scan_pointer_invocations"
+          ],
+          "after_lines": [
+            77,
+            153
+          ]
+        },
+        {
+          "name": "pointer_reply_effect_capacity_hint",
+          "kind": "fn",
+          "before_lines": [
+            136,
+            142
+          ],
+          "audit": "fixed + max(invocation,fallback) 做饱和相加；fallback 只在没有逐项 dirty 效果时追加，故不把两类重绘上界相加。它仅返回条目数，实际 Vec 申请仍可失败。",
+          "documentation_decision": "新增为何取 max、三项计数语义、返回与分配边界。",
+          "parameters": {
+            "fixed_effect_count": "固定状态变化最多输出的效果条目数",
+            "invocation_count": "每条调用至多一个 dirty 效果的条目上界",
+            "fallback_effect_count": "target一项或roots数的兜底上界"
+          },
+          "returns": "饱和 usize 容量提示",
+          "callers": [
+            "pointer_reply_effects:72-76",
+            "T4:capacity_tests12-15"
+          ],
+          "after_lines": [
+            155,
+            169
+          ]
+        },
+        {
+          "name": "PointerInvocationPhases",
+          "kind": "struct",
+          "before_lines": [
+            144,
+            148
+          ],
+          "audit": "两项 Option 只记录扫描所得阶段；派生 Default 使其起始为 None，不拥有引用或执行状态。",
+          "documentation_decision": "不新增：私有两字段容器直接可读，scan 新文档说明最后匹配含义。",
+          "derives": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "Default",
+            "PartialEq",
+            "Eq"
+          ],
+          "members": [
+            {
+              "name": "handler_phase",
+              "before_line": 146,
+              "meaning": "最后一次 node匹配 handler 的阶段",
+              "after_line": 173
+            },
+            {
+              "name": "redraw_phase",
+              "before_line": 147,
+              "meaning": "最后一次 RequestDirty 或 RequestDamage 的阶段，与dirty是否为空分开",
+              "after_line": 174
+            }
+          ],
+          "callers": [
+            "scan_pointer_invocations:155-176",
+            "pointer_reply:33-42"
+          ],
+          "after_lines": [
+            171,
+            175
+          ]
+        },
+        {
+          "name": "scan_pointer_invocations",
+          "kind": "fn",
+          "before_lines": [
+            150,
+            177
+          ],
+          "audit": "单个前向循环分别覆盖阶段值；只有非空 RequestDirty 追加重绘效果，RequestDamage 仅影响 redraw phase。已有向量内容保留；None handler 不匹配任何节点。",
+          "documentation_decision": "新增顺序/追加/最后匹配/空dirty与damage分工；未写运行性能保证。",
+          "parameters": {
+            "routed_result": "顺序调用记录的借用",
+            "handler": "按节点匹配的可选处理者",
+            "effects": "追加写入的可变 Vec 借用"
+          },
+          "returns": "拥有两个 Option<phase> 的值；无借用逃逸",
+          "callers": [
+            "pointer_reply_effects:106",
+            "single_pass_tests::optimized_scan_checksum:175"
+          ],
+          "related_existing_issue": "CR-DISPATCH-0004 context only",
+          "after_lines": [
+            177,
+            213
+          ]
+        },
+        {
+          "name": "pointer_release_target",
+          "kind": "fn",
+          "before_lines": [
+            179,
+            185
+          ],
+          "audit": "显式 released_capture 优先；否则仅当诊断记录 capture_released 且当前无 captured_by 时取 route.captured。此处不自行释放捕获，也不查节点有效性。",
+          "documentation_decision": "不新增：短路 fallback 已直接表达约束，调用方和类型文档足够。",
+          "returns": "应在统一回复中记录释放的节点或 None",
+          "callers": [
+            "pointer_reply_effects:63"
+          ],
+          "after_lines": [
+            215,
+            221
+          ]
+        },
+        {
+          "name": "single_pass_tests",
+          "kind": "cfg_test_module",
+          "before_lines": [
+            187,
+            189
+          ],
+          "audit": "cfg(test)+path 挂载完整243行源测试文件，super::* 可访问私有 helper。",
+          "documentation_decision": "不新增：挂载属性清楚；测试文件新增模块说明。",
+          "attributes": [
+            "cfg(test)",
+            "path = \"pointer_reply/tests/single_pass_tests.rs\""
+          ],
+          "calls": [
+            "tests/single_pass_tests.rs"
+          ],
+          "after_lines": [
+            223,
+            225
+          ]
+        },
+        {
+          "name": "capacity_tests",
+          "kind": "cfg_test_module",
+          "before_lines": [
+            191,
+            193
+          ],
+          "audit": "cfg(test)+path 挂载完整73行容量测试文件。",
+          "documentation_decision": "不新增：挂载属性足够；测试文件解释模型与微测量边界。",
+          "attributes": [
+            "cfg(test)",
+            "path = \"pointer_reply/tests/capacity_tests.rs\""
+          ],
+          "after_lines": [
+            227,
+            229
+          ]
+        },
+        {
+          "name": "merge_pointer_text_result",
+          "kind": "fn",
+          "before_lines": [
+            196,
+            281
+          ],
+          "audit": "按值消费文本结果并原地累计；非Blocked时替换disposition并以文本Some优先handler/phase。追加向量并仅平移小于文本效果长度的本地索引；越界值原样保存，event/pointer_routing等未赋值字段保持原值。",
+          "documentation_decision": "保留原195行说明，新增消费时机、所有权、有效索引限制、Blocked仅保护头部及不验证事件身份的边界。",
+          "parameters": {
+            "result": "原地累积的指针结果",
+            "text_result": "被消费的文本侧拥有型结果"
+          },
+          "returns": "()；可变参数中的向量/诊断被合并",
+          "callers": [
+            "C1:pointer.rs139-140",
+            "T6:sibling_test55"
+          ],
+          "calls": [],
+          "constraints": [
+            "不验证两event相同",
+            "不重新应用效果/执行宿主请求",
+            "回执索引合法性由生产者保证"
+          ],
+          "after_lines": [
+            232,
+            329
+          ]
+        },
+        {
+          "name": "tests",
+          "kind": "cfg_test_module",
+          "before_lines": [
+            283,
+            285
+          ],
+          "audit": "cfg(test)+path 挂载相邻 input/tests/pointer_reply.rs，不是 pointer_reply/tests 子目录内文件。",
+          "documentation_decision": "不新增：路径明确，正式范围包含其完整132行。",
+          "attributes": [
+            "cfg(test)",
+            "path = \"tests/pointer_reply.rs\""
+          ],
+          "after_lines": [
+            331,
+            333
+          ]
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "导入与模块边界",
+          "before_lines": [
+            1,
+            9
+          ],
+          "entry": "模块载入",
+          "state_change": "只引入接口 DTO 与 UiNodeId",
+          "downstream_effect": "无注册、Serde实现或执行效果",
+          "control_points": [],
+          "after_lines": [
+            1,
+            16
+          ]
+        },
+        {
+          "name": "选择候选处理者并组装效果",
+          "before_lines": [
+            10,
+            16
+          ],
+          "entry": "pointer_reply 调用",
+          "state_change": "分别取得组件末项、显式 handled/blocked handler 和投影效果",
+          "downstream_effect": "后续用这些值选择统一头部",
+          "control_points": [
+            "handled_by.or(blocked_by)",
+            "调用helper而非在wrapper内扫描"
+          ],
+          "after_lines": [
+            17,
+            35
+          ]
+        },
+        {
+          "name": "disposition 优先序",
+          "before_lines": [
+            17,
+            29
+          ],
+          "entry": "已有状态与效果已读取",
+          "state_change": "Blocked优先，其次显式处理/组件事件/非空效果，再passthrough，否则Unhandled",
+          "downstream_effect": "不再次调用处理器",
+          "control_points": [
+            "blocked_by Some",
+            "handled_by/component/effects OR",
+            "passthrough非空"
+          ],
+          "after_lines": [
+            36,
+            48
+          ]
+        },
+        {
+          "name": "拥有型回复与phase兜底",
+          "before_lines": [
+            30,
+            47
+          ],
+          "entry": "disposition 已确定",
+          "state_change": "显式handler优先组件末项；handler阶段缺省Bubble，组件Target，其余重绘阶段缺省Target",
+          "downstream_effect": "phase可能是解释用fallback；返回Vec拥有数据",
+          "control_points": [
+            "handler是否Some",
+            "component_handler是否Some"
+          ],
+          "after_lines": [
+            49,
+            66
+          ]
+        },
+        {
+          "name": "组件处理者末项投影",
+          "before_lines": [
+            48,
+            56
+          ],
+          "entry": "读取component_events",
+          "state_change": "last/map只复制节点身份",
+          "downstream_effect": "提供统一回复和父级诊断候选",
+          "control_points": [],
+          "after_lines": [
+            67,
+            75
+          ]
+        },
+        {
+          "name": "效果上界与容量申请",
+          "before_lines": [
+            57,
+            77
+          ],
+          "entry": "pointer_reply_effects",
+          "state_change": "算固定数、target或roots兜底数，再申请Vec容量",
+          "downstream_effect": "容量提示不等同预算或申请成功",
+          "control_points": [
+            "capture/release/focus/clear四项计数",
+            "route.target Some =>1"
+          ],
+          "after_lines": [
+            76,
+            96
+          ]
+        },
+        {
+          "name": "捕获效果",
+          "before_lines": [
+            78,
+            84
+          ],
+          "entry": "captured_by Some",
+          "state_change": "追加CapturePointer/Press",
+          "downstream_effect": "只记录效果，不在本helper中改变捕获表",
+          "control_points": [],
+          "after_lines": [
+            97,
+            103
+          ]
+        },
+        {
+          "name": "释放效果",
+          "before_lines": [
+            85,
+            91
+          ],
+          "entry": "release_target Some",
+          "state_change": "追加ReleasePointerCapture/Cancel",
+          "downstream_effect": "目标由release helper决定",
+          "control_points": [],
+          "after_lines": [
+            104,
+            110
+          ]
+        },
+        {
+          "name": "焦点设置效果",
+          "before_lines": [
+            92,
+            97
+          ],
+          "entry": "focus_changed_to Some",
+          "state_change": "追加SetFocus/Input",
+          "downstream_effect": "记录已产生的焦点变化",
+          "control_points": [],
+          "after_lines": [
+            111,
+            116
+          ]
+        },
+        {
+          "name": "焦点清理效果",
+          "before_lines": [
+            98,
+            105
+          ],
+          "entry": "focus_cleared为真",
+          "state_change": "只有route.focused Some才追加ClearFocus",
+          "downstream_effect": "空旧焦点不产生清理条目",
+          "control_points": [
+            "双层条件"
+          ],
+          "after_lines": [
+            117,
+            124
+          ]
+        },
+        {
+          "name": "单遍扫描后按需兜底重绘",
+          "before_lines": [
+            106,
+            132
+          ],
+          "entry": "已有固定效果向量",
+          "state_change": "扫描调用，再在聚合dirty非空且无DirtyRedraw时补target或各root",
+          "downstream_effect": "逐项重绘与fallback互斥，支持容量max公式",
+          "control_points": [
+            "requested_dirty.any",
+            "效果向量不存在DirtyRedraw",
+            "target/roots二选一"
+          ],
+          "after_lines": [
+            125,
+            151
+          ]
+        },
+        {
+          "name": "返回效果与阶段",
+          "before_lines": [
+            133,
+            135
+          ],
+          "entry": "投影结束",
+          "state_change": "移出Vec与阶段值",
+          "downstream_effect": "不返回输入借用",
+          "control_points": [],
+          "after_lines": [
+            152,
+            154
+          ]
+        },
+        {
+          "name": "容量公式",
+          "before_lines": [
+            136,
+            143
+          ],
+          "entry": "三项usize计数",
+          "state_change": "max后saturating_add",
+          "downstream_effect": "避免该算式整数回绕，不限制Vec分配",
+          "control_points": [],
+          "after_lines": [
+            155,
+            170
+          ]
+        },
+        {
+          "name": "阶段容器与默认",
+          "before_lines": [
+            144,
+            149
+          ],
+          "entry": "派生Default/扫描创建",
+          "state_change": "两个Option初始None",
+          "downstream_effect": "后续覆盖表示最后匹配",
+          "control_points": [],
+          "after_lines": [
+            171,
+            176
+          ]
+        },
+        {
+          "name": "扫描进入与handler阶段覆盖",
+          "before_lines": [
+            150,
+            159
+          ],
+          "entry": "对调用列表前向迭代",
+          "state_change": "每次节点匹配就覆盖处理阶段",
+          "downstream_effect": "重复同节点取最后匹配",
+          "control_points": [
+            "Some(node)==handler"
+          ],
+          "after_lines": [
+            177,
+            195
+          ]
+        },
+        {
+          "name": "重绘阶段覆盖",
+          "before_lines": [
+            160,
+            165
+          ],
+          "entry": "当前调用效果",
+          "state_change": "dirty或damage覆盖重绘阶段",
+          "downstream_effect": "空dirty也记录阶段",
+          "control_points": [
+            "RequestDirty OR RequestDamage"
+          ],
+          "after_lines": [
+            196,
+            201
+          ]
+        },
+        {
+          "name": "非空dirty效果与扫描返回",
+          "before_lines": [
+            166,
+            178
+          ],
+          "entry": "当前调用为RequestDirty",
+          "state_change": "非空才追加DirtyRedraw，完成循环返回阶段",
+          "downstream_effect": "damage不在此投影为效果",
+          "control_points": [
+            "dirty.any"
+          ],
+          "after_lines": [
+            202,
+            214
+          ]
+        },
+        {
+          "name": "释放目标短路fallback",
+          "before_lines": [
+            179,
+            186
+          ],
+          "entry": "需描述释放目标",
+          "state_change": "显式released优先，否则看diagnostics与current capture",
+          "downstream_effect": "只返回Option值",
+          "control_points": [
+            "released_capture.or_else",
+            "capture_released && captured_by None"
+          ],
+          "after_lines": [
+            215,
+            222
+          ]
+        },
+        {
+          "name": "单遍测试模块挂载",
+          "before_lines": [
+            187,
+            190
+          ],
+          "entry": "cfg(test)",
+          "state_change": "载入single_pass测试",
+          "downstream_effect": "含普通断言与1个ignored性能样本",
+          "control_points": [],
+          "after_lines": [
+            223,
+            226
+          ]
+        },
+        {
+          "name": "容量测试模块挂载",
+          "before_lines": [
+            191,
+            194
+          ],
+          "entry": "cfg(test)",
+          "state_change": "载入capacity测试",
+          "downstream_effect": "含有限公式样例与ignored样本",
+          "control_points": [],
+          "after_lines": [
+            227,
+            230
+          ]
+        },
+        {
+          "name": "合并头部与Blocked边界",
+          "before_lines": [
+            195,
+            204
+          ],
+          "entry": "merge获得mut累计和拥有文本结果",
+          "state_change": "非Blocked才替换disposition，文本Some优先handler/phase",
+          "downstream_effect": "Blocked不阻止后续集合追加",
+          "control_points": [
+            "if !Blocked"
+          ],
+          "after_lines": [
+            231,
+            252
+          ]
+        },
+        {
+          "name": "记住索引基点并预留集合",
+          "before_lines": [
+            205,
+            229
+          ],
+          "entry": "累计已有effects与文本效果已知",
+          "state_change": "记offset/text_count并reserve七类集合与notes",
+          "downstream_effect": "reserve仅容量安排，不验证回执索引",
+          "control_points": [],
+          "after_lines": [
+            253,
+            277
+          ]
+        },
+        {
+          "name": "连续追加文本效果",
+          "before_lines": [
+            230,
+            236
+          ],
+          "entry": "消费文本effects",
+          "state_change": "enumerate顺序push；debug断言当前长度等于offset+localindex",
+          "downstream_effect": "建立有效本地索引平移的连续区域",
+          "control_points": [
+            "debug_assert_eq仅debug配置检查"
+          ],
+          "after_lines": [
+            278,
+            284
+          ]
+        },
+        {
+          "name": "applied索引条件平移",
+          "before_lines": [
+            237,
+            244
+          ],
+          "entry": "消费applied回执",
+          "state_change": "index<text_count时加offset，否则保持",
+          "downstream_effect": "保留原有先前回执并追加",
+          "control_points": [
+            "严格<，不是<="
+          ],
+          "after_lines": [
+            285,
+            292
+          ]
+        },
+        {
+          "name": "追加组件、widget与binding记录",
+          "before_lines": [
+            245,
+            247
+          ],
+          "entry": "拥有型文本集合",
+          "state_change": "依序extend三集合",
+          "downstream_effect": "不执行组件、widget或binding回调",
+          "control_points": [],
+          "after_lines": [
+            293,
+            295
+          ]
+        },
+        {
+          "name": "宿主请求索引条件平移",
+          "before_lines": [
+            248,
+            255
+          ],
+          "entry": "消费host请求",
+          "state_change": "只平移有效本地索引",
+          "downstream_effect": "请求仍交宿主消费，不在此执行",
+          "control_points": [
+            "effect_index<text_count"
+          ],
+          "after_lines": [
+            296,
+            303
+          ]
+        },
+        {
+          "name": "rejected索引条件平移",
+          "before_lines": [
+            256,
+            266
+          ],
+          "entry": "消费拒绝回执",
+          "state_change": "只平移有效本地索引",
+          "downstream_effect": "保留reason与effect本体",
+          "control_points": [
+            "effect_index<text_count"
+          ],
+          "after_lines": [
+            304,
+            314
+          ]
+        },
+        {
+          "name": "drag与诊断合并",
+          "before_lines": [
+            267,
+            282
+          ],
+          "entry": "效果与回执追加完成",
+          "state_change": "文本drag/route_target/handled_phase Some优先；routed按OR，notes追加",
+          "downstream_effect": "未赋值的event/pointer_routing/其他诊断字段保持累计值",
+          "control_points": [],
+          "after_lines": [
+            315,
+            330
+          ]
+        },
+        {
+          "name": "相邻合并测试挂载",
+          "before_lines": [
+            283,
+            285
+          ],
+          "entry": "cfg(test)",
+          "state_change": "载入input/tests/pointer_reply.rs",
+          "downstream_effect": "该文件属于本批完整正式覆盖",
+          "control_points": [],
+          "after_lines": [
+            331,
+            333
+          ]
+        }
+      ],
+      "independent_validation": {
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "current_sha256": "c3109871964871af8f37a4719cc534af5504616ad5250c3bff5b55fe39b1a359",
+        "inverse_sha256": "1a78860761d9f7dde18c047c50ed33fc71ef6340aa46542936e70e82c46bbb1c",
+        "inverse_matches_grant": true,
+        "head_raw_equals_inverse": true,
+        "before_bytes": 10267,
+        "after_bytes": 12824,
+        "before_lines": 285,
+        "after_lines": 333,
+        "before_crlf": 0,
+        "after_crlf": 0,
+        "before_lf_only": 285,
+        "after_lf_only": 333,
+        "before_bom": false,
+        "after_bom": false
+      },
+      "coverage_basis": {
+        "full_before_physical_lines": 285,
+        "full_after_physical_lines": 333,
+        "continuous_before_and_after_blocks_gapfree": true,
+        "all_function_const_type_field_and_cfg_module_items_manually_reviewed": true,
+        "imports_and_local_variable_statements_covered_by_semantic_blocks": true,
+        "inventory_method": "完整733行人工逐对象与控制块阅读；词法定位和数值校验作佐证，不声称AST穷尽或Rust执行。",
+        "read_receipts": [
+          "2acd13",
+          "4487c1"
+        ],
+        "context_files_not_formal_coverage": true
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+      "before_sha256": "79384c4942fe95fd50463fe8819f1c0cc8fe1c373743b604e8e54d2033f1bf95",
+      "after_sha256": "7530c7c96293c8a2dbd1717b35bf37e890e51e0952248d4b3ac0f6b4748316be",
+      "before_bytes": 7977,
+      "after_bytes": 8537,
+      "before_lines": 243,
+      "after_lines": 249,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 243,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 249,
+        "bom": false
+      },
+      "insertions": [
+        {
+          "before_offset": 0,
+          "before_line": 1,
+          "length": 281,
+          "sha256": "ecdec6fe8dce7772458cbb3e5689c2d9e8a0e9234bd7251b9a87c5d98692e147",
+          "inserted_lines": 4,
+          "exact_text": "//! 检查阶段与 dirty 投影，并保留源码形状守卫和手动性能样本。\n//! 源码断言只匹配原始文本边界；性能样本只比较本文件构造的调用序列。\n//! `ignore` 只控制默认运行选择，性能样本的构建配置由执行方决定。\n\n",
+          "after_offset": 0
+        },
+        {
+          "before_offset": 2048,
+          "before_line": 69,
+          "length": 279,
+          "sha256": "0a7a25805a1128d9d7fba9e303fae3d26a242c2b10604920c494d3b722587eb0",
+          "inserted_lines": 2,
+          "exact_text": "    // BUG: [CR-ZCA-R054-0001] 该切片只取包装函数；扫描已委派给切片终点后的 helper，故下方正向 contains 在当前源码为 false。\n    // 后续应按真实委派边界修正守卫；不能靠在包装函数注释中加入目标字串使其通过。\n",
+          "after_offset": 2329
+        }
+      ],
+      "inverse_equal": true,
+      "objects": [
+        {
+          "name": "SAMPLE_PAIRS",
+          "kind": "const",
+          "before_lines": [
+            12,
+            12
+          ],
+          "audit": "性能采样对数固定17；普通测试不依赖计时。",
+          "documentation_decision": "无需新增：常量名与使用循环清楚，模块新增说明限定性能证据。",
+          "value": "17usize",
+          "callers": [
+            "ignored performance test:99-117"
+          ],
+          "after_lines": [
+            16,
+            16
+          ]
+        },
+        {
+          "name": "optimization_batch_20260826ar_pointer_reply_preserves_phase_and_dirty_effects",
+          "kind": "test_fn",
+          "before_lines": [
+            14,
+            53
+          ],
+          "audit": "构造Capture handler、Target dirty、Bubble damage，断言显式handler阶段与唯一dirty效果；清handler后断言重绘阶段来自末项damage。",
+          "documentation_decision": "无需逐测试重复说明：名字、夹具和4个assert明示契约，模块补范围。",
+          "assertion_macros": 4,
+          "attributes": [
+            "test"
+          ],
+          "calls": [
+            "invocation",
+            "empty_route",
+            "pointer_reply"
+          ],
+          "evidence": [
+            "T1"
+          ],
+          "after_lines": [
+            18,
+            57
+          ]
+        },
+        {
+          "name": "optimization_batch_20260826ar_pointer_reply_scans_invocations_once",
+          "kind": "test_fn",
+          "before_lines": [
+            55,
+            80
+          ],
+          "audit": "通过include_str读取主源，按字面函数边界截取两段；第一条正向contains与已委派helper失配，其他原始操作数逐项保存。",
+          "documentation_decision": "仅在真实错误assert前新增批准BUG；保留所有断言，不注入主源匹配字串。",
+          "assertion_macros": 6,
+          "attributes": [
+            "test"
+          ],
+          "calls": [
+            "bounded_source"
+          ],
+          "evidence": [
+            "T2",
+            "CR-ZCA-R054-0001"
+          ],
+          "after_lines": [
+            59,
+            86
+          ]
+        },
+        {
+          "name": "optimization_batch_20260826ar_pointer_reply_single_pass_p95",
+          "kind": "test_fn",
+          "before_lines": [
+            82,
+            135
+          ],
+          "audit": "ignored微测量按17对交替顺序比较两个checksum扫描器；仅Handled效果输入，p95相对阈值为optimized*5<=legacy*4。不是完整wrapper/surface测量。",
+          "documentation_decision": "新增模块说明ignore不选构建profile；保留测试名、阈值、输出字符串与代码。",
+          "attributes": [
+            "test",
+            "ignore = \"release performance evidence\""
+          ],
+          "assertion_macros": 1,
+          "calls": [
+            "invocation",
+            "empty_route",
+            "measure_ns",
+            "legacy_scan_checksum",
+            "optimized_scan_checksum",
+            "nearest_rank",
+            "join_samples"
+          ],
+          "evidence": [
+            "T3"
+          ],
+          "after_lines": [
+            88,
+            141
+          ]
+        },
+        {
+          "name": "INVOCATIONS",
+          "kind": "local_const",
+          "before_lines": [
+            85,
+            85
+          ],
+          "audit": "ignored样本使用16384个调用记录；仅该函数内有效。",
+          "documentation_decision": "无需新增：局部基准规模直接可读。",
+          "value": "16_384usize",
+          "callers": [
+            "performance fixture:89-97",
+            "report:130-131"
+          ],
+          "after_lines": [
+            91,
+            91
+          ]
+        },
+        {
+          "name": "REPLIES",
+          "kind": "local_const",
+          "before_lines": [
+            86,
+            86
+          ],
+          "audit": "每样本对每扫描器执行128次；不是wrapper回复对象数的实测。",
+          "documentation_decision": "无需新增：模块已限定测量对象，常量与measure调用明确。",
+          "value": "128usize",
+          "callers": [
+            "measure_ns calls:103-115"
+          ],
+          "after_lines": [
+            92,
+            92
+          ]
+        },
+        {
+          "name": "invocation",
+          "kind": "fixture_fn",
+          "before_lines": [
+            137,
+            147
+          ],
+          "audit": "将node/phase/effect按值放入接口调用记录，不执行handler或验证节点。",
+          "documentation_decision": "无需新增：三字段夹具组装清楚。",
+          "parameters": {
+            "node_id": "值身份",
+            "phase": "预设阶段",
+            "effect": "预设效果"
+          },
+          "returns": "UiPointerDispatchInvocation",
+          "callers": [
+            "T1",
+            "T3"
+          ],
+          "after_lines": [
+            143,
+            153
+          ]
+        },
+        {
+          "name": "empty_route",
+          "kind": "fixture_fn",
+          "before_lines": [
+            149,
+            171
+          ],
+          "audit": "返回Move/零坐标、无目标/焦点/捕获且集合皆空的路由；为投影单测隔离真实命中测试。",
+          "documentation_decision": "无需新增：显式19字段夹具及测试名足够，模块范围声明避免误作真实路由执行。",
+          "fixture_fields": [
+            "kind",
+            "button",
+            "modifiers",
+            "activation_phase",
+            "point",
+            "scroll_delta",
+            "target",
+            "hit_path",
+            "routing_path",
+            "stacked",
+            "entered",
+            "left",
+            "captured",
+            "pressed",
+            "click_target",
+            "release_inside_pressed",
+            "focused",
+            "fallback_to_root",
+            "root_targets"
+          ],
+          "callers": [
+            "T1",
+            "T3"
+          ],
+          "after_lines": [
+            155,
+            177
+          ]
+        },
+        {
+          "name": "optimized_scan_checksum",
+          "kind": "benchmark_fn",
+          "before_lines": [
+            173,
+            179
+          ],
+          "audit": "创建空效果向量并调用实际scan，checksum加效果数和两类阶段；向量在调用结束释放。",
+          "documentation_decision": "无需新增：测试模块说明它仅为微测量，实际调用直接可读。",
+          "returns": "usize checksum，不是回复或耗时",
+          "callers": [
+            "T3"
+          ],
+          "after_lines": [
+            179,
+            185
+          ]
+        },
+        {
+          "name": "legacy_scan_checksum",
+          "kind": "benchmark_fn",
+          "before_lines": [
+            181,
+            196
+          ],
+          "audit": "前向计非空dirty再反向找最后handler阶段；未计算重绘阶段。与优化版本的比较只用于全Handled的本夹具，不能声称任意输入checksum等价。",
+          "documentation_decision": "无需新增：模块边界配合具体夹具已足够；不添加未经证明的普遍等价或性能保证。",
+          "callers": [
+            "T3"
+          ],
+          "returns": "usize checksum",
+          "after_lines": [
+            187,
+            202
+          ]
+        },
+        {
+          "name": "phase_checksum",
+          "kind": "benchmark_fn",
+          "before_lines": [
+            198,
+            208
+          ],
+          "audit": "将当前七个阶段映射到1..7的非零整数；仅供checksum防优化。",
+          "documentation_decision": "无需新增：七个match臂直接可读。",
+          "control_points": [
+            "Preprocess=>1",
+            "PreviewTunnel=>2",
+            "Direct=>3",
+            "Target=>4",
+            "Bubble=>5",
+            "DefaultAction=>6",
+            "Capture=>7"
+          ],
+          "callers": [
+            "optimized_scan_checksum",
+            "legacy_scan_checksum"
+          ],
+          "after_lines": [
+            204,
+            214
+          ]
+        },
+        {
+          "name": "measure_ns",
+          "kind": "benchmark_fn",
+          "before_lines": [
+            210,
+            218
+          ],
+          "audit": "同步FnMut调用iterations次，以black_box/wrapping checksum抑制消除，返回Instant elapsed nanos；未要求非零。",
+          "documentation_decision": "无需新增：局部计时流程明确，模块不把ignore文案当profile门。",
+          "parameters": {
+            "iterations": "本地循环次数",
+            "operation": "调用期间借用的同步可变闭包，无Send/static注册约束"
+          },
+          "returns": "u128纳秒",
+          "callers": [
+            "T3"
+          ],
+          "after_lines": [
+            216,
+            224
+          ]
+        },
+        {
+          "name": "bounded_source",
+          "kind": "test_helper_fn",
+          "before_lines": [
+            220,
+            228
+          ],
+          "audit": "返回借自source的片段；缺start会panic，缺end则保留剩余全文，因为split.next始终有第一段。当前四个分隔符在before/current均恰1次。",
+          "documentation_decision": "无需新增：本批修正的是错误断言的证据注释，未改变helper或声称其校验end存在。",
+          "parameters": {
+            "source": "返回借用的来源，生命周期'a",
+            "start": "查找起始字面量",
+            "end": "结束分隔字面量"
+          },
+          "returns": "&'a str；不借用start/end",
+          "callers": [
+            "T2:58-67"
+          ],
+          "after_lines": [
+            226,
+            234
+          ]
+        },
+        {
+          "name": "nearest_rank",
+          "kind": "benchmark_fn",
+          "before_lines": [
+            230,
+            235
+          ],
+          "audit": "复制排序后按ceil(len*percentile/100)-1取样；当前调用是17个样本、50/95。空样本或越界百分位不在现有调用域。",
+          "documentation_decision": "无需新增：局部辅助仅服务固定调用域，未扩成通用统计API。",
+          "returns": "u128选中样本",
+          "callers": [
+            "T3:119-122"
+          ],
+          "after_lines": [
+            236,
+            241
+          ]
+        },
+        {
+          "name": "join_samples",
+          "kind": "benchmark_fn",
+          "before_lines": [
+            237,
+            243
+          ],
+          "audit": "按输入顺序把纳秒值转十进制并逗号连接，用于保留采样明细。",
+          "documentation_decision": "无需新增：单用途迭代链清楚。",
+          "returns": "拥有型String",
+          "callers": [
+            "T3:132-133"
+          ],
+          "after_lines": [
+            243,
+            249
+          ]
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "导入与采样对常量",
+          "before_lines": [
+            1,
+            13
+          ],
+          "entry": "测试模块载入",
+          "state_change": "引入父helper、接口夹具和计时器；定义17对",
+          "downstream_effect": "不自动运行ignored样本",
+          "control_points": [],
+          "after_lines": [
+            1,
+            17
+          ]
+        },
+        {
+          "name": "阶段与效果夹具",
+          "before_lines": [
+            14,
+            38
+          ],
+          "entry": "普通T1",
+          "state_change": "用三条调用区分handler与最后重绘阶段",
+          "downstream_effect": "没有真实dispatcher或命中测试",
+          "control_points": [
+            "Capture Handled",
+            "Target 非空dirty",
+            "Bubble damage"
+          ],
+          "after_lines": [
+            18,
+            42
+          ]
+        },
+        {
+          "name": "首轮阶段与dirty断言",
+          "before_lines": [
+            39,
+            48
+          ],
+          "entry": "带显式handler的投影",
+          "state_change": "断言Capture、单效果与node8/render",
+          "downstream_effect": "不把damage变为统一damage效果",
+          "control_points": [],
+          "after_lines": [
+            43,
+            52
+          ]
+        },
+        {
+          "name": "移除handler后的阶段断言",
+          "before_lines": [
+            49,
+            54
+          ],
+          "entry": "同夹具清空handled_by",
+          "state_change": "再次投影并断言Bubble",
+          "downstream_effect": "确认重绘phase可来自末项damage",
+          "control_points": [],
+          "after_lines": [
+            53,
+            58
+          ]
+        },
+        {
+          "name": "源码读取与两段分隔",
+          "before_lines": [
+            55,
+            68
+          ],
+          "entry": "普通T2",
+          "state_change": "include_str并按四个原始字面量分隔",
+          "downstream_effect": "借用片段仅供静态字符串守卫",
+          "control_points": [],
+          "after_lines": [
+            59,
+            72
+          ]
+        },
+        {
+          "name": "六个原始源码谓词",
+          "before_lines": [
+            69,
+            81
+          ],
+          "entry": "已得wrapper与scan切片",
+          "state_change": "依次contains/absence/count；原第一条false",
+          "downstream_effect": "批准BUG标错误assert；不执行Rust测试、不把其余谓词称运行通过",
+          "control_points": [
+            "before/current:[false,true,1,true,true,true]"
+          ],
+          "after_lines": [
+            73,
+            87
+          ]
+        },
+        {
+          "name": "ignored样本与固定规模",
+          "before_lines": [
+            82,
+            98
+          ],
+          "entry": "显式选择ignored性能测试时",
+          "state_change": "构造16384个Bubble Handled调用、handler1、128次",
+          "downstream_effect": "不包括完整回复效果/输入管线",
+          "control_points": [],
+          "after_lines": [
+            88,
+            104
+          ]
+        },
+        {
+          "name": "交替成对计时",
+          "before_lines": [
+            99,
+            117
+          ],
+          "entry": "17个sample index",
+          "state_change": "偶数先旧/奇数先新，分别收集纳秒",
+          "downstream_effect": "减少固定先后偏差，不等于证明真实提升",
+          "control_points": [],
+          "after_lines": [
+            105,
+            123
+          ]
+        },
+        {
+          "name": "分位选择与相对阈值",
+          "before_lines": [
+            118,
+            126
+          ],
+          "entry": "两组样本已有",
+          "state_change": "计算p50/p95并用饱和乘法比较20%阈值",
+          "downstream_effect": "本批未运行，阈值不算已满足",
+          "control_points": [],
+          "after_lines": [
+            124,
+            132
+          ]
+        },
+        {
+          "name": "性能报告输出",
+          "before_lines": [
+            127,
+            136
+          ],
+          "entry": "阈值检查之后",
+          "state_change": "输出规模、理论访问数与原始样本",
+          "downstream_effect": "字符串保持；访问数为公式不是计数器观测",
+          "control_points": [],
+          "after_lines": [
+            133,
+            142
+          ]
+        },
+        {
+          "name": "调用记录夹具组装",
+          "before_lines": [
+            137,
+            148
+          ],
+          "entry": "测试/基准请求一条记录",
+          "state_change": "三值原样填接口struct",
+          "downstream_effect": "不调用处理器",
+          "control_points": [],
+          "after_lines": [
+            143,
+            154
+          ]
+        },
+        {
+          "name": "空路由夹具",
+          "before_lines": [
+            149,
+            172
+          ],
+          "entry": "隔离投影输入",
+          "state_change": "明确Move/零坐标/无目标和空集合",
+          "downstream_effect": "不模拟真实surface路由",
+          "control_points": [],
+          "after_lines": [
+            155,
+            178
+          ]
+        },
+        {
+          "name": "优化扫描checksum",
+          "before_lines": [
+            173,
+            180
+          ],
+          "entry": "性能闭包调用",
+          "state_change": "实际scan写临时Vec并汇总阶段",
+          "downstream_effect": "局部Vec生命周期结束即释放",
+          "control_points": [],
+          "after_lines": [
+            179,
+            186
+          ]
+        },
+        {
+          "name": "旧双扫描checksum",
+          "before_lines": [
+            181,
+            197
+          ],
+          "entry": "性能闭包调用",
+          "state_change": "dirty count后反向handler查找",
+          "downstream_effect": "不同一般输入不保证与新checksum等价",
+          "control_points": [],
+          "after_lines": [
+            187,
+            203
+          ]
+        },
+        {
+          "name": "阶段数值编码",
+          "before_lines": [
+            198,
+            209
+          ],
+          "entry": "checksum需要非零phase值",
+          "state_change": "七个match臂映射1..7",
+          "downstream_effect": "仅防优化辅助，不是wire编码",
+          "control_points": [],
+          "after_lines": [
+            204,
+            215
+          ]
+        },
+        {
+          "name": "计时与黑盒累加",
+          "before_lines": [
+            210,
+            219
+          ],
+          "entry": "同步FnMut样本",
+          "state_change": "Instant包围iterations循环，checksum wrapping_add",
+          "downstream_effect": "返回原始u128纳秒，可能受环境噪声",
+          "control_points": [],
+          "after_lines": [
+            216,
+            225
+          ]
+        },
+        {
+          "name": "借用的源码边界辅助",
+          "before_lines": [
+            220,
+            229
+          ],
+          "entry": "T2提供三个str",
+          "state_change": "缺start panic；end缺失不被expect检测",
+          "downstream_effect": "返回值只绑定source生命周期",
+          "control_points": [
+            "split(start).nth(1)",
+            "split(end).next"
+          ],
+          "after_lines": [
+            226,
+            235
+          ]
+        },
+        {
+          "name": "nearest-rank辅助",
+          "before_lines": [
+            230,
+            236
+          ],
+          "entry": "17个正数百分位采样调用",
+          "state_change": "复制、排序、ceil后索引",
+          "downstream_effect": "当前调用满足非空/50或95前提",
+          "control_points": [],
+          "after_lines": [
+            236,
+            242
+          ]
+        },
+        {
+          "name": "样本序列格式化",
+          "before_lines": [
+            237,
+            243
+          ],
+          "entry": "报告原始timing样本",
+          "state_change": "保留输入顺序连接十进制值",
+          "downstream_effect": "返回拥有的报告文本",
+          "control_points": [],
+          "after_lines": [
+            243,
+            249
+          ]
+        }
+      ],
+      "independent_validation": {
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "current_sha256": "7530c7c96293c8a2dbd1717b35bf37e890e51e0952248d4b3ac0f6b4748316be",
+        "inverse_sha256": "79384c4942fe95fd50463fe8819f1c0cc8fe1c373743b604e8e54d2033f1bf95",
+        "inverse_matches_grant": true,
+        "head_raw_equals_inverse": true,
+        "before_bytes": 7977,
+        "after_bytes": 8537,
+        "before_lines": 243,
+        "after_lines": 249,
+        "before_crlf": 0,
+        "after_crlf": 0,
+        "before_lf_only": 243,
+        "after_lf_only": 249,
+        "before_bom": false,
+        "after_bom": false
+      },
+      "coverage_basis": {
+        "full_before_physical_lines": 243,
+        "full_after_physical_lines": 249,
+        "continuous_before_and_after_blocks_gapfree": true,
+        "all_function_const_type_field_and_cfg_module_items_manually_reviewed": true,
+        "imports_and_local_variable_statements_covered_by_semantic_blocks": true,
+        "inventory_method": "完整733行人工逐对象与控制块阅读；词法定位和数值校验作佐证，不声称AST穷尽或Rust执行。",
+        "read_receipts": [
+          "2acd13",
+          "4487c1"
+        ],
+        "context_files_not_formal_coverage": true
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+      "before_sha256": "a93c4c53ff3c8580b787073624e22ff877bc2cb3260eb24e4ad232772d1d9cbe",
+      "after_sha256": "2e8fef09dd43b6a5b418063d7a4b95bbba89fadc9aa5da15367834de3dcd39aa",
+      "before_bytes": 2699,
+      "after_bytes": 2883,
+      "before_lines": 73,
+      "after_lines": 76,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 73,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 76,
+        "bom": false
+      },
+      "insertions": [
+        {
+          "before_offset": 0,
+          "before_line": 1,
+          "length": 184,
+          "sha256": "bef66a3806bb2ab56e76e8eda9e6cb3f1ef9bc4cc864385acc8d4bb15fc33303",
+          "inserted_lines": 3,
+          "exact_text": "//! 有限容量公式样例与手动运行的容量性能样本。\n//! 增长次数使用显式倍增模型，耗时来自独立 Vec 填充；两者均非完整指针派发测量。\n\n",
+          "after_offset": 0
+        }
+      ],
+      "inverse_equal": true,
+      "objects": [
+        {
+          "name": "EFFECTS_PER_SAMPLE",
+          "kind": "const",
+          "before_lines": [
+            6,
+            6
+          ],
+          "audit": "每次Vec填充1024个usize；用于独立分配微测量。",
+          "documentation_decision": "无需新增：模块已说明非完整派发测量。",
+          "value": "1_024usize",
+          "after_lines": [
+            9,
+            9
+          ]
+        },
+        {
+          "name": "SAMPLE_PAIRS",
+          "kind": "const",
+          "before_lines": [
+            7,
+            7
+          ],
+          "audit": "ignored性能测试执行17对交替计时。",
+          "documentation_decision": "无需新增：固定采样规模直接可读。",
+          "value": "17usize",
+          "after_lines": [
+            10,
+            10
+          ]
+        },
+        {
+          "name": "MERGED_PROJECTIONS",
+          "kind": "const",
+          "before_lines": [
+            8,
+            8
+          ],
+          "audit": "值8仅写报告字段，没有驱动八次真实结果合并。",
+          "documentation_decision": "无需逐常量新增：模块文档已把测量范围限定为独立Vec；记录明确此常量只是报告标签。",
+          "value": "8usize",
+          "after_lines": [
+            11,
+            11
+          ]
+        },
+        {
+          "name": "runtime77_pointer_reply_capacity_hint_preserves_upper_bound",
+          "kind": "test_fn",
+          "before_lines": [
+            10,
+            16
+          ],
+          "audit": "四个有限断言检查fixed+max的两种大小顺序、单fallback和全零；没有执行真实Vec分配或证明所有输入。",
+          "documentation_decision": "无需新增：测试名及四个显式例子清楚。",
+          "attributes": [
+            "test"
+          ],
+          "assertion_macros": 4,
+          "calls": [
+            "pointer_reply_effect_capacity_hint"
+          ],
+          "evidence": [
+            "T4"
+          ],
+          "after_lines": [
+            13,
+            19
+          ]
+        },
+        {
+          "name": "runtime77_pointer_reply_capacity_release_benchmark",
+          "kind": "test_fn",
+          "before_lines": [
+            18,
+            43
+          ],
+          "audit": "ignored测试交替收集空/预留1024容量Vec填充耗时；增长比较来自独立倍增模型，未计 allocator实际调用。只assert模型增长减少和预留0增长，不assert耗时优势。",
+          "documentation_decision": "新增模块文档区分模型、Vec计时和真实派发，保留原ignored文案。",
+          "attributes": [
+            "test",
+            "ignore = \"managed Windows release performance evidence\""
+          ],
+          "assertion_macros": 2,
+          "calls": [
+            "measure_growth",
+            "growth_events",
+            "percentile"
+          ],
+          "evidence": [
+            "T5"
+          ],
+          "after_lines": [
+            21,
+            46
+          ]
+        },
+        {
+          "name": "measure_growth",
+          "kind": "benchmark_fn",
+          "before_lines": [
+            45,
+            53
+          ],
+          "audit": "构造Vec并push length次black_box值，返回elapsed纳秒max1；capacity是初始申请值，不是实际allocator事件计数。",
+          "documentation_decision": "无需新增：局部实现及模块范围已足够。",
+          "parameters": {
+            "length": "push次数",
+            "capacity": "Vec初始容量请求"
+          },
+          "returns": "至少1的u128纳秒",
+          "callers": [
+            "T5"
+          ],
+          "after_lines": [
+            48,
+            56
+          ]
+        },
+        {
+          "name": "growth_events",
+          "kind": "model_fn",
+          "before_lines": [
+            55,
+            66
+          ],
+          "audit": "容量已足够则0，否则从max(capacity,1)反复饱和倍增直到覆盖length；模型把初始0当1，不计首次真实申请。",
+          "documentation_decision": "模块新增倍增模型说明，不把模型数值声称实际Vec实现或allocator统计。",
+          "parameters": {
+            "length": "目标长度",
+            "capacity": "模型起始容量"
+          },
+          "returns": "usize倍增步数",
+          "callers": [
+            "T5"
+          ],
+          "after_lines": [
+            58,
+            69
+          ]
+        },
+        {
+          "name": "percentile",
+          "kind": "benchmark_fn",
+          "before_lines": [
+            68,
+            73
+          ],
+          "audit": "复制排序后ceil(len*p/100)选样；当前只以17个样本和95调用。",
+          "documentation_decision": "无需新增：局部统计域明确；不扩为通用边界保证。",
+          "returns": "选中的u128纳秒样本",
+          "callers": [
+            "T5:40-41"
+          ],
+          "after_lines": [
+            71,
+            76
+          ]
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "基准依赖与三个常量",
+          "before_lines": [
+            1,
+            9
+          ],
+          "entry": "测试模块载入",
+          "state_change": "定义1024填充、17样本对、报告标签8",
+          "downstream_effect": "报告标签不驱动实际merge",
+          "control_points": [],
+          "after_lines": [
+            1,
+            12
+          ]
+        },
+        {
+          "name": "有限容量公式断言",
+          "before_lines": [
+            10,
+            17
+          ],
+          "entry": "普通T4",
+          "state_change": "四次调用helper并比较值",
+          "downstream_effect": "不测试usize极值或实际申请",
+          "control_points": [],
+          "after_lines": [
+            13,
+            20
+          ]
+        },
+        {
+          "name": "ignored容量微测量",
+          "before_lines": [
+            18,
+            31
+          ],
+          "entry": "手动选择性能样本",
+          "state_change": "17对交替计时初始容量0/1024的独立Vec",
+          "downstream_effect": "未执行本批",
+          "control_points": [],
+          "after_lines": [
+            21,
+            34
+          ]
+        },
+        {
+          "name": "模型增长断言",
+          "before_lines": [
+            32,
+            37
+          ],
+          "entry": "计时样本已收集",
+          "state_change": "调用模型，断言旧>新且新为0",
+          "downstream_effect": "并非allocator事件观测",
+          "control_points": [],
+          "after_lines": [
+            35,
+            40
+          ]
+        },
+        {
+          "name": "容量样本报告",
+          "before_lines": [
+            38,
+            44
+          ],
+          "entry": "模型断言之后",
+          "state_change": "输出p95与模型计数、报告标签",
+          "downstream_effect": "没有断言实际耗时改善",
+          "control_points": [],
+          "after_lines": [
+            41,
+            47
+          ]
+        },
+        {
+          "name": "独立Vec填充计时",
+          "before_lines": [
+            45,
+            54
+          ],
+          "entry": "measure_growth",
+          "state_change": "申请指定容量并push，black_box保留工作",
+          "downstream_effect": "返回elapsed max1而非真实派发成本",
+          "control_points": [],
+          "after_lines": [
+            48,
+            57
+          ]
+        },
+        {
+          "name": "饱和倍增模型",
+          "before_lines": [
+            55,
+            67
+          ],
+          "entry": "growth_events",
+          "state_change": "已够则早返；否则从至少1倍增直到覆盖",
+          "downstream_effect": "usize边界通过饱和乘法终止",
+          "control_points": [
+            "capacity>=length",
+            "while capacity<length"
+          ],
+          "after_lines": [
+            58,
+            70
+          ]
+        },
+        {
+          "name": "容量分位辅助",
+          "before_lines": [
+            68,
+            73
+          ],
+          "entry": "17个样本/95调用",
+          "state_change": "复制排序并nearest rank选样",
+          "downstream_effect": "空样本/非法百分位不在当前调用域",
+          "control_points": [],
+          "after_lines": [
+            71,
+            76
+          ]
+        }
+      ],
+      "independent_validation": {
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "current_sha256": "2e8fef09dd43b6a5b418063d7a4b95bbba89fadc9aa5da15367834de3dcd39aa",
+        "inverse_sha256": "a93c4c53ff3c8580b787073624e22ff877bc2cb3260eb24e4ad232772d1d9cbe",
+        "inverse_matches_grant": true,
+        "head_raw_equals_inverse": true,
+        "before_bytes": 2699,
+        "after_bytes": 2883,
+        "before_lines": 73,
+        "after_lines": 76,
+        "before_crlf": 0,
+        "after_crlf": 0,
+        "before_lf_only": 73,
+        "after_lf_only": 76,
+        "before_bom": false,
+        "after_bom": false
+      },
+      "coverage_basis": {
+        "full_before_physical_lines": 73,
+        "full_after_physical_lines": 76,
+        "continuous_before_and_after_blocks_gapfree": true,
+        "all_function_const_type_field_and_cfg_module_items_manually_reviewed": true,
+        "imports_and_local_variable_statements_covered_by_semantic_blocks": true,
+        "inventory_method": "完整733行人工逐对象与控制块阅读；词法定位和数值校验作佐证，不声称AST穷尽或Rust执行。",
+        "read_receipts": [
+          "2acd13",
+          "4487c1"
+        ],
+        "context_files_not_formal_coverage": true
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+      "before_sha256": "02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298",
+      "after_sha256": "02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298",
+      "before_bytes": 4371,
+      "after_bytes": 4371,
+      "before_lines": 132,
+      "after_lines": 132,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 132,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 132,
+        "bom": false
+      },
+      "insertions": [],
+      "inverse_equal": true,
+      "objects": [
+        {
+          "name": "merge_pointer_text_result_preserves_text_effect_statuses_when_rebasing_indexes",
+          "kind": "test_fn",
+          "before_lines": [
+            13,
+            96
+          ],
+          "audit": "显式构造旧release效果、文本focus/popup效果及applied/rejected/host/widget回执；断言追加顺序与有效本地索引0/1平移到1/2。",
+          "documentation_decision": "不新增：测试名、完整夹具和10个assert足够；正式完整审查132行。",
+          "attributes": [
+            "test"
+          ],
+          "assertion_macros": 10,
+          "calls": [
+            "pointer_event",
+            "release_pointer_effect",
+            "focus_effect",
+            "popup_effect",
+            "merge_pointer_text_result"
+          ],
+          "evidence": [
+            "T6"
+          ],
+          "after_lines": [
+            13,
+            96
+          ]
+        },
+        {
+          "name": "pointer_event",
+          "kind": "fixture_fn",
+          "before_lines": [
+            98,
+            108
+          ],
+          "audit": "固定timestamp1/sequence1与Up/Secondary指针事件；两结果使用同类夹具，不实际派发。",
+          "documentation_decision": "无需新增：显式嵌套值构造清楚。",
+          "returns": "拥有型UiInputEvent::Pointer",
+          "callers": [
+            "T6:16,27"
+          ],
+          "after_lines": [
+            98,
+            108
+          ]
+        },
+        {
+          "name": "release_pointer_effect",
+          "kind": "fixture_fn",
+          "before_lines": [
+            110,
+            116
+          ],
+          "audit": "按值组装ReleasePointerCapture/Cancel，保留给定target与pointer_id。",
+          "documentation_decision": "无需新增：简单fixture不执行捕获变更。",
+          "returns": "UiDispatchEffect",
+          "callers": [
+            "T6:15"
+          ],
+          "after_lines": [
+            110,
+            116
+          ]
+        },
+        {
+          "name": "focus_effect",
+          "kind": "fixture_fn",
+          "before_lines": [
+            118,
+            123
+          ],
+          "audit": "组装SetFocus/Input，节点来自参数。",
+          "documentation_decision": "无需新增：单一fixture变体直观。",
+          "returns": "UiDispatchEffect",
+          "callers": [
+            "T6:25"
+          ],
+          "after_lines": [
+            118,
+            123
+          ]
+        },
+        {
+          "name": "popup_effect",
+          "kind": "fixture_fn",
+          "before_lines": [
+            125,
+            132
+          ],
+          "audit": "拥有popup_id字符串，构造Open、owner node2与无anchor的效果；拒绝理由由测试显式填入。",
+          "documentation_decision": "无需新增：fixture不是owner校验器，显式字段足够。",
+          "returns": "UiDispatchEffect",
+          "callers": [
+            "T6:26"
+          ],
+          "after_lines": [
+            125,
+            132
+          ]
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "父helper与夹具类型导入",
+          "before_lines": [
+            1,
+            12
+          ],
+          "entry": "相邻测试模块载入",
+          "state_change": "super::*接入私有merge helper",
+          "downstream_effect": "没有运行Surface或宿主请求",
+          "control_points": [],
+          "after_lines": [
+            1,
+            12
+          ]
+        },
+        {
+          "name": "指针侧已应用效果夹具",
+          "before_lines": [
+            13,
+            24
+          ],
+          "entry": "普通T6",
+          "state_change": "建立release效果和index0 applied回执",
+          "downstream_effect": "作为合并偏移基点1",
+          "control_points": [],
+          "after_lines": [
+            13,
+            24
+          ]
+        },
+        {
+          "name": "文本侧效果与状态夹具",
+          "before_lines": [
+            25,
+            39
+          ],
+          "entry": "构造文本记录",
+          "state_change": "effects含focus/popup，applied0/rejected1与理由",
+          "downstream_effect": "没有真实执行或拒绝流程",
+          "control_points": [],
+          "after_lines": [
+            25,
+            39
+          ]
+        },
+        {
+          "name": "文本host/widget夹具",
+          "before_lines": [
+            40,
+            54
+          ],
+          "entry": "文本记录已就绪",
+          "state_change": "host index1与Activate事件加入",
+          "downstream_effect": "作为回执/事件保留断言输入",
+          "control_points": [],
+          "after_lines": [
+            40,
+            54
+          ]
+        },
+        {
+          "name": "合并与效果/applied顺序",
+          "before_lines": [
+            55,
+            77
+          ],
+          "entry": "调用merge",
+          "state_change": "断言旧效果在前且文本顺序保留，文本applied index变1",
+          "downstream_effect": "仅覆盖有效本地索引",
+          "control_points": [],
+          "after_lines": [
+            55,
+            77
+          ]
+        },
+        {
+          "name": "rejected、host与widget保留断言",
+          "before_lines": [
+            78,
+            97
+          ],
+          "entry": "已合并结果",
+          "state_change": "断言拒绝reason/effect与index2、host index2、完整widget事件",
+          "downstream_effect": "未断言Blocked头部、越界索引、notes/drag/binding分支",
+          "control_points": [],
+          "after_lines": [
+            78,
+            97
+          ]
+        },
+        {
+          "name": "固定指针事件夹具",
+          "before_lines": [
+            98,
+            109
+          ],
+          "entry": "创建两份测试结果",
+          "state_change": "时间/序列皆1，Up+Secondary，无precise scroll",
+          "downstream_effect": "不证明事件身份校验存在",
+          "control_points": [],
+          "after_lines": [
+            98,
+            109
+          ]
+        },
+        {
+          "name": "释放效果夹具",
+          "before_lines": [
+            110,
+            117
+          ],
+          "entry": "测试需要旧效果",
+          "state_change": "构造值而非更改捕获状态",
+          "downstream_effect": "传入结果向量",
+          "control_points": [],
+          "after_lines": [
+            110,
+            117
+          ]
+        },
+        {
+          "name": "焦点效果夹具",
+          "before_lines": [
+            118,
+            124
+          ],
+          "entry": "测试需要文本applied效果",
+          "state_change": "构造SetFocus/Input",
+          "downstream_effect": "传入结果向量",
+          "control_points": [],
+          "after_lines": [
+            118,
+            124
+          ]
+        },
+        {
+          "name": "popup效果夹具",
+          "before_lines": [
+            125,
+            132
+          ],
+          "entry": "测试需要文本rejected效果",
+          "state_change": "构造拥有字符串的Open/owner2/None anchor",
+          "downstream_effect": "真正owner校验不在该fixture",
+          "control_points": [],
+          "after_lines": [
+            125,
+            132
+          ]
+        }
+      ],
+      "independent_validation": {
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "current_sha256": "02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298",
+        "inverse_sha256": "02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298",
+        "inverse_matches_grant": true,
+        "head_raw_equals_inverse": true,
+        "before_bytes": 4371,
+        "after_bytes": 4371,
+        "before_lines": 132,
+        "after_lines": 132,
+        "before_crlf": 0,
+        "after_crlf": 0,
+        "before_lf_only": 132,
+        "after_lf_only": 132,
+        "before_bom": false,
+        "after_bom": false
+      },
+      "coverage_basis": {
+        "full_before_physical_lines": 132,
+        "full_after_physical_lines": 132,
+        "continuous_before_and_after_blocks_gapfree": true,
+        "all_function_const_type_field_and_cfg_module_items_manually_reviewed": true,
+        "imports_and_local_variable_statements_covered_by_semantic_blocks": true,
+        "inventory_method": "完整733行人工逐对象与控制块阅读；词法定位和数值校验作佐证，不声称AST穷尽或Rust执行。",
+        "read_receipts": [
+          "2acd13",
+          "4487c1"
+        ],
+        "context_files_not_formal_coverage": true
+      }
+    }
+  ],
+  "context_files": [
+    {
+      "id": "C0",
+      "path": "zircon_runtime/src/ui/surface/input/mod.rs",
+      "sha256": "92b77461f574bfc63206230714675f4bdb34cd9cb16132da9bac4b13db3e98a5",
+      "spans": [
+        [
+          35,
+          38
+        ]
+      ],
+      "evidence": "父input模块通过path挂pointer与pointer_reply；只读父挂载。",
+      "receipt": "41a750"
+    },
+    {
+      "id": "C1",
+      "path": "zircon_runtime/src/ui/surface/input/pointer.rs",
+      "sha256": "bcf73bb8503b4a7b7ee4f9b41ba15c28687db702d6e6660d080adc66e7dd2442",
+      "spans": [
+        [
+          12,
+          18
+        ],
+        [
+          23,
+          49
+        ],
+        [
+          64,
+          101
+        ],
+        [
+          121,
+          141
+        ]
+      ],
+      "evidence": "dispatch_pointer_input借用surface/dispatcher；路由与dirty/捕获状态已更新后调用wrapper，记录effects为applied，再合并Some文本结果。",
+      "receipts": [
+        "2acd13",
+        "067420",
+        "41a750"
+      ]
+    },
+    {
+      "id": "C2",
+      "path": "zircon_runtime/src/ui/surface/input/dispatch.rs",
+      "sha256": "011682ab9b27cac2f3814530888648f19d3cc8a55a83a3f799ae8d24ef41d6bd",
+      "spans": [
+        [
+          28,
+          46
+        ]
+      ],
+      "evidence": "统一输入owner按UiInputEvent::Pointer委派给pointer输入；不授予父文件写权。",
+      "receipts": [
+        "067420",
+        "41a750"
+      ]
+    },
+    {
+      "id": "C3",
+      "path": "zircon_runtime_interface/src/ui/dispatch/input/reply.rs",
+      "sha256": "55342f3a36a6fb180e8256e4fc934869aed5d9623037cc2108bb86a51d4a9559",
+      "spans": [
+        [
+          53,
+          74
+        ]
+      ],
+      "evidence": "R049冻结的disposition与拥有型UiDispatchReply字段及派生Serde；R054只构造/更新记录。",
+      "receipt": "41a750"
+    },
+    {
+      "id": "C4",
+      "path": "zircon_runtime_interface/src/ui/dispatch/input/result.rs",
+      "sha256": "fb21fbae7c7f63a5e93c39b1ddb25e7382032255e53faa07bc38d41f9ee8fef1",
+      "spans": [
+        [
+          245,
+          328
+        ]
+      ],
+      "evidence": "R049冻结的host回执与UiInputDispatchResult集合字段、new初始化；请求跨度到330但实际读取在328文件尾截止，记录只列实际有界范围。",
+      "receipt": "41a750"
+    },
+    {
+      "id": "G2",
+      "path": "zircon_runtime/src/ui/tests/runtime_input_ownership.rs",
+      "sha256": "cc2e924ac0bb5de17706f0a147a5bad1f7a0c4f65c8e7d00a7d0a6597acc7dbb",
+      "spans": [
+        [
+          43,
+          88
+        ]
+      ],
+      "evidence": "include_str原始读取主源；本批只求值63行两项reply absence，不声称其其他输入谓词或子测试全部通过。",
+      "receipts": [
+        "4487c1",
+        "memory-targeted-extract",
+        "41a750"
+      ]
+    },
+    {
+      "id": "G3",
+      "path": "zircon_runtime/src/tests/contracts/ui_architecture/legacy_renames.rs",
+      "sha256": "1e896590478d97663d7def9263d50d10efc4d90f5242ffad57177f20a54bd6e1",
+      "spans": [
+        [
+          42,
+          81
+        ]
+      ],
+      "evidence": "通过support读取主源，检查routed_result存在与legacy缺失；其他pointer/doc输入不属于本批全部求值。",
+      "receipts": [
+        "4487c1",
+        "memory-targeted-extract",
+        "41a750"
+      ]
+    },
+    {
+      "id": "G3-support",
+      "path": "zircon_runtime/src/tests/contracts/ui_architecture/support.rs",
+      "sha256": "565bc026c67c6cebff72fd05f644846586ab06ac93217528d078faaafbfea7c3",
+      "spans": [
+        [
+          5,
+          20
+        ]
+      ],
+      "evidence": "repo_root由CARGO_MANIFEST_DIR父目录取得；read_repo_file用fs::read_to_string且不剥注释，失败panic。",
+      "receipt": "41a750 exact recovered JSON support object"
+    },
+    {
+      "id": "G2-mount",
+      "path": "zircon_runtime/src/ui/tests/mod.rs",
+      "sha256": "4b1e97d1aad576402e7b5d9c5a1c95c9b0fce94f4ae9ac1736a22e437424733b",
+      "spans": [
+        [
+          167,
+          168
+        ]
+      ],
+      "evidence": "167–168挂载外部所有权测试。",
+      "receipt": "19bfbd"
+    },
+    {
+      "id": "G3-mount",
+      "path": "zircon_runtime/src/tests/contracts/ui_architecture.rs",
+      "sha256": "c1b9e1c8da11487727637d57a875d47bd8afa3c9c523c3862c901d0a854193bf",
+      "spans": [
+        [
+          1,
+          11
+        ]
+      ],
+      "evidence": "4–5挂载legacy_renames；10–11挂载support。",
+      "receipt": "19bfbd"
+    },
+    {
+      "id": "C5-R053",
+      "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+      "sha256": "e85516b855b09752b815f3f9e3aef9274a33dbb2cf20d90ec50485857f247576",
+      "spans": [
+        [
+          18,
+          33
+        ],
+        [
+          93,
+          116
+        ],
+        [
+          121,
+          144
+        ],
+        [
+          306,
+          333
+        ]
+      ],
+      "evidence": "R053 runtime_pointer_luna独占源码：当前anchor范围看到Arc/HRTB+Send+Sync+'static注册及即时回调，再push非Unhandled invocation；只读证据，不计本批覆盖。",
+      "receipt": "19bfbd"
+    }
+  ],
+  "call_graph": {
+    "production": [
+      "C2::dispatch_input_event Pointer arm -> C1::dispatch_pointer_input -> dispatch_routed_pointer_input -> pointer_reply",
+      "pointer_reply -> pointer_component_handler + pointer_reply_effects -> pointer_release_target + capacity_hint + scan_pointer_invocations",
+      "C1::dispatch_routed_pointer_input Some text_result -> merge_pointer_text_result"
+    ],
+    "data_ownership": "借用指针结果/route只在投影期读取；效果、阶段值与合并向量由返回/累计结果拥有。生成记录不等同重新执行owner或host请求。",
+    "dynamic_registration": "R054 exact4无handler注册或动态入口；R053 C5-R053回调产生非Unhandled记录，随后本批消费。"
+  },
+  "traits": {
+    "handwritten_impls_in_exact4": [],
+    "derive_inventory": [
+      {
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_lines": [
+          144,
+          148
+        ],
+        "type": "PointerInvocationPhases",
+        "derives": [
+          "Clone",
+          "Copy",
+          "Debug",
+          "Default",
+          "PartialEq",
+          "Eq"
+        ]
+      }
+    ],
+    "callback_context": "C5-R053的Arc<dyn for<'route> Fn(...) +Send+Sync+'static>是外部注册；R054计时FnMut仅同步调用，不存储/延长借用。"
+  },
+  "macros": {
+    "local_proc_macro_definitions": [],
+    "serde_in_exact4": false,
+    "indirect_serde": "C3/C4接口DTO派生Serialize/Deserialize；R054并未执行编解码或生成wire合同。",
+    "original_macros_reviewed": [
+      "matches!",
+      "debug_assert_eq!",
+      "vec!",
+      "assert!",
+      "assert_eq!",
+      "include_str!",
+      "println!"
+    ],
+    "attributes": [
+      "derive on private phase struct",
+      "three cfg(test)+path mounts",
+      "six test and two ignore attributes"
+    ],
+    "macro_inputs": "所有原始宏/属性输入字节反演保留；只新增doc comments与批准BUG。",
+    "other_test_functions": "black_box与Instant是函数/类型；本批未将其算作宏或动态入口。"
+  },
+  "registration": {
+    "exact4": "无注册表、handler注册或运行时类型注册；pub(super)函数是Rust内部适配器。",
+    "external": "C5-R053的node/kind[/phase]键和Arc回调属于该批；不取得它们覆盖或写权。"
+  },
+  "ffi": {
+    "exact4": "完整逐声明读取及候选正则检索未见extern/no_mangle/repr(C)/unsafe/FFI入口；仅描述这4源，不声称全仓无间接入口。",
+    "indirect_boundary": "UiDispatchReply/UiInputDispatchResult在外部宿主/owner链流转；本批不承诺C ABI内存布局、节点有效性或宿主请求执行成功。"
+  },
+  "tests": {
+    "execution": "not-run; no Cargo/build/performance/test process",
+    "formal_test_paths": [
+      "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+      "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+      "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+    ],
+    "test_functions": 6,
+    "ignored": 2,
+    "assertion_macros": 27,
+    "contracts": [
+      {
+        "id": "T1",
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "function": "optimization_batch_20260826ar_pointer_reply_preserves_phase_and_dirty_effects",
+        "before_lines": [
+          14,
+          53
+        ],
+        "assertion_macros": 4,
+        "ignored": false,
+        "asserts": "显式handler取Capture；effects只一条node8的render dirty；清handled_by后phase为最后damage的Bubble。",
+        "limits": "显式构造记录，无真实hit test/dispatcher；不覆盖capture/focus/release/fallback target/roots、重复同节点或全部disposition。",
+        "after_lines": [
+          18,
+          57
+        ]
+      },
+      {
+        "id": "T2",
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "function": "optimization_batch_20260826ar_pointer_reply_scans_invocations_once",
+        "before_lines": [
+          55,
+          80
+        ],
+        "assertion_macros": 6,
+        "ignored": false,
+        "asserts": "原始源码两分隔片段的正/负包含与单loop计数。",
+        "limits": "第一条现为false；静态分隔不等同AST、执行或性能证明，其余断言并未实际执行。",
+        "issue": "CR-ZCA-R054-0001",
+        "after_lines": [
+          59,
+          86
+        ]
+      },
+      {
+        "id": "T3",
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "function": "optimization_batch_20260826ar_pointer_reply_single_pass_p95",
+        "before_lines": [
+          82,
+          135
+        ],
+        "assertion_macros": 1,
+        "ignored": true,
+        "asserts": "17对、128次、16384个Bubble Handled调用，对两个checksum helper的P95设20%相对阈值。",
+        "limits": "ignore字符串不强制release profile；未运行/无计时结果。不是完整pointer_reply/Surface，且两个checksum对一般输入不保证等价。",
+        "after_lines": [
+          88,
+          141
+        ]
+      },
+      {
+        "id": "T4",
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "function": "runtime77_pointer_reply_capacity_hint_preserves_upper_bound",
+        "before_lines": [
+          10,
+          16
+        ],
+        "assertion_macros": 4,
+        "ignored": false,
+        "asserts": "四个有限参数组合分别返回20、20、5、0。",
+        "limits": "不验证所有usize输入，不执行实际effects构建或内存分配。",
+        "after_lines": [
+          13,
+          19
+        ]
+      },
+      {
+        "id": "T5",
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "function": "runtime77_pointer_reply_capacity_release_benchmark",
+        "before_lines": [
+          18,
+          43
+        ],
+        "assertion_macros": 2,
+        "ignored": true,
+        "asserts": "17对独立Vec填充计时；只断言模型增长旧>新且预留为0增长。",
+        "limits": "倍增次数不是allocator实测；报告中的merged_projections=8不驱动真实8次merge；不assert计时优势，本批未运行。",
+        "after_lines": [
+          21,
+          46
+        ]
+      },
+      {
+        "id": "T6",
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "function": "merge_pointer_text_result_preserves_text_effect_statuses_when_rebasing_indexes",
+        "before_lines": [
+          13,
+          96
+        ],
+        "assertion_macros": 10,
+        "ignored": false,
+        "asserts": "旧release、文本focus/popup保持顺序，文本applied0=>1、rejected/host1=>2并保留effect/reason/widget事件。",
+        "limits": "不检查Blocked头部、越界索引、不同事件、空文本、drag/notes/binding/diagnostics各分支，也不执行真实文本owner或host。",
+        "after_lines": [
+          13,
+          96
+        ]
+      }
+    ],
+    "source_guards": {
+      "evaluation": "在原始UTF8/LF文本上用同样split与字面量计数；support读取不剥注释。未执行Rust测试。",
+      "raw_operand_counts": [
+        {
+          "needle": "pub(super) fn pointer_reply(",
+          "before": 1,
+          "current": 1,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "pub(super) fn pointer_component_handler",
+          "before": 1,
+          "current": 1,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "fn scan_pointer_invocations(",
+          "before": 1,
+          "current": 1,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "fn pointer_release_target",
+          "before": 1,
+          "current": 1,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "scan_pointer_invocations",
+          "before": 2,
+          "current": 2,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "fn pointer_reply_phase(",
+          "before": 0,
+          "current": 0,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "for invocation in &routed_result.invocations",
+          "before": 1,
+          "current": 1,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": ".iter().rev()",
+          "before": 0,
+          "current": 0,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "handler_phase",
+          "before": 3,
+          "current": 3,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "redraw_phase",
+          "before": 3,
+          "current": 3,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "effect_index_map",
+          "before": 0,
+          "current": 0,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "remap_text_effect_index",
+          "before": 0,
+          "current": 0,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "routed_result",
+          "before": 36,
+          "current": 36,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "legacy",
+          "before": 0,
+          "current": 0,
+          "all_insertions_contribution": 0
+        }
+      ],
+      "before": {
+        "single_pass": [
+          false,
+          true,
+          1,
+          true,
+          true,
+          true
+        ],
+        "ownership_reply_subset": [
+          true,
+          true
+        ],
+        "rename_pointer_reply_subset": [
+          true,
+          true
+        ]
+      },
+      "current": {
+        "single_pass": [
+          false,
+          true,
+          1,
+          true,
+          true,
+          true
+        ],
+        "ownership_reply_subset": [
+          true,
+          true
+        ],
+        "rename_pointer_reply_subset": [
+          true,
+          true
+        ]
+      },
+      "new_comment_contribution": 0,
+      "invariant": true,
+      "limits": "仅G2/G3对R054主源的子谓词；不据此宣布外部测试所有其他源码/文档输入通过。旧single_pass首谓词false保持，不作为本批注释回归或通过。"
+    }
+  },
+  "issues": [
+    {
+      "id": "CR-ZCA-R054-0001",
+      "kind": "BUG",
+      "origin": "this-audit",
+      "status": "confirmed-static-source-guard-boundary-mismatch-pending-separate-fix",
+      "source_path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+      "before_source_sha256": "79384c4942fe95fd50463fe8819f1c0cc8fe1c373743b604e8e54d2033f1bf95",
+      "current_source_sha256": "7530c7c96293c8a2dbd1717b35bf37e890e51e0952248d4b3ac0f6b4748316be",
+      "before_assertion_line": 69,
+      "current_tag_line": 73,
+      "current_assertion_line": 75,
+      "tag_text": "    // BUG: [CR-ZCA-R054-0001] 该切片只取包装函数；扫描已委派给切片终点后的 helper，故下方正向 contains 在当前源码为 false。\n    // 后续应按真实委派边界修正守卫；不能靠在包装函数注释中加入目标字串使其通过。\n",
+      "root_approval": "Root exact R054 grant reserved this ID solely for stale wrapper-slice positive contains; original assertion preserved.",
+      "trigger": "include_str读取当前主源，bounded_source以wrapper签名到component helper签名为边界。",
+      "decisive_path": [
+        {
+          "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+          "sha256": "1a78860761d9f7dde18c047c50ed33fc71ef6340aa46542936e70e82c46bbb1c",
+          "spans": [
+            [
+              10,
+              46
+            ],
+            [
+              58,
+              134
+            ],
+            [
+              150,
+              177
+            ]
+          ],
+          "evidence": "wrapper16调用效果helper；真正scan调用106不在wrapper切片。",
+          "version": "before"
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+          "sha256": "c3109871964871af8f37a4719cc534af5504616ad5250c3bff5b55fe39b1a359",
+          "spans": [
+            [
+              29,
+              65
+            ],
+            [
+              77,
+              153
+            ],
+            [
+              186,
+              213
+            ]
+          ],
+          "evidence": "对应原代码位置保留；helper调用125仍在wrapper结束/下一个声明67之外。",
+          "version": "after"
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+          "sha256": "7530c7c96293c8a2dbd1717b35bf37e890e51e0952248d4b3ac0f6b4748316be",
+          "spans": [
+            [
+              59,
+              86
+            ],
+            [
+              226,
+              234
+            ]
+          ],
+          "evidence": "四个字面边界仍恰一次；assert75对不含扫描字串的片段做正向contains。",
+          "version": "after"
+        }
+      ],
+      "observed_static_value": false,
+      "before_vector": [
+        false,
+        true,
+        1,
+        true,
+        true,
+        true
+      ],
+      "current_vector": [
+        false,
+        true,
+        1,
+        true,
+        true,
+        true
+      ],
+      "new_comment_contribution": 0,
+      "proof_kind": "静态源码/字符串求值，未运行Rust测试",
+      "impact_limit": "只确认此源码守卫与委派边界失配；不推断生产重复扫描或回复行为错误。",
+      "next_action": "后续独立测试修复按实际helper委派确定检查范围并验证，禁止用注释匹配目标字串掩盖断言。"
+    }
+  ],
+  "preexisting_owned_issues": [],
+  "related_preexisting_context": [
+    {
+      "tag": "CR-DISPATCH-0004",
+      "global_issue_id": "LEGACY:zircon_runtime_interface/src/ui/dispatch/pointer/effect.rs:20:TODO",
+      "origin": "preexisting",
+      "path": "zircon_runtime_interface/src/ui/dispatch/pointer/effect.rs",
+      "source_sha256": "4d35c49858f02d2d5e21cc6ddc5fffa85f98bbf2641cd8dd7c06c7d54856ef62",
+      "issue_ledger_sha256_at_read": "73e698c6f44089be1e52d1db6f4d6b4d16aad729506eb35562cbfd27bb772737",
+      "evidence": "本批scan只以RequestDamage更新阶段，未生成对应统一damage效果；与既有TODO相关。",
+      "evidence_gap": "全局damage消费与目标契约仍非本批重新闭合，保留开放，不升BUG或重复编号。",
+      "write_action": "none"
+    }
+  ],
+  "source_writer": {
+    "original_command": "$R054SourceWriter = @'\nfrom pathlib import Path\nimport hashlib,json,subprocess,os,datetime\nroot=Path(r\"E:/Git/ZirconEngine\")\nap=root/\"docs/plans/source-comments/assignments.json\"\ngrant=json.loads(ap.read_text(encoding=\"utf-8-sig\"))[\"metadata_tasks\"][\"R054\"]\npaths=grant[\"audited_paths\"]\nexpected={\"zircon_runtime/src/ui/surface/input/pointer_reply.rs\":\"1a78860761d9f7dde18c047c50ed33fc71ef6340aa46542936e70e82c46bbb1c\",\"zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs\":\"79384c4942fe95fd50463fe8819f1c0cc8fe1c373743b604e8e54d2033f1bf95\",\"zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs\":\"a93c4c53ff3c8580b787073624e22ff877bc2cb3260eb24e4ad232772d1d9cbe\",\"zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs\":\"02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298\"}\nassert sorted(paths)==sorted(expected) and grant[\"before_sha256\"]==expected and grant[\"owner\"]==\"reflection_luna\"\nstandard=root/\"docs/plans/source-comments/01-standard.md\"\nassert hashlib.sha256(standard.read_bytes()).hexdigest()==\"5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3\"\ndef run(args):\n    r=subprocess.run(args,cwd=root,capture_output=True,text=True,encoding=\"utf-8\")\n    return {\"argv\":args,\"exit\":r.returncode,\"stdout\":r.stdout,\"stderr\":r.stderr}\nhead=run([\"git\",\"rev-parse\",\"HEAD\"])\nassert head[\"exit\"]==0 and head[\"stdout\"].strip()==\"f28ba39a5095f4964c046ecc702778627f80cfd5\"\ngit_checks=[run([\"git\",\"status\",\"--short\",\"--\",*paths]),run([\"git\",\"diff\",\"--name-only\",\"--\",*paths]),run([\"git\",\"diff\",\"--cached\",\"--name-only\",\"--\",*paths])]\nassert all(r[\"exit\"]==0 and not r[\"stdout\"].strip() for r in git_checks)\noriginal={}\nfor p,h in expected.items():\n    b=(root/p).read_bytes();assert hashlib.sha256(b).hexdigest()==h,p\n    hraw=subprocess.run([\"git\",\"show\",\"HEAD:\"+p],cwd=root,capture_output=True);assert hraw.returncode==0 and hraw.stdout==b,p\n    original[p]=b\nassert not (root/\"docs/plans/source-comments/reviews/R054.json\").exists()\nfmt_before=run([\"rustfmt\",\"--check\",\"--edition\",\"2021\",\"--config\",\"skip_children=true\",*paths])\nplan=[{\"path\":\"zircon_runtime/src/ui/surface/input/pointer_reply.rs\",\"anchor\":\"use zircon_runtime_interface::ui::{\\n\",\"text\":\"//! 将一次指针派发的记录投影为统一输入回复，并合并随后产生的文本结果。\\n//!\\n//! 路由和状态变更由调用方及专属 owner 完成；本模块组装拥有型效果与回执记录。\\n//! 借入的指针结果只在投影期间使用，文本结果按值消费；返回记录不借用两者。\\n//!\\n//! 主要入口为 [`pointer_reply`] 和 [`merge_pointer_text_result`]。\\n\\n\"},{\"path\":\"zircon_runtime/src/ui/surface/input/pointer_reply.rs\",\"anchor\":\"pub(super) fn pointer_reply(\\n\",\"text\":\"/// 把已完成的一次指针派发投影为统一回复。\\n///\\n/// # 参数与返回值\\n/// 借入派发记录，`pointer_id` 用于捕获及释放效果的身份；返回值拥有新建的效果列表。\\n/// 返回记录选择阻断或处理节点，必要时以最后一个组件事件节点补足处理者。\\n///\\n/// # 约束与时机\\n/// 本函数读取已产生的状态与事件，不再次调用处理器或应用效果。\\n/// 阶段可采用兜底值，不能仅据此证明相应阶段实际执行过处理器。\\n///\\n/// # 参考\\n/// [`UiDispatchReply`]、[`UiPointerDispatchResult`]。\\n\"},{\"path\":\"zircon_runtime/src/ui/surface/input/pointer_reply.rs\",\"anchor\":\"fn pointer_reply_effect_capacity_hint(\\n\",\"text\":\"/// 估计固定效果加逐项或兜底重绘所需的条目容量。\\n///\\n/// # 参数与返回值\\n/// 三个计数分别来自固定状态变化、调用记录数和兜底目标数。\\n/// 逐项已产生重绘时不会再追加兜底重绘，因而后两项取较大值后与固定数做饱和相加。\\n///\\n/// # 约束\\n/// 这里只估计条目数；不设置内存预算，也不保证后续容量申请成功。\\n\"},{\"path\":\"zircon_runtime/src/ui/surface/input/pointer_reply.rs\",\"anchor\":\"fn scan_pointer_invocations(\\n\",\"text\":\"/// 顺序投影非空 dirty 请求，并记录最后匹配的处理与重绘阶段。\\n///\\n/// # 参数与返回值\\n/// 借入派发记录，按节点与可选处理者匹配；把新效果追加到传入向量，不清空原内容。\\n/// 返回值分别保留最后一次节点匹配和最后一次 dirty/damage 调用的阶段。\\n///\\n/// # 约束\\n/// damage 请求在此只参与阶段选择；此处不会为它另建 damage 效果。\\n/// 记录阶段不要求 dirty 非空；只有非空 dirty 才追加重绘效果。\\n\"},{\"path\":\"zircon_runtime/src/ui/surface/input/pointer_reply.rs\",\"anchor\":\"pub(super) fn merge_pointer_text_result(\\n\",\"text\":\"/// 消费文本侧结果，将其效果与回执按原有顺序附加到指针结果。\\n///\\n/// # 参数与所有权\\n/// `result` 原地接收累计结果；`text_result` 按值消费，内部向量迁入累计结果。\\n///\\n/// # 约束\\n/// 仅落在文本效果序列内的本地索引会平移；越界索引保持原值，由调用方保证回执身份有效。\\n/// 本函数不校验两份结果是否属于同一输入，也不重新应用效果或执行宿主请求。\\n/// 已有阻断结论只保护回复头部的选择，后续记录仍会附加。\\n///\\n/// # 参考\\n/// [`UiInputDispatchResult`]。\\n\"},{\"path\":\"zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs\",\"anchor\":\"use std::hint::black_box;\\n\",\"text\":\"//! 检查阶段与 dirty 投影，并保留源码形状守卫和手动性能样本。\\n//! 源码断言只匹配原始文本边界；性能样本只比较本文件构造的调用序列。\\n//! `ignore` 只控制默认运行选择，性能样本的构建配置由执行方决定。\\n\\n\"},{\"path\":\"zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs\",\"anchor\":\"    assert!(reply_path.contains(\\\"scan_pointer_invocations\\\"));\\n\",\"text\":\"    // BUG: [CR-ZCA-R054-0001] 该切片只取包装函数；扫描已委派给切片终点后的 helper，故下方正向 contains 在当前源码为 false。\\n    // 后续应按真实委派边界修正守卫；不能靠在包装函数注释中加入目标字串使其通过。\\n\"},{\"path\":\"zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs\",\"anchor\":\"use std::hint::black_box;\\n\",\"text\":\"//! 有限容量公式样例与手动运行的容量性能样本。\\n//! 增长次数使用显式倍增模型，耗时来自独立 Vec 填充；两者均非完整指针派发测量。\\n\\n\"}]\nneedles=[\"pub(super) fn pointer_reply(\",\"pub(super) fn pointer_component_handler\",\"fn scan_pointer_invocations(\",\"fn pointer_release_target\",\"scan_pointer_invocations\",\"fn pointer_reply_phase(\",\"for invocation in &routed_result.invocations\",\".iter().rev()\",\"handler_phase\",\"redraw_phase\",\"effect_index_map\",\"remap_text_effect_index\",\"routed_result\",\"legacy\"]\nassert all(x[\"text\"].count(n)==0 for x in plan for n in needles),\"new comment contributes guarded raw needle\"\nprepared={};rows=[]\nfor p in paths:\n    before=original[p];ins=[]\n    for q in [x for x in plan if x[\"path\"]==p]:\n        anchor=q[\"anchor\"].encode(\"utf-8\");assert before.count(anchor)==1,(p,q[\"anchor\"])\n        offset=before.index(anchor);data=q[\"text\"].encode(\"utf-8\")\n        assert b\"\\r\" not in data and data.endswith(b\"\\n\")\n        ins.append({\"before_offset\":offset,\"before_line\":before[:offset].count(b\"\\n\")+1,\"length\":len(data),\"sha256\":hashlib.sha256(data).hexdigest(),\"inserted_lines\":data.count(b\"\\n\"),\"exact_text\":q[\"text\"]})\n    ins.sort(key=lambda x:x[\"before_offset\"]);after=before;shift=0\n    for x in ins:\n        x[\"after_offset\"]=x[\"before_offset\"]+shift;shift+=x[\"length\"]\n    for x in reversed(ins):\n        i=x[\"before_offset\"];after=after[:i]+x[\"exact_text\"].encode(\"utf-8\")+after[i:]\n    prepared[p]=after\n    reverse=after\n    for x in reversed(ins):\n        i=x[\"after_offset\"];assert reverse[i:i+x[\"length\"]]==x[\"exact_text\"].encode(\"utf-8\");reverse=reverse[:i]+reverse[i+x[\"length\"]:]\n    assert reverse==before\n    rows.append({\"path\":p,\"before_sha256\":expected[p],\"after_sha256\":hashlib.sha256(after).hexdigest(),\"before_bytes\":len(before),\"after_bytes\":len(after),\"before_lines\":len(before.splitlines()),\"after_lines\":len(after.splitlines()),\"before_eol\":{\"crlf\":before.count(b\"\\r\\n\"),\"lf_only\":before.count(b\"\\n\")-before.count(b\"\\r\\n\"),\"bom\":before.startswith(b\"\\xef\\xbb\\xbf\")},\"after_eol\":{\"crlf\":after.count(b\"\\r\\n\"),\"lf_only\":after.count(b\"\\n\")-after.count(b\"\\r\\n\"),\"bom\":after.startswith(b\"\\xef\\xbb\\xbf\")},\"insertions\":ins,\"inverse_equal\":True})\nfor p in paths:\n    assert (root/p).read_bytes()==original[p],p\nfor p in paths:\n    if prepared[p]!=original[p]:(root/p).write_bytes(prepared[p])\nfor row in rows:\n    assert hashlib.sha256((root/row[\"path\"]).read_bytes()).hexdigest()==row[\"after_sha256\"]\nprint(json.dumps({\"writer_pid\":os.getpid(),\"finished_utc\":datetime.datetime.now(datetime.timezone.utc).isoformat(),\"assignment_sha256_at_write\":hashlib.sha256(ap.read_bytes()).hexdigest(),\"head\":head,\"git_preflight\":git_checks,\"baseline_rustfmt\":fmt_before,\"files\":rows,\"changed_files\":sum(r[\"before_sha256\"]!=r[\"after_sha256\"] for r in rows),\"inserted_lines\":sum(x[\"inserted_lines\"] for r in rows for x in r[\"insertions\"]),\"new_guard_needle_contribution\":0},ensure_ascii=False))\n'@\n& .\\.jenkins\\runtime\\python\\python.exe -B -X utf8 -c $R054SourceWriter",
+    "command_sha256": "cc4bb1dcc74c635be183627f48c67a44d61dad1972e6e1a1849078db4e36558e",
+    "attempts": [
+      {
+        "outer_cell": "55",
+        "initial_chunk": "b18b90",
+        "native_session": 89617,
+        "terminal_chunk": "995f1d",
+        "exit": 0,
+        "pid": 17220,
+        "finished_utc": "2026-10-16T06:00:13.917636+00:00"
+      }
+    ],
+    "fresh_preflight": {
+      "grant_exact": true,
+      "standard_match": true,
+      "head": {
+        "argv": [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        "exit": 0,
+        "stdout": "f28ba39a5095f4964c046ecc702778627f80cfd5\n",
+        "stderr": ""
+      },
+      "scoped_git": [
+        {
+          "argv": [
+            "git",
+            "status",
+            "--short",
+            "--",
+            "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+            "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+            "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+            "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": "warning: unable to access 'C:\\Users\\HeJiahui/.config/git/ignore': Permission denied\n"
+        },
+        {
+          "argv": [
+            "git",
+            "diff",
+            "--name-only",
+            "--",
+            "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+            "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+            "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+            "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "argv": [
+            "git",
+            "diff",
+            "--cached",
+            "--name-only",
+            "--",
+            "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+            "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+            "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+            "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        }
+      ],
+      "raw_head_equals_before_all4": true
+    },
+    "all_original_bytes_reconstruct": true,
+    "all_insertions_real_lf": true
+  },
+  "native_commands": [
+    {
+      "outer_cell": "46",
+      "kind": "candidate-locate",
+      "initial_chunk": "88f835",
+      "native_session": 8933,
+      "terminal_chunk": "60bd47",
+      "exit": 0,
+      "pid": 18112,
+      "warning": "Python invalid escape SyntaxWarning from search pattern; command completed0; no mutation."
+    },
+    {
+      "outer_cell": "48",
+      "kind": "candidate-inventory-ownership-status",
+      "terminal_chunk": "8601c5",
+      "exit": 0,
+      "pid": 29732
+    },
+    {
+      "outer_cell": "49",
+      "kind": "full-four-sources-and-callers-read",
+      "terminal_chunk": "2acd13",
+      "exit": 0,
+      "pid": 19544,
+      "output": "complete, untruncated"
+    },
+    {
+      "outer_cell": "50",
+      "kind": "caller-source-guard-closure-read",
+      "initial_chunk": "928f68",
+      "native_session": 84266,
+      "terminal_chunk": "067420",
+      "exit": 0,
+      "pid": 11552
+    },
+    {
+      "outer_cell": "52",
+      "kind": "formal-grant-policy-head-four-pins-git-and-external-guard-read",
+      "initial_chunk": "aa4a9f",
+      "native_session": 79515,
+      "terminal_chunk": "4487c1",
+      "exit": 0,
+      "pid": 29292,
+      "output": "UI display truncated, stored51222-character JSON complete/parsed; needed guard ranges were subsequently extracted and displayed without truncation."
+    },
+    {
+      "outer_cell": "55",
+      "kind": "source-comment-writer",
+      "initial_chunk": "b18b90",
+      "native_session": 89617,
+      "terminal_chunk": "995f1d",
+      "exit": 0,
+      "pid": 17220,
+      "command_reference": "source_writer.original_command"
+    },
+    {
+      "outer_cell": "57",
+      "kind": "independent-raw-head-predicates-context-fmt-diff",
+      "initial_chunk": "dae816",
+      "native_session": 76153,
+      "terminal_chunk": "41a750",
+      "exit": 0,
+      "pid": 8200,
+      "output": "Tool stdout truncated in unneeded support-search/split_layout text. Exact complete JSON prefix through contexts, check tail and support.rs object recovered by JSON.parse on unchanged segments; not claiming complete discarded-context review."
+    },
+    {
+      "outer_cell": "61",
+      "kind": "final-context-mounts-R053-boundary-existing-issue-and-tag-read",
+      "terminal_chunk": "19bfbd",
+      "exit": 0,
+      "pid": 30520
+    }
+  ],
+  "verification": {
+    "baseline_rustfmt": {
+      "argv": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "independent": {
+      "receipt": "41a750",
+      "exit": 0,
+      "pid": 8200,
+      "utc": "2026-10-16T06:04:29.078457+00:00",
+      "raw_inverse_and_head": [
+        {
+          "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+          "current_sha256": "c3109871964871af8f37a4719cc534af5504616ad5250c3bff5b55fe39b1a359",
+          "inverse_sha256": "1a78860761d9f7dde18c047c50ed33fc71ef6340aa46542936e70e82c46bbb1c",
+          "inverse_matches_grant": true,
+          "head_raw_equals_inverse": true,
+          "before_bytes": 10267,
+          "after_bytes": 12824,
+          "before_lines": 285,
+          "after_lines": 333,
+          "before_crlf": 0,
+          "after_crlf": 0,
+          "before_lf_only": 285,
+          "after_lf_only": 333,
+          "before_bom": false,
+          "after_bom": false
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+          "current_sha256": "7530c7c96293c8a2dbd1717b35bf37e890e51e0952248d4b3ac0f6b4748316be",
+          "inverse_sha256": "79384c4942fe95fd50463fe8819f1c0cc8fe1c373743b604e8e54d2033f1bf95",
+          "inverse_matches_grant": true,
+          "head_raw_equals_inverse": true,
+          "before_bytes": 7977,
+          "after_bytes": 8537,
+          "before_lines": 243,
+          "after_lines": 249,
+          "before_crlf": 0,
+          "after_crlf": 0,
+          "before_lf_only": 243,
+          "after_lf_only": 249,
+          "before_bom": false,
+          "after_bom": false
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+          "current_sha256": "2e8fef09dd43b6a5b418063d7a4b95bbba89fadc9aa5da15367834de3dcd39aa",
+          "inverse_sha256": "a93c4c53ff3c8580b787073624e22ff877bc2cb3260eb24e4ad232772d1d9cbe",
+          "inverse_matches_grant": true,
+          "head_raw_equals_inverse": true,
+          "before_bytes": 2699,
+          "after_bytes": 2883,
+          "before_lines": 73,
+          "after_lines": 76,
+          "before_crlf": 0,
+          "after_crlf": 0,
+          "before_lf_only": 73,
+          "after_lf_only": 76,
+          "before_bom": false,
+          "after_bom": false
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+          "current_sha256": "02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298",
+          "inverse_sha256": "02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298",
+          "inverse_matches_grant": true,
+          "head_raw_equals_inverse": true,
+          "before_bytes": 4371,
+          "after_bytes": 4371,
+          "before_lines": 132,
+          "after_lines": 132,
+          "before_crlf": 0,
+          "after_crlf": 0,
+          "before_lf_only": 132,
+          "after_lf_only": 132,
+          "before_bom": false,
+          "after_bom": false
+        }
+      ],
+      "raw_predicate_counts": [
+        {
+          "needle": "pub(super) fn pointer_reply(",
+          "before": 1,
+          "current": 1,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "pub(super) fn pointer_component_handler",
+          "before": 1,
+          "current": 1,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "fn scan_pointer_invocations(",
+          "before": 1,
+          "current": 1,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "fn pointer_release_target",
+          "before": 1,
+          "current": 1,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "scan_pointer_invocations",
+          "before": 2,
+          "current": 2,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "fn pointer_reply_phase(",
+          "before": 0,
+          "current": 0,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "for invocation in &routed_result.invocations",
+          "before": 1,
+          "current": 1,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": ".iter().rev()",
+          "before": 0,
+          "current": 0,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "handler_phase",
+          "before": 3,
+          "current": 3,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "redraw_phase",
+          "before": 3,
+          "current": 3,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "effect_index_map",
+          "before": 0,
+          "current": 0,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "remap_text_effect_index",
+          "before": 0,
+          "current": 0,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "routed_result",
+          "before": 36,
+          "current": 36,
+          "all_insertions_contribution": 0
+        },
+        {
+          "needle": "legacy",
+          "before": 0,
+          "current": 0,
+          "all_insertions_contribution": 0
+        }
+      ],
+      "source_guard_before": {
+        "single_pass": [
+          false,
+          true,
+          1,
+          true,
+          true,
+          true
+        ],
+        "ownership_reply_subset": [
+          true,
+          true
+        ],
+        "rename_pointer_reply_subset": [
+          true,
+          true
+        ]
+      },
+      "source_guard_current": {
+        "single_pass": [
+          false,
+          true,
+          1,
+          true,
+          true,
+          true
+        ],
+        "ownership_reply_subset": [
+          true,
+          true
+        ],
+        "rename_pointer_reply_subset": [
+          true,
+          true
+        ]
+      },
+      "all_new_needle_contributions_zero": true
+    },
+    "exact_final_language_and_diff": {
+      "receipt": "41a750",
+      "rustfmt": {
+        "argv": [
+          "rustfmt",
+          "--check",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true",
+          "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+          "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+          "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+          "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "diff_check": {
+        "argv": [
+          "git",
+          "diff",
+          "--check",
+          "--",
+          "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+          "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+          "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+          "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/ui/surface/input/pointer_reply.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs.\nThe file will have its original line endings in your working directory\n"
+      },
+      "numstat": {
+        "argv": [
+          "git",
+          "diff",
+          "--numstat",
+          "--",
+          "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+          "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+          "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+          "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+        ],
+        "exit": 0,
+        "stdout": "48\t0\tzircon_runtime/src/ui/surface/input/pointer_reply.rs\n3\t0\tzircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs\n6\t0\tzircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs\n",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/ui/surface/input/pointer_reply.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs.\nThe file will have its original line endings in your working directory\n"
+      },
+      "staged": {
+        "argv": [
+          "git",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+          "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+          "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+          "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    "output_recovery": {
+      "prefix_json_parse": true,
+      "check_tail_json_parse": true,
+      "support_object_json_parse": true,
+      "discarded_truncated_region": "nonessential support_search/split_layout text; not formal coverage"
+    },
+    "eol": "实际before/after LF-only无BOM；Git future-CRLF提示不代表已转换，所有源实际计数见files。",
+    "no_cargo_or_rust_tests": true,
+    "manual_inventory_structure": "逐对象和值构造；未zip dict键为占位。最终child落盘读回校验数值范围、成员token、连续块和所有原字节反演。",
+    "metadata_memory_validation": {
+      "placeholder_values_rejected": true,
+      "numeric_ranges_checked": true,
+      "continuous_blocks_before_and_after_gapfree": true,
+      "objects": 39,
+      "blocks": 66,
+      "declared_members": 2,
+      "tests": 6,
+      "assertion_macros": 27,
+      "claim_limit": "手工审查记录结构验证；最终落盘后读实际JSON与原文件字节再核对，不是AST/执行证明。"
+    }
+  },
+  "process_state": {
+    "known_R054_source_writer_terminal": true,
+    "last_known_native": {
+      "outer_cell": "61",
+      "chunk": "19bfbd",
+      "exit": 0,
+      "pid": 30520
+    },
+    "R054_native_inflight_before_child_creation": false,
+    "metadata_write": {
+      "tool": "apply_patch",
+      "native_process": false,
+      "receipt_policy": "实际创建和随后只读JSON/源pin/字节反演读回的终态在固定交付消息给出，不在文件中伪造自引用回执。"
+    },
+    "unrelated_pending": "R046/R033原请求仍按根HOLD，本批终态不替代其对账。"
+  },
+  "artifacts": {
+    "created_paths": [
+      "docs/plans/source-comments/reviews/R054.json"
+    ],
+    "pre_registered": true,
+    "temporary_scripts_or_source_copies": [],
+    "build_products_created": [],
+    "released_bytes": 0,
+    "retained": "固定child与canonical纯注释补丁，留待父审；未知/外来产物不动。"
+  },
+  "gates": {
+    "parent_review": "pending",
+    "jenkins_formal_acceptance": "not-run",
+    "formal_acceptance": false,
+    "commit_push_publish": "not-authorized",
+    "global_ledger_updates": "root-only"
+  }
+}

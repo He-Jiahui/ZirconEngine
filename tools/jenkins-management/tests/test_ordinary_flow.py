@@ -1,12 +1,15 @@
 """Focused ordinary-management contracts using only tiny synthetic fixtures."""
 from __future__ import annotations
 
+import ast
 import copy
 from contextlib import contextmanager
 import hashlib
 import importlib.util
+import io
 import json
 import os
+import re
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
@@ -54,9 +57,10 @@ class MemoryState:
     def list(self, domain, *, connection=None):
         return [copy.deepcopy(value) for (name, _key), value in self.rows.items() if name == domain]
 
-    def check_authorization(self, repository, session, action, paths):
-        self.authorizations.append((repository, session, action, tuple(paths)))
-        return {"status": "active"}
+    def check_authorization(self, repository, session, action, paths=None, *, connection=None):
+        self.authorizations.append((repository, session, action, tuple(paths or [])))
+        return {"status": "active", "principal": "synthetic-owner", "snapshotDigest": "e" * 64,
+                "paths": list(paths or []), "actions": ["implementation", "validation"]}
 
 
 def snapshot(root, head):
@@ -66,7 +70,173 @@ def snapshot(root, head):
     return {**value, "sourceDigest": runner.sha(runner.encoded(value))}
 
 
+class PreSubmitCaptureDiagnosticsTests(unittest.TestCase):
+    ROOT = Path("E:/ordinary-capture-fixture/repository")
+
+    def _source(self, files, head="a" * 40):
+        value = {"sourceEvidencePolicy": "full-file-index-v2", "head": head, "files": dict(files),
+                 "gitIndex": {"entries": [{"path": name, "mode": "100644", "object": "c" * 40, "stage": 0}
+                                          for name in sorted(files)], "metadataSha256": "d" * 64}}
+        return {**value, "sourceDigest": runner.sha(runner.encoded(value))}
+
+    def _snapshot(self, source, *, external=None, cache=None):
+        value = {"sourceView": "checkout", "sourceRoot": str(self.ROOT), "source": source,
+                 "externalRoots": external or [], "dependencyCache": cache or {"home": "E:/cargo-targets/cache"}}
+        return {**value, "sourceDigest": runner.sha(runner.encoded(value))}
+
+    def _rejected(self, before, after, *, input_changes=runner.input_changes, stderr=None, after_root=None):
+        captures = Mock(side_effect=[(self.ROOT, before), (after_root or self.ROOT, after)])
+        verify = Mock()
+        actor = type("CapturedManagement", (), {"validation_with_cache": captures, "verify_declared_inputs": verify})
+        module = SimpleNamespace(Management=actor, input_changes=input_changes, source_components=Mock())
+        context = {"repo": self.ROOT, "manager": Mock(), "config": {}, "module": module}
+        payload = {"action": "validate", "repositoryId": "repository", "sessionId": "author",
+                   "requestId": "request", "operationId": "operation", "driverDigest": "d" * 64,
+                   "runtimeOperationId": "runtime", "ownedPaths": ["owned.rs"], "sourceView": "checkout",
+                   "sourceEvidencePolicy": "full-file-index-v2",
+                   "verb": "test", "noRun": True, "packages": ["zircon_app"]}
+        original = copy.deepcopy(payload)
+        marker, stdout = Mock(), io.StringIO()
+        marker.exists.return_value = False
+        stderr = stderr if stderr is not None else io.StringIO()
+        with patch.object(entry, "plain", return_value=marker), \
+                patch.object(entry, "record", return_value=None), \
+                patch.object(entry, "document", return_value=(payload, entry.encoded(payload))), \
+                patch.object(entry, "dispatch", side_effect=lambda *a, **k: entry.submit_payload(context, payload)), \
+                patch.object(entry.sys, "stdout", stdout), patch.object(entry.sys, "stderr", stderr):
+            status = entry.main(["submit", "--repo-root", str(self.ROOT), "--input-file", "original.json",
+                                 "--session-id", "author", "--request-id", "request", "--operation-id", "operation",
+                                 "--action", "validate"])
+        self.assertEqual(2, status)
+        self.assertEqual({"status": "pending", "reasonCode": "ordinary_entry_unproven",
+                          "message": "Source changed during pre-submit capture",
+                          "formalAcceptance": False, "m8Accepted": False}, json.loads(stdout.getvalue()))
+        self.assertEqual(2, captures.call_count)
+        verify.assert_not_called()
+        module.source_components.assert_not_called()
+        marker.parent.mkdir.assert_not_called()
+        marker.open.assert_not_called()
+        context["manager"]._request.assert_not_called()
+        context["manager"]._request_with_headers.assert_not_called()
+        self.assertEqual(original, payload)
+        return stderr.getvalue()
+
+    def _details(self, output):
+        prefix = "[ordinary-entry] pre-submit capture drift "
+        self.assertEqual(1, len(output.splitlines()))
+        self.assertTrue(output.startswith(prefix))
+        self.assertLessEqual(len(output.encode("utf-8")), 32768)
+        return json.loads(output[len(prefix):])
+
+    def test_changed_file_bytes_are_visible_with_stable_head_index_and_membership(self):
+        old_bytes, new_bytes = b"old\n", b"new\n"
+        self.assertEqual(len(old_bytes), len(new_bytes))
+        before = self._snapshot(self._source({"same-size.rs": runner.sha(old_bytes)}))
+        after = self._snapshot(self._source({"same-size.rs": runner.sha(new_bytes)}))
+        details = self._details(self._rejected(before, after))
+        root = details["roots"][0]
+        for field in ("head", "gitIndexDigest", "gitIndexMetadataSha256", "membershipDigest", "fileCount"):
+            self.assertEqual(root["before"][field], root["after"][field])
+        self.assertNotEqual(root["before"]["filesDigest"], root["after"]["filesDigest"])
+        self.assertNotEqual(details["sourceDigestBefore"], details["sourceDigestAfter"])
+        changed = root["fileChanges"]["values"]
+        self.assertEqual(1, len(changed))
+        self.assertEqual("same-size.rs", changed[0]["path"]["path"])
+        self.assertEqual(runner.sha(old_bytes), changed[0]["before"])
+        self.assertEqual(runner.sha(new_bytes), changed[0]["after"])
+
+    def test_external_heads_membership_and_cache_changes_remain_bounded_and_redacted(self):
+        source = self._source({"owned.rs": "1" * 64})
+        names = ["long/" + "\u754c" * 260 + f"/{index:02}.rs" for index in range(40)]
+        old_external = [{"path": f"E:/external/{index:02}", "source": self._source(dict.fromkeys(names, "2" * 64), "b" * 40)}
+                        for index in range(12)]
+        new_external = [{"path": value["path"], "source": self._source(
+            {**dict.fromkeys(names, "3" * 64), "added.rs": None}, "f" * 40)} for value in old_external]
+        before = self._snapshot(source, external=old_external, cache={"secret": "do-not-print-before"})
+        after = self._snapshot(source, external=new_external, cache={"secret": "do-not-print-after"})
+        output = self._rejected(before, after)
+        details = self._details(output)
+        self.assertNotIn("do-not-print", output)
+        self.assertNotIn("secret", output)
+        self.assertEqual(13, details["rootCount"])
+        self.assertEqual(12, details["changedRootCount"])
+        self.assertTrue(details["rootsTruncated"])
+        self.assertTrue(details["outputTruncated"])
+        self.assertLessEqual(len(details["roots"]), 8)
+        root = details["roots"][0]
+        self.assertEqual("E:/external/00", root["root"]["path"])
+        self.assertEqual("b" * 40, root["before"]["head"])
+        self.assertEqual("f" * 40, root["after"]["head"])
+        self.assertEqual(1, root["addedPathCount"])
+        self.assertEqual("added.rs", root["addedPaths"][0]["path"])
+        self.assertNotEqual(root["before"]["membershipDigest"], root["after"]["membershipDigest"])
+        self.assertNotEqual(details["dependencyCacheBeforeSha256"], details["dependencyCacheAfterSha256"])
+        self.assertTrue(root["fileChanges"]["truncated"])
+        self.assertLessEqual(len(root["fileChanges"]["values"]), 16)
+        self.assertTrue(root["fileChanges"]["values"][0]["path"]["truncated"])
+
+    def test_diagnostic_failures_and_malformed_capture_preserve_original_rejection(self):
+        before = self._snapshot(self._source({"owned.rs": "1" * 64}))
+        after = self._snapshot(self._source({"owned.rs": "2" * 64}))
+        for observed, helper in ((None, runner.input_changes),
+                                 (after, Mock(side_effect=ValueError("do-not-print-exception")))):
+            with self.subTest(malformed=observed is None):
+                output = self._rejected(before, observed, input_changes=helper)
+                self.assertEqual("[ordinary-entry] pre-submit capture drift diagnostics unavailable\n", output)
+        broken_stderr = Mock(write=Mock(side_effect=OSError("closed diagnostic stream")))
+        broken_stderr.getvalue.return_value = ""
+        self._rejected(before, after, stderr=broken_stderr)
+
+
 class OrdinaryFlowTests(unittest.TestCase):
+    def test_public_management_actions_match_runner_and_fixed_job(self):
+        template = (MANAGEMENT / "zircon-management.groovy").read_text(encoding="utf-8")
+        declaration = re.search(r"(?m)^def allowed = (\[[^\r\n]*\])$", template)
+        self.assertIsNotNone(declaration, "The fixed job must declare its bounded action list")
+        actions = ast.literal_eval(declaration.group(1))
+        expected = {"create-branch", "create-worktree", "prepare-merge", "apply-patch",
+                    "commit-worktree", "release-worktree", "recover-worktree",
+                    "validate", "generate", "prepare-flow", "submit-flow",
+                    "prepare-worktree", "inspect-worktree", "retire-worktree-reader", "preview-current-editor-r34"}
+        managed_expected = expected - {entry.PREVIEW_ACTION}
+        self.assertEqual(len(actions), len(set(actions)), "The job action list has duplicates")
+        self.assertSetEqual(expected, set(actions))
+        self.assertSetEqual(set(entry.ACTIONS), set(actions))
+        self.assertSetEqual(set(runner.ACTIONS), set(actions))
+        wrapper = (ROOT / "tools/dev/submit-jenkins-management.ps1").read_text(encoding="utf-8")
+        ps_actions = re.search(r"\[ValidateSet\(([^)]*)\)\]\[string\]\$Action", wrapper)
+        self.assertIsNotNone(ps_actions)
+        ps_values = re.findall(r"'([^']+)'", ps_actions.group(1))
+        public_expected = expected | {"commit-checkout"}
+        self.assertEqual(len(public_expected), len(ps_values))
+        self.assertSetEqual(public_expected, set(ps_values))
+        self.assertRegex(wrapper, r"if \(\$Action -eq 'commit-checkout'\) \{\s*"
+                                 r"\$taskEntry = Join-Path \$taskRepo 'tools\\dev\\jenkins_commit\.py'\s*\}")
+        self.assertIn("if ($Action -ne 'commit-checkout') { $taskArguments += @('--action', $Action) }", wrapper)
+        checkout_addon = (MANAGEMENT / "checkout-commit.groovy").read_text(encoding="utf-8")
+        self.assertRegex(checkout_addon, r"(?m)^if \(params\.ACTION == 'commit-checkout'\) \{")
+        self.assertIn("tools/jenkins-management/checkout_commit.py", checkout_addon)
+        self.assertRegex(checkout_addon, r"(?m)^    return$")
+        self.assertEqual(entry.MANAGED_WORKTREE_CAPABILITY, runner.MANAGED_WORKTREE_CAPABILITY)
+        self.assertEqual(sorted(managed_expected), entry.MANAGED_WORKTREE_CAPABILITY["actions"])
+        installer = (ROOT / "tools/dev/install-jenkins-management.ps1").read_text(encoding="utf-8")
+        managed = re.search(r"function Get-ManagedWorktreeCapability \{(.*?)\n\}", installer, re.S)
+        self.assertIsNotNone(managed)
+        declared = re.search(r"actions=@\((.*?)\);", managed.group(1), re.S)
+        self.assertIsNotNone(declared)
+        self.assertEqual(sorted(managed_expected), re.findall(r"'([^']+)'", declared.group(1)))
+
+        self.assertLess(template.index("if (!(params.ACTION in allowed))"),
+                        template.index("def input = parseJson(params.INPUT_JSON)"))
+
+        launch = re.findall(r"withEnv\((\[[^\r\n]*\])\)\s*\{\s*status = bat", template)
+        self.assertEqual(len(launch), 1, "Runner launch requires one explicit environment binding")
+        bindings = ast.literal_eval(launch[0])
+        environment = dict(value.split("=", 1) for value in bindings)
+        self.assertEqual(len(bindings), len(environment), "Duplicate runner environment bindings")
+        self.assertEqual(environment["INPUT_JSON"], "")
+        self.assertEqual(environment["XDG_CONFIG_HOME"], str(ROOT / ".jenkins").replace("\\", "/"))
+
     @contextmanager
     def _sealed_reuse_fixture(self):
         with tempfile.TemporaryDirectory(prefix="ordinary-sealed-reuse-") as temporary:
@@ -1732,6 +1902,11 @@ class WorktreeLifecycleTests(unittest.TestCase):
             self.assertEqual(first[2]["baseHead"], second[2]["baseHead"])
             self.assertEqual(1, len(added), "the second call must not add a second worktree")
             self.assertEqual(("worktree", "add"), added[0][:2])
+            self.assertEqual("repository", first[2]["repositoryId"])
+            self.assertEqual("runtime", first[2]["runtimeOperationId"])
+            self.assertEqual("e" * 64, first[2]["writerAuthorizationSnapshot"])
+            self.assertEqual(runner.sha(runner.encoded({"repositoryId": "repository", "sessionId": "s",
+                "requestId": "r", "operationId": "o"})), first[2]["creationOperationKey"])
 
     def test_reference_bound_to_another_operation_reports_a_reason_code(self):
         with tempfile.TemporaryDirectory(prefix="ordinary-conflict-") as temporary:
@@ -1787,6 +1962,23 @@ class WorktreeLifecycleTests(unittest.TestCase):
             with self.assertRaises(runner.WorktreeConflict) as caught:
                 foreign.new_worktree()
             self.assertEqual("foreign_repository", caught.exception.reason)
+
+    def test_current_source_reader_blocks_release_even_when_preparation_is_terminal(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-reader-release-") as temporary:
+            management, worktrees, state = self._management(temporary)
+            root = worktrees / "s-task"
+            root.mkdir()
+            for intent in ({"worktreeId": "s-task", "sourceRoot": str(root)},
+                           {"sourceRoot": str(root)}):
+                state.put("current_source_intent", "reader", intent)
+                state.put("current_source_preparation", "reader", {"status": "prepared"})
+                with state.transaction() as connection:
+                    with self.assertRaisesRegex(ValueError, "retained current-source reader"):
+                        management.assert_no_current_source_readers("s-task", root, connection=connection)
+            state.rows.pop(("current_source_intent", "reader"))
+            state.put("current_source_intent", "foreign", {"worktreeId": "foreign", "sourceRoot": str(worktrees / "foreign")})
+            with state.transaction() as connection:
+                management.assert_no_current_source_readers("s-task", root, connection=connection)
 
     def test_physical_paths_refuse_parent_traversal(self):
         with tempfile.TemporaryDirectory(prefix="ordinary-traversal-") as temporary:
@@ -1893,7 +2085,7 @@ class FlowBridgeTests(unittest.TestCase):
         management.config = {"driverDigest": "d" * 64, "runtimeOperationId": "runtime"}
         management.payload = {
             "worktreeId": "s-task",
-            "flowIdentity": {"sessionId": "s", "requestId": "r", "generation": 1},
+            "flowIdentity": {"sessionId": "reader", "requestId": "r", "generation": 1},
             "coverage": {"template": "editor_product_development",
                          "requiredTests": ["some::case"], "noDefaultFeatures": True}}
         management.wt = lambda reference, **kwargs: ({"path": str(root), "sessionId": "s"}, root)
@@ -1929,9 +2121,36 @@ class FlowBridgeTests(unittest.TestCase):
                              "a control owned path cannot be handed to Flow as owned product source")
             self.assertEqual(["src/new.rs"], seen["untrackedPaths"])
             self.assertEqual(str(management.worktrees / "s-task"), seen["sourceRoot"])
+            self.assertEqual("s-task", seen["worktreeId"])
+            self.assertEqual("reader", seen["identity"]["sessionId"])
             self.assertEqual("e" * 64, result["currentSourceRef"])
             self.assertEqual("prepared", result["status"])
             self.assertFalse(result["formalAcceptance"] or result["commitPerformed"])
+
+    def test_prepared_flow_preserves_casefold_tracked_controls_and_frozen_external(self):
+        from tools.jenkins import current_source, managed_worktree, product_inputs
+        control = next(iter(product_inputs.COMPILER_CONTROL_PATHS))
+        external = [{"name": "zr_vm", "currentHashes": {"vendor/v6/lib.rs": "7" * 64}}]
+        prepared = {"currentHashes": {"cargo.toml": "1" * 64, "src/main.rs": "2" * 64,
+                    "old-new.rs": None, control: "3" * 64}, "compilerControlInputs": {control: "3" * 64},
+                    "externalInputs": external}
+        with tempfile.TemporaryDirectory(prefix="ordinary-prepared-flow-") as temporary:
+            management = self._fixture(temporary, files={"Cargo.toml": "1" * 64, "src/main.rs": "2" * 64,
+                control: "3" * 64}, tracked={"Cargo.toml", "src/main.rs", control, "old-new.rs"},
+                owned=["src/main.rs"])
+            management.payload.update(worktreePreparationRef="4" * 64, patchOperationKeys=["5" * 64])
+            seen = {}
+            def register(action, payload, *args, **kwargs):
+                seen.update(payload)
+                return {"status": "registered", "currentSourceRef": "e" * 64}
+            with patch.object(managed_worktree, "preparation", return_value={"payload": prepared}), \
+                    patch.object(current_source, "handle", side_effect=register):
+                management.prepare_flow()
+            self.assertEqual([], seen["untrackedPaths"])
+            self.assertEqual(prepared["currentHashes"], seen["currentHashes"])
+            self.assertEqual(external, seen["externalInputs"])
+            self.assertEqual(["5" * 64], seen["patchOperationKeys"])
+            self.assertEqual({control: "3" * 64}, seen["compilerControlInputs"])
 
     def test_flow_preparation_refuses_when_only_control_paths_are_owned(self):
         with tempfile.TemporaryDirectory(prefix="ordinary-flow-control-only-") as temporary:
@@ -1949,6 +2168,115 @@ class FlowBridgeTests(unittest.TestCase):
             management.payload.pop("coverage")
             with self.assertRaisesRegex(ValueError, "coverage template"):
                 management.prepare_flow()
+
+
+class FixedEditorPreviewTests(unittest.TestCase):
+    def payload(self):
+        return {"action": runner.PREVIEW_ACTION, "repositoryId": "r", "sessionId": "s",
+                "requestId": "q", "operationId": "o", "driverDigest": "d" * 64,
+                "runtimeOperationId": "runtime", "ownedPaths": ["zircon_editor"],
+                "productDescriptor": str(runner.PREVIEW_REPORTS / "current-product.json"),
+                "productDescriptorSha256": "a" * 64}
+
+    def terminal(self):
+        return {"schema": "current-unreal-ordinary-window-preview/v1", "status": "preview-pixel-verified",
+                "productDescriptor": runner.fixed_editor_preview_recipe(self.payload())["descriptor"],
+                "pixelFrameVerified": True, "failure": None, "formalAcceptance": False,
+                "wholeUiAccepted": False, "sourceCopiesCreated": False,
+                "existingDesktop": {"windowStation": "WinSta0", "desktop": "Default", "foregroundWindow": 1},
+                "cleanup": [{"waitedForExit": True, "exitCode": 0}],
+                "auxiliaryCleanup": [{"waitedForExit": True, "exitCode": 0}]}
+
+    def native(self, command):
+        return {"command": command, "cwd": str(ROOT), "pid": 1, "creationTime": "1", "rootExitCode": 0,
+                "processTree": {"scope": "retained-windows-job", "terminal": True, "nativeWaiterJoined": True,
+                                "pipes": {"stdout": {"eof": True}, "stderr": {"eof": True}},
+                                "pipeEOF": True, "readersFinished": True},
+                "nativeJobEvidence": {"records": {"afterTerminal": {"activeProcesses": 0},
+                                                   "afterClose": {"activeProcesses": 0}}, "errors": []},
+                "terminalErrors": [], "cleanup": {"attempted": False}}
+
+    def test_recipe_exposes_only_the_two_descriptor_arguments(self):
+        payload = self.payload()
+        recipe = runner.fixed_editor_preview_recipe(payload)
+        self.assertEqual(recipe["command"][:5],
+                         [str(runner.PREVIEW_PYTHON), "-B", "-X", "utf8", str(runner.PREVIEW_SCRIPT)])
+        self.assertEqual(recipe["command"][5:],
+                         ["--product-descriptor", payload["productDescriptor"],
+                          "--product-descriptor-sha256", payload["productDescriptorSha256"]])
+        self.assertEqual(runner.PREVIEW_TIMEOUT_SECONDS, 900)
+        self.assertEqual(entry.AUTH[runner.PREVIEW_ACTION], "validation")
+        self.assertEqual(runner.AUTH[runner.PREVIEW_ACTION], "validation")
+        self.assertEqual(entry.MANAGED_WORKTREE_CAPABILITY, runner.MANAGED_WORKTREE_CAPABILITY)
+        self.assertNotIn(runner.PREVIEW_ACTION, runner.MANAGED_WORKTREE_CAPABILITY["actions"])
+
+    def test_recipe_rejects_execution_overrides_and_invalid_descriptor_inputs(self):
+        for field in ("command", "argv", "script", "interpreter", "environment", "output",
+                      "timeoutSeconds", "sourceView", "externalRoots", "buildRoot", "batch"):
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                runner.fixed_editor_preview_recipe({**self.payload(), field: "override"})
+        for key, value in (("productDescriptor", "relative.json"),
+                           ("productDescriptor", str(ROOT / "outside-task.json")),
+                           ("productDescriptorSha256", "a" * 40), ("productDescriptorSha256", "A" * 64)):
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                runner.fixed_editor_preview_recipe({**self.payload(), key: value})
+
+    def test_entry_runs_the_same_strict_schema_before_submission(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        module = SimpleNamespace(route_request_context=lambda *a, **k: (dict(a[3]), None),
+                                 fixed_editor_preview_recipe=runner.fixed_editor_preview_recipe)
+        context = {"repo": ROOT, "module": module, "manager": object(),
+                   "config": {"driverDigest": "d" * 64, "runtimeOperationId": "runtime"}}
+        with patch.object(entry, "authorize"), patch.dict(entry.os.environ, {"ZIRCON_JENKINS_SESSION_ID": ""}):
+            self.assertEqual(entry.input_payload(context, self.payload()), self.payload())
+            with self.assertRaises(ValueError):
+                entry.input_payload(context, {**self.payload(), "command": ["arbitrary"]})
+
+    def test_native_gate_requires_this_command_join_both_eof_and_no_forced_cleanup(self):
+        command = runner.fixed_editor_preview_recipe(self.payload())["command"]
+        ref = {"path": "native-terminal.json", "sha256": "b" * 64}
+        self.assertTrue(runner.fixed_editor_preview_native(self.native(command), ref, command, ROOT)["naturalSuccess"])
+        for kind in ("stdout", "stderr", "job", "waiter", "command", "cleanup", "exit"):
+            native = self.native(command)
+            if kind in {"stdout", "stderr"}:
+                native["processTree"]["pipes"][kind]["eof"] = False
+            elif kind == "job":
+                native["nativeJobEvidence"]["records"]["afterClose"]["activeProcesses"] = 1
+            elif kind == "waiter":
+                native["processTree"]["nativeWaiterJoined"] = False
+            elif kind == "command":
+                native["command"] = ["another.exe"]
+            elif kind == "cleanup":
+                native["cleanup"]["attempted"] = True
+            else:
+                native["rootExitCode"] = 1
+            with self.subTest(kind=kind):
+                self.assertFalse(runner.fixed_editor_preview_native(native, ref, command, ROOT)["naturalSuccess"])
+
+    def test_receipt_requires_this_descriptor_actual_desktop_pixels_and_all_owned_exits(self):
+        descriptor = runner.fixed_editor_preview_recipe(self.payload())["descriptor"]
+        runner.fixed_editor_preview_receipt(self.terminal(), descriptor, {"pixelFrameVerified": True})
+        for kind in ("descriptor", "desktop", "foreground", "pixel", "cleanup", "auxiliary", "failure", "formal"):
+            terminal, pixel = self.terminal(), {"pixelFrameVerified": True}
+            if kind == "descriptor":
+                terminal["productDescriptor"] = {**descriptor, "sha256": "f" * 64}
+            elif kind == "desktop":
+                terminal["existingDesktop"]["desktop"] = "Other"
+            elif kind == "foreground":
+                terminal["existingDesktop"]["foregroundWindow"] = 0
+            elif kind == "pixel":
+                pixel["pixelFrameVerified"] = False
+            elif kind == "cleanup":
+                terminal["cleanup"][0]["waitedForExit"] = False
+            elif kind == "auxiliary":
+                terminal["auxiliaryCleanup"] = []
+            elif kind == "failure":
+                terminal["failure"] = {"message": "failed"}
+            else:
+                terminal["formalAcceptance"] = True
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
+                runner.fixed_editor_preview_receipt(terminal, descriptor, pixel)
 
 
 if __name__ == "__main__":

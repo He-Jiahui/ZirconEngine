@@ -19,11 +19,20 @@ use super::{
     editor_asset_error::editor_asset_error, parse_uuid::parse_uuid, DefaultEditorAssetManager,
 };
 impl EditorAssetManager for DefaultEditorAssetManager {
+
+    fn model_import_projection(
+        &self,
+        activation: &zircon_runtime::asset::project::ProjectActivationIdentity,
+        receipt: &zircon_runtime::asset::ProjectImportReceipt,
+    ) -> crate::ui::host::editor_asset_manager::EditorModelImportProjection {
+        self.model_import_projection_record(activation, receipt)
+    }
+
     fn refresh_from_runtime_project(&self) -> Result<(), CoreError> {
         DefaultEditorAssetManager::refresh_from_runtime_project(self)
     }
 
-    fn project_runtime_asset_changes(&self, changes: &[AssetChange]) {
+    fn project_runtime_asset_changes(&self, changes: &[std::sync::Arc<AssetChange>]) {
         DefaultEditorAssetManager::project_runtime_asset_changes(self, changes)
     }
 

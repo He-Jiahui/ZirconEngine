@@ -522,7 +522,7 @@ impl FrozenBridgeTable {
     }
 
     /// 公开的按 slot 热更新入口；T 的静态接口 ID 应与该 slot 的接口 ID 相同。
-    // BUG: [CR-PLUGIN-BOUNDARY-0001] 这里只检查 slot 存在，未核对 T::INTERFACE_ID；错位替换会把 Enabled 槽变成类型下转失败的 NotEnabled 调用。
+    // BUG: [CR-PLUGIN-BOUNDARY-0001] 替换前已校验接口身份；保留标记，等待错误类型替换回归实际通过。
     pub fn replace_provider<T>(
         &self,
         slot: InterfaceSlot,
@@ -534,6 +534,12 @@ impl FrozenBridgeTable {
         let entry = self.entry(slot).ok_or_else(|| {
             RuntimeExtensionRegistryError::MissingPluginInterface(T::INTERFACE_ID.to_string())
         })?;
+        if entry.interface_id() != T::INTERFACE_ID {
+            return Err(RuntimeExtensionRegistryError::PluginInterfaceMismatch {
+                expected: entry.interface_id().to_string(),
+                actual: T::INTERFACE_ID.to_string(),
+            });
+        }
         entry.replace_provider(provider);
         Ok(())
     }

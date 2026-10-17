@@ -16,6 +16,9 @@ use crate::ui::layout::pass::{
 };
 
 /// Taffy 未接管该容器时的网格安排；输入 children 已按槽位顺序整理，显式跨度可扩展轨道数。
+/// `children` 的顺序决定无显式位置项的序号，`frame` 为已扣父内边距的内容区。
+/// 先由槽位扩大轨道数，再逐项计算单元矩形并递归安排；后续错误不撤销先前项。
+/// 轨道内的位置与跨度钳制不构成整数加法的溢出准入。
 pub(super) fn arrange_grid_children(
     tree: &mut UiTree,
     parent_id: UiNodeId,
@@ -53,6 +56,9 @@ pub(super) fn arrange_grid_children(
 
 /// 瀑布流由运行时安排并返回实际内容高度；Hidden 占位，Collapsed 子树清空几何。
 /// scratch 由当前递归层独占，顺序模式按活跃项轮转，平衡模式放入最短列。
+/// `frame`、`inherited_clip` 分别提供内容区和祖先裁剪；`config` 决定列数、间隙与选列方式。
+/// 返回内容区的非负宽度和最大列游标高度，父入口另加布局内边距；不再次合并子项位置偏移。
+/// 子项错误立即向上传播；调用方负责在处理该结果后归还本层 scratch。
 pub(super) fn arrange_masonry_children(
     tree: &mut UiTree,
     parent_id: UiNodeId,
@@ -130,6 +136,7 @@ fn masonry_child_outer_height(
     Ok((node.layout_cache.desired_size.height + slot_padding(slot).vertical()).max(0.0))
 }
 
+// 调用方至少建立一列；顺序模式按占位项序号轮转，平衡模式按总序比较高度后选择最短列。
 fn masonry_target_column(index: usize, sequential: bool, column_heights: &[f32]) -> usize {
     if sequential {
         return index % column_heights.len().max(1);
@@ -144,6 +151,7 @@ fn masonry_target_column(index: usize, sequential: bool, column_heights: &[f32])
         .unwrap_or(0)
 }
 
+// 无显式位置的项按当时列数计算默认单元，随后逐项扩展轨道；此处未统一验证坐标上界。
 fn grid_dimensions(
     tree: &UiTree,
     slot_index: &UiLayoutSlotIndex,
@@ -181,6 +189,7 @@ fn grid_placement_for_child(
     UiGridSlotPlacement::new(index % columns, index / columns)
 }
 
+// 在既定轨道内钳制起点及跨度，跨度内包含内部间隙；节点自身的约束与槽位策略在外层应用。
 fn grid_cell_frame(
     frame: UiFrame,
     config: UiGridBoxConfig,

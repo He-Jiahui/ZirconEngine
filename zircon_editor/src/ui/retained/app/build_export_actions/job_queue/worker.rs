@@ -33,14 +33,16 @@ impl DesktopExportExecutor for zircon_runtime::core::runtime::ServiceHandle<Edit
     ) -> Result<EditorExportBuildReport, EditorExportBuildError> {
         self.enter()
             .map_err(EditorExportBuildError::from)
-            .and_then(|manager| manager.execute_native_aware_export_build_with_cancellation_and_progress(
-                project_root,
-                output_root,
-                manifest,
-                profile_name,
-                cancel,
-                progress,
-            ))
+            .and_then(|manager| {
+                manager.execute_native_aware_export_build_with_cancellation_and_progress(
+                    project_root,
+                    output_root,
+                    manifest,
+                    profile_name,
+                    cancel,
+                    progress,
+                )
+            })
     }
 }
 
@@ -67,7 +69,9 @@ pub(super) struct DesktopExportEditorJob {
 impl DesktopExportEditorJob {
     pub(super) fn new(
         job: DesktopExportQueuedJob,
-        editor_manager: zircon_runtime::core::runtime::ServiceHandle<crate::ui::host::EditorManager>,
+        editor_manager: zircon_runtime::core::runtime::ServiceHandle<
+            crate::ui::host::EditorManager,
+        >,
         progress_sender: Sender<DesktopExportJobProgress>,
     ) -> Self {
         Self {

@@ -15,7 +15,13 @@ impl RetainedEditorHost {
             height,
             self.welcome_recent_pointer_size,
             ViewContentKind::Welcome,
-        ) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        });
         let size_state_changed = self.sync_welcome_recent_pointer_size();
         let dispatch = self
             .welcome_recent_pointer_bridge

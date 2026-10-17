@@ -10,7 +10,8 @@ fn runtime_15_core_scene_naming_ecs_owner_split_layout_is_folder_backed() {
     let route = include_str!("../../runtime_15_m2/core_scene/scene_ecs_owners.rs");
     let observer = include_str!("../../../scene_ecs_owners/observer_callback_registry.rs");
     let query_state = include_str!("../../../scene_ecs_owners/query_state_many_item_array.rs");
-    let component_storage = include_str!("../../../scene_ecs_owners/component_storage_component_results.rs");
+    let component_storage =
+        include_str!("../../../scene_ecs_owners/component_storage_component_results.rs");
     let split_layout = include_str!("split_layout.rs");
     let children = format!("{observer}\n{query_state}\n{component_storage}\n{split_layout}");
 
@@ -69,9 +70,8 @@ fn runtime_15_core_scene_naming_ecs_owner_split_layout_is_folder_backed() {
     let frameworks_output = include_str!(
         "../../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
     );
-    let module_convention = include_str!(
-        "../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
-    );
+    let module_convention =
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
     for (label, source) in [
         (

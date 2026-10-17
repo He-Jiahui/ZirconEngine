@@ -42,7 +42,8 @@ fn root_welcome_recent_pointer_click_uses_projection_fallback_in_real_host() {
     assert!(host.welcome_recent_pointer_size.height > 0.0);
     assert!(host
         .runtime
-        .chrome_snapshot().unwrap()
+        .chrome_snapshot()
+        .unwrap()
         .welcome
         .recent_projects
         .is_empty());

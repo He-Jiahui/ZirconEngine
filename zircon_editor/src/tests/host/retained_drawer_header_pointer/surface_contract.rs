@@ -18,10 +18,8 @@ fn shared_drawer_header_callbacks_consume_the_committed_native_receipt() {
 
 #[test]
 fn drawer_header_pointer_consumes_native_action_without_a_mirror_hit_surface() {
-    let native =
-        source("src/ui/retained/contract/pointer/routing/chrome/tabs/drawer.rs");
-    let bridge =
-        source("src/ui/drawer_header_pointer/host_drawer_header_pointer_bridge.rs");
+    let native = source("src/ui/retained/contract/pointer/routing/chrome/tabs/drawer.rs");
+    let bridge = source("src/ui/drawer_header_pointer/host_drawer_header_pointer_bridge.rs");
     let click = source("src/ui/retained/drawer_header_pointer/handle_click.rs");
 
     assert!(native.contains("ChromePointerRoute::DrawerHeaderTab"));
@@ -45,18 +43,12 @@ fn drawer_header_pointer_consumes_native_action_without_a_mirror_hit_surface() {
 
 #[test]
 fn drawer_content_consumers_use_componentized_workbench_layout_frames() {
-    let helpers = source(
-        "src/ui/retained/app/helpers/surface_size/host_frames/workbench.rs",
-    );
+    let helpers = source("src/ui/retained/app/helpers/surface_size/host_frames/workbench.rs");
     let viewport = source("src/ui/retained/app/viewport/toolbar_pointer/size.rs");
-    let layout_frames =
-        source("src/ui/retained/dispatch/templates/workbench/layout_frames.rs");
-    let root_shell_frames = source(
-        "src/ui/retained/dispatch/templates/workbench/root_shell_frames.rs",
-    );
-    let componentized_window = source(
-        "src/ui/retained/dispatch/workbench/componentized_window.rs",
-    );
+    let layout_frames = source("src/ui/retained/dispatch/templates/workbench/layout_frames.rs");
+    let root_shell_frames =
+        source("src/ui/retained/dispatch/templates/workbench/root_shell_frames.rs");
+    let componentized_window = source("src/ui/retained/dispatch/workbench/componentized_window.rs");
 
     assert!(layout_frames.contains("left_drawer_content_frame"));
     assert!(layout_frames.contains("pub(crate) fn drawer_content_frame(&self"));
@@ -73,10 +65,8 @@ fn drawer_content_consumers_use_componentized_workbench_layout_frames() {
 
 #[test]
 fn drawer_header_receipt_route_is_compact_and_identity_remains_typed() {
-    let route =
-        source("src/ui/drawer_header_pointer/host_drawer_header_pointer_route.rs");
-    let item =
-        source("src/ui/drawer_header_pointer/host_drawer_header_pointer_item.rs");
+    let route = source("src/ui/drawer_header_pointer/host_drawer_header_pointer_route.rs");
+    let item = source("src/ui/drawer_header_pointer/host_drawer_header_pointer_item.rs");
 
     assert!(route.contains("Clone, Copy"));
     assert!(!route.contains("String"));

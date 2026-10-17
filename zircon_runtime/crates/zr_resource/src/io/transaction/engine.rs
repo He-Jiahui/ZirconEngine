@@ -24,12 +24,14 @@ use super::stage::{
     verify_originals,
 };
 use crate::io::ensure_parent_directories;
+use crate::io::source_revision::SourceRevision;
 
 #[derive(Debug)]
 pub struct PreparedFileWrite {
     pub(crate) path: PathBuf,
     pub(crate) bytes: Vec<u8>,
     pub(super) retirements: Vec<PreparedFileRetirement>,
+    pub(super) expected_revision: Option<SourceRevision>,
 }
 
 #[derive(Debug)]
@@ -44,6 +46,7 @@ impl PreparedFileWrite {
             path: path.into(),
             bytes,
             retirements: Vec::new(),
+            expected_revision: None,
         }
     }
 
@@ -53,6 +56,13 @@ impl PreparedFileWrite {
 
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
+    }
+
+    /// Admission is checked under the existing transaction owner lock. Nonparticipating writers
+    /// can still race the final check and platform replacement; this is not an external CAS.
+    pub fn expecting_source(mut self, expected: SourceRevision) -> Self {
+        self.expected_revision = Some(expected);
+        self
     }
 
     pub fn retiring(mut self, path: impl Into<PathBuf>) -> Self {
@@ -85,6 +95,19 @@ pub enum DurableCommitDisposition {
     CleanupDeferred,
 }
 
+#[must_use]
+#[derive(Debug)]
+pub struct DurableCommitReceipt {
+    disposition: DurableCommitDisposition,
+    revisions: Vec<(PathBuf, SourceRevision)>,
+}
+
+impl DurableCommitReceipt {
+    pub fn into_parts(self) -> (DurableCommitDisposition, Vec<(PathBuf, SourceRevision)>) {
+        (self.disposition, self.revisions)
+    }
+}
+
 /// 发布带恢复日志的文件批次；非空批次要求绝对 UTF-8 路径、合法 tag，并先恢复该 owner 的待处理日志。
 /// CommitRecoveryDeferred 表示提交点尚待恢复裁定；CleanupDeferred 表示新代已持久化，只剩恢复证据清理。
 pub fn commit_prepared_files(
@@ -94,8 +117,22 @@ pub fn commit_prepared_files(
     fault: TransactionFault,
     report: &mut DurableCommitReport,
 ) -> Result<DurableCommitDisposition, DurableTransactionError> {
+    commit_prepared_files_with_revisions(journal_directory, tag, writes, fault, report)
+        .map(|receipt| receipt.disposition)
+}
+
+pub fn commit_prepared_files_with_revisions(
+    journal_directory: &Path,
+    tag: &str,
+    writes: Vec<PreparedFileWrite>,
+    fault: TransactionFault,
+    report: &mut DurableCommitReport,
+) -> Result<DurableCommitReceipt, DurableTransactionError> {
     if writes.is_empty() {
-        return Ok(DurableCommitDisposition::Durable);
+        return Ok(DurableCommitReceipt {
+            disposition: DurableCommitDisposition::Durable,
+            revisions: Vec::new(),
+        });
     }
     let (journal_directory, writes) = validate_inputs(journal_directory, tag, writes)?;
     let transaction_id = next_transaction_id(&journal_directory)?;
@@ -103,6 +140,9 @@ pub fn commit_prepared_files(
     ensure_journal_directory(&journal_directory)?;
     let _owner = TransactionOwnerLock::acquire(&journal_directory, TransactionPhase::Stage)?;
     reject_pending_recovery(&journal_directory)?;
+    for write in &writes {
+        verify_source_revision(&write.path, write.expected_revision.as_ref())?;
+    }
     persist_intent(&journal, tag, &transaction_id, &intents)?;
     let cleanup_intents_snapshot = intents.clone();
     let mut staged = Vec::with_capacity(writes.len());
@@ -140,6 +180,16 @@ pub fn commit_prepared_files(
         }
     }
     for document in &staged {
+        if let Err(error) =
+            verify_source_revision(&document.intent.target, document.expected_revision.as_ref())
+        {
+            return Err(abort_pre_active(
+                &journal,
+                &cleanup_intents_snapshot,
+                error,
+                true,
+            ));
+        }
         if let Err(source) = verify_originals(document) {
             let error = DurableTransactionError::operation(
                 TransactionPhase::Stage,
@@ -164,6 +214,13 @@ pub fn commit_prepared_files(
     }
 
     for index in 0..staged.len() {
+        if let Err(error) = verify_source_revision(
+            &staged[index].intent.target,
+            staged[index].expected_revision.as_ref(),
+        ) {
+            rollback_and_cleanup(&journal, &mut staged, index, true, fault, report)?;
+            return Err(error);
+        }
         if should_fail_before_commit(fault, index) {
             let error = io::Error::other("injected transaction commit failure");
             rollback_and_cleanup(&journal, &mut staged, index, true, fault, report)?;
@@ -214,6 +271,15 @@ pub fn commit_prepared_files(
         }
     }
 
+    let revisions = staged
+        .iter()
+        .filter_map(|document| {
+            document
+                .publication_revision
+                .clone()
+                .map(|revision| (document.intent.target.clone(), revision))
+        })
+        .collect::<Vec<_>>();
     #[cfg(any(test, feature = "test-support"))]
     if fault == TransactionFault::FailCommitPointWrite {
         let error = DurableTransactionError::operation(
@@ -243,7 +309,10 @@ pub fn commit_prepared_files(
         // The visible generation and complete commit frame agree. Keep all recovery evidence so a
         // restart can arbitrate based on whether the commit frame reached durable storage.
         report.record_deferred_commit_recovery();
-        return Ok(DurableCommitDisposition::CommitRecoveryDeferred);
+        return Ok(DurableCommitReceipt {
+            disposition: DurableCommitDisposition::CommitRecoveryDeferred,
+            revisions,
+        });
     }
     #[cfg(any(test, feature = "test-support"))]
     if fault == TransactionFault::CrashAfterAllCommitted {
@@ -256,11 +325,17 @@ pub fn commit_prepared_files(
     #[cfg(any(test, feature = "test-support"))]
     if fault == TransactionFault::FailCleanupTransition {
         report.record_deferred_cleanup();
-        return Ok(DurableCommitDisposition::CleanupDeferred);
+        return Ok(DurableCommitReceipt {
+            disposition: DurableCommitDisposition::CleanupDeferred,
+            revisions,
+        });
     }
     if record_phase(&journal, JournalPhase::Cleanup).is_err() {
         report.record_deferred_cleanup();
-        return Ok(DurableCommitDisposition::CleanupDeferred);
+        return Ok(DurableCommitReceipt {
+            disposition: DurableCommitDisposition::CleanupDeferred,
+            revisions,
+        });
     }
     #[cfg(any(test, feature = "test-support"))]
     if fault == TransactionFault::CrashAfterCleanup {
@@ -273,13 +348,42 @@ pub fn commit_prepared_files(
     #[cfg(any(test, feature = "test-support"))]
     if fault == TransactionFault::FailCommittedCleanup {
         report.record_deferred_cleanup();
-        return Ok(DurableCommitDisposition::CleanupDeferred);
+        return Ok(DurableCommitReceipt {
+            disposition: DurableCommitDisposition::CleanupDeferred,
+            revisions,
+        });
     }
     if cleanup_committed(&journal, &staged).is_err() {
         report.record_deferred_cleanup();
-        return Ok(DurableCommitDisposition::CleanupDeferred);
+        return Ok(DurableCommitReceipt {
+            disposition: DurableCommitDisposition::CleanupDeferred,
+            revisions,
+        });
     }
-    Ok(DurableCommitDisposition::Durable)
+    Ok(DurableCommitReceipt {
+        disposition: DurableCommitDisposition::Durable,
+        revisions,
+    })
+}
+
+pub(super) fn verify_source_revision(
+    path: &Path,
+    expected: Option<&SourceRevision>,
+) -> Result<(), DurableTransactionError> {
+    let Some(expected) = expected else {
+        return Ok(());
+    };
+    let actual = SourceRevision::observe(path).map_err(|source| {
+        DurableTransactionError::operation(TransactionPhase::Stage, path, source)
+    })?;
+    if actual != *expected {
+        return Err(DurableTransactionError::SourceConflict {
+            path: path.to_path_buf(),
+            expected: expected.clone(),
+            actual,
+        });
+    }
+    Ok(())
 }
 
 fn validate_inputs(
@@ -577,6 +681,9 @@ fn interruption(phase: TransactionPhase, path: &Path, message: &str) -> DurableT
     )
 }
 
+#[cfg(test)]
+#[path = "engine/tests/source_revision.rs"]
+mod source_revision_tests;
 #[cfg(test)]
 #[path = "engine/tests/cases.rs"]
 mod tests;

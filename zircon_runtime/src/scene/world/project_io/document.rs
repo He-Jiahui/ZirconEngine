@@ -30,6 +30,16 @@ const PROJECT_FORMAT_VERSION: u32 = 2;
 
 #[derive(Debug, Error)]
 pub enum SceneProjectError {
+    #[error("scene source changed before save: {path}")]
+    SourceConflict {
+        path: PathBuf,
+        expected: super::SceneSourceRevision,
+        actual: super::SceneSourceRevision,
+    },
+    #[error("scene publication is visible but awaits recovery at {}", receipt.source_path().display())]
+    PublicationRecoveryDeferred {
+        receipt: Box<super::ScenePublicationReceipt>,
+    },
     #[error("scene artifact I/O requires a live runtime task owner")]
     RuntimeUnavailable,
     #[error("project I/O failed: {0}")]

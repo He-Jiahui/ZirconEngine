@@ -1,0 +1,3018 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R035",
+  "reviewer": "root",
+  "reviewed_at_utc": "2026-10-15T16:09:45.672Z",
+  "status": "independently-reviewed-local-pending-coordinator",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R035.json",
+    "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+    "bytes": 179922,
+    "immutable": true
+  },
+  "files": {
+    "zircon_runtime_interface/src/runtime_api/constants.rs": {
+      "before_sha256": "356598acdf3e3c309e3e2c3f92db77c4ff16e2da15260650514c54a6c74ccdfe",
+      "reviewed_sha256": "16c82fb714f3e6d5676a56517ab04ff183ce50e34425e188acc816011a5cb2c7",
+      "bytes": 6281,
+      "before_lines": 117,
+      "lines": 120,
+      "changed": true,
+      "insertion_blocks": 1,
+      "added_comment_or_blank_lines": 3,
+      "inserted_bytes": 233,
+      "object_groups": 102,
+      "field_variant_names": 0,
+      "control_and_assertion_anchors": 0,
+      "consecutive_blocks": 1,
+      "independent_declaration_anchors": [
+        {
+          "line": 4,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1: u32 = 0;"
+        },
+        {
+          "line": 5,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1: u32 = 1;"
+        },
+        {
+          "line": 7,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1: u32 = 1;"
+        },
+        {
+          "line": 8,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1: u32 = 2;"
+        },
+        {
+          "line": 9,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1: u32 = 3;"
+        },
+        {
+          "line": 10,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1: u32 = 4;"
+        },
+        {
+          "line": 11,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1: u32 = 5;"
+        },
+        {
+          "line": 12,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_TOUCH_V1: u32 = 6;"
+        },
+        {
+          "line": 13,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1: u32 = 7;"
+        },
+        {
+          "line": 14,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1: u32 = 8;"
+        },
+        {
+          "line": 15,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1: u32 = 9;"
+        },
+        {
+          "line": 16,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1: u32 = 10;"
+        },
+        {
+          "line": 17,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1: u32 = 11;"
+        },
+        {
+          "line": 18,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1: u32 = 12;"
+        },
+        {
+          "line": 19,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_IME_V1: u32 = 13;"
+        },
+        {
+          "line": 20,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1: u32 = 14;"
+        },
+        {
+          "line": 21,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1: u32 = 15;"
+        },
+        {
+          "line": 22,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1: u32 = 16;"
+        },
+        {
+          "line": 23,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1: u32 = 17;"
+        },
+        {
+          "line": 24,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_VIEWPORT_CAMERA_V1: u32 = 18;"
+        },
+        {
+          "line": 25,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_EDITOR_TRANSFORM_WRITE_V1: u32 = 19;"
+        },
+        {
+          "line": 26,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_EVENT_KIND_CLIPBOARD_RESULT_V1: u32 = 20;"
+        },
+        {
+          "line": 28,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_PERSPECTIVE_V1: u32 = 1;"
+        },
+        {
+          "line": 29,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_ORTHOGRAPHIC_V1: u32 = 2;"
+        },
+        {
+          "line": 31,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1: u32 = 1;"
+        },
+        {
+          "line": 32,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1: u32 = 2;"
+        },
+        {
+          "line": 33,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1: u32 = 3;"
+        },
+        {
+          "line": 35,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1: u32 = 1;"
+        },
+        {
+          "line": 36,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1: u32 = 2;"
+        },
+        {
+          "line": 37,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1: u32 = 1;"
+        },
+        {
+          "line": 39,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_BUTTON_STATE_PRESSED_V1: u32 = 1;"
+        },
+        {
+          "line": 40,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_BUTTON_STATE_RELEASED_V1: u32 = 2;"
+        },
+        {
+          "line": 42,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1: u32 = 1;"
+        },
+        {
+          "line": 43,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1: u32 = 2;"
+        },
+        {
+          "line": 44,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1: u32 = 3;"
+        },
+        {
+          "line": 45,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_LIFECYCLE_STATE_RESUMED_V1: u32 = 4;"
+        },
+        {
+          "line": 46,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1: u32 = 5;"
+        },
+        {
+          "line": 48,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_TOUCH_PHASE_STARTED_V1: u32 = 1;"
+        },
+        {
+          "line": 49,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_TOUCH_PHASE_MOVED_V1: u32 = 2;"
+        },
+        {
+          "line": 50,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_TOUCH_PHASE_ENDED_V1: u32 = 3;"
+        },
+        {
+          "line": 51,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1: u32 = 4;"
+        },
+        {
+          "line": 53,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_KEY_ACTION_PRESSED_V1: u32 = 1;"
+        },
+        {
+          "line": 54,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_KEY_ACTION_RELEASED_V1: u32 = 2;"
+        },
+        {
+          "line": 55,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_KEY_ACTION_TEXT_V1: u32 = 3;"
+        },
+        {
+          "line": 57,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_STATE_ENABLED_V1: u32 = 1;"
+        },
+        {
+          "line": 58,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_STATE_DISABLED_V1: u32 = 2;"
+        },
+        {
+          "line": 59,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_STATE_PREEDIT_V1: u32 = 3;"
+        },
+        {
+          "line": 60,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_STATE_COMMIT_V1: u32 = 4;"
+        },
+        {
+          "line": 61,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1: u32 = 5;"
+        },
+        {
+          "line": 62,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1: u32 = 6;"
+        },
+        {
+          "line": 63,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1: u32 = 7;"
+        },
+        {
+          "line": 64,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1: u32 = 8;"
+        },
+        {
+          "line": 65,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1: u32 = 9;"
+        },
+        {
+          "line": 66,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_CURSOR_HIDDEN_V1: u32 = u32::MAX;"
+        },
+        {
+          "line": 68,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_FILE_DRAG_HOVERED_V1: u32 = 1;"
+        },
+        {
+          "line": 69,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_FILE_DRAG_DROPPED_V1: u32 = 2;"
+        },
+        {
+          "line": 70,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_FILE_DRAG_CANCELLED_V1: u32 = 3;"
+        },
+        {
+          "line": 72,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_STATUS_MOVED_V1: u32 = 1;"
+        },
+        {
+          "line": 73,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1: u32 = 2;"
+        },
+        {
+          "line": 74,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1: u32 = 3;"
+        },
+        {
+          "line": 75,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1: u32 = 4;"
+        },
+        {
+          "line": 76,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1: u32 = 5;"
+        },
+        {
+          "line": 77,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1: u32 = 6;"
+        },
+        {
+          "line": 78,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1: u32 = 7;"
+        },
+        {
+          "line": 79,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_STATUS_SURFACE_RECREATED_V1: u32 = 8;"
+        },
+        {
+          "line": 80,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_BOOL_FALSE_V1: u32 = 0;"
+        },
+        {
+          "line": 81,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_BOOL_TRUE_V1: u32 = 1;"
+        },
+        {
+          "line": 82,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_THEME_UNKNOWN_V1: u32 = 0;"
+        },
+        {
+          "line": 83,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_THEME_LIGHT_V1: u32 = 1;"
+        },
+        {
+          "line": 84,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_WINDOW_THEME_DARK_V1: u32 = 2;"
+        },
+        {
+          "line": 86,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1: u32 = 1;"
+        },
+        {
+          "line": 87,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1: u32 = 2;"
+        },
+        {
+          "line": 89,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_UNKNOWN_V1: u32 = 0;"
+        },
+        {
+          "line": 90,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1: u32 = 1;"
+        },
+        {
+          "line": 91,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1: u32 = 2;"
+        },
+        {
+          "line": 92,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_NORTH_V1: u32 = 3;"
+        },
+        {
+          "line": 93,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_WEST_V1: u32 = 4;"
+        },
+        {
+          "line": 94,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_C_V1: u32 = 5;"
+        },
+        {
+          "line": 95,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_Z_V1: u32 = 6;"
+        },
+        {
+          "line": 96,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_TRIGGER_V1: u32 = 7;"
+        },
+        {
+          "line": 97,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_TRIGGER2_V1: u32 = 8;"
+        },
+        {
+          "line": 98,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_TRIGGER_V1: u32 = 9;"
+        },
+        {
+          "line": 99,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_TRIGGER2_V1: u32 = 10;"
+        },
+        {
+          "line": 100,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_SELECT_V1: u32 = 11;"
+        },
+        {
+          "line": 101,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_START_V1: u32 = 12;"
+        },
+        {
+          "line": 102,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_MODE_V1: u32 = 13;"
+        },
+        {
+          "line": 103,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_THUMB_V1: u32 = 14;"
+        },
+        {
+          "line": 104,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_THUMB_V1: u32 = 15;"
+        },
+        {
+          "line": 105,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1: u32 = 16;"
+        },
+        {
+          "line": 106,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1: u32 = 17;"
+        },
+        {
+          "line": 107,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1: u32 = 18;"
+        },
+        {
+          "line": 108,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1: u32 = 19;"
+        },
+        {
+          "line": 110,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_AXIS_UNKNOWN_V1: u32 = 0;"
+        },
+        {
+          "line": 111,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1: u32 = 1;"
+        },
+        {
+          "line": 112,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1: u32 = 2;"
+        },
+        {
+          "line": 113,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_AXIS_LEFT_Z_V1: u32 = 3;"
+        },
+        {
+          "line": 114,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_X_V1: u32 = 4;"
+        },
+        {
+          "line": 115,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_Y_V1: u32 = 5;"
+        },
+        {
+          "line": 116,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_Z_V1: u32 = 6;"
+        },
+        {
+          "line": 117,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_AXIS_DPAD_X_V1: u32 = 7;"
+        },
+        {
+          "line": 118,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_GAMEPAD_AXIS_DPAD_Y_V1: u32 = 8;"
+        },
+        {
+          "line": 120,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_FETCH_FLAG_STREAMING_V1: u32 = 1 << 0;"
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 1,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "固定线协议数值由事件消费者按 kind/state 解码；新增模块边界只说明常量分组与跨 ABI 使用，不承诺常量本身进行协商、内存校验或 live handle 验证。SELECT/START/MODE 的定义及两级公开重导出均在原源码中。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/mod.rs": {
+      "before_sha256": "55a90c9da8bf19ca4ff8bc6383b29ca6857e99f4e015fbd8cc0f41d7edc22b63",
+      "reviewed_sha256": "55a90c9da8bf19ca4ff8bc6383b29ca6857e99f4e015fbd8cc0f41d7edc22b63",
+      "bytes": 9834,
+      "before_lines": 145,
+      "lines": 145,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_comment_or_blank_lines": 0,
+      "inserted_bytes": 0,
+      "object_groups": 11,
+      "field_variant_names": 0,
+      "control_and_assertion_anchors": 0,
+      "consecutive_blocks": 6,
+      "independent_declaration_anchors": [
+        {
+          "line": 4,
+          "kind": "mod",
+          "source_line": "mod abi;"
+        },
+        {
+          "line": 6,
+          "kind": "mod",
+          "source_line": "mod constants;"
+        },
+        {
+          "line": 8,
+          "kind": "mod",
+          "source_line": "mod frame;"
+        },
+        {
+          "line": 10,
+          "kind": "mod",
+          "source_line": "mod host;"
+        },
+        {
+          "line": 12,
+          "kind": "mod",
+          "source_line": "mod session;"
+        },
+        {
+          "line": 15,
+          "kind": "use",
+          "source_line": "pub use crate::runtime_build_set::{ZIRCON_RUNTIME_API_VERSION_V8, ZR_RUNTIME_GET_API_SYMBOL_V8};"
+        },
+        {
+          "line": 18,
+          "kind": "use",
+          "source_line": "pub use abi::{"
+        },
+        {
+          "line": 33,
+          "kind": "use",
+          "source_line": "pub use constants::{"
+        },
+        {
+          "line": 89,
+          "kind": "use",
+          "source_line": "pub use frame::{"
+        },
+        {
+          "line": 100,
+          "kind": "use",
+          "source_line": "pub use host::{"
+        },
+        {
+          "line": 114,
+          "kind": "use",
+          "source_line": "pub use session::{"
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 2,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "显式导出域、常量与 session 边界完整保留；逐组核对 use/mod/pub use 及测试模块路径。此门面不创建运行时注册、会话或状态。无需追加重复注释。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/session/app_session_configuration_v2.rs": {
+      "before_sha256": "4ce27891dc5a1549207e092518ec00752bdef1650d0177d68adb55a7b591a50c",
+      "reviewed_sha256": "4ce27891dc5a1549207e092518ec00752bdef1650d0177d68adb55a7b591a50c",
+      "bytes": 19729,
+      "before_lines": 357,
+      "lines": 357,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_comment_or_blank_lines": 0,
+      "inserted_bytes": 0,
+      "object_groups": 26,
+      "field_variant_names": 28,
+      "control_and_assertion_anchors": 27,
+      "consecutive_blocks": 13,
+      "independent_declaration_anchors": [
+        {
+          "line": 22,
+          "kind": "use",
+          "source_line": "use core::mem::size_of;"
+        },
+        {
+          "line": 24,
+          "kind": "use",
+          "source_line": "use super::ime_composition_capability_v2::ZrRuntimeImeCompositionNegotiation;"
+        },
+        {
+          "line": 25,
+          "kind": "use",
+          "source_line": "use super::ime_composition_capability_v2::ZR_RUNTIME_IME_COMPOSITION_V2_MIN_API_VERSION;"
+        },
+        {
+          "line": 28,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_APP_SESSION_CONFIGURATION_ABI_VERSION_V2: u32 = 2;"
+        },
+        {
+          "line": 30,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_APP_SESSION_CAPABILITY_IME_COMPOSITION_V2: u64 = 1 << 0;"
+        },
+        {
+          "line": 32,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_APP_SESSION_CAPABILITY_CANDIDATE_RECT_V2: u64 = 1 << 1;"
+        },
+        {
+          "line": 34,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_APP_SESSION_COMPOSITION_SCHEMA_V2: u16 = 2;"
+        },
+        {
+          "line": 36,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_APP_SESSION_CANDIDATE_RECT_SCHEMA_V2: u16 = 1;"
+        },
+        {
+          "line": 38,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_APP_SESSION_COORDINATE_SPACE_WINDOW_V1: u32 = 1;"
+        },
+        {
+          "line": 40,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_APP_SESSION_MAX_NATIVE_COORDINATE_V2: i64 = i32::MAX as i64;"
+        },
+        {
+          "line": 42,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_CONFIGURE_APP_SESSION_SYMBOL_V2: &[u8] ="
+        },
+        {
+          "line": 45,
+          "kind": "const",
+          "source_line": "const REQUIRED_CAPABILITIES: u64 = ZR_RUNTIME_APP_SESSION_CAPABILITY_IME_COMPOSITION_V2"
+        },
+        {
+          "line": 63,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeImeCandidateRectV2 {"
+        },
+        {
+          "line": 83,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeImeCandidateRectV2 {"
+        },
+        {
+          "line": 95,
+          "kind": "fn",
+          "source_line": "    pub const fn window_relative(origin_x: i32, origin_y: i32, width: u32, height: u32) -> Self {"
+        },
+        {
+          "line": 119,
+          "kind": "fn",
+          "source_line": "    fn validate(&self) -> Result<(), ZrRuntimeAppSessionConfigurationError> {"
+        },
+        {
+          "line": 158,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeAppSessionConfigurationV2 {"
+        },
+        {
+          "line": 181,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeAppSessionConfigurationV2 {"
+        },
+        {
+          "line": 183,
+          "kind": "const",
+          "source_line": "    pub const SIZE_BYTES: usize = size_of::<Self>();"
+        },
+        {
+          "line": 196,
+          "kind": "fn",
+          "source_line": "    pub const fn ime_composition("
+        },
+        {
+          "line": 232,
+          "kind": "fn",
+          "source_line": "    pub fn validate(&self) -> Result<(), ZrRuntimeAppSessionConfigurationError> {"
+        },
+        {
+          "line": 275,
+          "kind": "fn",
+          "source_line": "    pub fn negotiation("
+        },
+        {
+          "line": 300,
+          "kind": "enum",
+          "source_line": "pub enum ZrRuntimeAppSessionConfigurationError {"
+        },
+        {
+          "line": 327,
+          "kind": "impl",
+          "source_line": "impl core::fmt::Display for ZrRuntimeAppSessionConfigurationError {"
+        },
+        {
+          "line": 328,
+          "kind": "fn",
+          "source_line": "    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {"
+        },
+        {
+          "line": 357,
+          "kind": "mod",
+          "source_line": "mod tests;"
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 3,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "独立配置符号使用 V2 结构/大小与能力位检查；DTO 构造不安装能力或创建 viewport。候选矩形允许零宽但不允许零高，坐标有符号，extent/right/bottom 在规定整数范围内；校验和 negotiation 的职责与真正配置消费者分开。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs": {
+      "before_sha256": "ff4ee54350fa4332b730ae0db67eb5f47ea4de3fbda59fc6f188e844aad41a71",
+      "reviewed_sha256": "07c3dadd7ca9227c89d721911084a4306382ee7ae99be7db81bb8157935a7567",
+      "bytes": 11061,
+      "before_lines": 193,
+      "lines": 248,
+      "changed": true,
+      "insertion_blocks": 37,
+      "added_comment_or_blank_lines": 55,
+      "inserted_bytes": 4917,
+      "object_groups": 24,
+      "field_variant_names": 23,
+      "control_and_assertion_anchors": 14,
+      "consecutive_blocks": 17,
+      "independent_declaration_anchors": [
+        {
+          "line": 4,
+          "kind": "use",
+          "source_line": "use core::mem::size_of;"
+        },
+        {
+          "line": 6,
+          "kind": "use",
+          "source_line": "use thiserror::Error;"
+        },
+        {
+          "line": 8,
+          "kind": "use",
+          "source_line": "use crate::buffer::{ZrByteSlice, ZrByteSliceError};"
+        },
+        {
+          "line": 9,
+          "kind": "use",
+          "source_line": "use crate::math::{Quat, Transform, Vec3};"
+        },
+        {
+          "line": 10,
+          "kind": "use",
+          "source_line": "use crate::ZIRCON_RUNTIME_ABI_VERSION_V1;"
+        },
+        {
+          "line": 17,
+          "kind": "enum",
+          "source_line": "pub enum ZrRuntimeEditorTransformPhaseV1 {"
+        },
+        {
+          "line": 30,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeEditorTransformPhaseV1 {"
+        },
+        {
+          "line": 32,
+          "kind": "fn",
+          "source_line": "    pub const fn raw(self) -> u32 {"
+        },
+        {
+          "line": 37,
+          "kind": "fn",
+          "source_line": "    pub const fn from_raw(value: u32) -> Option<Self> {"
+        },
+        {
+          "line": 54,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeTransformV1 {"
+        },
+        {
+          "line": 63,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeTransformV1 {"
+        },
+        {
+          "line": 65,
+          "kind": "fn",
+          "source_line": "    pub fn new(transform: Transform) -> Self {"
+        },
+        {
+          "line": 74,
+          "kind": "fn",
+          "source_line": "    pub fn transform(self) -> Transform {"
+        },
+        {
+          "line": 84,
+          "kind": "fn",
+          "source_line": "    pub fn is_valid(self) -> bool {"
+        },
+        {
+          "line": 109,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeEditorTransformWriteV1 {"
+        },
+        {
+          "line": 130,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeEditorTransformWriteV1 {"
+        },
+        {
+          "line": 135,
+          "kind": "fn",
+          "source_line": "    pub fn new("
+        },
+        {
+          "line": 158,
+          "kind": "fn",
+          "source_line": "    pub const fn phase(self) -> Option<ZrRuntimeEditorTransformPhaseV1> {"
+        },
+        {
+          "line": 163,
+          "kind": "fn",
+          "source_line": "    pub fn expected_transform(self) -> Transform {"
+        },
+        {
+          "line": 168,
+          "kind": "fn",
+          "source_line": "    pub fn target_transform(self) -> Transform {"
+        },
+        {
+          "line": 175,
+          "kind": "fn",
+          "source_line": "    pub fn validate_editor_transform_write(self) -> bool {"
+        },
+        {
+          "line": 201,
+          "kind": "fn",
+          "source_line": "    pub fn as_payload(&self) -> ZrByteSlice {"
+        },
+        {
+          "line": 217,
+          "kind": "fn",
+          "source_line": "    pub unsafe fn from_payload("
+        },
+        {
+          "line": 238,
+          "kind": "enum",
+          "source_line": "pub enum ZrRuntimeEditorTransformError {"
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 4,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "逐项跟踪 phase/seq/ABI/非零身份/保留字/有限变换的本地校验及 Runtime 活跃交互、epoch、连续序号和比较交换。非零缩放允许负数，旋转没有单位化承诺。as_payload 借用请求存储；from_payload 在 checked_slice 上界拒绝后把短于完整结构归 Size，并 read_unaligned 复制后再校验，不返回源切片引用。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/session/events.rs": {
+      "before_sha256": "b44a63486795ddbd2e28ff7bf5a174a25a689d1cfb287f0978b114328ef4cc09",
+      "reviewed_sha256": "aff4edd1b0d58e5d202ab5e04a7fda6c0074acadb08f8e652a09a6fc8ed72353",
+      "bytes": 21815,
+      "before_lines": 659,
+      "lines": 691,
+      "changed": true,
+      "insertion_blocks": 30,
+      "added_comment_or_blank_lines": 32,
+      "inserted_bytes": 3557,
+      "object_groups": 51,
+      "field_variant_names": 14,
+      "control_and_assertion_anchors": 2,
+      "consecutive_blocks": 46,
+      "independent_declaration_anchors": [
+        {
+          "line": 4,
+          "kind": "use",
+          "source_line": "use crate::buffer::ZrByteSlice;"
+        },
+        {
+          "line": 5,
+          "kind": "use",
+          "source_line": "use crate::handles::ZrRuntimeViewportHandle;"
+        },
+        {
+          "line": 7,
+          "kind": "use",
+          "source_line": "use super::super::constants::*;"
+        },
+        {
+          "line": 8,
+          "kind": "use",
+          "source_line": "use super::editor_transform::ZrRuntimeEditorTransformWriteV1;"
+        },
+        {
+          "line": 9,
+          "kind": "use",
+          "source_line": "use super::ime_composition_capability_v2::ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE;"
+        },
+        {
+          "line": 10,
+          "kind": "use",
+          "source_line": "use super::viewport::{ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1};"
+        },
+        {
+          "line": 16,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeEventV1 {"
+        },
+        {
+          "line": 50,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeEventV1 {"
+        },
+        {
+          "line": 52,
+          "kind": "fn",
+          "source_line": "    pub const fn new(abi_version: u32, kind: u32, viewport: ZrRuntimeViewportHandle) -> Self {"
+        },
+        {
+          "line": 75,
+          "kind": "fn",
+          "source_line": "    pub const fn viewport_resized("
+        },
+        {
+          "line": 91,
+          "kind": "fn",
+          "source_line": "    pub const fn viewport_metrics("
+        },
+        {
+          "line": 107,
+          "kind": "fn",
+          "source_line": "    pub const fn pointer_moved("
+        },
+        {
+          "line": 124,
+          "kind": "fn",
+          "source_line": "    pub const fn mouse_button("
+        },
+        {
+          "line": 142,
+          "kind": "fn",
+          "source_line": "    pub const fn mouse_wheel("
+        },
+        {
+          "line": 157,
+          "kind": "fn",
+          "source_line": "    pub const fn mouse_wheel_delta("
+        },
+        {
+          "line": 174,
+          "kind": "fn",
+          "source_line": "    pub const fn viewport_camera("
+        },
+        {
+          "line": 190,
+          "kind": "fn",
+          "source_line": "    pub fn editor_transform_write("
+        },
+        {
+          "line": 206,
+          "kind": "fn",
+          "source_line": "    pub fn mouse_wheel_delta_at("
+        },
+        {
+          "line": 227,
+          "kind": "fn",
+          "source_line": "    pub const fn cursor_entered(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {"
+        },
+        {
+          "line": 235,
+          "kind": "fn",
+          "source_line": "    pub const fn cursor_left(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {"
+        },
+        {
+          "line": 239,
+          "kind": "fn",
+          "source_line": "    pub const fn file_hovered("
+        },
+        {
+          "line": 255,
+          "kind": "fn",
+          "source_line": "    pub const fn file_dropped("
+        },
+        {
+          "line": 271,
+          "kind": "fn",
+          "source_line": "    pub const fn file_drag_cancelled(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {"
+        },
+        {
+          "line": 283,
+          "kind": "fn",
+          "source_line": "    pub const fn window_moved("
+        },
+        {
+          "line": 301,
+          "kind": "fn",
+          "source_line": "    pub const fn window_occluded("
+        },
+        {
+          "line": 321,
+          "kind": "fn",
+          "source_line": "    pub const fn window_theme_changed("
+        },
+        {
+          "line": 337,
+          "kind": "fn",
+          "source_line": "    pub const fn window_scale_factor_changed("
+        },
+        {
+          "line": 353,
+          "kind": "fn",
+          "source_line": "    pub const fn window_backend_scale_factor_changed("
+        },
+        {
+          "line": 369,
+          "kind": "fn",
+          "source_line": "    pub const fn window_close_requested("
+        },
+        {
+          "line": 383,
+          "kind": "fn",
+          "source_line": "    pub const fn window_destroyed(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {"
+        },
+        {
+          "line": 394,
+          "kind": "fn",
+          "source_line": "    pub const fn window_surface_recreated("
+        },
+        {
+          "line": 408,
+          "kind": "fn",
+          "source_line": "    pub const fn mouse_motion("
+        },
+        {
+          "line": 421,
+          "kind": "fn",
+          "source_line": "    pub const fn lifecycle("
+        },
+        {
+          "line": 432,
+          "kind": "fn",
+          "source_line": "    pub const fn touch("
+        },
+        {
+          "line": 450,
+          "kind": "fn",
+          "source_line": "    pub const fn keyboard("
+        },
+        {
+          "line": 467,
+          "kind": "fn",
+          "source_line": "    pub const fn ime_enabled(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {"
+        },
+        {
+          "line": 474,
+          "kind": "fn",
+          "source_line": "    pub const fn ime_disabled(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {"
+        },
+        {
+          "line": 482,
+          "kind": "fn",
+          "source_line": "    pub const fn ime_preedit("
+        },
+        {
+          "line": 500,
+          "kind": "fn",
+          "source_line": "    pub const fn ime_composition_v2("
+        },
+        {
+          "line": 513,
+          "kind": "fn",
+          "source_line": "    pub const fn ime_commit("
+        },
+        {
+          "line": 526,
+          "kind": "fn",
+          "source_line": "    pub const fn ime_delete_surrounding("
+        },
+        {
+          "line": 540,
+          "kind": "fn",
+          "source_line": "    pub const fn ime_request_enable(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {"
+        },
+        {
+          "line": 547,
+          "kind": "fn",
+          "source_line": "    pub const fn ime_request_disable(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {"
+        },
+        {
+          "line": 555,
+          "kind": "fn",
+          "source_line": "    pub const fn ime_cursor_area("
+        },
+        {
+          "line": 573,
+          "kind": "fn",
+          "source_line": "    pub const fn ime_surrounding_text("
+        },
+        {
+          "line": 590,
+          "kind": "fn",
+          "source_line": "    pub const fn clipboard_result("
+        },
+        {
+          "line": 606,
+          "kind": "fn",
+          "source_line": "    pub const fn accessibility_action("
+        },
+        {
+          "line": 622,
+          "kind": "fn",
+          "source_line": "    pub const fn gamepad_connection("
+        },
+        {
+          "line": 633,
+          "kind": "fn",
+          "source_line": "    pub const fn gamepad_connection_with_ids("
+        },
+        {
+          "line": 656,
+          "kind": "fn",
+          "source_line": "    pub const fn gamepad_button("
+        },
+        {
+          "line": 677,
+          "kind": "fn",
+          "source_line": "    pub const fn gamepad_axis("
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 5,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "逐构造器审查复用字段、默认值、位编码和借用 payload。wheel_at 的坐标与 delta 位模式对应 Runtime 分支，消费者仍负责单位/finite 检查；构造函数不派发事件。ffi 在 owner dispatch 前复制 payload，调用者须在同步读取期间维持借用数据。i32→f32 的 moved 坐标不承诺无损精度。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs": {
+      "before_sha256": "bad083c57b6c23a41f53f11acc5d9cfc92f11f9a48109a359fa8bcb25c8c56af",
+      "reviewed_sha256": "bad083c57b6c23a41f53f11acc5d9cfc92f11f9a48109a359fa8bcb25c8c56af",
+      "bytes": 5615,
+      "before_lines": 130,
+      "lines": 130,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_comment_or_blank_lines": 0,
+      "inserted_bytes": 0,
+      "object_groups": 15,
+      "field_variant_names": 5,
+      "control_and_assertion_anchors": 7,
+      "consecutive_blocks": 12,
+      "independent_declaration_anchors": [
+        {
+          "line": 10,
+          "kind": "use",
+          "source_line": "use super::ime_composition_v2::ZR_RUNTIME_IME_COMPOSITION_V2_SCHEMA;"
+        },
+        {
+          "line": 13,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_COMPOSITION_V2_CAPABILITY: &str = \"runtime.ime.composition.v2\";"
+        },
+        {
+          "line": 15,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE: u32 = 10;"
+        },
+        {
+          "line": 17,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_COMPOSITION_V2_MIN_API_VERSION: u32 = 8;"
+        },
+        {
+          "line": 21,
+          "kind": "enum",
+          "source_line": "pub enum ZrRuntimeImeCompositionWireVersion {"
+        },
+        {
+          "line": 30,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeImeCompositionNegotiation {"
+        },
+        {
+          "line": 39,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeImeCompositionNegotiation {"
+        },
+        {
+          "line": 45,
+          "kind": "fn",
+          "source_line": "    pub const fn from_raw("
+        },
+        {
+          "line": 61,
+          "kind": "fn",
+          "source_line": "    pub fn from_peer<I, S>(peer_api_version: u32, peer_capabilities: I) -> Self"
+        },
+        {
+          "line": 93,
+          "kind": "fn",
+          "source_line": "    pub const fn legacy() -> Self {"
+        },
+        {
+          "line": 102,
+          "kind": "fn",
+          "source_line": "    pub const fn supports_v2(&self) -> bool {"
+        },
+        {
+          "line": 109,
+          "kind": "fn",
+          "source_line": "    pub const fn wire_version(&self) -> ZrRuntimeImeCompositionWireVersion {"
+        },
+        {
+          "line": 118,
+          "kind": "fn",
+          "source_line": "    pub const fn peer_api_version(&self) -> u32 {"
+        },
+        {
+          "line": 123,
+          "kind": "fn",
+          "source_line": "    pub const fn peer_schema(&self) -> Option<u16> {"
+        },
+        {
+          "line": 130,
+          "kind": "mod",
+          "source_line": "mod tests;"
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 6,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "原注释已说明能力与 schema 协商。裸 capability 用当前 schema，显式最后一个有效 schema 提示优先；API/capability/schema 同时满足才支持 V2。from_raw 只保存值，协商结果没有安装 Runtime 配置的副作用。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/session/ime_composition_v2.rs": {
+      "before_sha256": "25f5554bb34546ba65afdfb1adcff07e0e0324dd196af66f8a0827858565e710",
+      "reviewed_sha256": "25f5554bb34546ba65afdfb1adcff07e0e0324dd196af66f8a0827858565e710",
+      "bytes": 26265,
+      "before_lines": 502,
+      "lines": 502,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_comment_or_blank_lines": 0,
+      "inserted_bytes": 0,
+      "object_groups": 29,
+      "field_variant_names": 30,
+      "control_and_assertion_anchors": 78,
+      "consecutive_blocks": 21,
+      "independent_declaration_anchors": [
+        {
+          "line": 6,
+          "kind": "use",
+          "source_line": "use crate::ui::dispatch::{"
+        },
+        {
+          "line": 11,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_COMPOSITION_V2_MAGIC: [u8; 4] = *b\"ZIME\";"
+        },
+        {
+          "line": 13,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_COMPOSITION_V2_SCHEMA: u16 = 2;"
+        },
+        {
+          "line": 15,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_COMPOSITION_V2_HEADER_BYTES: usize = 52;"
+        },
+        {
+          "line": 17,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_COMPOSITION_V2_CLAUSE_BYTES: usize = 12;"
+        },
+        {
+          "line": 20,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_IME_COMPOSITION_V2_MAX_CLAUSES: usize = 4_096;"
+        },
+        {
+          "line": 32,
+          "kind": "enum",
+          "source_line": "pub enum ZrRuntimeImePreeditClauseAvailabilityV2 {"
+        },
+        {
+          "line": 37,
+          "kind": "impl",
+          "source_line": "impl TryFrom<u32> for ZrRuntimeImePreeditClauseAvailabilityV2 {"
+        },
+        {
+          "line": 38,
+          "kind": "type",
+          "source_line": "    type Error = ZrRuntimeImeCompositionV2Error;"
+        },
+        {
+          "line": 47,
+          "kind": "fn",
+          "source_line": "    fn try_from(value: u32) -> Result<Self, Self::Error> {"
+        },
+        {
+          "line": 69,
+          "kind": "enum",
+          "source_line": "pub enum ZrRuntimeImeCompositionOperationV2 {"
+        },
+        {
+          "line": 75,
+          "kind": "impl",
+          "source_line": "impl TryFrom<u16> for ZrRuntimeImeCompositionOperationV2 {"
+        },
+        {
+          "line": 76,
+          "kind": "type",
+          "source_line": "    type Error = ZrRuntimeImeCompositionV2Error;"
+        },
+        {
+          "line": 85,
+          "kind": "fn",
+          "source_line": "    fn try_from(value: u16) -> Result<Self, Self::Error> {"
+        },
+        {
+          "line": 108,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeImeCompositionContextV2 {"
+        },
+        {
+          "line": 117,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeImeCompositionContextV2 {"
+        },
+        {
+          "line": 118,
+          "kind": "fn",
+          "source_line": "    fn is_valid(self) -> bool {"
+        },
+        {
+          "line": 145,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeImeCompositionV2 {"
+        },
+        {
+          "line": 174,
+          "kind": "enum",
+          "source_line": "pub enum ZrRuntimeImeCompositionV2Error {"
+        },
+        {
+          "line": 192,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeImeCompositionV2 {"
+        },
+        {
+          "line": 214,
+          "kind": "fn",
+          "source_line": "    pub fn encode(&self) -> Result<Vec<u8>, ZrRuntimeImeCompositionV2Error> {"
+        },
+        {
+          "line": 282,
+          "kind": "fn",
+          "source_line": "    pub fn decode(payload: &[u8]) -> Result<Self, ZrRuntimeImeCompositionV2Error> {"
+        },
+        {
+          "line": 375,
+          "kind": "fn",
+          "source_line": "    fn validate(&self) -> Result<(), ZrRuntimeImeCompositionV2Error> {"
+        },
+        {
+          "line": 431,
+          "kind": "fn",
+          "source_line": "fn read_u16(bytes: &[u8], offset: usize) -> Result<u16, ZrRuntimeImeCompositionV2Error> {"
+        },
+        {
+          "line": 442,
+          "kind": "fn",
+          "source_line": "fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, ZrRuntimeImeCompositionV2Error> {"
+        },
+        {
+          "line": 453,
+          "kind": "fn",
+          "source_line": "fn read_u64(bytes: &[u8], offset: usize) -> Result<u64, ZrRuntimeImeCompositionV2Error> {"
+        },
+        {
+          "line": 472,
+          "kind": "fn",
+          "source_line": "fn clause_kind_to_wire(kind: UiImePreeditClauseKind) -> u16 {"
+        },
+        {
+          "line": 488,
+          "kind": "fn",
+          "source_line": "fn wire_to_clause_kind("
+        },
+        {
+          "line": 502,
+          "kind": "mod",
+          "source_line": "mod tests;"
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 7,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "逐 codec 分支复核固定小端 header、段/文本预算与计数、精确总长、reserved 和 generation、UTF-8 边界以及 Preedit/Commit/Cancel 的差别。decode 返回自有文本/段；编码、解码和有效性检查不证明当前 live generation。原系统注释足够，原字节保持。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/session/operation.rs": {
+      "before_sha256": "1a3fbe1cbe23cd16a233985ce08601593bdad8ac4968fc6a857d79784a8f63c2",
+      "reviewed_sha256": "a3b618b39359fc96428b54a4a8966e21364cb2a72150becdbebc7eb5f2e13b90",
+      "bytes": 17810,
+      "before_lines": 410,
+      "lines": 412,
+      "changed": true,
+      "insertion_blocks": 1,
+      "added_comment_or_blank_lines": 2,
+      "inserted_bytes": 259,
+      "object_groups": 35,
+      "field_variant_names": 39,
+      "control_and_assertion_anchors": 29,
+      "consecutive_blocks": 28,
+      "independent_declaration_anchors": [
+        {
+          "line": 9,
+          "kind": "use",
+          "source_line": "use serde::{Deserialize, Serialize};"
+        },
+        {
+          "line": 11,
+          "kind": "use",
+          "source_line": "use crate::{ZrByteSlice, ZrOwnedResultV2, ZrRuntimeSessionHandle, ZrStatus};"
+        },
+        {
+          "line": 23,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeOperationHandle(u64);"
+        },
+        {
+          "line": 25,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeOperationHandle {"
+        },
+        {
+          "line": 27,
+          "kind": "fn",
+          "source_line": "    pub const fn new(raw: u64) -> Self {"
+        },
+        {
+          "line": 32,
+          "kind": "fn",
+          "source_line": "    pub const fn invalid() -> Self {"
+        },
+        {
+          "line": 36,
+          "kind": "fn",
+          "source_line": "    pub const fn raw(self) -> u64 {"
+        },
+        {
+          "line": 41,
+          "kind": "fn",
+          "source_line": "    pub const fn is_valid(self) -> bool {"
+        },
+        {
+          "line": 55,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeOperationSubmitRequestV1 {"
+        },
+        {
+          "line": 64,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeOperationSubmitRequestV1 {"
+        },
+        {
+          "line": 71,
+          "kind": "fn",
+          "source_line": "    pub fn new("
+        },
+        {
+          "line": 93,
+          "kind": "enum",
+          "source_line": "pub enum ZrRuntimeOperationPhase {"
+        },
+        {
+          "line": 112,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeOperationPhase {"
+        },
+        {
+          "line": 113,
+          "kind": "fn",
+          "source_line": "    pub const fn raw(self) -> u32 {"
+        },
+        {
+          "line": 118,
+          "kind": "fn",
+          "source_line": "    pub const fn from_raw(value: u32) -> Option<Self> {"
+        },
+        {
+          "line": 133,
+          "kind": "fn",
+          "source_line": "    pub const fn is_terminal(self) -> bool {"
+        },
+        {
+          "line": 149,
+          "kind": "enum",
+          "source_line": "pub enum ZrRuntimeOperationDetailKindV2 {"
+        },
+        {
+          "line": 174,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeOperationDetailKindV2 {"
+        },
+        {
+          "line": 175,
+          "kind": "fn",
+          "source_line": "    pub const fn raw(self) -> u32 {"
+        },
+        {
+          "line": 180,
+          "kind": "fn",
+          "source_line": "    pub const fn from_raw(value: u32) -> Option<Self> {"
+        },
+        {
+          "line": 210,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeOperationStatusV2 {"
+        },
+        {
+          "line": 229,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeOperationStatusV2 {"
+        },
+        {
+          "line": 237,
+          "kind": "fn",
+          "source_line": "    pub const fn new("
+        },
+        {
+          "line": 258,
+          "kind": "fn",
+          "source_line": "    pub const fn phase(&self) -> Option<ZrRuntimeOperationPhase> {"
+        },
+        {
+          "line": 263,
+          "kind": "fn",
+          "source_line": "    pub const fn detail_kind(&self) -> Option<ZrRuntimeOperationDetailKindV2> {"
+        },
+        {
+          "line": 277,
+          "kind": "enum",
+          "source_line": "pub enum ZrRuntimeOperationOutcomeV1 {"
+        },
+        {
+          "line": 294,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeOperationResultV1 {"
+        },
+        {
+          "line": 305,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeOperationResultV1 {"
+        },
+        {
+          "line": 312,
+          "kind": "fn",
+          "source_line": "    pub fn succeeded("
+        },
+        {
+          "line": 332,
+          "kind": "fn",
+          "source_line": "    pub fn failed("
+        },
+        {
+          "line": 349,
+          "kind": "fn",
+          "source_line": "    pub fn succeeded_output(&self) -> Option<&serde_json::Value> {"
+        },
+        {
+          "line": 357,
+          "kind": "fn",
+          "source_line": "    pub fn failure(&self) -> Option<&str> {"
+        },
+        {
+          "line": 376,
+          "kind": "type",
+          "source_line": "pub type ZrRuntimeSubmitOperationFnV1 = unsafe extern \"C\" fn("
+        },
+        {
+          "line": 391,
+          "kind": "type",
+          "source_line": "pub type ZrRuntimePollOperationFnV2 = unsafe extern \"C\" fn("
+        },
+        {
+          "line": 408,
+          "kind": "type",
+          "source_line": "pub type ZrRuntimeHarvestOperationFnV2 = unsafe extern \"C\" fn("
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 8,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "operation/mirror 函数指针是同 provider/session 的 ABI 调用约定；标量 handle/status/JSON outcome 不是资源租约。with_session_result_committed 的 finalizer 失败才尝试 rollback；finalizer 成功后 commit dispatch 的错误直接返回，新增注释严格限定补偿范围。harvest 在 finalizer 内写出结果，未凭此推测全局泄漏或已复现提交失败。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs": {
+      "before_sha256": "a2d1c53720742b7841e48a6f0cad63f635d8ce8bc715df71655f02dc880221be",
+      "reviewed_sha256": "a2d1c53720742b7841e48a6f0cad63f635d8ce8bc715df71655f02dc880221be",
+      "bytes": 13434,
+      "before_lines": 279,
+      "lines": 279,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_comment_or_blank_lines": 0,
+      "inserted_bytes": 0,
+      "object_groups": 27,
+      "field_variant_names": 14,
+      "control_and_assertion_anchors": 0,
+      "consecutive_blocks": 20,
+      "independent_declaration_anchors": [
+        {
+          "line": 9,
+          "kind": "use",
+          "source_line": "use serde::{Deserialize, Serialize};"
+        },
+        {
+          "line": 10,
+          "kind": "use",
+          "source_line": "use serde_json::value::{to_raw_value, RawValue};"
+        },
+        {
+          "line": 12,
+          "kind": "use",
+          "source_line": "use crate::{ZrByteSlice, ZrOwnedResultV2, ZrRuntimeSessionHandle, ZrStatus};"
+        },
+        {
+          "line": 16,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1: usize = 64;"
+        },
+        {
+          "line": 20,
+          "kind": "const",
+          "source_line": "pub const ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1: usize = 256 * 1024;"
+        },
+        {
+          "line": 32,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimePluginEventSubscriptionHandle(pub u64);"
+        },
+        {
+          "line": 34,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimePluginEventSubscriptionHandle {"
+        },
+        {
+          "line": 36,
+          "kind": "fn",
+          "source_line": "    pub const fn new(raw: u64) -> Self {"
+        },
+        {
+          "line": 41,
+          "kind": "fn",
+          "source_line": "    pub const fn invalid() -> Self {"
+        },
+        {
+          "line": 45,
+          "kind": "fn",
+          "source_line": "    pub const fn raw(self) -> u64 {"
+        },
+        {
+          "line": 50,
+          "kind": "fn",
+          "source_line": "    pub const fn is_valid(self) -> bool {"
+        },
+        {
+          "line": 64,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimePluginEventSubscribeRequestV1 {"
+        },
+        {
+          "line": 73,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimePluginEventSubscribeRequestV1 {"
+        },
+        {
+          "line": 80,
+          "kind": "fn",
+          "source_line": "    pub fn new("
+        },
+        {
+          "line": 102,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimePluginEventDeliveryV1 {"
+        },
+        {
+          "line": 118,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimePluginEventDeliveryV1 {"
+        },
+        {
+          "line": 126,
+          "kind": "fn",
+          "source_line": "    pub fn new("
+        },
+        {
+          "line": 148,
+          "kind": "impl",
+          "source_line": "impl PartialEq for ZrRuntimePluginEventDeliveryV1 {"
+        },
+        {
+          "line": 150,
+          "kind": "fn",
+          "source_line": "    fn eq(&self, other: &Self) -> bool {"
+        },
+        {
+          "line": 179,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimePluginEventDeliveryBatchV1 {"
+        },
+        {
+          "line": 194,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimePluginEventDeliveryBatchV1 {"
+        },
+        {
+          "line": 198,
+          "kind": "fn",
+          "source_line": "    pub fn new(abi_version: u32, deliveries: Vec<ZrRuntimePluginEventDeliveryV1>) -> Self {"
+        },
+        {
+          "line": 212,
+          "kind": "fn",
+          "source_line": "    pub const fn with_runtime_backlog("
+        },
+        {
+          "line": 227,
+          "kind": "fn",
+          "source_line": "    pub const fn empty(abi_version: u32) -> Self {"
+        },
+        {
+          "line": 246,
+          "kind": "type",
+          "source_line": "pub type ZrRuntimeSubscribePluginEventFnV1 = unsafe extern \"C\" fn("
+        },
+        {
+          "line": 259,
+          "kind": "type",
+          "source_line": "pub type ZrRuntimeUnsubscribePluginEventFnV1 = unsafe extern \"C\" fn("
+        },
+        {
+          "line": 275,
+          "kind": "type",
+          "source_line": "pub type ZrRuntimeDrainPluginEventsFnV2 = unsafe extern \"C\" fn("
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 9,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "构造器保存 owned JSON 值；PartialEq 先比较 envelope 再把 RawValue 转 Value 比较。保留 ZCA-OPS-001：合法 raw JSON 与当前 serde_json Value 的数值/递归可表示性仍需精确依赖与真实消费者证据。普通空白等价 fixture 不证明全部数值/深度输入安全，不新增 BUG。",
+      "issues": [
+        "LEGACY:zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs:156:TODO"
+      ]
+    },
+    "zircon_runtime_interface/src/runtime_api/session/requests.rs": {
+      "before_sha256": "b433935038333e289e463f3518e1e146ba47778921069463ab3cb38d37f5ea1c",
+      "reviewed_sha256": "b433935038333e289e463f3518e1e146ba47778921069463ab3cb38d37f5ea1c",
+      "bytes": 7822,
+      "before_lines": 175,
+      "lines": 175,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_comment_or_blank_lines": 0,
+      "inserted_bytes": 0,
+      "object_groups": 16,
+      "field_variant_names": 15,
+      "control_and_assertion_anchors": 0,
+      "consecutive_blocks": 11,
+      "independent_declaration_anchors": [
+        {
+          "line": 9,
+          "kind": "use",
+          "source_line": "use crate::buffer::{ZrByteSlice, ZrOwnedResultV2};"
+        },
+        {
+          "line": 10,
+          "kind": "use",
+          "source_line": "use crate::handles::ZrRuntimeViewportHandle;"
+        },
+        {
+          "line": 12,
+          "kind": "use",
+          "source_line": "use super::viewport::ZrRuntimeViewportSizeV1;"
+        },
+        {
+          "line": 24,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeHostFetchRequestV1 {"
+        },
+        {
+          "line": 33,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeHostFetchRequestV1 {"
+        },
+        {
+          "line": 37,
+          "kind": "fn",
+          "source_line": "    pub const fn new(abi_version: u32, uri: ZrByteSlice, flags: u32) -> Self {"
+        },
+        {
+          "line": 57,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeFrameRequestV1 {"
+        },
+        {
+          "line": 66,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeFrameRequestV1 {"
+        },
+        {
+          "line": 70,
+          "kind": "fn",
+          "source_line": "    pub const fn new("
+        },
+        {
+          "line": 93,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeAccessibilityTreeRequestV1 {"
+        },
+        {
+          "line": 104,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeAccessibilityTreeRequestV1 {"
+        },
+        {
+          "line": 109,
+          "kind": "fn",
+          "source_line": "    pub const fn new("
+        },
+        {
+          "line": 136,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeFrameV2 {"
+        },
+        {
+          "line": 149,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeFrameV2 {"
+        },
+        {
+          "line": 155,
+          "kind": "fn",
+          "source_line": "    pub const fn empty(abi_version: u32) -> Self {"
+        },
+        {
+          "line": 172,
+          "kind": "fn",
+          "source_line": "    pub const fn is_empty(&self) -> bool {"
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 10,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "fetch URI 与普通 payload 描述符借用外部存储，构造器只填字段；Frame 的 is_empty 检查尺寸/RGBA 形状而不校验 ABI/generation。访问 generation hint 不是消费者必然支持该提示的保证。现有文档已给出边界。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/session/tests/app_session_config_v2.rs": {
+      "before_sha256": "ac527529883ed0f9edb4cc3b1be24e389dc34f56bb61440e8e3b2ec79b390454",
+      "reviewed_sha256": "ac527529883ed0f9edb4cc3b1be24e389dc34f56bb61440e8e3b2ec79b390454",
+      "bytes": 2462,
+      "before_lines": 70,
+      "lines": 70,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_comment_or_blank_lines": 0,
+      "inserted_bytes": 0,
+      "object_groups": 6,
+      "field_variant_names": 0,
+      "control_and_assertion_anchors": 0,
+      "consecutive_blocks": 6,
+      "independent_declaration_anchors": [
+        {
+          "line": 1,
+          "kind": "use",
+          "source_line": "use super::*;"
+        },
+        {
+          "line": 4,
+          "kind": "fn",
+          "source_line": "fn configuration() -> ZrRuntimeAppSessionConfigurationV2 {"
+        },
+        {
+          "line": 13,
+          "kind": "fn",
+          "source_line": "fn app_session_v2_configuration_has_bounded_candidate_rect_topology() {"
+        },
+        {
+          "line": 28,
+          "kind": "fn",
+          "source_line": "fn app_session_v2_rejects_unsupported_contract_before_negotiation() {"
+        },
+        {
+          "line": 53,
+          "kind": "fn",
+          "source_line": "fn app_session_v2_window_relative_rect_preserves_ime_popup_anchor_shape() {"
+        },
+        {
+          "line": 61,
+          "kind": "fn",
+          "source_line": "fn app_session_v2_rejects_rectangles_that_overflow_native_edges() {"
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 11,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "逐读四个本地配置测试及 assertion。它们证明选定合法形状、零宽/原点、插入锚保留、边界溢出与结构/能力/空间错误样例，未外推为所有错误组合或真实宿主配置调用验收。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs": {
+      "before_sha256": "19f5fbc98829b3b160e85c851ec7405a6b80a8189c60f76c202f3fd3ff1c5a9e",
+      "reviewed_sha256": "d011cb685be2c298de3ab6fb08385e067b00aaa77c41d59310c99eb56bf7cdef",
+      "bytes": 2867,
+      "before_lines": 86,
+      "lines": 90,
+      "changed": true,
+      "insertion_blocks": 4,
+      "added_comment_or_blank_lines": 4,
+      "inserted_bytes": 437,
+      "object_groups": 7,
+      "field_variant_names": 0,
+      "control_and_assertion_anchors": 0,
+      "consecutive_blocks": 5,
+      "independent_declaration_anchors": [
+        {
+          "line": 1,
+          "kind": "use",
+          "source_line": "use std::mem::{align_of, size_of};"
+        },
+        {
+          "line": 3,
+          "kind": "use",
+          "source_line": "use crate::math::{Quat, Transform, Vec3};"
+        },
+        {
+          "line": 4,
+          "kind": "use",
+          "source_line": "use crate::{"
+        },
+        {
+          "line": 9,
+          "kind": "fn",
+          "source_line": "fn transform(x: f32) -> Transform {"
+        },
+        {
+          "line": 19,
+          "kind": "fn",
+          "source_line": "fn editor_transform_write_is_a_fixed_128_byte_payload() {"
+        },
+        {
+          "line": 26,
+          "kind": "fn",
+          "source_line": "fn editor_transform_write_preserves_expected_and_target_values() {"
+        },
+        {
+          "line": 55,
+          "kind": "fn",
+          "source_line": "fn editor_transform_write_rejects_invalid_phase_sequence_and_transform() {"
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 12,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "三个 fixture 仅证明当前编译目标的 128-byte/8-align 布局、字段保留和本地校验样例；修订的新增注释没有声称跨目标布局、动态库 ABI 往返或 Runtime 交互状态机覆盖。既有断言/字面量均未改变。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/session/tests/ime_composition_v2.rs": {
+      "before_sha256": "bbf01d92208e605e4d7432d5a273ad6bc2f32f3b45a31125c00d449436630cbd",
+      "reviewed_sha256": "bbf01d92208e605e4d7432d5a273ad6bc2f32f3b45a31125c00d449436630cbd",
+      "bytes": 3807,
+      "before_lines": 105,
+      "lines": 105,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_comment_or_blank_lines": 0,
+      "inserted_bytes": 0,
+      "object_groups": 7,
+      "field_variant_names": 0,
+      "control_and_assertion_anchors": 0,
+      "consecutive_blocks": 7,
+      "independent_declaration_anchors": [
+        {
+          "line": 1,
+          "kind": "use",
+          "source_line": "use super::*;"
+        },
+        {
+          "line": 4,
+          "kind": "fn",
+          "source_line": "fn context("
+        },
+        {
+          "line": 17,
+          "kind": "fn",
+          "source_line": "fn preedit() -> ZrRuntimeImeCompositionV2 {"
+        },
+        {
+          "line": 40,
+          "kind": "fn",
+          "source_line": "fn v2_round_trip_preserves_utf8_clause_boundaries_and_context_generations() {"
+        },
+        {
+          "line": 48,
+          "kind": "fn",
+          "source_line": "fn v2_rejects_clause_boundaries_inside_a_multibyte_scalar() {"
+        },
+        {
+          "line": 61,
+          "kind": "fn",
+          "source_line": "fn v2_rejects_truncated_payloads_unknown_kinds_and_nonzero_reserved_fields() {"
+        },
+        {
+          "line": 92,
+          "kind": "fn",
+          "source_line": "fn v2_cancel_payload_cannot_carry_text_cursor_or_clause_data() {"
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 13,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "四个 fixture 覆盖特定多字节文本往返、选区 UTF-8 边界、截短/unknown enum/reserved 和 Cancel 文本错误；没有声称所有字段组合、真实 IME 协商安装或运行时 generation 接纳都已测试。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/session/translated_events.rs": {
+      "before_sha256": "76a6df697cfef4a3ebe400ab7ea020576e248fdc87de2edb38dd26e7ffc68d5d",
+      "reviewed_sha256": "d1c38e8165a88ea8a9fe9741e9dae09b0963ec6a3b5e1065c5c7543016d70ba7",
+      "bytes": 3157,
+      "before_lines": 76,
+      "lines": 86,
+      "changed": true,
+      "insertion_blocks": 8,
+      "added_comment_or_blank_lines": 10,
+      "inserted_bytes": 995,
+      "object_groups": 11,
+      "field_variant_names": 3,
+      "control_and_assertion_anchors": 0,
+      "consecutive_blocks": 7,
+      "independent_declaration_anchors": [
+        {
+          "line": 4,
+          "kind": "use",
+          "source_line": "use crate::buffer::ZrByteSlice;"
+        },
+        {
+          "line": 5,
+          "kind": "use",
+          "source_line": "use crate::handles::ZrRuntimeViewportHandle;"
+        },
+        {
+          "line": 7,
+          "kind": "use",
+          "source_line": "use super::super::constants::*;"
+        },
+        {
+          "line": 8,
+          "kind": "use",
+          "source_line": "use super::events::ZrRuntimeEventV1;"
+        },
+        {
+          "line": 9,
+          "kind": "use",
+          "source_line": "use super::viewport::ZrRuntimeViewportMetricsV1;"
+        },
+        {
+          "line": 13,
+          "kind": "struct",
+          "source_line": "pub struct ZrRuntimeTranslatedEventV1 {"
+        },
+        {
+          "line": 22,
+          "kind": "impl",
+          "source_line": "impl ZrRuntimeTranslatedEventV1 {"
+        },
+        {
+          "line": 24,
+          "kind": "fn",
+          "source_line": "    pub const fn new(abi_version: u32, event: ZrRuntimeEventV1, host_reason: ZrByteSlice) -> Self {"
+        },
+        {
+          "line": 33,
+          "kind": "fn",
+          "source_line": "    pub const fn viewport_metrics("
+        },
+        {
+          "line": 46,
+          "kind": "fn",
+          "source_line": "    pub const fn touch_moved("
+        },
+        {
+          "line": 68,
+          "kind": "fn",
+          "source_line": "    pub const fn keyboard_text("
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 14,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "Rust 包装器不带 repr(C)，reason/payload 借用输入。new 保留传入版本而不验证版本相等；三个便利 drop reason 为固定静态文本。直接 helper fixture 证明字段/理由传递，不能推出全部生产事件一定经该包装器。",
+      "issues": []
+    },
+    "zircon_runtime_interface/src/runtime_api/tests/ime_compose_capability_v2.rs": {
+      "before_sha256": "35dcca3bb81dbfbef345073fe3da013a0dd664600e8dbc371ccdfbaf8fa569a6",
+      "reviewed_sha256": "35dcca3bb81dbfbef345073fe3da013a0dd664600e8dbc371ccdfbaf8fa569a6",
+      "bytes": 1714,
+      "before_lines": 56,
+      "lines": 56,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_comment_or_blank_lines": 0,
+      "inserted_bytes": 0,
+      "object_groups": 3,
+      "field_variant_names": 0,
+      "control_and_assertion_anchors": 0,
+      "consecutive_blocks": 3,
+      "independent_declaration_anchors": [
+        {
+          "line": 1,
+          "kind": "use",
+          "source_line": "use super::*;"
+        },
+        {
+          "line": 5,
+          "kind": "fn",
+          "source_line": "fn older_or_unadvertised_peers_are_v1_only() {"
+        },
+        {
+          "line": 25,
+          "kind": "fn",
+          "source_line": "fn exact_schema_and_capability_are_required_before_v2_state_is_emitted() {"
+        }
+      ],
+      "declaration_start_sets_equal": true,
+      "child_object_member_control_and_block_tables": {
+        "record": "docs/plans/source-comments/reviews/R035.json",
+        "sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+        "file_index": 15,
+        "checked": "All original/current spans bounded; all member/control lines exact; block partitions gap-free; insertion mappings byte-exact."
+      },
+      "independent_intent_and_call_chain_review": "两个能力 fixture 检查旧 API/缺失能力及正确与错误显式 schema 顺序。它们验证解析/协商提示，不代表 Runtime 配置安装或跨动态库调用完成。",
+      "issues": []
+    }
+  },
+  "all_owned_source_objects_and_blocks_reviewed": true,
+  "object_groups": 370,
+  "field_variant_names": 171,
+  "consecutive_blocks": 203,
+  "control_and_assertion_anchors": 157,
+  "changed_source_count": 6,
+  "unchanged_source_count": 9,
+  "insertion_blocks": 81,
+  "added_comment_or_blank_lines": 106,
+  "inserted_bytes": 10398,
+  "independent_anchor_comparison_receipt": {
+    "receipt": "65d690",
+    "exit": 0,
+    "files": [
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/constants.rs",
+        "root_anchors": 102,
+        "child_groups": 102,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/mod.rs",
+        "root_anchors": 11,
+        "child_groups": 11,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/app_session_configuration_v2.rs",
+        "root_anchors": 26,
+        "child_groups": 26,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs",
+        "root_anchors": 24,
+        "child_groups": 24,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+        "root_anchors": 51,
+        "child_groups": 51,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs",
+        "root_anchors": 15,
+        "child_groups": 15,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/ime_composition_v2.rs",
+        "root_anchors": 29,
+        "child_groups": 29,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/operation.rs",
+        "root_anchors": 35,
+        "child_groups": 35,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+        "root_anchors": 27,
+        "child_groups": 27,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/requests.rs",
+        "root_anchors": 16,
+        "child_groups": 16,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/tests/app_session_config_v2.rs",
+        "root_anchors": 6,
+        "child_groups": 6,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs",
+        "root_anchors": 7,
+        "child_groups": 7,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/tests/ime_composition_v2.rs",
+        "root_anchors": 7,
+        "child_groups": 7,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+        "root_anchors": 11,
+        "child_groups": 11,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/tests/ime_compose_capability_v2.rs",
+        "root_anchors": 3,
+        "child_groups": 3,
+        "line_anchor_sets_equal": true,
+        "only_root": [],
+        "only_child": []
+      }
+    ]
+  },
+  "root_actual_read_receipts": {
+    "formal_source": [
+      {
+        "receipt": "29ea92/b394b8",
+        "span_in_concatenated_sources": [
+          0,
+          850
+        ]
+      },
+      {
+        "receipt": "988103",
+        "span_in_concatenated_sources": [
+          850,
+          1250
+        ]
+      },
+      {
+        "receipt": "f77c01",
+        "span_in_concatenated_sources": [
+          1250,
+          1650
+        ]
+      },
+      {
+        "receipt": "165a82",
+        "span_in_concatenated_sources": [
+          1650,
+          2050
+        ]
+      },
+      {
+        "receipt": "41bb60",
+        "span_in_concatenated_sources": [
+          2050,
+          2450
+        ]
+      },
+      {
+        "receipt": "d3317ce",
+        "span_in_concatenated_sources": [
+          2450,
+          2850
+        ]
+      },
+      {
+        "receipt": "08b02a",
+        "span_in_concatenated_sources": [
+          2850,
+          3250
+        ]
+      },
+      {
+        "receipt": "ea2ee8",
+        "span_in_concatenated_sources": [
+          3250,
+          3466
+        ],
+        "note": "The source tail was completely visible; the separately following metadata portion was truncated and re-read via 896574."
+      }
+    ],
+    "current_context": [
+      {
+        "receipt": "4b109c",
+        "ranges": {
+          "E01": [
+            [
+              1,
+              96
+            ]
+          ],
+          "E07": [
+            [
+              1,
+              244
+            ]
+          ],
+          "E24": [
+            [
+              1,
+              224
+            ]
+          ],
+          "E37": [
+            [
+              11,
+              77
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "34aa1d",
+        "ranges": {
+          "E03": [
+            [
+              1,
+              170
+            ]
+          ],
+          "E04": [
+            [
+              113,
+              225
+            ]
+          ],
+          "E05": [
+            [
+              1,
+              58
+            ]
+          ]
+        },
+        "limitation": "Only these fully visible ranges credited from truncated output."
+      },
+      {
+        "receipt": "b11624",
+        "ranges": {
+          "E03": [
+            [
+              171,
+              280
+            ],
+            [
+              415,
+              510
+            ]
+          ],
+          "E04": [
+            [
+              1,
+              112
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "8b99bb",
+        "ranges": {
+          "E08": [
+            [
+              1,
+              221
+            ]
+          ],
+          "E09": [
+            [
+              1,
+              23
+            ]
+          ],
+          "E10": [
+            [
+              90,
+              155
+            ],
+            [
+              189,
+              345
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "a74803",
+        "ranges": {
+          "E03": [
+            [
+              281,
+              414
+            ],
+            [
+              511,
+              659
+            ]
+          ],
+          "E06": [
+            [
+              1,
+              116
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "acdc09",
+        "ranges": {
+          "E12": [
+            [
+              1,
+              185
+            ]
+          ],
+          "E13": [
+            [
+              121,
+              198
+            ]
+          ],
+          "E40": [
+            [
+              276,
+              312
+            ],
+            [
+              349,
+              421
+            ]
+          ],
+          "E42": [
+            [
+              56,
+              116
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "5465bb",
+        "ranges": {
+          "E20": [
+            [
+              863,
+              930
+            ]
+          ],
+          "E21": [
+            [
+              1,
+              135
+            ]
+          ],
+          "E23": [
+            [
+              1,
+              223
+            ]
+          ],
+          "E37": [
+            [
+              212,
+              278
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "f93580",
+        "ranges": {
+          "E20": [
+            [
+              1107,
+              1488
+            ]
+          ]
+        },
+        "limitation": "Variable-definition reading discrepancy was resolved by the independent raw-source recovery f9815c. It is not treated as a source defect."
+      },
+      {
+        "receipt": "f9815c",
+        "ranges": {
+          "E20": [
+            [
+              1180,
+              1306
+            ]
+          ]
+        },
+        "sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52"
+      },
+      {
+        "receipt": "5a809d",
+        "ranges": {
+          "E20": [
+            [
+              1623,
+              1681
+            ]
+          ],
+          "E26": [
+            [
+              1,
+              110
+            ]
+          ],
+          "E18": [
+            [
+              1,
+              52
+            ]
+          ],
+          "E19": [
+            [
+              438,
+              481
+            ],
+            [
+              552,
+              611
+            ]
+          ],
+          "E28": [
+            [
+              100,
+              185
+            ]
+          ],
+          "E29": [
+            [
+              62,
+              87
+            ],
+            [
+              126,
+              151
+            ]
+          ],
+          "E39": [
+            [
+              90,
+              181
+            ]
+          ]
+        }
+      }
+    ],
+    "read_policy": "All 15 owned current sources (3466 physical lines) read completely. Cross-tree context is selected-range review with fresh SHA pins; the child independently read its recorded context ranges. Hash equality is not by itself a claim that root read every line of all 34 context files."
+  },
+  "context_pins": [
+    {
+      "id": "R035-E01",
+      "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+      "recorded_sha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "current_sha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "same": true
+    },
+    {
+      "id": "R035-E02",
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "recorded_sha256": "e851a09cf3b0946ce83a7723a48da45656746820bc0375b9285df9c740409078",
+      "current_sha256": "e851a09cf3b0946ce83a7723a48da45656746820bc0375b9285df9c740409078",
+      "same": true
+    },
+    {
+      "id": "R035-E03",
+      "path": "zircon_runtime/src/dynamic_api/session/events.rs",
+      "recorded_sha256": "3de66fd03293517a05fd4e2361808dfba3a089336d50f45a012357c983ad450c",
+      "current_sha256": "3de66fd03293517a05fd4e2361808dfba3a089336d50f45a012357c983ad450c",
+      "same": true
+    },
+    {
+      "id": "R035-E04",
+      "path": "zircon_runtime/src/dynamic_api/session/events/keyboard_ime.rs",
+      "recorded_sha256": "ae4554cabb1b7502cf65e54ca2aee213e22ac327c4172ead7ccd6a25be1e39de",
+      "current_sha256": "ae4554cabb1b7502cf65e54ca2aee213e22ac327c4172ead7ccd6a25be1e39de",
+      "same": true
+    },
+    {
+      "id": "R035-E05",
+      "path": "zircon_runtime/src/dynamic_api/session/events/keyboard_ime_v2.rs",
+      "recorded_sha256": "633c24fa7cf60852c143abc2d1c0a7dfa5780d0ac0f368eaa79dfa22e70829b4",
+      "current_sha256": "633c24fa7cf60852c143abc2d1c0a7dfa5780d0ac0f368eaa79dfa22e70829b4",
+      "same": true
+    },
+    {
+      "id": "R035-E06",
+      "path": "zircon_runtime/src/dynamic_api/session/events/gamepad.rs",
+      "recorded_sha256": "ffa507e8e9d1e73bf64ae852fce2048efdf4b85a1822fb2c76d012a77effd0ab",
+      "current_sha256": "ffa507e8e9d1e73bf64ae852fce2048efdf4b85a1822fb2c76d012a77effd0ab",
+      "same": true
+    },
+    {
+      "id": "R035-E07",
+      "path": "zircon_runtime/src/dynamic_api/session/editor_transform.rs",
+      "recorded_sha256": "6b23bf23606986a44feccc65afafb3d843559721c704c7f3d244dfa5cdc907ad",
+      "current_sha256": "6b23bf23606986a44feccc65afafb3d843559721c704c7f3d244dfa5cdc907ad",
+      "same": true
+    },
+    {
+      "id": "R035-E08",
+      "path": "zircon_runtime/src/dynamic_api/session/ime_composition_route.rs",
+      "recorded_sha256": "b68ca8be96394cba87464a1d6bdf49d733cdd6d85ad0444d31df3947de9e700b",
+      "current_sha256": "b68ca8be96394cba87464a1d6bdf49d733cdd6d85ad0444d31df3947de9e700b",
+      "same": true
+    },
+    {
+      "id": "R035-E09",
+      "path": "zircon_runtime/src/dynamic_api/session/ime_composition_configuration.rs",
+      "recorded_sha256": "a097c2720107fc7ed9a6c1826a83e0d8ca79f5c28d21e62299722a30b5ec0c41",
+      "current_sha256": "a097c2720107fc7ed9a6c1826a83e0d8ca79f5c28d21e62299722a30b5ec0c41",
+      "same": true
+    },
+    {
+      "id": "R035-E10",
+      "path": "zircon_runtime/src/dynamic_api/session/ffi.rs",
+      "recorded_sha256": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+      "current_sha256": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+      "same": true
+    },
+    {
+      "id": "R035-E11",
+      "path": "zircon_app/src/entry/runtime_entry_app/ime_input/composition_v2.rs",
+      "recorded_sha256": "282babb6995da6020586a354939ff43770a0c3a791d15ef1b0daa76303092dfa",
+      "current_sha256": "282babb6995da6020586a354939ff43770a0c3a791d15ef1b0daa76303092dfa",
+      "same": true
+    },
+    {
+      "id": "R035-E12",
+      "path": "zircon_runtime/src/dynamic_api/session/operation.rs",
+      "recorded_sha256": "7431c40b330231c4b6bf15a63309ae03c8e0b1293baa5b964888e1bcb36383f4",
+      "current_sha256": "7431c40b330231c4b6bf15a63309ae03c8e0b1293baa5b964888e1bcb36383f4",
+      "same": true
+    },
+    {
+      "id": "R035-E13",
+      "path": "zircon_app/src/entry/runtime_library/runtime_session/operation.rs",
+      "recorded_sha256": "ed31e8343b9b5520adb3d15b49725f6b67558dbfdd309a6d66d626f0e0709b1c",
+      "current_sha256": "ed31e8343b9b5520adb3d15b49725f6b67558dbfdd309a6d66d626f0e0709b1c",
+      "same": true
+    },
+    {
+      "id": "R035-E14",
+      "path": "zircon_runtime/src/dynamic_api/session/event_mirror.rs",
+      "recorded_sha256": "ef246ba9540ef61c5a16073569f79c111dee3c4d638724c7ef2811d2cc139253",
+      "current_sha256": "ef246ba9540ef61c5a16073569f79c111dee3c4d638724c7ef2811d2cc139253",
+      "same": true
+    },
+    {
+      "id": "R035-E15",
+      "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+      "recorded_sha256": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+      "current_sha256": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+      "same": true
+    },
+    {
+      "id": "R035-E16",
+      "path": "zircon_runtime/src/dynamic_api/exports.rs",
+      "recorded_sha256": "fb6564729a8cc2457f7eb5b356bb4cfee3e359f39caad61d2f9fab1b3f5f23a8",
+      "current_sha256": "fb6564729a8cc2457f7eb5b356bb4cfee3e359f39caad61d2f9fab1b3f5f23a8",
+      "same": true
+    },
+    {
+      "id": "R035-E17",
+      "path": "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
+      "recorded_sha256": "dbed33b3ceaefbea03b9d6bf34d6639bd04a94f0c2fbbe43d72038ff9624dfbc",
+      "current_sha256": "dbed33b3ceaefbea03b9d6bf34d6639bd04a94f0c2fbbe43d72038ff9624dfbc",
+      "same": true
+    },
+    {
+      "id": "R035-E18",
+      "path": "zircon_runtime/src/operation/task.rs",
+      "recorded_sha256": "4123d5c76b0fb67bb70de316fe79b76133df28a536da61df4c229ff388b7e3f0",
+      "current_sha256": "4123d5c76b0fb67bb70de316fe79b76133df28a536da61df4c229ff388b7e3f0",
+      "same": true
+    },
+    {
+      "id": "R035-E19",
+      "path": "zircon_runtime/src/operation/service.rs",
+      "recorded_sha256": "272ab60c0a83acc69a230703862cb051b347cfa8a3eaa71b72e53c68b3337c9c",
+      "current_sha256": "272ab60c0a83acc69a230703862cb051b347cfa8a3eaa71b72e53c68b3337c9c",
+      "same": true
+    },
+    {
+      "id": "R035-E20",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "recorded_sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+      "current_sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+      "same": true
+    },
+    {
+      "id": "R035-E21",
+      "path": "zircon_runtime_interface/src/tests/runtime_operation.rs",
+      "recorded_sha256": "414b104b3b9646c4015167bcb34cab698e0ab082ef56e37df48d7747342fbce4",
+      "current_sha256": "414b104b3b9646c4015167bcb34cab698e0ab082ef56e37df48d7747342fbce4",
+      "same": true
+    },
+    {
+      "id": "R035-E23",
+      "path": "zircon_runtime/src/dynamic_api/session/input_events.rs",
+      "recorded_sha256": "0adedc7af972d68aab83f94154cb403ea087f753849c21448e8879fdbacadaf3",
+      "current_sha256": "0adedc7af972d68aab83f94154cb403ea087f753849c21448e8879fdbacadaf3",
+      "same": true
+    },
+    {
+      "id": "R035-E24",
+      "path": "zircon_runtime/src/dynamic_api/session/tests/editor_transform.rs",
+      "recorded_sha256": "402d9fcfe691ee9ac2753569856b7523e6bf58aea8992816c8107b662857058b",
+      "current_sha256": "402d9fcfe691ee9ac2753569856b7523e6bf58aea8992816c8107b662857058b",
+      "same": true
+    },
+    {
+      "id": "R035-E26",
+      "path": "zircon_runtime_interface/src/tests/boundary.rs",
+      "recorded_sha256": "7acb8b1622c66bc34670a217c350485f10c17bdab04a2423edcb82bc9b6f06b2",
+      "current_sha256": "7acb8b1622c66bc34670a217c350485f10c17bdab04a2423edcb82bc9b6f06b2",
+      "same": true
+    },
+    {
+      "id": "R035-E27",
+      "path": "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
+      "recorded_sha256": "727355154d092d305e004b83e52af7d23982469e9608a5004d6b3eff98b5a9d7",
+      "current_sha256": "727355154d092d305e004b83e52af7d23982469e9608a5004d6b3eff98b5a9d7",
+      "same": true
+    },
+    {
+      "id": "R035-E28",
+      "path": "zircon_runtime/src/operation/service/admission.rs",
+      "recorded_sha256": "eaf3d2706014da680a1b3f56eae3fb2b46e1289044d218aed7d6cce2e47d5cc2",
+      "current_sha256": "eaf3d2706014da680a1b3f56eae3fb2b46e1289044d218aed7d6cce2e47d5cc2",
+      "same": true
+    },
+    {
+      "id": "R035-E29",
+      "path": "zircon_runtime/src/operation/maintenance.rs",
+      "recorded_sha256": "810c9358b4cf0fe9771213398b2546fb16a909fc75f727415aa704bd8f2e144e",
+      "current_sha256": "810c9358b4cf0fe9771213398b2546fb16a909fc75f727415aa704bd8f2e144e",
+      "same": true
+    },
+    {
+      "id": "R035-E37",
+      "path": "zircon_runtime_interface/src/buffer.rs",
+      "recorded_sha256": "4f311bf8fb2e1c436581e2f96f9b54567127644a121ac3ca6890b7ce05c4dad7",
+      "current_sha256": "4f311bf8fb2e1c436581e2f96f9b54567127644a121ac3ca6890b7ce05c4dad7",
+      "same": true
+    },
+    {
+      "id": "R035-E39",
+      "path": "zircon_runtime/src/operation/service/completion.rs",
+      "recorded_sha256": "11546efa42357729045590a975753bced422f6c5a324972fd24e20652eff4d24",
+      "current_sha256": "11546efa42357729045590a975753bced422f6c5a324972fd24e20652eff4d24",
+      "same": true
+    },
+    {
+      "id": "R035-E40",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "recorded_sha256": "a94f1038a2bb9fdce338f8c19564e4e9c2cabefe4d25ecace8f0410967d8174f",
+      "current_sha256": "a94f1038a2bb9fdce338f8c19564e4e9c2cabefe4d25ecace8f0410967d8174f",
+      "same": true
+    },
+    {
+      "id": "R035-E41",
+      "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+      "recorded_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+      "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+      "same": true
+    },
+    {
+      "id": "R035-E42",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/tests/cases.rs",
+      "recorded_sha256": "1fa81cdc5aea6b5e28c3c3b407b60b5ab3ca8c773a171ed40c55eb0650a0e48d",
+      "current_sha256": "1fa81cdc5aea6b5e28c3c3b407b60b5ab3ca8c773a171ed40c55eb0650a0e48d",
+      "same": true
+    },
+    {
+      "id": "R035-E43",
+      "path": "zircon_runtime_interface/src/ui/dispatch/input/event.rs",
+      "recorded_sha256": "081d5c2404e751385ca6f113d00e168b58c43c9acc1a73fa4b931f22cc38b69c",
+      "current_sha256": "081d5c2404e751385ca6f113d00e168b58c43c9acc1a73fa4b931f22cc38b69c",
+      "same": true
+    },
+    {
+      "id": "R035-E44",
+      "path": "zircon_runtime_interface/src/ui/surface/render/editable_text.rs",
+      "recorded_sha256": "e926f940e36ba99b6090b770e62864a4d5d8c8926d281f668c049ade2cc4aaec",
+      "current_sha256": "e926f940e36ba99b6090b770e62864a4d5d8c8926d281f668c049ade2cc4aaec",
+      "same": true
+    }
+  ],
+  "context_files_formal_coverage": false,
+  "context_pin_lifecycle": "All 34 context pins matched at root proof b814f3 and at the 65d690 pre-record preflight. contracts.rs is separately assigned to R040; root completed f9815c against its recorded before SHA and then released that R040 source for authorized comment review. Later R040 comment insertions do not retroactively change this historical context evidence.",
+  "issues": [
+    {
+      "id": "LEGACY:zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs:156:TODO",
+      "kind": "TODO",
+      "origin": "preexisting",
+      "status": "retained-specific-evidence-gap",
+      "path": "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+      "initial_line": 156,
+      "source_sha256": "a2d1c53720742b7841e48a6f0cad63f635d8ce8bc715df71655f02dc880221be",
+      "source_tag": "TODO: [ZCA-OPS-001] RawValue 的合法 raw JSON 不等于 Value 的数值/递归限制可表示性；",
+      "evidence": [],
+      "next_action": "固定当前 serde_json 版本与 features，构造 RawValue 可接收而 Value 不能表示的精确数值/深度 fixture，并定位生产 Eq 消费者/producer 合同；未确认前保留 TODO，不升级 BUG。",
+      "source_audit_id": "ZCA-OPS-001",
+      "current_sha256": "a2d1c53720742b7841e48a6f0cad63f635d8ce8bc715df71655f02dc880221be",
+      "line": 156,
+      "span": [
+        156,
+        164
+      ]
+    }
+  ],
+  "new_issue_markers": [],
+  "disproved_candidates": [
+    {
+      "id": "CR-ZCA-R035-0001",
+      "status": "disproved-read-omission",
+      "source_marker_added": false,
+      "ledger_issue_added": false,
+      "next_new_id": "CR-ZCA-R035-0002",
+      "evidence": "SELECT=11/START=12/MODE=13 exist in original constants before97–99, runtime_api/mod.rs exports56/58/59 and current crate lib exports203/206/207; earlier missing-export reading was false.",
+      "source_drift_explanation": "Unrelated retained_memory module changes the lib raw SHA after its prior tail; relevant explicit exports remain identical."
+    }
+  ],
+  "child_evidence_amendments": [
+    {
+      "field": "child issues[0].source_tag",
+      "correction": "This child field stores audit ID ZCA-OPS-001. The legacy ledger source_tag is the full real TODO comment line; parent records source_audit_id separately and preserves the full original source_tag/legacy ID."
+    },
+    {
+      "field": "child evidence_sources/current context reads",
+      "correction": "Hash pins identify exact source state; root independent read coverage is only the explicitly recorded source/context ranges. Full child context attribution remains with the fixed child."
+    },
+    {
+      "field": "Size error documentation",
+      "correction": "Root confirms oversized payloads fail checked_slice(size_of::<Self>()) as Payload before the exact length check. The subsequent Size branch therefore describes a short body accurately; no source amendment was necessary."
+    }
+  ],
+  "all_original_bytes_and_comments_preserved": true,
+  "EOL": "81 insertion blocks removed in memory reconstruct exact original raw bytes and mixed EOL/BOM state; normalized original equals each pinned HEAD blob. No source snapshot or format rewrite.",
+  "builds_or_Rust_tests_executed": false,
+  "validation_record": "docs/plans/source-comments/reviews/R035-post-validation.json",
+  "formal_acceptance": false,
+  "coordinator_commit": null,
+  "owner_release_claim": "Only completed R035 sources are frozen; unrelated native/index identity and ownership gates, including R033, remain pending."
+}

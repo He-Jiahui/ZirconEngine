@@ -2,13 +2,11 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 
 #[test]
 fn runtime_15_render_asset_residency_manager_delegates_recovery_and_ticket_issuance() {
-    let manager = read_runtime_src("graphics/scene/resources/render_asset_residency/manager.rs");
-    let recovery = read_runtime_src(
-        "graphics/scene/resources/render_asset_residency/manager/device_recovery.rs",
-    );
-    let ticket_issuance = read_runtime_src(
-        "graphics/scene/resources/render_asset_residency/manager/ticket_issuance.rs",
-    );
+    let manager = read_runtime_src("graphics/scene/resources/residency/manager.rs");
+    let recovery =
+        read_runtime_src("graphics/scene/resources/residency/manager/device_recovery.rs");
+    let ticket_issuance =
+        read_runtime_src("graphics/scene/resources/residency/manager/ticket_issuance.rs");
     let design = read_repo(
         "docs/plans/zircon_runtime/render/13/2026-08-27-render-asset-device-generation-recovery-design.md",
     );

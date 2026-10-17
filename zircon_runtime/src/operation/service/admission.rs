@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::time::Instant;
+use web_time::Instant;
 
 use zircon_runtime_interface::{
     ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,

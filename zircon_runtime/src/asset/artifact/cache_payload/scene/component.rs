@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::super::ArtifactCacheJsonValue;
-use crate::asset::{AssetImportError, AssetReference, SceneComponentAssetRecord};
+use crate::asset::{AssetCodecError, AssetReference, SceneComponentAssetRecord};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) struct ArtifactCacheSceneComponentAsset {
@@ -27,7 +27,7 @@ impl From<&SceneComponentAssetRecord> for ArtifactCacheSceneComponentAsset {
 }
 
 impl ArtifactCacheSceneComponentAsset {
-    pub(super) fn into_asset(self) -> Result<SceneComponentAssetRecord, AssetImportError> {
+    pub(super) fn into_asset(self) -> Result<SceneComponentAssetRecord, AssetCodecError> {
         let record = SceneComponentAssetRecord {
             type_id: self.type_id,
             schema_id: self.schema_id,
@@ -37,7 +37,7 @@ impl ArtifactCacheSceneComponentAsset {
             references: self.references,
         };
         record.validate_references().map_err(|error| {
-            AssetImportError::Parse(format!(
+            AssetCodecError::Parse(format!(
                 "reject cached scene component row with malformed asset references: {error}"
             ))
         })?;

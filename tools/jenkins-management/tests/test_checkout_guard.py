@@ -184,6 +184,22 @@ class CheckoutGuardTests(unittest.TestCase):
         item.rename(renamed)
         renamed.unlink()
 
+    def test_checksum_buffer_reuse_preserves_large_short_and_empty_file_hashes(self):
+        source = self.case_root / "checksum-buffer"
+        source.mkdir()
+        contents = [b"a" * (1024 * 1024 + 17), b"xy", b"",
+                    b"z" * (2 * 1024 * 1024 + 7)]
+        files = {}
+        for index, data in enumerate(contents):
+            item = source / ("%02d.bin" % index)
+            item.write_bytes(data)
+            files[item] = hashlib.sha256(data).hexdigest()
+        guard = self.make_guard(source, files).acquire()
+        self.assertTrue(guard.assert_stable()["stable"])
+        evidence = guard.finish()
+        for name in ("complete", "sourceNoWrites", "cancellationComplete", "waitersJoined"):
+            self.assertTrue(evidence[name], name)
+
     def test_existing_writer_and_writable_mapping_are_busy_and_partial_pins_release(self):
         source = self.case_root / "source"
         source.mkdir()

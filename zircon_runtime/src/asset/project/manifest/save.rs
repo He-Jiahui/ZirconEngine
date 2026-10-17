@@ -20,8 +20,14 @@ impl ProjectManifest {
         path: impl AsRef<Path>,
         fault: AtomicWriteFault,
     ) -> Result<(), ProjectManifestError> {
+        let bytes = self.to_current_format_bytes()?;
+        atomic_write_with_fault(path.as_ref(), &bytes, fault)
+            .map_err(|source| ProjectManifestError::Write { source })
+    }
+
+    /// The exact validated current-format bytes for a multi-file project transaction.
+    pub fn to_current_format_bytes(&self) -> Result<Vec<u8>, ProjectManifestError> {
         self.validate()?;
-        let path = path.as_ref();
         let document = serialize_current_project_manifest(self)
             .map_err(|source| ProjectManifestError::Encode { source })?;
         if document.len() > MAX_PROJECT_MANIFEST_BYTES {
@@ -32,8 +38,7 @@ impl ProjectManifest {
                 },
             ));
         }
-        atomic_write_with_fault(path, document.as_bytes(), fault)
-            .map_err(|source| ProjectManifestError::Write { source })
+        Ok(document.into_bytes())
     }
 }
 

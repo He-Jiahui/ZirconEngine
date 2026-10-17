@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::{sort_module_activation_order, CoreError};
 use crate::plugin::{
     PluginModuleKind, PluginModuleManifest, RuntimePlugin, RuntimePluginDescriptor,
@@ -57,16 +56,6 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_p
 ) -> Result<Vec<&RuntimePluginRegistrationReport>, CoreError> {
     order_runtime_plugin_registration_report_refs_with_module_filter(registrations, |module| {
         module.kind == PluginModuleKind::Runtime
-    })
-}
-
-pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_plugin_registration_report_refs_for_target(
-    registrations: Vec<&RuntimePluginRegistrationReport>,
-    target: RuntimeTargetMode,
-) -> Result<Vec<&RuntimePluginRegistrationReport>, CoreError> {
-    order_runtime_plugin_registration_report_refs_with_module_filter(registrations, move |module| {
-        module.kind == PluginModuleKind::Runtime
-            && (module.target_modes.is_empty() || module.target_modes.contains(&target))
     })
 }
 

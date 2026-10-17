@@ -12,6 +12,7 @@ mod mesh_sdf;
 mod metadata;
 #[path = "normals.rs"]
 mod normals;
+#[cfg(feature = "native-host")]
 #[path = "tangents.rs"]
 mod tangents;
 #[path = "usage.rs"]

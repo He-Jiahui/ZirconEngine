@@ -164,8 +164,7 @@ fn material_component_lab_feedback_events_use_consistent_ids_routes_and_kinds() 
 
 #[test]
 fn material_component_lab_feedback_events_are_registered_as_builtin_bindings() {
-    let binding_path =
-        editor_asset("src/ui/runtime/builtin/material_lab_template_bindings.rs");
+    let binding_path = editor_asset("src/ui/runtime/builtin/material_lab_template_bindings.rs");
     let binding_source = fs::read_to_string(&binding_path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", binding_path.display()));
 

@@ -9,11 +9,13 @@ use crate::scene::{
 #[derive(Debug, PartialEq, Eq)]
 struct RebuiltArchetypeMarker;
 
+zircon_runtime_interface::impl_retained_owner_v1!(RebuiltArchetypeMarker {});
 impl Component for RebuiltArchetypeMarker {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct RebuiltSparseArchetypeMarker;
 
+zircon_runtime_interface::impl_retained_owner_v1!(RebuiltSparseArchetypeMarker {});
 impl Component for RebuiltSparseArchetypeMarker {
     const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }
@@ -43,18 +45,26 @@ fn node_record_batch_publishes_once_after_all_records_are_visible() {
     let observed_for_callback = Arc::clone(&observed);
     let second_id = second.id;
     let name_component_id = world.component_id::<Name>();
-    world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |world, event| {
-        observed_for_callback
-            .lock()
-            .expect("test observer lock")
-            .push((
-                event.entity(),
-                world.contains_entity(second_id),
-                world
-                    .entity_archetype_component_ids(second_id)
-                    .contains(&name_component_id),
-            ));
-    });
+    world.observe_component_lifecycle::<Name>(
+        LifecycleEventKind::Add,
+        // SAFETY: Only the external observation log changes after optional World reads;
+        // retained World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                observed_for_callback
+                    .lock()
+                    .expect("test observer lock")
+                    .push((
+                        event.entity(),
+                        world.contains_entity(second_id),
+                        world
+                            .entity_archetype_component_ids(second_id)
+                            .contains(&name_component_id),
+                    ));
+            })
+        },
+    );
 
     let generation_before = world.world_generation();
     world
@@ -221,12 +231,78 @@ mod lifecycle_cancellation {
     macro_rules! observe_node_phases {
         ($world:expr, $callback:expr) => {{
             for kind in [LifecycleEventKind::Add, LifecycleEventKind::Insert] {
-                $world.observe_component_lifecycle::<Name>(kind, $callback.clone());
-                $world.observe_component_lifecycle::<Hierarchy>(kind, $callback.clone());
-                $world.observe_component_lifecycle::<LocalTransform>(kind, $callback.clone());
-                $world.observe_component_lifecycle::<ActiveSelf>(kind, $callback.clone());
-                $world.observe_component_lifecycle::<RenderLayerMask>(kind, $callback.clone());
-                $world.observe_component_lifecycle::<Mobility>(kind, $callback.clone());
+                $world.observe_component_lifecycle::<Name>(
+                    kind,
+                    // SAFETY: Every local macro caller only observes, registers counter-only
+                    // systems, or retires the owner with fixed diagnostic resources; no history
+                    // payload grows.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                            $callback.clone(),
+                        )
+                    },
+                );
+                $world.observe_component_lifecycle::<Hierarchy>(
+                    kind,
+                    // SAFETY: Every local macro caller only observes, registers counter-only
+                    // systems, or retires the owner with fixed diagnostic resources; no history
+                    // payload grows.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                            $callback.clone(),
+                        )
+                    },
+                );
+                $world.observe_component_lifecycle::<LocalTransform>(
+                    kind,
+                    // SAFETY: Every local macro caller only observes, registers counter-only
+                    // systems, or retires the owner with fixed diagnostic resources; no history
+                    // payload grows.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                            $callback.clone(),
+                        )
+                    },
+                );
+                $world.observe_component_lifecycle::<ActiveSelf>(
+                    kind,
+                    // SAFETY: Every local macro caller only observes, registers counter-only
+                    // systems, or retires the owner with fixed diagnostic resources; no history
+                    // payload grows.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                            $callback.clone(),
+                        )
+                    },
+                );
+                $world.observe_component_lifecycle::<RenderLayerMask>(
+                    kind,
+                    // SAFETY: Every local macro caller only observes, registers counter-only
+                    // systems, or retires the owner with fixed diagnostic resources; no history
+                    // payload grows.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                            $callback.clone(),
+                        )
+                    },
+                );
+                $world.observe_component_lifecycle::<Mobility>(
+                    kind,
+                    // SAFETY: Every local macro caller only observes, registers counter-only
+                    // systems, or retires the owner with fixed diagnostic resources; no history
+                    // payload grows.
+                    unsafe {
+                        use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                            $callback.clone(),
+                        )
+                    },
+                );
             }
         }};
     }
@@ -415,9 +491,17 @@ mod lifecycle_cancellation {
         let prefix_entity = world.spawn_node(NodeKind::Empty).unwrap();
         let callbacks = Arc::new(AtomicUsize::new(0));
         let observed = Arc::clone(&callbacks);
-        world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |_, _| {
-            observed.fetch_add(1, Ordering::SeqCst);
-        });
+        world.observe_component_lifecycle::<Name>(
+            LifecycleEventKind::Add,
+            // SAFETY: Only an external atomic counter changes; retained World payload and
+            // dynamic JSON are untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                    observed.fetch_add(1, Ordering::SeqCst);
+                })
+            },
+        );
         world.record_staged_lifecycle_events = true;
         let name = world.component_id::<Name>();
         world.trigger_component_lifecycle(LifecycleEventKind::Add, prefix_entity, name);

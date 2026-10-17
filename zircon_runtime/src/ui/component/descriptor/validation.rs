@@ -9,6 +9,7 @@ use zircon_runtime_interface::ui::component::{
 };
 
 /// 描述符准入失败的稳定分类；保留组件及字段身份供项目注册或编写工具定位声明来源。
+/// 组件、字段和槽位身份复制为拥有值；诊断可在本次声明借用结束后继续保存。
 #[derive(Clone, Debug, Error, PartialEq)]
 pub enum UiComponentDescriptorError {
     #[error("component descriptor id must not be empty")]
@@ -17,6 +18,7 @@ pub enum UiComponentDescriptorError {
     EmptyDisplayName { component_id: String },
     #[error("component descriptor `{component_id}` role must not be empty")]
     EmptyRole { component_id: String },
+    /// 属性/状态名为空或重复，或同一模式内选项 ID 重复；schema_kind 区分诊断类别。
     #[error("component descriptor `{component_id}` has duplicate {schema_kind} schema `{name}`")]
     DuplicateSchemaName {
         component_id: String,
@@ -34,10 +36,12 @@ pub enum UiComponentDescriptorError {
         expected: UiValueKind,
         actual: UiValueKind,
     },
+    /// 同时提供上下界时，边界含非有限数或上下界倒置。
     #[error("component descriptor `{component_id}` schema `{name}` has invalid range")]
     InvalidRange { component_id: String, name: String },
     #[error("component descriptor `{component_id}` schema `{name}` has invalid step")]
     InvalidStep { component_id: String, name: String },
+    /// 默认值的标量、向量或嵌套数组/映射中出现非有限浮点数。
     #[error("component descriptor `{component_id}` numeric value `{name}` must be finite")]
     NonFiniteNumber { component_id: String, name: String },
     #[error(
@@ -58,6 +62,16 @@ pub enum UiComponentDescriptorError {
 }
 
 /// 注册表写入前调用；检查声明自洽性。宿主/渲染端是否支持这些能力和实例输入是否合法仍需各自消费方确认。
+///
+/// # 参数
+/// - `descriptor`：本次借用的完整声明；检查不修改它，也不保存对它的引用。
+///
+/// # 返回与错误
+/// 成功返回 `Ok(())`；失败按身份、属性/状态名称、槽位、模式默认值、默认属性、
+/// 调色板和能力的检查次序返回首个错误，不汇总所有诊断。
+///
+/// # 参考
+/// [`crate::ui::component::UiComponentDescriptorRegistry::try_register`] 在写入目录前调用本检查。
 pub fn validate_component_descriptor(
     descriptor: &UiComponentDescriptor,
 ) -> Result<(), UiComponentDescriptorError> {
@@ -186,6 +200,7 @@ fn validate_default_props(
     Ok(())
 }
 
+// 嵌套值沿用所属模式或属性名，诊断定位声明字段而非数组下标或映射子路径。
 fn validate_finite_value(
     descriptor: &UiComponentDescriptor,
     name: &str,
@@ -227,6 +242,7 @@ fn validate_finite_number(
     }
 }
 
+// 模板这里只检查其非空条件和显式槽名；不实例化节点或验证整棵布局。
 fn validate_palette(descriptor: &UiComponentDescriptor) -> Result<(), UiComponentDescriptorError> {
     let Some(metadata) = &descriptor.palette else {
         return Ok(());

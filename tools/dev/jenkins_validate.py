@@ -347,6 +347,8 @@ def save_json(path, value, *, immutable=False):
 def protocol(root, driver, folder, domain, action, payload, timeout):
     path = folder / (domain + "-" + action + ".json")
     save_json(path, payload, immutable=action not in {"query", "get", "status"})
+    if domain == "patch" and action == "register":
+        admit_local_validation(root, driver, payload)
     command = [str(driver["python"]), "-B", str(driver["launcher"]), "--repository", str(root),
                domain, action, "--input-file", str(path)]
     try:
@@ -734,9 +736,11 @@ def execute(args, *, call=protocol, driver_loader=selected_driver):
         return {"status": "dry-check", "formalAcceptance": False, "identity": identity,
                 "buildRoot": payload["buildRoot"], "patchSha256": hashlib.sha256(payload["unifiedPatch"].encode()).hexdigest(),
                 "ownedPaths": sorted(payload["beforeHashes"]), "declaredDependencies": payload["declaredDependencies"],
-                "coverage": payload["coverage"], "authorization": "existing authorization checked by submission",
+                "coverage": payload["coverage"], "authorization": "automatic local validation context; exact input gates retained",
                 "protocol": ["patch/register", "patch/submit"]}
     prior = read_json(lifecycle, "request lifecycle") if lifecycle.is_file() else None
+    identity, folder, prior = registration_continuation(args, root, driver, folder, identity, prior)
+    lifecycle = folder / "lifecycle.json"
     if prior and any(prior["identity"][key] != identity[key] for key in identity if key != "stageImplementationDigest"):
         raise EntryError("request_identity_conflict", "Saved identity differs; query with its original attempt and selected driver")
     if prior:
@@ -744,7 +748,8 @@ def execute(args, *, call=protocol, driver_loader=selected_driver):
         if args.action == "submit" and args.patch:
             save_json(folder / "intent.json", intent_payload(args, root, identity), immutable=True)
     # An interrupted dispatch is always observed, never dispatched a second time.
-    if args.action == "query" or (prior and prior.get("phase") in {"registering", "registration_unknown", "dispatching", "submitted", "delivery_unknown"}):
+    if args.action == "query" or (prior and (prior.get("phase") in {"registering", "registration_unknown", "dispatching", "submitted", "delivery_unknown"}
+                      or prior.get("patchRequestRef"))):
         ref = args.patch_request_ref or (prior or {}).get("patchRequestRef")
         if not ref:
             value = call(root, driver, folder, "request", "query", {"identity": identity}, args.timeout)
@@ -839,6 +844,84 @@ def main(argv=None):
         code = 2
     print(canonical_json(value).decode("utf-8"))
     return code
+
+
+
+def admit_local_validation(root, driver, payload):
+    """Use the verified management capsule's local policy before sealed intake."""
+    import importlib.util
+    entry_path = root / "tools/jenkins-management/entry.py"
+    plain_path(entry_path)
+    spec = importlib.util.spec_from_file_location("local_validation_management_entry", entry_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    context = module.capability(root)
+    config = context["config"]
+    if (config["driverDigest"] != driver["digest"]
+            or config["runtimeOperationId"] != driver["runtimeOperationId"]):
+        raise EntryError("runtime_binding_changed", "Local validation selected a different management runtime")
+    helper = context["module"].source_helper()
+    from tools.jenkins.state import State
+    state = State(root / ".jenkins/state/coordination.sqlite3")
+    try:
+        return helper.admit_ordinary_context(state, root, payload,
+            principal=helper.local_request_principal(context["manager"]),
+            driver_digest=driver["digest"], runtime_operation_id=driver["runtimeOperationId"])
+    except Exception as error:
+        if hasattr(error, "code"):
+            raise EntryError(error.code, str(error), retryable=getattr(error, "retryable", False)) from error
+        raise
+
+
+def registration_continuation(args, root, driver, folder, identity, prior):
+    """Continue only a known rejected registration, preserving all predecessor bytes."""
+    pointer = folder / "registration-continuation.json"
+    if pointer.is_file():
+        link = read_json(pointer, "registration continuation")
+        old, current = link.get("predecessorIdentity", {}), link.get("identity", {})
+        if (any(identity.get(name) != current.get(name) for name in ("repositoryId", "sessionId", "requestId", "generation"))
+                or identity.get("attemptId") not in {old.get("attemptId"), current.get("attemptId")}
+                or not HEX64.fullmatch(str(link.get("lineageDigest", "")))
+                or digest({k: v for k, v in link.items() if k != "lineageDigest"}) != link["lineageDigest"]):
+            raise EntryError("request_identity_conflict", "Saved automatic continuation differs from the original request")
+        for filename, checksum in link["predecessorFiles"].items():
+            path = folder / filename
+            plain_path(path)
+            if hashlib.sha256(path.read_bytes()).hexdigest() != checksum:
+                raise EntryError("request_input_conflict", "Rejected predecessor evidence changed")
+        next_folder = folder / "registration-lineage" / link["lineageDigest"]
+        plain_path(next_folder)
+        lifecycle = next_folder / "lifecycle.json"
+        return current, next_folder, read_json(lifecycle, "continued request lifecycle") if lifecycle.is_file() else None
+    can_continue = (args.action == "submit" and prior and prior.get("phase") == "rejected"
+                    and not prior.get("patchRequestRef")
+                    and prior.get("reasonCode") in {"action_not_authorized", "session_not_authorized", "path_not_authorized"})
+    if not can_continue:
+        return identity, folder, prior
+    old = prior["identity"]
+    if any(old.get(name) != identity.get(name) for name in identity if name != "stageImplementationDigest"):
+        raise EntryError("request_identity_conflict", "Rejected registration belongs to another original request")
+    if not args.patch:
+        raise EntryError("patch_inputs_missing", "Continuing a rejected registration requires the same scoped patch inputs")
+    # Checking immutable predecessor input happens before publishing a continuation.
+    save_json(folder / "intent.json", intent_payload(args, root, old), immutable=True)
+    predecessor = {name: hashlib.sha256((folder / name).read_bytes()).hexdigest()
+                   for name in ("intent.json", "lifecycle.json")}
+    suffix = digest({"predecessorFiles": predecessor, "driverDigest": driver["digest"],
+                     "runtimeOperationId": driver["runtimeOperationId"]})[:16]
+    current = {**old, "stageImplementationDigest": driver["digest"],
+               "attemptId": old["attemptId"][:100] + "-local-" + suffix}
+    require_identifier(current["attemptId"], "attemptId")
+    link = {"schemaVersion": 1, "kind": "known-no-post-registration-continuation",
+            "predecessorIdentity": old, "identity": current, "predecessorFiles": predecessor,
+            "predecessorPhase": "rejected", "predecessorReasonCode": prior["reasonCode"],
+            "runtimeOperationId": driver["runtimeOperationId"], "requestIdPreserved": True,
+            "unknownDeliveryRetried": False}
+    link["lineageDigest"] = digest(link)
+    save_json(pointer, link, immutable=True)
+    next_folder = folder / "registration-lineage" / link["lineageDigest"]
+    plain_path(next_folder)
+    return current, next_folder, None
 
 
 if __name__ == "__main__":

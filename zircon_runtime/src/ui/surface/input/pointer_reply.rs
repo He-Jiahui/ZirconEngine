@@ -1,3 +1,10 @@
+//! 将一次指针派发的记录投影为统一输入回复，并合并随后产生的文本结果。
+//!
+//! 路由和状态变更由调用方及专属 owner 完成；本模块组装拥有型效果与回执记录。
+//! 借入的指针结果只在投影期间使用，文本结果按值消费；返回记录不借用两者。
+//!
+//! 主要入口为 [`pointer_reply`] 和 [`merge_pointer_text_result`]。
+
 use zircon_runtime_interface::ui::{
     dispatch::{
         UiDispatchDisposition, UiDispatchEffect, UiDispatchPhase, UiDispatchReply,
@@ -7,6 +14,18 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
 };
 
+/// 把已完成的一次指针派发投影为统一回复。
+///
+/// # 参数与返回值
+/// 借入派发记录，`pointer_id` 用于捕获及释放效果的身份；返回值拥有新建的效果列表。
+/// 返回记录选择阻断或处理节点，必要时以最后一个组件事件节点补足处理者。
+///
+/// # 约束与时机
+/// 本函数读取已产生的状态与事件，不再次调用处理器或应用效果。
+/// 阶段可采用兜底值，不能仅据此证明相应阶段实际执行过处理器。
+///
+/// # 参考
+/// [`UiDispatchReply`]、[`UiPointerDispatchResult`]。
 pub(super) fn pointer_reply(
     routed_result: &UiPointerDispatchResult,
     pointer_id: UiPointerId,
@@ -133,6 +152,14 @@ fn pointer_reply_effects(
     (effects, invocation_phases)
 }
 
+/// 估计固定效果加逐项或兜底重绘所需的条目容量。
+///
+/// # 参数与返回值
+/// 三个计数分别来自固定状态变化、调用记录数和兜底目标数。
+/// 逐项已产生重绘时不会再追加兜底重绘，因而后两项取较大值后与固定数做饱和相加。
+///
+/// # 约束
+/// 这里只估计条目数；不设置内存预算，也不保证后续容量申请成功。
 fn pointer_reply_effect_capacity_hint(
     fixed_effect_count: usize,
     invocation_count: usize,
@@ -147,6 +174,15 @@ struct PointerInvocationPhases {
     redraw_phase: Option<UiDispatchPhase>,
 }
 
+/// 顺序投影非空 dirty 请求，并记录最后匹配的处理与重绘阶段。
+///
+/// # 参数与返回值
+/// 借入派发记录，按节点与可选处理者匹配；把新效果追加到传入向量，不清空原内容。
+/// 返回值分别保留最后一次节点匹配和最后一次 dirty/damage 调用的阶段。
+///
+/// # 约束
+/// damage 请求在此只参与阶段选择；此处不会为它另建 damage 效果。
+/// 记录阶段不要求 dirty 非空；只有非空 dirty 才追加重绘效果。
 fn scan_pointer_invocations(
     routed_result: &UiPointerDispatchResult,
     handler: Option<UiNodeId>,
@@ -193,6 +229,18 @@ mod single_pass_tests;
 mod capacity_tests;
 
 // 指针路由先产生基础回复，文本编辑随后追加自己的 effects 与事件；保留已有 Blocked 状态，并把文本侧 effect 索引整体平移，保证 applied/rejected/host request 仍指向合并后的序列。
+/// 消费文本侧结果，将其效果与回执按原有顺序附加到指针结果。
+///
+/// # 参数与所有权
+/// `result` 原地接收累计结果；`text_result` 按值消费，内部向量迁入累计结果。
+///
+/// # 约束
+/// 仅落在文本效果序列内的本地索引会平移；越界索引保持原值，由调用方保证回执身份有效。
+/// 本函数不校验两份结果是否属于同一输入，也不重新应用效果或执行宿主请求。
+/// 已有阻断结论只保护回复头部的选择，后续记录仍会附加。
+///
+/// # 参考
+/// [`UiInputDispatchResult`]。
 pub(super) fn merge_pointer_text_result(
     result: &mut UiInputDispatchResult,
     text_result: UiInputDispatchResult,

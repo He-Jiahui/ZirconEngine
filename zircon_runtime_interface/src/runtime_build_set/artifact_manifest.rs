@@ -9,9 +9,11 @@ use super::{
     ZrRuntimeTrustedHostBuildSetMetadataV1, ZR_RUNTIME_TRUSTED_HOST_BUILD_SET_METADATA_SCHEMA_V1,
 };
 
+/// 当前动态库旁车清单的字段版本；版本变化要求装载端显式拒绝未知布局。
 pub const ZR_RUNTIME_ARTIFACT_MANIFEST_SCHEMA_V1: u32 = 1;
 
 /// Sidecar identity for an internal Runtime DLL. The App validates it before `Library::new`.
+/// 内部 Runtime DLL 的旁车身份；App 在 `Library::new` 前校验文件、Host、接口和 payload 一致性。
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ZrRuntimeArtifactManifestV1 {
@@ -35,6 +37,17 @@ pub struct ZrRuntimeArtifactManifestV1 {
 impl ZrRuntimeArtifactManifestV1 {
     /// 用固定字段集合编码构建身份；Host 列表的顺序也参与摘要。
     /// 构建端与装载端必须采用同一身份编码约定。
+    ///
+    /// # 身份范围
+    /// 摘要绑定产物、构建模式、能力、Host 列表、接口摘要、payload 摘要、特性和目标。
+    /// 清单自身的 ID、完整接口字段和 `trusted_host` 不直接参与这次编码；接口摘要另行校验。
+    /// 该内容身份不能代替可信源码构建身份。
+    ///
+    /// # 返回
+    /// 返回规范内容摘要或编码错误；不读取产物文件，也不更新清单。
+    ///
+    /// # 参考
+    /// [`Self::validate_against`] 核对清单自洽性和外部预期。
     pub fn derived_build_set_id(
         &self,
     ) -> Result<ZrRuntimeBuildSetId, ZrRuntimeIdentityEncodingError> {
@@ -57,6 +70,18 @@ impl ZrRuntimeArtifactManifestV1 {
 
     /// 在动态加载前先核对 sidecar 自洽性，再核对 Host 的接口、payload、目标与文件身份。
     /// 调用方必须独立取得 expected，且仍需对实际 DLL 和 Host 文件计算哈希。
+    ///
+    /// # 参数
+    /// - `expected`：Host 提供的接口、payload、目标、必需能力和可选 Host 文件身份预期。
+    ///   其中 BuildSet ID 的独立可信来源由调用方保证，不能用自洽性比较替代。
+    ///
+    /// # 返回与生命周期
+    /// 首个不匹配条件返回对应错误；成功表示这些字段检查通过，不读取或锁定实际文件。
+    /// 本方法只读借用清单和预期，不装载动态库；文件摘要与加载间的有效性仍由调用方管理。
+    ///
+    /// # 参考
+    /// [`Self::derived_build_set_id`] 计算内容身份；
+    /// [`Self::validate_trusted_host_build_set_id`] 单独核对可信源码构建身份。
     pub fn validate_against(
         &self,
         expected: &ZrRuntimeBuildSetExpectationV1,

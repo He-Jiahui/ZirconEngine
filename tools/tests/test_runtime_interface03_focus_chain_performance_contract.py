@@ -1,3 +1,6 @@
+# 焦点候选分区的源码形状守卫：只读取接口入口文件，不编译或执行 Rust。
+# 正常测试收集会调用各用例；文本标记存在与否不构成性能测量证据。
+
 import re
 import unittest
 from pathlib import Path
@@ -7,6 +10,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 FOCUS = REPO_ROOT / "zircon_runtime_interface" / "src" / "ui" / "focus.rs"
 
 
+# 从文本找到具名函数并按花括号深度截取函数体；不是 Rust 语法解析器。
+# 参数为源码和函数名，返回体内文本；缺声明、花括号或闭合体时抛断言错误。
 def function_body(source: str, function_name: str) -> str:
     match = re.search(rf"\bfn\s+{re.escape(function_name)}\s*\(", source)
     if match is None:
@@ -26,6 +31,7 @@ def function_body(source: str, function_name: str) -> str:
 
 # 读取实现源码约束接口焦点链：焦点链 partitions 默认与索引化候选，并仅显式 Tab 索引应有序。
 class FocusChainPerformanceContractTests(unittest.TestCase):
+    # 类初始化只读取入口源码，后续断言复用该字符串，不展开独立测试子模块。
     @classmethod
     def setUpClass(cls) -> None:
         cls.focus = FOCUS.read_text(encoding="utf-8")
@@ -49,6 +55,8 @@ class FocusChainPerformanceContractTests(unittest.TestCase):
         self.assertIn("default_candidates.push(node_id)", collect)
 
     def test_release_evidence_tracks_sorted_candidate_reduction(self) -> None:
+        # BUG: [CR-ZCA-R058-0001] 源码读取成功且执行本用例时，要求的性能标记位于独立测试子模块，
+        # 这里却只检索入口源码，首个包含断言为假；后续两个包含断言的操作数也不含对应标记。
         self.assertIn(
             "PERF_RESULT runtime_interface03_focus_chain_partition",
             self.focus,

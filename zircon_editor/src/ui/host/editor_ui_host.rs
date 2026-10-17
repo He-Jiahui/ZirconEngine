@@ -617,7 +617,10 @@ impl EditorUiHost {
         expected_source_revision: u64,
     ) -> Result<(), EditorError> {
         let toolkit_instance = ToolkitInstanceId::parse(instance_id.0.clone())?;
-        let Some(document) = self.document_toolkits.document_for_instance(&toolkit_instance) else {
+        let Some(document) = self
+            .document_toolkits
+            .document_for_instance(&toolkit_instance)
+        else {
             return Ok(());
         };
         let effect = DirtyExternalEffectId::ui_source_buffer();
@@ -634,7 +637,11 @@ impl EditorUiHost {
         // projection runs after this lock is released and retains every other owner.
         if entry.session.source_revision() == expected_source_revision
             && !entry.session.source_buffer().is_dirty()
-            && self.dirty_documents.clear_external_effect(document, &effect, expected_effect_revision)?
+            && self.dirty_documents.clear_external_effect(
+                document,
+                &effect,
+                expected_effect_revision,
+            )?
         {
             entry.reported_dirty_source_revision = None;
         }

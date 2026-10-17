@@ -13,6 +13,7 @@ use zircon_runtime_interface::ui::{
 use crate::ui::layout::taffy_bridge::UiTaffyChildContractScope;
 
 #[derive(Debug, Default)]
+/// 保存一次布局调用的访问、依赖与几何变化状态；增量调用把扩展后的必需节点集合交给此上下文。
 pub(super) struct UiLayoutPassEngineContext {
     selections: Vec<UiLayoutEngineSelection>,
     reuse_geometry: bool,

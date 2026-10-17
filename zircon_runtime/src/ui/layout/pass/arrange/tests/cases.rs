@@ -1,3 +1,6 @@
+//! 直接调用安排入口的缓存与几何夹具；期望尺寸由构造器预置，不包含响应样式和测量流程。
+//! 容量、后端工作计数和访问计数各自断言对应范围，不据此承诺完整产品帧耗时或零分配。
+
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
     layout::{
@@ -15,6 +18,7 @@ use crate::ui::layout::pass::{
     slot::UiLayoutSlotIndex,
 };
 
+// 比较两轮结束后的池容量；递归层数决定同时占用的缓冲数量，兄弟节点可复用已归还的层。
 #[test]
 fn ten_thousand_sibling_arrangement_reuses_depth_scoped_child_scratch() {
     const CHILD_COUNT: u64 = 10_000;
@@ -479,6 +483,7 @@ fn taffy_exact_contract_receipt_falls_back_when_child_order_revision_changes() {
     );
 }
 
+// 下列三项直接观察索引给出的顺序及共享代际，不通过节点矩形反推顺序，也不调用安排入口。
 #[test]
 fn equal_slot_order_reuses_the_cached_generation() {
     let root_id = UiNodeId::new(1);
@@ -554,6 +559,7 @@ fn scrollable_arrangement_preserves_tree_order_despite_slot_order_metadata() {
     );
 }
 
+// 逻辑行数和物理槽位数刻意不同：分别验证定位、内容范围、末端回填和有限物理访问。
 #[test]
 fn materialized_virtual_list_places_physical_slot_at_logical_offset() {
     let (mut tree, slot_index, children, frame) =
@@ -737,6 +743,7 @@ fn scrollable_arrangement_streams_positions_across_collapsed_children() {
     );
 }
 
+// 缺失的后续直接子项应先被发现，首个子项的坏后代不应先触发；断言仅约束该子项矩形未变。
 #[test]
 fn scrollable_arrangement_validates_all_direct_children_before_mutating_subtrees() {
     let root_id = UiNodeId::new(1);
@@ -947,6 +954,7 @@ fn incremental_free_parent_source_keeps_full_child_arrangement() {
     assert_eq!(probe_count, 101);
 }
 
+// 直接调用主轴适配器以覆盖 Native 临时存储，避免普通线性容器先被另一后端接管。
 #[test]
 fn linear_arrangement_solver_reuses_constraints_and_active_indices() {
     const CHILD_COUNT: u64 = 256;
@@ -998,6 +1006,7 @@ fn linear_arrangement_solver_reuses_constraints_and_active_indices() {
     assert!(scratch.linear.resolved.capacity() >= CHILD_COUNT as usize);
 }
 
+// 只检查错误返回后本层缓冲回到池中，不把该断言扩大成布局缓存或子树状态整体回滚。
 #[test]
 fn failed_arrangement_recycles_child_scratch() {
     let root_id = UiNodeId::new(1);
@@ -1020,6 +1029,7 @@ fn failed_arrangement_recycles_child_scratch() {
     assert_eq!(arrange_pool_capacities(&slot_index).len(), 1);
 }
 
+// 使用完整安排上下文并消费其报告；不在此调用测量，也不初始化增量所需集合。
 fn arrange(
     tree: &mut UiTree,
     root_id: UiNodeId,
@@ -1034,6 +1044,7 @@ fn arrange(
     Ok(engine_context.finish())
 }
 
+// 以固定行高和间隙同时构造滚动偏移与物理行映射，布局索引独立保存逻辑总数。
 fn materialized_virtual_list_fixture(
     logical_count: usize,
     first_logical_index: usize,

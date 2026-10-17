@@ -1,5 +1,5 @@
 use std::collections::{HashMap, VecDeque};
-use std::time::Instant;
+use web_time::Instant;
 
 use zircon_runtime_interface::{
     ProfileCaptureConfig, ProfileCounterSnapshot, ProfileFrameSnapshot,

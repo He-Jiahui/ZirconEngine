@@ -7,8 +7,11 @@ use crate::core::framework::scene::WorldHandle;
 use crate::core::runtime::TaskPool;
 use crate::core::{CoreHandle, CoreWeak};
 
-use crate::scene::{world::SceneProjectError, LevelSystem};
+#[cfg(feature = "native-host")]
+use crate::scene::world::SceneProjectError;
+use crate::scene::LevelSystem;
 
+#[cfg(feature = "native-host")]
 use super::scene_artifact_io::SceneArtifactIo;
 
 pub struct DefaultLevelManager {
@@ -16,6 +19,7 @@ pub struct DefaultLevelManager {
     pub(super) levels: Mutex<BTreeMap<WorldHandle, LevelSystem>>,
     pub(super) core: Option<CoreWeak>,
     scene_io_pool: Option<TaskPool>,
+    #[cfg(feature = "native-host")]
     scene_artifact_io: OnceLock<SceneArtifactIo>,
 }
 
@@ -26,6 +30,7 @@ impl Default for DefaultLevelManager {
             levels: Mutex::new(BTreeMap::new()),
             core: None,
             scene_io_pool: None,
+            #[cfg(feature = "native-host")]
             scene_artifact_io: OnceLock::new(),
         }
     }
@@ -33,12 +38,13 @@ impl Default for DefaultLevelManager {
 
 impl fmt::Debug for DefaultLevelManager {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("DefaultLevelManager")
+        let mut debug = formatter.debug_struct("DefaultLevelManager");
+        debug
             .field("has_core", &self.core.is_some())
-            .field("has_scene_io_owner", &self.scene_io_pool.is_some())
-            .field("scene_artifact_io", &self.scene_artifact_io.get())
-            .finish_non_exhaustive()
+            .field("has_scene_io_owner", &self.scene_io_pool.is_some());
+        #[cfg(feature = "native-host")]
+        debug.field("scene_artifact_io", &self.scene_artifact_io.get());
+        debug.finish_non_exhaustive()
     }
 }
 
@@ -49,6 +55,7 @@ impl DefaultLevelManager {
             levels: Mutex::new(BTreeMap::new()),
             core: Some(core.downgrade()),
             scene_io_pool: Some(core.task_graph().worker_pool().clone()),
+            #[cfg(feature = "native-host")]
             scene_artifact_io: OnceLock::new(),
         }
     }
@@ -60,10 +67,12 @@ impl DefaultLevelManager {
             levels: Mutex::new(BTreeMap::new()),
             core: None,
             scene_io_pool: Some(scene_io_pool),
+            #[cfg(feature = "native-host")]
             scene_artifact_io: OnceLock::new(),
         }
     }
 
+    #[cfg(feature = "native-host")]
     pub(super) fn scene_artifact_io(&self) -> Result<&SceneArtifactIo, SceneProjectError> {
         let pool = self
             .scene_io_pool

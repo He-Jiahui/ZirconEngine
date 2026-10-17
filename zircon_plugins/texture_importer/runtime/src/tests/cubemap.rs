@@ -4,8 +4,8 @@ use std::time::{Duration, Instant};
 
 use image::{Rgba, RgbaImage};
 use zircon_runtime::asset::{
-    AssetImportContext, AssetUri, ImportedAsset, TexturePayload, ZCUBE_SOURCE_CUBEMAP_FORMAT,
-    encode_source_cubemap_zcube_rgba16f_mips_owned,
+    encode_source_cubemap_zcube_rgba16f_mips_owned, AssetImportContext, AssetUri, ImportedAsset,
+    TexturePayload, ZCUBE_SOURCE_CUBEMAP_FORMAT,
 };
 use zircon_runtime::core::framework::render::RenderImageDimension;
 

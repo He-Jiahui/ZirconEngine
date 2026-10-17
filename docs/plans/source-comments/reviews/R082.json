@@ -1,0 +1,3568 @@
+{
+  "batch": "R082",
+  "owner": "reflection_luna",
+  "model": "gpt-6-luna",
+  "reasoning_effort": "max",
+  "task": "source-comments-20261014-01a13a81",
+  "status": "complete/child-review-pending-parent",
+  "assembly": {
+    "complete": true,
+    "remaining": [],
+    "meaning": "The source/object/member/block/context/test/check model is fully assembled. Its own subsequent writer terminal and independent final-byte readback are external evidence, not fabricated inside this self-referential record.",
+    "previous_draft_sha256": "902cf2e03f649b59a2e74d97b163088c66b96933c4f69b98513ee88c4f959410",
+    "finalization": "Freeze this exact byte sequence after a successful independent read-only checker; report actual final SHA and terminal receipts to parent."
+  },
+  "scope": {
+    "audited_paths": [
+      "zircon_runtime/src/text/layout_session/diagnostics.rs",
+      "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+      "zircon_runtime/src/text/layout_session/table_work.rs",
+      "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+    ],
+    "source_before_lines": 448,
+    "source_after_lines": 495,
+    "source_before_bytes": 16572,
+    "source_after_bytes": 20142,
+    "changed_sources": 2,
+    "unchanged_test_sources": 2,
+    "insertion_blocks": 16,
+    "inserted_LF_lines": 47,
+    "inserted_bytes": 3570,
+    "formal_coverage": "exact4 only; parent session and all cross-file callers remain readonly context"
+  },
+  "authority": {
+    "assignment_path": "docs/plans/source-comments/assignments.json",
+    "entry": "metadata_tasks.R082",
+    "assignment_sha256_observed": "39a82e83fe0dbc03fde7ab18273bccc888516d07507f9f2c7149c6596fd4cc51",
+    "grant_sha256": "68817093bfe3e376729a95093a15d7f88601b2450546ad449e9856ae1ebed2cd",
+    "before_sha256": {
+      "zircon_runtime/src/text/layout_session/diagnostics.rs": "8efc2e1ca10b5c0e9ebbdffe5b83721ddf41a9b485e676447694249c3a609e13",
+      "zircon_runtime/src/text/layout_session/tests/diagnostics.rs": "a304bdda7cba8118417a2795b6aad1709a66104cde57299235260b14e8a6fb08",
+      "zircon_runtime/src/text/layout_session/table_work.rs": "5879db397641d30b0bfa1d2fb5232cb65dc6b08fbf515d2baf9b8c168a85c59b",
+      "zircon_runtime/src/text/layout_session/tests/table_work.rs": "a26c7554fd88f6706cebd50c5e4f002fbe0e8363c388ac268445baddb480602f"
+    },
+    "frozen_after_sha256": {
+      "zircon_runtime/src/text/layout_session/diagnostics.rs": "1f2ac0104ca24876f4611457d5468e96aeb7c90fe37453d7ed2308bd65426450",
+      "zircon_runtime/src/text/layout_session/tests/diagnostics.rs": "a304bdda7cba8118417a2795b6aad1709a66104cde57299235260b14e8a6fb08",
+      "zircon_runtime/src/text/layout_session/table_work.rs": "5439f0269319c115fbb6021a3752e3d46f009e6a34d1851d66c8c11de3368648",
+      "zircon_runtime/src/text/layout_session/tests/table_work.rs": "a26c7554fd88f6706cebd50c5e4f002fbe0e8363c388ac268445baddb480602f"
+    },
+    "standard_sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3",
+    "source_pin_history": [
+      {
+        "stage": "K/L before task-comment reference correction",
+        "pins": {
+          "zircon_runtime/src/text/layout_session/diagnostics.rs": "f37e9fdf5194fc192735952632dd9b20ebbb289b464906d9e9c4b668ca5d7ca4",
+          "zircon_runtime/src/text/layout_session/tests/diagnostics.rs": "a304bdda7cba8118417a2795b6aad1709a66104cde57299235260b14e8a6fb08",
+          "zircon_runtime/src/text/layout_session/table_work.rs": "8d4e6809512fdafa9efeee5722ef12ddaeca9b90ee6f367068be06fcc1483d77",
+          "zircon_runtime/src/text/layout_session/tests/table_work.rs": "a26c7554fd88f6706cebd50c5e4f002fbe0e8363c388ac268445baddb480602f"
+        }
+      }
+    ],
+    "assignment_sha256_observed_at_range_assembly": "39a82e83fe0dbc03fde7ab18273bccc888516d07507f9f2c7149c6596fd4cc51"
+  },
+  "coverage_basis": "All exact4 original physical lines were read; declarations/fields and semantic regions below are manually reviewed. Lexical name/range validation is an index check, not an AST or caller resolver. Each context is limited to its recorded read spans.",
+  "files": [
+    {
+      "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+      "objects": [
+        {
+          "kind": "struct",
+          "name": "TextLayoutFallbackReport",
+          "before_lines": [
+            9,
+            20
+          ],
+          "audit": "9个u64值字段；Unicode标识与错误计数同存，不持有字体/会话。Copy快照不是产物发布凭证。",
+          "documentation_decision": "新增类型文档说明Unicode身份、分类、frame reset、独立持有和生命周期。",
+          "evidence": [
+            "session",
+            "text_facade",
+            "renderer_report"
+          ],
+          "after_lines": [
+            22,
+            33
+          ],
+          "before_range_sha256": "605f8cf21bd82bcc5045d8e9a90cec2f5818bb81eae98a3229ea5505d6c79e41",
+          "after_range_sha256": "605f8cf21bd82bcc5045d8e9a90cec2f5818bb81eae98a3229ea5505d6c79e41"
+        },
+        {
+          "kind": "impl",
+          "name": "Default for TextLayoutFallbackReport",
+          "before_lines": [
+            22,
+            37
+          ],
+          "audit": "手写Default调用compiled_unicode_data_snapshot_id并清零7个计数；返回独立值。",
+          "documentation_decision": "类型文档已覆盖创建合同；不复述各零赋值。",
+          "evidence": [
+            "unicode_tests"
+          ],
+          "after_lines": [
+            35,
+            50
+          ],
+          "before_range_sha256": "2d71317db11be1c7ca200bd4b9bd2aaf2abf39e102d93da9c6b5b8e25425038d",
+          "after_range_sha256": "2d71317db11be1c7ca200bd4b9bd2aaf2abf39e102d93da9c6b5b8e25425038d"
+        },
+        {
+          "kind": "fn",
+          "name": "default",
+          "before_lines": [
+            23,
+            36
+          ],
+          "audit": "无参数，返回含编译期Unicode generation/fingerprint和7零计数的Self。",
+          "documentation_decision": "由类型文档覆盖返回值与创建时机。",
+          "evidence": [
+            "unicode_tests"
+          ],
+          "after_lines": [
+            36,
+            49
+          ],
+          "before_range_sha256": "c01f4a39f647b1652d55ce82d38239ed0de42ab052e3b9c49487af1c10c31475",
+          "after_range_sha256": "c01f4a39f647b1652d55ce82d38239ed0de42ab052e3b9c49487af1c10c31475"
+        },
+        {
+          "kind": "impl",
+          "name": "TextLayoutFallbackReport",
+          "before_lines": [
+            39,
+            64
+          ],
+          "audit": "唯一record入口，借用错误并按饱和计数分类，不执行错误恢复。",
+          "documentation_decision": "record文档补观测/执行分工。",
+          "evidence": [
+            "session",
+            "renderer_report"
+          ],
+          "after_lines": [
+            52,
+            81
+          ],
+          "before_range_sha256": "ae116903aaa1f16ba14974bb4ead725ff449681ce9433450fdc73ed980fcb4d9",
+          "after_range_sha256": "0f2c21e4cd14a6aeca8898ff557e80ecf69d755b5c86f5b8f99b3059746810d6"
+        },
+        {
+          "kind": "fn",
+          "name": "record",
+          "before_lines": [
+            40,
+            63
+          ],
+          "audit": "error只在调用内借用；FontGenerationChanged加deferred并早退，其余加fallback及一个分类；返回()。",
+          "documentation_decision": "新增参数及非执行边界；分支名称已清楚，不逐臂加注释。",
+          "evidence": [
+            "fallback_tests"
+          ],
+          "after_lines": [
+            57,
+            80
+          ],
+          "before_range_sha256": "84eff1f65c09edab9b18faee156614c2d67881844cf7592b75ddef3f335a6d65",
+          "after_range_sha256": "84eff1f65c09edab9b18faee156614c2d67881844cf7592b75ddef3f335a6d65"
+        },
+        {
+          "kind": "struct",
+          "name": "TextLayoutGeometryRejectionReceipt",
+          "before_lines": [
+            66,
+            73
+          ],
+          "audit": "5个Copy字段保存调用方提供的几何拒绝事实；无校验/裁剪/预算操作。",
+          "documentation_decision": "新增值载体、有效性保障方与不保活布局产物说明。",
+          "evidence": [
+            "session"
+          ],
+          "after_lines": [
+            85,
+            92
+          ],
+          "before_range_sha256": "235c127b6795cbc0a7eed0746670d183fcfc576f818ab092b0a9e70f0e6f500d",
+          "after_range_sha256": "235c127b6795cbc0a7eed0746670d183fcfc576f818ab092b0a9e70f0e6f500d"
+        },
+        {
+          "kind": "struct",
+          "name": "TextLayoutGeometryReport",
+          "before_lines": [
+            75,
+            79
+          ],
+          "audit": "饱和累计rejection_count，last_rejection只保存最近一项，与fallbacks独立。",
+          "documentation_decision": "新增最后回执覆盖及计数独立说明。",
+          "evidence": [
+            "session"
+          ],
+          "after_lines": [
+            96,
+            100
+          ],
+          "before_range_sha256": "cfd1edd3abe70bc5b58d9796b48255c4577cf31b667509351025d281511c90b5",
+          "after_range_sha256": "cfd1edd3abe70bc5b58d9796b48255c4577cf31b667509351025d281511c90b5"
+        },
+        {
+          "kind": "impl",
+          "name": "TextLayoutGeometryReport",
+          "before_lines": [
+            81,
+            98
+          ],
+          "audit": "私有record_rejection供聚合转发，原地更新报告。",
+          "documentation_decision": "方法文档说明复制与校验边界。",
+          "evidence": [
+            "session"
+          ],
+          "after_lines": [
+            102,
+            123
+          ],
+          "before_range_sha256": "06da730bb1fd54d9bad867ac6ab3a1d76b111469e04aa6633e1a555ed5598bd1",
+          "after_range_sha256": "7b35c70a4798b774c9661a0c1088156fa33fdf4821823080738597a2527122a4"
+        },
+        {
+          "kind": "fn",
+          "name": "record_rejection",
+          "before_lines": [
+            82,
+            97
+          ],
+          "audit": "owner/source_range/violation/work_units按值传入；加计数并替换last_rejection；不检查区间、f32或work_units，返回()。",
+          "documentation_decision": "新增参数、替换与不校验约束。",
+          "evidence": [
+            "session"
+          ],
+          "after_lines": [
+            107,
+            122
+          ],
+          "before_range_sha256": "c42226ca01b5a37dc67c5d6d312963792cc3d46da73226f64f64d44b80418230",
+          "after_range_sha256": "c42226ca01b5a37dc67c5d6d312963792cc3d46da73226f64f64d44b80418230"
+        },
+        {
+          "kind": "struct",
+          "name": "TextLayoutSessionDiagnostics",
+          "before_lines": [
+            100,
+            105
+          ],
+          "audit": "按值聚合layout_fallbacks/shaping/geometry，三个报告各自状态独立。",
+          "documentation_decision": "新增frame reset与clear只清缓存说明。",
+          "evidence": [
+            "session",
+            "measure_cache",
+            "profile_session"
+          ],
+          "after_lines": [
+            127,
+            132
+          ],
+          "before_range_sha256": "950e81a9d7591b797f9346768b898f3d3c6553b4370be48c7fad4ee1219fbb39",
+          "after_range_sha256": "950e81a9d7591b797f9346768b898f3d3c6553b4370be48c7fad4ee1219fbb39"
+        },
+        {
+          "kind": "impl",
+          "name": "TextLayoutSessionDiagnostics",
+          "before_lines": [
+            107,
+            143
+          ],
+          "audit": "6个薄转发方法，错误和Ready记录不会在本层做缓存准入。",
+          "documentation_decision": "保留既有generation说明；只补Ready时序。",
+          "evidence": [
+            "session"
+          ],
+          "after_lines": [
+            134,
+            171
+          ],
+          "before_range_sha256": "6a01ed9b306b7ff2d9317ebace8b4dbe264d39818ad95281d7719cd6219a5917",
+          "after_range_sha256": "5321114f8fb14d1e2414b9b06681ba51e4e2387a08e0020f2de37e3cbe3f806b"
+        },
+        {
+          "kind": "fn",
+          "name": "record_layout_error",
+          "before_lines": [
+            108,
+            111
+          ],
+          "audit": "error借用转交fallbacks.record；本层不做恢复，返回()。",
+          "documentation_decision": "既有中文注释和record文档充分，保留不加。",
+          "evidence": [
+            "session"
+          ],
+          "after_lines": [
+            135,
+            138
+          ],
+          "before_range_sha256": "f0b52d437debd186664ec1daf100d8ecff65db554c01787cc6765a71963bcd9a",
+          "after_range_sha256": "f0b52d437debd186664ec1daf100d8ecff65db554c01787cc6765a71963bcd9a"
+        },
+        {
+          "kind": "fn",
+          "name": "record_geometry_rejection",
+          "before_lines": [
+            113,
+            122
+          ],
+          "audit": "4个观测参数按值转交geometry；不同时增加layout_fallbacks，返回()。",
+          "documentation_decision": "GeometryReport与record_rejection已说明共同合同，不重复。",
+          "evidence": [
+            "session"
+          ],
+          "after_lines": [
+            140,
+            149
+          ],
+          "before_range_sha256": "ce427c2049e2f9ace46808713d0077df3d045b7a60dec4fe381aae486653be13",
+          "after_range_sha256": "ce427c2049e2f9ace46808713d0077df3d045b7a60dec4fe381aae486653be13"
+        },
+        {
+          "kind": "fn",
+          "name": "record_ready_run",
+          "before_lines": [
+            124,
+            130
+          ],
+          "audit": "run只借用供shaping记录，request按值转交；父会话随后仍可拒绝缓存准入；返回()。",
+          "documentation_decision": "新增非显然顺序注释。",
+          "evidence": [
+            "session",
+            "shaping_core"
+          ],
+          "after_lines": [
+            151,
+            158
+          ],
+          "before_range_sha256": "ab235767045560ca06ee1ecb3d57b1e623cf64a512636f6240789a529f535c65",
+          "after_range_sha256": "a457bc5ab26b5d7954ae640b4bbbc2e93c04b15200b17d07c3bdb754cc94c116"
+        },
+        {
+          "kind": "fn",
+          "name": "record_terminal_failure",
+          "before_lines": [
+            132,
+            134
+          ],
+          "audit": "failure只在调用内借用并转交shaping；本层不制造receipt；返回()。",
+          "documentation_decision": "薄转发清楚，callee证据限于实际receipt规则。",
+          "evidence": [
+            "session",
+            "shaping_core"
+          ],
+          "after_lines": [
+            160,
+            162
+          ],
+          "before_range_sha256": "07c0b6a746ca379d92c29308ccedeb49112ff3726e1685bdb9fbc852338ff385",
+          "after_range_sha256": "07c0b6a746ca379d92c29308ccedeb49112ff3726e1685bdb9fbc852338ff385"
+        },
+        {
+          "kind": "fn",
+          "name": "record_deferred_failure",
+          "before_lines": [
+            136,
+            138
+          ],
+          "audit": "failure借用转交shaping，不插缓存或执行延期调度；返回()。",
+          "documentation_decision": "薄转发清楚，无新增。",
+          "evidence": [
+            "session",
+            "shaping_core"
+          ],
+          "after_lines": [
+            164,
+            166
+          ],
+          "before_range_sha256": "d7bea43c9608637ae85fe7c13de623dbc114796f6cc32be6f9f57cc4254fe564",
+          "after_range_sha256": "d7bea43c9608637ae85fe7c13de623dbc114796f6cc32be6f9f57cc4254fe564"
+        },
+        {
+          "kind": "fn",
+          "name": "merge_shaping",
+          "before_lines": [
+            140,
+            142
+          ],
+          "audit": "按值合并报告；调用方负责避免对同批结果重复计入，无去重身份键；返回()。",
+          "documentation_decision": "本层仅转发，记录callee边界，不增重复注释。",
+          "evidence": [
+            "session",
+            "shaping_core"
+          ],
+          "after_lines": [
+            168,
+            170
+          ],
+          "before_range_sha256": "2dd965fb30e610fe69d4f8ebe6d47872ceb27ac01c28e52ecee03644c16c4439",
+          "after_range_sha256": "2dd965fb30e610fe69d4f8ebe6d47872ceb27ac01c28e52ecee03644c16c4439"
+        },
+        {
+          "kind": "test_mount",
+          "name": "tests",
+          "before_lines": [
+            145,
+            147
+          ],
+          "audit": "cfg(test)+path明确挂载tests/diagnostics.rs，6个测试随叶子正式覆盖。",
+          "documentation_decision": "挂载自明，不新增。",
+          "evidence": [
+            "diagnostics_tests"
+          ],
+          "after_lines": [
+            173,
+            175
+          ],
+          "before_range_sha256": "a833cc09aca2ec8c8141164b62b633a3de055f6e1de8abd239f9d57a20072cbf",
+          "after_range_sha256": "a833cc09aca2ec8c8141164b62b633a3de055f6e1de8abd239f9d57a20072cbf"
+        }
+      ],
+      "members": [
+        {
+          "name": "unicode_data_generation",
+          "type": "u64",
+          "before_line": 11,
+          "after_line": 24,
+          "audit": "Default取得编译期Unicode数据代次，非字体代次。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "unicode_data_fingerprint",
+          "type": "u64",
+          "before_line": 12,
+          "after_line": 25,
+          "audit": "同一compiled snapshot的指纹。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "fallback_count",
+          "type": "u64",
+          "before_line": 13,
+          "after_line": 26,
+          "audit": "非FontGenerationChanged错误总次数，饱和。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "generation_deferred_count",
+          "type": "u64",
+          "before_line": 14,
+          "after_line": 27,
+          "audit": "FontGenerationChanged次数，不增加fallback。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "invalid_font_size_count",
+          "type": "u64",
+          "before_line": 15,
+          "after_line": 28,
+          "audit": "InvalidFontSize分支次数。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "invalid_language_count",
+          "type": "u64",
+          "before_line": 16,
+          "after_line": 29,
+          "audit": "InvalidLanguage分支次数。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "bidi_invariant_count",
+          "type": "u64",
+          "before_line": 17,
+          "after_line": 30,
+          "audit": "BidiInvariant分支次数。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "geometry_too_large_count",
+          "type": "u64",
+          "before_line": 18,
+          "after_line": 31,
+          "audit": "GeometryTooLarge分支次数。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "other_error_count",
+          "type": "u64",
+          "before_line": 19,
+          "after_line": 32,
+          "audit": "未单列错误分支次数。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "owner",
+          "type": "TextLayoutGeometryOwner",
+          "before_line": 68,
+          "after_line": 87,
+          "audit": "复制调用方提供的几何归属分类值。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "source_range",
+          "type": "Option<(u32, u32)>",
+          "before_line": 69,
+          "after_line": 88,
+          "audit": "可选u32区间原样复制，不验证顺序或字符边界。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "attempted_extent",
+          "type": "f32",
+          "before_line": 70,
+          "after_line": 89,
+          "audit": "复制violation数值，不做finite/范围检查。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "admitted_extent",
+          "type": "f32",
+          "before_line": 71,
+          "after_line": 90,
+          "audit": "复制violation数值，不执行裁剪。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "work_units",
+          "type": "usize",
+          "before_line": 72,
+          "after_line": 91,
+          "audit": "复制观测工作量，不从预算扣减。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "rejection_count",
+          "type": "u64",
+          "before_line": 77,
+          "after_line": 98,
+          "audit": "饱和累计拒绝次数。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "last_rejection",
+          "type": "Option<TextLayoutGeometryRejectionReceipt>",
+          "before_line": 78,
+          "after_line": 99,
+          "audit": "每次覆盖，仅保留最新回执。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "layout_fallbacks",
+          "type": "TextLayoutFallbackReport",
+          "before_line": 102,
+          "after_line": 129,
+          "audit": "布局错误分类，和geometry独立。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "shaping",
+          "type": "TextShapingDiagnosticsReport",
+          "before_line": 103,
+          "after_line": 130,
+          "audit": "整形诊断，具体receipt规则交给callee。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "geometry",
+          "type": "TextLayoutGeometryReport",
+          "before_line": 104,
+          "after_line": 131,
+          "audit": "几何拒绝计数及最后回执。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        }
+      ],
+      "blocks": [
+        {
+          "name": "imports",
+          "before_lines": [
+            1,
+            8
+          ],
+          "entry": "叶模块被父会话挂载",
+          "state_change": "只导入错误/整形/几何值类型",
+          "followup": "为报告与转发提供类型，不执行注册",
+          "after_lines": [
+            1,
+            11
+          ],
+          "before_range_sha256": "726e6e5ef6d574af94de3af5f1b4e15680f87ee211c734c558e5381f2b0dd838",
+          "after_range_sha256": "3612939b6bb6fc438e171e25b6579c5e4b5332e38a6c86857c41405804856866"
+        },
+        {
+          "name": "fallback report declaration",
+          "before_lines": [
+            9,
+            20
+          ],
+          "entry": "创建或复制报告",
+          "state_change": "9个u64字段，无资源引用",
+          "followup": "用于会话诊断及renderer聚合",
+          "after_lines": [
+            12,
+            33
+          ],
+          "before_range_sha256": "605f8cf21bd82bcc5045d8e9a90cec2f5818bb81eae98a3229ea5505d6c79e41",
+          "after_range_sha256": "a48733141e7f76a414f6bccfcec25a85da3770efaa77fa17cfa7910637b620ba"
+        },
+        {
+          "name": "Default snapshot and zero counters",
+          "before_lines": [
+            21,
+            38
+          ],
+          "entry": "Default::default",
+          "state_change": "捕获compiled Unicode ID并清零7计数",
+          "followup": "各报告独立持有",
+          "after_lines": [
+            34,
+            51
+          ],
+          "before_range_sha256": "9705fcd5122fe84a5db5b8785c8e37a7d176f4898a5c7f9bb7047e560562f94e",
+          "after_range_sha256": "9705fcd5122fe84a5db5b8785c8e37a7d176f4898a5c7f9bb7047e560562f94e"
+        },
+        {
+          "name": "generation defer early return",
+          "before_lines": [
+            39,
+            44
+          ],
+          "entry": "record(error)",
+          "state_change": "FontGenerationChanged饱和加deferred",
+          "followup": "return避开fallback总数和match",
+          "after_lines": [
+            52,
+            61
+          ],
+          "before_range_sha256": "ce8ae3c3a7059b706e7f2a8c5e1b889891d0134f0f11e0fdde20b5b96629652c",
+          "after_range_sha256": "5eadeb863e5b5a6e0169d9315a64dfd49566bd2140cca4a849a385d4dc1a57fd"
+        },
+        {
+          "name": "fallback total and category match",
+          "before_lines": [
+            45,
+            64
+          ],
+          "entry": "其余错误",
+          "state_change": "先加总数，按InvalidFontSize/InvalidLanguage/BidiInvariant/GeometryTooLarge/other加一类",
+          "followup": "不执行回退或更改错误",
+          "after_lines": [
+            62,
+            81
+          ],
+          "before_range_sha256": "baee836add134733bb8fc89556cd1f4fc62d21a466121b428b81bb04e991f4fa",
+          "after_range_sha256": "baee836add134733bb8fc89556cd1f4fc62d21a466121b428b81bb04e991f4fa"
+        },
+        {
+          "name": "geometry receipt declaration",
+          "before_lines": [
+            65,
+            74
+          ],
+          "entry": "形成拒绝观测",
+          "state_change": "5个Copy数据字段",
+          "followup": "不保活几何产物或校验数值",
+          "after_lines": [
+            82,
+            93
+          ],
+          "before_range_sha256": "bfbe0798f531e215177da9af1cd37b59c51f731826fa9d0e584a6293a4d06bc3",
+          "after_range_sha256": "b7d6c5e4cd1e03d03973fa85d009091f0967b8a08dd4c17e2f769d498deabbe8"
+        },
+        {
+          "name": "geometry report declaration",
+          "before_lines": [
+            75,
+            80
+          ],
+          "entry": "默认或复制报告",
+          "state_change": "count和可选last receipt",
+          "followup": "不保存完整历史",
+          "after_lines": [
+            94,
+            101
+          ],
+          "before_range_sha256": "5fb6006941ac585837740343b94b3a965bdb46bf6fa5ae4b1afc39d234b42cb5",
+          "after_range_sha256": "f8ae53d19ea9ccc4356e0a76020f91af8e18b633f3f0ef6ceca72f6e89e47876"
+        },
+        {
+          "name": "record rejection replacement",
+          "before_lines": [
+            81,
+            98
+          ],
+          "entry": "聚合转发几何拒绝",
+          "state_change": "饱和加count并替换last receipt",
+          "followup": "不改fallback计数",
+          "after_lines": [
+            102,
+            123
+          ],
+          "before_range_sha256": "06da730bb1fd54d9bad867ac6ab3a1d76b111469e04aa6633e1a555ed5598bd1",
+          "after_range_sha256": "7b35c70a4798b774c9661a0c1088156fa33fdf4821823080738597a2527122a4"
+        },
+        {
+          "name": "session aggregate declaration",
+          "before_lines": [
+            99,
+            106
+          ],
+          "entry": "父会话持有",
+          "state_change": "三个按值子报告",
+          "followup": "begin_frame重置；读取可复制",
+          "after_lines": [
+            124,
+            133
+          ],
+          "before_range_sha256": "cb2c523dd31f67040fd8b8fcccf61a64d5294d6f5c985d84a38f4fff4e205c8e",
+          "after_range_sha256": "e52903067d44cfd21995b76644df3a18aaab89a1710762a05dd774c722e8d171"
+        },
+        {
+          "name": "layout error forwarding",
+          "before_lines": [
+            107,
+            112
+          ],
+          "entry": "父会话record_layout_error",
+          "state_change": "仅fallbacks.record",
+          "followup": "保留既有generation注释",
+          "after_lines": [
+            134,
+            139
+          ],
+          "before_range_sha256": "6a0a6bd1acac432a36ee9587c6bb972ffb9583b21cd177c870e86c0d5c7939e7",
+          "after_range_sha256": "6a0a6bd1acac432a36ee9587c6bb972ffb9583b21cd177c870e86c0d5c7939e7"
+        },
+        {
+          "name": "geometry forwarding",
+          "before_lines": [
+            113,
+            123
+          ],
+          "entry": "父会话reject_geometry",
+          "state_change": "只转发4个按值观测",
+          "followup": "返回几何错误由父会话负责",
+          "after_lines": [
+            140,
+            150
+          ],
+          "before_range_sha256": "2b4dd01ced6d1b1815c433ee61713070b4904ab0b8a004f416fe2f5e830c2ce9",
+          "after_range_sha256": "2b4dd01ced6d1b1815c433ee61713070b4904ab0b8a004f416fe2f5e830c2ce9"
+        },
+        {
+          "name": "ready route forwarding",
+          "before_lines": [
+            124,
+            131
+          ],
+          "entry": "consume Ready结果",
+          "state_change": "先记录shaping观测",
+          "followup": "父会话随后核代次，仍可Deferred",
+          "after_lines": [
+            151,
+            159
+          ],
+          "before_range_sha256": "640c333b182d14f79e1bfe06443c15a1e97e1093ccd28fc05ee7acc058357616",
+          "after_range_sha256": "d88ff5e06fec08352fc230241b95fcb578577465c17f5ede7b49a8c873896150"
+        },
+        {
+          "name": "terminal failure forwarding",
+          "before_lines": [
+            132,
+            135
+          ],
+          "entry": "consume Failed结果",
+          "state_change": "仅转发failure借用",
+          "followup": "不在此建立receipt",
+          "after_lines": [
+            160,
+            163
+          ],
+          "before_range_sha256": "07181b18e3600cff48400211b051659eedc895a5327bb32ead82759b8520f21f",
+          "after_range_sha256": "07181b18e3600cff48400211b051659eedc895a5327bb32ead82759b8520f21f"
+        },
+        {
+          "name": "deferred failure forwarding",
+          "before_lines": [
+            136,
+            139
+          ],
+          "entry": "consume Deferred或代次失配",
+          "state_change": "仅转发failure借用",
+          "followup": "不触发调度或缓存插入",
+          "after_lines": [
+            164,
+            167
+          ],
+          "before_range_sha256": "240f8db49be2b63b0a6ce6edf53d8197580a5ca236f37fbb8e0eddc273d29a17",
+          "after_range_sha256": "240f8db49be2b63b0a6ce6edf53d8197580a5ca236f37fbb8e0eddc273d29a17"
+        },
+        {
+          "name": "shaping merge and impl close",
+          "before_lines": [
+            140,
+            144
+          ],
+          "entry": "父会话合并预热报告",
+          "state_change": "callee累计报告，不去重",
+          "followup": "调用方控制是否重复合并",
+          "after_lines": [
+            168,
+            172
+          ],
+          "before_range_sha256": "263614429f2e70a906ea0660105966e35ad8e702923ae5f7f336b610e3f101e9",
+          "after_range_sha256": "263614429f2e70a906ea0660105966e35ad8e702923ae5f7f336b610e3f101e9"
+        },
+        {
+          "name": "diagnostics test mount",
+          "before_lines": [
+            145,
+            147
+          ],
+          "entry": "cfg(test)构建",
+          "state_change": "path挂载6测试",
+          "followup": "本批只读断言，不运行",
+          "after_lines": [
+            173,
+            175
+          ],
+          "before_range_sha256": "a833cc09aca2ec8c8141164b62b633a3de055f6e1de8abd239f9d57a20072cbf",
+          "after_range_sha256": "a833cc09aca2ec8c8141164b62b633a3de055f6e1de8abd239f9d57a20072cbf"
+        }
+      ],
+      "before_sha256": "8efc2e1ca10b5c0e9ebbdffe5b83721ddf41a9b485e676447694249c3a609e13",
+      "after_sha256": "1f2ac0104ca24876f4611457d5468e96aeb7c90fe37453d7ed2308bd65426450",
+      "before_bytes": 5100,
+      "after_bytes": 7101,
+      "before_physical_lines": 147,
+      "after_physical_lines": 175,
+      "EOL": {
+        "before_CRLF": 0,
+        "before_LF_only": 147,
+        "after_CRLF": 0,
+        "after_LF_only": 175,
+        "before_BOM": false,
+        "after_BOM": false
+      },
+      "insertions": [
+        {
+          "before_offset": 0,
+          "before_line": 1,
+          "exact_text": "//! 收集文字会话的布局、整形与几何诊断；此模块只归类观测并复制回执数据。\n//! 父模块在 `begin_frame` 重置会话报告；错误处置、代次准入与缓存提交由调用方决定。\n\n",
+          "byte_length": 224,
+          "sha256": "f0d33d1abd1fe730cee70e8ce9cdf18ddc906f64cc96bc4b08780967ad443695",
+          "purpose": "模块职责与父会话的状态所有权分工",
+          "after_offset": 0,
+          "after_line": 1,
+          "LF_lines": 3
+        },
+        {
+          "before_offset": 320,
+          "before_line": 9,
+          "exact_text": "/// 布局错误的饱和分类计数与编译期 Unicode 数据标识快照。\n///\n/// # 使用时机与约束\n/// `Default` 捕获 Unicode 数据的代次和指纹，不代表字体数据库代次。\n/// 字体代次变化只记延期；其余已记录错误计入回退总数和一个分类，计数不表示已成功呈现。\n/// 会话持有时由父模块 `SharedTextLayoutSession::begin_frame` 重置；独立报告由持有方管理。\n/// 复制报告只复制标量，不能延长会话、字体集合或布局产物的生命周期。\n///\n/// # 参考\n/// 父模块 `SharedTextLayoutSession::diagnostics_report` 和 `record_layout_error` 是会话侧入口。\n",
+          "byte_length": 670,
+          "sha256": "743ed7eb888a05e5360b8cf433ba5ba67fa3ae808caae2a475fc414a7dc1834c",
+          "purpose": "公开报告的标识、分类、观测与生命周期边界",
+          "after_offset": 544,
+          "after_line": 12,
+          "LF_lines": 10
+        },
+        {
+          "before_offset": 1328,
+          "before_line": 40,
+          "exact_text": "    /// 累计一次错误观测；不执行回退，也不改变错误值。\n    ///\n    /// # 参数\n    /// `error` 仅在本次调用期间借用；未单列的错误归入 `other_error_count`。\n",
+          "byte_length": 200,
+          "sha256": "8eb75fd2fdd576e1b8ee6c08b4f3d9b6b4a103c327f2881a234151ee8de05bb5",
+          "purpose": "错误借用和计数操作不执行回退",
+          "after_offset": 2222,
+          "after_line": 53,
+          "LF_lines": 4
+        },
+        {
+          "before_offset": 2440,
+          "before_line": 66,
+          "exact_text": "/// 几何拒绝时复制的最近一次回执数据，不持有被拒绝的布局结果。\n/// 区间、范围数值和工作量来自调用方；本类型不检查其有效性，也不执行裁剪或预算准入。\n",
+          "byte_length": 217,
+          "sha256": "44e872f9defa2fcedf393f86f9ca5ad7b3a41e56ebe4fd1184052bb791fea447",
+          "purpose": "回执数据载体与校验执行者的边界",
+          "after_offset": 3534,
+          "after_line": 83,
+          "LF_lines": 2
+        },
+        {
+          "before_offset": 2744,
+          "before_line": 75,
+          "exact_text": "/// 累计拒绝次数并保留最后一份回执；不会保存完整拒绝历史。\n/// 它与布局回退计数独立，记录几何拒绝不会自动增加 `fallback_count`。\n",
+          "byte_length": 180,
+          "sha256": "e894fbb9eb3b86ca6721545e807a34181cbe0a1b5bec4df74487293bb5c4bdfa",
+          "purpose": "最后回执覆盖与几何/回退计数独立性",
+          "after_offset": 4055,
+          "after_line": 94,
+          "LF_lines": 2
+        },
+        {
+          "before_offset": 2986,
+          "before_line": 82,
+          "exact_text": "    /// 复制调用方提供的几何观测，并以本次回执替换上一份。\n    ///\n    /// # 参数与约束\n    /// `owner`、`source_range` 标识观测位置；`violation` 与 `work_units` 已由调用方产生，此处不再校验。\n",
+          "byte_length": 247,
+          "sha256": "eee05acb2c2d80ffb51c2d5d31cd08573cba7984add51da963ede68257ef22a6",
+          "purpose": "传入数据含义、复制与不校验约束",
+          "after_offset": 4477,
+          "after_line": 103,
+          "LF_lines": 4
+        },
+        {
+          "before_offset": 3542,
+          "before_line": 100,
+          "exact_text": "/// 按值聚合布局、整形和几何诊断，供父会话读取快照。\n/// `begin_frame` 重置此聚合；`clear` 只清缓存，不重置诊断。\n",
+          "byte_length": 155,
+          "sha256": "0153c95066365d295739673de1875bab90a60c3f225c2f7808e35d4d3714abc0",
+          "purpose": "聚合快照与frame/clear生命周期",
+          "after_offset": 5280,
+          "after_line": 125,
+          "LF_lines": 2
+        },
+        {
+          "before_offset": 4561,
+          "before_line": 129,
+          "exact_text": "        // 此处只转交观测；父会话随后仍会核对字体代次，可能把结果改为延期。\n",
+          "byte_length": 108,
+          "sha256": "b8993c40f3fb0e70a5cc87644956d59322bc6b5364f7d0e270cb524469c5ca07",
+          "purpose": "Ready观测先于父会话缓存准入",
+          "after_offset": 6454,
+          "after_line": 156,
+          "LF_lines": 1
+        }
+      ],
+      "inverse_proof": {
+        "reconstructed_sha256": "8efc2e1ca10b5c0e9ebbdffe5b83721ddf41a9b485e676447694249c3a609e13",
+        "equals_grant_and_actual_rawHEAD": true,
+        "all_original_bytes_and_comments_preserved": true,
+        "only_added_comment_or_blank_lines": true
+      },
+      "derive_attributes": [
+        {
+          "before_line": 9,
+          "after_line": 22,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "PartialEq",
+            "Eq"
+          ]
+        },
+        {
+          "before_line": 66,
+          "after_line": 85,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "PartialEq"
+          ]
+        },
+        {
+          "before_line": 75,
+          "after_line": 96,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "Default",
+            "PartialEq"
+          ]
+        },
+        {
+          "before_line": 100,
+          "after_line": 127,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "Default",
+            "PartialEq"
+          ]
+        }
+      ],
+      "objects_count": 18,
+      "members_count": 19,
+      "gapfree_blocks_count": 16
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+      "objects": [
+        {
+          "kind": "struct",
+          "name": "TextTableLayoutWorkReport",
+          "before_lines": [
+            1,
+            17
+          ],
+          "audit": "12个usize观测值，11累计量和1最大值；Copy值不控制准入。",
+          "documentation_decision": "保留原2行，补frame生命周期/max区别及模块边界。",
+          "evidence": [
+            "session",
+            "rich_table"
+          ],
+          "after_lines": [
+            4,
+            22
+          ],
+          "before_range_sha256": "b28596b7dcc34f9ba63ea097c4a8437855943591054131748c305751160e0774",
+          "after_range_sha256": "38d1c638d0da4db9227ea0226580c78cb53a2cb6ecf55753d5377b2945537c1f"
+        },
+        {
+          "kind": "impl",
+          "name": "TextTableLayoutWorkReport",
+          "before_lines": [
+            19,
+            111
+          ],
+          "audit": "5个记录方法和1个profile发布方法；只有饱和计数/max和宏调用。",
+          "documentation_decision": "各非显然调用时机补必要文档。",
+          "evidence": [
+            "rich_table",
+            "profiling_macro"
+          ],
+          "after_lines": [
+            24,
+            130
+          ],
+          "before_range_sha256": "6c6c29af57793cd49a2e62bbecda8103c0f69edf5657ef2892279dd91b37041e",
+          "after_range_sha256": "c6a021a10302b60402fe4f468f4a2c151844d579aa1763f66931d401659e1bbc"
+        },
+        {
+          "kind": "fn",
+          "name": "record_layout_attempt",
+          "before_lines": [
+            20,
+            25
+          ],
+          "audit": "source_bytes为调用方表格UTF8范围字节数，cell_count为网格单元格数；加累计并更新单次max，返回()。",
+          "documentation_decision": "新增参数单位和可能后续失败。",
+          "evidence": [
+            "rich_table"
+          ],
+          "after_lines": [
+            29,
+            34
+          ],
+          "before_range_sha256": "d41e1e10d3a99c6d52e29414230fb42c4a3be2628534c6b177c82b026271b94f",
+          "after_range_sha256": "d41e1e10d3a99c6d52e29414230fb42c4a3be2628534c6b177c82b026271b94f"
+        },
+        {
+          "kind": "fn",
+          "name": "record_tracks",
+          "before_lines": [
+            27,
+            30
+          ],
+          "audit": "column_count/row_count为本次轨道数，分别饱和累加，返回()。",
+          "documentation_decision": "新增轨道计数早于后续排布的时机。",
+          "evidence": [
+            "rich_table"
+          ],
+          "after_lines": [
+            37,
+            40
+          ],
+          "before_range_sha256": "e43691b027c227dff96760334effc3e6b21eebe569f374b7a8d911db1e137455",
+          "after_range_sha256": "e43691b027c227dff96760334effc3e6b21eebe569f374b7a8d911db1e137455"
+        },
+        {
+          "kind": "fn",
+          "name": "record_preferred_cell_layout",
+          "before_lines": [
+            32,
+            36
+          ],
+          "audit": "source_bytes为此次输入UTF8字节数；先记调用和字节，后来可失败/延期，返回()。",
+          "documentation_decision": "新增真实计数时机。",
+          "evidence": [
+            "rich_table"
+          ],
+          "after_lines": [
+            43,
+            47
+          ],
+          "before_range_sha256": "bc43e11f9703b5040442c182ae89445a5d613ec50e27bced59243ae3bc98b772",
+          "after_range_sha256": "bc43e11f9703b5040442c182ae89445a5d613ec50e27bced59243ae3bc98b772"
+        },
+        {
+          "kind": "fn",
+          "name": "record_final_cell_layout",
+          "before_lines": [
+            38,
+            41
+          ],
+          "audit": "source_bytes语义同上；final描述阶段而非成功状态，返回()。",
+          "documentation_decision": "新增失败/延期边界，避免成功数误解。",
+          "evidence": [
+            "rich_table"
+          ],
+          "after_lines": [
+            50,
+            53
+          ],
+          "before_range_sha256": "2e6bf4e7abe7d830fd21768d825f608f47ae14ca63835d3a36520acfedd76996",
+          "after_range_sha256": "2e6bf4e7abe7d830fd21768d825f608f47ae14ca63835d3a36520acfedd76996"
+        },
+        {
+          "kind": "fn",
+          "name": "record_output",
+          "before_lines": [
+            43,
+            46
+          ],
+          "audit": "调用方在本地几何检查通过后传入line_count/box_count；饱和累加，返回()。",
+          "documentation_decision": "新增Ready输出与屏幕呈现分工。",
+          "evidence": [
+            "rich_table"
+          ],
+          "after_lines": [
+            57,
+            60
+          ],
+          "before_range_sha256": "c9f5f8f23e81e3616e9425535d764a0d733f326de385a66c7ab422b48abc1ce8",
+          "after_range_sha256": "c9f5f8f23e81e3616e9425535d764a0d733f326de385a66c7ab422b48abc1ce8"
+        },
+        {
+          "kind": "fn",
+          "name": "publish_profile_counters",
+          "before_lines": [
+            48,
+            110
+          ],
+          "audit": "self按值Copy快照；启用feature时12宏调用，未启用丢弃副本；不会重置持有方，返回()。",
+          "documentation_decision": "新增feature/capture/f64和Copy约束及参考。",
+          "evidence": [
+            "session",
+            "profiling_macro"
+          ],
+          "after_lines": [
+            67,
+            129
+          ],
+          "before_range_sha256": "f0c87d663728f9a01286a0892159464c1042b55db6f146d1dcc4dcbda74174de",
+          "after_range_sha256": "f0c87d663728f9a01286a0892159464c1042b55db6f146d1dcc4dcbda74174de"
+        },
+        {
+          "kind": "test_mount",
+          "name": "tests",
+          "before_lines": [
+            113,
+            115
+          ],
+          "audit": "cfg(test)+path直接挂载2测试。",
+          "documentation_decision": "挂载自明，无新增。",
+          "evidence": [
+            "table_tests"
+          ],
+          "after_lines": [
+            132,
+            134
+          ],
+          "before_range_sha256": "e578d5b4b8061af84625943902fc0220d345c5e6af485f2e0a3bc2c704173f44",
+          "after_range_sha256": "e578d5b4b8061af84625943902fc0220d345c5e6af485f2e0a3bc2c704173f44"
+        }
+      ],
+      "members": [
+        {
+          "name": "table_layout_attempt_count",
+          "type": "usize",
+          "before_line": 5,
+          "after_line": 10,
+          "audit": "记录布局尝试次数，饱和累计。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "table_source_byte_count",
+          "type": "usize",
+          "before_line": 6,
+          "after_line": 11,
+          "audit": "每次表格源范围UTF8字节数累计。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "table_cell_count",
+          "type": "usize",
+          "before_line": 7,
+          "after_line": 12,
+          "audit": "每次网格单元格数累计。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "max_table_cell_count",
+          "type": "usize",
+          "before_line": 8,
+          "after_line": 13,
+          "audit": "最大单次cell_count，不累加。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "preferred_cell_layout_count",
+          "type": "usize",
+          "before_line": 9,
+          "after_line": 14,
+          "audit": "优选尺寸阶段调用次数，含后来失败/延期。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "preferred_cell_input_bytes",
+          "type": "usize",
+          "before_line": 10,
+          "after_line": 15,
+          "audit": "优选阶段输入UTF8字节累计。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "final_cell_layout_count",
+          "type": "usize",
+          "before_line": 11,
+          "after_line": 16,
+          "audit": "最终尺寸阶段调用次数，非成功总数。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "final_cell_input_bytes",
+          "type": "usize",
+          "before_line": 12,
+          "after_line": 17,
+          "audit": "最终阶段输入UTF8字节累计。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "column_track_count",
+          "type": "usize",
+          "before_line": 13,
+          "after_line": 18,
+          "audit": "列轨道数累计，非当前表唯一列数。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "row_track_count",
+          "type": "usize",
+          "before_line": 14,
+          "after_line": 19,
+          "audit": "行轨道数累计。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "published_line_count",
+          "type": "usize",
+          "before_line": 15,
+          "after_line": 20,
+          "audit": "本地Ready输出行数累计，不证明呈现。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        },
+        {
+          "name": "published_box_count",
+          "type": "usize",
+          "before_line": 16,
+          "after_line": 21,
+          "audit": "本地Ready输出盒数累计，不证明呈现。",
+          "documentation_decision": "字段名/方法分支清楚；类型及方法合同覆盖边界，无逐字段重复新增。"
+        }
+      ],
+      "blocks": [
+        {
+          "name": "report docs and fields",
+          "before_lines": [
+            1,
+            18
+          ],
+          "entry": "默认/复制报告",
+          "state_change": "12个usize，累计与max区别",
+          "followup": "观测不承担预算",
+          "after_lines": [
+            1,
+            23
+          ],
+          "before_range_sha256": "37dc4808b0e504fc5c81639f74ddecedf4659d8fcf41d30351849b8d8a1a51b9",
+          "after_range_sha256": "91602a6244597cf80618d9145635c5729dea0574eb6594b59d7bef274d01538d"
+        },
+        {
+          "name": "attempt aggregate and max",
+          "before_lines": [
+            19,
+            26
+          ],
+          "entry": "网格建立后",
+          "state_change": "3个饱和累计和1个max",
+          "followup": "后续几何检查可失败",
+          "after_lines": [
+            24,
+            35
+          ],
+          "before_range_sha256": "ba17555089b1d3f97a5ed2a98c2e3d59ce1b9dc6114b8e9bd263dba76772009e",
+          "after_range_sha256": "b7a412c394341921043cb69c884b44aa0af98a4a19772c2e43e52bfe09ec2d02"
+        },
+        {
+          "name": "track aggregate",
+          "before_lines": [
+            27,
+            31
+          ],
+          "entry": "求得列行轨道后",
+          "state_change": "累计列/行数量",
+          "followup": "随后cell boxes仍可失败",
+          "after_lines": [
+            36,
+            41
+          ],
+          "before_range_sha256": "6b6a5586d8bf930d6818c890c607e2b5a81e457d87a57b711afbcc2f9a23f3ba",
+          "after_range_sha256": "69f41830f82facfa20fa2718c9165a04776c59e95cc9515a8ea709a76486a0e5"
+        },
+        {
+          "name": "preferred phase aggregate",
+          "before_lines": [
+            32,
+            37
+          ],
+          "entry": "优选尺寸布局调用前",
+          "state_change": "计数和UTF8字节饱和累加",
+          "followup": "可能返回Deferred/Failed",
+          "after_lines": [
+            42,
+            48
+          ],
+          "before_range_sha256": "84d3ee04ef2572cc1784361e7902810053b896c873212a8ead76d1a467e2656e",
+          "after_range_sha256": "e92d92acfc80aef7bf9a865098e5ecd282b016f86db4f011afee4cb4d67a6bf7"
+        },
+        {
+          "name": "final phase aggregate",
+          "before_lines": [
+            38,
+            42
+          ],
+          "entry": "最终尺寸布局调用前",
+          "state_change": "计数和UTF8字节饱和累加",
+          "followup": "可能返回Deferred/Failed",
+          "after_lines": [
+            49,
+            54
+          ],
+          "before_range_sha256": "dceef3558da1ac855f5c8f35cee3f05f08f9074e669c591579de2cd7e5257144",
+          "after_range_sha256": "98d8fcf4e275c6c18eaad44f5a0b7f8a0ccb2f3d4883b02bddad577d3daecbcd"
+        },
+        {
+          "name": "output aggregate",
+          "before_lines": [
+            43,
+            47
+          ],
+          "entry": "本地几何检查通过后",
+          "state_change": "累计行/盒数量",
+          "followup": "随后返回Ready，非屏幕发布",
+          "after_lines": [
+            55,
+            61
+          ],
+          "before_range_sha256": "b34bd70f34a78d67e0a3691eca6eabb7dcfe0b68bf5c9cf956e907a279e48676",
+          "after_range_sha256": "64a49ad165b8732bea19aa67991aed20704bb4abb1ce4b110b437e38cd88bd6b"
+        },
+        {
+          "name": "profiling enabled branch",
+          "before_lines": [
+            48,
+            107
+          ],
+          "entry": "profiling或profiling-tracy启用",
+          "state_change": "按固定12名传字段给profile_counter宏",
+          "followup": "实际采集门和f64转换由宏实现",
+          "after_lines": [
+            62,
+            126
+          ],
+          "before_range_sha256": "cdbadae7ddbb5134f7a39321974c0b1876fe14d0c0a22a3d5e903809c844f12c",
+          "after_range_sha256": "7ca86bb437ca1f1a8fc51323c8e011e8b89de94b138f69bf17d216d86da1ca91"
+        },
+        {
+          "name": "profiling disabled branch",
+          "before_lines": [
+            108,
+            111
+          ],
+          "entry": "两feature均关闭",
+          "state_change": "let _=self丢弃副本",
+          "followup": "原报告不清零",
+          "after_lines": [
+            127,
+            130
+          ],
+          "before_range_sha256": "a4716cd0339d357ab56cc4ec5772b4293827faed73ebb9d9db6cd42aa046db91",
+          "after_range_sha256": "a4716cd0339d357ab56cc4ec5772b4293827faed73ebb9d9db6cd42aa046db91"
+        },
+        {
+          "name": "table-work test mount",
+          "before_lines": [
+            112,
+            115
+          ],
+          "entry": "cfg(test)构建",
+          "state_change": "挂载tests/table_work.rs",
+          "followup": "只审断言，不运行",
+          "after_lines": [
+            131,
+            134
+          ],
+          "before_range_sha256": "d836383b3516513a3c0da997ff2f92eda6afafb38c79376b7b22ecb8f5698341",
+          "after_range_sha256": "d836383b3516513a3c0da997ff2f92eda6afafb38c79376b7b22ecb8f5698341"
+        }
+      ],
+      "before_sha256": "5879db397641d30b0bfa1d2fb5232cb65dc6b08fbf515d2baf9b8c168a85c59b",
+      "after_sha256": "5439f0269319c115fbb6021a3752e3d46f009e6a34d1851d66c8c11de3368648",
+      "before_bytes": 4732,
+      "after_bytes": 6301,
+      "before_physical_lines": 115,
+      "after_physical_lines": 134,
+      "EOL": {
+        "before_CRLF": 0,
+        "before_LF_only": 115,
+        "after_CRLF": 0,
+        "after_LF_only": 134,
+        "before_BOM": false,
+        "after_BOM": false
+      },
+      "insertions": [
+        {
+          "before_offset": 0,
+          "before_line": 1,
+          "exact_text": "//! 记录富文本表格布局阶段的工作量，并按性能采集配置发布报告副本。\n//! 阶段计数可以先于后续失败发生；是否采用布局结果由调用方决定。\n\n",
+          "byte_length": 194,
+          "sha256": "04d1750c11d3b283392e638cc0f8f29d2933b673ec0d2990f9074559580460ce",
+          "purpose": "阶段观测与布局采用结果分离",
+          "after_offset": 0,
+          "after_line": 1,
+          "LF_lines": 3
+        },
+        {
+          "before_offset": 196,
+          "before_line": 3,
+          "exact_text": "/// 会话的 `begin_frame` 重置报告；`finish_frame` 发布当前副本但不清零，`clear` 只清缓存。\n/// 各累计项按调用次数或传入数量饱和累加，`max_table_cell_count` 取单次最大值。\n",
+          "byte_length": 221,
+          "sha256": "867727e9c25347469b6e76a714c04df587fb3678a1ac05853d29b4a291e492bf",
+          "purpose": "保留旧文档并补帧生命周期和max字段区别",
+          "after_offset": 390,
+          "after_line": 6,
+          "LF_lines": 2
+        },
+        {
+          "before_offset": 875,
+          "before_line": 20,
+          "exact_text": "    /// 在表格网格建立后记录一次尝试，后续布局仍可能失败。\n    ///\n    /// # 参数\n    /// `source_bytes` 是调用方提供的本次表格源范围 UTF-8 字节数；`cell_count` 是该网格单元格数。\n",
+          "byte_length": 234,
+          "sha256": "e7be512ff13b93f203a771230aa4d9a47c95d49f2ee1cb75dcfdd88f11ff25c0",
+          "purpose": "真实入口顺序和字节/单元格参数单位",
+          "after_offset": 1290,
+          "after_line": 25,
+          "LF_lines": 4
+        },
+        {
+          "before_offset": 1327,
+          "before_line": 27,
+          "exact_text": "    /// 累计本次求得的列、行轨道数；此时后续单元格排布仍可能失败。\n",
+          "byte_length": 96,
+          "sha256": "13edd3742c7f8a57d8713ca83c66e1fee4a6d183821e3ea0cd314fea012c1a03",
+          "purpose": "轨道计数不是最终布局完成数量",
+          "after_offset": 1976,
+          "after_line": 36,
+          "LF_lines": 1
+        },
+        {
+          "before_offset": 1585,
+          "before_line": 32,
+          "exact_text": "    /// 在单元格优选尺寸布局调用前记一次及其 UTF-8 输入字节数，包含后来失败或延期的调用。\n",
+          "byte_length": 127,
+          "sha256": "b68e65a851d710d736636979a9b00c47eb6d364a41ca8a56bb069ed81bd09b6b",
+          "purpose": "preferred阶段计数时机与失败/延期边界",
+          "after_offset": 2330,
+          "after_line": 42,
+          "LF_lines": 1
+        },
+        {
+          "before_offset": 1884,
+          "before_line": 38,
+          "exact_text": "    /// 在单元格最终尺寸布局调用前记一次及其 UTF-8 输入字节数，包含后来失败或延期的调用。\n",
+          "byte_length": 127,
+          "sha256": "1af4bc96a1382ac364955241a3c9a121e0f71bef8aefa890ddbae5099bee2617",
+          "purpose": "final阶段计数时机与失败/延期边界",
+          "after_offset": 2756,
+          "after_line": 49,
+          "LF_lines": 1
+        },
+        {
+          "before_offset": 2151,
+          "before_line": 43,
+          "exact_text": "    /// 由调用方在本地几何检查通过后，记录拟交给 Ready 结果的行与盒数量。\n    /// 这些数量不证明后续合成或屏幕呈现已经完成。\n",
+          "byte_length": 175,
+          "sha256": "bf84df5bf61d05f870327f55e93b09c2cb0c829186f71e69cf2a3fbbdcd8b730",
+          "purpose": "输出计数与最终屏幕呈现分离",
+          "after_offset": 3150,
+          "after_line": 55,
+          "LF_lines": 2
+        },
+        {
+          "before_offset": 2417,
+          "before_line": 48,
+          "exact_text": "    /// 将当前副本交给条件编译的性能计数宏，不清空原报告。\n    ///\n    /// # 约束与生命周期\n    /// 本类型为 `Copy`；按值调用只消费副本。宏按功能开关及当前采集状态决定是否上报，数量会转换为 `f64`。\n    /// 未启用相关功能时仅丢弃副本；参见 `SharedTextLayoutSession::finish_frame` 与 `profile_counter!`。\n",
+          "byte_length": 395,
+          "sha256": "f50cb992b04443f7d18ff47bf8cf42a6d2bc18478556e1cad6ee4567e4fc58d6",
+          "purpose": "Copy快照、功能/采集门和数值转换边界",
+          "after_offset": 3591,
+          "after_line": 62,
+          "LF_lines": 5
+        }
+      ],
+      "inverse_proof": {
+        "reconstructed_sha256": "5879db397641d30b0bfa1d2fb5232cb65dc6b08fbf515d2baf9b8c168a85c59b",
+        "equals_grant_and_actual_rawHEAD": true,
+        "all_original_bytes_and_comments_preserved": true,
+        "only_added_comment_or_blank_lines": true
+      },
+      "derive_attributes": [
+        {
+          "before_line": 3,
+          "after_line": 8,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "Default",
+            "PartialEq",
+            "Eq"
+          ]
+        }
+      ],
+      "objects_count": 9,
+      "members_count": 12,
+      "gapfree_blocks_count": 9
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+      "objects": [
+        {
+          "kind": "fn",
+          "name": "generation_defer_does_not_count_as_a_fallback",
+          "before_lines": [
+            11,
+            18
+          ],
+          "audit": "直接record代次变化；只断言deferred=1/fallback=0。",
+          "documentation_decision": "名称与2断言清楚，无新增。",
+          "evidence": [
+            "diagnostics_tests"
+          ],
+          "after_lines": [
+            11,
+            18
+          ],
+          "before_range_sha256": "42edd39e22c4b9fda52f79ddccde344d0f7f52e60fd062c659e5e092a96cf3b2",
+          "after_range_sha256": "42edd39e22c4b9fda52f79ddccde344d0f7f52e60fd062c659e5e092a96cf3b2"
+        },
+        {
+          "kind": "fn",
+          "name": "report_identifies_the_compiled_unicode_snapshot",
+          "before_lines": [
+            20,
+            27
+          ],
+          "audit": "Default与compiled snapshot当前generation/fingerprint相等。",
+          "documentation_decision": "2字段比较清楚，无新增。",
+          "evidence": [
+            "diagnostics_tests"
+          ],
+          "after_lines": [
+            20,
+            27
+          ],
+          "before_range_sha256": "ebccdcc2f9bfad6ffeb4bdc2a730d85e69dcb9cf2325a49cac991798846664df",
+          "after_range_sha256": "ebccdcc2f9bfad6ffeb4bdc2a730d85e69dcb9cf2325a49cac991798846664df"
+        },
+        {
+          "kind": "fn",
+          "name": "bidi_invariants_are_not_collapsed_into_other_errors",
+          "before_lines": [
+            29,
+            37
+          ],
+          "audit": "直接record BidiInvariant；断言fallback1/bidi1/other0。",
+          "documentation_decision": "3断言清楚，无新增。",
+          "evidence": [
+            "diagnostics_tests"
+          ],
+          "after_lines": [
+            29,
+            37
+          ],
+          "before_range_sha256": "8e0ba759e59c599ee86d4f8b755e2fcabcacc62434f295423d67a2f3a9577c7d",
+          "after_range_sha256": "8e0ba759e59c599ee86d4f8b755e2fcabcacc62434f295423d67a2f3a9577c7d"
+        },
+        {
+          "kind": "fn",
+          "name": "oversized_geometry_is_not_collapsed_into_other_errors",
+          "before_lines": [
+            39,
+            47
+          ],
+          "audit": "直接record GeometryTooLarge；断言fallback1/geometry1/other0；不是调用reject_geometry。",
+          "documentation_decision": "断言和入口明确，无新增。",
+          "evidence": [
+            "diagnostics_tests"
+          ],
+          "after_lines": [
+            39,
+            47
+          ],
+          "before_range_sha256": "6e354a88fe5bab081bdbd6ecea7c1921628b2172ff0a1856d526a2c4ee913742",
+          "after_range_sha256": "6e354a88fe5bab081bdbd6ecea7c1921628b2172ff0a1856d526a2c4ee913742"
+        },
+        {
+          "kind": "fn",
+          "name": "deferred_shaping_outcome_never_enters_the_session_cache",
+          "before_lines": [
+            49,
+            87
+          ],
+          "audit": "直接注入Deferred；检查failure/code、cache空/insert0、deferred1、terminalrun0。",
+          "documentation_decision": "具体注入和断言清楚；不增热重载/并发承诺。",
+          "evidence": [
+            "session",
+            "diagnostics_tests"
+          ],
+          "after_lines": [
+            49,
+            87
+          ],
+          "before_range_sha256": "a922e50ab6c185a4b9b75b51ef8a6d00499d514e0d4868c37342277ba28d81a6",
+          "after_range_sha256": "a922e50ab6c185a4b9b75b51ef8a6d00499d514e0d4868c37342277ba28d81a6"
+        },
+        {
+          "kind": "fn",
+          "name": "ready_shaping_outcome_from_a_retired_generation_is_deferred",
+          "before_lines": [
+            89,
+            126
+          ],
+          "audit": "先真实shape取run，再注入旧tag Ready；只断言Deferred/code/cache空/insert0/deferred1。",
+          "documentation_decision": "旧tag模拟清楚；未断言terminalrun0，不扩张测试证明。",
+          "evidence": [
+            "session",
+            "diagnostics_tests"
+          ],
+          "after_lines": [
+            89,
+            126
+          ],
+          "before_range_sha256": "50291d32c848c9de1bd34cf1c6b30c8b8a221ad0563130459c567ac0f1854662",
+          "after_range_sha256": "50291d32c848c9de1bd34cf1c6b30c8b8a221ad0563130459c567ac0f1854662"
+        }
+      ],
+      "members": [],
+      "blocks": [
+        {
+          "name": "test imports",
+          "before_lines": [
+            1,
+            10
+          ],
+          "entry": "测试叶模块挂载",
+          "state_change": "导入父report及真实会话/shape结果类型",
+          "followup": "未导入外部fixture",
+          "after_lines": [
+            1,
+            10
+          ],
+          "before_range_sha256": "2afbcabc295a1c40daf38d9f33bfa9ac4e514ebb5ba8c73e6d079953dd5e45cf",
+          "after_range_sha256": "2afbcabc295a1c40daf38d9f33bfa9ac4e514ebb5ba8c73e6d079953dd5e45cf"
+        },
+        {
+          "name": "defer classification assertions",
+          "before_lines": [
+            11,
+            19
+          ],
+          "entry": "默认report直接record",
+          "state_change": "代次变化只计defer",
+          "followup": "2断言，不执行回退",
+          "after_lines": [
+            11,
+            19
+          ],
+          "before_range_sha256": "923f3c746c886e1b3640a6b83faca328012caca592bb5181fc071f8c0769a2c9",
+          "after_range_sha256": "923f3c746c886e1b3640a6b83faca328012caca592bb5181fc071f8c0769a2c9"
+        },
+        {
+          "name": "compiled Unicode identity assertions",
+          "before_lines": [
+            20,
+            28
+          ],
+          "entry": "Default报告",
+          "state_change": "比较2标识字段",
+          "followup": "不代表字体数据库身份",
+          "after_lines": [
+            20,
+            28
+          ],
+          "before_range_sha256": "c07b29eba1df3c64355f211312db7550a636129eb9ab342e2a15a2e25c281770",
+          "after_range_sha256": "c07b29eba1df3c64355f211312db7550a636129eb9ab342e2a15a2e25c281770"
+        },
+        {
+          "name": "bidi category assertions",
+          "before_lines": [
+            29,
+            38
+          ],
+          "entry": "直接record BidiInvariant",
+          "state_change": "总数和bidi为1，other0",
+          "followup": "不覆盖invalid-font/language分支",
+          "after_lines": [
+            29,
+            38
+          ],
+          "before_range_sha256": "e8becda9a8c9fe35a4774d29c6dd3e506a5889d20e9a20f68a1d923de8fd2f07",
+          "after_range_sha256": "e8becda9a8c9fe35a4774d29c6dd3e506a5889d20e9a20f68a1d923de8fd2f07"
+        },
+        {
+          "name": "geometry category assertions",
+          "before_lines": [
+            39,
+            48
+          ],
+          "entry": "直接record GeometryTooLarge",
+          "state_change": "总数和geometry为1，other0",
+          "followup": "未覆盖geometry receipt构造",
+          "after_lines": [
+            39,
+            48
+          ],
+          "before_range_sha256": "3ec5a64753ffc7230f7ef356991cafc3fbaa3f9d5fc1c9f7eaaf89709af3059c",
+          "after_range_sha256": "3ec5a64753ffc7230f7ef356991cafc3fbaa3f9d5fc1c9f7eaaf89709af3059c"
+        },
+        {
+          "name": "injected Deferred/cache assertions",
+          "before_lines": [
+            49,
+            88
+          ],
+          "entry": "创建request和lookup并注入Deferred",
+          "state_change": "不插缓存，记录deferred",
+          "followup": "5断言；非真实代次热切换",
+          "after_lines": [
+            49,
+            88
+          ],
+          "before_range_sha256": "a0a14c7bc80c3fdfa6912eb5a42eefc4e3f71d82cd34d40a332310530180e5d2",
+          "after_range_sha256": "a0a14c7bc80c3fdfa6912eb5a42eefc4e3f71d82cd34d40a332310530180e5d2"
+        },
+        {
+          "name": "injected retired Ready assertions",
+          "before_lines": [
+            89,
+            126
+          ],
+          "entry": "实际shape后改tag为saturating_sub(1)",
+          "state_change": "Ready观察后不匹配转Deferred/cache空",
+          "followup": "4断言；未查terminalrun或并发",
+          "after_lines": [
+            89,
+            126
+          ],
+          "before_range_sha256": "50291d32c848c9de1bd34cf1c6b30c8b8a221ad0563130459c567ac0f1854662",
+          "after_range_sha256": "50291d32c848c9de1bd34cf1c6b30c8b8a221ad0563130459c567ac0f1854662"
+        }
+      ],
+      "before_sha256": "a304bdda7cba8118417a2795b6aad1709a66104cde57299235260b14e8a6fb08",
+      "after_sha256": "a304bdda7cba8118417a2795b6aad1709a66104cde57299235260b14e8a6fb08",
+      "before_bytes": 4398,
+      "after_bytes": 4398,
+      "before_physical_lines": 126,
+      "after_physical_lines": 126,
+      "EOL": {
+        "before_CRLF": 0,
+        "before_LF_only": 126,
+        "after_CRLF": 0,
+        "after_LF_only": 126,
+        "before_BOM": false,
+        "after_BOM": false
+      },
+      "insertions": [],
+      "inverse_proof": {
+        "reconstructed_sha256": "a304bdda7cba8118417a2795b6aad1709a66104cde57299235260b14e8a6fb08",
+        "equals_grant_and_actual_rawHEAD": true,
+        "all_original_bytes_and_comments_preserved": true,
+        "only_added_comment_or_blank_lines": true
+      },
+      "derive_attributes": [],
+      "objects_count": 6,
+      "members_count": 0,
+      "gapfree_blocks_count": 7
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+      "objects": [
+        {
+          "kind": "fn",
+          "name": "report_counts_actual_table_layout_phases_without_implying_a_budget",
+          "before_lines": [
+            3,
+            26
+          ],
+          "audit": "手动调用6阶段记录（preferred两次）；12字段精确断言，不执行表格算法或预算准入。",
+          "documentation_decision": "名称和12断言充分，无新增。",
+          "evidence": [
+            "table_tests"
+          ],
+          "after_lines": [
+            3,
+            26
+          ],
+          "before_range_sha256": "10140ad585785ef634494e55a1e9b9f7b27e88da6ea5340955efb87654bfa665",
+          "after_range_sha256": "10140ad585785ef634494e55a1e9b9f7b27e88da6ea5340955efb87654bfa665"
+        },
+        {
+          "kind": "fn",
+          "name": "report_saturates_telemetry_counters",
+          "before_lines": [
+            28,
+            60
+          ],
+          "audit": "11累计字段seed MAX后调用5方法；仅9字段断言MAX。",
+          "documentation_decision": "保留实际subset；不声称两input-byte字段及max字段溢出已测。",
+          "evidence": [
+            "table_tests"
+          ],
+          "after_lines": [
+            28,
+            60
+          ],
+          "before_range_sha256": "8cbb519a9d2217263b1853908c0690d1a53a3afa5e6b3355c49e3a32a31601dc",
+          "after_range_sha256": "8cbb519a9d2217263b1853908c0690d1a53a3afa5e6b3355c49e3a32a31601dc"
+        }
+      ],
+      "members": [],
+      "blocks": [
+        {
+          "name": "table report import",
+          "before_lines": [
+            1,
+            2
+          ],
+          "entry": "测试挂载",
+          "state_change": "导入父report",
+          "followup": "无共享fixture",
+          "after_lines": [
+            1,
+            2
+          ],
+          "before_range_sha256": "2e85b6b6f93c86fb47df6e585ff3880c19f48f93ebbd2eac7dfe5dbf2c532c90",
+          "after_range_sha256": "2e85b6b6f93c86fb47df6e585ff3880c19f48f93ebbd2eac7dfe5dbf2c532c90"
+        },
+        {
+          "name": "manual phase/count assertions",
+          "before_lines": [
+            3,
+            27
+          ],
+          "entry": "默认报告手动记录",
+          "state_change": "12字段值与各方法输入对应",
+          "followup": "非真实布局/预算测试",
+          "after_lines": [
+            3,
+            27
+          ],
+          "before_range_sha256": "03b6aac54009334c657056bd03a70676fe92429ab7e5d9772db9cc22e85e8b6b",
+          "after_range_sha256": "03b6aac54009334c657056bd03a70676fe92429ab7e5d9772db9cc22e85e8b6b"
+        },
+        {
+          "name": "MAX seed and saturation subset",
+          "before_lines": [
+            28,
+            60
+          ],
+          "entry": "11累计字段seed MAX",
+          "state_change": "5方法调用后检查9累计字段仍MAX",
+          "followup": "未断言preferred/final input bytes或max字段",
+          "after_lines": [
+            28,
+            60
+          ],
+          "before_range_sha256": "8cbb519a9d2217263b1853908c0690d1a53a3afa5e6b3355c49e3a32a31601dc",
+          "after_range_sha256": "8cbb519a9d2217263b1853908c0690d1a53a3afa5e6b3355c49e3a32a31601dc"
+        }
+      ],
+      "before_sha256": "a26c7554fd88f6706cebd50c5e4f002fbe0e8363c388ac268445baddb480602f",
+      "after_sha256": "a26c7554fd88f6706cebd50c5e4f002fbe0e8363c388ac268445baddb480602f",
+      "before_bytes": 2342,
+      "after_bytes": 2342,
+      "before_physical_lines": 60,
+      "after_physical_lines": 60,
+      "EOL": {
+        "before_CRLF": 0,
+        "before_LF_only": 60,
+        "after_CRLF": 0,
+        "after_LF_only": 60,
+        "before_BOM": false,
+        "after_BOM": false
+      },
+      "insertions": [],
+      "inverse_proof": {
+        "reconstructed_sha256": "a26c7554fd88f6706cebd50c5e4f002fbe0e8363c388ac268445baddb480602f",
+        "equals_grant_and_actual_rawHEAD": true,
+        "all_original_bytes_and_comments_preserved": true,
+        "only_added_comment_or_blank_lines": true
+      },
+      "derive_attributes": [],
+      "objects_count": 2,
+      "members_count": 0,
+      "gapfree_blocks_count": 3
+    }
+  ],
+  "normal_tests": 8,
+  "ignored_tests": 0,
+  "tests_run": false,
+  "issues": {
+    "new": [],
+    "reserved_unused": [
+      "CR-ZCA-R082-0001"
+    ],
+    "owned_source_preexisting": [],
+    "context_preexisting": [
+      {
+        "id": "CR-RUNTIME-TESTS-ABS-0008",
+        "path": "zircon_runtime/src/tests/contracts/lexical_scan/production_lines.rs",
+        "line": 10,
+        "classification": "preexisting context BUG; brace counting includes string content; preserved, not this batch coverage or closure"
+      }
+    ],
+    "finding_limit": "No new statically closed BUG found in exact4; context reader CR-RUNTIME-TESTS-ABS-0008 is preexisting and not closed here."
+  },
+  "acceptance": {
+    "reviewed_by_child": false,
+    "root_independent_review": "pending",
+    "formal_acceptance": false,
+    "Jenkins": "not requested by this child; parent owns handoff/acceptance",
+    "child_scope_review_complete": true,
+    "tests_executed": false
+  },
+  "artifact_lifecycle": {
+    "new_build_or_cache_outputs": false,
+    "temporary_helpers_or_source_copies": false,
+    "deleted_bytes": 0,
+    "retained": [
+      "sole preregistered R082 child",
+      "canonical exact4 comments"
+    ],
+    "historical_unknown_writers": "R033/R046 remain separately unresolved; this record does not close them"
+  },
+  "assembly_started_utc": "2026-10-16T23:00:16.592375+00:00",
+  "context_policy": "All context_files are readonly pinned observations, not formal source coverage; default reader reflection_luna, explicit core_timer_sol entries are shared evidence. D/E facts only claim recorded spans, not complete parent or whole caller files.",
+  "context_files": [
+    {
+      "path": "zircon_runtime/src/text/layout_session.rs",
+      "sha256": "0a06469e0517f148047e9c5f130139d6ecaa48aa6cc8b4c0ea5939ed3e3b46c2",
+      "bytes": 21058,
+      "lines": 606,
+      "id": "session",
+      "fact": "SharedTextLayoutSession owns both reports; begin_frame191–195 resets, finish_frame198–200 publishes Copy without reset, clear203–207 clears caches; wrappers279–317; Ready441–453 records before generation/cache admission.",
+      "read_spans": [
+        [
+          37,
+          46
+        ],
+        [
+          166,
+          207
+        ],
+        [
+          259,
+          317
+        ],
+        [
+          339,
+          355
+        ],
+        [
+          402,
+          465
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs",
+      "sha256": "ce1a3ff996d92150dfe10c9a22806e97b8b27d6578eaf3c413a8a9d4ab4f0110",
+      "bytes": 27175,
+      "lines": 730,
+      "id": "rich_table",
+      "fact": "Attempt233–238; final371 and preferred566 recorded before child layout can fail/defer; tracks441 precedes later cell-box failure; output538 follows geometry acceptance before Ready539, not screen presentation.",
+      "read_spans": [
+        [
+          225,
+          243
+        ],
+        [
+          359,
+          377
+        ],
+        [
+          432,
+          446
+        ],
+        [
+          530,
+          541
+        ],
+        [
+          555,
+          578
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs",
+      "sha256": "4fc7de3f6eb4143faeaef7896fb0ebf21b172375360fae59b84e018fd5e9dcda",
+      "bytes": 3963,
+      "lines": 98,
+      "id": "profiling_macro",
+      "fact": "profile_counter!68–94 converts to f64; feature/capture gates differ by backend; no unconditional emission promise.",
+      "read_spans": [
+        [
+          49,
+          95
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/text/mod.rs",
+      "sha256": "38aef7102fa2a7850d4b7b2b8d644400ef0bb9e01cb5222cefbd642694201157",
+      "bytes": 7193,
+      "lines": 170,
+      "id": "text_facade",
+      "fact": "128 public reexport of fallback report;129–132 crate reexports of diagnostic/geometry/table values.",
+      "read_spans": [
+        [
+          124,
+          134
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/text/measure_cache.rs",
+      "sha256": "f2e4b54b241f8e1977609479ccdce24454cd87ea7b30a1d141a7cfe70bb4e5e6",
+      "bytes": 25821,
+      "lines": 706,
+      "id": "measure_cache",
+      "fact": "frame_layout_session_diagnostics373–377 copies diagnostics_report without redoing layout.",
+      "read_spans": [
+        [
+          365,
+          383
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/render/text_prewarm/profile/session.rs",
+      "sha256": "aad5c1b762daaece08d2ac14460a2744b9b7d0ceaf92637e0217935c9dd16fbf",
+      "bytes": 6606,
+      "lines": 195,
+      "id": "profile_session",
+      "fact": "Read1–80 only: supplied diagnostics projected to fixed numeric counters; remaining function not claimed read.",
+      "read_spans": [
+        [
+          1,
+          80
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/renderer/ui/text/resolved_batches.rs",
+      "sha256": "fceab19adb9530a2f45d03a1fd5c3de88bd6e732372e7d54ae59ead7c9ba66a5",
+      "bytes": 7954,
+      "lines": 217,
+      "id": "renderer_report",
+      "fact": "layout_fallback_report72–83 defaults a report then records native/sdf layout_error references.",
+      "read_spans": [
+        [
+          68,
+          90
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/renderer/ui/text/prepare_report.rs",
+      "sha256": "ad5966dbed4d5a65065b92a157a5e2149182c2f88e97eafec5b1ae9f61ac2ced",
+      "bytes": 24080,
+      "lines": 484,
+      "id": "renderer_merge",
+      "fact": "merge279–307 debug-asserts Unicode IDs and saturating-adds listed fields; does not merge geometry_too_large_count here. This is a context fact, not a new defect/coverage claim.",
+      "read_spans": [
+        [
+          275,
+          315
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/naming_boundary/classifiers.rs",
+      "sha256": "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651",
+      "bytes": 7987,
+      "lines": 224,
+      "id": "naming_classifier",
+      "fact": "135–140 classifies parent source path; not a direct include_str guard of the four leaves.",
+      "read_spans": [
+        [
+          118,
+          152
+        ]
+      ]
+    },
+    {
+      "id": "naming_reader",
+      "path": "zircon_runtime/src/tests/contracts/naming_boundary/lexical_scan.rs",
+      "sha256": "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748",
+      "bytes": 3875,
+      "lines": 115,
+      "read_spans": [
+        [
+          1,
+          115
+        ]
+      ],
+      "receipt": "F83d427"
+    },
+    {
+      "id": "naming_operator",
+      "path": "zircon_runtime/src/tests/contracts/naming_boundary/top_level.rs",
+      "sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450",
+      "bytes": 3501,
+      "lines": 108,
+      "read_spans": [
+        [
+          1,
+          108
+        ]
+      ],
+      "receipt": "F83d427"
+    },
+    {
+      "id": "naming_production_lines",
+      "path": "zircon_runtime/src/tests/contracts/lexical_scan/production_lines.rs",
+      "sha256": "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b",
+      "bytes": 2095,
+      "lines": 53,
+      "read_spans": [
+        [
+          1,
+          53
+        ]
+      ],
+      "receipt": "Gcb8497"
+    },
+    {
+      "id": "naming_contract_mount",
+      "path": "zircon_runtime/src/tests/contracts/mod.rs",
+      "sha256": "8557b62d3d4b22c755a2d0110ec158a192455e9fced8ea90303fc8e206d1dde0",
+      "bytes": 1837,
+      "lines": 62,
+      "read_spans": [
+        [
+          20,
+          34
+        ]
+      ],
+      "receipt": "Gcb8497"
+    },
+    {
+      "id": "naming_child_mount",
+      "path": "zircon_runtime/src/tests/contracts/naming_boundary.rs",
+      "sha256": "365296f7f5ac5d0f9071af76bc7e258f9992c1c3a76620773de1d559e2c1e57d",
+      "bytes": 514,
+      "lines": 13,
+      "read_spans": [
+        [
+          1,
+          13
+        ]
+      ],
+      "receipt": "Gcb8497"
+    },
+    {
+      "path": "zircon_runtime/src/text/shaping/failure_receipt.rs",
+      "sha256": "9db85eb0a56ab8c130787afd7c3dfb38ff95ae1c6a8c3649031f3f2a7a11aa83",
+      "bytes": 17054,
+      "lines": 403,
+      "read_spans": [
+        [
+          145,
+          326
+        ]
+      ],
+      "id": "shaping_core",
+      "read_by": "core_timer_sol",
+      "receipt": "9a9175 exit0; full pins supplied from retained memory"
+    },
+    {
+      "path": "zircon_runtime/src/text/shaping/work_budget.rs",
+      "sha256": "7b6d530943c537e7aa47e22b2145f5ca01f5e67ebdfb5e29701cdacdedb12b5c",
+      "bytes": 3136,
+      "lines": 86,
+      "read_spans": [
+        [
+          1,
+          86
+        ]
+      ],
+      "id": "shaping_work_budget",
+      "read_by": "core_timer_sol",
+      "receipt": "9a9175 exit0; full pins supplied from retained memory"
+    },
+    {
+      "path": "zircon_runtime/src/ui/text/layout_engine/artifact.rs",
+      "sha256": "c6acb152e2b018900d8c6928cd3e7508379631237df3aaed1350bb9cac9f9f66",
+      "bytes": 2344,
+      "lines": 65,
+      "read_spans": [
+        [
+          1,
+          65
+        ]
+      ],
+      "id": "artifact_fence",
+      "read_by": "core_timer_sol",
+      "receipt": "9a9175 exit0; full pins supplied from retained memory"
+    }
+  ],
+  "local_evidence_catalog": {
+    "diagnostics_tests": {
+      "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+      "before_spans": [
+        [
+          1,
+          126
+        ]
+      ]
+    },
+    "unicode_tests": {
+      "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+      "before_spans": [
+        [
+          20,
+          27
+        ]
+      ]
+    },
+    "fallback_tests": {
+      "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+      "before_spans": [
+        [
+          11,
+          18
+        ],
+        [
+          29,
+          47
+        ]
+      ]
+    },
+    "table_tests": {
+      "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+      "before_spans": [
+        [
+          1,
+          60
+        ]
+      ]
+    }
+  },
+  "explicit_exclusions": [
+    "zircon_runtime/src/text/layout_session.rs (606L context)",
+    "zircon_runtime/src/text/layout_session/tests/cases.rs (575L, metadata/search context only)",
+    "zircon_runtime/src/text/layout_session/tests/work_budget.rs (26L metadata only)"
+  ],
+  "documentation_reference_correction": {
+    "count": 3,
+    "old_new_comment_spelling": "TextLayoutSession",
+    "actual_type": "SharedTextLayoutSession",
+    "scope": "only this batch inserted references; no original bytes/lines changed",
+    "receipt": "85275a/native70358->b92e0c exit0/PID22204",
+    "final_check": "4ed52a/native21304->75ed98 exit0/PID26292",
+    "source_bug_or_todo": false
+  },
+  "test_contracts": {
+    "files": [
+      {
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "source_sha256": "a304bdda7cba8118417a2795b6aad1709a66104cde57299235260b14e8a6fb08",
+        "tests": [
+          {
+            "function": "generation_defer_does_not_count_as_a_fallback",
+            "before_lines": [
+              11,
+              18
+            ],
+            "after_lines": [
+              11,
+              18
+            ],
+            "assertions": [
+              {
+                "lines": [
+                  16,
+                  16
+                ],
+                "operator": "assert_eq!",
+                "claim": "generation_deferred_count=1",
+                "range_sha256": "598e498cf26080decc3b0383aeb8688519dd5552ecbc428547f32522e6110a15"
+              },
+              {
+                "lines": [
+                  17,
+                  17
+                ],
+                "operator": "assert_eq!",
+                "claim": "fallback_count=0",
+                "range_sha256": "4733f4278f949afc9108cf0ab4e48c27d2be1a10b878f3a2f35e385d0cd4cc6c"
+              }
+            ],
+            "assertion_count": 2,
+            "documentation_decision": "原测试名称及断言足以描述实际检查；不新增重复说明。",
+            "execution": "not run"
+          },
+          {
+            "function": "report_identifies_the_compiled_unicode_snapshot",
+            "before_lines": [
+              20,
+              27
+            ],
+            "after_lines": [
+              20,
+              27
+            ],
+            "assertions": [
+              {
+                "lines": [
+                  25,
+                  25
+                ],
+                "operator": "assert_eq!",
+                "claim": "generation equals compiled snapshot",
+                "range_sha256": "cfc0104fe264b3be77279ee72ee7a151583eb5dc767256acfb8dbb43f78becbb"
+              },
+              {
+                "lines": [
+                  26,
+                  26
+                ],
+                "operator": "assert_eq!",
+                "claim": "fingerprint equals compiled snapshot",
+                "range_sha256": "9821552886167fe73c45458ceba3d4e96cfdca55ecbdcc3a07e4732aabf43d8c"
+              }
+            ],
+            "assertion_count": 2,
+            "documentation_decision": "原测试名称及断言足以描述实际检查；不新增重复说明。",
+            "execution": "not run"
+          },
+          {
+            "function": "bidi_invariants_are_not_collapsed_into_other_errors",
+            "before_lines": [
+              29,
+              37
+            ],
+            "after_lines": [
+              29,
+              37
+            ],
+            "assertions": [
+              {
+                "lines": [
+                  34,
+                  34
+                ],
+                "operator": "assert_eq!",
+                "claim": "fallback_count=1",
+                "range_sha256": "ae8a57f22410d195b01bcedb6be9150fbd19e25066c3d0347e4ae273c41bd0f7"
+              },
+              {
+                "lines": [
+                  35,
+                  35
+                ],
+                "operator": "assert_eq!",
+                "claim": "bidi_invariant_count=1",
+                "range_sha256": "ff3d47db310f83b94f1af62208304bafc5c333a4e995db61a88e5b85f73ae067"
+              },
+              {
+                "lines": [
+                  36,
+                  36
+                ],
+                "operator": "assert_eq!",
+                "claim": "other_error_count=0",
+                "range_sha256": "035a7e47b4398c71f503c2fe6687ce3131f994621f49e564c0277e895590cba8"
+              }
+            ],
+            "assertion_count": 3,
+            "documentation_decision": "原测试名称及断言足以描述实际检查；不新增重复说明。",
+            "execution": "not run"
+          },
+          {
+            "function": "oversized_geometry_is_not_collapsed_into_other_errors",
+            "before_lines": [
+              39,
+              47
+            ],
+            "after_lines": [
+              39,
+              47
+            ],
+            "assertions": [
+              {
+                "lines": [
+                  44,
+                  44
+                ],
+                "operator": "assert_eq!",
+                "claim": "fallback_count=1",
+                "range_sha256": "ae8a57f22410d195b01bcedb6be9150fbd19e25066c3d0347e4ae273c41bd0f7"
+              },
+              {
+                "lines": [
+                  45,
+                  45
+                ],
+                "operator": "assert_eq!",
+                "claim": "geometry_too_large_count=1",
+                "range_sha256": "adbd8e3156cea4a662c49893de99f0109ad43a172c23759fa8f4164826b0c1a8"
+              },
+              {
+                "lines": [
+                  46,
+                  46
+                ],
+                "operator": "assert_eq!",
+                "claim": "other_error_count=0",
+                "range_sha256": "035a7e47b4398c71f503c2fe6687ce3131f994621f49e564c0277e895590cba8"
+              }
+            ],
+            "assertion_count": 3,
+            "documentation_decision": "原测试名称及断言足以描述实际检查；不新增重复说明。",
+            "execution": "not run"
+          },
+          {
+            "function": "deferred_shaping_outcome_never_enters_the_session_cache",
+            "before_lines": [
+              49,
+              87
+            ],
+            "after_lines": [
+              49,
+              87
+            ],
+            "assertions": [
+              {
+                "lines": [
+                  66,
+                  72
+                ],
+                "operator": "assert!",
+                "claim": "Deferred + FontGenerationChanged error and receipt code",
+                "range_sha256": "da48eeb6c1beb8cc27bbfcc968e7f8c08ad07e6b189b5257f0880b9c1a73a22b"
+              },
+              {
+                "lines": [
+                  73,
+                  73
+                ],
+                "operator": "assert!",
+                "claim": "shaped_runs empty",
+                "range_sha256": "faba782eb728df3757873347144c377974eb1497e18047e9a6fb2797ad869768"
+              },
+              {
+                "lines": [
+                  74,
+                  74
+                ],
+                "operator": "assert_eq!",
+                "claim": "insert_count=0",
+                "range_sha256": "ea50a08e9d17928f066b58ca79faee9be6f4ee054c4a6b497a040a61ac6a026c"
+              },
+              {
+                "lines": [
+                  75,
+                  78
+                ],
+                "operator": "assert_eq!",
+                "claim": "deferred_count=1",
+                "range_sha256": "46f52300cb973f1cf5593f8570c9ae1e86ff7d7dc317852babfdb9058c236332"
+              },
+              {
+                "lines": [
+                  79,
+                  86
+                ],
+                "operator": "assert_eq!",
+                "claim": "terminal_run_count=0",
+                "range_sha256": "bb447082d69f1f02581671eff6e6c58836af4a45fe300c180b6461bcd69c11ea"
+              }
+            ],
+            "assertion_count": 5,
+            "documentation_decision": "原测试名称及断言足以描述实际检查；不新增重复说明。",
+            "execution": "not run"
+          },
+          {
+            "function": "ready_shaping_outcome_from_a_retired_generation_is_deferred",
+            "before_lines": [
+              89,
+              126
+            ],
+            "after_lines": [
+              89,
+              126
+            ],
+            "assertions": [
+              {
+                "lines": [
+                  113,
+                  119
+                ],
+                "operator": "assert!",
+                "claim": "Deferred + FontGenerationChanged error and receipt code",
+                "range_sha256": "da48eeb6c1beb8cc27bbfcc968e7f8c08ad07e6b189b5257f0880b9c1a73a22b"
+              },
+              {
+                "lines": [
+                  120,
+                  120
+                ],
+                "operator": "assert!",
+                "claim": "shaped_runs empty",
+                "range_sha256": "faba782eb728df3757873347144c377974eb1497e18047e9a6fb2797ad869768"
+              },
+              {
+                "lines": [
+                  121,
+                  121
+                ],
+                "operator": "assert_eq!",
+                "claim": "insert_count=0",
+                "range_sha256": "ea50a08e9d17928f066b58ca79faee9be6f4ee054c4a6b497a040a61ac6a026c"
+              },
+              {
+                "lines": [
+                  122,
+                  125
+                ],
+                "operator": "assert_eq!",
+                "claim": "deferred_count=1",
+                "range_sha256": "46f52300cb973f1cf5593f8570c9ae1e86ff7d7dc317852babfdb9058c236332"
+              }
+            ],
+            "assertion_count": 4,
+            "documentation_decision": "原测试名称及断言足以描述实际检查；不新增重复说明。",
+            "execution": "not run"
+          }
+        ],
+        "normal_tests": 6,
+        "ignored_tests": 0
+      },
+      {
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "source_sha256": "a26c7554fd88f6706cebd50c5e4f002fbe0e8363c388ac268445baddb480602f",
+        "tests": [
+          {
+            "function": "report_counts_actual_table_layout_phases_without_implying_a_budget",
+            "before_lines": [
+              3,
+              26
+            ],
+            "after_lines": [
+              3,
+              26
+            ],
+            "assertions": [
+              {
+                "lines": [
+                  14,
+                  14
+                ],
+                "operator": "assert_eq!",
+                "claim": "table_layout_attempt_count=1",
+                "range_sha256": "ecadd03f64377f29f4c7e85901b918e8c19b4e1bc5448968dcd0054683fb5d71"
+              },
+              {
+                "lines": [
+                  15,
+                  15
+                ],
+                "operator": "assert_eq!",
+                "claim": "table_source_byte_count=120",
+                "range_sha256": "5b1391ed056705bc469259aa9741dd8f66e664fbbccc5b95b0e0fa80b5c2dc39"
+              },
+              {
+                "lines": [
+                  16,
+                  16
+                ],
+                "operator": "assert_eq!",
+                "claim": "table_cell_count=3",
+                "range_sha256": "67e866d0781b8c8ee47707fc5c53dfd1166cbe32b98418f76b00e1aee59e0186"
+              },
+              {
+                "lines": [
+                  17,
+                  17
+                ],
+                "operator": "assert_eq!",
+                "claim": "max_table_cell_count=3",
+                "range_sha256": "7c40c2305f6ac62d3417079536e432e02aa8329b36a261975d5a46464125ec7a"
+              },
+              {
+                "lines": [
+                  18,
+                  18
+                ],
+                "operator": "assert_eq!",
+                "claim": "preferred_cell_layout_count=2",
+                "range_sha256": "937f73b3c91a9bc3ecf7c973344db898ca0e6ac85b6bb140d1149aabff4615b2"
+              },
+              {
+                "lines": [
+                  19,
+                  19
+                ],
+                "operator": "assert_eq!",
+                "claim": "preferred_cell_input_bytes=30",
+                "range_sha256": "cc536fe66ef71e3528aa40e93f837de5375d363cdce9571a9594d3adef419826"
+              },
+              {
+                "lines": [
+                  20,
+                  20
+                ],
+                "operator": "assert_eq!",
+                "claim": "final_cell_layout_count=1",
+                "range_sha256": "56cfef30c9a5bbb1a7a333851650cceb2b392b012e82ca6ce1a1f9e17ecb2766"
+              },
+              {
+                "lines": [
+                  21,
+                  21
+                ],
+                "operator": "assert_eq!",
+                "claim": "final_cell_input_bytes=10",
+                "range_sha256": "ad8d6146da3f751b639a986c91d6c0c1156b5be07c27b40f6870c7462010cd67"
+              },
+              {
+                "lines": [
+                  22,
+                  22
+                ],
+                "operator": "assert_eq!",
+                "claim": "column_track_count=2",
+                "range_sha256": "6d4a5f4065ea14588997714c01a898847de06e48044907477dce98802f50f878"
+              },
+              {
+                "lines": [
+                  23,
+                  23
+                ],
+                "operator": "assert_eq!",
+                "claim": "row_track_count=2",
+                "range_sha256": "6db0a18e5066d83f80e3dbfffba3082d294fb9f067b843d68eff0468b637c18d"
+              },
+              {
+                "lines": [
+                  24,
+                  24
+                ],
+                "operator": "assert_eq!",
+                "claim": "published_line_count=4",
+                "range_sha256": "bc3caec5ee4371f22d7730e9389aa3d7ee6ac515e0a6e201c6ec7d50f6c90e9c"
+              },
+              {
+                "lines": [
+                  25,
+                  25
+                ],
+                "operator": "assert_eq!",
+                "claim": "published_box_count=3",
+                "range_sha256": "a4e82b435ce9d6d8231f251f02f77eea2ea55918e231e87e711af75269c6f304"
+              }
+            ],
+            "assertion_count": 12,
+            "documentation_decision": "原测试名称及断言足以描述实际检查；不新增重复说明。",
+            "execution": "not run"
+          },
+          {
+            "function": "report_saturates_telemetry_counters",
+            "before_lines": [
+              28,
+              60
+            ],
+            "after_lines": [
+              28,
+              60
+            ],
+            "assertions": [
+              {
+                "lines": [
+                  51,
+                  51
+                ],
+                "operator": "assert_eq!",
+                "claim": "table_layout_attempt_count=MAX",
+                "range_sha256": "cf43163cbd6f604f02f09e122543709ab4eb66e53942ef1545ce999bef493951"
+              },
+              {
+                "lines": [
+                  52,
+                  52
+                ],
+                "operator": "assert_eq!",
+                "claim": "table_source_byte_count=MAX",
+                "range_sha256": "1daed8eb15f5b10d90eb62ff45e3cfbc0c40ab6b6b4f61923747890cd3c71b88"
+              },
+              {
+                "lines": [
+                  53,
+                  53
+                ],
+                "operator": "assert_eq!",
+                "claim": "table_cell_count=MAX",
+                "range_sha256": "e737b7da0903a5b342f4640bbbc4bbe8f6f8ae1d0fcade1fda1de58f65f8597d"
+              },
+              {
+                "lines": [
+                  54,
+                  54
+                ],
+                "operator": "assert_eq!",
+                "claim": "preferred_cell_layout_count=MAX",
+                "range_sha256": "220204c25c353dc4e9a8c1836837ef5b8893502765faaaf09dd23646f49eb528"
+              },
+              {
+                "lines": [
+                  55,
+                  55
+                ],
+                "operator": "assert_eq!",
+                "claim": "final_cell_layout_count=MAX",
+                "range_sha256": "08628421b4e44e31a8c62957650d693cec44aed3a14c450f69a705cd66729d65"
+              },
+              {
+                "lines": [
+                  56,
+                  56
+                ],
+                "operator": "assert_eq!",
+                "claim": "column_track_count=MAX",
+                "range_sha256": "86dbd7a339975bdb95b3b1e0968f88814b6b0017ef3ceac7f165ec5debfe4e57"
+              },
+              {
+                "lines": [
+                  57,
+                  57
+                ],
+                "operator": "assert_eq!",
+                "claim": "row_track_count=MAX",
+                "range_sha256": "3b1b5ecffb595620a192476f305b1eb3822742d1c5064204e0757f9ed1401686"
+              },
+              {
+                "lines": [
+                  58,
+                  58
+                ],
+                "operator": "assert_eq!",
+                "claim": "published_line_count=MAX",
+                "range_sha256": "ef935a858c43b690d76dc6d65904bcb6b73a5641a639c3eca04f5c6dc184b087"
+              },
+              {
+                "lines": [
+                  59,
+                  59
+                ],
+                "operator": "assert_eq!",
+                "claim": "published_box_count=MAX",
+                "range_sha256": "40c3fbca8b76db56820523288676d2112d84c287706cdb3ac88fc1de96310177"
+              }
+            ],
+            "assertion_count": 9,
+            "documentation_decision": "原测试名称及断言足以描述实际检查；不新增重复说明。",
+            "execution": "not run"
+          }
+        ],
+        "normal_tests": 2,
+        "ignored_tests": 0
+      }
+    ],
+    "normal_tests": 8,
+    "ignored_tests": 0,
+    "assertion_macros_reviewed": 40,
+    "executed": false,
+    "limits": [
+      "Fallback tests invoke report.record directly; the geometry error classification test does not execute session.reject_geometry or validate receipt fields.",
+      "Deferred and retired-generation tests directly inject outcome states into the session consumption path. The latter does not assert terminal_run_count=0 and neither performs real hot reload/concurrency.",
+      "Manual table phase test asserts all twelve fields after explicit recording calls; it does not execute rich-table layout, profiling capture or budget policy.",
+      "Saturation test seeds eleven accumulators and asserts only nine named results, not preferred_cell_input_bytes, final_cell_input_bytes or max_table_cell_count.",
+      "Read-only Python raw-scanner operand evaluation is scoped evidence; Rust test binaries and whole-workspace structural tests were not run."
+    ]
+  },
+  "traits_macros_registration_ffi": {
+    "built_in_derives": "Exact source derive attributes are preserved per-file; they generate standard Clone/Copy/Debug/Default/PartialEq support as actually listed, not local proc-macro definitions.",
+    "manual_trait": {
+      "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+      "before_lines": [
+        22,
+        37
+      ],
+      "trait": "Default for TextLayoutFallbackReport",
+      "effect": "Captures compiled Unicode snapshot identity and zeros seven counters."
+    },
+    "macro": {
+      "name": "crate::runtime_profile_counter!",
+      "definition_context": "profiling_macro",
+      "definition_lines": [
+        68,
+        94
+      ],
+      "caller_path": "zircon_runtime/src/text/layout_session/table_work.rs",
+      "before_lines": [
+        49,
+        107
+      ],
+      "calls": 12,
+      "contract": "Feature-enabled branch projects a Copy report to named f64 counters; macro and capture context can suppress observation. It is not budget admission or publication of layout geometry."
+    },
+    "registration": "Full exact4 source has no dynamic registry/FFI entry, unsafe block, extern ABI, Serde impl or Serde derive. Parent module and facade reexports are context-only.",
+    "test_attributes": "Eight preserved #[test] functions; no #[ignore]. Test modules mount by cfg(test)+path in the two implementation leaves."
+  },
+  "control_points": [
+    {
+      "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+      "before_lines": [
+        41,
+        44
+      ],
+      "decision": "FontGenerationChanged increments deferred count and returns before fallback total/category."
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+      "before_lines": [
+        45,
+        61
+      ],
+      "decision": "Other errors increment fallback total and one of five match categories using saturating_add."
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+      "before_lines": [
+        89,
+        96
+      ],
+      "decision": "Geometry count saturates; last receipt is overwritten from caller-provided values without validation."
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+      "before_lines": [
+        20,
+        46
+      ],
+      "decision": "Eleven telemetry accumulators saturate; max_table_cell_count uses max; no rejection/budget branch."
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+      "before_lines": [
+        49,
+        110
+      ],
+      "decision": "runtime-profiling feature selects twelve counter macro calls or Copy report discard; neither branch resets the owner's report."
+    }
+  ],
+  "tool_lifecycle": {
+    "receipts": [
+      {
+        "label": "discovery",
+        "initial_chunk": "accaf7",
+        "native_session": null,
+        "terminal_chunk": "accaf7",
+        "pid": null,
+        "exit_code": 0,
+        "result": "exit0; actual7 paths"
+      },
+      {
+        "label": "metadataA",
+        "initial_chunk": "1e3f5d",
+        "native_session": 17670,
+        "terminal_chunk": "5361e0",
+        "pid": 34568,
+        "exit_code": 0,
+        "result": "exit0; recursive owner/string intersection0 and7 pending",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "9634f75f9886601a57f9fe1b45478eed6e0a82f4fcd1348c4fa8970f0c6a98b1",
+          "command_characters": 3635,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 7000
+        }
+      },
+      {
+        "label": "fullB",
+        "initial_chunk": "82b9a8",
+        "native_session": 9542,
+        "terminal_chunk": "b7fc6d",
+        "pid": 33316,
+        "exit_code": 0,
+        "result": "exit0; complete448L/rawHEAD/filter/stage0; poll5f33ff was pending",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "e3d76091bc31f59155d82c8f45c0e49651e69f3d9f3b2df39882468a869f5ab5",
+          "command_characters": 3302,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 10000
+        }
+      },
+      {
+        "label": "searchC",
+        "initial_chunk": "97c31f",
+        "native_session": 93404,
+        "terminal_chunk": "21c520",
+        "pid": 2176,
+        "exit_code": 0,
+        "result": "exit0; actual calls/reexports/raw path and macro search",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "4c947d4fbbbe5ae7d714ee970e4cc6991479a2e95e11ecf15cde3d9b2843caaa",
+          "command_characters": 1773,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 7000
+        }
+      },
+      {
+        "label": "contextD",
+        "initial_chunk": "08b201",
+        "native_session": null,
+        "terminal_chunk": "08b201",
+        "pid": 19160,
+        "exit_code": 0,
+        "result": "exit0; all selected caller spans complete",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "ca18bdb00cec0ff3ad2dfe1dcbbacad9d83cf7eb2621e8151a09598d10852edd",
+          "command_characters": 1468,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 10000
+        }
+      },
+      {
+        "label": "contextE",
+        "initial_chunk": "577652",
+        "native_session": null,
+        "terminal_chunk": "577652",
+        "pid": 11212,
+        "exit_code": 0,
+        "result": "exit0 but11882-token output truncated; only complete leading selected contexts used; missing reader/mount recovered F/G",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "1ee3e7a87cbf442fcb158f535052570f0ebde41dbd3293e79e78c5f5b8be0156",
+          "command_characters": 1815,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 8000
+        }
+      },
+      {
+        "label": "guardF",
+        "initial_chunk": "83d427",
+        "native_session": null,
+        "terminal_chunk": "83d427",
+        "pid": 16832,
+        "exit_code": 0,
+        "result": "exit0; lexical_scan115/top_level108 complete and exact mount",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "efd3d0f0395afe6d7c015f94b3b24e56c288df65f20fdbf1e60b5e7806ab9001",
+          "command_characters": 992,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 6500
+        }
+      },
+      {
+        "label": "guardG",
+        "initial_chunk": "cb8497",
+        "native_session": null,
+        "terminal_chunk": "cb8497",
+        "pid": 30208,
+        "exit_code": 0,
+        "result": "exit0; production_lines53, naming mount13 complete, contracts20–34",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "002af565222293d463fddc43a7af6c78ca05e61f82857782f7c6bc08fafffd2f",
+          "command_characters": 837,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 4500
+        }
+      },
+      {
+        "label": "prewriteH",
+        "initial_chunk": "6514d9",
+        "native_session": 29486,
+        "terminal_chunk": "e7238a",
+        "pid": 35120,
+        "exit_code": 0,
+        "result": "exit0; exactgrant/4pins/rawHEAD/Git/standard/childabsent",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "667fca535d1139cd9848887f708242dc862c0a87800be9a664f5a48d00ae053f",
+          "command_characters": 2484,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 8000
+        }
+      },
+      {
+        "label": "skillsI",
+        "initial_chunk": "63dc94",
+        "native_session": null,
+        "terminal_chunk": "63dc94",
+        "pid": 35120,
+        "exit_code": 0,
+        "result": "exit0; relevant skills read; no local AGENTS",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "82f6722f987b8bd3faedd348f813242aecff5664d552754b1377cbe757acbe33",
+          "command_characters": 921,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 8500
+        }
+      },
+      {
+        "label": "guidanceJ",
+        "initial_chunk": "b5c271",
+        "native_session": null,
+        "terminal_chunk": "b5c271",
+        "pid": 452,
+        "exit_code": 0,
+        "result": "exit0; editing/checkout/config read; explicit reader search only parent classifier hit",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "272c5453039c784230698d30b9c417dfee34c3b397a2c5dbf203ea2998a0cdbc",
+          "command_characters": 1303,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 6000
+        }
+      },
+      {
+        "label": "sourceK",
+        "initial_chunk": "75ba0a",
+        "native_session": 88790,
+        "terminal_chunk": "b3ff25",
+        "pid": 12512,
+        "exit_code": 0,
+        "result": "exit0;16 insertions/47LF; initial3 references subsequently corrected byP",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "ae0568b183bd66d11abe0c132b3787bc95ac16ead7efb1a01c0e2334ec43264c",
+          "command_characters": 9793,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 7500
+        }
+      },
+      {
+        "label": "checkL",
+        "initial_chunk": "6c0a6b",
+        "native_session": 49413,
+        "terminal_chunk": "7f350c",
+        "pid": 13972,
+        "exit_code": 0,
+        "result": "exit0; initial4fmt/inverse/guards/diff; unchanged2tests fmt reused at final identical pins",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "9140b1905c2f0b037de3b9c62b20f3191b5bb0f3e3ca7d44e1ed413c4da95dfb",
+          "command_characters": 12054,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 6500
+        }
+      },
+      {
+        "label": "draftM",
+        "initial_chunk": "ae851a",
+        "native_session": null,
+        "terminal_chunk": "ae851a",
+        "pid": 7832,
+        "exit_code": 0,
+        "result": "exit0; sole draft34454B/ebbe5d3d885ef6077e77b86e801cf97deeea45e1d05a60986dbb9c4abc949f8e",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "778b7726c3d53b27a21d955e21522aedbc36bb2674b4445abcd0d18782887deb",
+          "command_characters": 19048,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 1200
+        }
+      },
+      {
+        "label": "correctionP",
+        "initial_chunk": "85275a",
+        "native_session": 70358,
+        "terminal_chunk": "b92e0c",
+        "pid": 22204,
+        "exit_code": 0,
+        "result": "exit0;3 references only within task-inserted comments; original source bytes unchanged",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "f33be82158802100e85a7b229f8760b309a6b4110c781d98cd2b65cc169da873",
+          "command_characters": 10905,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 7000
+        }
+      },
+      {
+        "label": "finalSourceQ",
+        "initial_chunk": "4ed52a",
+        "native_session": 21304,
+        "terminal_chunk": "75ed98",
+        "pid": 26292,
+        "exit_code": 0,
+        "result": "exit0; final4inverse/rawHEAD/guard/diff plus affected2fmt",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "45ddccc4780eb56fa8a104d68331c60a115da2db19a853e0e85a9d55002b1f4e",
+          "command_characters": 12318,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 6500
+        }
+      },
+      {
+        "label": "childRangeContextN",
+        "outer_cell": 38,
+        "initial_chunk": "b90c13",
+        "native_session": null,
+        "terminal_chunk": "b90c13",
+        "pid": 35892,
+        "exit_code": 0,
+        "result": "CAS same draft; complete actual range/insertion/context model;85362B/2530177d4eb8a317bf8d66ae4ec9145606cd60bd62c0c987a8585bdb1dd98083",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "e6b65bce62d4372deb08f3b8377dc45856ed51e9cea8e5ec212ea30127eea598",
+          "command_characters": 18958,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 1500
+        }
+      },
+      {
+        "label": "draftShapeO",
+        "outer_cell": 41,
+        "initial_chunk": "39127c",
+        "native_session": null,
+        "terminal_chunk": "39127c",
+        "pid": null,
+        "exit_code": 1,
+        "result": "Readonly draft shape script failed with IndexError on empty member sample; no write; no PID exposed",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "b61f7d00410e7153d8344101acb56b8b9a1327c939cc63ec0a3959374ce87e3a",
+          "command_characters": 896,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 2800
+        }
+      },
+      {
+        "label": "draftShapeO2",
+        "outer_cell": 42,
+        "initial_chunk": "ca959d",
+        "native_session": null,
+        "terminal_chunk": "ca959d",
+        "pid": 26292,
+        "exit_code": 0,
+        "result": "Corrected readonly sampling; actual draft SHA2530177.../85362B confirmed; no write",
+        "request": {
+          "tool": "exec_command",
+          "workdir": "E:/Git/ZirconEngine",
+          "command_utf8_sha256": "fb16355c386f9a1950676356451c2c59250506b3f586e39847e5975c23b9791a",
+          "command_characters": 926,
+          "yield_time_ms": 10000,
+          "max_output_tokens": 2800
+        }
+      },
+      {
+        "label": "childTestsR",
+        "outer_cell": 45,
+        "initial_chunk": "154c4c",
+        "native_session": null,
+        "terminal_chunk": "154c4c",
+        "pid": 2208,
+        "exit_code": 0,
+        "result": "CAS same child, verified actual8 tests/40 assertion macros;106211B/e2bed86e525f8089c640a3693249d1eb726330bcc38261ebe4e85fbf30260880; sources unchanged",
+        "request": {
+          "tool": "exec_command",
+          "interpreter": "C:/Users/HeJiahui/AppData/Local/Python/pythoncore-3.14-64/python.exe -B -X utf8",
+          "command_characters": 12322,
+          "target": "docs/plans/source-comments/reviews/R082.json",
+          "before_sha256": "2530177d4eb8a317bf8d66ae4ec9145606cd60bd62c0c987a8585bdb1dd98083",
+          "after_sha256": "e2bed86e525f8089c640a3693249d1eb726330bcc38261ebe4e85fbf30260880"
+        }
+      },
+      {
+        "label": "childReceiptS",
+        "outer_cell": 47,
+        "initial_chunk": "6b3d1d",
+        "native_session": null,
+        "terminal_chunk": "6b3d1d",
+        "pid": 13104,
+        "exit_code": 0,
+        "result": "CAS same child; preserved all actual receipts/failures through childTestsR;119709B/902cf2e03f649b59a2e74d97b163088c66b96933c4f69b98513ee88c4f959410; sources unchanged",
+        "request": {
+          "tool": "exec_command",
+          "interpreter": "C:/Users/HeJiahui/AppData/Local/Python/pythoncore-3.14-64/python.exe -B -X utf8",
+          "command_characters": 14262,
+          "target": "docs/plans/source-comments/reviews/R082.json",
+          "before_sha256": "e2bed86e525f8089c640a3693249d1eb726330bcc38261ebe4e85fbf30260880",
+          "after_sha256": "902cf2e03f649b59a2e74d97b163088c66b96933c4f69b98513ee88c4f959410"
+        }
+      }
+    ],
+    "failed_creation": {
+      "outer_cell": 2,
+      "stage": "CreateProcess before native creation",
+      "message": "exec_command failed: CreateProcess { message: \"Rejected(\\\"Failed to create unified exec process: wait for runner spawn_ready\\\")\" }",
+      "native_session": null,
+      "pid": null,
+      "exit_code": null,
+      "body_ran": false,
+      "write_occurred": false
+    },
+    "truncated_context": {
+      "label": "contextE",
+      "terminal_chunk": "577652",
+      "exit_code": 0,
+      "original_tokens": 11882,
+      "boundary": "Only five complete leading contexts used; reader/mount tail not treated as complete; recovered by guardF/G."
+    },
+    "finalization_receipt_policy": "This completed model precedes its own writer terminal and independent readback. Those subsequent actual receipts and final child bytes/SHA are reported to parent and bound in root main; this record does not invent future native IDs/exits.",
+    "unknown_other_batches": "R033 and R046 historical unknown-writer holds are outside this exact4 task and remain unresolved; no action on them.",
+    "all_listed_executed_requests_terminal": true,
+    "receipts_through": "childReceiptS; this final assembly writer and subsequent independent final readback are bound by actual external tool receipts sent to parent."
+  },
+  "validation": {
+    "source_final_check_receipt": "4ed52a/native21304->75ed98 exit0/PID26292",
+    "observed_HEAD": {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stdout": "89789b74beaef9bf83cb61f8c13236ca730a81c0\n",
+      "stderr": ""
+    },
+    "assignment_snapshot_sha256": "39a82e83fe0dbc03fde7ab18273bccc888516d07507f9f2c7149c6596fd4cc51",
+    "exact_grant_sha256": "68817093bfe3e376729a95093a15d7f88601b2450546ad449e9856ae1ebed2cd",
+    "source_rows": [
+      {
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "inverse_equals_grant_and_rawHEAD": true,
+        "comment_only_insertions": true,
+        "guard_operands": {
+          "terms": [
+            "editor",
+            "legacy",
+            "server"
+          ],
+          "before": [
+            0,
+            0,
+            0
+          ],
+          "current": [
+            0,
+            0,
+            0
+          ],
+          "new_comment_contribution": [
+            0,
+            0,
+            0
+          ],
+          "reference_snippets_equal": true
+        }
+      },
+      {
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "inverse_equals_grant_and_rawHEAD": true,
+        "comment_only_insertions": true,
+        "guard_operands": {
+          "terms": [
+            "editor",
+            "legacy",
+            "server"
+          ],
+          "before": [
+            0,
+            0,
+            0
+          ],
+          "current": [
+            0,
+            0,
+            0
+          ],
+          "new_comment_contribution": [
+            0,
+            0,
+            0
+          ],
+          "reference_snippets_equal": true
+        }
+      },
+      {
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "inverse_equals_grant_and_rawHEAD": true,
+        "comment_only_insertions": true,
+        "guard_operands": {
+          "terms": [
+            "editor",
+            "legacy",
+            "server"
+          ],
+          "before": [
+            0,
+            0,
+            0
+          ],
+          "current": [
+            0,
+            0,
+            0
+          ],
+          "new_comment_contribution": [
+            0,
+            0,
+            0
+          ],
+          "reference_snippets_equal": true
+        }
+      },
+      {
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "inverse_equals_grant_and_rawHEAD": true,
+        "comment_only_insertions": true,
+        "guard_operands": {
+          "terms": [
+            "editor",
+            "legacy",
+            "server"
+          ],
+          "before": [
+            0,
+            0,
+            0
+          ],
+          "current": [
+            0,
+            0,
+            0
+          ],
+          "new_comment_contribution": [
+            0,
+            0,
+            0
+          ],
+          "reference_snippets_equal": true
+        }
+      }
+    ],
+    "guard_pins": [
+      {
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/lexical_scan.rs",
+        "sha256": "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748"
+      },
+      {
+        "path": "zircon_runtime/src/tests/contracts/lexical_scan/production_lines.rs",
+        "sha256": "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b"
+      },
+      {
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/top_level.rs",
+        "sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450"
+      },
+      {
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/classifiers.rs",
+        "sha256": "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651"
+      }
+    ],
+    "rustfmt_version": {
+      "argv": [
+        "C:\\Users\\HeJiahui\\.cargo\\bin\\rustfmt.EXE",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)\n",
+      "stderr": ""
+    },
+    "affected_final_rustfmt": [
+      {
+        "argv": [
+          "C:\\Users\\HeJiahui\\.cargo\\bin\\rustfmt.EXE",
+          "--check",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true",
+          "zircon_runtime/src/text/layout_session/diagnostics.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "C:\\Users\\HeJiahui\\.cargo\\bin\\rustfmt.EXE",
+          "--check",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true",
+          "zircon_runtime/src/text/layout_session/table_work.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "unchanged_tests_rustfmt_reuse": {
+      "receipt": "6c0a6b/native49413->7f350c exit0/PID13972",
+      "reason": "Both test sources remain byte-identical to these passing exact-file checks.",
+      "commands": [
+        {
+          "argv": [
+            "C:\\Users\\HeJiahui\\.cargo\\bin\\rustfmt.EXE",
+            "--check",
+            "--edition",
+            "2021",
+            "--config",
+            "skip_children=true",
+            "zircon_runtime/src/text/layout_session/tests/diagnostics.rs"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "argv": [
+            "C:\\Users\\HeJiahui\\.cargo\\bin\\rustfmt.EXE",
+            "--check",
+            "--edition",
+            "2021",
+            "--config",
+            "skip_children=true",
+            "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        }
+      ]
+    },
+    "diff_check": {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--check",
+        "--",
+        "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "zircon_runtime/src/text/layout_session/table_work.rs",
+        "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/layout_session/diagnostics.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/layout_session/table_work.rs.\nThe file will have its original line endings in your working directory\n"
+    },
+    "cached": {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--cached",
+        "--name-only",
+        "--",
+        "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "zircon_runtime/src/text/layout_session/table_work.rs",
+        "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "status": {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "status",
+        "--short",
+        "--",
+        "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "zircon_runtime/src/text/layout_session/table_work.rs",
+        "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+      ],
+      "exit": 0,
+      "stdout": " M zircon_runtime/src/text/layout_session/diagnostics.rs\n M zircon_runtime/src/text/layout_session/table_work.rs\n",
+      "stderr": "warning: unable to access 'C:\\Users\\HeJiahui/.config/git/ignore': Permission denied\n"
+    },
+    "numstat": {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--numstat",
+        "--",
+        "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "zircon_runtime/src/text/layout_session/table_work.rs",
+        "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+      ],
+      "exit": 0,
+      "stdout": "28\t0\tzircon_runtime/src/text/layout_session/diagnostics.rs\n19\t0\tzircon_runtime/src/text/layout_session/table_work.rs\n",
+      "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/layout_session/diagnostics.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/layout_session/table_work.rs.\nThe file will have its original line endings in your working directory\n"
+    },
+    "index_lock_exists": false,
+    "guard_scope_limit": "Python evaluates the actual per-line scanner operands for exact4 inputs; whole repository Rust guard/test entry not run.",
+    "no_tests_executed": true,
+    "no_Cargo_build_generation": true,
+    "no_source_copy_helper_or_Git_mutation": true,
+    "warnings": "Git emitted future LF-to-CRLF conversion warnings and an external ignore-file access warning; actual checkout bytes remained LF-only. No permission/service/config change or workaround.",
+    "checks_reused_only_at_same_final_pins": true,
+    "source_metadata_location": "Per-file actual final pins/bytes/physical-lines/EOL and16 insertion byte records are in files; this section records final executed check outcomes without repeating those data."
+  },
+  "coverage_counts": {
+    "files": 4,
+    "objects": 35,
+    "members": 31,
+    "gapfree_blocks": 35,
+    "normal_tests": 8,
+    "ignored_tests": 0,
+    "reviewed_assertion_macros": 40,
+    "derive_attributes": 5,
+    "listed_derive_traits": 25,
+    "formal_scope": "exact4 only; lexical discovery is an index, not AST/call-resolution coverage"
+  }
+}

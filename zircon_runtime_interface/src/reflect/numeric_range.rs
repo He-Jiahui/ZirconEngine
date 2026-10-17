@@ -4,6 +4,10 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 /// 可跨宿主传递的数值编辑约束；这里只校验有限边界、边界顺序和正步长，字段类型兼容性由运行时注册端复核。
+///
+/// # serde 线格式
+///
+/// 序列化对象包含 `min`、`max`、`step`、`precision` 四项；反序列化拒绝未知字段，并经 [`Self::new`] 复用边界与步长校验。
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ReflectNumericRange {
     min: Option<f32>,

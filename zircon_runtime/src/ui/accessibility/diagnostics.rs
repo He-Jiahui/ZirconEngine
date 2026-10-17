@@ -1,3 +1,6 @@
+//! 为已构建的快照补充关系、动作与结构诊断，并统一快照自身的焦点字段。
+//! 重复 ID 的查询索引保留第一处下标；本模块不回写 Surface 的焦点或组件状态。
+
 use std::collections::{btree_map::Entry, BTreeMap};
 
 use zircon_runtime_interface::ui::{
@@ -17,6 +20,14 @@ mod indexed_focus_tests;
 #[path = "diagnostics/tests/index_dedup_tests.rs"]
 mod index_dedup_tests;
 
+/// 发布前校验节点关系、可用动作和焦点，并追加本轮诊断。
+///
+/// # 参数
+/// `snapshot` 是可变的局部输出；回调观察每批新增诊断数，也可能收到零。
+///
+/// # 返回与错误
+/// 回调失败立即返回同一错误；此时焦点可能已调整，而本轮诊断尚未追加。
+/// 构建调用方在失败时丢弃局部快照，不发布部分校验结果。
 pub(super) fn validate_snapshot_bounded<E>(
     snapshot: &mut UiAccessibilityTreeSnapshot,
     mut observe_diagnostics: impl FnMut(usize) -> Result<(), E>,
@@ -209,6 +220,8 @@ fn validate_relation_cycle(
     }
 }
 
+/// 先清空节点焦点标记；已请求的焦点失效时，按根顺序选首个可见且未禁用的节点。
+/// 只统一快照内的焦点字段，不改变 Surface 当前焦点。
 fn validate_focus(
     snapshot: &mut UiAccessibilityTreeSnapshot,
     nodes: &BTreeMap<UiNodeId, usize>,

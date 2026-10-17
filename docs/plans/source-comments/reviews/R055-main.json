@@ -1,0 +1,1263 @@
+{
+  "schema": "zircon-source-comment-main-review-v1",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch_id": "R055",
+  "owner": "root",
+  "status": "independently-reviewed-local-validated-managed-gates-open",
+  "formal_acceptance": false,
+  "scope": [
+    "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/mod.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/binding.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/error.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/limits.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/history.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/session.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/session/tests/cases.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/session/tests/committed_source.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/tests/history.rs"
+  ],
+  "records": [
+    {
+      "path": "docs/plans/source-comments/reviews/R055.json",
+      "sha256": "dbf52a59234238a6271d840b70d72a5c7aa080ee7fbaca45b094b01be7993fa4",
+      "bytes": 319950
+    },
+    {
+      "path": "docs/plans/source-comments/reviews/R055-amendment1.json",
+      "sha256": "8fc42f9c34e43348d62a1e3be9b39605484d0cf4d3655bd2a4458d4b5a992883",
+      "bytes": 6493
+    }
+  ],
+  "source_pins": [
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/mod.rs",
+      "before_sha256": "6242325106cdb0861f76b3af1c1b76fa2c209f9cf8584118dcf1070befeeb514",
+      "after_sha256": "72b29ecc73387b8f959a742c5cfafff53544292f25b44aeb7a3c8f1d7e8b35da",
+      "before_bytes": 364,
+      "after_bytes": 1015,
+      "before_lines": 14,
+      "after_lines": 23,
+      "changed": true,
+      "child_final_sha256": "72b29ecc73387b8f959a742c5cfafff53544292f25b44aeb7a3c8f1d7e8b35da",
+      "eol": {
+        "lf_only": 23,
+        "crlf": 0,
+        "bom": false
+      },
+      "original_bytes_inverse": true,
+      "insertions": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            9
+          ],
+          "byte_offset": 0,
+          "byte_length": 651,
+          "sha256": "fd023c9f7f6219c87c3390785edad0666375c2b35eb6868eb45876dd2d34eee0"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/binding.rs",
+      "before_sha256": "f175c0f0d8ffbfa4e8370fc2ae0bb195308de8d301b911c2949a2283a40260c4",
+      "after_sha256": "11bbecc9d4d4475ed2392e775a65ad3a45ede7f7c681f71b2e9e1877c9997c7f",
+      "before_bytes": 756,
+      "after_bytes": 1168,
+      "before_lines": 19,
+      "after_lines": 23,
+      "changed": true,
+      "child_final_sha256": "11bbecc9d4d4475ed2392e775a65ad3a45ede7f7c681f71b2e9e1877c9997c7f",
+      "eol": {
+        "lf_only": 23,
+        "crlf": 0,
+        "bom": false
+      },
+      "original_bytes_inverse": true,
+      "insertions": [
+        {
+          "before_line_boundary": 6,
+          "after_lines": [
+            7,
+            8
+          ],
+          "byte_offset": 230,
+          "byte_length": 172,
+          "sha256": "3981ac4d62468dc12d29aedf300c64e1ca03f8374e6aabbf26842c46f8d91cc3"
+        },
+        {
+          "before_line_boundary": 13,
+          "after_lines": [
+            16,
+            17
+          ],
+          "byte_offset": 710,
+          "byte_length": 240,
+          "sha256": "5180394d21e1f54736d920fda77a4078515ae7ada14d34416e208b7379d721c3"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/error.rs",
+      "before_sha256": "f660b657d2bfa7c9641243c6c2e1b3d38b58d85e38c222718db386e03584c8bd",
+      "after_sha256": "1f1c2ac91d2a858acb22d5603163a52d93a31df7525b437bd89e4f29f84db302",
+      "before_bytes": 3093,
+      "after_bytes": 3436,
+      "before_lines": 67,
+      "after_lines": 71,
+      "changed": true,
+      "child_final_sha256": "1f1c2ac91d2a858acb22d5603163a52d93a31df7525b437bd89e4f29f84db302",
+      "eol": {
+        "lf_only": 71,
+        "crlf": 0,
+        "bom": false
+      },
+      "original_bytes_inverse": true,
+      "insertions": [
+        {
+          "before_line_boundary": 2,
+          "after_lines": [
+            3,
+            6
+          ],
+          "byte_offset": 84,
+          "byte_length": 343,
+          "sha256": "fb55510614842be86d9849e5b55c29e43c1bb1bff5d54275b78d8a480bff8aed"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/limits.rs",
+      "before_sha256": "f505c560089519efaa5677b191d9540c3748509eef237de751c46288b3a087e5",
+      "after_sha256": "284c5b13ba19921befe3f014da9d47a6722abdf6ffd6f03b08000dabc9a65bf4",
+      "before_bytes": 1740,
+      "after_bytes": 2255,
+      "before_lines": 32,
+      "after_lines": 40,
+      "changed": true,
+      "child_final_sha256": "284c5b13ba19921befe3f014da9d47a6722abdf6ffd6f03b08000dabc9a65bf4",
+      "eol": {
+        "lf_only": 40,
+        "crlf": 0,
+        "bom": false
+      },
+      "original_bytes_inverse": true,
+      "insertions": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            3
+          ],
+          "byte_offset": 0,
+          "byte_length": 219,
+          "sha256": "485319f2dad2dc723305e80c5093cc44ec9f96bebd2d3127adec200b1acd0656"
+        },
+        {
+          "before_line_boundary": 17,
+          "after_lines": [
+            21,
+            25
+          ],
+          "byte_offset": 1095,
+          "byte_length": 296,
+          "sha256": "e622cf1f4d3be54e5d0088937e0029550e7ad2f79bc1a68f1bd72365dc198530"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/history.rs",
+      "before_sha256": "a526d1b7a999f48778b66cb4bc63c73fb6f9fe58597b69584ae377b10f0cbb6b",
+      "after_sha256": "e6de925c5ae63572f6b5f7b4b6a1b9d095bee1d9f0db6d46ee90df9cc578d84a",
+      "before_bytes": 6474,
+      "after_bytes": 9418,
+      "before_lines": 201,
+      "after_lines": 243,
+      "changed": true,
+      "child_final_sha256": "e6de925c5ae63572f6b5f7b4b6a1b9d095bee1d9f0db6d46ee90df9cc578d84a",
+      "eol": {
+        "lf_only": 243,
+        "crlf": 0,
+        "bom": false
+      },
+      "original_bytes_inverse": true,
+      "insertions": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            4
+          ],
+          "byte_offset": 0,
+          "byte_length": 288,
+          "sha256": "18dd11dcd18da63918f285e46a7ec1a59ea526d590f34a6f6689c73aaf3d47f7"
+        },
+        {
+          "before_line_boundary": 12,
+          "after_lines": [
+            17,
+            17
+          ],
+          "byte_offset": 695,
+          "byte_length": 74,
+          "sha256": "16b8843f8612619e3ff3f0210b46b4180eb1ecd02c55544ca4b2ab0f7f04ace8"
+        },
+        {
+          "before_line_boundary": 19,
+          "after_lines": [
+            25,
+            27
+          ],
+          "byte_offset": 1021,
+          "byte_length": 250,
+          "sha256": "326a0cadeb5e4f9c418c7659a21ccac01c3f1b2c148ecc72622aedc5b4f221f2"
+        },
+        {
+          "before_line_boundary": 27,
+          "after_lines": [
+            36,
+            40
+          ],
+          "byte_offset": 1492,
+          "byte_length": 337,
+          "sha256": "93afd4f8f717eec526d25b450887cd00dff35c7f16e8295a4c584a796993101e"
+        },
+        {
+          "before_line_boundary": 37,
+          "after_lines": [
+            51,
+            59
+          ],
+          "byte_offset": 2064,
+          "byte_length": 554,
+          "sha256": "b5af1bbedf4cf1879dc5ae1b7336ef2d60e608f6d8abebc1008daecfc1797803"
+        },
+        {
+          "before_line_boundary": 78,
+          "after_lines": [
+            101,
+            108
+          ],
+          "byte_offset": 4025,
+          "byte_length": 490,
+          "sha256": "c5e1a0e32896100592882663b2cd21832179b63837bf4166af05741874a3d69a"
+        },
+        {
+          "before_line_boundary": 105,
+          "after_lines": [
+            136,
+            136
+          ],
+          "byte_offset": 5562,
+          "byte_length": 104,
+          "sha256": "44007d1abd4ac8686d897247b3a38ca36af23cd82a567d559ac88ef806533f41"
+        },
+        {
+          "before_line_boundary": 139,
+          "after_lines": [
+            171,
+            176
+          ],
+          "byte_offset": 6569,
+          "byte_length": 355,
+          "sha256": "5bda9850820ab1d100accfcd4fdcc4f901d8c4c7d11e25278ccef0d8f34beb4c"
+        },
+        {
+          "before_line_boundary": 154,
+          "after_lines": [
+            192,
+            194
+          ],
+          "byte_offset": 7391,
+          "byte_length": 273,
+          "sha256": "ea4ebfbb8ce9160bc5b028b7fc7b77dc53ddb5273581a70093a151c2f2e94568"
+        },
+        {
+          "before_line_boundary": 177,
+          "after_lines": [
+            218,
+            219
+          ],
+          "byte_offset": 8396,
+          "byte_length": 219,
+          "sha256": "3fd8256c0e0cf167241d29996b13ea76b962ac16fea8f23303189cf2ac7ced78"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/session.rs",
+      "before_sha256": "1b9892b4066be6ed4de478a921304b3e5e197bb143c0ffed0ec1392366de3dc8",
+      "after_sha256": "7cf62c6617a9992ad71fb0fd8b8d59d8e89b5d6cea5c66448501ce5091da9c16",
+      "before_bytes": 16564,
+      "after_bytes": 24529,
+      "before_lines": 486,
+      "after_lines": 592,
+      "changed": true,
+      "child_final_sha256": "152b36d9ab106804dba86f632dd3d70c83d9b7f6caede0cc475ed2c4cc3a2c2d",
+      "eol": {
+        "lf_only": 592,
+        "crlf": 0,
+        "bom": false
+      },
+      "original_bytes_inverse": true,
+      "insertions": [
+        {
+          "before_line_boundary": 26,
+          "after_lines": [
+            27,
+            39
+          ],
+          "byte_offset": 824,
+          "byte_length": 780,
+          "sha256": "4e62fcf04e7801047d77a9cc4b8b3e6b0f05d043aa2e69f0cbae4162ce3a7e9c"
+        },
+        {
+          "before_line_boundary": 38,
+          "after_lines": [
+            52,
+            52
+          ],
+          "byte_offset": 2144,
+          "byte_length": 99,
+          "sha256": "c1d557491f35f7550b35bb7da28f0059802899f23e69585841a8db4c84a99563"
+        },
+        {
+          "before_line_boundary": 53,
+          "after_lines": [
+            68,
+            70
+          ],
+          "byte_offset": 2703,
+          "byte_length": 318,
+          "sha256": "7acdda31e7c80b209139b81630fea66ced5fd13f34896082cdf6d7a5da06030d"
+        },
+        {
+          "before_line_boundary": 66,
+          "after_lines": [
+            84,
+            92
+          ],
+          "byte_offset": 3426,
+          "byte_length": 578,
+          "sha256": "1bfe3982878452582e89b5ec057a841e7a0c7375b3a604f8810d9ddd867fe902"
+        },
+        {
+          "before_line_boundary": 79,
+          "after_lines": [
+            106,
+            111
+          ],
+          "byte_offset": 4448,
+          "byte_length": 493,
+          "sha256": "b8fcdd9193fcf1fa6360510a30cf56f9f006199011400753ec6741cd77268cdc"
+        },
+        {
+          "before_line_boundary": 116,
+          "after_lines": [
+            149,
+            163
+          ],
+          "byte_offset": 6314,
+          "byte_length": 1077,
+          "sha256": "5406319fe814a090847a9c4160c5568445fa2e1e8a911e09f6715ef247eb40e9"
+        },
+        {
+          "before_line_boundary": 163,
+          "after_lines": [
+            211,
+            220
+          ],
+          "byte_offset": 9028,
+          "byte_length": 767,
+          "sha256": "ff31223fa4d077671bb99a29b81505ed9e7f7491166011866dfca425dca177e7"
+        },
+        {
+          "before_line_boundary": 202,
+          "after_lines": [
+            260,
+            266
+          ],
+          "byte_offset": 11267,
+          "byte_length": 532,
+          "sha256": "ff7dfd30849ca501c850094dcf3c74c7868a550a76bcaca096dfcb978508a0b6"
+        },
+        {
+          "before_line_boundary": 235,
+          "after_lines": [
+            300,
+            300
+          ],
+          "byte_offset": 12974,
+          "byte_length": 85,
+          "sha256": "62d7733bd8aed13753445d451633a845a93b5e68753acaa87492b828343da29d"
+        },
+        {
+          "before_line_boundary": 242,
+          "after_lines": [
+            308,
+            308
+          ],
+          "byte_offset": 13288,
+          "byte_length": 93,
+          "sha256": "5617c38fe9ac846a6b9aed00766a1476bc836b60cc5d2c53eee2559ecff7ee51"
+        },
+        {
+          "before_line_boundary": 246,
+          "after_lines": [
+            313,
+            315
+          ],
+          "byte_offset": 13480,
+          "byte_length": 287,
+          "sha256": "b3c32904cf0cd6ff9ec0b5b6c57d8560081f1ccb287c9f29f60acd2043113133"
+        },
+        {
+          "before_line_boundary": 259,
+          "after_lines": [
+            329,
+            338
+          ],
+          "byte_offset": 14197,
+          "byte_length": 711,
+          "sha256": "b05e769fc2a7aec7e2b729278a554a33423ef731acbca72d04422c3f3518cd84"
+        },
+        {
+          "before_line_boundary": 310,
+          "after_lines": [
+            390,
+            399
+          ],
+          "byte_offset": 16854,
+          "byte_length": 699,
+          "sha256": "2897b5eacce5832a2a6c4120265795d26df00dbdafc4a7d5c7732ce4a1e991b8"
+        },
+        {
+          "before_line_boundary": 352,
+          "after_lines": [
+            442,
+            450
+          ],
+          "byte_offset": 18870,
+          "byte_length": 607,
+          "sha256": "d5e6084fc9a7ec70d17fb98df9f2822fe5b2a5296aabfdf93ba878bb7c36789b"
+        },
+        {
+          "before_line_boundary": 396,
+          "after_lines": [
+            495,
+            495
+          ],
+          "byte_offset": 20898,
+          "byte_length": 107,
+          "sha256": "98784b6026fd1d3bf337e7249359429ccc6359e6c92308318470b9f1294ea1ff"
+        },
+        {
+          "before_line_boundary": 418,
+          "after_lines": [
+            518,
+            518
+          ],
+          "byte_offset": 21675,
+          "byte_length": 117,
+          "sha256": "b3b40620b2fc8ada4fd164e26e180b20f3d6bb58d64cb8ac27b1d183a42c8615"
+        },
+        {
+          "before_line_boundary": 427,
+          "after_lines": [
+            528,
+            528
+          ],
+          "byte_offset": 22056,
+          "byte_length": 109,
+          "sha256": "1b2538980f0a5789e77a489d5c2d0ef4242002430f78b18bec6c8ab43c758de0"
+        },
+        {
+          "before_line_boundary": 442,
+          "after_lines": [
+            544,
+            544
+          ],
+          "byte_offset": 22610,
+          "byte_length": 126,
+          "sha256": "374b4f7774be5919d422a411b1e95198be94e2e38fd709c46fe1b62e4cd9df9d"
+        },
+        {
+          "before_line_boundary": 453,
+          "after_lines": [
+            556,
+            556
+          ],
+          "byte_offset": 23087,
+          "byte_length": 122,
+          "sha256": "777ae13936250d1abcd82d2c90944e3e9dcdbb16c37e57aa9c4e71e2ed2729a0"
+        },
+        {
+          "before_line_boundary": 462,
+          "after_lines": [
+            566,
+            568
+          ],
+          "byte_offset": 23489,
+          "byte_length": 258,
+          "sha256": "1a5a5be35734140690319fa66e031de0dacbd138e48001626612773f0e332948"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/session/tests/cases.rs",
+      "before_sha256": "a76e199824345d9a5a9fd44b14c123016ea8176e6707f5289f4a416e9886ac11",
+      "after_sha256": "aacb4947baa42fbfd84c12a667be28e80fedde8c621bd8cf5f7b71722de5287a",
+      "before_bytes": 10614,
+      "after_bytes": 10843,
+      "before_lines": 320,
+      "after_lines": 323,
+      "changed": true,
+      "child_final_sha256": "aacb4947baa42fbfd84c12a667be28e80fedde8c621bd8cf5f7b71722de5287a",
+      "eol": {
+        "lf_only": 323,
+        "crlf": 0,
+        "bom": false
+      },
+      "original_bytes_inverse": true,
+      "insertions": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            3
+          ],
+          "byte_offset": 0,
+          "byte_length": 229,
+          "sha256": "2f1db2d7d205beb10745e165298ebc512cf08acdeda9a7650a3e6a643ef433f1"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/session/tests/committed_source.rs",
+      "before_sha256": "7b9fe497c069b02f1a54c1990ba0ba3f11ee4f270f509810f58927f8922da186",
+      "after_sha256": "5d2f9c4a1975f89d0bae201b2cd43610801bf78db1455dc2d204e3264a65d0e4",
+      "before_bytes": 13772,
+      "after_bytes": 14004,
+      "before_lines": 392,
+      "after_lines": 395,
+      "changed": true,
+      "child_final_sha256": "5d2f9c4a1975f89d0bae201b2cd43610801bf78db1455dc2d204e3264a65d0e4",
+      "eol": {
+        "lf_only": 395,
+        "crlf": 0,
+        "bom": false
+      },
+      "original_bytes_inverse": true,
+      "insertions": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            3
+          ],
+          "byte_offset": 0,
+          "byte_length": 232,
+          "sha256": "1771f52c673293893363574936d34923fc54e539b680339ee6c104eacbf2fff3"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/tests/history.rs",
+      "before_sha256": "d999c9043613940e6e77b3dc4e3e6fc4c0297709ef79cd64723448b291d5ed16",
+      "after_sha256": "fdf11d8ceec9ba74ff2229342f2382a34bfa56e12387ea37eaca3a8054cea254",
+      "before_bytes": 3497,
+      "after_bytes": 3705,
+      "before_lines": 117,
+      "after_lines": 120,
+      "changed": true,
+      "child_final_sha256": "fdf11d8ceec9ba74ff2229342f2382a34bfa56e12387ea37eaca3a8054cea254",
+      "eol": {
+        "lf_only": 120,
+        "crlf": 0,
+        "bom": false
+      },
+      "original_bytes_inverse": true,
+      "insertions": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            3
+          ],
+          "byte_offset": 0,
+          "byte_length": 208,
+          "sha256": "565d8e77ab19f25362190c40a31da4ec6768f08a6ef8a0ba354324266126a10f"
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "sources": 9,
+    "changed": 9,
+    "unchanged": 0,
+    "before_bytes": 56874,
+    "after_bytes": 70373,
+    "before_lines": 1648,
+    "after_lines": 1830,
+    "objects": 132,
+    "functions": 65,
+    "members": 35,
+    "child_manual_semantic_regions": 106,
+    "reviewed_structural_gaps": 82,
+    "root_gapfree_semantic_blocks": 188,
+    "brace_index_auxiliary_only": 251,
+    "macro_invocations": 67,
+    "tests": 18,
+    "ignored_tests": 1,
+    "assertions": 61,
+    "child_insertion_groups": 39,
+    "root_amendment_insertions": 1,
+    "final_HEAD_insertion_groups": 39,
+    "added_lines": 182,
+    "added_bytes": 13499,
+    "deleted_original_bytes": 0
+  },
+  "independent_root_reads": [
+    {
+      "receipt": "82e90e exit0 PID22160",
+      "scope": "First five production files complete400lines plus nine pins; this read also handled unrelated R056 metadata, which is not R055 coverage."
+    },
+    {
+      "receipt": "4ead2d exit0",
+      "scope": "Whole child-final session591lines and context schema/mount facts."
+    },
+    {
+      "receipt": "ba38fd exit0",
+      "scope": "All three tests complete838lines; metadata counts/samples."
+    },
+    {
+      "receipt": "d88689 exit0",
+      "scope": "First6 child context entries, actual mapped manager spans verified as comment-only against original raw HEAD."
+    },
+    {
+      "receipt": "fbe013 exit0",
+      "scope": "Remaining6 context entries plus index220-250; first5 audit metadata except limits middle output elision."
+    },
+    {
+      "receipt": "7d3072 exit0",
+      "scope": "Recovered all13 limits objects and read all28 session objects."
+    },
+    {
+      "receipt": "9b98fd exit0",
+      "scope": "All37 session semantic regions and actual child store context paths."
+    },
+    {
+      "receipt": "146a05/native7096 -> 02d2ad exit0",
+      "scope": "Actual store140-153/session82-104/index230-250; all R059278lines are only separate context."
+    },
+    {
+      "receipt": "b4378a exit0",
+      "scope": "All18 cases objects/17 regions; exact grant independent read."
+    },
+    {
+      "receipt": "f8a36b exit0 PID31000",
+      "scope": "Amendment source readback, exact session fmt; all22 committed-source objects/20 regions."
+    },
+    {
+      "receipt": "2be642 exit0",
+      "scope": "All6 history-test objects/7 regions and child validation/receipts/traits visible; later unrelated R056 post output elided and not claimed read."
+    },
+    {
+      "receipt": "da4989 exit0",
+      "scope": "Every132 object/35 member/106 region before/child/final range validated; all82 structural gaps actually shown untruncated,188-block root partition confirmed."
+    }
+  ],
+  "per_file_conclusions": [
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/mod.rs",
+      "finding": "模块仅装配五个私有子模块并以crate-ui可见性再导出会话、错误和历史动作；实际path挂载已核，不建立注册表。树/Surface同步、属性事务与源存储分别保持所有权。",
+      "object_ids": [
+        "R055-F1-D1",
+        "R055-F1-D2",
+        "R055-F1-D3",
+        "R055-F1-D4",
+        "R055-F1-D5",
+        "R055-F1-D6",
+        "R055-F1-D7",
+        "R055-F1-D8"
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/binding.rs",
+      "finding": "绑定键拥有树ID并组合节点ID，BTree顺序不授予文档租约。绑定值复制文档ID/revision/source_epoch，两套版本都须由后续查询核对；相同树名本身不能识别Surface实例。",
+      "object_ids": [
+        "R055-F2-D1",
+        "R055-F2-D2",
+        "R055-F2-D3"
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/error.rs",
+      "finding": "五种会话错误与Store错误形成内容无关诊断码；From只包装Store。准入诊断映射十一原因，不执行准入、恢复或消除错误，原静态字符串逐字保留。",
+      "object_ids": [
+        "R055-F3-D1",
+        "R055-F3-D2",
+        "R055-F3-D3",
+        "R055-F3-D4",
+        "R055-F3-D5",
+        "R055-F3-D6",
+        "R055-F3-D7"
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/limits.rs",
+      "finding": "十一项MVP限制按数量或UTF-8字节分别投影至有界存储配置。const构造不打开文档或预留内存；数量、正文、替换、保留源、片段、平坦快照和租约预算不可混为总实际内存。",
+      "object_ids": [
+        "R055-F4-D1",
+        "R055-F4-D2",
+        "R055-F4-D3",
+        "R055-F4-D4",
+        "R055-F4-D5",
+        "R055-F4-D6",
+        "R055-F4-D7",
+        "R055-F4-D8",
+        "R055-F4-D9",
+        "R055-F4-D10",
+        "R055-F4-D11",
+        "R055-F4-D12",
+        "R055-F4-D13"
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/history.rs",
+      "finding": "历史条目拥有删入差量及前后交互；composition提交前交互按已提交旧源区间重建。transition先核当前文本范围及预期值，再checked_add并替换拥有状态、恢复交互和清composition；不发布文档。队列只在成功收尾推进：新Record退款并清redo，超过100条或1MiB差量则淘汰最旧undo；单条过大也可能刚入即淘汰，不拒绝文本编辑。预算只计字符串长度，不代表分配capacity/结构/整个会话总内存。",
+      "object_ids": [
+        "R055-F5-D1",
+        "R055-F5-D2",
+        "R055-F5-D3",
+        "R055-F5-D4",
+        "R055-F5-D5",
+        "R055-F5-D6",
+        "R055-F5-D7",
+        "R055-F5-D8",
+        "R055-F5-D9",
+        "R055-F5-D10",
+        "R055-F5-D11",
+        "R055-F5-D12",
+        "R055-F5-D13",
+        "R055-F5-D14",
+        "R055-F5-D15",
+        "R055-F5-D16",
+        "R055-F5-D17",
+        "R055-F5-D18",
+        "R055-F5-D19",
+        "R055-F5-D20",
+        "R055-F5-D21",
+        "R055-F5-D22",
+        "R055-F5-D23",
+        "R055-F5-D24",
+        "R055-F5-D25",
+        "R055-F5-D26",
+        "R055-F5-D27"
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/session.rs",
+      "finding": "会话拥有单个激活树/可选Surface身份、有界store及同owner键三映射。owner同步先比较组合身份，再按布局代数/节点数全扫或pending删除子集回收，close后更新观察。prepare_edit在激活树前先做epoch、替换切片、选区u32预检，之后树切换可能先清旧状态；成功返回独占store准备值，drop不发布编辑。prepare_history_commit的secure与Undo/Redo早返不证明绑定有效，普通路径才核版本并受1MiB差量限制。history_transition先核绑定，再检查存储与拥有状态两处正文，None仅无记录；提交前不移链。同步同epoch复用且不比较传入文本，preedit仅恢复有效UTF-8范围的提交源；不同epoch先close旧文档/历史再尝试open，失败不还原旧绑定。finish_edit信任调用方回执所属，Changed才推进历史，Unchanged仍刷新绑定并清错误，不推进Surface epoch。reset只关闭会话持有文档，外部租约可延长资源寿命；公开选区编码不执行UTF-8/字素校验。root补明保留计数范围两端必须字素边界，且查询可物化受预算索引但不发布编辑。",
+      "object_ids": [
+        "R055-F6-D1",
+        "R055-F6-D2",
+        "R055-F6-D3",
+        "R055-F6-D4",
+        "R055-F6-D5",
+        "R055-F6-D6",
+        "R055-F6-D7",
+        "R055-F6-D8",
+        "R055-F6-D9",
+        "R055-F6-D10",
+        "R055-F6-D11",
+        "R055-F6-D12",
+        "R055-F6-D13",
+        "R055-F6-D14",
+        "R055-F6-D15",
+        "R055-F6-D16",
+        "R055-F6-D17",
+        "R055-F6-D18",
+        "R055-F6-D19",
+        "R055-F6-D20",
+        "R055-F6-D21",
+        "R055-F6-D22",
+        "R055-F6-D23",
+        "R055-F6-D24",
+        "R055-F6-D25",
+        "R055-F6-D26",
+        "R055-F6-D27",
+        "R055-F6-D28"
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/session/tests/cases.rs",
+      "finding": "五个测试中一项ignored；另有旧实现和计时辅助。detach与epoch/Unicode、Changed/Unchanged政策按实际断言审查。raw源码guard切finish到binding，树键clone计数原/现均1，不证明运行时分配性能。ignored基准复用一次Changed回执，循环仅量收尾，并非反复编辑；比较bindings、历史长度、错误图不证明全部历史值相等，4 warmups/17 samples/16384 calls，p95公式取索引16，阈值90%。release-only只是ignore理由，不强制编译profile；本轮未运行。",
+      "object_ids": [
+        "R055-F7-D1",
+        "R055-F7-D2",
+        "R055-F7-D3",
+        "R055-F7-D4",
+        "R055-F7-D5",
+        "R055-F7-D6",
+        "R055-F7-D7",
+        "R055-F7-D8",
+        "R055-F7-D9",
+        "R055-F7-D10",
+        "R055-F7-D11",
+        "R055-F7-D12",
+        "R055-F7-D13",
+        "R055-F7-D14",
+        "R055-F7-D15",
+        "R055-F7-D16",
+        "R055-F7-D17",
+        "R055-F7-D18"
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/session/tests/committed_source.rs",
+      "finding": "十个测试、七个辅助覆盖有效/畸形UTF-8预编辑恢复、epoch重绑、2字节准入失败、Cancel/Escape/no-intent结束与无manager路径。Surface fixture明确拥有abc/InputField、焦点和IME owner；可见文本借用不得超出Surface。断言只限制widget事件及拒绝诊断前缀，并未要求全部notes/host请求为空；预编辑非法输入是受测值，不是生产函数故障。",
+      "object_ids": [
+        "R055-F8-D1",
+        "R055-F8-D2",
+        "R055-F8-D3",
+        "R055-F8-D4",
+        "R055-F8-D5",
+        "R055-F8-D6",
+        "R055-F8-D7",
+        "R055-F8-D8",
+        "R055-F8-D9",
+        "R055-F8-D10",
+        "R055-F8-D11",
+        "R055-F8-D12",
+        "R055-F8-D13",
+        "R055-F8-D14",
+        "R055-F8-D15",
+        "R055-F8-D16",
+        "R055-F8-D17",
+        "R055-F8-D18",
+        "R055-F8-D19",
+        "R055-F8-D20",
+        "R055-F8-D21",
+        "R055-F8-D22"
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/tests/history.rs",
+      "finding": "三个历史值测试及状态辅助只操作内存条目与队列，证明指定Undo/Redo正文/交互及100条和redo分叉退款；未提交文档/属性事务，未测1MiB极值、所有错误或并发场景。",
+      "object_ids": [
+        "R055-F9-D1",
+        "R055-F9-D2",
+        "R055-F9-D3",
+        "R055-F9-D4",
+        "R055-F9-D5",
+        "R055-F9-D6"
+      ]
+    }
+  ],
+  "call_contracts": [
+    "Manager owner reconciliation precedes editable text synchronization; Surface identity and tree identity are distinct.",
+    "History delta preparation precedes exclusive document preparation; joint transaction commits properties first, then infallible prepared document publication, then finish_edit is invoked. Prior preparation/tree-switch effects are not blanket rolled back.",
+    "Bound model gateway validates expected full document key; property-only equal committed text paths preserve source, genuine replacement uses Barrier and Surface epoch advancement at caller.",
+    "Grapheme query checks synchronized binding/revision and both grapheme endpoints; it can materialize budgeted flat/index residency even though it is not an edit."
+  ],
+  "context_evidence": [
+    {
+      "id": "ctx-manager",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "child_read_sha256": "e357e4fba530a7f71a87351cfbc4907f9e9a39679006fa1138974d001ca867b3",
+      "root_read_spans": [
+        [
+          1,
+          75
+        ],
+        [
+          150,
+          205
+        ],
+        [
+          320,
+          350
+        ]
+      ],
+      "current_sha256": "53f765ce0479c1f1775cc62e853251ca65fd7c1d94e1527f3305a761b71332f3",
+      "current_bytes": 31169,
+      "same_as_child_read": false,
+      "formal_coverage": false,
+      "note": "Original bounded context actually read by root. R057 manager/facade comment-only drift was separately inverse-mapped to raw HEAD; current pin is not a claim every context file was fully audited."
+    },
+    {
+      "id": "ctx-focus",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_focus_lifecycle.rs",
+      "child_read_sha256": "a588fc4882d4657df975c0f62a8b733e81f84daf199ad736fba742ce44c28c56",
+      "root_read_spans": [
+        [
+          1,
+          24
+        ]
+      ],
+      "current_sha256": "a588fc4882d4657df975c0f62a8b733e81f84daf199ad736fba742ce44c28c56",
+      "current_bytes": 1032,
+      "same_as_child_read": true,
+      "formal_coverage": false,
+      "note": "Original bounded context actually read by root. R057 manager/facade comment-only drift was separately inverse-mapped to raw HEAD; current pin is not a claim every context file was fully audited."
+    },
+    {
+      "id": "ctx-bound-updates",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates.rs",
+      "child_read_sha256": "d166948901f5580a11b165287dfa0879ac0ad5f06674bc4a146510e281c65b72",
+      "root_read_spans": [
+        [
+          25,
+          82
+        ],
+        [
+          405,
+          449
+        ]
+      ],
+      "current_sha256": "d166948901f5580a11b165287dfa0879ac0ad5f06674bc4a146510e281c65b72",
+      "current_bytes": 18584,
+      "same_as_child_read": true,
+      "formal_coverage": false,
+      "note": "Original bounded context actually read by root. R057 manager/facade comment-only drift was separately inverse-mapped to raw HEAD; current pin is not a claim every context file was fully audited."
+    },
+    {
+      "id": "ctx-model-transaction",
+      "path": "zircon_runtime/src/ui/dispatch/bound_text_model_updates/transaction.rs",
+      "child_read_sha256": "81ea4a02ba4fde662a470aeea09e26a0ec65360b728bd747962abfee997d82eb",
+      "root_read_spans": [
+        [
+          25,
+          230
+        ]
+      ],
+      "current_sha256": "81ea4a02ba4fde662a470aeea09e26a0ec65360b728bd747962abfee997d82eb",
+      "current_bytes": 9443,
+      "same_as_child_read": true,
+      "formal_coverage": false,
+      "note": "Original bounded context actually read by root. R057 manager/facade comment-only drift was separately inverse-mapped to raw HEAD; current pin is not a claim every context file was fully audited."
+    },
+    {
+      "id": "ctx-surface-editable",
+      "path": "zircon_runtime/src/ui/surface/input/editable_text.rs",
+      "child_read_sha256": "1c0c63010715a672334fb7716014b0c33bc60548619637a6131c8048a1a73542",
+      "root_read_spans": [
+        [
+          220,
+          278
+        ],
+        [
+          510,
+          558
+        ]
+      ],
+      "current_sha256": "1c0c63010715a672334fb7716014b0c33bc60548619637a6131c8048a1a73542",
+      "current_bytes": 20539,
+      "same_as_child_read": true,
+      "formal_coverage": false,
+      "note": "Original bounded context actually read by root. R057 manager/facade comment-only drift was separately inverse-mapped to raw HEAD; current pin is not a claim every context file was fully audited."
+    },
+    {
+      "id": "ctx-surface-mutation",
+      "path": "zircon_runtime/src/ui/surface/input/editable_text/mutation.rs",
+      "child_read_sha256": "0039fbc526673e343d5aaee861f129698cdbfb4796584150d4f0717063876264",
+      "root_read_spans": [
+        [
+          150,
+          282
+        ]
+      ],
+      "current_sha256": "0039fbc526673e343d5aaee861f129698cdbfb4796584150d4f0717063876264",
+      "current_bytes": 26603,
+      "same_as_child_read": true,
+      "formal_coverage": false,
+      "note": "Original bounded context actually read by root. R057 manager/facade comment-only drift was separately inverse-mapped to raw HEAD; current pin is not a claim every context file was fully audited."
+    },
+    {
+      "id": "ctx-store",
+      "path": "zircon_runtime/src/text/document/store.rs",
+      "child_read_sha256": "e42dcc888ea0d6741e8720e2411607a3ba57d2753918f718ab73aa4d1323e69c",
+      "root_read_spans": [
+        [
+          100,
+          145
+        ]
+      ],
+      "current_sha256": "e42dcc888ea0d6741e8720e2411607a3ba57d2753918f718ab73aa4d1323e69c",
+      "current_bytes": 27471,
+      "same_as_child_read": true,
+      "formal_coverage": false,
+      "note": "Original bounded context actually read by root. R057 manager/facade comment-only drift was separately inverse-mapped to raw HEAD; current pin is not a claim every context file was fully audited."
+    },
+    {
+      "id": "ctx-joint-transaction",
+      "path": "zircon_runtime/src/ui/surface/input/editable_text/document_transaction.rs",
+      "child_read_sha256": "b93844f343706143407c1dc736bc4e05c27d1dd579cc7edbbbd4b6393b0a454f",
+      "root_read_spans": [
+        [
+          1,
+          44
+        ]
+      ],
+      "current_sha256": "b93844f343706143407c1dc736bc4e05c27d1dd579cc7edbbbd4b6393b0a454f",
+      "current_bytes": 1752,
+      "same_as_child_read": true,
+      "formal_coverage": false,
+      "note": "Original bounded context actually read by root. R057 manager/facade comment-only drift was separately inverse-mapped to raw HEAD; current pin is not a claim every context file was fully audited."
+    },
+    {
+      "id": "ctx-ui-mount",
+      "path": "zircon_runtime/src/ui/mod.rs",
+      "child_read_sha256": "c2428bd042db5c94d637bfcaf9565872b468b6b81199a4607e33440a367f1b09",
+      "root_read_spans": [
+        [
+          30,
+          35
+        ]
+      ],
+      "current_sha256": "c2428bd042db5c94d637bfcaf9565872b468b6b81199a4607e33440a367f1b09",
+      "current_bytes": 1557,
+      "same_as_child_read": true,
+      "formal_coverage": false,
+      "note": "Original bounded context actually read by root. R057 manager/facade comment-only drift was separately inverse-mapped to raw HEAD; current pin is not a claim every context file was fully audited."
+    },
+    {
+      "id": "ctx-store-grapheme",
+      "path": "zircon_runtime/src/text/document/store.rs",
+      "child_read_sha256": "e42dcc888ea0d6741e8720e2411607a3ba57d2753918f718ab73aa4d1323e69c",
+      "root_read_spans": [
+        [
+          591,
+          640
+        ]
+      ],
+      "current_sha256": "e42dcc888ea0d6741e8720e2411607a3ba57d2753918f718ab73aa4d1323e69c",
+      "current_bytes": 27471,
+      "same_as_child_read": true,
+      "formal_coverage": false,
+      "note": "Original bounded context actually read by root. R057 manager/facade comment-only drift was separately inverse-mapped to raw HEAD; current pin is not a claim every context file was fully audited."
+    },
+    {
+      "id": "ctx-dispatch-mount",
+      "path": "zircon_runtime/src/ui/dispatch/mod.rs",
+      "child_read_sha256": "3a4728cf7a2c6cc39b94027fbb761e252ffbc7563069f56e915c86965aeae3cd",
+      "root_read_spans": [
+        [
+          1,
+          20
+        ]
+      ],
+      "current_sha256": "e67edf6c955fa4b3e71840eda052b05c41d90223048f38e79fa681c79c0b8d04",
+      "current_bytes": 1190,
+      "same_as_child_read": false,
+      "formal_coverage": false,
+      "note": "Original bounded context actually read by root. R057 manager/facade comment-only drift was separately inverse-mapped to raw HEAD; current pin is not a claim every context file was fully audited."
+    },
+    {
+      "id": "ctx-input-manager-mount",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/mod.rs",
+      "child_read_sha256": "36ea23fa813b41c17240ad9612e1a21c71d2b2daac5854ffa6258c83dee78b4b",
+      "root_read_spans": [
+        [
+          1,
+          34
+        ]
+      ],
+      "current_sha256": "34e208ea2439c40f95e9da698d4c02ab4e32ed1ad283675386e49d5fbf8250f1",
+      "current_bytes": 1575,
+      "same_as_child_read": false,
+      "formal_coverage": false,
+      "note": "Original bounded context actually read by root. R057 manager/facade comment-only drift was separately inverse-mapped to raw HEAD; current pin is not a claim every context file was fully audited."
+    }
+  ],
+  "traits_macros_dynamic_FFI": {
+    "explicit_traits": [
+      "Default for UiTextDocumentSession",
+      "From<TextDocumentStoreError> for UiTextDocumentSessionError"
+    ],
+    "derived_traits": [
+      {
+        "path": "text_document_session/binding.rs",
+        "traits": [
+          "Clone",
+          "Debug",
+          "PartialEq",
+          "Eq",
+          "PartialOrd",
+          "Ord"
+        ]
+      },
+      {
+        "path": "text_document_session/error.rs",
+        "traits": [
+          "Clone",
+          "Copy",
+          "Debug",
+          "PartialEq",
+          "Eq"
+        ]
+      },
+      {
+        "path": "text_document_session/history.rs",
+        "traits": [
+          "Clone",
+          "Copy",
+          "Debug",
+          "PartialEq",
+          "Eq",
+          "Default"
+        ]
+      }
+    ],
+    "macros": "All actual invocations and inputs indexed per file; derives/cfg/test/path/allow/ignore attrs preserve original bytes. One include_str source predicate evaluated statically.",
+    "serde": "No owned source declares Serialize/Deserialize or serde attributes; imported interface types and store remain context.",
+    "dynamic_registration": "No registry, inventory/linkme or callback-table registration found in full exact9 read and scoped search; parent callers are ordinary Rust calls.",
+    "FFI": "No extern/unsafe/foreign ABI function declaration in exact9 full read/search. This is not a claim about the entire runtime/store or external call closure."
+  },
+  "root_amendment": {
+    "path": "docs/plans/source-comments/reviews/R055-amendment1.json",
+    "reason": "输入范围采用UTF-8字节偏移，但存储索引仍要求两端恰好命中字素边界；仅写字节范围会漏掉必要约束。计数针对已提交旧源，调用不含待插入文本参数。",
+    "actual_final_source_sha256": "7cf62c6617a9992ad71fb0fd8b8d59d8e89b5d6cea5c66448501ce5091da9c16",
+    "existing_child_immutable": true
+  },
+  "test_boundary": "18 owned tests include1 ignored benchmark,61 assertion invocations; all source inspected, none executed. Raw structure assertion is not runtime allocation/performance proof. Ignore reason does not enforce release compilation. No broad Cargo/Python tests.",
+  "raw_source_contract": {
+    "source_consumer": "session/tests/cases.rs",
+    "slice_begin_count_before_after": [
+      1,
+      1
+    ],
+    "slice_end_count_before_after": [
+      1,
+      1
+    ],
+    "needle": "tree_id.clone()",
+    "before_count": 1,
+    "after_count": 1,
+    "new_comment_contribution": 0,
+    "external_search": "Child concrete API-name search tools exit1/no hits is bounded evidence only, not universal absence."
+  },
+  "issues": [],
+  "source_coverage_method": "132 declaration groups,35 members,106 manually chosen function regions were independently read;251 brace ranges are auxiliary only. Root separately reviewed82 remaining structural gaps and constructed188 gapfree before/final partitions with original byte fragment proofs. No AST completeness claim.",
+  "validation": {
+    "guard_summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "patch_sha256": "c9979ca8779c0a1e27b8cd1986ec17ecba71b855f0e0e7d03c660945c2239354",
+    "formatting": {
+      "mode": "reuse exact8 unchanged child-final pins plus actual exact1 root-amended fmt",
+      "child_exact9_receipt": {
+        "creation_chunk": "7b02ca",
+        "session_id": 19609,
+        "terminal_chunk": "e11c74",
+        "exit_code": 0,
+        "unchanged_current_files": 8
+      },
+      "root_amended_exact1": {
+        "receipt": "f8a36b exit0 PID31000",
+        "argv": [
+          "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+          "--check",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true",
+          "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/session.rs"
+        ],
+        "exit_code": 0,
+        "sha256": "7cf62c6617a9992ad71fb0fd8b8d59d8e89b5d6cea5c66448501ce5091da9c16"
+      },
+      "rerun": false
+    },
+    "diff_check_exit_code": 0,
+    "staged_exact_paths_empty": true
+  },
+  "native_lifecycle": {
+    "source_writers": [
+      {
+        "chunk_id": "14f328",
+        "exit_code": 0
+      },
+      {
+        "chunk_id": "774163",
+        "exit_code": 0
+      }
+    ],
+    "child_final_writer": {
+      "creation_chunk": "e7ddb5",
+      "session_id": 73905,
+      "terminal_chunk": "57648e",
+      "exit_code": 0,
+      "pid": 14752,
+      "independent_readback": "7391de exit0 PID32260"
+    },
+    "amendment_source_tool": {
+      "tool": "apply_patch",
+      "outer_cell": 122,
+      "terminal": "completed",
+      "response": {},
+      "native_exposed": false,
+      "readback": "f8a36b exit0 PID31000 exactonecomment inverse andfmt"
+    },
+    "amendment_record_writer": {
+      "chunk_id": "f8a36b",
+      "exit_code": 0,
+      "pid": 31000,
+      "independent_readback": "2be642 exit0 hash/metadata; later unrelated huge post output was truncated, not coverage"
+    },
+    "failed_child_finalizer": "62f70a/native53880 ->2097bf exit1 prewrite optional context field; corrected checker and later actual fixed child",
+    "failed_readback_checker": "642aeb exit1 bad ignore parameter regex; corrected7391de exit0, no source/child rewrite",
+    "other_child_failures": [
+      {
+        "chunk_id": "31e201",
+        "exit_code": 1,
+        "effect": "readonly regex escaped incorrectly; no subsequent preflight proof; corrected462e9b"
+      },
+      {
+        "chunk_id": "6a570a",
+        "exit_code": 1,
+        "effect": "readonly declaration index grouping produced None function name; no audit index counted; correctedef8a3b; all current object names/types/ranges validated manually and later by native JSON readback"
+      },
+      {
+        "chunk_id": "62f70a",
+        "session_id": 53880,
+        "terminal_chunk_id": "2097bf",
+        "exit_code": 1,
+        "effect": "Metadata finalization stopped before write: ctx-store-grapheme lacks optional bytes/lines fields. No source change; corrected checker validates actual raw SHA and supplied optional fields plus actual bounded span."
+      }
+    ],
+    "all_visible_batch_source_writers_closed": true,
+    "foreign_unknown_writers": "R033/R039/R046/R048 historical gaps stay separate and are not closed by this batch."
+  },
+  "acceptance": {
+    "phase_commit": false,
+    "attached_wecom_receipt": false,
+    "formal_acceptance": false,
+    "push": false,
+    "gates": [
+      "Designated Jenkins exact snapshot intake/applicable actual validation receipts.",
+      "Real index-lock attribution before initial staging/commit; preserve locks and foreign changes."
+    ]
+  },
+  "artifact_lifecycle": {
+    "registry": "E:\\cargo-targets\\zircon-local\\reports\\source-comments-20261014-01a13a81\\artifacts.json",
+    "source_copies": false,
+    "temporary_helpers": false,
+    "builds": false,
+    "deleted_files": 0,
+    "freed_bytes": 0,
+    "retained": "Canonical comments,fixedchild/amendment/main/post,necessary failures and pending managed receipts."
+  },
+  "created_at_utc": "2026-10-16T08:41:59.779481+00:00",
+  "record_writer": {
+    "pid": 9892,
+    "write_set": [
+      "docs/plans/source-comments/reviews/R055-main.json",
+      "docs/plans/source-comments/reviews/R055-post-validation.json"
+    ],
+    "terminal": "Actual native terminal must be reconciled separately; no self-predicted exit."
+  }
+}

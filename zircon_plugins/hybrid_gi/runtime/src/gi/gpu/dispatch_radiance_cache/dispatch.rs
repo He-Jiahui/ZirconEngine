@@ -41,8 +41,7 @@ pub(in crate::hybrid_gi::renderer) const RADIANCE_CACHE_DISPATCH_COUNTER_WORD_OF
     HYBRID_GI_RADIANCE_CACHE_MAX_RESIDENT_PROBE_COUNT;
 pub(in crate::hybrid_gi::renderer) const RADIANCE_CACHE_MARK_WORD_COUNT: usize =
     RADIANCE_CACHE_DISPATCH_COUNTER_WORD_OFFSET + RADIANCE_CACHE_DISPATCH_COUNTER_WORD_COUNT;
-const RADIANCE_CACHE_SHADER_SOURCE: &str =
-    include_str!("../../shaders/radiance_cache_update.wgsl");
+const RADIANCE_CACHE_SHADER_SOURCE: &str = include_str!("../../shaders/radiance_cache_update.wgsl");
 
 #[derive(Clone, Copy)]
 struct RadianceCacheUpdateStage {

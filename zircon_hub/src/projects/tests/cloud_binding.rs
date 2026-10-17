@@ -28,14 +28,12 @@ fn binding_preserves_distinct_local_and_remote_identity_and_rejects_invalid_ids(
             .unwrap(),
         binding
     );
-    assert!(
-        CloudProjectBinding::new(
-            scope,
-            "e:/projects/local".into(),
-            local,
-            "NOT-A-UUID".into(),
-            remote,
-        )
-        .is_none()
-    );
+    assert!(CloudProjectBinding::new(
+        scope,
+        "e:/projects/local".into(),
+        local,
+        "NOT-A-UUID".into(),
+        remote,
+    )
+    .is_none());
 }

@@ -46,10 +46,15 @@ fn is_windows_unsafe_component(component: &str) -> bool {
         .unwrap_or_default()
         .trim_end_matches([' ', '.']);
     let device_stem = device_stem.to_ascii_uppercase();
-    matches!(device_stem.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$")
-        || ["COM", "LPT"].iter().any(|prefix| {
-            device_stem.strip_prefix(prefix).is_some_and(|suffix| {
-                matches!(suffix, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³")
-            })
+    matches!(
+        device_stem.as_str(),
+        "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$"
+    ) || ["COM", "LPT"].iter().any(|prefix| {
+        device_stem.strip_prefix(prefix).is_some_and(|suffix| {
+            matches!(
+                suffix,
+                "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³"
+            )
         })
+    })
 }

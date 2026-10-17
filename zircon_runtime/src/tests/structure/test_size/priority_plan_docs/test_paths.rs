@@ -8,12 +8,12 @@ fn runtime_15_priority_plan_docs_test_paths_stay_current() {
         assert_priority_plan_doc_test_paths_exist(label, path, &source);
     }
 
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = runtime_index_with_output_archive_source();
-    let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_index = runtime_index_with_output_archive_source();
+    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 }
 
 fn assert_priority_plan_doc_test_paths_exist(label: &str, path: &str, source: &str) {

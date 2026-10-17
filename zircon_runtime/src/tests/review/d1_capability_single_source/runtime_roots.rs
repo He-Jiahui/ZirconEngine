@@ -93,18 +93,14 @@ const D1_RUNTIME_CAPABILITY_ROOTS: &[(&str, &str, &str, &str, &str)] = &[
     ),
     (
         "virtual_geometry",
-        include_str!(
-            "../../../../../zircon_plugins/virtual_geometry/runtime/src/capability.rs"
-        ),
+        include_str!("../../../../../zircon_plugins/virtual_geometry/runtime/src/capability.rs"),
         include_str!("../../../../../zircon_plugins/virtual_geometry/runtime/src/lib.rs"),
         include_str!("../../../../../zircon_plugins/virtual_geometry/runtime/src/plugin.rs"),
         include_str!("../../../../../zircon_plugins/virtual_geometry/plugin.toml"),
     ),
     (
         "zr_vm_language",
-        include_str!(
-            "../../../../../zircon_plugins/zr_vm_language/runtime/src/capability.rs"
-        ),
+        include_str!("../../../../../zircon_plugins/zr_vm_language/runtime/src/capability.rs"),
         include_str!("../../../../../zircon_plugins/zr_vm_language/runtime/src/lib.rs"),
         include_str!("../../../../../zircon_plugins/zr_vm_language/runtime/src/plugin.rs"),
         include_str!("../../../../../zircon_plugins/zr_vm_language/plugin.toml"),

@@ -40,7 +40,8 @@ fn optimization_batch_20260826en_editor129_capacity_preserves_full_alert() {
 
 #[test]
 fn optimization_batch_20260826en_editor129_alert_reserves_maximum_command_count() {
-    let source = include_str!("../../../../../retained/contract/paint/primitives/alert/commands.rs");
+    let source =
+        include_str!("../../../../../retained/contract/paint/primitives/alert/commands.rs");
     let builder_start = source.find("fn push_alert_primitive_commands").unwrap();
     let builder_end = source[builder_start..]
         .find("fn reserve_alert_command_capacity")

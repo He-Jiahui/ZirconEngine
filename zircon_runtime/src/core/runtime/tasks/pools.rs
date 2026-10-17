@@ -1,6 +1,6 @@
 use std::fmt;
 use std::sync::OnceLock;
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use super::pool::TaskPoolShutdownCensus;
 use super::{
@@ -73,6 +73,13 @@ impl TaskPools {
         let compute = TaskPool::try_new(
             TaskPoolDescriptor::compute().with_worker_threads(thread_counts.compute_threads),
         )?;
+        #[cfg(target_arch = "wasm32")]
+        let thread_counts = TaskPoolThreadCounts {
+            total_threads: 0,
+            io_threads: 0,
+            async_compute_threads: 0,
+            compute_threads: 0,
+        };
         Ok(Self {
             io,
             async_compute,

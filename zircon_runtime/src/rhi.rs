@@ -27,9 +27,9 @@ pub use zr_rhi::{
     UiSurfaceImageResourceTable, UiSurfaceImageUvRect, UiSurfacePresentOutcome,
     UiSurfacePresentStats, UiSurfacePresenter, UiSurfaceRect, UiSurfaceResolvedCommandKind,
     UiSurfaceStyle, UiSurfaceStyleHandle, UiSurfaceStyledPayload, UiSurfaceTextFace,
-    UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot, UiSurfaceTextLine, UiSurfaceTextRequest, UiSurfaceTextStyle,
-    VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat, VertexInputLayoutDesc,
-    VertexStepMode,
+    UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot, UiSurfaceTextLine, UiSurfaceTextRequest,
+    UiSurfaceTextStyle, VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat,
+    VertexInputLayoutDesc, VertexStepMode,
 };
 
 pub use zr_rhi::{
@@ -57,3 +57,5 @@ pub fn create_default_ui_surface_presenter(
 pub use zr_rhi::{
     UiSurfaceFramePixelFormat, UiSurfaceFrameReadback, UiSurfaceFrameReadbackRequest,
 };
+
+pub use zr_rhi::RenderDeviceFeature;

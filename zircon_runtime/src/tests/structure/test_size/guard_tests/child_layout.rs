@@ -98,12 +98,12 @@ fn runtime_15_priority_plan_docs_guard_children_are_folder_backed() {
         "priority_plan_docs/guard_tests.rs should remain a small nested route owner"
     );
 
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = runtime_index_with_output_archive_source();
-    let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_index = runtime_index_with_output_archive_source();
+    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     let current_owner_archive = priority_plan_doc_current_owner_archive_source();
     assert_child_owner_windows_name_full_inventory(

@@ -32,11 +32,29 @@ impl RetainedEditorHost {
         let mut asset_changes = Vec::with_capacity(asset_refresh_stream_capacity(
             self.asset_change_events.len(),
         ));
-        while can_drain_more(stream_started, asset_changes.len()) {
-            let Ok(change) = self.asset_change_events.try_recv() else {
-                break;
-            };
-            asset_changes.push(change);
+        let mut asset_generation_lagged = false;
+        while !self.asset_refresh_accumulator.asset_sequence_exhausted()
+            && can_drain_more(stream_started, asset_changes.len())
+        {
+            use zircon_runtime::asset::watch::AssetEventTryRecvError;
+            match self.asset_change_events.try_recv() {
+                Ok(change) => asset_changes.push(change),
+                Err(AssetEventTryRecvError::Lagged(_)) => {
+                    // The snapshot and resume cursor share Runtime's publication fence.
+                    // Refresh the editor from authoritative state before processing more deltas.
+                    let _snapshot = self.asset_change_events.resync();
+                    asset_changes.clear();
+                    asset_generation_lagged = true;
+                    break;
+                }
+                Err(AssetEventTryRecvError::SequenceExhausted) => {
+                    asset_generation_lagged |= self
+                        .asset_refresh_accumulator
+                        .latch_asset_sequence_exhaustion();
+                    break;
+                }
+                Err(AssetEventTryRecvError::Empty | AssetEventTryRecvError::Disconnected) => break,
+            }
         }
 
         let stream_started = Instant::now();
@@ -62,7 +80,7 @@ impl RetainedEditorHost {
         };
         let mut resource_changes =
             Vec::with_capacity(asset_refresh_stream_capacity(resource_pending_at_start));
-        let mut resource_generation_lagged = false;
+        let mut resource_generation_lagged = asset_generation_lagged;
         while !resource_stream_exhausted && can_drain_more(stream_started, resource_changes.len()) {
             match self.resource_change_events.try_recv() {
                 Ok(change) => resource_changes.push(change),
@@ -119,7 +137,7 @@ impl RetainedEditorHost {
                 editor_asset_changes,
                 resource_changes,
                 resource_generation_lagged,
-                active_scene_reload_requested: false,
+                active_scene_reload_requested: asset_generation_lagged,
             },
             asset_pending > 0 || editor_pending > 0 || resource_pending > 0,
         )

@@ -1,5 +1,9 @@
 //! Resource foundation layer: locators, ids, typed handles, registry, and runtime state.
 
+#[path = "active_generation.rs"]
+mod active_generation;
+#[path = "reload.rs"]
+mod reload;
 #[path = "data.rs"]
 mod data;
 #[path = "error.rs"]
@@ -32,6 +36,8 @@ mod snapshot;
 #[path = "tests/test_profile.rs"]
 mod test_profile;
 
+pub use active_generation::{ResourceActiveGeneration, ResourceActiveRow, ResourceActiveSnapshotError, ResourceActiveVersionKey};
+pub use reload::{ResourceSourceMember, ResourceSourceOutcome, ResourceSourcePublication};
 pub use data::ResourceData;
 pub use error::{ResourceRegistryError, ResourceResult};
 pub use event_stream::{

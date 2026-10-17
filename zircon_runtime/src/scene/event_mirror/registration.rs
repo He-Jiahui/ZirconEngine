@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use web_time::Instant;
 
 use serde::Serialize;
 

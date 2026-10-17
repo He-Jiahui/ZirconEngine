@@ -2,6 +2,7 @@ use thiserror::Error;
 
 /// Invalid data in the versioned shared recent-project registry.
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
+/// 最近项目 DTO 的结构、路径键、容量和版本校验错误。
 pub enum HubRecentProjectsError {
     #[error("a shared recent-project entry has an empty path")]
     EmptyProjectPath,

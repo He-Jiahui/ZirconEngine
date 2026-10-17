@@ -1,3 +1,8 @@
+//! 会话缓存隔离、字体集合代次、类型化成形回执及逐帧报告的直属测试。
+//!
+//! 人工构造的后端回执只检查消费与分类逻辑；这些测试不直接调用竖排守卫，
+//! 也不构成完整 UI 发布、并发字体更新或运行时会话租约的集成验收。
+
 use super::*;
 use crate::text::font::{
     font_handle_registry_report, runtime_default_font_database_for_test,

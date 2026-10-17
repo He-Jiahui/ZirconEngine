@@ -95,11 +95,20 @@ impl RetainedEditorHost {
         }
         // The normal host's controller reads current typed scene references;
         // the template runtime itself does not own project/world services.
-        let can_sync_content = self.runtime.content_browser_assets_to_sync()
-            .map(|targets| !targets.is_empty()).unwrap_or(false);
-        if let Err(error) = self.workbench_window_bridge.sync_content_browser_find_enabled(can_sync_content) {
-            emit_template_bridge_layout_error(self.runtime.context().logs(),
-                "editor_unreal_find_enabled", format!("Find enabled projection failed: {error}"));
+        let can_sync_content = self
+            .runtime
+            .content_browser_assets_to_sync()
+            .map(|targets| !targets.is_empty())
+            .unwrap_or(false);
+        if let Err(error) = self
+            .workbench_window_bridge
+            .sync_content_browser_find_enabled(can_sync_content)
+        {
+            emit_template_bridge_layout_error(
+                self.runtime.context().logs(),
+                "editor_unreal_find_enabled",
+                format!("Find enabled projection failed: {error}"),
+            );
         }
         let token_region_preferred = self.physical_shell_token_region_defaults();
         let geometry = {

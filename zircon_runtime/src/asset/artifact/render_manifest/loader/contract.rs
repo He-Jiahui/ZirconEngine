@@ -26,7 +26,7 @@ pub struct RenderArtifactBlockLoaderLimits {
 pub struct RenderArtifactBlockRequest {
     descriptor: RenderArtifactBlockDescriptor,
     priority: RenderArtifactIoPriority,
-    deadline: Option<std::time::Instant>,
+    deadline: Option<web_time::Instant>,
 }
 
 impl RenderArtifactBlockRequest {
@@ -41,7 +41,7 @@ impl RenderArtifactBlockRequest {
         }
     }
 
-    pub fn with_deadline(mut self, deadline: std::time::Instant) -> Self {
+    pub fn with_deadline(mut self, deadline: web_time::Instant) -> Self {
         self.deadline = Some(deadline);
         self
     }
@@ -54,7 +54,7 @@ impl RenderArtifactBlockRequest {
         self.priority
     }
 
-    pub fn deadline(&self) -> Option<std::time::Instant> {
+    pub fn deadline(&self) -> Option<web_time::Instant> {
         self.deadline
     }
 }

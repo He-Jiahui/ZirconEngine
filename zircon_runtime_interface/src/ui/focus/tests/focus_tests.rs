@@ -1,3 +1,7 @@
+//! 验证焦点链候选次序、两种原因的焦点环映射，以及导航配置的序列化默认值。
+//!
+//! 这里通过保留树和公共值类型断言静态契约，不创建 Runtime Surface，也不执行真实输入派发。
+
 use crate::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
     focus::{
@@ -8,6 +12,7 @@ use crate::ui::{
     tree::{UiTree, UiTreeNode},
 };
 
+/// 构造可聚焦的独立测试节点，设置输入模式和可选索引；节点插入树由各用例完成。
 fn focusable_node(node_id: u64, mode: UiFocusMode, tab_index: Option<UiTabIndex>) -> UiTreeNode {
     let mut node = UiTreeNode::new(
         UiNodeId::new(node_id),

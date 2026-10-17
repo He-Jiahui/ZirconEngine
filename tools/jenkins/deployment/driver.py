@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import shutil
+import time
 import uuid
 
 from tools.jenkins.contracts import JenkinsError, canonical_json, digest
@@ -68,6 +69,60 @@ def _plain(path: Path) -> None:
             if part.is_symlink() or getattr(attrs, "st_file_attributes", 0) & 0x400:
                 raise JenkinsError("driver_alias_rejected", "Driver paths must have a physical identity")
 
+
+
+_RENAME_RETRY_WINERRORS = {5, 32, 33}
+_RENAME_RETRY_SECONDS = 2.0
+_RENAME_RETRY_INTERVAL_SECONDS = 0.025
+
+
+def _validate_driver_publication_paths(staging: Path, destination: Path, expected_digest: str) -> None:
+    """Recheck that publication paths remain plain, physical siblings."""
+    snapshots = destination.parent
+    if (not snapshots.is_absolute() or staging.parent != snapshots or len(expected_digest) != 64
+            or any(ch not in "0123456789abcdef" for ch in expected_digest)
+            or destination.name != expected_digest
+            or len(staging.name) != len(".incoming-") + 32
+            or not staging.name.startswith(".incoming-")
+            or any(ch not in "0123456789abcdef" for ch in staging.name[len(".incoming-"):])):
+        raise JenkinsError("driver_publish_rejected", "Driver publication paths do not match the owned snapshot")
+    _plain(snapshots)
+    _plain(staging)
+    _plain(destination)
+    resolved_snapshots = snapshots.resolve()
+    if (staging.resolve().parent != resolved_snapshots
+            or destination.resolve().parent != resolved_snapshots):
+        raise JenkinsError("driver_publish_rejected", "Driver publication paths escaped their physical snapshot root")
+
+
+def _publish_driver_directory(staging: Path, destination: Path, expected_digest: str) -> dict:
+    """Publish one immutable snapshot, tolerating only brief Windows rename contention."""
+    deadline = time.monotonic() + _RENAME_RETRY_SECONDS
+    last_retryable_error = None
+    while True:
+        # Revalidate after every wait and immediately before each rename attempt.
+        _validate_driver_publication_paths(staging, destination, expected_digest)
+        if destination.exists():
+            return verify_driver(destination, expected_digest=expected_digest)
+        if not staging.is_dir():
+            raise JenkinsError("driver_publish_source_missing", "Driver staging directory vanished before publication")
+        if last_retryable_error is not None and time.monotonic() >= deadline:
+            raise last_retryable_error
+        try:
+            os.rename(staging, destination)
+        except OSError as exc:
+            # Re-enter through path validation before accepting a concurrent winner.
+            if destination.exists():
+                continue
+            if getattr(exc, "winerror", None) not in _RENAME_RETRY_WINERRORS:
+                raise
+            last_retryable_error = exc
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise
+            time.sleep(min(_RENAME_RETRY_INTERVAL_SECONDS, remaining))
+        else:
+            return verify_driver(destination, expected_digest=expected_digest)
 
 def _summary(root: Path, driver_digest: str) -> dict:
     return {"driverDigest": driver_digest, "root": str(root),
@@ -155,11 +210,7 @@ def seal_driver(repository_root: str | Path) -> dict:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(data)
         (staging / "driver-manifest.json").write_bytes(canonical_json(manifest) + b"\n")
-        try:
-            os.rename(staging, destination)
-        except FileExistsError:
-            verify_driver(destination, expected_digest=driver_digest)
-        return verify_driver(destination, expected_digest=driver_digest)
+        return _publish_driver_directory(staging, destination, driver_digest)
     finally:
         if staging.exists():
             _plain(staging)

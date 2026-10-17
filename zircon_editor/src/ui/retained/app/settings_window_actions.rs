@@ -22,7 +22,13 @@ impl RetainedEditorHost {
             return;
         };
         let (current_contribution_generation, current_enabled_capabilities) =
-            (match self.runtime.extension_projection_revision() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
+            (match self.runtime.extension_projection_revision() {
+                Ok(value) => value,
+                Err(error) => {
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            });
         let current_locale = self.runtime.context().i18n().active_locale();
         let directory_is_stale = revision.contribution_generation
             != current_contribution_generation
@@ -31,7 +37,13 @@ impl RetainedEditorHost {
         let values_are_stale = revision.settings_generation != current_settings_generation;
 
         let refreshed = if directory_is_stale {
-            let projection = (match self.runtime.capture_settings_window_projection() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
+            let projection = (match self.runtime.capture_settings_window_projection() {
+                Ok(value) => value,
+                Err(error) => {
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            });
             let selected_category_id = WorkbenchSettingsOpenState::retain_category_id(
                 &projection,
                 &revision.selected_category_id,
@@ -80,7 +92,13 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn open_workbench_settings_window(&mut self) {
-        let projection = (match self.runtime.capture_settings_window_projection() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
+        let projection = (match self.runtime.capture_settings_window_projection() {
+            Ok(value) => value,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        });
         let selected_category_id = WorkbenchSettingsOpenState::initial_category_id(&projection);
         let values = match self
             .runtime

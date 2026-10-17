@@ -101,7 +101,7 @@ fn shader06_p0_9_polyhaven_2k_warm_cache_latency_gate() {
         AssetUri::parse("res://environment/polyhaven_lakes_2k.hdr")
             .expect("profile URI must parse"),
         source_bytes,
-        "environment_ibl = true\nenvironment_ibl_face_size = 16\nenvironment_ibl_pmrem_face_size = 8"
+        "environment_ibl = true\nenvironment_ibl_face_size = 64\nenvironment_ibl_pmrem_face_size = 64"
             .parse()
             .expect("profile settings must parse"),
     );
@@ -109,8 +109,8 @@ fn shader06_p0_9_polyhaven_2k_warm_cache_latency_gate() {
         .duration_since(UNIX_EPOCH)
         .expect("system clock must follow the Unix epoch")
         .as_nanos();
-    let cache_root = PathBuf::from(format!(
-        "E:/zircon-profiles/shader06-p0-9-warm-cache-current-source-{}-{nonce}",
+    let cache_root = std::env::temp_dir().join(format!(
+        "zircon-shader06-p0-9-warm-cache-current-source-{}-{nonce}",
         std::process::id()
     ));
 
@@ -161,4 +161,82 @@ fn percentile_us(samples: &[u128], percentile: usize) -> u128 {
     sorted.sort_unstable();
     let rank = (sorted.len() * percentile).div_ceil(100);
     sorted[rank.saturating_sub(1)]
+}
+
+#[test]
+fn cold_builder_preserves_accumulated_source_identity_time() {
+    use super::super::{
+        build_source_cubemap_irradiance_cube, decode_texture_source_image_metadata,
+        decode_texture_source_image_rgba32f, prepare_environment_ibl_source_with_builder,
+        rebuild_source_cubemap_from_source_mips_with_pmrem_layout_and_timing,
+        sample_equirect_bilinear, source_image_identity, EnvironmentIblBundleProbeState,
+        EnvironmentIblSourceStagingTiming, SourceCubemapMipChain, SourceCubemapPrefilterQuality,
+    };
+    use std::io::Cursor;
+    use std::time::Duration;
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system clock should follow the Unix epoch")
+        .as_nanos();
+    let cache_root = std::env::temp_dir().join(format!(
+        "zircon-environment-ibl-timing-uncommitted-{}-{nonce}",
+        std::process::id(),
+    ));
+    assert!(!cache_root.exists());
+    let mut bytes = Cursor::new(Vec::new());
+    image::DynamicImage::new_rgba8(8, 4)
+        .write_to(&mut bytes, image::ImageFormat::Png)
+        .expect("in-memory source PNG must encode");
+    let context = AssetImportContext::new(
+        cache_root.join("source.png"),
+        AssetUri::parse("res://environment/source.png").expect("source URI must parse"),
+        bytes.into_inner(),
+        "environment_ibl = true\nenvironment_ibl_face_size = 64\nenvironment_ibl_pmrem_face_size = 64"
+            .parse().expect("IBL settings must parse"),
+    );
+    let metadata =
+        decode_texture_source_image_metadata(&context).expect("source metadata must decode");
+    let source_image = source_image_identity(metadata);
+    let image = decode_texture_source_image_rgba32f(&context).expect("source image must decode");
+    let timing = EnvironmentIblSourceStagingTiming {
+        source_identity: Duration::MAX,
+        ..Default::default()
+    };
+    let prepared = prepare_environment_ibl_source_with_builder(
+        &context,
+        &cache_root,
+        image,
+        source_image,
+        timing,
+        EnvironmentIblBundleProbeState::AlreadyMissed,
+        None,
+        |image, face_size, pmrem_face_size, pmrem_mip_count| {
+            SourceCubemapMipChain::from_equirect_with_pmrem_layout_and_timing(
+                face_size,
+                pmrem_face_size,
+                pmrem_mip_count,
+                SourceCubemapPrefilterQuality::Normal,
+                |u, v| sample_equirect_bilinear(image, u, v),
+            )
+        },
+        |face_size, mip_count, source_texels, pmrem_face_size, pmrem_mip_count| {
+            rebuild_source_cubemap_from_source_mips_with_pmrem_layout_and_timing(
+                face_size,
+                mip_count,
+                source_texels,
+                pmrem_face_size,
+                pmrem_mip_count,
+                SourceCubemapPrefilterQuality::Normal,
+            )
+        },
+        build_source_cubemap_irradiance_cube,
+    )
+    .expect("cold builder must prepare real IBL writes");
+    assert_eq!(
+        prepared.report.status(),
+        EnvironmentIblSourceStagingStatus::Written
+    );
+    assert_eq!(prepared.report.timing().source_identity(), Duration::MAX);
+    assert!(!prepared.writes.is_empty());
+    assert!(!cache_root.exists());
 }

@@ -85,7 +85,9 @@ fn root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_o
             ShellFrame::new(document.x, document.y, 800.0, document.height),
         );
 
-        let surface_size = host.viewport_toolbar_surface_size("editor.scene#1").expect("viewport toolbar surface projection");
+        let surface_size = host
+            .viewport_toolbar_surface_size("editor.scene#1")
+            .expect("viewport toolbar surface projection");
         assert!(
             surface_size.width > 1000.0,
             "shared projection width should outrank stale document geometry"

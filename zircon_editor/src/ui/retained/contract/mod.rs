@@ -23,10 +23,10 @@ mod menu_popup_metrics;
 mod native_keyboard;
 #[path = "pointer.rs"]
 mod native_pointer;
-#[path = "normal_capture_redraw_trace.rs"]
-pub(in crate::ui::retained_host) mod normal_capture_redraw_trace;
 #[path = "native_popup_dismiss.rs"]
 mod native_popup_dismiss;
+#[path = "normal_capture_redraw_trace.rs"]
+pub(in crate::ui::retained_host) mod normal_capture_redraw_trace;
 #[path = "paint_asset_deletion_blocker.rs"]
 mod paint_asset_deletion_blocker;
 #[path = "paint_close_prompt.rs"]

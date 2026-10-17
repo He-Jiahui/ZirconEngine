@@ -17,7 +17,7 @@ doc_type: deployment-specification
 
 当前普通管理与封存输入复用的运行证据见[2026-10-12 记录](../docs/plans/jenkins-session-coordination/01/2026-10-12-ordinary-sealed-input-reuse.md)。
 
-普通管理入口为 `tools/dev/submit-jenkins-management.ps1`，通过 `zircon-management` 提交分支、工作树、补丁、合并准备、文件生成和 Cargo 验证。请求必须携带原会话授权、路径范围和唯一请求身份；提交、推送及消息仍分别需要动作授权。任务完成后检查本任务临时缓存，`zircon-scheduled-cleanup` 每半小时执行受管清理；活跃产物、可复用热缓存和归属不明对象保留。
+普通管理入口为 `tools/dev/submit-jenkins-management.ps1`，通过 `zircon-management` 提交分支、工作树、补丁、合并准备、文件生成和 Cargo 验证。普通本地补丁、编译和测试请求自动登记，无需逐会话申请许可；请求保留明确路径范围、唯一身份、源码哈希和实际验证回执。提交、推送及消息按已有动作授权处理。任务完成后检查本任务临时缓存，`zircon-scheduled-cleanup` 每半小时执行受管清理；活跃产物、可复用热缓存和归属不明对象保留。
 
 构建产物使用真实驱动器根级 `D/E/F:\cargo-targets`，默认 `D:\cargo-targets`；显式指定后不自动换盘。构建命名空间为 `<buildRoot>\zircon-local\zircon-jenkins`。历史执行仍缺少可信终止证据的保护继续保留，历史回执保持原驱动身份。以下架构与阶段说明保留其原验收范围；服务在线不等于全部 M0–M8 门槛通过。旧协调器持续退役。
 

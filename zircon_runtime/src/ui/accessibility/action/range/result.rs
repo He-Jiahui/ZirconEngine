@@ -75,7 +75,7 @@ fn finish_unchanged_adjust_value(
 ) -> UiInputDispatchResult {
     let mut result = finish_handled(result, target, "accessibility.adjust_value");
     result.diagnostics.notes.push(format!(
-        "accessibility_property_changed:{}:{:?}",
+        "accessibility_property_unchanged:{}:{:?}",
         report.property, report.invalidation.dirty
     ));
     append_binding_report_diagnostic(&mut result, &report);

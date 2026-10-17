@@ -68,7 +68,9 @@ impl RetainedEditorHost {
                     .enter()
                     .map_err(EditorError::from)
                     .and_then(|manager| {
-                        manager.promote_ui_asset_editor_selected_component_to_external_widget(instance_id)
+                        manager.promote_ui_asset_editor_selected_component_to_external_widget(
+                            instance_id,
+                        )
                     }),
             ),
             "canvas.wrap.vertical_box" => UiAssetActionDispatch::handled(

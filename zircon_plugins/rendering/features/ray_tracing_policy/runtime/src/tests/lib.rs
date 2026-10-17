@@ -1,5 +1,5 @@
 use super::*;
-#[path = "../../../../test_support/frame_smoke.rs"]
+#[path = "../../../../../test_support/frame_smoke.rs"]
 mod frame_smoke;
 
 #[test]

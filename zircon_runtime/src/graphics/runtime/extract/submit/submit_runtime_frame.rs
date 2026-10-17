@@ -1,6 +1,6 @@
 //! 已组装的运行时帧仍经过视口代际、图缓存和提交结算，渲染前补齐侧带数据。
-use std::sync::MutexGuard;
-use std::time::Instant;
+use std::sync::{Arc, MutexGuard};
+use web_time::Instant;
 
 use crate::core::framework::render::{RenderFrameworkError, RenderViewportHandle};
 
@@ -106,6 +106,21 @@ fn submit_selected_runtime_frame(
     apply_submission_output_target_to_runtime_frame(frame, &context);
     apply_submission_visibility_to_runtime_frame(frame, &context);
     let mut state = framework.lock_state();
+    let reserved_generation = state.renderer.next_frame_generation();
+    context.set_virtual_geometry_readback_scope(
+        (reserved_generation == context.predicted_generation())
+            .then(|| {
+                state.viewports.get(&viewport).and_then(|record| {
+                    record.virtual_geometry_readback_scope(
+                        framework.virtual_geometry_readback_budget(),
+                        viewport,
+                        reserved_generation,
+                    )
+                })
+            })
+            .flatten(),
+    );
+
     let mip_streaming_residency_budget = state.memory_budget.persistent_texture_bytes();
     state
         .renderer
@@ -129,7 +144,16 @@ fn submit_selected_runtime_frame(
         }
     };
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
+    context.set_virtual_geometry_prepared_cpu_frame(prepared.virtual_geometry_prepared_cpu_frame());
     attach_prepared_sidebands_to_runtime_frame(frame, prepared);
+    frame.virtual_geometry_readback_scope = context.virtual_geometry_readback_scope();
+    frame.virtual_geometry_execution_inputs = context.virtual_geometry_execution_inputs();
+    frame.virtual_geometry_indexed_sources = context.virtual_geometry_indexed_sources().to_vec();
+    frame.virtual_geometry_execution_data =
+        super::build_virtual_geometry_debug_snapshot::build_virtual_geometry_execution_data(
+            &context,
+        )
+        .map(Arc::new);
     state
         .renderer
         .set_global_material_mip_bias(context.global_material_mip_bias());
@@ -216,6 +240,22 @@ fn submit_selected_runtime_frame(
         Some(frame_generation),
         None,
     );
+    {
+        let super::super::super::render_framework_state::RenderFrameworkState {
+            renderer,
+            viewports,
+            ..
+        } = &mut *state;
+        if let Some(record) = viewports.get_mut(&viewport) {
+            record.admit_virtual_geometry_readbacks(
+                renderer,
+                viewport,
+                context.virtual_geometry_readback_scope().as_ref(),
+                context.camera_history_key(),
+                frame_generation,
+            );
+        }
+    }
     let runtime_feedback = {
         crate::profile_scope!("runtime", "render_framework", "collect_runtime_feedback");
         collect_runtime_feedback(

@@ -49,6 +49,23 @@ fn sample_csv(samples: &[u128]) -> String {
 }
 
 #[test]
+fn entity_path_rejects_embedded_hierarchy_separators() {
+    for segment in ["Root/Child", "/Root", "Root/", "/"] {
+        assert!(
+            EntityPath::new(vec![segment.to_owned()]).is_err(),
+            "{segment:?}"
+        );
+    }
+}
+
+#[test]
+fn entity_path_constructed_segments_roundtrip_text() {
+    let path = EntityPath::new(vec!["Root".to_owned(), "角色#17".to_owned()]).unwrap();
+    assert_eq!(path.as_str(), "Root/角色#17");
+    assert_eq!(EntityPath::parse(path.as_str()).unwrap(), path);
+}
+
+#[test]
 fn runtime_hotpath_batch_runtime340_341_entity_paths_preserve_results() {
     for path in ["root/child", " /root// child/ ", "", " / "] {
         let baseline = legacy_parse(path);
@@ -68,6 +85,8 @@ fn runtime_hotpath_batch_runtime340_341_entity_path_reserves_segments() {
     assert!(production.contains("Vec::with_capacity(path.len().saturating_div(2).max(1))"));
 }
 
+/// 比较固定长路径的成对耗时样本，默认忽略；结构谓词与语义断言位于上方独立测试。
+/// 输出的预留次数是本基准写死的说明值，并非运行时分配计数。
 #[test]
 #[ignore = "managed Windows release performance evidence"]
 fn runtime_hotpath_batch_runtime340_341_preallocated_entity_path_bench() {

@@ -33,7 +33,8 @@ impl NetDownloadChunk {
         }
     }
 
-    // BUG: [CR-FRAMEWORK-NET-0001] 完整块末尾的续传偏移会通过清单校验，但 HTTP 拉取将其判为非法范围并使下载失败。
+    /// Selects the first byte still needed from this chunk. Manifest admission requires
+    /// `byte_offset <= resume_from_byte < byte_offset + byte_len`.
     pub fn with_resume_from_byte(mut self, resume_from_byte: u64) -> Self {
         self.resume_from_byte = Some(resume_from_byte);
         self.allow_range_resume = true;

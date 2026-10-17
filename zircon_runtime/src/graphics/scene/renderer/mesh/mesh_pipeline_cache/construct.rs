@@ -18,6 +18,7 @@ use crate::graphics::scene::scene_renderer::core::material_texture_bind_group_la
 use crate::graphics::scene::scene_renderer::environment::{
     scene_bind_group_layout_entries, SceneLightmapResources, SceneReflectionProbeResources,
 };
+#[cfg(feature = "native-host")]
 use crate::graphics::shader::ShaderVariantCacheDisk;
 
 use super::forward_shadow_receiver::{
@@ -164,7 +165,8 @@ impl MeshPipelineCache {
                 label: Some("zircon-oit-fragment-store-layout"),
                 entries: &oit_fragment_store_entries,
             });
-        let oit_mesh_pipeline_layout =
+        // OIT is optional. A four-group WebGPU device must not create its five-group layout.
+        let oit_mesh_pipeline_layout = (device.limits().max_bind_groups >= 5).then(|| {
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("zircon-oit-mesh-layout"),
                 bind_group_layouts: &[
@@ -175,7 +177,8 @@ impl MeshPipelineCache {
                     Some(&oit_fragment_store_layout),
                 ],
                 immediate_size: 0,
-            });
+            })
+        });
         let forward_shadow_compare_sampler = create_forward_shadow_compare_sampler(device);
         let forward_light_grid_params_buffer = create_forward_light_grid_params_buffer(device);
         let forward_light_grid_empty_zbins_buffer =
@@ -252,7 +255,9 @@ impl MeshPipelineCache {
                 .into_iter()
                 .map(|descriptor| (descriptor.id, descriptor))
                 .collect(),
+            #[cfg(feature = "native-host")]
             shader_variant_disk_cache: default_runtime_shader_cache(project_root),
+            validation_device: device.clone(),
             pending_pipeline_creation_diagnostics: Vec::new(),
             shader_source_validation_compiler: PipelineAsyncCompiler::new(
                 "mesh-shader-validate",
@@ -260,10 +265,13 @@ impl MeshPipelineCache {
             )
             .ok(),
             shader_source_validation_states: Default::default(),
+            #[cfg(feature = "native-host")]
             runtime_pipeline_cache: adapter_facts
                 .map_or_else(RuntimePipelineCache::disabled, |facts| {
                     RuntimePipelineCache::new(device, facts, project_root)
                 }),
+            #[cfg(not(feature = "native-host"))]
+            runtime_pipeline_cache: RuntimePipelineCache::disabled(),
             async_base_pipeline_compiler: PipelineAsyncCompiler::new(
                 "mesh-pipeline-compile",
                 MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT,
@@ -330,6 +338,7 @@ fn oit_fragment_store_layout_entries() -> [wgpu::BindGroupLayoutEntry; 3] {
     ]
 }
 
+#[cfg(feature = "native-host")]
 fn default_runtime_shader_cache(project_root: &std::path::Path) -> ShaderVariantCacheDisk {
     ShaderVariantCacheDisk::with_fallback_roots(
         ShaderVariantCacheDisk::default_project_root(project_root),

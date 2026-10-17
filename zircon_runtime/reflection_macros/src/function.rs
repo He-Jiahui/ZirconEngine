@@ -8,6 +8,23 @@ use syn::{FnArg, Ident, ItemFn, Pat, ReturnType, Type};
 use crate::args::HostFunctionArgs;
 use crate::tokens::{path_tokens, script_host_type_ref_tokens};
 
+/// 生成宿主函数的描述工厂和同步导出工厂，并保留原函数定义。
+///
+/// ## 参数
+///
+/// `args` 是已解析的宿主名称、返回元数据、能力要求和文档；`item` 是拥有参数与返回签名的 Rust 函数 AST。helper 名使用 Rust 函数标识符，宿主名称覆盖同时用于描述和导出。
+///
+/// ## 返回
+///
+/// 成功返回原函数与两个私有 helper 的 token。async、非空泛型参数、receiver 和非标识符参数模式返回 `syn::Error`；生成代码的 trait 与名称解析仍由后续 Rust 编译检查。
+///
+/// ## 约束与生命周期
+///
+/// 描述工厂每次构造拥有的 DTO，声明固定的最小/最大参数数量和能力要求。导出工厂创建由注册表保存的 Arc 回调；每次执行按声明顺序短期访问参数视图，并以 `ScriptHostFromArgument` 产生不依赖该次视图借用的 Rust 值。转换错误通过 `?` 提前返回，全部成功才调用原函数。显式返回经 `ScriptHostIntoValue` 转为拥有值；省略返回类型后返回 Null。返回 type-ref 覆盖只修改描述，转换 trait 仍负责真实返回值。调用层在进入回调前验证数量与能力；包装直接使用返回转换 trait，不自动拆解 `Result`；本层同步回调不捕获原函数 panic。
+///
+/// ## 参考
+///
+/// 参阅 Runtime 的 `ScriptHostArguments::with_argument`、`ScriptHostFromArgument`、`ScriptHostIntoValue`、`HostExportFunction::new` 和 `ScriptCallSite::call`。
 pub(crate) fn host_function_impl(
     args: HostFunctionArgs,
     item: ItemFn,
@@ -93,6 +110,9 @@ pub(crate) fn host_function_impl(
         }
     });
     // 描述符阶段声明参数类型；值在回调调用时按索引转换，再交给原函数执行。
+    // TODO: [CR-ZCA-R003-0002] 待确认输入参数 context 位于其它参数之前时，生成的 let 绑定是否遮蔽后续
+    // context.arguments 接收者。输入 Ident 保留原 span，接收者使用 call-site span；尚缺真实宏编译证据，
+    // 下一步用 context 置首、居中和末尾的 fixture 核对名称解析、编译器版本与诊断，再决定是否为缺陷。
     let conversions = params.iter().enumerate().map(|(index, param)| {
         let name = &param.ident;
         let ty = &param.ty;

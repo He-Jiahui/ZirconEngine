@@ -21,3 +21,15 @@ pub(crate) use gpu_readback::{
 pub(crate) use gpu_resources::VirtualGeometryGpuResources;
 pub(crate) use root_output_sources::runtime_prepare_renderer_outputs;
 pub(in crate::virtual_geometry) use virtual_geometry_render_frame::VirtualGeometryRenderFrame;
+
+#[cfg(test)]
+#[path = "uploader_test_support.rs"]
+mod uploader_test_support;
+#[cfg(test)]
+pub(crate) use uploader_test_support::{
+    uploader_test_collector_registration, VirtualGeometryUploaderTestCollector,
+};
+
+pub(crate) use root_render_passes::prepare_virtual_geometry_node_and_cluster_cull;
+
+pub(crate) use root_render_passes::{materialize_prepared_cull, MaterializedPreparedCull};

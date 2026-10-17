@@ -113,6 +113,7 @@ impl SdfOfflineSourceCacheReport {
 }
 
 impl SdfOfflineSourceCache {
+    #[cfg(feature = "native-host")]
     pub(super) fn load_glyph(
         &mut self,
         key: &SdfAtlasGlyphKey,

@@ -42,6 +42,7 @@ use evidence_identity::load_ready_frame_evidence_identity;
 use terminal_outcome::{
     write_terminal_outcome, TerminalErrorCategory, TerminalOutcome, TerminalPhase,
 };
+use winit::event_loop::run_on_demand::EventLoopExtRunOnDemand;
 use winit::event_loop::EventLoop;
 use work_paths::ViewerWorkPaths;
 
@@ -125,7 +126,7 @@ fn run_viewer(config: ViewerConfig) -> Result<u8, String> {
             return Ok(outcome.exit_code());
         }
     };
-    let event_loop = match EventLoop::new() {
+    let mut event_loop = match EventLoop::new() {
         Ok(event_loop) => event_loop,
         Err(error) => {
             let outcome = TerminalOutcome::failure(
@@ -145,7 +146,7 @@ fn run_viewer(config: ViewerConfig) -> Result<u8, String> {
         renderdoc_bridge,
         ready_frame_evidence_identity,
     );
-    if let Err(error) = event_loop.run_app(&mut app) {
+    if let Err(error) = event_loop.run_app_on_demand(&mut app) {
         app.record_event_loop_failure(error.to_string());
     }
     let outcome = app.finish_after_event_loop();

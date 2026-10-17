@@ -1,7 +1,8 @@
 """Current-input intake uses synthetic bytes, never a checkout copy or Cargo."""
 from __future__ import annotations
 
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
+from copy import deepcopy
 from pathlib import Path
 import subprocess
 import tempfile
@@ -69,54 +70,197 @@ class CurrentSourceTests(unittest.TestCase):
             result = intake.prepare_current_source(self.state, self.root, self.control(ref), trusted_driver_digest="b" * 64)
         return ref, result, metadata
 
-    def test_same_repository_worktree_keeps_canonical_identity_and_seals_its_bytes(self):
-        worktree = Path(self.temp.name) / "selected-worktree"
-        worktree_bytes = dict(self.files)
-        worktree_bytes["crate/main.rs"] = b"fn worktree_version() {}\n"
-        for relative, data in worktree_bytes.items():
-            target = worktree / relative
+    def managed_worktree(self):
+        source = self.root / ".jenkins/worktrees/writer-task"
+        for relative, data in self.files.items():
+            target = source / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(data)
-        worktree_hashes = {
-            relative: None if checksum is None else file_digest(worktree.joinpath(*relative.split("/")))
-            for relative, checksum in self.hashes.items()
-        }
-        canonical_before = {relative: (self.root / relative).read_bytes() for relative in self.files}
+            target.write_bytes(b"fn managed_version() {}\n" if relative == "crate/main.rs" else data)
+        owned = ["crate/main.rs"]
+        writer = self.state.authorize_session(self.identity["repositoryId"], "writer", "synthetic-owner",
+            owned, ["implementation", "validation"], {"source": "user", "task": "synthetic narrow writer"})
+        self.identity = {**self.identity, "sessionId": "reader"}
+        self.state.authorize_session(self.identity["repositoryId"], "reader", "synthetic-owner",
+            sorted(self.hashes), ["validation"], {"source": "user", "task": "synthetic explicit reader"})
+        hashes = {path: None if value is None else file_digest(source / path)
+                  for path, value in self.hashes.items()}
+        original = {"repositoryId": self.identity["repositoryId"], "sessionId": "writer",
+            "requestId": "create-request", "operationId": "create-operation", "action": "create-worktree",
+            "name": "task", "baseHead": "a" * 40, "ownedPaths": owned,
+            "driverDigest": "b" * 64, "runtimeOperationId": "start-synthetic"}
+        key = digest({field: original[field] for field in ("repositoryId", "sessionId", "requestId", "operationId")})
+        record = {"status": "ready", "path": str(source), "branch": "codex/jenkins/writer/task",
+            "baseHead": original["baseHead"], "ownedPaths": owned,
+            **{field: original[field] for field in ("repositoryId", "sessionId", "requestId", "operationId",
+                                                   "driverDigest", "runtimeOperationId")},
+            "creationOperationKey": key, "writerPrincipal": writer["principal"],
+            "writerAuthorizationSnapshot": writer["snapshotDigest"]}
+        self.state.put("management_worktree", "writer-task", record)
+        self.state.put("management_operation", key, {
+            "phase": "complete", "action": "create-worktree", "sessionId": "writer",
+            "requestId": original["requestId"], "operationId": original["operationId"],
+            "inputDigest": digest(original), "payload": original,
+            "result": {**record, "status": "complete", "worktreeId": "writer-task", "operationKey": key}})
+        self.payload = {**self.payload, "identity": self.identity, "currentHashes": hashes,
+                        "sourceRoot": str(source), "worktreeId": "writer-task",
+                        "runtimeOperationId": "start-synthetic"}
+        return source, key
 
-        with patch("tools.jenkins.current_source.subprocess.run",
-                   return_value=SimpleNamespace(returncode=0, stdout=str(self.root / ".git"))):
-            registered = self.register(sourceRoot=str(worktree), currentHashes=worktree_hashes)
-            reference = registered["currentSourceRef"]
+    def managed_git(self, command, **kwargs):
+        result = self.root / ".git" if "--git-common-dir" in command else Path(command[2])
+        return SimpleNamespace(returncode=0, stdout=str(result))
+
+    def managed_control(self, reference):
+        return {**self.control(reference), "runtimeOperationId": "start-synthetic"}
+
+    def test_same_repository_worktree_keeps_canonical_identity_and_seals_its_bytes(self):
+        source, _key = self.managed_worktree()
+        canonical_before = {path: (self.root / path).read_bytes() for path in self.files}
+        with patch.object(intake.subprocess, "run", side_effect=self.managed_git):
+            reference = self.register()["currentSourceRef"]
             intent = self.state.get("current_source_intent", reference)["payload"]
             with patch.object(intake, "_ensure_patch_metadata"):
-                prepared = intake.prepare_current_source(
-                    self.state, self.root, self.control(reference), trusted_driver_digest="b" * 64)
-
+                prepared = intake.prepare_current_source(self.state, self.root, self.managed_control(reference),
+                                                          trusted_driver_digest="b" * 64)
         self.assertEqual(str(self.root), intent["repositoryRoot"])
-        self.assertEqual(str(worktree), intent["sourceRoot"])
+        self.assertEqual(str(source), intent["sourceRoot"])
+        self.assertEqual("writer-task", intent["worktreeId"])
+        self.assertEqual("writer", intent["managedWorktree"]["writerSessionId"])
         self.assertEqual(self.identity["repositoryId"], intent["identity"]["repositoryId"])
         sealed = self.state.get("sealed_input", prepared["sealedInputRef"])["payload"]
-        entry = next(item for item in sealed["sourceManifest"]["entries"]
-                     if item["path"] == "crate/main.rs")
-        self.assertEqual(file_digest(worktree / "crate/main.rs"), entry["sha256"])
+        entry = next(item for item in sealed["sourceManifest"]["entries"] if item["path"] == "crate/main.rs")
+        self.assertEqual(file_digest(source / "crate/main.rs"), entry["sha256"])
         self.assertNotEqual(self.hashes["crate/main.rs"], entry["sha256"])
-        self.assertEqual(canonical_before,
-                         {relative: (self.root / relative).read_bytes() for relative in self.files})
+        self.assertEqual(canonical_before, {path: (self.root / path).read_bytes() for path in self.files})
         operation = self.state.get_operation(prepared["sourcePreparationRef"])
         self.assertFalse(operation["result"]["canonicalSourceModified"])
 
     def test_foreign_git_common_directory_is_rejected_before_intake(self):
-        foreign = Path(self.temp.name) / "foreign-worktree"
-        foreign.mkdir()
-        with patch("tools.jenkins.current_source.subprocess.run",
-                   return_value=SimpleNamespace(returncode=0, stdout=str(foreign / ".git"))):
+        source, _key = self.managed_worktree()
+        with patch.object(intake.subprocess, "run",
+                          return_value=SimpleNamespace(returncode=0, stdout=str(source / "foreign.git"))):
             with self.assertRaises(JenkinsError) as error:
-                self.register(sourceRoot=str(foreign))
-
+                self.register()
         self.assertEqual("current_source_root_mismatch", error.exception.code)
         self.assertEqual([], self.state.list("current_source_intent"))
         self.assertEqual([], self.state.list("current_source_request"))
         self.assertFalse(self.cas.exists())
+
+    def test_noncanonical_source_requires_both_worktree_fields(self):
+        for values in ({"sourceRoot": str(self.root / ".jenkins/worktrees/writer-task")},
+                       {"worktreeId": "writer-task"}):
+            with self.subTest(values=values), self.assertRaises(JenkinsError) as caught:
+                self.register(**values)
+            self.assertEqual("current_source_worktree_required", caught.exception.code)
+        self.assertEqual([], self.state.list("current_source_intent"))
+
+    def test_unregistered_and_legacy_rows_cannot_supply_current_source(self):
+        _source, _key = self.managed_worktree()
+        original = self.state.get("management_worktree", "writer-task")["payload"]
+        for record in (None, {name: value for name, value in original.items()
+                              if name not in {"creationOperationKey", "writerAuthorizationSnapshot", "runtimeOperationId"}}):
+            self.state.delete("management_worktree", "writer-task")
+            if record is not None:
+                self.state.put("management_worktree", "writer-task", record)
+            with patch.object(intake.subprocess, "run", side_effect=self.managed_git):
+                with self.assertRaises(JenkinsError) as caught:
+                    self.register()
+            self.assertEqual("current_source_worktree_unproven", caught.exception.code)
+        self.assertEqual([], self.state.list("current_source_intent"))
+
+    def test_creation_operation_identity_and_ready_runtime_are_bound(self):
+        _source, key = self.managed_worktree()
+        record = self.state.get("management_worktree", "writer-task")["payload"]
+        operation = self.state.get("management_operation", key)["payload"]
+        cases = [("record", "status", "releasing"), ("record", "requestId", "foreign-request"),
+                 ("record", "runtimeOperationId", "foreign-runtime"), ("record", "baseHead", "f" * 40),
+                 ("operation", "phase", "unknown"), ("operation", "requestId", "foreign-request"),
+                 ("operation", "inputDigest", "f" * 64)]
+        for target, field, value in cases:
+            changed = deepcopy(record if target == "record" else operation)
+            changed[field] = value
+            self.state.put("management_worktree", "writer-task", changed if target == "record" else record)
+            self.state.put("management_operation", key, changed if target == "operation" else operation)
+            with self.subTest(target=target, field=field), patch.object(intake.subprocess, "run", side_effect=self.managed_git):
+                with self.assertRaises(JenkinsError) as caught:
+                    self.register()
+                self.assertEqual("current_source_worktree_unproven", caught.exception.code)
+        self.assertEqual([], self.state.list("current_source_intent"))
+
+    def test_registered_reader_cannot_replay_after_writer_revocation_or_row_change(self):
+        _source, _key = self.managed_worktree()
+        with patch.object(intake.subprocess, "run", side_effect=self.managed_git):
+            reference = self.register()["currentSourceRef"]
+            record = self.state.get("management_worktree", "writer-task")["payload"]
+            self.state.put("management_worktree", "writer-task", {**record, "status": "releasing"})
+            with self.assertRaises(JenkinsError):
+                intake.handle("query", self.managed_control(reference), self.state, self.root)
+            self.state.put("management_worktree", "writer-task", record)
+            self.state.revoke_session(self.identity["repositoryId"], "writer")
+            with self.assertRaises(JenkinsError) as caught:
+                intake.handle("query", self.managed_control(reference), self.state, self.root)
+        self.assertEqual("action_not_authorized", caught.exception.code)
+
+    def test_release_winning_transaction_prevents_reader_intent_commit(self):
+        _source, _key = self.managed_worktree()
+        transaction = self.state.transaction
+        @contextmanager
+        def release_wins():
+            with transaction() as connection:
+                row = self.state.get("management_worktree", "writer-task", connection=connection)
+                self.state.put("management_worktree", "writer-task", {**row["payload"], "status": "releasing"},
+                               expected_version=row["version"], connection=connection)
+                yield connection
+        with patch.object(intake.subprocess, "run", side_effect=self.managed_git), \
+                patch.object(self.state, "transaction", side_effect=release_wins):
+            with self.assertRaises(JenkinsError) as caught:
+                self.register()
+        self.assertEqual("current_source_worktree_unproven", caught.exception.code)
+        self.assertEqual([], self.state.list("current_source_intent"))
+        self.assertEqual([], self.state.list("current_source_request"))
+
+    def test_canonical_intent_keeps_legacy_digest_shape(self):
+        reference = self.register()["currentSourceRef"]
+        intent = self.state.get("current_source_intent", reference)["payload"]
+        authorization = self.state.check_authorization(self.identity["repositoryId"], self.identity["sessionId"], "validation")
+        expected = {"schemaVersion": 1, "kind": "current-source", "identity": self.identity,
+                    "repositoryRoot": str(self.root), "baseHead": self.payload["baseHead"],
+                    "currentHashes": dict(sorted(self.hashes.items())), "ownedPaths": ["crate/main.rs"],
+                    "untrackedPaths": ["crate/new.rs"], "coverage": self.payload["coverage"],
+                    "buildRoot": intent["buildRoot"], "runtimeOperationId": None, "externalInputs": [],
+                    "authorizationSnapshot": authorization["snapshotDigest"]}
+        self.assertEqual(expected, intent)
+        self.assertEqual(digest(expected), reference)
+
+    def test_explicit_canonical_source_root_retains_digest_and_refuses_worktree_id(self):
+        reference = self.register()["currentSourceRef"]
+        replay = self.register(sourceRoot=str(self.root))
+        self.assertEqual(reference, replay["currentSourceRef"])
+        self.assertTrue(replay["reused"])
+        intent = self.state.get("current_source_intent", reference)["payload"]
+        self.assertNotIn("sourceRoot", intent)
+        self.assertNotIn("worktreeId", intent)
+        with self.assertRaises(JenkinsError):
+            self.register(sourceRoot=str(self.root), worktreeId="writer-task")
+        self.assertEqual(1, len(self.state.list("current_source_intent")))
+
+    def test_canonical_and_managed_descendant_reparse_points_are_rejected(self):
+        original_lstat = Path.lstat
+        def aliased(ancestor):
+            def lstat(path, *args, **kwargs):
+                if path == ancestor:
+                    return SimpleNamespace(st_mode=0o040755, st_file_attributes=0x400)
+                return original_lstat(path, *args, **kwargs)
+            return lstat
+        with patch.object(Path, "lstat", aliased(self.root / "crate")):
+            with self.assertRaises(JenkinsError):
+                self.register()
+        source, _key = self.managed_worktree()
+        with patch.object(Path, "lstat", aliased(source / "crate")), \
+                patch.object(intake.subprocess, "run", side_effect=self.managed_git):
+            with self.assertRaises(JenkinsError):
+                self.register()
+        self.assertEqual([], self.state.list("current_source_intent"))
 
     def test_registration_is_side_effect_free_and_replay_exact(self):
         result = self.register()

@@ -1,5 +1,5 @@
 use crate::core::resource::{
-    ResourceManagementGeneration, ResourceReadinessGeneration, UntypedResourceHandle,
+    UntypedResourceHandle,
 };
 
 use super::{
@@ -113,8 +113,7 @@ impl RenderAssetResidencyManager {
         &mut self,
         failed: RenderAssetDeviceEpoch,
         replacement: RenderAssetDeviceEpoch,
-        management: &ResourceManagementGeneration,
-        readiness: &ResourceReadinessGeneration,
+        projection: &crate::core::resource::ResourceProjectionSnapshot,
         demand_generation: RenderAssetDemandGeneration,
     ) -> Result<RenderAssetDeviceRecoveryReport, RenderAssetDeviceRecoveryError> {
         if failed == replacement {
@@ -164,8 +163,7 @@ impl RenderAssetResidencyManager {
             }
             let seed = resolve_ticket_seed(
                 resource,
-                management,
-                readiness,
+                projection,
                 replacement,
                 demand_generation,
             )

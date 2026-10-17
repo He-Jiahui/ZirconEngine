@@ -64,8 +64,8 @@ fn optimization_batch_dd_runtime411_font_variation_vector_sort_p95() {
     );
 
     for _ in 0..3 {
-        black_box(legacy_canonical_variation_coords(black_box(&input.0)));
-        black_box(canonical_variation_coords(black_box(&input)));
+        let _ = black_box(legacy_canonical_variation_coords(black_box(&input.0)));
+        let _ = black_box(canonical_variation_coords(black_box(&input)));
     }
 
     let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
@@ -105,7 +105,7 @@ fn legacy_canonical_variation_coords(
 
 fn measure(run: impl FnOnce() -> Result<VariationCoords, FontInstanceError>) -> u128 {
     let started = Instant::now();
-    black_box(run());
+    let _ = black_box(run());
     started.elapsed().as_nanos().max(1)
 }
 

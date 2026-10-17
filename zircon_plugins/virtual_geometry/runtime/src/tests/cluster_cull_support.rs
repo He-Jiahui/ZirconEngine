@@ -53,15 +53,27 @@ pub(super) fn execute_pass_with_previous(
         .create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-vg-node-and-cluster-cull-pass-test-encoder"),
         });
-    let virtual_geometry_resources = VirtualGeometryGpuResources::new(&backend.device);
-
-    execute_virtual_geometry_node_and_cluster_cull_pass(
-        &backend.device,
-        &mut encoder,
-        &virtual_geometry_resources,
+    let inspection = prepare_virtual_geometry_node_and_cluster_cull(
+        frame.extract.geometry.virtual_geometry.as_ref(),
+        &frame.scene.scene.camera,
+        [frame.viewport_size.x, frame.viewport_size.y],
         pass_enabled,
-        frame,
         cull_input,
         previous_global_state,
+    );
+    let output = VirtualGeometryGpuResources::materialize_prepared_cull_on_device(
+        &backend.device,
+        &mut encoder,
+        &inspection,
     )
+    .into_pass_output();
+    let submission_index = backend.queue.submit(Some(encoder.finish()));
+    backend
+        .device
+        .poll(wgpu::PollType::Wait {
+            submission_index: Some(submission_index),
+            timeout: Some(std::time::Duration::from_secs(30)),
+        })
+        .expect("original CPU policy startup GPU dispatch should finish");
+    output
 }

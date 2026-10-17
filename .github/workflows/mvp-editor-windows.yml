@@ -311,6 +311,7 @@ jobs:
             -AuthoringAutomationRequest (Join-Path $PWD 'tools\mvp\mvp-authoring-automation.json') `
             -ReopenAutomationRequest (Join-Path $PWD 'tools\mvp\mvp-reopen-automation.json') `
             -CreateProject `
+            -RuntimeProductProof 'f2-lit-mesh' `
             -ProjectName 'ZirconMvpFixture' `
             -StagingRoot 'D:\cargo-targets' `
             -RepeatCount 2 `

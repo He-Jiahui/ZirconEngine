@@ -60,6 +60,37 @@ where
 }
 
 impl World {
+    /// Requested-allocation peak for the Inspector's staged absence-only batch.
+    /// Borrows source signatures; this quotation creates no rows or instance tokens.
+    /// Persistent ECS tables/indices remain owned by World, outside history retention.
+    pub fn dynamic_component_creation_peak_v1(
+        &self, targets: &[EntityId], value: &serde_json::Value, type_path: &str,
+        meter: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        use zircon_runtime_interface::retained_memory::{RetainedOwnerV1, RetentionContractError};
+        meter.array::<(EntityId, serde_json::Value, PendingComponentRow)>(targets.len())?;
+        for &entity in targets {
+            value.retained_bound_v1(meter)?;
+            meter.array::<u8>(type_path.len())?;
+            let (archetype, _) = self.archetype_location_for_entity(entity)
+                .ok_or(RetentionContractError::Stale)?;
+            let signature = self.archetype_index.signature(archetype)
+                .ok_or(RetentionContractError::Stale)?;
+            let components = signature.table_components().len()
+                .checked_add(signature.sparse_set_components().len())
+                .and_then(|len| len.checked_add(4))
+                .and_then(|len| len.checked_mul(8))
+                .ok_or(RetentionContractError::Overflow)?;
+            // Source clone, insertion growth (minimum four), and overlapping
+            // publication signature clones; eight full capacities are conservative.
+            meter.array::<ComponentId>(components)?;
+            meter.btree_construction::<ComponentId, bool>(1)?;
+            meter.btree_construction::<ComponentId, Box<dyn PendingSparseValue>>(1)?;
+            meter.array::<TypedPendingSparseValue<super::DynamicComponentPresence>>(1)?;
+        }
+        Ok(())
+    }
+
     pub(in crate::scene::world) fn begin_component_row(
         &mut self,
         entity: EntityId,

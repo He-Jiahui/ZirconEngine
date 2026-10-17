@@ -28,7 +28,11 @@ impl<'a> RuntimeStyleLayers<'a> {
             static INACTIVE_STATE: Value = Value::Boolean(false);
             return value.or_else(|| {
                 (RETAINED_RUNTIME_STATE_CANONICAL_KEYS.contains(&key)
-                    && self.base_attributes.get(key).and_then(Value::as_bool).is_some())
+                    && self
+                        .base_attributes
+                        .get(key)
+                        .and_then(Value::as_bool)
+                        .is_some())
                 .then_some(&INACTIVE_STATE)
             });
         }

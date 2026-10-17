@@ -32,15 +32,24 @@ pub(super) fn present_redraw(
     let _paint_scope = generation.enter_paint_scope();
     let presentation = generation.structure();
     let invalidation = event_loop_state.host.refresh_invalidation_diagnostics();
-    let present_result = presenter.present(
-        presentation,
-        presentation_cursor,
-        damage_region.clone(),
-        invalidation,
-    );
+    let (present_result, toast_confirmation, awaiting_toast) =
+        super::super::super::toast_presentation::present_with_toast_confirmation(
+            event_loop_state.host.state.as_ptr() as usize,
+            presenter.as_mut(), presentation, presentation_cursor,
+            damage_region.clone(), invalidation,
+            event_loop_state.host.window().is_visible(),
+        );
     match present_result {
         Ok(_) => {
             event_loop_state.reset_surface_present_retry_backoff();
+            let toast_confirmed = toast_confirmation
+                .is_some_and(|receipt| event_loop_state.host.notify_toast_presented(receipt));
+            if awaiting_toast && !toast_confirmed {
+                event_loop_state.defer_surface_present_retry(
+                    HostRedrawRequest::full_frame_for_scenario(scenario, true),
+                    std::time::Instant::now(),
+                );
+            }
             if let Some(backend) = event_loop_state.presenter_backend.filter(|backend| {
                 profile_capture_enabled()
                     && if profile_dynamic_capture_enabled() {

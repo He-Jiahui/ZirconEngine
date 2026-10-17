@@ -175,24 +175,42 @@ impl World {
     }
 }
 
-fn default_name(kind: &NodeKind, ordinal: usize) -> String {
+fn name_prefix_v1(kind: NodeKind) -> &'static str {
     match kind {
-        NodeKind::Empty => format!("Empty {ordinal}"),
-        NodeKind::Camera => format!("Camera {ordinal}"),
-        NodeKind::Cube => format!("Cube {ordinal}"),
-        NodeKind::Mesh => format!("Mesh {ordinal}"),
-        NodeKind::AmbientLight => format!("Ambient Light {ordinal}"),
-        NodeKind::DirectionalLight => format!("Directional Light {ordinal}"),
-        NodeKind::PointLight => format!("Point Light {ordinal}"),
-        NodeKind::RectLight => format!("Rect Light {ordinal}"),
-        NodeKind::SpotLight => format!("Spot Light {ordinal}"),
+        NodeKind::Empty => "Empty ",
+        NodeKind::Camera => "Camera ",
+        NodeKind::Cube => "Cube ",
+        NodeKind::Mesh => "Mesh ",
+        NodeKind::AmbientLight => "Ambient Light ",
+        NodeKind::DirectionalLight => "Directional Light ",
+        NodeKind::PointLight => "Point Light ",
+        NodeKind::RectLight => "Rect Light ",
+        NodeKind::SpotLight => "Spot Light ",
     }
 }
 
+pub(super) fn history_name_capacity_v1(kind: NodeKind) -> usize {
+    name_prefix_v1(kind).len() + (usize::MAX.ilog10() as usize + 1)
+}
+
+// Own the allocation request explicitly; formatting a default name cannot grow it.
+fn numbered_name_v1(kind: NodeKind, ordinal: usize) -> String {
+    use std::fmt::Write;
+    let mut name = String::with_capacity(history_name_capacity_v1(kind));
+    name.push_str(name_prefix_v1(kind));
+    write!(&mut name, "{ordinal}").expect("String formatting cannot fail");
+    name
+}
+
+fn default_name(kind: &NodeKind, ordinal: usize) -> String {
+    numbered_name_v1(*kind, ordinal)
+}
+
 fn mesh_display_name(model: ResourceHandle<ModelMarker>, fallback_ordinal: usize) -> String {
-    if model.id() == ResourceId::from_stable_label("builtin://cube") {
-        format!("Cube {fallback_ordinal}")
+    let kind = if model.id() == ResourceId::from_stable_label("builtin://cube") {
+        NodeKind::Cube
     } else {
-        format!("Mesh {fallback_ordinal}")
-    }
+        NodeKind::Mesh
+    };
+    numbered_name_v1(kind, fallback_ordinal)
 }

@@ -78,7 +78,7 @@ impl UiProjectedHitTestIndex {
 
     fn rebuild(&mut self, base_grid: &UiHitTestGrid, projections: &[UiHitTestProjection]) -> bool {
         #[cfg(feature = "profiling")]
-        let rebuild_start = std::time::Instant::now();
+        let rebuild_start = web_time::Instant::now();
         self.overlay_z_base = base_grid
             .entries
             .iter()
@@ -278,7 +278,7 @@ impl UiProjectedHitTestIndex {
             return self.rebuild(&base_index.grid, projections);
         }
         #[cfg(feature = "profiling")]
-        let patch_start = std::time::Instant::now();
+        let patch_start = web_time::Instant::now();
         let patch_result = self.patch(base_index, projections, changed_node_ids);
         #[cfg(feature = "profiling")]
         let patch_elapsed_us = patch_start.elapsed().as_micros() as f64;

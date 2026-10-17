@@ -1,5 +1,5 @@
 use super::super::super::super::super::data::TemplatePaneNodeData;
-use super::super::super::super::super::paint_theme::PALETTE;
+use super::super::super::super::super::paint_theme::current_host_palette;
 use super::super::super::super::template_style_color::{
     resolved_style_color, typed_button_variant_background,
 };
@@ -15,7 +15,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn surface
     node: &TemplatePaneNodeData,
 ) -> [u8; 4] {
     if is_button_disabled(node) {
-        return PALETTE.surface_disabled;
+        return current_host_palette().surface_disabled;
     }
     if let Some(color) = severity_surface_color(node) {
         return color;
@@ -30,4 +30,26 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn surface
         return color;
     }
     variant_surface_color(node)
+}
+
+#[cfg(test)]
+mod finite_p2_regression_tests {
+    use super::*;
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        enter_host_paint_theme_scope, host_paint_theme_snapshot_from_tokens_for_test,
+    };
+    use zircon_runtime_interface::ui::{design_tokens::EditorDesignTokens, style::UiRgbaColor};
+    #[test]
+    fn surface_fallbacks_follow_the_active_theme_snapshot() {
+        let mut tokens = EditorDesignTokens::workbench_dark();
+        tokens.palette.accent = UiRgbaColor::from_u8(17, 37, 67, 255);
+        tokens.palette.error_container = UiRgbaColor::from_u8(93, 33, 73, 255);
+        let _scope =
+            enter_host_paint_theme_scope(host_paint_theme_snapshot_from_tokens_for_test(&tokens));
+        let mut node = TemplatePaneNodeData::default();
+        node.surface_variant = "primary".into();
+        assert_eq!(surface_color(&node), [17, 37, 67, 255]);
+        node.validation_level = "error".into();
+        assert_eq!(surface_color(&node), [93, 33, 73, 255]);
+    }
 }

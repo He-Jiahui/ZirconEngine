@@ -62,19 +62,24 @@ fn install_batch_cancellation(
     let trigger = targets[1].node_id;
     scene.observe_component_lifecycle::<LocalTransform>(
         LifecycleEventKind::Replace,
-        move |world, event| {
-            if event.entity() != trigger {
-                return;
-            }
-            if calls.fetch_add(1, Ordering::SeqCst) + 1 != trigger_count {
-                return;
-            }
-            match cause {
-                LifecycleTargetChange::World => {
-                    *world = replacement.lock().unwrap().take().unwrap()
+        // SAFETY: This retires the current World or schedule. Remaining work is counter-only
+        // scheduling; replacement history is never adopted.
+        unsafe {
+            use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                if event.entity() != trigger {
+                    return;
                 }
-                LifecycleTargetChange::Schedule => *world.schedule_mut() = Default::default(),
-            }
+                if calls.fetch_add(1, Ordering::SeqCst) + 1 != trigger_count {
+                    return;
+                }
+                match cause {
+                    LifecycleTargetChange::World => {
+                        *world = replacement.lock().unwrap().take().unwrap()
+                    }
+                    LifecycleTargetChange::Schedule => *world.schedule_mut() = Default::default(),
+                }
+            })
         },
     );
 }

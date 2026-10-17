@@ -4,6 +4,10 @@
 
 extern crate self as zircon_runtime;
 
+#[cfg(all(test, feature = "native-host", feature = "memory-validation"))]
+#[path = "memory_validation.rs"]
+pub(crate) mod memory_validation;
+
 #[cfg(all(feature = "native-host", target_arch = "wasm32"))]
 compile_error!("native-host requires a native target; use --no-default-features --features core-min for the portable Wasm core");
 
@@ -32,7 +36,15 @@ pub mod animation;
 #[cfg(feature = "native-host")]
 #[path = "asset/mod.rs"]
 pub mod asset;
-#[cfg(feature = "native-host")]
+#[cfg(all(feature = "asset-types", not(feature = "native-host")))]
+#[path = "asset/portable.rs"]
+pub mod asset;
+#[cfg(any(
+    feature = "native-host",
+    feature = "graphics",
+    feature = "animation",
+    feature = "ui"
+))]
 #[path = "scene/mod.rs"]
 pub mod scene;
 #[cfg(feature = "text")]
@@ -57,16 +69,31 @@ pub mod rhi;
 
 #[path = "builtin/mod.rs"]
 pub mod builtin;
-#[cfg(feature = "native-host")]
+#[cfg(any(
+    feature = "native-host",
+    feature = "graphics",
+    feature = "animation",
+    feature = "ui"
+))]
 #[path = "foundation/mod.rs"]
 pub mod foundation;
-#[cfg(feature = "native-host")]
+#[cfg(any(
+    feature = "native-host",
+    feature = "graphics",
+    feature = "animation",
+    feature = "ui"
+))]
 #[path = "input/mod.rs"]
 pub mod input;
 #[cfg(feature = "navigation")]
 #[path = "navigation/mod.rs"]
 pub mod navigation;
-#[cfg(feature = "native-host")]
+#[cfg(any(
+    feature = "native-host",
+    feature = "graphics",
+    feature = "animation",
+    feature = "ui"
+))]
 #[path = "operation/mod.rs"]
 pub mod operation;
 #[cfg(feature = "native-host")]
@@ -74,6 +101,9 @@ pub mod operation;
 pub mod platform;
 #[cfg(feature = "native-host")]
 #[path = "plugin/mod.rs"]
+pub mod plugin;
+#[cfg(all(feature = "graphics", not(feature = "native-host")))]
+#[path = "plugin/portable.rs"]
 pub mod plugin;
 #[cfg(feature = "script")]
 #[path = "script/mod.rs"]
@@ -84,4 +114,14 @@ pub use zircon_runtime_reflection_macros::{
 };
 #[cfg(all(test, feature = "native-host"))]
 #[path = "tests/mod.rs"]
-mod tests;
+pub(crate) mod tests;
+
+#[cfg(all(
+    feature = "target-web",
+    target_arch = "wasm32",
+    not(feature = "native-host")
+))]
+pub mod browser;
+#[cfg(all(test, feature = "ui", not(target_arch = "wasm32")))]
+#[path = "browser/input.rs"]
+mod browser_input_validation;

@@ -8,8 +8,8 @@ use zircon_plugin_net_runtime::{DefaultNetManager, DEFAULT_NET_MANAGER_NAME};
 
 pub const NET_HTTP_FEATURE_ID: &str = "net.http";
 pub const NET_HTTP_FEATURE_CAPABILITY: &str = "runtime.feature.net.http";
-pub const NET_HTTP_FEATURE_MODULE_NAME: &str = "NetHttpFeatureModule";
-pub const NET_HTTP_FEATURE_MANAGER_NAME: &str = "NetHttpFeatureModule.Manager.NetHttpManager";
+pub const NET_HTTP_FEATURE_MODULE_NAME: &str = "net.http.runtime";
+pub const NET_HTTP_FEATURE_MANAGER_NAME: &str = "net.http.runtime.Manager.NetHttpManager";
 
 #[derive(Clone, Debug)]
 pub struct NetHttpRuntimeFeature;
@@ -94,7 +94,7 @@ pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest
     .with_capability(NET_HTTP_FEATURE_CAPABILITY)
     .with_runtime_module(
         zircon_runtime::plugin::PluginModuleManifest::runtime(
-            "net.http.runtime",
+            NET_HTTP_FEATURE_MODULE_NAME,
             "zircon_plugin_net_http_runtime",
         )
         .with_target_modes([

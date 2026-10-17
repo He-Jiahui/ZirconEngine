@@ -177,7 +177,9 @@ impl EditorUiHost {
                         entry.conflict = None;
                         entry.diff_snapshot = None;
                         if durable {
-                            entry.session.mark_canonical_source_persisted(source_revision, saved.clone())
+                            entry
+                                .session
+                                .mark_canonical_source_persisted(source_revision, saved.clone())
                                 .map_err(|error| EditorError::UiAsset(error.to_string()))
                         } else {
                             Ok(false)
@@ -186,7 +188,9 @@ impl EditorUiHost {
                     // The publication/receipt error remains primary; the disk
                     // baseline above always reflects the bytes actually published.
                     committed?;
-                    checkpoint.map(drop).map_err(|error| Box::new(error) as ToolkitSaveFailure)
+                    checkpoint
+                        .map(drop)
+                        .map_err(|error| Box::new(error) as ToolkitSaveFailure)
                 },
             )
             .map_err(|source| EditorError::UiAssetSaveIo {

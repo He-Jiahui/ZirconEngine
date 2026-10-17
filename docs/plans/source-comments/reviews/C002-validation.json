@@ -1,0 +1,53 @@
+{
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "C002",
+  "at_utc": "2026-10-14T17:03:31.209515+00:00",
+  "source_hashes": {
+    "zircon_runtime_interface/src/plugin_api.rs": "a8f5c3b60af26d2abdc119757e9a82fd6bd1f879b87a8b2f40c5693fcf41e01f",
+    "zircon_runtime_interface/src/plugin_events.rs": "9f42b6b36e40c651e212772724e630840b10f9fd646d966adb5f1fb65f66bf79",
+    "zircon_runtime_interface/src/plugin_diagnostics.rs": "b561dde2445f5575dc0c25f962350b46f8da5251d69bfac18e1209d1994cfff5",
+    "zircon_runtime_interface/src/tests/plugin_api_contracts.rs": "9b97d60eb3b4aff610c9aa40ec97e06e093ad764cc3b3699a58e493557d30502",
+    "zircon_runtime_interface/src/tests/plugin_diagnostics.rs": "58361f056cec670bb9d49cf16478d8806003bd634671210fcb686949c3882b72"
+  },
+  "rustfmt": {
+    "argv": [
+      "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+      "--check",
+      "--edition",
+      "2021",
+      "--config",
+      "skip_children=true",
+      "zircon_runtime_interface/src/plugin_api.rs",
+      "zircon_runtime_interface/src/plugin_events.rs",
+      "zircon_runtime_interface/src/plugin_diagnostics.rs",
+      "zircon_runtime_interface/src/tests/plugin_api_contracts.rs",
+      "zircon_runtime_interface/src/tests/plugin_diagnostics.rs"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "scoped_diff_check": {
+    "argv": [
+      "git",
+      "--literal-pathspecs",
+      "-C",
+      "E:\\Git\\ZirconEngine",
+      "diff",
+      "--check",
+      "HEAD",
+      "--",
+      "zircon_runtime_interface/src/plugin_api.rs",
+      "zircon_runtime_interface/src/plugin_events.rs",
+      "zircon_runtime_interface/src/plugin_diagnostics.rs",
+      "zircon_runtime_interface/src/tests/plugin_api_contracts.rs",
+      "zircon_runtime_interface/src/tests/plugin_diagnostics.rs"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "source_modified": false,
+  "cargo_or_tests_run": false,
+  "formal_acceptance": false
+}

@@ -124,6 +124,11 @@ impl ProjectAuthority {
     ) -> Result<ProjectPreflightReceipt, ProjectAuthorityError> {
         super::super::filesystem::validate_canonical_existing_project_root(root.operation_path())?;
         let paths = ProjectPaths::from_resolved_root(root);
+        zircon_runtime::asset::project::plugin_apply::ensure_plugin_apply_preflight_ready(&paths)
+            .map_err(|source| ProjectAuthorityError::PluginEnablementRecovery {
+            root: paths.root().to_path_buf(),
+            source,
+        })?;
         let inspection = inspect_project_manifest(paths.manifest_path())?;
         let composition = inspection.manifest.as_ref().map_or_else(
             || {

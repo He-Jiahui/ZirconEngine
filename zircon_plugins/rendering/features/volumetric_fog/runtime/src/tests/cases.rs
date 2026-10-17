@@ -1,19 +1,19 @@
 use super::*;
 use zircon_runtime::core::framework::render::{
-    AdvancedLightingExtract, EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract,
-    RenderFrameExtract, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
-    ShaderQualityTier, ViewportCameraSnapshot, VolumetricFogSettings,
+    AdvancedLightingExtract, EnvironmentExtract, FallbackSkyboxKind, PostProcessGraphResourceNames,
+    PreviewEnvironmentExtract, RenderFrameExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderWorldSnapshotHandle, ShaderQualityTier, ViewportCameraSnapshot, VolumetricFogSettings,
 };
 use zircon_runtime::core::math::Vec4;
 use zircon_runtime::graphics::{
     CompiledRenderPipeline, RenderFeatureResourceAccess, RenderFeatureResourceKind,
-    RenderPipelineAsset, RenderPipelineCompileOptions,
+    RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
 };
 use zircon_runtime::render_graph::{
-    RenderGraphBufferRange, RenderGraphComputeDispatchExtent, RenderGraphResourceAccessIntent,
-    RenderGraphResourceAccessKind, RenderGraphResourceAccessMetadata,
-    RenderGraphResourceAccessRange, RenderGraphResourceDesc, RenderGraphShaderStages,
-    RenderGraphTextureSubresourceRange,
+    QueueLane, RenderGraphBufferRange, RenderGraphComputeDispatchExtent,
+    RenderGraphResourceAccessIntent, RenderGraphResourceAccessKind,
+    RenderGraphResourceAccessMetadata, RenderGraphResourceAccessRange, RenderGraphResourceDesc,
+    RenderGraphShaderStages, RenderGraphTextureSubresourceRange,
 };
 use zircon_runtime::rhi::{TextureDimension, TextureFormat, TextureUsage};
 
@@ -319,9 +319,25 @@ fn volumetric_fog_graph_preserves_exact_scene_light_buffer_lease() {
         .versioned_access_key(access_id)
         .expect("volumetric scene-light access key");
 
+    let desc = graph
+        .resource_lifetimes()
+        .iter()
+        .find(|lifetime| lifetime.name == resource_name)
+        .and_then(|lifetime| lifetime.external_buffer_desc.as_ref())
+        .expect("scene-light external buffer retains its producer layout");
+    assert_eq!(
+        desc.size_bytes,
+        zircon_runtime::core::framework::render::GpuLightData::STRIDE as u64
+    );
+    assert!(desc
+        .usage
+        .contains(zircon_runtime::rhi::BufferUsage::STORAGE));
     assert_eq!(
         key.range,
-        RenderGraphResourceAccessRange::Buffer(RenderGraphBufferRange::full())
+        RenderGraphResourceAccessRange::Buffer(RenderGraphBufferRange::new(
+            0,
+            Some(desc.size_bytes)
+        ))
     );
     assert_eq!(
         key.intent,

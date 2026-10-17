@@ -15,12 +15,12 @@ const TEST_FILE_BUDGET: usize = 800;
 fn runtime_15_support_hub_project_actions_tests_are_child_owner() {
     let parent = read_repo(PROJECT_ACTIONS);
     let tests = read_repo(PROJECT_ACTION_TESTS);
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let hub_project_doc = read_repo("docs/zircon_hub/projects/lifecycle-workflows.md");
 
     assert_contains_all(

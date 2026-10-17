@@ -32,6 +32,10 @@ struct InterfaceMetadata<'a> {
 }
 
 fn main() {
+    if let Err(error) = generate_retained_std_model_v1() {
+        eprintln!("failed to generate retained-model availability: {error}");
+        process::exit(1);
+    }
     if let Err(error) = generate_slot_catalog() {
         eprintln!("failed to generate Runtime InterfaceSpec slot catalog: {error}");
         process::exit(1);
@@ -319,3 +323,153 @@ fn render_slot_list(output: &mut String, constant: &str, slots: &[&str]) -> Resu
 #[cfg(test)]
 #[path = "tests/unit/build.rs"]
 mod tests;
+
+fn generate_retained_std_model_v1() -> Result<(), String> {
+    use sha2::{Digest, Sha256};
+    use std::io::Read;
+
+    for key in [
+        "RUSTC",
+        "TARGET",
+        "RUSTC_WRAPPER",
+        "RUSTC_WORKSPACE_WRAPPER",
+        "RUSTFLAGS",
+        "CARGO_ENCODED_RUSTFLAGS",
+    ] {
+        println!("cargo:rerun-if-env-changed={key}");
+    }
+    let requested_output =
+        PathBuf::from(env::var_os("OUT_DIR").ok_or("Cargo did not provide OUT_DIR")?);
+    let output = fs::canonicalize(&requested_output)
+        .map_err(|e| format!("could not resolve retained-model OUT_DIR: {e}"))?;
+    let normalize = |path: &std::path::Path| -> Result<String, String> {
+        let value = path
+            .to_str()
+            .ok_or("output path is not valid Unicode")?
+            .replace('/', "\\");
+        Ok(value
+            .strip_prefix(r"\\?\")
+            .unwrap_or(&value)
+            .trim_end_matches('\\')
+            .to_ascii_lowercase())
+    };
+    let output_key = normalize(&output)?;
+    if output_key != normalize(&requested_output)? {
+        return Err("retained-model OUT_DIR must be a physical path without aliases".into());
+    }
+    let mut approved = false;
+    for designated in ["D:/cargo-targets", "E:/cargo-targets", "F:/cargo-targets"] {
+        let requested_root = PathBuf::from(designated);
+        let root = match fs::canonicalize(&requested_root) {
+            Ok(root) => root,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(format!("could not resolve physical output root: {error}")),
+        };
+        let root_key = normalize(&root)?;
+        if root_key != normalize(&requested_root)? {
+            return Err(format!("approved output root is redirected: {designated}"));
+        }
+        approved |= output_key.starts_with(&format!("{root_key}\\"));
+    }
+    if !approved {
+        return Err("retained-model output must be below physical D:/cargo-targets, E:/cargo-targets or F:/cargo-targets".into());
+    }
+    let rustc = env::var_os("RUSTC").ok_or("Cargo did not provide RUSTC")?;
+    let target = env::var("TARGET").map_err(|e| e.to_string())?;
+    let observed = (|| -> Result<(String, Vec<(String, String)>), String> {
+        let version = process::Command::new(&rustc)
+            .args(["--version", "--verbose"])
+            .output()
+            .map_err(|e| e.to_string())?;
+        if !version.status.success() {
+            return Err("rustc identity query failed".into());
+        }
+        let version = String::from_utf8(version.stdout).map_err(|e| e.to_string())?;
+        let directory = process::Command::new(&rustc)
+            .args(["--print", "target-libdir", "--target", &target])
+            .output()
+            .map_err(|e| e.to_string())?;
+        if !directory.status.success() {
+            return Err("rustc target library query failed".into());
+        }
+        let directory = PathBuf::from(
+            String::from_utf8(directory.stdout)
+                .map_err(|e| e.to_string())?
+                .trim(),
+        );
+        let mut libraries = Vec::new();
+        for prefix in ["liballoc-", "libcore-", "libstd-"] {
+            let mut found = Vec::new();
+            for entry in fs::read_dir(&directory).map_err(|e| e.to_string())? {
+                let path = entry.map_err(|e| e.to_string())?.path();
+                let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
+                if name.starts_with(prefix) && name.ends_with(".rlib") {
+                    found.push(path);
+                }
+            }
+            if found.len() != 1 {
+                return Err("ambiguous target standard library identity".into());
+            }
+            let path = found.remove(0);
+            println!("cargo:rerun-if-changed={}", path.display());
+            let mut file = fs::File::open(&path).map_err(|e| e.to_string())?;
+            let mut hash = Sha256::new();
+            let mut buffer = [0u8; 65536];
+            loop {
+                let n = file.read(&mut buffer).map_err(|e| e.to_string())?;
+                if n == 0 {
+                    break;
+                }
+                hash.update(&buffer[..n]);
+            }
+            libraries.push((prefix.to_owned(), format!("{:x}", hash.finalize())));
+        }
+        Ok((version, libraries))
+    })();
+    let expected = [
+        (
+            "liballoc-",
+            "ec31d2076f0a772502d983a3f08544f419a2e9ec7b91dde39085160a9fcbfe8d",
+        ),
+        (
+            "libcore-",
+            "cc07c244f9e8a0bdc3d541de001a0fd90abec28d3a7343c05ec759c7bd89871b",
+        ),
+        (
+            "libstd-",
+            "dad1e7dca0365c18af4f6ceb3e8f9362974bc099ef5dc37f4b4c4d8d14b6edd0",
+        ),
+    ];
+    let mode = env::var("RUSTFLAGS").unwrap_or_default();
+    let encoded = env::var("CARGO_ENCODED_RUSTFLAGS").unwrap_or_default();
+    let wrappers_empty = ["RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER"]
+        .iter()
+        .all(|key| env::var_os(key).is_none_or(|v| v.is_empty()));
+    let supported = observed.as_ref().is_ok_and(|(version, libraries)| {
+        target == "x86_64-pc-windows-msvc"
+            && version
+                .lines()
+                .any(|s| s == "commit-hash: e408947bfd200af42db322daf0fadfe7e26d3bd1")
+            && libraries
+                .iter()
+                .zip(expected)
+                .all(|((name, hash), (n, h))| name == n && hash == h)
+            && wrappers_empty
+            && !mode.contains("-Z")
+            && !encoded.contains("-Z")
+    });
+    // Normal dependency source/version provenance is deliberately not inferred here.
+    // Unknown identity emits unavailable metadata; unrelated Runtime targets still build.
+    let reason = if supported {
+        "audited model available; normal representation/admission still required"
+    } else {
+        "compiler/target/stdlib or layout mode is outside the admitted retained model"
+    };
+    let generated = format!(
+        "// @generated; availability only, not normal dependency provenance.\n\
+         pub const ZR_RETAINED_STD_MODEL_AVAILABLE_V1: bool = {supported};\n\
+         pub const ZR_RETAINED_STD_MODEL_REASON_V1: &str = {reason:?};\n"
+    );
+    fs::write(output.join("retained_std_model_v1.rs"), generated)
+        .map_err(|e| format!("could not write retained-model metadata: {e}"))
+}

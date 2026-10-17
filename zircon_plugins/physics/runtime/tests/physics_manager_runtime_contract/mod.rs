@@ -49,12 +49,14 @@ fn physics_manager(runtime: &CoreRuntime) -> Arc<dyn PhysicsManager> {
         .expect("physics manager should resolve")
 }
 
-fn create_runtime_with_scene_and_physics() -> CoreRuntime {
+fn create_runtime_with_scene_and_physics() -> ScopedCoreRuntime {
+    let fixture = ManagedConfigFixture::new("physics-contract");
     let runtime = CoreRuntime::new();
     configure_fixed_timestep(&runtime, test_fixed_timestep());
-    runtime
-        .register_module(zircon_runtime::foundation::module_descriptor())
+    let mut foundation = zircon_runtime::foundation::module_descriptor();
+    zircon_runtime::foundation::bind_config_file_path(&mut foundation, fixture.config_path())
         .unwrap();
+    runtime.register_module(foundation).unwrap();
     runtime
         .register_module(zircon_runtime::scene::module_descriptor())
         .unwrap();
@@ -70,7 +72,10 @@ fn create_runtime_with_scene_and_physics() -> CoreRuntime {
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     runtime.activate_module(PHYSICS_MODULE_NAME).unwrap();
-    runtime
+    ScopedCoreRuntime {
+        runtime,
+        _fixture: fixture,
+    }
 }
 
 fn tick_physics_level(runtime: &CoreRuntime, level: &LevelSystem) {
@@ -225,3 +230,82 @@ mod event;
 mod query;
 #[path = "step.rs"]
 mod step;
+
+// Field order closes the runtime (and its final worker) before cleaning the unique fixture.
+struct ScopedCoreRuntime {
+    runtime: CoreRuntime,
+    _fixture: ManagedConfigFixture,
+}
+
+impl std::ops::Deref for ScopedCoreRuntime {
+    type Target = CoreRuntime;
+    fn deref(&self) -> &Self::Target {
+        &self.runtime
+    }
+}
+
+struct ManagedConfigFixture {
+    root: zircon_runtime::asset::project::ResolvedProjectPathIdentity,
+}
+
+impl ManagedConfigFixture {
+    fn new(label: &str) -> Self {
+        use zircon_runtime::asset::ProjectPaths;
+        static NEXT_FIXTURE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+        let approved = ProjectPaths::resolve_existing("E:/cargo-targets/zircon-local")
+            .expect("the managed E drive fixture root must already exist");
+        let display = ProjectPaths::display_path(approved.operation_path());
+        assert!(
+            display
+                .to_str()
+                .expect("managed root must be Unicode")
+                .replace('\\', "/")
+                .eq_ignore_ascii_case("E:/cargo-targets/zircon-local"),
+            "the approved root must resolve to the physical E drive root"
+        );
+        let approved = ProjectPaths::resolve_identity(approved.operation_path()).unwrap();
+        let executable = std::env::current_exe().unwrap();
+        let binary = ProjectPaths::resolve_identity(executable.parent().unwrap()).unwrap();
+        assert!(
+            binary.is_within(&approved),
+            "test binary must physically live under the managed E root"
+        );
+        let id = NEXT_FIXTURE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = ProjectPaths::resolve_identity(binary.operation_path().join(format!(
+            "runtime55-{label}-{}-{nanos}-{id}",
+            std::process::id()
+        )))
+        .unwrap();
+        assert!(root.is_within(&binary));
+        // Every authority check precedes mkdir/write. create_dir never adopts an existing root.
+        std::fs::create_dir(root.operation_path()).unwrap();
+        let fixture = Self { root };
+        assert_eq!(
+            ProjectPaths::resolve_identity(fixture.root.operation_path()).unwrap(),
+            fixture.root
+        );
+        fixture
+    }
+
+    fn config_path(&self) -> std::path::PathBuf {
+        self.root.operation_path().join("config.json")
+    }
+}
+
+impl Drop for ManagedConfigFixture {
+    fn drop(&mut self) {
+        // The declaring scope/wrapper closes all runtimes, handles and worker owners first.
+        let current =
+            zircon_runtime::asset::ProjectPaths::resolve_identity(self.root.operation_path())
+                .unwrap();
+        assert_eq!(
+            current, self.root,
+            "cleanup must retain this fixture's physical identity"
+        );
+        std::fs::remove_dir_all(self.root.operation_path()).unwrap();
+    }
+}

@@ -102,7 +102,7 @@ impl MeshPipelineCache {
         let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
         if let Some(source) = validated_source {
             let validation_key = source.validation_key;
-            let creation_started = std::time::Instant::now();
+            let creation_started = web_time::Instant::now();
             let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("zircon-taa-reactive-mask-mesh-shader"),
                 source: wgpu::ShaderSource::Wgsl(source.wgsl_source.into()),
@@ -121,7 +121,7 @@ impl MeshPipelineCache {
                 .shader_modules
                 .get(&shader_key)
                 .expect("TAA reactive mask mesh shader module cached");
-            let creation_started = std::time::Instant::now();
+            let creation_started = web_time::Instant::now();
             let pipeline = match kind {
                 MeshPassPipelineKind::TaaReactiveMask => create_taa_reactive_mask_mesh_pipeline(
                     device,
@@ -191,7 +191,7 @@ impl MeshPipelineCache {
         let Some(target) = taa_reactive_pipeline_target(expected_kind) else {
             return PipelineAdmission::unavailable(
                 PipelineAdmissionReason::WrongPass,
-                std::time::Duration::ZERO,
+                web_time::Duration::ZERO,
             );
         };
         if self.taa_reactive_pipeline_is_cached(expected_kind, variant_id) {

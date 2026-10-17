@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{
-    AssetImportError, UiLayoutAsset, UiStyleAsset, UiV2ComponentAsset, UiV2StyleAsset,
+    AssetCodecError, UiLayoutAsset, UiStyleAsset, UiV2ComponentAsset, UiV2StyleAsset,
     UiV2ViewAsset, UiWidgetAsset,
 };
 
@@ -14,36 +14,36 @@ pub(super) struct ArtifactCacheUiAssetDocument {
 impl ArtifactCacheUiAssetDocument {
     pub(super) fn from_document(
         document: &zircon_runtime_interface::ui::template::UiAssetDocument,
-    ) -> Result<Self, AssetImportError> {
+    ) -> Result<Self, AssetCodecError> {
         toml::to_string(document)
             .map(|document_toml| Self { document_toml })
-            .map_err(|source| AssetImportError::TomlSerialize {
+            .map_err(|source| AssetCodecError::TomlSerialize {
                 context: "serialize ui asset document cache",
                 source,
             })
     }
 
-    pub(super) fn into_layout_asset(self) -> Result<UiLayoutAsset, AssetImportError> {
+    pub(super) fn into_layout_asset(self) -> Result<UiLayoutAsset, AssetCodecError> {
         UiLayoutAsset::from_toml_str(&self.document_toml).map_err(|source| {
-            AssetImportError::UiDocument {
+            AssetCodecError::UiDocument {
                 context: "deserialize ui layout document cache",
                 source,
             }
         })
     }
 
-    pub(super) fn into_widget_asset(self) -> Result<UiWidgetAsset, AssetImportError> {
+    pub(super) fn into_widget_asset(self) -> Result<UiWidgetAsset, AssetCodecError> {
         UiWidgetAsset::from_toml_str(&self.document_toml).map_err(|source| {
-            AssetImportError::UiDocument {
+            AssetCodecError::UiDocument {
                 context: "deserialize ui widget document cache",
                 source,
             }
         })
     }
 
-    pub(super) fn into_style_asset(self) -> Result<UiStyleAsset, AssetImportError> {
+    pub(super) fn into_style_asset(self) -> Result<UiStyleAsset, AssetCodecError> {
         UiStyleAsset::from_toml_str(&self.document_toml).map_err(|source| {
-            AssetImportError::UiDocument {
+            AssetCodecError::UiDocument {
                 context: "deserialize ui style document cache",
                 source,
             }
@@ -60,36 +60,36 @@ pub(super) struct ArtifactCacheUiV2AssetDocument {
 impl ArtifactCacheUiV2AssetDocument {
     pub(super) fn from_document(
         document: &zircon_runtime_interface::ui::v2::UiV2AssetDocument,
-    ) -> Result<Self, AssetImportError> {
+    ) -> Result<Self, AssetCodecError> {
         toml::to_string(document)
             .map(|document_toml| Self { document_toml })
-            .map_err(|source| AssetImportError::TomlSerialize {
+            .map_err(|source| AssetCodecError::TomlSerialize {
                 context: "serialize .zui asset document cache",
                 source,
             })
     }
 
-    pub(super) fn into_view_asset(self) -> Result<UiV2ViewAsset, AssetImportError> {
+    pub(super) fn into_view_asset(self) -> Result<UiV2ViewAsset, AssetCodecError> {
         UiV2ViewAsset::from_toml_str(&self.document_toml).map_err(|source| {
-            AssetImportError::UiV2Document {
+            AssetCodecError::UiV2Document {
                 context: "deserialize .zui view document cache",
                 source,
             }
         })
     }
 
-    pub(super) fn into_component_asset(self) -> Result<UiV2ComponentAsset, AssetImportError> {
+    pub(super) fn into_component_asset(self) -> Result<UiV2ComponentAsset, AssetCodecError> {
         UiV2ComponentAsset::from_toml_str(&self.document_toml).map_err(|source| {
-            AssetImportError::UiV2Document {
+            AssetCodecError::UiV2Document {
                 context: "deserialize .zui component document cache",
                 source,
             }
         })
     }
 
-    pub(super) fn into_style_asset(self) -> Result<UiV2StyleAsset, AssetImportError> {
+    pub(super) fn into_style_asset(self) -> Result<UiV2StyleAsset, AssetCodecError> {
         UiV2StyleAsset::from_toml_str(&self.document_toml).map_err(|source| {
-            AssetImportError::UiV2Document {
+            AssetCodecError::UiV2Document {
                 context: "deserialize .zui style document cache",
                 source,
             }

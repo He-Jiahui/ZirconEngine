@@ -29,7 +29,8 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     resources: &mut RenderGraphExecutionResources,
     mesh_draw_lists: RenderPassMeshCommandLists<'_>,
     hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
-) {
+) -> Result<(), String> {
+    bind_virtual_geometry_indexed_main(device, graph, resources, mesh_draw_lists)?;
     let first_hzb_execution = mesh_draw_lists
         .hzb_occlusion_indirect_executions()
         .into_iter()
@@ -47,6 +48,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             neutral_buffers.hzb(device),
         );
     }
+    Ok(())
 }
 
 fn bind_light_grid_external_buffers(
@@ -190,3 +192,89 @@ const LIGHT_GRID_EXTERNAL_BUFFER_NAMES: &[&str] = &[
 #[cfg(test)]
 #[path = "../tests/bind_execution_owned_graph_resources.rs"]
 mod tests;
+
+fn bind_virtual_geometry_indexed_main(
+    device: &wgpu::Device,
+    graph: &CompiledRenderGraph,
+    resources: &mut RenderGraphExecutionResources,
+    lists: RenderPassMeshCommandLists<'_>,
+) -> Result<(), String> {
+    use crate::graphics::scene::scene_renderer::mesh::{
+        VirtualGeometryIndexedPlan, INDEXED_ARGS_RESOURCE, INDEXED_CAPACITY,
+    };
+    use std::sync::Arc;
+    let mut plan: Option<Arc<VirtualGeometryIndexedPlan>> = None;
+    for commands in [
+        lists.depth_prepass_commands,
+        lists.shadow_commands,
+        lists.opaque_commands,
+        lists.alpha_mask_commands,
+        lists.advanced_pbr_opaque_commands,
+        lists.transmission_commands,
+        lists.transparent_commands,
+        lists.half_resolution_transparent_commands,
+        lists.velocity_commands,
+        lists.taa_reactive_mask_commands,
+    ] {
+        for command in commands {
+            if let Some(run) = &command.virtual_geometry_indexed_run {
+                if let Some(current) = &plan {
+                    if !Arc::ptr_eq(current, run.plan()) {
+                        return Err(
+                            "compiled indexed commands mix different captured frame plans".into(),
+                        );
+                    }
+                } else {
+                    plan = Some(Arc::clone(run.plan()));
+                }
+            }
+        }
+    }
+    let declared = graph
+        .resource_lifetime_by_name(INDEXED_ARGS_RESOURCE)
+        .is_some();
+    if !declared {
+        if plan.is_some() {
+            return Err("indexed mesh commands have no producer graph contract".into());
+        }
+        return Ok(());
+    }
+    let issued_upper_bound = lists
+        .opaque_commands
+        .iter()
+        .filter(|command| command.virtual_geometry_indexed_run.is_some())
+        .count()
+        .checked_add(
+            lists
+                .transparent_commands
+                .iter()
+                .filter(|command| command.virtual_geometry_indexed_run.is_some())
+                .count(),
+        )
+        .ok_or("main indexed admission bound overflow")?;
+    if issued_upper_bound > INDEXED_CAPACITY as usize {
+        return Err("main command admission count exceeds bounded indexed journal".into());
+    }
+    let plan = plan.unwrap_or_else(|| VirtualGeometryIndexedPlan::empty(device));
+    let native = plan.args();
+    let usage = crate::rhi::BufferUsage::STORAGE
+        | crate::rhi::BufferUsage::INDIRECT
+        | crate::rhi::BufferUsage::COPY_SRC
+        | crate::rhi::BufferUsage::COPY_DST;
+    let desc = crate::rhi::BufferDesc::new(
+        INDEXED_ARGS_RESOURCE,
+        u64::from(INDEXED_CAPACITY) * 20,
+        usage,
+    );
+    if native.size() != desc.size_bytes {
+        return Err("frame indexed allocation has a different physical size".into());
+    }
+    resources.bind_borrowed_buffer_with_physical_desc(
+        INDEXED_ARGS_RESOURCE,
+        "virtual-geometry-indexed-args:frame",
+        native.as_ref(),
+        desc,
+    )?;
+    resources.virtual_geometry_indexed_plan = Some(plan);
+    Ok(())
+}

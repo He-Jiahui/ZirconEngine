@@ -46,7 +46,18 @@ def physical_literal(path: Path) -> Path:
 def load_grants(repo: Path) -> tuple[dict, dict[str, str], str]:
     raw = (repo / ".codex/config.toml").read_bytes()
     config = tomllib.loads(raw.decode("utf-8-sig"))
-    grants = config["permissions"]["zircon-strict"]["filesystem"]
+    name = config.get("default_permissions", "zircon-strict")
+    visited = set()
+    def resolve(profile):
+        if profile.startswith(":"):
+            return {}
+        if profile in visited:
+            raise ValueError("Permission profile inheritance cycle")
+        visited.add(profile)
+        value = config["permissions"][profile]
+        inherited = resolve(value["extends"]) if value.get("extends") else {}
+        return {**inherited, **value.get("filesystem", {})}
+    grants = resolve(name)
     return config, grants, hashlib.sha256(raw).hexdigest()
 
 
@@ -226,7 +237,7 @@ def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
             disks.append({"drive": drive, "error": type(error).__name__})
     facts = [row for row in rows if row.get("exists")]
     return {"schemaVersion": 1, "observedAtUtc": utc_now(), "repository": str(repo),
-            "configSha256": config_hash, "profile": "zircon-strict",
+            "configSha256": config_hash, "profile": config.get("default_permissions", "zircon-strict"),
             "declaredWriteGrants": [value for value, mode in grants.items() if mode == "write"],
             "declaredWriteGrantCount": len(declared_roots), "scopes": [str(scope) for scope in scopes or []],
             "inventory": rows, "outputItems": output_items,
@@ -239,7 +250,7 @@ def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
                         "durationSeconds": round(time.monotonic() - start, 2)},
             "configuredControlWriteGrants": [value for value, mode in grants.items()
                                               if mode == "write" and Path(value) in {repo / ".git", repo / ".jenkins"}],
-            "configuredNetworkEnabled": config["permissions"]["zircon-strict"].get("network", {}).get("enabled"),
+            "configuredNetworkEnabled": config.get("permissions", {}).get(config.get("default_permissions", "zircon-strict"), {}).get("network", {}).get("enabled"),
             "limitations": ["Live filesystem observation, not an atomic snapshot.",
                             "Logical bytes are not uniquely allocated or reclaimable bytes.",
                             "Process command-line references cannot prove absence of users or open handles.",
@@ -251,9 +262,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--scope", type=Path, action="append", help="Absolute declared directory or descendant; repeat to narrow the audit")
+    parser.add_argument("--host-jenkins", action="store_true", help="Submit whole C/D/E discovery to the existing bounded Jenkins governance job")
+    parser.add_argument("--operation-id", help="Stable original operation identity for the Jenkins volume scan")
     args = parser.parse_args(argv)
     try:
         repo = physical_literal(args.repo)
+        if args.host_jenkins:
+            if args.scope or not args.operation_id:
+                raise ValueError("Whole-volume Jenkins inventory requires --operation-id and no local --scope")
+            return subprocess.run([sys.executable, "-B", "-m", "tools.dev.jenkins_governance", "--repo-root", str(repo),
+                "submit", "--action", "scan", "--operation-id", args.operation_id], cwd=repo, check=False).returncode
         scopes = [physical_literal(scope) for scope in args.scope or []]
         report = scan(repo, scopes=scopes or None)
         print(json.dumps(report, ensure_ascii=False, indent=2))

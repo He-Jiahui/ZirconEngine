@@ -62,6 +62,7 @@ impl<'a> SceneDocumentReloadCoordinator<'a> {
     pub fn reload<Reloader>(
         &self,
         expected: &ActiveSceneDocumentIdentity,
+        source_revision: &zircon_runtime::scene::world::SceneSourceRevision,
         reloader: &mut Reloader,
     ) -> Result<SceneDocumentReloadOutcome, SceneDocumentReloadError<Reloader::Error>>
     where
@@ -82,6 +83,13 @@ impl<'a> SceneDocumentReloadCoordinator<'a> {
             reloader
                 .install_active_scene_reload()
                 .map_err(SceneDocumentReloadError::Install)?;
+            let updated = self
+                .lifecycle
+                .replace_scene_source_revision_while_routed(expected, source_revision.clone());
+            debug_assert!(
+                updated,
+                "reload holds the scene route until the source baseline is installed"
+            );
             Ok(SceneDocumentReloadOutcome::Reloaded {
                 document: expected.document(),
             })

@@ -19,8 +19,9 @@ use zircon_runtime::scene::{EntityId, LevelSystem, World};
 
 use super::animation_evaluation_pipeline::AnimationEvaluationProjectionStats;
 use super::requests::{
-    AnimationSceneScan, PendingClipEventSample, PendingGraphPoseSample, PendingPoseSample,
-    PendingSequenceSample, PendingStateMachinePoseSample,
+    playback_requires_continuous_frame, AnimationSceneScan, PendingClipEventSample,
+    PendingGraphPoseSample, PendingPoseSample, PendingSequenceSample,
+    PendingStateMachinePoseSample,
 };
 
 #[cfg(test)]
@@ -286,6 +287,7 @@ impl AnimationEvaluationProjection {
             self.stats.clip_player_candidate_count =
                 self.stats.clip_player_candidate_count.saturating_add(1);
             let clip_id = player.clip.id();
+            let (asset_revision, clip_duration) = clip_asset_revision_and_duration(assets, clip_id);
             let skeleton_id = skeletons.get(&entity).copied();
             if skeleton_id.is_some() {
                 scan.pose_source_entities.insert(entity);
@@ -293,7 +295,7 @@ impl AnimationEvaluationProjection {
             let revision = ClipProjectionRevision {
                 player_change: player.last_changed(),
                 skeleton: skeleton_revisions.get(&entity).copied(),
-                asset_revision: clip_asset_revision(assets, clip_id),
+                asset_revision,
             };
             let should_sample =
                 player.playing || self.clip_revisions.get(&entity) != Some(&revision);
@@ -313,6 +315,19 @@ impl AnimationEvaluationProjection {
                 updated.time_seconds = time_seconds;
                 updates.push((entity, updated));
             }
+            if skeleton_id.is_none() {
+                scan.event_only_clip_requires_continuous_frame |= player.weight.is_finite()
+                    && player.weight > 0.0
+                    && clip_duration.is_some_and(|duration| {
+                        playback_requires_continuous_frame(
+                            player.playing,
+                            player.playback_speed,
+                            time_seconds,
+                            duration,
+                            player.looping,
+                        )
+                    });
+            }
             if player.playing {
                 scan.clip_event_samples.push(PendingClipEventSample {
                     entity,
@@ -327,6 +342,8 @@ impl AnimationEvaluationProjection {
                     entity,
                     skeleton_id,
                     clip_id,
+                    playing: player.playing && player.weight.is_finite() && player.weight > 0.0,
+                    playback_speed: player.playback_speed,
                     time_seconds,
                     looping: player.looping,
                     source: AnimationPoseSource::Clip,
@@ -391,6 +408,8 @@ impl AnimationEvaluationProjection {
                 entity,
                 sequence_id,
                 asset_revision: revision.asset_revision,
+                playing: player.playing,
+                playback_speed: player.playback_speed,
                 time_seconds,
                 looping: player.looping,
             });
@@ -453,6 +472,7 @@ impl AnimationEvaluationProjection {
                 entity,
                 skeleton_id,
                 graph_id: player.graph.id(),
+                playing: player.playing,
                 parameters: player.parameters.clone(),
                 from_time_seconds: previous_time_seconds,
                 to_time_seconds: next_time_seconds,
@@ -529,6 +549,7 @@ impl AnimationEvaluationProjection {
                     entity,
                     skeleton_id,
                     state_machine_id: player.state_machine.id(),
+                    playing: player.playing,
                     parameters: player.parameters.clone(),
                     active_state: player.active_state.clone(),
                     from_time_seconds: previous_time_seconds,
@@ -620,14 +641,24 @@ pub(super) fn apply_sequence_player_updates(
 }
 
 fn clip_asset_revision(assets: Option<&ProjectAssetManager>, id: AssetId) -> Option<u64> {
-    assets.and_then(|assets| {
+    clip_asset_revision_and_duration(assets, id).0
+}
+
+fn clip_asset_revision_and_duration(
+    assets: Option<&ProjectAssetManager>,
+    id: AssetId,
+) -> (Option<u64>, Option<Real>) {
+    let snapshot = assets.and_then(|assets| {
         assets
             .resource_manager()
             .snapshot::<AnimationClipMarker, AnimationClipAsset>(ResourceHandle::<
                 AnimationClipMarker,
             >::new(id))
-            .map(|snapshot| snapshot.revision())
-    })
+    });
+    match snapshot {
+        Some(snapshot) => (Some(snapshot.revision()), Some(snapshot.duration_seconds)),
+        None => (None, None),
+    }
 }
 
 fn sequence_asset_revision(assets: Option<&ProjectAssetManager>, id: AssetId) -> Option<u64> {

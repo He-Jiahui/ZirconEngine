@@ -1,0 +1,625 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R028",
+  "reviewer": "root",
+  "reviewed_at_utc": "2026-10-15T11:02:50.321599+00:00",
+  "status": "independently-reviewed-and-scoped-validated-with-preexisting-format-differences",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R028.json",
+    "sha256": "fe3ec533205566034cac716166425e0aabd9135473249a7ecbeaca87473f2cc9",
+    "immutable": true
+  },
+  "files": {
+    "zircon_runtime_interface/src/project/package_lock.rs": {
+      "before_sha256": "6461737619a54ca9c07a78b172b19fc16636972460582c441de67f8c93110f20",
+      "reviewed_sha256": "6461737619a54ca9c07a78b172b19fc16636972460582c441de67f8c93110f20",
+      "bytes": 32972,
+      "lines": 708,
+      "full_source_review_spans": [
+        [
+          1,
+          708
+        ]
+      ],
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 708,
+      "lone_lf_count": 0
+    },
+    "zircon_runtime_interface/src/project/project_launch_intent.rs": {
+      "before_sha256": "00b9edfe0fb4452b2f72d5b6c24dca7c669fb6c4f0fcb9cde60391ca85fcbc3c",
+      "reviewed_sha256": "5340a51d765374b8fd65424b6ca698e59cd29f99d1c634afacf2f29500b7cf55",
+      "bytes": 9452,
+      "lines": 244,
+      "full_source_review_spans": [
+        [
+          1,
+          244
+        ]
+      ],
+      "insertion_blocks": 26,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 244
+    },
+    "zircon_runtime_interface/src/project/project_launch_intent_error.rs": {
+      "before_sha256": "d0586caeadbe547cfb039a5129b11572fb9e2093466459026a85936412d94e48",
+      "reviewed_sha256": "262a25990ba513fcd16cd5ebddee9bf65d30fe71dacfd2250f15825f2a09db6c",
+      "bytes": 1343,
+      "lines": 30,
+      "full_source_review_spans": [
+        [
+          1,
+          30
+        ]
+      ],
+      "insertion_blocks": 6,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 30
+    },
+    "zircon_runtime_interface/src/project/retired_asset_ref_migration/budget.rs": {
+      "before_sha256": "feaacd83950add13ba745482084522fcaa4e1cbda0bbe5c043deecb01fe7ed65",
+      "reviewed_sha256": "c0e55284ecc8a41c4f0bbc900fa5455f90eed9dfa5efcaf6a7a1118fe73b0eca",
+      "bytes": 2358,
+      "lines": 61,
+      "full_source_review_spans": [
+        [
+          1,
+          61
+        ]
+      ],
+      "insertion_blocks": 3,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 61
+    },
+    "zircon_runtime_interface/src/project/retired_asset_ref_migration/error.rs": {
+      "before_sha256": "e51cb9b925e79687083e64eec7e5af6b42baf4c4ac5dd9f5531ac135f8154ddf",
+      "reviewed_sha256": "27e7ceed465696a30392b2e5c16d3b246fe811de8857c7f2671e73439d4c3f76",
+      "bytes": 2120,
+      "lines": 57,
+      "full_source_review_spans": [
+        [
+          1,
+          57
+        ]
+      ],
+      "insertion_blocks": 2,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 57
+    },
+    "zircon_runtime_interface/src/project/retired_asset_ref_migration/migrate.rs": {
+      "before_sha256": "8ddf4f6da2e3a756b81e04528fccb99870c5ec3886a0d0e144e2b8a9b192c106",
+      "reviewed_sha256": "8ddf4f6da2e3a756b81e04528fccb99870c5ec3886a0d0e144e2b8a9b192c106",
+      "bytes": 16191,
+      "lines": 390,
+      "full_source_review_spans": [
+        [
+          1,
+          390
+        ]
+      ],
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 390
+    },
+    "zircon_runtime_interface/src/project/retired_asset_ref_migration/mod.rs": {
+      "before_sha256": "b5ca20f2b7a024e27ed8da7154c6720dea20f87d08926c50293b87edad6b1e73",
+      "reviewed_sha256": "b5ca20f2b7a024e27ed8da7154c6720dea20f87d08926c50293b87edad6b1e73",
+      "bytes": 1268,
+      "lines": 28,
+      "full_source_review_spans": [
+        [
+          1,
+          28
+        ]
+      ],
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 28
+    },
+    "zircon_runtime_interface/src/project/session_lock/codec.rs": {
+      "before_sha256": "1cb206ac5c179d890e72e9e1811aed047560cfe7741830e84d0c8db258743d17",
+      "reviewed_sha256": "63cbb90018a216c35eb2ababae95ccdf8c26fce718d415e2986c88c5849e005b",
+      "bytes": 6647,
+      "lines": 167,
+      "full_source_review_spans": [
+        [
+          1,
+          167
+        ]
+      ],
+      "insertion_blocks": 3,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 167
+    },
+    "zircon_runtime_interface/src/project/session_lock/error.rs": {
+      "before_sha256": "402c4ab15b76e7eeadddd8378cff90108859bc2935cecf10d88cab062d4c1625",
+      "reviewed_sha256": "e3b54b634cc0522710f95b1e7b883d2e7553fbf307be4f943d152faf4990f73a",
+      "bytes": 740,
+      "lines": 24,
+      "full_source_review_spans": [
+        [
+          1,
+          24
+        ]
+      ],
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 24
+    },
+    "zircon_runtime_interface/src/project/session_lock/identity.rs": {
+      "before_sha256": "3d8889662e0c1744424b6d934346365509893289691a166a65cf928ccd398ecc",
+      "reviewed_sha256": "f89a443137d94f1f5a10b3d92bad4e4dd197b05fde64cce5a7abbc37677f1e6a",
+      "bytes": 1468,
+      "lines": 30,
+      "full_source_review_spans": [
+        [
+          1,
+          30
+        ]
+      ],
+      "insertion_blocks": 2,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 30
+    },
+    "zircon_runtime_interface/src/project/session_lock/mod.rs": {
+      "before_sha256": "2c9f0924672b0db36400760a5cb82344722260b9097c223641e4af2c5d70c4ff",
+      "reviewed_sha256": "d0862f9f38eb1a42640bafe23404e538360a18b86b0180afa31e3fa876ade3af",
+      "bytes": 1209,
+      "lines": 34,
+      "full_source_review_spans": [
+        [
+          1,
+          34
+        ]
+      ],
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 34
+    },
+    "zircon_runtime_interface/src/project/session_lock/record.rs": {
+      "before_sha256": "c08a34483a70284c895adbe740c31a9818c741f301663b2ca4a87490548f6f52",
+      "reviewed_sha256": "07b950a80f22a7c3b3a441cb93749e2a5e689627994fa8da363f30c81e3b9068",
+      "bytes": 14962,
+      "lines": 382,
+      "full_source_review_spans": [
+        [
+          1,
+          382
+        ]
+      ],
+      "insertion_blocks": 37,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 382
+    },
+    "zircon_runtime_interface/src/project/session_lock/tests/cases.rs": {
+      "before_sha256": "f196983515dd2dc5b9ca234928273b92b01cb69252b83d369202f83ec97cf959",
+      "reviewed_sha256": "f196983515dd2dc5b9ca234928273b92b01cb69252b83d369202f83ec97cf959",
+      "bytes": 9025,
+      "lines": 219,
+      "full_source_review_spans": [
+        [
+          1,
+          219
+        ]
+      ],
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 219
+    },
+    "zircon_runtime_interface/src/project/tests/package_lock.rs": {
+      "before_sha256": "4d17a0922541c08f87df9286331d56216c1457f2a327401732a929814359cf7a",
+      "reviewed_sha256": "4d17a0922541c08f87df9286331d56216c1457f2a327401732a929814359cf7a",
+      "bytes": 4938,
+      "lines": 131,
+      "full_source_review_spans": [
+        [
+          1,
+          131
+        ]
+      ],
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 131,
+      "lone_lf_count": 0
+    },
+    "zircon_runtime_interface/src/project/tests/project_launch_intent.rs": {
+      "before_sha256": "c4b41a5f24a5d631f46cca2bc711fbc059a84b3017e6d7d66893ad01fc284d38",
+      "reviewed_sha256": "c4b41a5f24a5d631f46cca2bc711fbc059a84b3017e6d7d66893ad01fc284d38",
+      "bytes": 3674,
+      "lines": 117,
+      "full_source_review_spans": [
+        [
+          1,
+          117
+        ]
+      ],
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 117
+    },
+    "zircon_runtime_interface/src/project/tests/retired_asset_ref_migration.rs": {
+      "before_sha256": "2d81afc69e16ef261fd8b3d4a325041330d5a7cc8df85df816b1507e05c4dabf",
+      "reviewed_sha256": "2d81afc69e16ef261fd8b3d4a325041330d5a7cc8df85df816b1507e05c4dabf",
+      "bytes": 4449,
+      "lines": 160,
+      "full_source_review_spans": [
+        [
+          1,
+          160
+        ]
+      ],
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 160
+    }
+  },
+  "all_owned_objects_and_blocks_reviewed": true,
+  "object_declaration_anchors_checked": 246,
+  "test_contracts_reviewed": 23,
+  "changed_source_count": 9,
+  "unchanged_source_count": 7,
+  "insertion_blocks": 81,
+  "added_comment_lines": 96,
+  "inserted_bytes": 7536,
+  "child_evidence_amendments": [
+    {
+      "path": "zircon_hub/src/process/editor_launch.rs",
+      "recorded_sha256": "dac87734eedf23e1f9e4362ee9325da84fdac01a5c066979568d25f88d926a",
+      "correct_sha256": "dac87734eedf23e1f9e436ac2ee9325da84fdac01a5c066979568d25f88d926a",
+      "reason": "The recorded hash omits two hexadecimal characters; independently read current raw bytes and bounded call context."
+    },
+    {
+      "field": "call_trait_macro_ffi_evidence.read_only_context[asset/migration/resolver.rs].read_spans",
+      "recorded_span": "28-",
+      "bounded_span": [
+        28,
+        151
+      ],
+      "reason": "Normalize the child open-ended read span to the actual current EOF; all of28-151 was independently read under6a8af6."
+    }
+  ],
+  "root_actual_read_receipts": [
+    {
+      "chunk_id": "f1c6ca",
+      "exit_code": 0,
+      "scope": "Owned source0-460."
+    },
+    {
+      "chunk_id": "30e2f7",
+      "exit_code": 0,
+      "scope": "Owned source460-930."
+    },
+    {
+      "chunk_id": "5da0d3",
+      "exit_code": 0,
+      "scope": "Owned source930-1420."
+    },
+    {
+      "chunk_id": "3bf9c3",
+      "exit_code": 0,
+      "scope": "Owned source1420-1910."
+    },
+    {
+      "chunk_id": "f48e19",
+      "exit_code": 0,
+      "scope": "Owned source1910-2390."
+    },
+    {
+      "chunk_id": "6b9a81",
+      "exit_code": 0,
+      "scope": "Owned source2390-2782; all2782 owned lines complete."
+    },
+    {
+      "chunk_id": "227de2",
+      "exit_code": 0,
+      "scope": "Child test contracts,caller inventory,existing TODO and validation limitations; truncated record.rs portion was completed by7833a8."
+    },
+    {
+      "chunk_id": "7833a8",
+      "exit_code": 1,
+      "scope": "All16 file decisions/object groups and all39 inserted record.rs documentation lines."
+    },
+    {
+      "chunk_id": "6a8af6",
+      "exit_code": 0,
+      "scope": "All18 bounded caller contexts,including full resolver28-151 and both sides of the unresolved mutex-root question."
+    },
+    {
+      "chunk_id": "94c281",
+      "exit_code": 0,
+      "scope": "Final exact-byte and anchor/static validation."
+    }
+  ],
+  "context_pins": [
+    {
+      "path": "zircon_hub/src/process/editor_launch.rs",
+      "sha256": "dac87734eedf23e1f9e436ac2ee9325da84fdac01a5c066979568d25f88d926a",
+      "lines": 139,
+      "read_spans": [
+        [
+          29,
+          40
+        ],
+        [
+          68,
+          68
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_app/src/entry/cli/launch_args.rs",
+      "sha256": "b76e15a5867889584a0f035ad3e8aaa7b3a191cccb4dfb3764b98f616ebd9d62",
+      "lines": 559,
+      "read_spans": [
+        [
+          200,
+          202
+        ],
+        [
+          414,
+          460
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_app/src/entry/entry_runner/editor.rs",
+      "sha256": "6d9adbf002ba843abed38499017fa5c6306d37865a3bb75182c789c86051d07f",
+      "lines": 723,
+      "read_spans": [
+        [
+          662,
+          669
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/core/project/authority/preflight.rs",
+      "sha256": "afb02082f190df3477319d86c7e816dd6e8806280c0317d225118ebe692f6cde",
+      "lines": 253,
+      "read_spans": [
+        [
+          24,
+          30
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/core/project/project_launch_preflight.rs",
+      "sha256": "b109041c2b64c9a754212b953fbf12763c4e8218fbd68e5d7a9f916a0204ea44",
+      "lines": 59,
+      "read_spans": [
+        [
+          10,
+          34
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/plugin/package_service/admission/project_lock.rs",
+      "sha256": "041c6b1d7cc2fd6dda90fc1889b30b2ba1f3b256757a84f80a956ae63a7330db",
+      "lines": 388,
+      "read_spans": [
+        [
+          53,
+          176
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_hub/src/account/cloud/package_lock.rs",
+      "sha256": "b66fb8025d2deb455157675d06b1082e99bb9551d58055497e8497d54c2e304f",
+      "lines": 119,
+      "read_spans": [
+        [
+          49,
+          52
+        ],
+        [
+          75,
+          113
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_hub/src/account/cloud/manifest.rs",
+      "sha256": "3ecde4e31c191eea129de2232b0b440254e2fcc11216a359f65435985acf3291",
+      "lines": 181,
+      "read_spans": [
+        [
+          58,
+          63
+        ],
+        [
+          98,
+          100
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/dynamic/document/migration/mod.rs",
+      "sha256": "c8090daf30e7052754c96103df6cf8e7ace350cfd3fb769e4f94bc3ee60acb88",
+      "lines": 126,
+      "read_spans": [
+        [
+          5,
+          5
+        ],
+        [
+          18,
+          18
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/asset/migration/document.rs",
+      "sha256": "b2d6d6cab655be2c47373e306dfc8c05d839fc0dbc564393909beafd347954bb",
+      "lines": 434,
+      "read_spans": [
+        [
+          327,
+          332
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/asset/migration/resolver.rs",
+      "sha256": "4fe3dc069615c201823c3e121b5752fe03e5cf82931d8cea65845301b7e64577",
+      "lines": 151,
+      "read_spans": [
+        [
+          28,
+          151
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/core/recovery/session_guard/record.rs",
+      "sha256": "7493a9a86e128b32f3600317b2abc621f95302ff9d61aa448983a37d827190bb",
+      "lines": 129,
+      "read_spans": [
+        [
+          8,
+          10
+        ],
+        [
+          87,
+          117
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/core/recovery/session_guard/mutation.rs",
+      "sha256": "8fb6b768513d3716ffbdd22cb8bed9583b03ac80d9a969ecf59724928411d4b8",
+      "lines": 183,
+      "read_spans": [
+        [
+          88,
+          88
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_hub/src/process/editor_focus/probe.rs",
+      "sha256": "df7371056c13eaebeffa92e16851162359031e719d67c3fa9f5fefc0c13e0770",
+      "lines": 161,
+      "read_spans": [
+        [
+          13,
+          13
+        ],
+        [
+          40,
+          47
+        ],
+        [
+          79,
+          79
+        ],
+        [
+          88,
+          88
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_hub/src/account/cloud/sync.rs",
+      "sha256": "b4dbe13d7af5f33b41ab23511735b20216873704dd8817da1abfc33844b4df51",
+      "lines": 125,
+      "read_spans": [
+        [
+          45,
+          58
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_hub/src/projects/metadata.rs",
+      "sha256": "c4b187ab77960ff97b20c67c5d0fc4f4605fc59c50c9444b1074834473042740",
+      "lines": 85,
+      "read_spans": [
+        [
+          42,
+          45
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_hub/src/projects/tests/metadata.rs",
+      "sha256": "9ca2992faa972d53ff786b493a82a557dc456aebb276237dbb637a6bc0595f0c",
+      "lines": 83,
+      "read_spans": [
+        [
+          39,
+          62
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/core/recovery/session_guard/ownership_lease.rs",
+      "sha256": "4c47af31237f891d41d76f62e46c633efa915fd5fe1ce076d5f2c2e59be69d62",
+      "lines": 189,
+      "read_spans": [
+        [
+          156,
+          167
+        ]
+      ],
+      "formal_coverage": false
+    }
+  ],
+  "context_files_formal_coverage": false,
+  "review_conclusions": [
+    "Package-lock DTO deserialization checks wire shape; consumers must still validate identity,target,authority,capacity and canonical selection ordering. Canonicalization clones and sorts rather than mutating the source DTO.",
+    "Shared package-lock SHA-256 includes schema,target,authority and entries while intentionally excluding checkout-local project GUID and manifest digest; consumers compare that excluded identity separately. No digest is proof of host authorization.",
+    "ProjectLaunchIntent constructors and custom Deserialize centralize version/name/path-shape checks. Owned path input is not filesystem resolution,existence,canonical root identity,profile admission or authentication. Retarget preserves operation/source/profile while validating a new requested open path.",
+    "Retired reference migration first iteratively admits the full tree with inclusive node/depth/reference budgets,then rewrites exact legacy shapes. Budget rejection happens before resolver callbacks; later parse/resolver errors do not roll back earlier callback effects. The single-reference adapter has a different scope from whole-tree admission.",
+    "The V2 session codec bounds UTF-8 bytes and rejects missing,duplicate,unknown,old-version or invalid fields before returning an owned record. It does not acquire an OS lease.",
+    "The admission record validates nonzero epoch,instance token syntax and lifecycle/generation combinations. Only Activating can commit_ready; Closing/Recovery may retain a committed generation. Heartbeat replacement neither increments epoch nor enforces monotonic timestamps.",
+    "Windows mutex naming hashes the supplied path's UTF-16LE representation. Record existence,Ready status and a heartbeat alone cannot prove an active platform lease. Hub and Editor use different normalization adapters; current evidence does not prove different final mutex names,so CR-PROJECT-0004 remains a TODO.",
+    "Two existing struct-variant layouts fail rustfmt --check. Every original raw byte is preserved and both files parse under stdout-only rustfmt. The other14 exact paths pass; no automatic formatting or Cargo/Rust tests ran."
+  ],
+  "issues": [
+    "LEGACY:zircon_runtime_interface/src/project/session_lock/identity.rs:14:TODO"
+  ],
+  "new_issue_markers": 0,
+  "all_original_bytes_and_comments_preserved": true,
+  "builds_or_Rust_tests_executed": false,
+  "validation_record": {
+    "path": "docs/plans/source-comments/reviews/R028-post-validation.json",
+    "sha256": "6c3611fac18e9c65c380e1df267bf0054c685d8f07b749188e916ead4ad11261"
+  },
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

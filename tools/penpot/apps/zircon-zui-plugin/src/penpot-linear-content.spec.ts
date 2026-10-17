@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { measureNativeLeafContent } from './penpot-content-material';
 import { projectZuiDocument } from './bridge/penpot-projection';
 import { measureLinearDesiredSizes } from './penpot-linear-content';
 import type { ZuiDocument } from './bridge/zui-document';
@@ -147,5 +148,34 @@ describe('native desired sizes before weighted allocation', () => {
           : { width: 88, height: 20 },
     ).get('row');
     expect(size).toEqual({ width: 118, height: 20 });
+  });
+});
+
+describe('dropdown desired size uses the same effective style as painting', () => {
+  it('resolves ancestor caret styles and inline overrides without editing the document', () => {
+    const doc: ZuiDocument = {
+      asset: { kind: 'view', id: 'res://tests/dropdown-content.zui', version: 2 },
+      root: { node: 'row' },
+      stylesheets: [{ id: 'dropdown-style', rules: [{
+        selector: '.toolbar > .choice', set: { self: { caret_gap: 10, caret_size: 20 } },
+      }] }],
+      nodes: {
+        row: { component: 'HorizontalBox', classes: ['toolbar'],
+          layout: { container: { kind: 'HorizontalBox', gap: 0 } },
+          children: [{ node: 'choice', slot: { layout: { linear_size: { rule: 'Auto', shrink_value: 0 } } } }] },
+        choice: { component: 'Dropdown', classes: ['choice'],
+          props: { value_text: 'Perspective', caret_size: 12, caret_gap: 4 },
+          style: { self: { caret_size: 24 } }, layout: { width: { stretch: 'Fixed' } } },
+      },
+    };
+    const before = JSON.stringify(doc);
+    const sizes = measureLinearDesiredSizes(doc, projectZuiDocument(doc),
+      (node) => measureNativeLeafContent(doc, node, { width: 40, height: 16 }));
+    expect(sizes.get('choice')).toEqual({ width: 94, height: 16 });
+    expect(sizes.get('row')).toEqual({ width: 94, height: 16 });
+    expect(JSON.stringify(doc)).toBe(before);
+    doc.nodes!['choice'].layout!['width'] = { min: 50, max: 80, stretch: 'Fixed' };
+    expect(measureLinearDesiredSizes(doc, projectZuiDocument(doc),
+      (node) => measureNativeLeafContent(doc, node, { width: 40, height: 16 })).get('choice')?.width).toBe(80);
   });
 });

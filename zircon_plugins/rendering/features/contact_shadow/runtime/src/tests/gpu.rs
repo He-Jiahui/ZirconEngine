@@ -1,4 +1,7 @@
 //! 真实 WGPU 产品夹具比较接触阴影开关的帧差、局部区域与计算统计；资产服务限定材质资源的生命周期。
+#[path = "../../../../../test_support/project.rs"]
+mod product_project;
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -40,7 +43,8 @@ struct ProjectAssetTestRuntime {
 }
 
 impl ProjectAssetTestRuntime {
-    fn new(manager: Arc<ProjectAssetManager>) -> Self {
+    fn new(manager: Arc<ProjectAssetManager>, label: &str) -> Self {
+        product_project::open_smoke_project(&manager, label);
         let runtime = CoreRuntime::new();
         runtime
             .register_module(
@@ -88,6 +92,8 @@ impl ProjectAssetTestRuntime {
 fn contact_shadow_wgpu_product_capture_darkens_screen_space_contact_region() {
     let viewport_size = UVec2::new(160, 120);
     let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_runtime =
+        ProjectAssetTestRuntime::new(Arc::clone(&asset_manager), "contact_shadow_single");
     let receiver_material = register_contact_shadow_material(
         asset_manager.as_ref(),
         "res://materials/contact_shadow_receiver.zmaterial",
@@ -100,8 +106,6 @@ fn contact_shadow_wgpu_product_capture_darkens_screen_space_contact_region() {
         "ContactShadowBlocker",
         [0.34, 0.34, 0.32, 1.0],
     );
-    let asset_runtime = ProjectAssetTestRuntime::new(Arc::clone(&asset_manager));
-
     let contact_shadow_framework = WgpuRenderFramework::new_with_plugin_render_features(
         asset_runtime.access(),
         [render_feature_descriptor()],
@@ -150,6 +154,8 @@ fn contact_shadow_wgpu_product_capture_darkens_screen_space_contact_region() {
 fn contact_shadow_wgpu_product_capture_darkens_multiple_screen_space_contact_regions() {
     let viewport_size = UVec2::new(192, 128);
     let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_runtime =
+        ProjectAssetTestRuntime::new(Arc::clone(&asset_manager), "contact_shadow_multiple");
     let receiver_material = register_contact_shadow_material(
         asset_manager.as_ref(),
         "res://materials/contact_shadow_wide_receiver.zmaterial",
@@ -162,8 +168,6 @@ fn contact_shadow_wgpu_product_capture_darkens_multiple_screen_space_contact_reg
         "ContactShadowWideBlocker",
         [0.31, 0.32, 0.30, 1.0],
     );
-    let asset_runtime = ProjectAssetTestRuntime::new(Arc::clone(&asset_manager));
-
     let contact_shadow_framework = WgpuRenderFramework::new_with_plugin_render_features(
         asset_runtime.access(),
         [render_feature_descriptor()],
@@ -369,6 +373,7 @@ fn contact_shadow_scene_extract(
                 ambient_lights: vec![RenderAmbientLightSnapshot {
                     color: Vec3::ONE,
                     intensity: 0.18,
+                    affects_lightmapped_meshes: true,
                     renderer_degraded: false,
                     degradation_reason: None,
                 }],
@@ -458,6 +463,7 @@ fn wide_contact_shadow_scene_extract(
                 ambient_lights: vec![RenderAmbientLightSnapshot {
                     color: Vec3::ONE,
                     intensity: 0.18,
+                    affects_lightmapped_meshes: true,
                     renderer_degraded: false,
                     degradation_reason: None,
                 }],

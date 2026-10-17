@@ -105,6 +105,7 @@ impl UiLayoutEngineCapability {
     }
 }
 
+/// 交给后端选择逻辑的能力请求，描述布局族、内容测量与 DPI 需求；选择记录不代表布局已执行。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiLayoutEngineRequest {

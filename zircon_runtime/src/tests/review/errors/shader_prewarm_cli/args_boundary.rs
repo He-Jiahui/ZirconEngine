@@ -10,37 +10,34 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
     let manifest_paths = include_str!("../../../../bin/zircon_shader_prewarm/manifest/paths.rs");
     let manifest_tests =
         include_str!("../../../../bin/zircon_shader_prewarm/manifest/tests/cases.rs");
-    let manifest_asset_scan_tests = include_str!(
-        "../../../../bin/zircon_shader_prewarm/manifest/tests/asset_scan_errors.rs"
-    );
+    let manifest_asset_scan_tests =
+        include_str!("../../../../bin/zircon_shader_prewarm/manifest/tests/asset_scan_errors.rs");
     let manifest_io_tests =
         include_str!("../../../../bin/zircon_shader_prewarm/manifest/tests/io.rs");
     let permutation_registry =
         include_str!("../../../../bin/zircon_shader_prewarm/manifest/permutation_registry.rs");
     let resource_registry =
         include_str!("../../../../bin/zircon_shader_prewarm/manifest/resource_registry.rs");
-    let resource_registry_tests = include_str!(
-        "../../../../bin/manifest/resource_registry/tests/cases.rs"
-    );
+    let resource_registry_tests =
+        include_str!("../../../../bin/manifest/resource_registry/tests/cases.rs");
     let run = include_str!("../../../../bin/zircon_shader_prewarm/run.rs");
-    let review_findings = concat!(
+    let _review_findings = concat!(
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
     );
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let render_doc = include_str!(
+    let _render_doc = include_str!(
         "../../../../../../docs/crates/zircon_runtime/graphics/render-product-submit.md"
     );
-    let module_doc = include_str!(
-        "../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
-    );
+    let _module_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
     assert!(
         main.contains("mod error;"),

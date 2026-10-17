@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::fmt;
-use std::time::Instant;
+use web_time::Instant;
 
 use super::{
     error::CoreError, CoreRuntime, ModuleShutdownReport, TaskGraphShutdownError,

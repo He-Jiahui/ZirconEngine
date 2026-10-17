@@ -1,0 +1,1270 @@
+{
+  "schema_version": "source-comments-root-main-v2",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R083",
+  "owner": "root",
+  "agent": "contracts_luna",
+  "agent_model": "gpt-6-luna",
+  "agent_reasoning_effort": "max",
+  "created_at_utc": "2026-10-17T03:15:22.041942+00:00",
+  "status": "root-reviewed-locally-validated-pending-coverage-book-and-designated-Jenkins",
+  "source_scope": "Shared text layout session with exact two directly mounted tests; child diagnostics/table telemetry, providers, cache implementations, UI and Editor callers remain context only.",
+  "source_read_complete": true,
+  "source_files": [
+    {
+      "id": "M",
+      "path": "zircon_runtime/src/text/layout_session.rs",
+      "sha256": "43986fbac9bd3854e0cb45f9f706b5391066d68c72284f26ac71532fb3fbc858",
+      "bytes": 28701,
+      "lines": 705,
+      "before_sha256": "0a06469e0517f148047e9c5f130139d6ecaa48aa6cc8b4c0ea5939ed3e3b46c2",
+      "before_bytes": 21058,
+      "before_lines": 606,
+      "child_historical_sha256": "5d3652e545c61889466ac0fc1e09c970a2507ed642ffa29420c52f0d9359e07c",
+      "child_historical_bytes": 28707,
+      "inserted_blocks": 35,
+      "inserted_lines": 99,
+      "inserted_bytes": 7643,
+      "removed_original_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "stage0_blob": "341b7a695f51c741df38f04bc42143a0c18abbff",
+      "clean_filter_blob": "dfc97a79a59752f00e47f2c1def161a337b05abf",
+      "root_new_doc_amendment": true,
+      "owner": "contracts_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 169
+    },
+    {
+      "id": "T",
+      "path": "zircon_runtime/src/text/layout_session/tests/cases.rs",
+      "sha256": "54868a39baa14683c4a7e78ed1f160307a49d598e00682ac4c32c3689a32ae75",
+      "bytes": 19832,
+      "lines": 580,
+      "before_sha256": "fa5b1f7864b31b1e59f56b12dbb7aed818a0efc0222d67f2fe555a134b614151",
+      "before_bytes": 19523,
+      "before_lines": 575,
+      "child_historical_sha256": "54868a39baa14683c4a7e78ed1f160307a49d598e00682ac4c32c3689a32ae75",
+      "child_historical_bytes": 19832,
+      "inserted_blocks": 1,
+      "inserted_lines": 5,
+      "inserted_bytes": 309,
+      "removed_original_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "stage0_blob": "5c430017dc6c0eb6ccc65fc1aeca9d8041ea7fe6",
+      "clean_filter_blob": "91e84aeb2da33ec40af57cf3282546f70d303250",
+      "root_new_doc_amendment": false,
+      "owner": "contracts_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 159
+    },
+    {
+      "id": "W",
+      "path": "zircon_runtime/src/text/layout_session/tests/work_budget.rs",
+      "sha256": "15fc2f44b6cfc92a9a7c62a2aa7a644832f4339e278d0a89cb853d07d05c7588",
+      "bytes": 1154,
+      "lines": 29,
+      "before_sha256": "7bd475e6b34439a8974f4bab0bf6f35e14e92e2bbf621e9819103eba5994b269",
+      "before_bytes": 984,
+      "before_lines": 26,
+      "child_historical_sha256": "15fc2f44b6cfc92a9a7c62a2aa7a644832f4339e278d0a89cb853d07d05c7588",
+      "child_historical_bytes": 1154,
+      "inserted_blocks": 1,
+      "inserted_lines": 3,
+      "inserted_bytes": 170,
+      "removed_original_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "stage0_blob": "b0a59d2a2eefdcd68bf16bb715064bab163309e7",
+      "clean_filter_blob": "a7642e890ed35a64f281a8899072d2982545f302",
+      "root_new_doc_amendment": false,
+      "owner": "contracts_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 9
+    }
+  ],
+  "counts": {
+    "files": 3,
+    "main_functions": 54,
+    "test_functions": 21,
+    "declarations": 16,
+    "members": 16,
+    "main_gapfree_partitions": 20,
+    "main_semantic_blocks": 63,
+    "test_semantic_blocks": 45,
+    "assertions": 81,
+    "normal_tests": 21,
+    "ignored_tests": 0,
+    "inserted_groups": 37,
+    "inserted_lines": 107,
+    "inserted_bytes": 8122,
+    "root_test_file_gap_partitions": 21
+  },
+  "canonical_ranges": 337,
+  "canonical_range_digest": "665d13e9d63749e85a288da4eea87b6ac4e94bd3e6ffaf28e62bde9d90d39d9d",
+  "canonical_range_record": "docs/plans/source-comments/reviews/R083-post-validation.json",
+  "records": [
+    {
+      "path": "docs/plans/source-comments/reviews/R083.json",
+      "sha256": "c02b54b85d0ad663d294030dc793682b955a35eac07b04dc44d6286f5da59dc0",
+      "bytes": 79043,
+      "lines": 27
+    },
+    {
+      "path": "docs/plans/source-comments/reviews/R083-post-validation.json",
+      "sha256": "a40159b0bcde4dfbbdc36f5eb57772457d6bceebe92f4a15c9caf3e65bc4c144",
+      "bytes": 233113,
+      "lines": 6536
+    }
+  ],
+  "child_immutable": true,
+  "source_amendments": [
+    {
+      "owner": "root",
+      "scope": "Only one R083 task-added doc line401; original code/API/old comments/child frozen",
+      "path": "zircon_runtime/src/text/layout_session.rs",
+      "line": 401,
+      "before_sha256": "5d3652e545c61889466ac0fc1e09c970a2507ed642ffa29420c52f0d9359e07c",
+      "expected_after_sha256": "43986fbac9bd3854e0cb45f9f706b5391066d68c72284f26ac71532fb3fbc858",
+      "before_bytes": 28707,
+      "after_bytes": 28701,
+      "lines_unchanged": 705,
+      "old_new_doc": [
+        "    /// 在本会话字体集合和成形缓存上预热横排段落，并合并工作及诊断回执。",
+        "    /// 在本会话字体集合和成形缓存上预热段落，并合并工作及诊断回执。"
+      ],
+      "child_fixed_sha256": "c02b54b85d0ad663d294030dc793682b955a35eac07b04dc44d6286f5da59dc0",
+      "historical_grant_sha256": "63f06945ce014bc5dd484bc0c11bbe614683791ed25ccf5529379e89c71a699e",
+      "owner_handoff": "contracts_luna final: 明确将R083 main唯一新增文档预热横排段落→预热段落的更正编辑权移交root；sourcewriters均终态，无在途，child不改；不涉及R087或历史未知writer。",
+      "evidence": {
+        "root": "root709/320f6e native13030->710/77c44f exit0/PID9868 exact main390-426; shape_pool1-37/108-215/255-365",
+        "core": "core_timer_sol ae5951/native80086->305ffd exit0/PID5920 shape_pool1-175/235-450; other planned extra reads spawn_ready rejected not counted",
+        "callee_path": "zircon_runtime/src/text/parallel/shape_pool.rs",
+        "callee_sha256": "e43f795564db3a1bab8226845c95162ae379a7ad6e05c5f634cba965869a6e06",
+        "reason": "layout_span preserves vertical_mode; request Some builds vertical_with_kerning; prewarm loops each paragraph.request without forcing horizontal."
+      },
+      "state": "registered-for-immediate-compare-and-swap",
+      "registered_at_utc": "2026-10-17T02:23:52.080812+00:00",
+      "source_behavior_change": false,
+      "new_issue_id": null,
+      "actual_state": "completed-and-independently-verified",
+      "actual_current_sha256": "43986fbac9bd3854e0cb45f9f706b5391066d68c72284f26ac71532fb3fbc858",
+      "writer_terminal": "root711/c5c0ac native52782->712/e20dea exit0/PID34916",
+      "independent_terminal": "root713/9cebf2 native80263->714/b9ea60 exit0/PID2976",
+      "fixed_child_preserved": true
+    }
+  ],
+  "root_review": {
+    "source": "root628/3e6421 exit0/PID8628 complete705LF initialdoc241d; root644 exact4newdocs to5d; root703/cffc62 native74216->704/bdce0c exit0/PID37208 both final tests609LF; root709/77c44f main390-426 plus root713/714 exactnewdoc43986 inverse",
+    "models": "root713/9cebf2 native80263->714/b9ea60 exit0/PID2976 full native9309 tokens group1; outer omitted fn7/8 reemitted memoryroot715; root715/4b9d00 exit0/PID40476 full21test/81assert/27context/14edge/5guards; root718/d64af9 native71665->ea9986 exit0/PID45660 fulltail/files/grant",
+    "contexts": "root723/9e2dda exit0/PID18716 group1 C01/02/03/04/05;724/cf5942 exit0/PID46420 C06/07/08/09;725/6402a1 exit0/PID45400 C10/11/13/16;726/013103 exit0/PID38780 C02/08/13 and actual C22/25/26 readers;730/d778dc exit0/PID46628 helper2 and proofschema",
+    "reused_contexts": "same pins C14 work_budget full86 root697/bb0d00; C15D diagnostics175 root620+R082fullreview; C15T table134 root690; C23 actualclassifier118-152 and C24 full108 root697; C01 prior1-22/115-134 root620/696; priorfixedR081 full rootmain; raw-only C17-21 inputs are byte/operand observations, not full source review",
+    "current_independent_verification": "This invocation independently verifies fixed child/post, all3final source pins and original-byte inverses,337unique range hashes/digest,27current context pins/spans,helper/guard/config/issue pins and raw guard boundaries before creating only main. Actual terminal bound by subsequent coverage book."
+  },
+  "core_helper": {
+    "agent": "core_timer_sol",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "max",
+    "actual_receipts": [
+      "15de1d exit0/PID33944 full main705+work29 and child pins",
+      "7f555f native53147->1165bb exit1/PID34116 cases580 fully printed, then child contexts wrong-shape error; corrected in later actual read",
+      "ae5951 native80086->305ffd exit0/PID5920 shape_pool1-175/235-450 and child contexts/refinements/issues"
+    ],
+    "source_version": "Historical5d main before sole6-byte root new-doc correction; other2final testpins same. Root separately proved 43986 exactnewdoc delta and callee vertical_mode preservation.",
+    "rejected_extra_reads": "Two later planned narrow context calls were spawn_ready pre-body rejected, no native/PID/read; not counted.",
+    "new_program_bug": false,
+    "required_doc_correction": "prewarm is not confined to horizontal paragraphs; root amended only task-added doc401 after explicit owner handoff.",
+    "tests_run": false
+  },
+  "semantic_contracts": [
+    "Default new uses process collection; explicit collection construction is independent and unleased; Context factory checks Active before lease family creation and after session creation, returns owned session rather than borrowing context. Clone shares optional lease family/collection Arc, copies cache/report/budgets/mode, creates a fresh rich parser; equality deliberately excludes parser and lease.",
+    "Frame begin resets reports/work while retaining cache entries; finish hands Copy table statistics to collection entry and trims shaped cache, leaving owner report until next begin. Cache clear has its own cache report effects and does not act as frame boundary.",
+    "Geometry/work budget getters copy snapshots; geometry rejection and fallback are separate observations. Work miss is counted before backend success, including failed/deferred requests, while hits avoid repeated miss work.",
+    "Synchronous requests normalize before lookup; Ready diagnostics merge before generation admission, and mismatched retired result is Deferred rather than inserted. Service bounds retries to2, checks generation before/after projection, and snapshots retain old database Arc without freezing future collection publication.",
+    "Prewarm preserves each paragraph vertical_mode, uses explicit owned collection, and merges work/shaping receipts. Root corrected only task-added doc401 by deleting the unsupported horizontal qualification; six bytes removed from new prose, no original bytes removed.",
+    "Vertical scope saves Option mode and exclusively borrows session; Deref/DerefMut route to it and Drop restores mode on early returns. Only trait horizontal-with-kerning branch redirects; inherent horizontal range is not redirected. Real plain/rich vertical callers verified, no direct scope test among21.",
+    "Hard-line keyed path compares source Arc or exact source despite owner/revision contract, returns ordinal window as source offsets and may bypass retention under capacity/estimated bytes. Cloned cache vectors and entries are owned while source Arc references can remain shared.",
+    "Twenty-one tests and81assertions reviewed statically; constructed failure/alternate-backend receipts and artifact_query test name do not prove concurrent reload, actual fallback recovery, complete artifact query or UI publication. No Rust/Cargo/benchmark execution."
+  ],
+  "call_relation_evidence": {
+    "contexts": [
+      {
+        "id": "C01",
+        "path": "zircon_runtime/src/text/mod.rs",
+        "sha256": "38aef7102fa2a7850d4b7b2b8d644400ef0bb9e01cb5222cefbd642694201157",
+        "bytes": 7193,
+        "lines": 170,
+        "historical_sha256": "38aef7102fa2a7850d4b7b2b8d644400ef0bb9e01cb5222cefbd642694201157",
+        "mapped_child_context_spans": [
+          [
+            1,
+            22
+          ],
+          [
+            118,
+            144
+          ]
+        ],
+        "mapped_range_sha256": [
+          "e5d5927ac578a25478488c01f359fecc892815c1c13bb1231f21d492ce0cbb48",
+          "a2973d9b059034b57b03389190949e6b6dd0c7df9a93c9410027aca5e803b0b7"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "挂载layout_session并重导会话/报告入口；其他text模块不计覆盖。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C02",
+        "path": "zircon_runtime/src/text/context.rs",
+        "sha256": "ce942c87bef4b7c1d7d218ac16b14f984a2eaf5abc3836d84ef8b6a33e6d795a",
+        "bytes": 14875,
+        "lines": 448,
+        "historical_sha256": "ce942c87bef4b7c1d7d218ac16b14f984a2eaf5abc3836d84ef8b6a33e6d795a",
+        "mapped_child_context_spans": [
+          [
+            230,
+            288
+          ],
+          [
+            363,
+            404
+          ]
+        ],
+        "mapped_range_sha256": [
+          "c2bd8c4d71d1222571c10fc24e156a6b26cdc2afc1c452498f895ff22f2b3b36",
+          "6db746036b1e06ff286c92b2e5c55ba15b7ad8656f91c35d019b327dcd5d1d57"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "LeaseFamily Drop释放活动家族；Lease派生Clone共享Arc；create_layout_session先准入再构造并再次检查Active。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C03",
+        "path": "zircon_runtime/src/ui/text/measure_cache/context.rs",
+        "sha256": "139a419079b1a6ebbbd18073a00cc18d4a2380cb28c33b96d418912f6be2ec67",
+        "bytes": 3712,
+        "lines": 88,
+        "historical_sha256": "f1ba2ca025ee428909e973ca55791d3f20ecd5b436c52388a9e53a2883f741d3",
+        "mapped_child_context_spans": [
+          [
+            4,
+            88
+          ]
+        ],
+        "mapped_range_sha256": [
+          "fa1235fce603441ff5a3e8967a4e99fa8ca07ee71a13ab38f4d466743493acad"
+        ],
+        "comment_only_drift": true,
+        "formal_coverage": false,
+        "role": "独立默认入口/显式集合入口/上下文create入口，以及持有session和身份转发。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C04",
+        "path": "zircon_runtime/src/ui/text/measure_cache.rs",
+        "sha256": "2f9ed0e72c5efed4522e58dd38ee530b41d82e2d18c49bd6e34b50ea215e130a",
+        "bytes": 30857,
+        "lines": 766,
+        "historical_sha256": "f2e4b54b241f8e1977609479ccdce24454cd87ea7b30a1d141a7cfe70bb4e5e6",
+        "mapped_child_context_spans": [
+          [
+            7,
+            63
+          ],
+          [
+            271,
+            386
+          ]
+        ],
+        "mapped_range_sha256": [
+          "ae33b5da16857a1a48162bd8b8f97dadb99c20b71086bc6c0a5f17b30c4b4549",
+          "20bc8e3f2d5fdd04b6af8de7dee2c95e956b7b3dcd0a89c9f2ce1dbae8188e67"
+        ],
+        "comment_only_drift": true,
+        "formal_coverage": false,
+        "role": "父挂载context，持有session；clear/begin_frame/finish_frame真实调用顺序。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C05",
+        "path": "zircon_runtime/src/text/shaping/mod.rs",
+        "sha256": "ab60f7eed5cc86d3a25709fa0c40169f41b70fc5e8df52f5cfd45ad1c1b1613d",
+        "bytes": 10766,
+        "lines": 355,
+        "historical_sha256": "ab60f7eed5cc86d3a25709fa0c40169f41b70fc5e8df52f5cfd45ad1c1b1613d",
+        "mapped_child_context_spans": [
+          [
+            90,
+            178
+          ]
+        ],
+        "mapped_range_sha256": [
+          "75b86e2e51d02a71efba75f417a6706ce88eec05ffe9123cb6de156d262213a9"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "TextShapeRunProvider真实定义及三个实现契约；trait默认入口与显式kerning入口区别。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C06",
+        "path": "zircon_runtime/src/text/cache/shaped_cache.rs",
+        "sha256": "13229cb0af59dc34be8155ceafabaa946f970b8c3fa977b08b8a357984a8eba5",
+        "bytes": 28110,
+        "lines": 770,
+        "historical_sha256": "13229cb0af59dc34be8155ceafabaa946f970b8c3fa977b08b8a357984a8eba5",
+        "mapped_child_context_spans": [
+          [
+            300,
+            445
+          ]
+        ],
+        "mapped_range_sha256": [
+          "ecd9180e5a7efa86e73f82c015b15b448d82d05b1e4a55b5ac52c9573fbaa246"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "派生Clone逐字段调用Clone，entry run为Arc；begin_frame369–378只更新frame_report，finish_frame380–382 trim，clear384–397清缓存并更新cache报告。不把结构Clone写成字形深复制。",
+        "provenance": "candidate-context+89dd6e"
+      },
+      {
+        "id": "C07",
+        "path": "zircon_runtime/src/text/cache/hard_line_index.rs",
+        "sha256": "cacd85d451576e3b9a4ce91a719b5f2a30d90bc23b77a41fd8ff75d87f468f77",
+        "bytes": 8669,
+        "lines": 257,
+        "historical_sha256": "cacd85d451576e3b9a4ce91a719b5f2a30d90bc23b77a41fd8ff75d87f468f77",
+        "mapped_child_context_spans": [
+          [
+            1,
+            191
+          ]
+        ],
+        "mapped_range_sha256": [
+          "22fcd7ad4e91b258b176428adea5fdf722679224454201c8cb668ba1fe8a5696"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "派生Clone复制entries/行Vec且source Arc共享；键要求owner修订推进，窗口按行序号，容量/字节可能旁路。",
+        "provenance": "candidate-context+89dd6e"
+      },
+      {
+        "id": "C08",
+        "path": "zircon_runtime/src/text/font/shared.rs",
+        "sha256": "485c89f06f772ac4633af27ef74f7017120c858e96014540706418ce48ee9548",
+        "bytes": 15836,
+        "lines": 465,
+        "historical_sha256": "485c89f06f772ac4633af27ef74f7017120c858e96014540706418ce48ee9548",
+        "mapped_child_context_spans": [
+          [
+            85,
+            116
+          ],
+          [
+            173,
+            203
+          ]
+        ],
+        "mapped_range_sha256": [
+          "ffb4af7310534278097e334e71d1212702a18027ca7ee9e81e20eea298f33d53",
+          "658f6261ecf89b99e5ad78601910f24925ac62564879fff59f54be4ab7cd5fb6"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "快照结构拥有Arc集合/数据库及代次；只复用已读字段/窗口，不声称此窗口覆盖完整集合实现。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C09",
+        "path": "zircon_runtime/src/text/parallel/shape_pool.rs",
+        "sha256": "e43f795564db3a1bab8226845c95162ae379a7ad6e05c5f634cba965869a6e06",
+        "bytes": 18455,
+        "lines": 532,
+        "historical_sha256": "e43f795564db3a1bab8226845c95162ae379a7ad6e05c5f634cba965869a6e06",
+        "mapped_child_context_spans": [
+          [
+            182,
+            248
+          ]
+        ],
+        "mapped_range_sha256": [
+          "8e5dcaaaed2eba46e4b40f0fb257324956ea16a219a41dfa52e81283d900a274"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "PendingShapeJob::shape227–233直接调用指定集合的带代次Outcome；没有完整并行实现覆盖/测试执行声明。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C10",
+        "path": "zircon_runtime/src/ui/text/layout_engine/vertical.rs",
+        "sha256": "9a6fbfb8dd3257e4a49da1efdcbc7143896dbd8154050bba1f7b1c6d355242c2",
+        "bytes": 11610,
+        "lines": 302,
+        "historical_sha256": "9a6fbfb8dd3257e4a49da1efdcbc7143896dbd8154050bba1f7b1c6d355242c2",
+        "mapped_child_context_spans": [
+          [
+            1,
+            302
+          ]
+        ],
+        "mapped_range_sha256": [
+          "9a6fbfb8dd3257e4a49da1efdcbc7143896dbd8154050bba1f7b1c6d355242c2"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "实际竖排布局创建scope45并经可变解引用交通用provider；类型化错误提前返回依赖guard Drop。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C11",
+        "path": "zircon_runtime/src/ui/text/layout_engine/rich_layout_vertical.rs",
+        "sha256": "58daa58e689e2e77b6b8f572a2d2cd13283f32496a3ebcdb7757b8ba1bfc01eb",
+        "bytes": 13352,
+        "lines": 353,
+        "historical_sha256": "58daa58e689e2e77b6b8f572a2d2cd13283f32496a3ebcdb7757b8ba1bfc01eb",
+        "mapped_child_context_spans": [
+          [
+            30,
+            90
+          ]
+        ],
+        "mapped_range_sha256": [
+          "f016e76f4eba3935cd52e37146f16dfb29b37a73ddb5e87b4bfd9de379e6e1e2"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "富文本竖排实际scope caller；仅复用Sol独立同pin读取，不称自己新全文读取。",
+        "provenance": "core-sol"
+      },
+      {
+        "id": "C12",
+        "path": "docs/plans/source-comments/reviews/R081.json",
+        "sha256": "8ec7e32b809cdfaeb9e1757eaaba4562c09477f02886446a2da48418c81c0858",
+        "bytes": 69625,
+        "lines": 195,
+        "historical_sha256": "8ec7e32b809cdfaeb9e1757eaaba4562c09477f02886446a2da48418c81c0858",
+        "mapped_child_context_spans": [],
+        "mapped_range_sha256": [],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "前序冻结记录提供几何预算/准入调用上下文；其checker尾段由root补验，不能据此称正式验收。",
+        "provenance": "prior-fixed-record"
+      },
+      {
+        "id": "C13",
+        "path": "zircon_runtime/src/text/service.rs",
+        "sha256": "6c2ceb61883ad86578941247418f3301b5658eed329782ba1806d0c93d963d15",
+        "bytes": 11604,
+        "lines": 323,
+        "historical_sha256": "6c2ceb61883ad86578941247418f3301b5658eed329782ba1806d0c93d963d15",
+        "mapped_child_context_spans": [
+          [
+            150,
+            285
+          ]
+        ],
+        "mapped_range_sha256": [
+          "f4e0e0a0bb98a060df964445f357eba2d91f25fcec1412559d6c54ec9b6f7942"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "稳定代次服务入口及before/after generation检查；有界重试后类型化延期。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C14",
+        "path": "zircon_runtime/src/text/shaping/work_budget.rs",
+        "sha256": "7b6d530943c537e7aa47e22b2145f5ca01f5e67ebdfb5e29701cdacdedb12b5c",
+        "bytes": 3136,
+        "lines": 86,
+        "historical_sha256": "7b6d530943c537e7aa47e22b2145f5ca01f5e67ebdfb5e29701cdacdedb12b5c",
+        "mapped_child_context_spans": [
+          [
+            1,
+            86
+          ]
+        ],
+        "mapped_range_sha256": [
+          "7b6d530943c537e7aa47e22b2145f5ca01f5e67ebdfb5e29701cdacdedb12b5c"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "默认64KiB严格超过才oversized；饱和计数/合并是工作观测，不授权语义切分。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C16",
+        "path": "zircon_runtime/src/ui/text/shaper.rs",
+        "sha256": "8e2943365c5da7c79424b72a192f4c7686485e6d477ba58ff996094e3de62ada",
+        "bytes": 6541,
+        "lines": 216,
+        "historical_sha256": "8e2943365c5da7c79424b72a192f4c7686485e6d477ba58ff996094e3de62ada",
+        "mapped_child_context_spans": [
+          [
+            95,
+            216
+          ]
+        ],
+        "mapped_range_sha256": [
+          "7c11b806034ad0eb5337dfa91556fc1db1afe5444c3611fecd585c568db74622"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "通用provider成形及测量包装器的真实调用；不扩为UI模块覆盖。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C15D",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "sha256": "1f2ac0104ca24876f4611457d5468e96aeb7c90fe37453d7ed2308bd65426450",
+        "bytes": 7101,
+        "lines": 175,
+        "historical_sha256": "1f2ac0104ca24876f4611457d5468e96aeb7c90fe37453d7ed2308bd65426450",
+        "mapped_child_context_spans": [
+          [
+            1,
+            175
+          ]
+        ],
+        "mapped_range_sha256": [
+          "1f2ac0104ca24876f4611457d5468e96aeb7c90fe37453d7ed2308bd65426450"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "拒绝记录107–122更新饱和计数/last；135–138单独fallback；Ready151–158仅诊断转交。",
+        "provenance": "26/c9cffc"
+      },
+      {
+        "id": "C15T",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "sha256": "5439f0269319c115fbb6021a3752e3d46f009e6a34d1851d66c8c11de3368648",
+        "bytes": 6301,
+        "lines": 134,
+        "historical_sha256": "5439f0269319c115fbb6021a3752e3d46f009e6a34d1851d66c8c11de3368648",
+        "mapped_child_context_spans": [
+          [
+            1,
+            134
+          ]
+        ],
+        "mapped_range_sha256": [
+          "5439f0269319c115fbb6021a3752e3d46f009e6a34d1851d66c8c11de3368648"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "29–60五种饱和工作记录；publish67–129按值副本、feature gate、profile_counter调用；不清原报告、不保证遥测被采集。",
+        "provenance": "26/c9cffc"
+      },
+      {
+        "id": "C17",
+        "path": "zircon_editor/src/ui/retained/contract/paint_text/draw/layout/cache.rs",
+        "sha256": "20dac62dd2796a7ef865c58962deaaf2c8bd27a24b59cfd381187e0c592156f4",
+        "bytes": 3299,
+        "lines": 107,
+        "historical_sha256": "20dac62dd2796a7ef865c58962deaaf2c8bd27a24b59cfd381187e0c592156f4",
+        "mapped_child_context_spans": [],
+        "mapped_range_sha256": [],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "G02原文输入；只核存在性、UTF-8与操作数。",
+        "provenance": "14/89dd6e"
+      },
+      {
+        "id": "C18",
+        "path": "zircon_editor/src/ui/host/window_host_manager.rs",
+        "sha256": "23dfb17b810cf36b56e238d16c8ea5569c5fea2c0c8a58e62fa42102061d3bae",
+        "bytes": 4123,
+        "lines": 146,
+        "historical_sha256": "23dfb17b810cf36b56e238d16c8ea5569c5fea2c0c8a58e62fa42102061d3bae",
+        "mapped_child_context_spans": [],
+        "mapped_range_sha256": [],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "G02原文输入；只核存在性、UTF-8与操作数。",
+        "provenance": "14/89dd6e"
+      },
+      {
+        "id": "C19",
+        "path": "zircon_runtime/src/ui/surface/surface.rs",
+        "sha256": "4bf2712350d4f2bf745dc1dffea400e6b7d241fcc17ac2a497ca1fdcd08d09d3",
+        "bytes": 22532,
+        "lines": 601,
+        "historical_sha256": "4bf2712350d4f2bf745dc1dffea400e6b7d241fcc17ac2a497ca1fdcd08d09d3",
+        "mapped_child_context_spans": [],
+        "mapped_range_sha256": [],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "G02原文输入；只核存在性、UTF-8与操作数。",
+        "provenance": "14/89dd6e"
+      },
+      {
+        "id": "C20",
+        "path": "zircon_runtime/src/ui/layout/pass/layout_tree.rs",
+        "sha256": "13ba85803cebafe3bd0d9b1b818bae4485d6a449aed50c87629dbc955afc525b",
+        "bytes": 5943,
+        "lines": 160,
+        "historical_sha256": "13ba85803cebafe3bd0d9b1b818bae4485d6a449aed50c87629dbc955afc525b",
+        "mapped_child_context_spans": [],
+        "mapped_range_sha256": [],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "G02原文输入；只核存在性、UTF-8与操作数。",
+        "provenance": "14/89dd6e"
+      },
+      {
+        "id": "C21",
+        "path": "zircon_runtime/src/ui/surface/render/extract/one_shot.rs",
+        "sha256": "98ec55df3d9c30188336e618ed4c2ab99c7c9b7677abbcc315fc35afe8ecbae8",
+        "bytes": 1520,
+        "lines": 35,
+        "historical_sha256": "98ec55df3d9c30188336e618ed4c2ab99c7c9b7677abbcc315fc35afe8ecbae8",
+        "mapped_child_context_spans": [],
+        "mapped_range_sha256": [],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "G02原文输入；只核存在性、UTF-8与操作数。",
+        "provenance": "14/89dd6e"
+      },
+      {
+        "id": "C22",
+        "path": "tools/tests/test_frameworks_05_text_boundary.py",
+        "sha256": "8f0198200241c9d5a46b02871a5d73629936804511b7f46fc089fb5d563df473",
+        "bytes": 36104,
+        "lines": 848,
+        "historical_sha256": "8f0198200241c9d5a46b02871a5d73629936804511b7f46fc089fb5d563df473",
+        "mapped_child_context_spans": [
+          [
+            1,
+            63
+          ],
+          [
+            525,
+            629
+          ]
+        ],
+        "mapped_range_sha256": [
+          "c6a84841f888cdbb8060c23cb6b168f3ced9d2e485665a7dc5e1f798a29b5ce2",
+          "500b5e410de70541d2af8ebf8fe7602bc929fd342730a80bb064d9306296fb1f"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "Path.read_text→production_code_view/production_rust_sources真实读取与AST断言操作数；未执行方法或全仓聚合断言。",
+        "provenance": "32/631303"
+      },
+      {
+        "id": "C23",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/classifiers.rs",
+        "sha256": "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651",
+        "bytes": 7987,
+        "lines": 224,
+        "historical_sha256": "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651",
+        "mapped_child_context_spans": [
+          [
+            1,
+            160
+          ]
+        ],
+        "mapped_range_sha256": [
+          "c512d1ac8a5bdcd9d50361550b07bd211ab1eeaecc40c2af462dd8a45d654f7f"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "Editor引用分类器66–148的路径白名单含layout_session；不是生产运行调用。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C24",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/top_level.rs",
+        "sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450",
+        "bytes": 3501,
+        "lines": 108,
+        "historical_sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450",
+        "mapped_child_context_spans": [
+          [
+            1,
+            48
+          ]
+        ],
+        "mapped_range_sha256": [
+          "7cb1841a33eeed142681b6cda833a959d88a8b9450500e538da549e5b91e8e9e"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "14–29读取生产源并检查Editor/legacy；本批新注释不含这两类操作数。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C25",
+        "path": "tools/tests/test_runtime_init_level_naming.py",
+        "sha256": "bacf0052ec0923fbf7678a4acee7e1e2e245e64ddae45fad4970a66bcc5b6015",
+        "bytes": 12350,
+        "lines": 348,
+        "historical_sha256": "bacf0052ec0923fbf7678a4acee7e1e2e245e64ddae45fad4970a66bcc5b6015",
+        "mapped_child_context_spans": [
+          [
+            1,
+            22
+          ],
+          [
+            88,
+            213
+          ]
+        ],
+        "mapped_range_sha256": [
+          "cf04b19cd627ae79691ef4148b6f2906d6f445078855679cb1d9daebc61335a6",
+          "3e0ba427ed7f4cde320db64761c0444093004c84c4be152789071126b621181c"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "150–156将layout_session路径和Editor标签作为分类器fixture；不直接读取本批源body。",
+        "provenance": "candidate-context"
+      },
+      {
+        "id": "C26",
+        "path": "tools/tests/test_text_01_composite_activation.py",
+        "sha256": "711a248299cfd41c6b3e8d3d6489fa713acb77ff0705017bc474523b2ff0b6a2",
+        "bytes": 21762,
+        "lines": 439,
+        "historical_sha256": "711a248299cfd41c6b3e8d3d6489fa713acb77ff0705017bc474523b2ff0b6a2",
+        "mapped_child_context_spans": [
+          [
+            1,
+            19
+          ],
+          [
+            325,
+            346
+          ]
+        ],
+        "mapped_range_sha256": [
+          "0301edd0b57fe27dfc9bbb994d98738e3d88973bd1dffba02c647dd8cb6d52bf",
+          "feab45c665e5d63408ef9f1db497f45a866a8f77217c780452af54be6c8a3b41"
+        ],
+        "comment_only_drift": false,
+        "formal_coverage": false,
+        "role": "方法读取7个原文输入，断言旧父文件包含迁出入口；只作外部静态观察。",
+        "provenance": "13/d013ce+14/89dd6e"
+      }
+    ],
+    "additional_root_helper_context": {
+      "path": "tools/audits/runtime_domain_dependency_audit.py",
+      "sha256": "f0e777754ae8b875d9aa5b3534cfed443fa84e4050585f6da8d2237ecb958d18",
+      "bytes": 28905,
+      "lines": 826,
+      "read_ranges": [
+        [
+          127,
+          220
+        ],
+        [
+          535,
+          574
+        ]
+      ],
+      "imported_dependency_closure_reviewed": false,
+      "formal_coverage": false
+    },
+    "historical_context_versions": "R087 UI facade/context gained only this task comments, exact original HEAD identity and comment-only insertion mapping verified. R081/R082 retained historical5d session pins are left unchanged and related to current43986 through explicit root amendment evidence.",
+    "traits_macros_dynamic_FFI": "Three types,16members,eight impls including seven trait impls; cfg-test thread_local constructor counter and builtin derives. No new registration, FFI,unsafe or public API. Only actual source paths and ranges form evidence; no generic AST/call-resolution completeness claim."
+  },
+  "issue_ids": [],
+  "issues": [],
+  "reserved_unused": [
+    "CR-ZCA-R083-0001"
+  ],
+  "issue_ledger_registration_pending": false,
+  "verification": {
+    "post_writer_actual_terminal": "root737/3fcf08 exit0/PID43132",
+    "post_exact_commands": 15,
+    "all_command_exit_codes_zero": true,
+    "guard_summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "format_evidence_reused": {
+      "argv_prefix": [
+        "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true"
+      ],
+      "paths": [
+        "zircon_runtime/src/text/layout_session.rs",
+        "zircon_runtime/src/text/layout_session/tests/cases.rs",
+        "zircon_runtime/src/text/layout_session/tests/work_budget.rs"
+      ],
+      "current_main_receipt": "root713/9cebf2 native80263->714/b9ea60 exit0/PID2976",
+      "unchanged_tests_receipt": "Luna A11/12c07b native88295->587691 exit0/PID20828",
+      "exact_current_pins_reused": true,
+      "exit_code": 0,
+      "repeated": false
+    },
+    "raw_consumers": {
+      "G01": [
+        {
+          "operand": "TextShapeResult",
+          "before": 0,
+          "current": 0,
+          "new": 0,
+          "executed": false
+        },
+        {
+          "operand": "resolve_font_handle_batch",
+          "before": 0,
+          "current": 0,
+          "new": 0,
+          "executed": false
+        },
+        {
+          "operand": "project_shape_result",
+          "before": 0,
+          "current": 0,
+          "new": 0,
+          "executed": false
+        },
+        {
+          "operand": "shape_backend_request_at_stable_generation",
+          "before": 4,
+          "current": 4,
+          "new": 0,
+          "executed": false
+        },
+        {
+          "operand": "Process-owner entrypoint",
+          "before": 1,
+          "current": 1,
+          "new": 0,
+          "executed": false
+        },
+        {
+          "operand": "UI_MODULE_NAME",
+          "before": 0,
+          "current": 0,
+          "new": 0,
+          "executed": false
+        }
+      ],
+      "G02": {
+        "read_order": [
+          "C17",
+          "C18",
+          "M",
+          "C19",
+          "C04",
+          "C20",
+          "C21"
+        ],
+        "rows": [
+          {
+            "line": 338,
+            "operator": "assertIn",
+            "needle": "Process-owner entrypoint",
+            "input": "M",
+            "count": 1,
+            "static_truth": true,
+            "reachable": true,
+            "first_static_failure": false,
+            "executed": false
+          },
+          {
+            "line": 339,
+            "operator": "assertIn",
+            "needle": "Editor-host or standalone surface",
+            "input": "C19",
+            "count": 1,
+            "static_truth": true,
+            "reachable": true,
+            "first_static_failure": false,
+            "executed": false
+          },
+          {
+            "line": 340,
+            "operator": "assertIn",
+            "needle": "standalone cache backed by the process-owner",
+            "input": "C04",
+            "count": 0,
+            "static_truth": false,
+            "reachable": true,
+            "first_static_failure": true,
+            "executed": false
+          },
+          {
+            "line": 341,
+            "operator": "assertIn",
+            "needle": "standalone layout pass",
+            "input": "C20",
+            "count": 1,
+            "static_truth": true,
+            "reachable": false,
+            "first_static_failure": false,
+            "executed": false
+          },
+          {
+            "line": 342,
+            "operator": "assertIn",
+            "needle": "standalone arranged tree",
+            "input": "C21",
+            "count": 1,
+            "static_truth": true,
+            "reachable": false,
+            "first_static_failure": false,
+            "executed": false
+          },
+          {
+            "line": 343,
+            "operator": "assertIn",
+            "needle": "UiSurface::new(",
+            "input": "C18",
+            "count": 1,
+            "static_truth": true,
+            "reachable": false,
+            "first_static_failure": false,
+            "executed": false
+          },
+          {
+            "line": 344,
+            "operator": "assertIn",
+            "needle": "current_resolved_text_font_generation",
+            "input": "C17",
+            "count": 2,
+            "static_truth": true,
+            "reachable": false,
+            "first_static_failure": false,
+            "executed": false
+          },
+          {
+            "line": 345,
+            "operator": "assertIn",
+            "needle": "new_with_font_collection",
+            "input": "C19",
+            "count": 3,
+            "static_truth": true,
+            "reachable": false,
+            "first_static_failure": false,
+            "executed": false
+          },
+          {
+            "line": 346,
+            "operator": "assertIn",
+            "needle": "new_with_font_collection",
+            "input": "C04",
+            "count": 0,
+            "static_truth": false,
+            "reachable": false,
+            "first_static_failure": false,
+            "executed": false
+          }
+        ],
+        "first_static_failure": 340,
+        "method_executed": false,
+        "external_stale_parent_observation_only": true
+      },
+      "G03": {
+        "reader_sha256": "8f0198200241c9d5a46b02871a5d73629936804511b7f46fc089fb5d563df473",
+        "selection": "production_rust_sources排除tests路径组件/test.rs/tests.rs/test_*/ *_tests.rs；M属于text聚合，T/W被排除。",
+        "actual_methods": [
+          {
+            "method": "test_text_owner_implements_only_the_canonical_layout_service",
+            "range": [
+              525,
+              562
+            ],
+            "exact_assertions": [
+              [
+                [
+                  532,
+                  536
+                ],
+                "assertRegex",
+                "production_source",
+                "r\"\\bimpl\\s+(?:crate\\s*::\\s*core\\s*::\\s*framework\\s*::\\s*text\\s*::\\s*)?TextLayoutService\\s+for\\b\""
+              ],
+              [
+                [
+                  537,
+                  541
+                ],
+                "assertNotRegex",
+                "production_source",
+                "r\"\\bpub\\s+(?:struct|trait)\\s+(?:TextShapeRequest|TextShapingService)\\b\""
+              ],
+              [
+                [
+                  542,
+                  546
+                ],
+                "assertNotRegex",
+                "public_surface",
+                "r\"\\bpub\\s+use\\b[^;]*\\b(?:TextShapeRequest|TextShapingService)\\b\""
+              ],
+              [
+                [
+                  547,
+                  551
+                ],
+                "assertNotIn",
+                "\"pub mod shaping_service;\"",
+                "production_source"
+              ],
+              [
+                [
+                  553,
+                  557
+                ],
+                "assertNotRegex",
+                "shape_pool",
+                "r\"\\bshape_text\\s*\\(\""
+              ],
+              [
+                [
+                  558,
+                  562
+                ],
+                "assertIn",
+                "\"shape_request_with_generation_outcome_in_font_collection\"",
+                "shape_pool"
+              ]
+            ],
+            "executed": false,
+            "whole_aggregate_evaluated": false
+          },
+          {
+            "method": "test_ui_and_graphics_consume_the_canonical_text_layout_service",
+            "range": [
+              564,
+              629
+            ],
+            "exact_assertions": [
+              [
+                [
+                  574,
+                  578
+                ],
+                "assertIn",
+                "\"SharedTextLayoutSession\"",
+                "ui_source"
+              ],
+              [
+                [
+                  585,
+                  589
+                ],
+                "assertIn",
+                "\"TextLayoutService\"",
+                "graphics_source"
+              ],
+              [
+                [
+                  590,
+                  594
+                ],
+                "assertIn",
+                "\"TextShapeRequest\"",
+                "graphics_source"
+              ],
+              [
+                [
+                  607,
+                  607
+                ],
+                "assertIn",
+                "\"last_ui_text_layout_fallback_count\"",
+                "render_stats"
+              ],
+              [
+                [
+                  608,
+                  608
+                ],
+                "assertIn",
+                "\"last_ui_text_layout_fallback_count\"",
+                "stats_projection"
+              ],
+              [
+                [
+                  611,
+                  615
+                ],
+                "assertNotRegex",
+                "consumer_source",
+                "r\"\\b(?:TextFontFaceHandle::from_raw|FontFaceId\\s*\\([^)]*\\.(?:raw\\s*\\(\\)|0\\b)|InstancedFaceId\\s*\\([^)]*\\.(?:raw\\s*\\(\\)|0\\b))\""
+              ],
+              [
+                [
+                  616,
+                  620
+                ],
+                "assertNotRegex",
+                "consumer_source",
+                "r\"\\bfont_(?:instance_)?id\\s*\\.\\s*map\\s*\\(\\s*\\|[^|]+\\|[^)]*\\.0\\b\""
+              ],
+              [
+                [
+                  625,
+                  629
+                ],
+                "assertNotRegex",
+                "text_sdf_source",
+                "r\"\\.map\\s*\\(\\s*(?:FontFaceId|InstancedFaceId)\\s*\\)\""
+              ],
+              [
+                [
+                  580,
+                  584
+                ],
+                "assertNotRegex",
+                "ui_source",
+                "rf\"\\b{private_backend}\\b\""
+              ]
+            ],
+            "executed": false,
+            "whole_aggregate_evaluated": false
+          }
+        ],
+        "helper_selected_read_only": true,
+        "aggregate_predicates_evaluated": false,
+        "executed": false,
+        "new_executable_statement_contribution": 0
+      },
+      "G04": {
+        "source": {
+          "readers": [
+            "C23",
+            "C24",
+            "C25"
+          ],
+          "new_comment_casefold_counts": {
+            "editor": 0,
+            "legacy": 0
+          },
+          "runtime_source_calls": [
+            [
+              19,
+              23,
+              "assert_no_unclassified_naming(\"editor\", &collect_naming_references(manifest_root, &files, \"editor\"), classify_editor_reference)"
+            ],
+            [
+              24,
+              28,
+              "assert_no_unclassified_naming(\"legacy\", &collect_naming_references(manifest_root, &files, \"legacy\"), classify_legacy_reference)"
+            ]
+          ],
+          "owned_path_classification": {
+            "reader": "C23",
+            "lines": [
+              135,
+              140
+            ],
+            "expression": "matches!(relative_path, \"src/text/layout_session.rs\" | \"src/text/shaping/mod.rs\")",
+            "returned": "Some(\"runtime-text-editor-host-contract\")"
+          },
+          "python_fixture": {
+            "reader": "C25",
+            "lines": [
+              150,
+              156
+            ],
+            "operator": "assertEqual",
+            "expected": "runtime-text-editor-host-contract",
+            "call": "_classify_editor_reference(\"zircon_runtime/src/text/layout_session.rs\", (\"Editor\",))"
+          },
+          "boundary": "源码扫描与Python路径标签fixture不同；仅复核本批新增注释无editor/legacy，不重算其全库collect/assert helper或宣称测试通过。",
+          "tests_executed": false
+        },
+        "new_editor_legacy_contribution": 0,
+        "executed": false
+      },
+      "physical_lines": [
+        705,
+        580,
+        29
+      ],
+      "physical_limit800": true
+    },
+    "tests_run": false,
+    "builds_run": false,
+    "git_mutations": false
+  },
+  "test_interpretation": {
+    "normal": 21,
+    "ignored": 0,
+    "assertions": 81,
+    "executed": 0,
+    "limits": "Direct session/cache/report tests and constructed failure/alternate backend tags do not prove actual backend recovery, reload concurrency, guard scope handling, artifact query integration or successful rendered output."
+  },
+  "failure_history": [
+    {
+      "receipt": "root731/97a19d native47617->dbf9f6 exit1/PID45312",
+      "location": "checker line83 compared qualified model names such as Clone::clone with bare fn name syntax",
+      "before_record_write": true,
+      "source_writes": [],
+      "record_writes": [],
+      "independent_diagnosis": "root734/916120 exit0/PID36360 exact3 pins/inverses unchanged and post absent; native7985tokens exceeded3200 output budget, truncation retained; no full diagnostic-output claim",
+      "correction": "Only checker extracts final :: component for source declaration matching, keeping qualified model ID and all original source checks."
+    },
+    {
+      "receipt": "root735/c78130 exit1/PID41312",
+      "location": "checker line93 stale arithmetic total416 instead of correct316",
+      "before_record_write": true,
+      "source_writes": [],
+      "record_writes": [],
+      "evidence": "Reached after all54function names,21testfunctions,108semanticblocks and81assertion slices verified and exact source inversions; actual partial count=16+16+20+54+63+21+45+81=316",
+      "correction": "Compute checked category sum316 and retain per-item checks; qualify proof IDs by path/kind for unambiguous mapping."
+    }
+  ],
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false,
+  "git_commit": false,
+  "push": false,
+  "notification": false,
+  "formal_gate": "Final-hash coverage book and exact candidate snapshot then designated Jenkins live lock-owner diagnosis/actual gates/phase commit and attached authorized WeCom remain pending. Root never stages/commits/deletes locks/pushes/bypasses gates.",
+  "index_observation": {
+    "head": "89789b74beaef9bf83cb61f8c13236ca730a81c0",
+    "index": {
+      "bytes": 7479846,
+      "sha256": "45120c88a8b9210a3b78124b29dcf4e86b1297d3e215c80efb9ca5297b68a90f"
+    },
+    "index_lock": {
+      "exists": true,
+      "owner": "unknown",
+      "deleted_or_bypassed": false,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mtime_ns_text": "1792192256891113100"
+    }
+  },
+  "process_lifecycle": {
+    "pid": 36748,
+    "own_writer_terminal_known_at_creation": false,
+    "post_source_writers_terminal_known": true,
+    "historical_unknown_R033_R039GroupC_R046_preserved": true,
+    "child_writer_opaque_tool_returns": "Preserve immutable child actual tool-terminal evidence; do not invent native PID/exit for apply_patch returns{}."
+  },
+  "artifact_lifecycle": {
+    "preregistered": true,
+    "source_copies": false,
+    "helpers": false,
+    "build_products": false,
+    "deleted_paths": [],
+    "freed_bytes": 0,
+    "retained": [
+      "Exact3 sources",
+      "fixed child/main/post",
+      "necessary validation and failure evidence"
+    ],
+    "keep_until": "Designated Jenkins exact receipt/commit/attached authorized WeCom; preserve foreign/shared outputs."
+  }
+}

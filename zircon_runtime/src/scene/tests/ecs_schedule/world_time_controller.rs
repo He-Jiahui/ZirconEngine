@@ -161,6 +161,7 @@ fn paused_single_step_consumes_only_one_preexisting_debt_step() {
         ))
         .unwrap();
 
+    // 这里的零预算只用于未暂停时积累债务；随后单步帧仍用非零预算，未覆盖零预算单步准入。
     level
         .tick(
             &runtime.handle(),
@@ -468,6 +469,7 @@ fn world_accepts_skipped_outer_frames_with_explicit_discontinuity() {
     );
 }
 
+// 手工 release 验收比较重复锁读与不可变快照投影；默认忽略，须显式以 release 模式执行后评估断言。
 #[test]
 #[ignore = "release-only performance acceptance"]
 fn runtime22_performance_outer_frame_snapshot_projection_profile() {

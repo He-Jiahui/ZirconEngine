@@ -240,9 +240,10 @@ impl<'a> SceneDocumentRoute<'a> {
         document: ProjectSceneDocument,
         reservation: SceneDocumentActivationReservation,
     ) -> SceneDocumentRouteResult {
-        let activation = self
-            .lifecycle
-            .commit_scene_activation_while_routed(reservation);
+        let activation = self.lifecycle.commit_scene_activation_while_routed(
+            reservation,
+            Some(document.source_revision().clone()),
+        );
         if activation.already_active {
             return SceneDocumentRouteResult::AlreadyActive {
                 document: activation.document,

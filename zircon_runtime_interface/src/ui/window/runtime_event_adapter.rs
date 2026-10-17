@@ -58,17 +58,26 @@ use super::{
     UiWindowPixelSize, UiWindowPlatformInputEvent, UiWindowRedrawReason, UiWindowTouchPhase,
 };
 
+/// 将 Runtime 事件绑定到 UI 窗口的宿主上下文。
+/// 窗口、用户、设备和时间序号由宿主提供；转换不会按事件中的 viewport 验证或推导身份。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UiRuntimeEventAdapterContext {
+    /// 输出窗口身份；默认上下文使用空字符串。
     pub window_id: UiWindowId,
+    /// 来源提供的单调时钟微秒值，批次转换不自动采样。
     pub timestamp: UiInputTimestamp,
+    /// 来源提供的事件序号，批次转换不自动递增。
     pub sequence: UiInputSequence,
+    /// 可选用户身份，进入共享输入元数据。
     pub user_id: Option<UiUserId>,
+    /// 可选设备身份；不从 Runtime 事件的指针/手柄数值推导。
     pub device_id: Option<UiDeviceId>,
+    /// 来源提供的合成标记。
     pub synthetic: bool,
 }
 
 impl UiRuntimeEventAdapterContext {
+    /// 建立指定窗口的上下文；时间、序号为零，用户和设备为空，合成标记为假。
     pub fn for_window(window_id: impl Into<String>) -> Self {
         Self {
             window_id: UiWindowId::new(window_id),
@@ -80,26 +89,31 @@ impl UiRuntimeEventAdapterContext {
         }
     }
 
+    /// 覆盖时间戳并返回上下文，不读取时钟。
     pub const fn with_timestamp(mut self, timestamp: UiInputTimestamp) -> Self {
         self.timestamp = timestamp;
         self
     }
 
+    /// 覆盖序号并返回上下文，不分配新序号。
     pub const fn with_sequence(mut self, sequence: UiInputSequence) -> Self {
         self.sequence = sequence;
         self
     }
 
+    /// 保存用户身份，不校验其当前注册状态。
     pub const fn with_user_id(mut self, user_id: UiUserId) -> Self {
         self.user_id = Some(user_id);
         self
     }
 
+    /// 保存设备身份，不校验其当前连接状态。
     pub const fn with_device_id(mut self, device_id: UiDeviceId) -> Self {
         self.device_id = Some(device_id);
         self
     }
 
+    /// 保存来源标记，不由事件种类推断。
     pub const fn synthetic(mut self, synthetic: bool) -> Self {
         self.synthetic = synthetic;
         self
@@ -128,40 +142,66 @@ impl Default for UiRuntimeEventAdapterContext {
     }
 }
 
+/// 转换阶段的分类错误；不代表宿主状态已经改变，也不包含分发器执行错误。
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum UiRuntimeEventAdapterError {
+    /// ABI 版本不符；携带实际值与期望值。
     #[error("unsupported runtime ABI version {actual}; expected {expected}")]
     UnsupportedAbi { actual: u32, expected: u32 },
+    /// 没有识别的 Runtime 事件种类，保留原数值。
     #[error("unsupported runtime event kind {0}")]
     UnsupportedKind(u32),
+    /// 已识别但没有对应泵表示的事件或状态，不静默忽略。
     #[error("runtime event kind {0} has no UI window/input pump equivalent")]
     NoPumpEquivalent(u32),
+    /// 鼠标按钮值未被此适配器支持。
     #[error("unknown runtime mouse button {0}")]
     UnknownMouseButton(u32),
+    /// 按钮按下/抬起状态无效。
     #[error("unknown runtime mouse button state {0}")]
     UnknownButtonState(u32),
+    /// 滚动单位不属于行或像素。
     #[error("unknown runtime mouse wheel unit {0}")]
     UnknownMouseWheelUnit(u32),
+    /// 触摸相位未知。
     #[error("unknown runtime touch phase {0}")]
     UnknownTouchPhase(u32),
+    /// 键动作不属于当前支持的按下、释放或文本动作。
     #[error("unknown runtime key action {0}")]
     UnknownKeyAction(u32),
+    /// 生命周期状态未知。
     #[error("unknown runtime lifecycle state {0}")]
     UnknownLifecycleState(u32),
+    /// 窗口状态类别未知。
     #[error("unknown runtime window status {0}")]
     UnknownWindowStatus(u32),
+    /// 窗口布尔值不是协议中的零或一。
     #[error("unknown runtime window bool {0}")]
     UnknownWindowBool(u32),
+    /// 文件拖放阶段未知。
     #[error("unknown runtime file drag/drop state {0}")]
     UnknownFileDragDropState(u32),
+    /// 需要文本的载荷不是有效 UTF-8；原始 ABI 包装也用此项报告非无障碍载荷形状错误。
     #[error("invalid runtime event text payload")]
     InvalidTextPayload,
+    /// 无障碍 JSON 读取失败；原始 ABI 包装也用此项报告该种类的载荷形状错误。
     #[error("invalid runtime accessibility action payload")]
     InvalidAccessibilityPayload,
 }
 
+/// 返回转换后的拥有数据或转换错误；不包含任何分发回执。
 pub type UiRuntimeEventAdapterResult<T> = Result<T, UiRuntimeEventAdapterError>;
 
+/// 将有效借用的 Runtime 事件同步转换为一个拥有数据的窗口泵事件。
+///
+/// # 参数与返回
+/// `context` 提供路由身份、时间序号和来源标记；`event` 提供固定协议数值与调用期载荷。
+/// 先校验 ABI，再按种类转换；未知值、无对应表示或无效载荷返回分类错误。
+///
+/// # 约束与生命周期
+/// 输出不借用载荷，不触发分发；窗口路由采用上下文，不检查事件 viewport。
+/// 不校验所有数值的有限性、IME 范围或事件状态机，完整准入仍由各消费者承担。
+/// 参见 [`UiRuntimeEvent`] 与 [`UiRuntimeEventAdapterContext`]。
 pub fn runtime_event_to_window_input_pump_event(
     context: &UiRuntimeEventAdapterContext,
     event: UiRuntimeEvent<'_>,
@@ -227,6 +267,8 @@ pub fn runtime_event_to_window_input_pump_event(
 }
 
 /// 按输入顺序转换；任一事件失败即返回错误，不交付已经转换的前缀批次。
+/// 同一上下文用于所有元素，不递增序号；容量仅按迭代器下界预留。
+/// 失败时丢弃局部结果，已消费的迭代器元素不回滚；成功批次保留顺序且不合并或分发。
 pub fn runtime_events_to_window_input_pump_batch<'payload>(
     context: &UiRuntimeEventAdapterContext,
     events: impl IntoIterator<Item = UiRuntimeEvent<'payload>>,
@@ -253,6 +295,7 @@ fn input_event(event: UiWindowPlatformInputEvent) -> UiWindowInputPumpEvent {
     UiWindowInputPumpEvent::Input(event.normalize())
 }
 
+// 任一新度量尺寸非零即使用度量快照并修整缩放；四维全零才回退到旧尺寸。
 fn viewport_metrics(event: UiRuntimeEvent<'_>) -> UiWindowMetrics {
     let metrics = event.metrics;
     if metrics.logical_size.width > 0
@@ -309,6 +352,7 @@ fn mouse_button_event(
     }
 }
 
+// 带坐标标记的协议把滚动量编码在两个整数字段的浮点位模式中；旧格式以原点定位。
 fn mouse_wheel_event(
     context: UiWindowInputContext,
     event: UiRuntimeEvent<'_>,
@@ -343,6 +387,7 @@ fn mouse_wheel_event(
     }
 }
 
+// 生命周期按下列映射生成窗口通知；低内存分支当前也表示为窗口失焦。
 fn lifecycle_window_event(
     metadata: UiWindowEventMetadata,
     event: UiRuntimeEvent<'_>,
@@ -414,6 +459,7 @@ fn keyboard_pump_event(
     }
 }
 
+// 预编辑范围直接来自数值字段，此处只解码所需文本，不验证字节边界或文档范围。
 fn ime_pump_event(
     context: UiWindowInputContext,
     event: UiRuntimeEvent<'_>,
@@ -480,6 +526,7 @@ fn file_drag_drop_event(
     }
 }
 
+// 缩放状态直接保留事件浮点值，与尺寸快照路径的缩放修整分开。
 fn window_status_event(
     metadata: UiWindowEventMetadata,
     event: UiRuntimeEvent<'_>,
@@ -522,6 +569,7 @@ fn window_status_event(
     }
 }
 
+// 手柄按钮沿用键盘式表示，设备身份取上下文，不从事件数值重建。
 fn gamepad_button_event(
     context: UiWindowInputContext,
     event: UiRuntimeEvent<'_>,
@@ -549,6 +597,7 @@ fn gamepad_axis_event(
     )
 }
 
+// 载荷已由借用视图准入；此处反序列化为拥有的请求，不保留载荷切片。
 fn accessibility_event(
     context: UiWindowInputContext,
     event: UiRuntimeEvent<'_>,
@@ -595,6 +644,7 @@ fn payload_bytes(event: UiRuntimeEvent<'_>) -> UiRuntimeEventAdapterResult<Vec<u
     Ok(event.payload.to_vec())
 }
 
+// 协议中的零扫描码表示未提供，其他数值原样保留。
 fn scan_code(event: UiRuntimeEvent<'_>) -> Option<u32> {
     (event.scan_code != 0).then_some(event.scan_code)
 }
@@ -610,6 +660,7 @@ fn physical_key_name(key_code: u32) -> String {
     }
 }
 
+// u32 最多十位十进制数字；倒序填入栈缓冲后逐字节追加，零值也写入一位。
 fn push_u32_decimal(output: &mut String, mut value: u32) {
     let mut digits = [0_u8; 10];
     let mut start = digits.len();

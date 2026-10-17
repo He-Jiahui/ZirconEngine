@@ -1,3 +1,8 @@
+//! 焦点链分区与访问集合的局部证据；成员一致性是普通测试，两个计时测试显式忽略。
+//!
+//! 计时覆盖传入闭包的完整执行；分区测试的输入克隆在计时前完成，不代表 Surface 或整帧性能。
+//! 性能比例断言只有实际运行指定测试后才构成测量结果，源码中的标记本身不是性能验收。
+
 use std::{
     collections::{BTreeSet, HashSet},
     hint::black_box,
@@ -11,6 +16,7 @@ const CANDIDATE_COUNT: usize = 10_000;
 const VISIT_COUNT: usize = 65_536;
 const SAMPLE_PAIRS: usize = 21;
 
+/// 对照计时所用的旧候选形状，仅在本测试模块中构造和消费。
 #[derive(Clone, Copy)]
 struct LegacyUiFocusChainCandidate {
     node_id: UiNodeId,
@@ -18,6 +24,7 @@ struct LegacyUiFocusChainCandidate {
     pre_order: usize,
 }
 
+/// 消费候选数组，按显式索引优先、顺序值及前序位置排序，返回自有标识数组作为对照。
 fn legacy_finish_focus_chain(mut candidates: Vec<LegacyUiFocusChainCandidate>) -> Vec<UiNodeId> {
     candidates.sort_by_key(|candidate| {
         (
@@ -32,11 +39,13 @@ fn legacy_finish_focus_chain(mut candidates: Vec<LegacyUiFocusChainCandidate>) -
         .collect()
 }
 
+/// 消费非空样本并取排序后的第九十五百分位；本模块调用方每次提供固定组数的样本。
 fn p95(mut samples: Vec<u128>) -> u128 {
     samples.sort_unstable();
     samples[(samples.len() * 95).div_ceil(100) - 1]
 }
 
+/// 恰好执行一次传入闭包，返回纳秒耗时和闭包结果；输入准备不自动纳入计时。
 fn measure<T>(run: impl FnOnce() -> T) -> (u128, T) {
     let start = Instant::now();
     let output = run();

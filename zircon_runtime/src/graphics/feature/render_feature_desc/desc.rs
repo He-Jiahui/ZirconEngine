@@ -14,7 +14,16 @@ pub(crate) struct RenderFeaturePassResourceExtension {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum RenderFeatureGraphMutation {
     PassResource(RenderFeaturePassResourceExtension),
-    ReplacePass { target_pass_name: String },
+    ReplacePass {
+        target_pass_name: String,
+    },
+    OrderedBufferReplay {
+        target_executor_ids: Vec<String>,
+        initial_producer: String,
+        terminal_consumer: String,
+        indirect: RenderFeatureResourceDescriptor,
+        journal: RenderFeatureResourceDescriptor,
+    },
     RequireAdvancedLightingOit,
     RequireAdvancedLightingCookies,
     RequireAdvancedLightingIrradianceVolumes,
@@ -79,5 +88,38 @@ impl RenderFeatureDescriptor {
     pub(crate) fn requires_advanced_lighting_subsurface(&self) -> bool {
         self.pass_resource_extensions
             .contains(&RenderFeatureGraphMutation::RequireAdvancedLightingSubsurface)
+    }
+}
+
+impl RenderFeatureDescriptor {
+    pub(crate) fn ordered_buffer_replays(
+        &self,
+    ) -> impl Iterator<
+        Item = (
+            &[String],
+            &str,
+            &str,
+            &RenderFeatureResourceDescriptor,
+            &RenderFeatureResourceDescriptor,
+        ),
+    > {
+        self.pass_resource_extensions
+            .iter()
+            .filter_map(|mutation| match mutation {
+                RenderFeatureGraphMutation::OrderedBufferReplay {
+                    target_executor_ids,
+                    initial_producer,
+                    terminal_consumer,
+                    indirect,
+                    journal,
+                } => Some((
+                    target_executor_ids.as_slice(),
+                    initial_producer.as_str(),
+                    terminal_consumer.as_str(),
+                    indirect,
+                    journal,
+                )),
+                _ => None,
+            })
     }
 }

@@ -40,26 +40,44 @@ not authorize adding a grant or running the command without confinement.
    discovery and `windowsSandbox/readiness = ready` are separate from passing
    runtime evidence.
 
-The user configuration at `D:\CodexData\.codex\config.toml` replaces its old
-`sandbox_mode = "danger-full-access"` with the equivalent permission-profile
-default for other projects. This removes the legacy setting that otherwise
-overrides project permission profiles. ZirconEngine selects `zircon-strict`
-through its own project configuration.
+ZirconEngine selects `zircon-strict` through its own trusted project
+configuration. The user-level permission default applies to other projects;
+an existing chat's explicit selection can still override this project default.
 
 ## Tool coverage
 
 The profile controls sandboxed local commands and their child processes. MCP
 servers and app tools use separate execution boundaries, so this checkout
 disables its configured RenderDoc and CUA MCP servers and default app access.
-Command networking is disabled to avoid dispatching writes through unconstrained
-local or remote services. Re-enabling a separate writer requires an explicitly
-authorized, verified confinement design.
+Command networking is enabled. On 2026-10-16 the user explicitly authorized
+opening this profile for task-scoped handoff to the verified independent Jenkins
+runtime. The `.jenkins` and `.git` grants support its runtime and Git/worktree
+metadata; `.codex/state/jenkins-coordinator`, `jenkins-pilot` and `jenkins-tray`
+also have explicit write grants. The existing `.codex/outbox` grant covers scoped
+request inputs. These grants permit the filesystem operations; the task still
+determines which commands, cleanup candidates and version actions are authorized.
 
-The configuration itself, hooks, AGENTS.md, Git internals, reference repositories,
-nested worktrees, retired coordinator data, user directories and system temp
-have no write grant. A Codex host's own state, logs and sandbox provisioning are
-outside the command profile; this profile does not claim to confine every
-background write by Windows or the desktop host.
+New directory grants need existing physical directories before the Windows
+sandbox can grant access beneath a read-only parent. Permission maintenance may
+initialize these exact, user-authorized empty directories, then rerun the probes;
+do not grant writes to the whole `.codex/state` parent to work around creation.
+
+The network host rules explicitly allow `127.0.0.1` and `localhost`, including the
+current Jenkins endpoint at `http://127.0.0.1:18080`. These rules apply when a
+network proxy is active. They do not enable the proxy; networking is direct when
+no proxy is active, so this is not a localhost-only network policy. The running
+Jenkins service has its own execution boundary and remains subject to its request
+authorization, selected-driver/runtime checks, physical output checks and native
+ownership locks. The command sandbox does not confine that preexisting service.
+
+The configuration itself, hooks outside `.git`, AGENTS.md, unlisted reference
+repositories/worktrees, retired coordinator data, user directories and system
+temp have no write grant. Directory grants include all descendants, including
+Git hooks inside `.git` and worktrees inside `.jenkins`; granting writes does not
+authorize changing hooks or creating worktrees outside the user's task. A Codex
+host's own state, logs and sandbox provisioning are outside the command profile;
+this profile does not claim to confine every background write by Windows or the
+desktop host.
 
 These are project defaults, not an administrator-enforced device policy.
 Explicitly selecting another profile or supplying a command-line override
@@ -68,30 +86,24 @@ that route to bypass this project's allowlist.
 
 ## Runtime verification
 
-```powershell
-& 'E:\Git\ZirconEngine\.jenkins\runtime\python\python.exe' -B -X utf8 `
-  'E:\Git\ZirconEngine\tools\permissions\verify_codex_file_permissions.py' `
-  --codex 'C:\Users\HeJiahui\AppData\Local\OpenAI\Codex\bin\8aaf1547b825b104\codex.exe'
-```
+Use the installed CLI's `codex sandbox --permission-profile zircon-strict
+--include-managed-config -C E:\Git\ZirconEngine -- <command>` interface for
+actual file-operation and Jenkins connectivity probes. Record the configuration
+hash, installed CLI identity, exact command and terminal result; register owned
+canaries in the task artifact manifest before creating them and remove them after
+the probe. Do not use the Jenkins service interpreter for ad hoc probe scripts.
+An interpreter failure, timeout, missing directory or failed positive probe is
+a failed verification. Negative probes must receive actual access denials.
 
-The tool uses the installed CLI's `sandbox --permission-profile zircon-strict`
-interface, includes managed requirements, and stores owned canaries and receipts
-under `E:\cargo-targets\zircon-local\codex-permissions`.
-
-It checks permitted create/modify/copy/rename/delete operations, denied root and
-external writes, denied copy/move, preserved move sources, protected configuration
-access, inherited subprocess restrictions and writes through a directory junction.
-The parent verifier also checks forbidden destinations for residual output and
-confirms that the permission configuration did not change. An interpreter failure,
-timeout, missing directory or failed positive probe is a failed verification, not
-proof of a successful denial. Negative probes must receive actual access denials.
-
-The configured profile passed all 15 checks with Codex 0.160.0 and native Windows
-`elevated` sandboxing. The final receipt records no stderr, no forbidden output
+An earlier allowlist passed 15 checks with Codex 0.160.0 and native Windows
+`elevated` sandboxing; its historical receipt records no stderr, no forbidden output
 and an unchanged configuration:
 [runtime receipt](E:/cargo-targets/zircon-local/codex-permissions/probe-6151a82962894e9d9dea183eb2e5b764/receipt.json).
-This verifies the tested sandbox invocation; the desktop chat still requires the
-profile selection described above.
+That result does not validate the current, expanded allowlist. The current
+Jenkins handoff permission change records its own probes in
+[the task receipt](E:/cargo-targets/zircon-local/reports/def-disk-cleanup-20261016/jenkins-permission-open/validation.json).
+Each receipt verifies only its tested sandbox invocation; the desktop chat still
+requires the profile selection described above.
 
 Re-run after changing the allowlist, Codex version, native sandbox mode or
 relevant Windows permissions. This is permission acceptance evidence, not Rust

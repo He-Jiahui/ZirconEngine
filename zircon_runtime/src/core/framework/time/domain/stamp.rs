@@ -17,6 +17,9 @@ use super::{ClockDomainId, ClockDomainRegistry, ClockDomainUnit};
 ///
 /// Runtime identity attached to a time value.
 ///
+/// Explicit World Reset/Restore also advance epochs with a checked, non-reusing
+/// timeline boundary. Existing policy-only changes retain their saturating contract.
+///
 /// `epoch` changes when that domain's semantics are reconfigured. `source_generation` changes
 /// when the underlying source is rebased, such as after activation or a lifecycle discontinuity.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -66,6 +69,13 @@ impl ClockDomainStamp {
     // World 策略提交仅更新受影响时钟的配置代际；饱和后不能继续区分新的配置变化。
     pub(crate) fn bump_epoch(&mut self) {
         self.epoch = self.epoch.saturating_add(1);
+    }
+
+    // A timeline replacement must not reuse an earlier epoch. Return a copy
+    // only after checking both the current stamp and the caller's epoch floor.
+    pub(crate) fn checked_epoch_after(self, floor: u64) -> Option<Self> {
+        let epoch = self.epoch.max(floor).checked_add(1)?;
+        Some(Self { epoch, ..self })
     }
 
     // 接收 Runtime 已接受的外帧来源版本；此处不递增或校验单调性，World 每帧复制该值。

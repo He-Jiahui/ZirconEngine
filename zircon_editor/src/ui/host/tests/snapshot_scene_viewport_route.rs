@@ -15,12 +15,16 @@ fn viewport_pointer_routes_accept_live_leaf_ids_and_reject_stale_ids() {
     let harness = EventRuntimeHarness::new("zircon_scene_viewport_route_currentness");
     let view_id = harness
         .runtime
-        .view_instance_ids_for_descriptor_key("editor.scene").unwrap()
+        .view_instance_ids_for_descriptor_key("editor.scene")
+        .unwrap()
         .into_iter()
         .next()
         .expect("the editor test workbench has a live Scene view");
     let (saved_focus, initial_session_count) = {
-        let manager = harness.runtime.enter_editor_manager().expect("editor manager admission");
+        let manager = harness
+            .runtime
+            .enter_editor_manager()
+            .expect("editor manager admission");
         let shell = harness.runtime.shell().lock();
         (
             manager.current_focused_view(),
@@ -30,7 +34,8 @@ fn viewport_pointer_routes_accept_live_leaf_ids_and_reject_stale_ids() {
 
     assert!(harness
         .runtime
-        .route_scene_viewport_pointer(core_view_instance_id(&view_id), UiPointerEventKind::Move).unwrap());
+        .route_scene_viewport_pointer(core_view_instance_id(&view_id), UiPointerEventKind::Move)
+        .unwrap());
     let session_count_after_live_route = harness
         .runtime
         .shell()
@@ -42,17 +47,24 @@ fn viewport_pointer_routes_accept_live_leaf_ids_and_reject_stale_ids() {
     assert_eq!(
         harness
             .runtime
-            .enter_editor_manager().expect("editor manager admission")
+            .enter_editor_manager()
+            .expect("editor manager admission")
             .current_focused_view(),
         saved_focus,
         "hovering a live leaf selects its input session without saving workbench focus"
     );
 
-    assert!(!harness.runtime.route_scene_viewport_pointer(
-        ViewInstanceId::new("editor.scene#stale"),
-        UiPointerEventKind::Move,
-    ).unwrap());
-    let manager = harness.runtime.enter_editor_manager().expect("editor manager admission");
+    assert!(!harness
+        .runtime
+        .route_scene_viewport_pointer(
+            ViewInstanceId::new("editor.scene#stale"),
+            UiPointerEventKind::Move,
+        )
+        .unwrap());
+    let manager = harness
+        .runtime
+        .enter_editor_manager()
+        .expect("editor manager admission");
     let shell = harness.runtime.shell().lock();
     assert_eq!(manager.current_focused_view(), saved_focus);
     assert_eq!(
@@ -68,7 +80,8 @@ fn viewport_workspace_session_access_filters_stale_ids_and_restores_live_focus_s
     let harness = EventRuntimeHarness::new("zircon_scene_viewport_workspace_session_restore");
     let live_id = harness
         .runtime
-        .view_instance_ids_for_descriptor_key("editor.scene").unwrap()
+        .view_instance_ids_for_descriptor_key("editor.scene")
+        .unwrap()
         .into_iter()
         .next()
         .expect("the editor test workbench has a live Scene view");
@@ -94,7 +107,8 @@ fn viewport_workspace_session_access_filters_stale_ids_and_restores_live_focus_s
 
     harness
         .runtime
-        .restore_scene_viewport_workspace_sessions(&saved, Some(&stale_id)).unwrap();
+        .restore_scene_viewport_workspace_sessions(&saved, Some(&stale_id))
+        .unwrap();
     let restored = harness.runtime.scene_viewport_workspace_sessions().unwrap();
 
     assert_eq!(restored.len(), 1);

@@ -4,7 +4,7 @@ use std::ops::Deref;
 use std::panic::{self, AssertUnwindSafe};
 use std::sync::Arc;
 use std::thread;
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;

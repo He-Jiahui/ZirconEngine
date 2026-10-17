@@ -5,9 +5,11 @@ use super::{
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use thiserror::Error;
 
+// 当单位前向与 up 的点积接近 ±1 时按共线处理，避免叉积基轴退化。
 const LOOK_AT_COLLINEAR_DOT_LIMIT: Real = 1.0 - 4.0 * Real::EPSILON;
 
 /// 可直接编辑的平移、旋转和缩放数据；需要拒绝无效 TRS 的调用者可用 validate 获得受检值。
+/// 派生的 Deserialize 不调用 validate，反序列化结果仍须由边界调用者校验。
 #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Transform {
     pub translation: Vec3,
@@ -79,14 +81,17 @@ impl Transform {
         transform_to_mat4(self)
     }
 
+    /// 返回旋转后的局部 -Z 轴方向；不验证该可编辑变换的旋转是否有限或单位化。
     pub fn forward(self) -> Vec3 {
         (self.rotation * -Vec3::Z).normalize_or_zero()
     }
 
+    /// 返回旋转后的局部 +X 轴方向；不验证该可编辑变换的旋转是否有限或单位化。
     pub fn right(self) -> Vec3 {
         (self.rotation * Vec3::X).normalize_or_zero()
     }
 
+    /// 返回旋转后的局部 +Y 轴方向；不验证该可编辑变换的旋转是否有限或单位化。
     pub fn up(self) -> Vec3 {
         (self.rotation * Vec3::Y).normalize_or_zero()
     }
@@ -120,6 +125,7 @@ impl Transform {
     }
 
     /// 在无效相机输入必须报告时使用；按策略检查眼点、目标、方向、正交基和旋转的有限性与范数下限。
+    /// eye 和 target 是世界位置，up 是请求的上方向；失败输入不会像便利入口那样回退。
     pub fn try_looking_at(
         eye: Vec3,
         target: Vec3,
@@ -166,6 +172,7 @@ impl Transform {
     }
 }
 
+// 选择与方向最不对齐的基轴以避免叉积过小；相等时按 Y、X、Z 的分支顺序确定结果。
 fn least_aligned_cardinal_axis(direction: Vec3) -> Vec3 {
     let absolute = direction.abs();
     if absolute.y <= absolute.x && absolute.y <= absolute.z {
@@ -183,6 +190,7 @@ impl Default for Transform {
     }
 }
 
+/// 按 glam 的缩放、旋转、平移组合顺序生成列向量变换矩阵，不执行输入校验。
 pub fn compose_trs(translation: Vec3, rotation: Quat, scale: Vec3) -> Mat4 {
     Mat4::from_scale_rotation_translation(scale, rotation, translation)
 }
@@ -196,15 +204,18 @@ pub fn affine_inverse(matrix: Mat4) -> Mat4 {
     matrix.inverse()
 }
 
+/// 将相机变换矩阵求逆得到视图矩阵；该便捷入口假定矩阵可逆且不报告失败。
 pub fn view_matrix(transform: Transform) -> Mat4 {
     affine_inverse(transform_to_mat4(transform))
 }
 
 /// A finite, normalized direction that cannot silently collapse to zero.
+/// 通过 try_new 检查有限输入与策略范数平方下限；反序列化使用 STRICT 并重新归一化。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub struct UnitDirection3(Vec3);
 
 impl UnitDirection3 {
+    /// 归一化有限非零方向，要求范数平方严格大于策略下限。
     pub fn try_new(value: Vec3, policy: NumericPolicy) -> Result<Self, NumericError> {
         Ok(Self(normalize_vec3(
             value,
@@ -233,10 +244,12 @@ impl<'de> Deserialize<'de> for UnitDirection3 {
 }
 
 /// A finite, normalized quaternion intended for transform rotation boundaries.
+/// 通过 try_new 检查有限输入与策略范数平方下限；反序列化使用 STRICT 并重新归一化。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub struct UnitQuaternion(Quat);
 
 impl UnitQuaternion {
+    /// 归一化有限非零四元数，要求范数平方严格大于策略下限。
     pub fn try_new(value: Quat, policy: NumericPolicy) -> Result<Self, NumericError> {
         Ok(Self(normalize_quat(
             value,
@@ -265,6 +278,7 @@ impl<'de> Deserialize<'de> for UnitQuaternion {
 }
 
 /// A transform admitted through a single finite, normalized, nondegenerate boundary.
+/// 缩放按各轴绝对值检查，故负缩放可接纳；反序列化以 STRICT 策略重新校验并归一化旋转。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ValidatedTransform(Transform);
 
@@ -320,6 +334,7 @@ impl<'de> Deserialize<'de> for ValidatedTransform {
     }
 }
 
+// 对方向型向量使用范数平方阈值，且在归一化后再次检查有限性。
 fn normalize_vec3(
     value: Vec3,
     value_kind: NumericValue,
@@ -346,6 +361,7 @@ fn normalize_vec3(
     Ok(normalized)
 }
 
+// 与向量相同，四元数阈值比较的是归一化前的范数平方。
 fn normalize_quat(
     value: Quat,
     value_kind: NumericValue,
@@ -372,6 +388,7 @@ fn normalize_quat(
     Ok(normalized)
 }
 
+// 逐轴比较绝对值；负缩放保留符号，只要其幅值超过策略下限即可。
 fn validate_scale(scale: Vec3, minimum_absolute: Real) -> Result<(), NumericError> {
     for (axis, component) in [
         (Axis3::X, scale.x),

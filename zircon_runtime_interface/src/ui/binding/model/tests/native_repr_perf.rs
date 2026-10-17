@@ -1,3 +1,8 @@
+//! 原生文本追加实现与历史分配型写法的直接对照测试。
+//!
+//! 普通测试比较固定嵌套值和动作的文本输出，不断言重新解析后的类别无损往返。
+//! 显式忽略的微基准比较相同夹具的文本生成；源码中的阈值不是本批已执行的性能结果。
+
 use std::{collections::BTreeMap, hint::black_box, time::Instant};
 
 use super::super::UiBindingValue;
@@ -5,6 +10,7 @@ use crate::ui::binding::model::{
     UiBindingAssetReference, UiBindingCall, UiBindingEntityReference, UiBindingMapKey,
 };
 
+/// 构造覆盖多种拥有载荷的固定值树；由当前标准预算构造入口确认夹具可用。
 fn sample_value() -> UiBindingValue {
     let mut fields = BTreeMap::new();
     fields.insert(
@@ -52,6 +58,7 @@ fn sample_value() -> UiBindingValue {
     UiBindingValue::record(fields).unwrap()
 }
 
+/// 历史多次替换的转义对照，仅用于生成比较基线，不作为产品入口。
 fn quote_allocating(value: &str) -> String {
     format!(
         "\"{}\"",
@@ -64,6 +71,7 @@ fn quote_allocating(value: &str) -> String {
     )
 }
 
+/// 按各变体递归分配中间文本的历史基线；保持旧比较逻辑和错误前提不变。
 fn native_repr_allocating(value: &UiBindingValue) -> String {
     match value {
         UiBindingValue::String(value) => quote_allocating(value),
@@ -137,6 +145,7 @@ fn native_repr_allocating(value: &UiBindingValue) -> String {
     }
 }
 
+/// 历史键文本基线；同样不在文本中另存整数类别。
 fn map_key_allocating(key: &UiBindingMapKey) -> String {
     match key {
         UiBindingMapKey::String(value) => quote_allocating(value),
@@ -146,6 +155,7 @@ fn map_key_allocating(key: &UiBindingMapKey) -> String {
     }
 }
 
+/// 历史动作文本基线，借用载荷但为各段分配结果。
 fn call_allocating(call: &UiBindingCall) -> String {
     format!(
         "{}({})",
@@ -159,6 +169,7 @@ fn call_allocating(call: &UiBindingCall) -> String {
 }
 
 #[test]
+/// 比较固定值和单参数动作的两种文本输出；不执行处理器或资产解析。
 fn single_buffer_native_projection_preserves_nested_output() {
     let value = sample_value();
     assert_eq!(value.native_repr(), native_repr_allocating(&value));
@@ -167,6 +178,7 @@ fn single_buffer_native_projection_preserves_nested_output() {
     assert_eq!(call.native_repr(), call_allocating(&call));
 }
 
+/// 仅显式选择时运行的文本生成微基准；固定样本排序后检查原比例断言。
 #[test]
 #[ignore = "release-only single-buffer native binding projection benchmark"]
 fn runtime_interface03_batch37_single_buffer_native_binding_release_benchmark() {

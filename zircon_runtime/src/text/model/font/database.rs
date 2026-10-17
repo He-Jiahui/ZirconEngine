@@ -1,3 +1,6 @@
+//! 字体查询、匹配结果与数据库内身份的值模型。
+//! 组装这些值不执行选面、字体登记或实例解析。
+
 use serde::{Deserialize, Serialize};
 
 use super::face::{FontStretch, FontStyle, FontWeight};
@@ -24,6 +27,11 @@ pub struct FontQuery {
 }
 
 impl FontQuery {
+    /// 组装只有一个家族偏好的常规选面查询。
+    ///
+    /// # 参数与返回
+    /// `family` 转为 `FontFamilyName` 并写入唯一家族项。
+    /// 返回字重 `400`、`Normal` 样式、正常宽度 `100` 的查询；尚未执行选面或字符覆盖检查。
     pub fn single_family(family: impl Into<FontFamilyName>) -> Self {
         Self {
             families: vec![family.into()],

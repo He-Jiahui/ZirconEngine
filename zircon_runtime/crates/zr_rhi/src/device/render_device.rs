@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::{
     BindGroupLayoutDesc, BufferDesc, BufferUpload, BufferUploadBatch, DeviceGeneration, DeviceId,

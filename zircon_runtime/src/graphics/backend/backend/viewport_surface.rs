@@ -39,9 +39,17 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
     return output;
 }
 
+override ENCODE_SRGB: bool = false;
+fn encode_srgb(linear: vec3<f32>) -> vec3<f32> {
+    let value = max(linear, vec3<f32>(0.0));
+    return select(1.055 * pow(value, vec3<f32>(1.0 / 2.4)) - 0.055,
+                  value * 12.92, value <= vec3<f32>(0.0031308));
+}
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(source_texture, source_sampler, input.uv);
+    let color = textureSample(source_texture, source_sampler, input.uv);
+    if ENCODE_SRGB { return vec4<f32>(encode_srgb(color.rgb), color.a); }
+    return color;
 }
 "#;
 
@@ -237,11 +245,39 @@ impl RenderBackend {
                 format: TextureFormat::Bgra8UnormSrgb,
             },
         );
-        let session = surface_session_receipt(
-            self.render_device
-                .create_surface_session(&surface_descriptor)?,
-        );
-        let blit = SurfaceBlitResources::new(&self.device)?;
+        #[cfg(target_arch = "wasm32")]
+        let adopted = self.canvas.as_ref().and_then(|(registration, session)| {
+            matches!(descriptor.target, crate::rhi::RenderNativeSurfaceTarget::Canvas { identity }
+                if identity == registration.identity())
+            .then(|| session.lock().unwrap_or_else(|e| e.into_inner()).take())
+            .flatten()
+        });
+        #[cfg(not(target_arch = "wasm32"))]
+        let adopted: Option<SurfaceSessionReceipt> = None;
+        let session = match adopted {
+            Some(session) => {
+                surface_session_receipt(self.render_device.reconfigure_surface_session(
+                    session.session(),
+                    &SwapchainDesc {
+                        format: session.swapchain.format,
+                        ..surface_descriptor.swapchain.clone()
+                    },
+                )?)
+            }
+            None => surface_session_receipt(
+                self.render_device
+                    .create_surface_session(&surface_descriptor)?,
+            ),
+        };
+        let blit = match SurfaceBlitResources::new(&self.device, session.swapchain.format) {
+            Ok(blit) => blit,
+            Err(error) => {
+                let _ = self
+                    .render_device
+                    .destroy_surface_session(session.session());
+                return Err(error);
+            }
+        };
         Ok(ViewportSurface {
             render_device: Arc::clone(&self.render_device),
             session,
@@ -253,12 +289,12 @@ impl RenderBackend {
 struct SurfaceBlitResources {
     sampler: wgpu::Sampler,
     bind_group_layout: wgpu::BindGroupLayout,
-    bgra_pipeline: wgpu::RenderPipeline,
-    rgba_pipeline: wgpu::RenderPipeline,
+    pipeline: wgpu::RenderPipeline,
+    format: TextureFormat,
 }
 
 impl SurfaceBlitResources {
-    fn new(device: &wgpu::Device) -> Result<Self, GraphicsError> {
+    fn new(device: &wgpu::Device, format: TextureFormat) -> Result<Self, GraphicsError> {
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("zircon-present-blit-sampler"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
@@ -299,41 +335,50 @@ impl SurfaceBlitResources {
             label: Some("zircon-present-blit-shader"),
             source: wgpu::ShaderSource::Wgsl(PRESENT_BLIT_SHADER.into()),
         });
-        let create_pipeline = |target_format| {
-            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("zircon-present-blit-pipeline"),
-                layout: Some(&pipeline_layout),
-                vertex: wgpu::VertexState {
-                    module: &shader,
-                    entry_point: Some("vs_main"),
-                    compilation_options: Default::default(),
-                    buffers: &[],
+        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("zircon-present-blit-pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                compilation_options: Default::default(),
+                buffers: &[],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                compilation_options: wgpu::PipelineCompilationOptions {
+                    constants: &[(
+                        "ENCODE_SRGB",
+                        if matches!(
+                            format,
+                            TextureFormat::Rgba8Unorm | TextureFormat::Bgra8Unorm
+                        ) {
+                            1.0
+                        } else {
+                            0.0
+                        },
+                    )],
+                    ..Default::default()
                 },
-                fragment: Some(wgpu::FragmentState {
-                    module: &shader,
-                    entry_point: Some("fs_main"),
-                    compilation_options: Default::default(),
-                    targets: &[Some(wgpu::ColorTargetState {
-                        format: target_format,
-                        blend: Some(wgpu::BlendState::REPLACE),
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })],
-                }),
-                primitive: wgpu::PrimitiveState::default(),
-                depth_stencil: None,
-                multisample: wgpu::MultisampleState::default(),
-                multiview_mask: None,
-                cache: None,
-            })
-        };
-        let bgra_pipeline = create_pipeline(wgpu_surface_format(TextureFormat::Bgra8UnormSrgb)?);
-        let rgba_pipeline = create_pipeline(wgpu_surface_format(TextureFormat::Rgba8UnormSrgb)?);
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: wgpu_surface_format(format)?,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview_mask: None,
+            cache: None,
+        });
 
         Ok(Self {
             sampler,
             bind_group_layout,
-            bgra_pipeline,
-            rgba_pipeline,
+            pipeline,
+            format,
         })
     }
 
@@ -346,15 +391,12 @@ impl SurfaceBlitResources {
         size: UVec2,
         target_format: TextureFormat,
     ) -> Result<(), GraphicsError> {
-        let pipeline = match target_format {
-            TextureFormat::Bgra8UnormSrgb => &self.bgra_pipeline,
-            TextureFormat::Rgba8UnormSrgb => &self.rgba_pipeline,
-            _ => {
-                return Err(GraphicsError::SurfaceStatus(
-                    "neutral viewport surface negotiated a non-SDR format",
-                ));
-            }
-        };
+        if target_format != self.format {
+            return Err(GraphicsError::SurfaceStatus(
+                "surface blit format changed without rebuilding its pipeline",
+            ));
+        }
+        let pipeline = &self.pipeline;
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-present-blit-bind-group"),
             layout: &self.bind_group_layout,
@@ -410,6 +452,8 @@ fn wgpu_surface_format(format: TextureFormat) -> Result<wgpu::TextureFormat, Gra
     match format {
         TextureFormat::Bgra8UnormSrgb => Ok(wgpu::TextureFormat::Bgra8UnormSrgb),
         TextureFormat::Rgba8UnormSrgb => Ok(wgpu::TextureFormat::Rgba8UnormSrgb),
+        TextureFormat::Bgra8Unorm => Ok(wgpu::TextureFormat::Bgra8Unorm),
+        TextureFormat::Rgba8Unorm => Ok(wgpu::TextureFormat::Rgba8Unorm),
         _ => Err(GraphicsError::SurfaceStatus(
             "neutral viewport surface negotiated a non-SDR format",
         )),

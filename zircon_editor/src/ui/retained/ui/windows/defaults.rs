@@ -15,10 +15,14 @@ pub(super) fn projected_workbench_text(
             .then(|| first_string_property(&node.properties, &["placeholder"]))
             .flatten()
     });
-    let has_field_label = matches!(node.component.as_str(), "InputField" | "TextField" | "NumberField")
-        && numeric_property(&node.properties, "layout_label_width")
-            .is_some_and(|value| value.is_finite() && value > 0.0);
-    if has_field_label || prefers_authored_text_over_rendered_text(node.component.as_str(), component_role) {
+    let has_field_label = matches!(
+        node.component.as_str(),
+        "InputField" | "TextField" | "NumberField"
+    ) && numeric_property(&node.properties, "layout_label_width")
+        .is_some_and(|value| value.is_finite() && value > 0.0);
+    if has_field_label
+        || prefers_authored_text_over_rendered_text(node.component.as_str(), component_role)
+    {
         authored_text
             .or_else(|| node.text.clone())
             .unwrap_or_default()

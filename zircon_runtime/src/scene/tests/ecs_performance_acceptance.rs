@@ -28,11 +28,13 @@ const TRANSFORM_READS: usize = 128;
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct Health(pub(super) u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
 impl Component for Health {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct SparseMarker;
 
+zircon_runtime_interface::impl_retained_owner_v1!(SparseMarker {});
 impl Component for SparseMarker {
     const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }

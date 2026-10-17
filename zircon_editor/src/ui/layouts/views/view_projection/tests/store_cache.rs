@@ -170,3 +170,50 @@ fn optimization_batch_20260826ad_editor01_view_store_root_hash_caches_performanc
         ordered_p95,
     );
 }
+
+#[test]
+fn ui_source_paths_preserve_the_explicit_assets_namespace() {
+    assert_eq!(
+        v2_source_paths(
+            "/assets/ui/editor/project_overview.zui",
+            &[("theme", "/assets/ui/theme/editor_base.zui")],
+        )
+        .unwrap(),
+        v2_source_paths(
+            "ui/editor/project_overview.zui",
+            &[("theme", "ui/theme/editor_base.zui")],
+        )
+        .unwrap()
+    );
+}
+
+#[test]
+fn invalid_ui_source_paths_are_not_published_to_the_cache_or_watcher() {
+    let mut cache = ViewV2StoreFileCache::new();
+    for source in [
+        "/assets/",
+        "/assets/../editor.zui",
+        "/assets/./editor.zui",
+        "/assets//editor.zui",
+        "/ui/editor.zui",
+        "//assets/ui/editor.zui",
+        "C:/ui/editor.zui",
+        r"/assets/ui\editor.zui",
+    ] {
+        assert!(matches!(
+            cache.load_store(source, &[]),
+            Err(UiV2AssetError::InvalidDocument { .. })
+        ));
+    }
+    assert!(matches!(
+        cache.load_store(
+            "/assets/ui/editor/project_overview.zui",
+            &[("theme", "/assets/../theme.zui")],
+        ),
+        Err(UiV2AssetError::InvalidDocument { .. })
+    ));
+    assert!(cache.source_paths.is_empty());
+    assert!(cache.invalidation.watchers.is_empty());
+    assert!(cache.invalidation.source_roots.is_empty());
+    assert_eq!(cache.source_cache.len(), 0);
+}

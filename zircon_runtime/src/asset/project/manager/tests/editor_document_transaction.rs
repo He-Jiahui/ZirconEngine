@@ -183,6 +183,10 @@ fn crash_publication_recovers_scene_and_opaque_workspace_before_reopen() {
         .into_bytes();
     let scene_path = manager.source_path_for_uri(&scene_uri).unwrap();
     fs::write(&scene_path, &old_scene_document).unwrap();
+    let source_revision = Scene::load_scene_document(&manager, &scene_uri)
+        .unwrap()
+        .into_parts()
+        .1;
     let workspace_path = paths.derived_root().join(WORKSPACE_FILE);
     fs::write(&workspace_path, OLD_WORKSPACE).unwrap();
     let scoped = manager
@@ -191,6 +195,7 @@ fn crash_publication_recovers_scene_and_opaque_workspace_before_reopen() {
     let result = scoped.commit_scene_workspace_with_test_fault(
         &scene_uri,
         &new_scene,
+        &source_revision,
         NEW_WORKSPACE,
         ProjectTransactionFault::CrashAfterTargetReplace(0),
     );
@@ -206,7 +211,9 @@ fn crash_publication_recovers_scene_and_opaque_workspace_before_reopen() {
     assert!(reopened.paths().root().exists());
     assert_eq!(fs::read(&scene_path).unwrap(), old_scene_document);
     assert_eq!(fs::read(&workspace_path).unwrap(), OLD_WORKSPACE);
-    let decoded = Scene::load_scene_from_uri(&reopened, &scene_uri).unwrap();
+    let (decoded, reopened_revision) = Scene::load_scene_document(&reopened, &scene_uri)
+        .unwrap()
+        .into_parts();
     assert_eq!(decoded.nodes(), old_scene.nodes());
 
     let reopened_generation = reopened.catalog_input_generation().sequence();
@@ -214,7 +221,7 @@ fn crash_publication_recovers_scene_and_opaque_workspace_before_reopen() {
         .scoped_editor_document(&EditorDocumentScope::new(&root, reopened_generation))
         .unwrap();
     reopened_scope
-        .commit_scene_workspace(&scene_uri, &new_scene, NEW_WORKSPACE)
+        .commit_scene_workspace(&scene_uri, &new_scene, &reopened_revision, NEW_WORKSPACE)
         .unwrap()
         .ensure_durable()
         .unwrap();
@@ -272,6 +279,7 @@ fn none_workspace_save_rejects_scene_directory_reparse_without_mutating_either_o
     let result = scoped.commit_scene_without_workspace(
         &AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
         &Scene::default(),
+        &crate::scene::world::SceneSourceRevision::Missing,
     );
 
     assert!(

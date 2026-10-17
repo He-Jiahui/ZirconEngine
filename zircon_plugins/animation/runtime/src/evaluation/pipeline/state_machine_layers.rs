@@ -7,8 +7,9 @@ use zircon_runtime::scene::EntityId;
 use super::machine_instance_key::MachineInstanceKey;
 use super::nested_machine_resolve::resolve_machine_instance;
 use super::nested_machine_sample::{
-    normalized_machine_state_time, sample_machine_state_events, sample_machine_state_pose,
-    sample_machine_transition_pose,
+    normalized_machine_state_time, sample_machine_state_events,
+    sample_machine_state_pose_with_demand, sample_machine_transition_pose,
+    sample_machine_transition_pose_with_demand,
 };
 use super::requests::{
     PendingClipEventSample, PendingStateMachinePoseSample, StateMachineParameterProjection,
@@ -26,6 +27,7 @@ use crate::{
 pub(super) struct StateMachineLayerApplyResult {
     pub(super) events: Vec<PendingClipEventSample>,
     pub(super) diagnostics: Vec<AnimationStateMachineLayerDiagnostic>,
+    pub(super) requires_continuous_frame: bool,
 }
 
 pub(super) fn apply_state_machine_layers(
@@ -36,6 +38,7 @@ pub(super) fn apply_state_machine_layers(
 ) -> StateMachineLayerApplyResult {
     let mut events = Vec::new();
     let mut diagnostics = Vec::new();
+    let mut requires_continuous_frame = false;
     for pending in pending_samples {
         let Some(compiled) =
             pipeline.compiled_state_machine_layers(asset_manager, pending.state_machine_id)
@@ -46,8 +49,8 @@ pub(super) fn apply_state_machine_layers(
             continue;
         }
         for layer in compiled.layers() {
-            let Some((layer_pose, layer_events)) =
-                evaluate_layer_pose(pipeline, asset_manager, pending, layer)
+            let Some((layer_pose, layer_events, layer_requires_frame)) =
+                evaluate_layer_pose_with_demand(pipeline, asset_manager, pending, layer)
             else {
                 continue;
             };
@@ -61,7 +64,16 @@ pub(super) fn apply_state_machine_layers(
                 layer.blend_mode(),
                 layer.mask(),
             ) {
-                Ok(()) => events.extend(layer_events),
+                Ok(()) => {
+                    let contributes_pose = layer.weight().is_finite()
+                        && layer.weight() > 0.0
+                        && !layer_pose.bones.is_empty()
+                        && layer.mask().map_or(true, |mask| {
+                            mask.as_slice().iter().any(|weight| *weight > 0.0)
+                        });
+                    requires_continuous_frame |= layer_requires_frame && contributes_pose;
+                    events.extend(layer_events);
+                }
                 Err(error) => diagnostics.push(AnimationStateMachineLayerDiagnostic {
                     entity: pending.entity,
                     layer: layer.name().to_string(),
@@ -73,6 +85,7 @@ pub(super) fn apply_state_machine_layers(
     StateMachineLayerApplyResult {
         events,
         diagnostics,
+        requires_continuous_frame,
     }
 }
 
@@ -82,6 +95,16 @@ fn evaluate_layer_pose(
     pending: &PendingStateMachinePoseSample,
     layer: &CompiledStateMachineLayer,
 ) -> Option<(AnimationPoseOutput, Vec<PendingClipEventSample>)> {
+    evaluate_layer_pose_with_demand(pipeline, asset_manager, pending, layer)
+        .map(|(pose, events, _)| (pose, events))
+}
+
+fn evaluate_layer_pose_with_demand(
+    pipeline: &mut AnimationEvaluationPipeline,
+    asset_manager: &ProjectAssetManager,
+    pending: &PendingStateMachinePoseSample,
+    layer: &CompiledStateMachineLayer,
+) -> Option<(AnimationPoseOutput, Vec<PendingClipEventSample>, bool)> {
     let parameters = pending.parameter_projection();
     let layer_machine_id = resolve_sub_machine_id(asset_manager, layer.machine())?;
     let base_instance = MachineInstanceKey::root(pending.entity, pending.state_machine_id);
@@ -109,6 +132,7 @@ fn evaluate_layer_pose(
     let mut interrupted_events = Vec::new();
     let mut interrupted_source = None;
     let mut event_start = (pending.from_time_seconds, 0.0);
+    let mut waits_for_timed_exit = false;
     let transition = if let Some(previous) = resolved.transition.take() {
         event_start = (previous.from_time_seconds, previous.to_time_seconds);
         let advanced = advance_state_machine_transition(previous, pending.delta_seconds);
@@ -174,6 +198,11 @@ fn evaluate_layer_pose(
             pending.skeleton_id,
             pending.to_time_seconds,
         );
+        waits_for_timed_exit = pending.playing
+            && evaluation.transition.is_some()
+            && resolved.requested_desc.as_ref().is_some_and(|desc| {
+                desc.exit_time().is_some() && !desc.exit_ready(normalized_time)
+            });
         evaluation
             .transition
             .as_ref()
@@ -220,7 +249,7 @@ fn evaluate_layer_pose(
             &transition.from_state,
             &transition.to_state,
         );
-        let pose = sample_machine_transition_pose(
+        let (_, pose, requires_frame) = sample_machine_transition_pose_with_demand(
             pipeline,
             asset_manager,
             &instance,
@@ -230,8 +259,8 @@ fn evaluate_layer_pose(
             pending.skeleton_id,
             &transition,
             active_source.as_deref(),
-        )?
-        .1;
+            pending.playing,
+        )?;
         interrupted_events.extend(sample_layer_transition_events(
             pipeline,
             asset_manager,
@@ -248,7 +277,7 @@ fn evaluate_layer_pose(
             pipeline.clear_nested_machine_transition(&instance);
             pipeline.clear_state_machine_interrupted_transition_source(&instance);
         }
-        return Some((pose, interrupted_events));
+        return Some((pose, interrupted_events, requires_frame));
     }
 
     pipeline.clear_nested_machine_transition(&instance);
@@ -265,7 +294,7 @@ fn evaluate_layer_pose(
         pending.from_time_seconds,
         pending.to_time_seconds,
     );
-    let pose = sample_machine_state_pose(
+    let (_, pose, requires_frame) = sample_machine_state_pose_with_demand(
         pipeline,
         asset_manager,
         &instance,
@@ -275,9 +304,10 @@ fn evaluate_layer_pose(
         pending.entity,
         pending.skeleton_id,
         pending.to_time_seconds,
-    )?
-    .1;
-    Some((pose, events))
+        pending.playing,
+    )?;
+    let requires_frame = requires_frame || (waits_for_timed_exit && !pose.bones.is_empty());
+    Some((pose, events, requires_frame))
 }
 
 fn sample_layer_transition_events(

@@ -5,7 +5,7 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, Weak};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use super::{
     ResourceEvent, ResourceEventKind, ResourceId, ResourceKind, ResourceRegistryError,

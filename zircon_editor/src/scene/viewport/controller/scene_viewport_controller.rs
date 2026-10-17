@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
@@ -23,7 +22,6 @@ use zircon_runtime_interface::math::{
     is_finite_mat4, is_finite_quat, is_finite_scalar, is_finite_vec3, Mat4, Real, Transform, Vec3,
 };
 
-use super::scene_viewport_controller_build_runtime_overlay_ui::RuntimeOverlayUiExtractCache;
 use super::scene_viewport_controller_error::SceneViewportControllerError;
 use super::scene_viewport_controller_overlay_providers::ViewportOverlayProviderRegistry;
 use super::scene_viewport_controller_scene_modes::PreparedSceneModeContributionRetirement;
@@ -36,8 +34,6 @@ pub(crate) struct SceneViewportController {
     pub(in crate::scene::viewport::controller) pointer_bridge: ViewportOverlayPointerRouter,
     pub(in crate::scene::viewport::controller) settings_mutations: Arc<SettingsMutationCoordinator>,
     pub(in crate::scene::viewport::controller) overlay_providers: ViewportOverlayProviderRegistry,
-    pub(in crate::scene::viewport::controller) runtime_overlay_ui_cache:
-        RefCell<RuntimeOverlayUiExtractCache>,
     pub(in crate::scene::viewport::controller) tool_scheduler: ToolSchedulerService,
     pub(in crate::scene::viewport::controller) scene_tool_identity: SceneToolIdentity,
     pub(in crate::scene::viewport::controller) scene_tool_resources: ToolResourceSet,

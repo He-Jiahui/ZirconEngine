@@ -7,6 +7,8 @@ use zr_math::{
 };
 
 /// Versioned conventions shared by authoring, runtime, and render boundaries.
+/// 供创作、运行时和渲染边界共同解释坐标值的版本化约定。
+/// 字段进入序列化载荷后，`schema_id` 与 `version` 必须随数据一起保留。
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CoordinateSchema {
     pub schema_id: SchemaId,
@@ -34,6 +36,7 @@ pub const ZIRCON_COORDINATE_SCHEMA: CoordinateSchema = CoordinateSchema {
 };
 
 /// Authoritative base units paired with the coordinate schema they describe.
+/// 与所描述坐标系配套的权威基础单位；转换方必须先核对嵌套坐标 schema。
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct UnitSchema {
     pub schema_id: SchemaId,
@@ -54,6 +57,7 @@ pub const ZIRCON_UNIT_SCHEMA: UnitSchema = UnitSchema {
 };
 
 /// Versioned product-level numeric identity for runtime and render boundaries.
+/// 运行时与渲染边界使用的版本化数值精度身份，区分 CPU 计算类型和渲染窄化类型。
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PrecisionProfile {
     pub schema_id: SchemaId,
@@ -72,10 +76,12 @@ pub const ZIRCON_PRECISION_PROFILE: PrecisionProfile = PrecisionProfile {
 impl PrecisionProfile {
     pub const CURRENT: Self = ZIRCON_PRECISION_PROFILE;
 
+    /// 返回运行时标量的字节宽度，不执行数值转换。
     pub const fn cpu_scalar_bytes(&self) -> usize {
         self.runtime_scalar.bytes()
     }
 
+    /// 返回渲染标量的字节宽度；调用方仍须使用显式窄化 API 检查可表示性。
     pub const fn render_scalar_bytes(&self) -> usize {
         self.render_scalar.bytes()
     }

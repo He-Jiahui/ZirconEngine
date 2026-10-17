@@ -8,9 +8,9 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
     let event_publish = include_str!("../../../../core/runtime/events/publish.rs");
     let event_subscribe = include_str!("../../../../core/runtime/events/subscribe.rs");
     let event_prune = include_str!("../../../../core/runtime/events/prune.rs");
-    let level_doc =
+    let _level_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/scene/level_system.md");
-    let event_doc =
+    let _event_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/core/runtime/events.md");
     let review_findings = concat!(
         include_str!(
@@ -18,14 +18,14 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
         ),
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let module_doc =
+    let _module_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
     for required in [

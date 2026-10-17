@@ -1,5 +1,5 @@
 use super::*;
-use crate::projects::{ProjectMetadataMap, RecentProject, metadata_for_path_mut};
+use crate::projects::{metadata_for_path_mut, ProjectMetadataMap, RecentProject};
 
 fn engine(id: &str) -> SourceEngineInstall {
     SourceEngineInstall {

@@ -5,8 +5,8 @@ use zircon_runtime_interface::hub_protocol::{
 };
 
 use super::{
-    SharedRecentProjectsSnapshot, load_shared_recent_projects, reconcile_shared_recent_projects,
-    reconcile_shared_recent_projects_snapshot,
+    load_shared_recent_projects, reconcile_shared_recent_projects,
+    reconcile_shared_recent_projects_snapshot, SharedRecentProjectsSnapshot,
 };
 use crate::projects::RecentProject;
 

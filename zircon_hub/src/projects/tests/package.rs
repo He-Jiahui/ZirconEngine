@@ -22,39 +22,29 @@ fn package_project_copies_project_files_and_writes_manifest() {
         panic!("package fixture should complete");
     };
 
-    assert!(
-        report
-            .package_dir
-            .ends_with(Path::new("packages").join("demo-project-42"))
-    );
-    assert!(
-        report
-            .package_dir
-            .join(PACKAGE_PROJECT_DIR)
-            .join("zircon-project.toml")
-            .is_file()
-    );
-    assert!(
-        report
-            .package_dir
-            .join(PACKAGE_PROJECT_DIR)
-            .join("Assets")
-            .join("mesh.txt")
-            .is_file()
-    );
-    assert!(
-        !report
-            .package_dir
-            .join(PACKAGE_PROJECT_DIR)
-            .join("target")
-            .exists()
-    );
+    assert!(report
+        .package_dir
+        .ends_with(Path::new("packages").join("demo-project-42")));
+    assert!(report
+        .package_dir
+        .join(PACKAGE_PROJECT_DIR)
+        .join("zircon-project.toml")
+        .is_file());
+    assert!(report
+        .package_dir
+        .join(PACKAGE_PROJECT_DIR)
+        .join("Assets")
+        .join("mesh.txt")
+        .is_file());
+    assert!(!report
+        .package_dir
+        .join(PACKAGE_PROJECT_DIR)
+        .join("target")
+        .exists());
     assert_eq!(report.files_copied, 2);
-    assert!(
-        fs::read_to_string(report.manifest_path)
-            .unwrap()
-            .contains("files_copied = 2")
-    );
+    assert!(fs::read_to_string(report.manifest_path)
+        .unwrap()
+        .contains("files_copied = 2"));
 
     fs::remove_dir_all(root).unwrap();
     fs::remove_dir_all(output).unwrap();
@@ -106,11 +96,9 @@ fn package_project_rejects_preexisting_unique_package_dir_without_deleting_it() 
 
     let error = package_project(&request, &active_token()).unwrap_err();
 
-    assert!(
-        error
-            .to_string()
-            .contains("Package directory already exists: ")
-    );
+    assert!(error
+        .to_string()
+        .contains("Package directory already exists: "));
     assert_eq!(
         fs::read_to_string(package_dir.join("keep.txt")).unwrap(),
         "keep"

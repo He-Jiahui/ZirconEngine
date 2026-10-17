@@ -1,4 +1,5 @@
 //! 远程控制请求、事件绑定和反射订阅共用事件管理器；路由缺失及批量反射失败应有明确对外结果。
+//! 夹具直接操作内存管理器和本地通知通道；各断言只证明所查询的结果与状态。
 
 use serde_json::json;
 
@@ -13,6 +14,7 @@ use zircon_runtime_interface::ui::{
     },
 };
 
+/// 用返回固定值的处理器检查两种入口的结果及第一条通知，不据此断言参数被处理器消费。
 #[test]
 fn ui_event_manager_invokes_route_and_binding_through_same_handler() {
     let mut manager = UiEventManager::default();
@@ -47,6 +49,7 @@ fn ui_event_manager_invokes_route_and_binding_through_same_handler() {
     ));
 }
 
+/// 检查控制应答、属性查询和动作结果；首条接收通知来自先前的树替换。
 #[test]
 fn ui_event_manager_tracks_reflection_diff_and_control_requests() {
     let mut manager = UiEventManager::default();
@@ -125,6 +128,7 @@ fn ui_event_manager_tracks_reflection_diff_and_control_requests() {
     ));
 }
 
+/// 保持远程可调用标记开启且不填路由，检查显式的缺失路由错误载荷。
 #[test]
 fn ui_event_manager_reports_explicit_error_for_callable_action_without_route() {
     let mut manager = UiEventManager::default();
@@ -160,6 +164,7 @@ fn ui_event_manager_reports_explicit_error_for_callable_action_without_route() {
     ));
 }
 
+/// 检查成功批次的单树通知，并验证后续无效批次不会写入有效前缀的属性值。
 #[test]
 fn reflection_patch_batch_is_atomic_and_broadcasts_one_diff_per_tree() {
     let mut manager = UiEventManager::default();

@@ -249,7 +249,8 @@ fn inspector_pointer_down_arms_active_object_payload_for_object_field_drop() {
         let host = harness.host.borrow();
         let inspector = host
             .runtime
-            .editor_snapshot().unwrap()
+            .editor_snapshot()
+            .unwrap()
             .inspector
             .expect("default test scene should have a selected inspector object");
         (

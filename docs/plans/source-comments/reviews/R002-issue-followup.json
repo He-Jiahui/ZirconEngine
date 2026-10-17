@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R002F",
+  "reviewer": "main",
+  "created_at_utc": "2026-10-14T21:37:03.710662+00:00",
+  "status": "implementation-pending-scoped-validation",
+  "path": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs",
+  "before_sha256": "34e7a27cdb8b359b9cf592e5f3c1bc0fa17c9860732d2b0133a8687b594e6159",
+  "after_sha256": "2545b670140933dead71c86b6c19597c8429258f7a9430aced731ba8a7c4f850",
+  "original_R002_record": {
+    "path": "docs/plans/source-comments/reviews/R002-main.json",
+    "sha256": "bc0124a7f31462e334258437cd17574ed1b562257e74f8b9b197874a80e5b687"
+  },
+  "issue": {
+    "id": "CR-ZCA-R002-0001",
+    "kind": "BUG",
+    "confirmation": "proven-static-code-path",
+    "source_label_line": 414,
+    "trigger": "Compile this current include_str! fixture and execute derived_component_registration_constructs_reflection_metadata_once; exact source extracted by the test contains a newline between helper name and first argument.",
+    "observable_effect": "Third conjunct is false, so assert! panics even though both reflected-metadata expression counts are one and custom-helper substring matches.",
+    "evidence": {
+      "structure_test_source_before_sha256": "34e7a27cdb8b359b9cf592e5f3c1bc0fa17c9860732d2b0133a8687b594e6159",
+      "include_str_path": "../../reflect/derived/component_adapter.rs",
+      "resolved_path": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs",
+      "current_adapter_sha256": "4400454f408405059fa16db038391455aebc479c81522bb13e721c66b36d38b7",
+      "default_span_sha256": "4f26a08bac6653a3fa8823d3f382eacf677539d0aa3b0d1edd04a8ef530d45e4",
+      "custom_span_sha256": "6579a0a9a837016ec1a9e79afa1fff6658f533db40f31ebeb03c509aff126c8e",
+      "exact_predicate_values": [
+        1,
+        1,
+        false,
+        true
+      ],
+      "independent_reproduction": "Read exact four literals and both split ranges from test; evaluate identical source-text predicates. This is static proof, not a Rust test execution.",
+      "prior_source_copies_created": false
+    },
+    "next_action": "Keep behavior and assertions unchanged in this comment-only task; a separately authorized fix can choose structural/token evidence that does not depend on formatter line breaks.",
+    "status": "open-confirmed-BUG"
+  },
+  "insertion": {
+    "after_byte_offset": 19087,
+    "bytes": 280,
+    "content_sha256": "10b5245d53a1076128227b06d35bcb77de2f3e95411659d90afafa42aed3c6d4",
+    "line_count": 2,
+    "exact_text": "            // BUG: [CR-ZCA-R002-0001] 按当前源码运行本测试时，默认工厂的换行调用无法命中连续文本，导致断言失败。\r\n            // 证据：默认构造调用把函数名与 registration 实参分行；下方 contains 比较未忽略换行。\r\n",
+    "original_full_bytes_reconstructed_sha256": "34e7a27cdb8b359b9cf592e5f3c1bc0fa17c9860732d2b0133a8687b594e6159"
+  },
+  "source_boundary": {
+    "existing_comments_and_all_original_bytes_preserved": true,
+    "assertions_and_program_behavior_changed": false,
+    "source_copies_created": false
+  },
+  "B002_supersession": {
+    "only_path": "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs",
+    "previous_source_sha256": "34e7a27cdb8b359b9cf592e5f3c1bc0fa17c9860732d2b0133a8687b594e6159",
+    "retain_immutable_B002_package_and_records": true,
+    "replacement_packet": "B003 pending validation"
+  },
+  "validation": "pending",
+  "formal_acceptance": false
+}

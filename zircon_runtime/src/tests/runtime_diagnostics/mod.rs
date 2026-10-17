@@ -67,6 +67,15 @@ fn runtime_diagnostics_preserves_render_initialization_failure_in_frame_status()
 #[test]
 fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins() {
     let runtime = CoreRuntime::new();
+    runtime.replace_devtools_plugin_catalog_entries(vec![
+        crate::core::diagnostics::RuntimeDevtoolsPluginCatalogEntry {
+            package_id: "physics".to_owned(),
+            display_name: "Physics".to_owned(),
+            crate_name: "zircon_plugin_physics_runtime".to_owned(),
+            capabilities: vec!["runtime.plugin.physics".to_owned()],
+            target_modes: vec!["ClientRuntime".to_owned()],
+        },
+    ]);
     runtime.register_module(fake_render_module()).unwrap();
     runtime.activate_module(DIAGNOSTICS_TEST_MODULE).unwrap();
 
@@ -97,6 +106,34 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         .iter()
         .any(|series| series.path.as_str() == "render.submitted_frames"
             && series.current == Some(7.0)));
+    for (path, expected) in [
+        (
+            "render.ambient_occlusion.execution.evaluate_candidate_artifact_fingerprint",
+            9_007_199_254_740_993,
+        ),
+        (
+            "render.ambient_occlusion.execution.evaluate_resolved_artifact_fingerprint",
+            9_007_199_254_740_994,
+        ),
+    ] {
+        let identity = snapshot
+            .identities
+            .series
+            .iter()
+            .find(|series| series.path.as_str() == path)
+            .unwrap_or_else(|| panic!("missing exact AO identity {path}"));
+        assert_eq!(identity.unit.as_deref(), Some("u64"));
+        assert_eq!(identity.current, Some(expected));
+        assert_eq!(
+            identity.history.last().map(|sample| sample.value),
+            Some(expected)
+        );
+        assert!(!snapshot
+            .store
+            .series
+            .iter()
+            .any(|series| series.path.as_str() == path));
+    }
     capability_history_visibility::assert_capability_history_visibility(&snapshot);
     hzb_light_camera_capture::assert_hzb_light_camera_capture(&snapshot);
     graph_resources::assert_graph_resources(&snapshot);

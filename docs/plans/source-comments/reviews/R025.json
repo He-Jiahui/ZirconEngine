@@ -1,0 +1,1937 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch_id": "R025",
+  "owner": "contracts_luna",
+  "review_role": "scoped-source-audit-and-necessary-comments-only-project-identity-path-and-asset-reference-contracts",
+  "model": "gpt-6-luna",
+  "reasoning_effort": "max",
+  "created_at_utc": "2026-10-15 07:46:06 UTC",
+  "status": "local-comments-complete-pending-main-independent-review",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "canonical_checkout": "E:/Git/ZirconEngine",
+  "write_authorization": {
+    "grant_path": "docs/plans/source-comments/assignments.json",
+    "grant_sha256_at_source_preflight": "f30378b86ac8b4f14cb928250536511385a109c1dfef6b8320312be3f759cc06",
+    "grant_sha256_at_metadata_prewrite_read": "f1fa65d035bd142a24e790010808efad67b9b1e8ebe31a37488d493b03e96a5e",
+    "coverage_sha256_at_metadata_prewrite_read": "a72a5daba8bbfb5a446175b774eaaefdf4731ea1165682c1a22dfa7b146c6a04",
+    "exact_R025_entry_rechecked": true,
+    "exact_source_paths": [
+      "zircon_runtime_interface/src/project/activation_operation_id/generator.rs",
+      "zircon_runtime_interface/src/project/activation_operation_id/mod.rs",
+      "zircon_runtime_interface/src/project/activation_operation_id/operation_id.rs",
+      "zircon_runtime_interface/src/project/activation_operation_id/sequence.rs",
+      "zircon_runtime_interface/src/project/activation_operation_id/sequence_error.rs",
+      "zircon_runtime_interface/src/project/activation_operation_id/source_instance.rs",
+      "zircon_runtime_interface/src/project/activation_operation_id/tests/generator.rs",
+      "zircon_runtime_interface/src/project/asset_ref/construction.rs",
+      "zircon_runtime_interface/src/project/asset_ref/error.rs",
+      "zircon_runtime_interface/src/project/asset_ref/mod.rs",
+      "zircon_runtime_interface/src/project/asset_ref/serde.rs",
+      "zircon_runtime_interface/src/project/asset_ref/validation.rs",
+      "zircon_runtime_interface/src/project/asset_ref/value.rs",
+      "zircon_runtime_interface/src/project/project_name/error.rs",
+      "zircon_runtime_interface/src/project/project_name/mod.rs",
+      "zircon_runtime_interface/src/project/project_name/validate.rs",
+      "zircon_runtime_interface/src/project/rel_path/deserialize.rs",
+      "zircon_runtime_interface/src/project/rel_path/error.rs",
+      "zircon_runtime_interface/src/project/rel_path/mod.rs",
+      "zircon_runtime_interface/src/project/rel_path/parse.rs",
+      "zircon_runtime_interface/src/project/rel_path/value.rs",
+      "zircon_runtime_interface/src/project/canonical_descriptor_identity.rs",
+      "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "zircon_runtime_interface/src/project/manifest_digest_parse_error.rs",
+      "zircon_runtime_interface/src/project/project_guid.rs",
+      "zircon_runtime_interface/src/project/project_guid_parse_error.rs",
+      "zircon_runtime_interface/src/project/project_identity.rs",
+      "zircon_runtime_interface/src/project/operation_id_error.rs",
+      "zircon_runtime_interface/src/project/source_instance_error.rs",
+      "zircon_runtime_interface/src/project/persisted_asset_reference.rs",
+      "zircon_runtime_interface/src/project/retired_asset_reference.rs",
+      "zircon_runtime_interface/src/project/tests/activation_operation_id.rs",
+      "zircon_runtime_interface/src/project/tests/asset_ref.rs",
+      "zircon_runtime_interface/src/project/tests/project_name.rs",
+      "zircon_runtime_interface/src/project/tests/rel_path.rs",
+      "zircon_runtime_interface/src/project/tests/manifest_digest.rs",
+      "zircon_runtime_interface/src/project/tests/project_guid.rs",
+      "zircon_runtime_interface/src/project/tests/project_identity.rs",
+      "zircon_runtime_interface/src/project/tests/persisted_asset_reference.rs"
+    ],
+    "exact_before_sha256": {
+      "zircon_runtime_interface/src/project/activation_operation_id/generator.rs": "2f072b374a0e0803a98f19a942311b2c688a5c1db28f03ade335c52f92b32cb0",
+      "zircon_runtime_interface/src/project/activation_operation_id/mod.rs": "6bed8a42f21e450a1c8088c83ee39de09f11425e102749ec8543d6990ae9ff98",
+      "zircon_runtime_interface/src/project/activation_operation_id/operation_id.rs": "d59488fbd7903904f8e30820c842eb5203429cb0df85fcbb93f63685e839f88b",
+      "zircon_runtime_interface/src/project/activation_operation_id/sequence.rs": "97f446fbbb52364f2a43d6eb5c11bbc2daec77228e23ed165973260207192632",
+      "zircon_runtime_interface/src/project/activation_operation_id/sequence_error.rs": "0bfb7b012656b4d3e8d5994bfeb97a4c052ae0ff21b29ce96b41c8c99f0bd5d2",
+      "zircon_runtime_interface/src/project/activation_operation_id/source_instance.rs": "d8d20f8b278b5c911c482a600ec6ee3cdab0bb6ace7d57b6768d55fa6b56b861",
+      "zircon_runtime_interface/src/project/activation_operation_id/tests/generator.rs": "6a30c22110b3ff6b90cb2eeab930ef0f9d095cca6219d68d3d6f52214186f83e",
+      "zircon_runtime_interface/src/project/asset_ref/construction.rs": "b2f1cb0682af2aa8e5795327032c28a1e66c2360fb8be0bec31ab21059d79597",
+      "zircon_runtime_interface/src/project/asset_ref/error.rs": "5001d875408a973b199970e11c2cbef6e051de45719de2eca3b60abe3261478a",
+      "zircon_runtime_interface/src/project/asset_ref/mod.rs": "5544211696fa4b0bb198ca44182714aec567a7efc2fa94309bfb5d9b195ca7f4",
+      "zircon_runtime_interface/src/project/asset_ref/serde.rs": "8b4d8f35bfc3217ab1fbe4e89ca0ee172873c13dd941d5038ce30207d04f1f74",
+      "zircon_runtime_interface/src/project/asset_ref/validation.rs": "2f2e581b194ea9f69951abca1e21fb355b9b6b299895839f3bcff854c77fb1a8",
+      "zircon_runtime_interface/src/project/asset_ref/value.rs": "79c705b1cbb3d780e93363ae575504aa4e89b0bdba923227dae56708aee3b47d",
+      "zircon_runtime_interface/src/project/project_name/error.rs": "3dd5ea356dfe6c20ae835f6bc04a8a3d512b9d8b4dc654f6ce78e7deb4e668fa",
+      "zircon_runtime_interface/src/project/project_name/mod.rs": "7ce8f1883f7d488d027e8333c0973bed5ecb70aca634898f8ae2e1ab0bf8209a",
+      "zircon_runtime_interface/src/project/project_name/validate.rs": "1954a8708f33696ed8541a9f67f610aa7b24afc63f77332ec55563a27d47dd99",
+      "zircon_runtime_interface/src/project/rel_path/deserialize.rs": "ce0c94bab867aca910ef3f6d4c44857e3fe9fc12b57a909f269b85e9c2707c6f",
+      "zircon_runtime_interface/src/project/rel_path/error.rs": "2912123591103e7dc52feed7abc84122b843faaa722c9f42a629b348b5364d85",
+      "zircon_runtime_interface/src/project/rel_path/mod.rs": "0c8a5a039c122f251170eaa96e8a13a070b374aaa55bdee3254a37013867182f",
+      "zircon_runtime_interface/src/project/rel_path/parse.rs": "fd3b19310c81b777b5d4eb45337546ca2da61b610eb45fc07d99c94c7e59421e",
+      "zircon_runtime_interface/src/project/rel_path/value.rs": "8c2da2d32fec15208b8eed2f8b9f4856f0218f6c536cb9411eea2c9fbafacd65",
+      "zircon_runtime_interface/src/project/canonical_descriptor_identity.rs": "e48056564079f5888d8cf201b17549535cb74db947e23acf10f1053d08924625",
+      "zircon_runtime_interface/src/project/manifest_digest.rs": "8805b0bf4db0b53d245729e9318a4c2086e741bc866fed25da358f81c203c4c8",
+      "zircon_runtime_interface/src/project/manifest_digest_parse_error.rs": "695658fca7a6b6221d6b2001867a4094d9d17042f3a58ebcaea518a3eb888576",
+      "zircon_runtime_interface/src/project/project_guid.rs": "7c2be44e09b58510285ca2931fd7af73b6bb274ab219b0dabedc85b1b2b0788c",
+      "zircon_runtime_interface/src/project/project_guid_parse_error.rs": "884c98390b6388f8e8545db6263c69a5b8c083fb6fe36365780cbec4a60b03f3",
+      "zircon_runtime_interface/src/project/project_identity.rs": "97ee494d03c700277f55b5a955e76e4613cab0eafb9303ba23472cd0cdb856c5",
+      "zircon_runtime_interface/src/project/operation_id_error.rs": "5bb3fdb0ec17293147e64e1d89e64f92914a19890d8c81b071930d58941bef7c",
+      "zircon_runtime_interface/src/project/source_instance_error.rs": "8d35a5f3e7b5349fb2aaf0f7a520399c43799f4cac6e0eab4f68ec01cedb8795",
+      "zircon_runtime_interface/src/project/persisted_asset_reference.rs": "ffd2890519c2bad4d41eff5fa0c8bfbd4f74fb4e1b3f192f01f3bd298e19a301",
+      "zircon_runtime_interface/src/project/retired_asset_reference.rs": "e9421b8173eee0aa38b7ad16e41ccb8fde7151eba61cadb311c77129614379c0",
+      "zircon_runtime_interface/src/project/tests/activation_operation_id.rs": "8e7523f5177f7b1847c8021ddddc3ac8b114c3425a9c974e56db4b59f962653d",
+      "zircon_runtime_interface/src/project/tests/asset_ref.rs": "2285a7d8167816cf67a29c19cc0c812e6d9aa4a93f684bebacf4edb5b3de562e",
+      "zircon_runtime_interface/src/project/tests/project_name.rs": "be9a96155ba137f4054af226b91d4dc18fd171e59136b3f9ec6698cefcc6a358",
+      "zircon_runtime_interface/src/project/tests/rel_path.rs": "a9cc57751dd07e366827849ebe568a222d5c5519dd84e4f27c4d17d4f34b337b",
+      "zircon_runtime_interface/src/project/tests/manifest_digest.rs": "1910d528f946feeefae8377cf2ebd8d1ba56e8e55fafec4f5ed8ba06a15733f9",
+      "zircon_runtime_interface/src/project/tests/project_guid.rs": "a869b86ba8eb994ec476da65bee0733f78736f773e2e53d5d0d5029782167fed",
+      "zircon_runtime_interface/src/project/tests/project_identity.rs": "421b649dc51543f4527cfb388a9277cad0312e4bed3cd662eb835e030a65adcc",
+      "zircon_runtime_interface/src/project/tests/persisted_asset_reference.rs": "bb33dadbf334fa19c97a9eae283fbbb99ce1e45b2908cdce25ef0731b651e8a4"
+    },
+    "only_metadata_write_path": "docs/plans/source-comments/reviews/R025.json",
+    "source_write_mode": "仅新增有证据的中文解释性注释；不改变行为、公共 API、断言、字符串、宏 token、既有注释或原字节/EOL。",
+    "metadata_absent_before_write": true,
+    "external_owner_release_claimed": false
+  },
+  "scope": {
+    "formal_source_paths": [
+      "zircon_runtime_interface/src/project/activation_operation_id/generator.rs",
+      "zircon_runtime_interface/src/project/activation_operation_id/mod.rs",
+      "zircon_runtime_interface/src/project/activation_operation_id/operation_id.rs",
+      "zircon_runtime_interface/src/project/activation_operation_id/sequence.rs",
+      "zircon_runtime_interface/src/project/activation_operation_id/sequence_error.rs",
+      "zircon_runtime_interface/src/project/activation_operation_id/source_instance.rs",
+      "zircon_runtime_interface/src/project/activation_operation_id/tests/generator.rs",
+      "zircon_runtime_interface/src/project/asset_ref/construction.rs",
+      "zircon_runtime_interface/src/project/asset_ref/error.rs",
+      "zircon_runtime_interface/src/project/asset_ref/mod.rs",
+      "zircon_runtime_interface/src/project/asset_ref/serde.rs",
+      "zircon_runtime_interface/src/project/asset_ref/validation.rs",
+      "zircon_runtime_interface/src/project/asset_ref/value.rs",
+      "zircon_runtime_interface/src/project/project_name/error.rs",
+      "zircon_runtime_interface/src/project/project_name/mod.rs",
+      "zircon_runtime_interface/src/project/project_name/validate.rs",
+      "zircon_runtime_interface/src/project/rel_path/deserialize.rs",
+      "zircon_runtime_interface/src/project/rel_path/error.rs",
+      "zircon_runtime_interface/src/project/rel_path/mod.rs",
+      "zircon_runtime_interface/src/project/rel_path/parse.rs",
+      "zircon_runtime_interface/src/project/rel_path/value.rs",
+      "zircon_runtime_interface/src/project/canonical_descriptor_identity.rs",
+      "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "zircon_runtime_interface/src/project/manifest_digest_parse_error.rs",
+      "zircon_runtime_interface/src/project/project_guid.rs",
+      "zircon_runtime_interface/src/project/project_guid_parse_error.rs",
+      "zircon_runtime_interface/src/project/project_identity.rs",
+      "zircon_runtime_interface/src/project/operation_id_error.rs",
+      "zircon_runtime_interface/src/project/source_instance_error.rs",
+      "zircon_runtime_interface/src/project/persisted_asset_reference.rs",
+      "zircon_runtime_interface/src/project/retired_asset_reference.rs",
+      "zircon_runtime_interface/src/project/tests/activation_operation_id.rs",
+      "zircon_runtime_interface/src/project/tests/asset_ref.rs",
+      "zircon_runtime_interface/src/project/tests/project_name.rs",
+      "zircon_runtime_interface/src/project/tests/rel_path.rs",
+      "zircon_runtime_interface/src/project/tests/manifest_digest.rs",
+      "zircon_runtime_interface/src/project/tests/project_guid.rs",
+      "zircon_runtime_interface/src/project/tests/project_identity.rs",
+      "zircon_runtime_interface/src/project/tests/persisted_asset_reference.rs"
+    ],
+    "metadata_path": "docs/plans/source-comments/reviews/R025.json",
+    "formal_source_count": 39,
+    "original_total_lines": 1579,
+    "after_total_lines": 1604,
+    "added_source_comment_lines": 21,
+    "added_blank_separator_lines": 4,
+    "modified_source_count": 14,
+    "byte_identical_source_count": 25,
+    "context_is_not_formal_coverage": true,
+    "excluded_context": "相邻 project modules、挂载文件和跨仓 Hub/App/Editor/Runtime 调用链均只读，不计 formal coverage。",
+    "selected_validation": "本批选择 scoped rustfmt/diff 静态检查；未运行 Cargo 或 Rust 测试。"
+  },
+  "guidance": [
+    {
+      "path": "docs/plans/source-comments/01-standard.md",
+      "sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3",
+      "read_spans": [
+        "1-25"
+      ],
+      "use": "逐对象/语句块与直接调用、trait、宏、注册、FFI、测试证据；仅按需中文注释；BUG/TODO 必须编号并有证据。"
+    },
+    {
+      "path": ".codex/skills/zircon-dev/SKILL.md",
+      "sha256": "2d699cd12492709facc84079838a836356e4f7dd8b7bac475b65d10a804ed957",
+      "read_spans": [
+        "1-35"
+      ],
+      "use": "Rust 注释只做精确路径格式/diff 检查；本批未构建或运行测试。"
+    },
+    {
+      "path": "zircon_runtime_interface/AGENTS.md",
+      "exists": false,
+      "use": "子树未发现局部 AGENTS.md；根 AGENTS.md 由用户直接提供。"
+    }
+  ],
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/project/activation_operation_id/generator.rs",
+      "before_sha256": "2f072b374a0e0803a98f19a942311b2c688a5c1db28f03ade335c52f92b32cb0",
+      "after_sha256": "b7d847cd60d07f7b8fcbf3a0051b84ae15a74504ead6974a8bdde23789ba3fc0",
+      "before_lines": 58,
+      "after_lines": 61,
+      "before_bytes": 2066,
+      "after_bytes": 2336,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "耗尽哨兵与生成器状态",
+          "lines": [
+            9,
+            17
+          ],
+          "audit": "零是序号类型拒绝的耗尽哨兵；生成器保存固定来源实例与从 1 开始的 AtomicU64。"
+        },
+        {
+          "name": "构造、来源读取与并发分配",
+          "lines": [
+            19,
+            54
+          ],
+          "audit": "allocate 用 Relaxed load/CAS 循环争用唯一序号，失败重试；checked_add 溢出后写零，成功占号后创建 UUID v4 nonce 并构造身份。Relaxed 仅承担唯一编号，不同步其他数据。"
+        },
+        {
+          "name": "cfg(test) 挂载",
+          "lines": [
+            56,
+            61
+          ],
+          "audit": "仅测试构建挂载最后序号耗尽边界用例。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 689,
+          "byte_length": 83,
+          "sha256": "270d4599ea5b09c91588889795f48100b19b28434fbb3fd705b52bc9e29481de",
+          "new_start_line": 20,
+          "exact_text": "    /// 为给定启动实例创建生成器；首次成功分配使用序号 1。\n"
+        },
+        {
+          "current_byte_offset": 952,
+          "byte_length": 75,
+          "sha256": "adacac9ddeda5f776f0aab6325f082614f2a7ac8def5808ab228fc83c86c2dc5",
+          "new_start_line": 28,
+          "exact_text": "    /// 返回此生成器发放的操作身份所绑定的启动实例。\n"
+        },
+        {
+          "current_byte_offset": 1642,
+          "byte_length": 112,
+          "sha256": "c425886443f429e344900a63373c0cbd37faa1e576757baf2509f609bd4816f4",
+          "new_start_line": 40,
+          "exact_text": "            // 此原子只负责唯一分配序号，不发布其他数据；无需用它同步额外状态。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 2066,
+        "reconstructed_sha256": "2f072b374a0e0803a98f19a942311b2c688a5c1db28f03ade335c52f92b32cb0",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/activation_operation_id/mod.rs",
+      "before_sha256": "6bed8a42f21e450a1c8088c83ee39de09f11425e102749ec8543d6990ae9ff98",
+      "after_sha256": "98d4a2c63c174a6631a2c99c333f29437d7aa65d6522657889559f70884dacd4",
+      "before_lines": 22,
+      "after_lines": 25,
+      "before_bytes": 758,
+      "after_bytes": 948,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "私有模块挂载与公共重导出",
+          "lines": [
+            1,
+            25
+          ],
+          "audit": "挂载生成器、身份、序号、启动来源及错误子模块，并重导出公共契约；错误实现从父目录路径挂入。新增模块职责与进程级生成器边界。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 0,
+          "byte_length": 190,
+          "sha256": "62b8fa7d514c89874c657879e1cf2e5fa672e99aa9fefcf97014a28a10f1e46d",
+          "new_start_line": 1,
+          "exact_text": "//! 将启动实例、非零序号与 nonce 组合为跨请求传递的项目激活操作身份。\n//! 进程级调用方复用本模块的生成器；序号耗尽时分配返回 `None`。\n\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 758,
+        "reconstructed_sha256": "6bed8a42f21e450a1c8088c83ee39de09f11425e102749ec8543d6990ae9ff98",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/activation_operation_id/operation_id.rs",
+      "before_sha256": "d59488fbd7903904f8e30820c842eb5203429cb0df85fcbb93f63685e839f88b",
+      "after_sha256": "d59488fbd7903904f8e30820c842eb5203429cb0df85fcbb93f63685e839f88b",
+      "before_lines": 65,
+      "after_lines": 65,
+      "before_bytes": 2139,
+      "after_bytes": 2139,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "身份字段、try_from_parts 与访问器",
+          "lines": [
+            8,
+            45
+          ],
+          "audit": "三字段组成可复制身份；构造器拒绝 nil nonce，来源/序号由其类型约束；getter 返回各自组成值。"
+        },
+        {
+          "name": "Wire 与手写 Deserialize",
+          "lines": [
+            47,
+            65
+          ],
+          "audit": "Wire deny_unknown_fields；反序列化后再次调用 try_from_parts，防止 Serde 绕过 nonce 检查。"
+        }
+      ],
+      "no_change_reason": "已有双语类型文档及中文构造/Wire 注释已覆盖生命周期、字段和严格传输约束。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 2139,
+        "reconstructed_sha256": "d59488fbd7903904f8e30820c842eb5203429cb0df85fcbb93f63685e839f88b",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/activation_operation_id/sequence.rs",
+      "before_sha256": "97f446fbbb52364f2a43d6eb5c11bbc2daec77228e23ed165973260207192632",
+      "after_sha256": "97f446fbbb52364f2a43d6eb5c11bbc2daec77228e23ed165973260207192632",
+      "before_lines": 34,
+      "after_lines": 34,
+      "before_bytes": 1089,
+      "after_bytes": 1089,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "非零序号类型与构造",
+          "lines": [
+            1,
+            22
+          ],
+          "audit": "透明 u64；new(0) 返回 None，get 返回序号值。"
+        },
+        {
+          "name": "自定义反序列化",
+          "lines": [
+            24,
+            34
+          ],
+          "audit": "解析 u64 后复用 new，拒绝 wire 零值。"
+        }
+      ],
+      "no_change_reason": "已有双语类型文档足以说明零保留、构造及访问器契约。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 1089,
+        "reconstructed_sha256": "97f446fbbb52364f2a43d6eb5c11bbc2daec77228e23ed165973260207192632",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/activation_operation_id/sequence_error.rs",
+      "before_sha256": "0bfb7b012656b4d3e8d5994bfeb97a4c052ae0ff21b29ce96b41c8c99f0bd5d2",
+      "after_sha256": "251463ed5da3667d3d97f3b6dcb97c7e9fe0a3327f6fecc3b5e9da60fc4c0e02",
+      "before_lines": 8,
+      "after_lines": 9,
+      "before_bytes": 259,
+      "after_bytes": 350,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "零序号反序列化错误",
+          "lines": [
+            1,
+            9
+          ],
+          "audit": "Zero 对应反序列化时 new(0)->None 的映射；新增中文文档明确 new(0) 本身返回 None 而非此错误。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 73,
+          "byte_length": 91,
+          "sha256": "4dc917270eff24bb74d9e2636261cc4f106e5e18be25d9924d5c22b38f23ca1d",
+          "new_start_line": 4,
+          "exact_text": "/// 反序列化的零序号映射为此错误；`new(0)` 则以 `None` 拒绝保留值。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 259,
+        "reconstructed_sha256": "0bfb7b012656b4d3e8d5994bfeb97a4c052ae0ff21b29ce96b41c8c99f0bd5d2",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/activation_operation_id/source_instance.rs",
+      "before_sha256": "d8d20f8b278b5c911c482a600ec6ee3cdab0bb6ace7d57b6768d55fa6b56b861",
+      "after_sha256": "a3bcd33013609fce65bd5d025111ce70e7be64eb4088498dfd56d27b4677014b",
+      "before_lines": 42,
+      "after_lines": 44,
+      "before_bytes": 1182,
+      "after_bytes": 1342,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "UUID 启动实例及构造/访问",
+          "lines": [
+            6,
+            27
+          ],
+          "audit": "透明 UUID；new 生成 UUID v4；try_from_uuid 仅拒绝 nil 并保留输入；as_uuid 返回内部值。新增中文文档解释生成和恢复入口。"
+        },
+        {
+          "name": "Deserialize 与 Default",
+          "lines": [
+            29,
+            44
+          ],
+          "audit": "Deserialize 复用 try_from_uuid，Default 创建新实例。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 475,
+          "byte_length": 60,
+          "sha256": "9602fcc1d9f63401dd1c964acf96e1bcea0ff05bc3745a91ee712469514b80ed",
+          "new_start_line": 13,
+          "exact_text": "    /// 为新的启动进程实例生成 UUID v4 身份。\n"
+        },
+        {
+          "current_byte_offset": 598,
+          "byte_length": 100,
+          "sha256": "112f0310026477985006e2ced090afb1c789a9962d3a86214369b5de7708c7de",
+          "new_start_line": 18,
+          "exact_text": "    /// 从传输 UUID 恢复启动实例身份；仅拒绝 nil 值，成功时保留给定 UUID。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 1182,
+        "reconstructed_sha256": "d8d20f8b278b5c911c482a600ec6ee3cdab0bb6ace7d57b6768d55fa6b56b861",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/activation_operation_id/tests/generator.rs",
+      "before_sha256": "6a30c22110b3ff6b90cb2eeab930ef0f9d095cca6219d68d3d6f52214186f83e",
+      "after_sha256": "6a30c22110b3ff6b90cb2eeab930ef0f9d095cca6219d68d3d6f52214186f83e",
+      "before_lines": 16,
+      "after_lines": 16,
+      "before_bytes": 540,
+      "after_bytes": 540,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "allocator_emits_the_last_valid_sequence_once_before_exhaustion",
+          "lines": [
+            1,
+            16
+          ],
+          "audit": "将下个序号设为 u64::MAX，验证最终序号只发放一次、随后返回 None。测试名和断言自解释。"
+        }
+      ],
+      "no_change_reason": "测试直接表达耗尽边界，不额外注释。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 540,
+        "reconstructed_sha256": "6a30c22110b3ff6b90cb2eeab930ef0f9d095cca6219d68d3d6f52214186f83e",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/asset_ref/construction.rs",
+      "before_sha256": "b2f1cb0682af2aa8e5795327032c28a1e66c2360fb8be0bec31ab21059d79597",
+      "after_sha256": "b2f1cb0682af2aa8e5795327032c28a1e66c2360fb8be0bec31ab21059d79597",
+      "before_lines": 22,
+      "after_lines": 22,
+      "before_bytes": 609,
+      "after_bytes": 609,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "AssetRef::try_new",
+          "lines": [
+            6,
+            22
+          ],
+          "audit": "接收已类型化 GUID/RelPath/可选 sub，仅调用 sub 词法校验后组装；不查询注册表、不验证 GUID 与路径对应关系。已有中文构造说明与新模块文档覆盖该边界。"
+        }
+      ],
+      "no_change_reason": "已有中文参数和错误说明充分，模块文档新增身份/路径提示分工。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 609,
+        "reconstructed_sha256": "b2f1cb0682af2aa8e5795327032c28a1e66c2360fb8be0bec31ab21059d79597",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/asset_ref/error.rs",
+      "before_sha256": "5001d875408a973b199970e11c2cbef6e051de45719de2eca3b60abe3261478a",
+      "after_sha256": "3d79219d371b0afe66a442946efae34bb92f73d280dc8aed19ac95262f254e2b",
+      "before_lines": 12,
+      "after_lines": 13,
+      "before_bytes": 464,
+      "after_bytes": 567,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "AssetRefError",
+          "lines": [
+            1,
+            13
+          ],
+          "audit": "EmptySubPath、FragmentDelimiterInSubPath、ControlCharacterInSubPath 对应三类拒绝分支，控制字符带 UTF-8 byte index；新增中文说明构造和反序列化入口均失败。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 88,
+          "byte_length": 103,
+          "sha256": "e71026da26f9aca30fbea76cf5f0add611288f66b80d7f772e5ab675821e5aa7",
+          "new_start_line": 4,
+          "exact_text": "/// 可选 sub 路径为空、含片段分隔符或控制字符时构造与反序列化都会失败。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 464,
+        "reconstructed_sha256": "5001d875408a973b199970e11c2cbef6e051de45719de2eca3b60abe3261478a",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/asset_ref/mod.rs",
+      "before_sha256": "5544211696fa4b0bb198ca44182714aec567a7efc2fa94309bfb5d9b195ca7f4",
+      "after_sha256": "a29c782c4b85237bbdcb893c1d215e5bab999720d809151e576a19fd9f985139",
+      "before_lines": 13,
+      "after_lines": 16,
+      "before_bytes": 240,
+      "after_bytes": 439,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "子模块挂载与公开导出",
+          "lines": [
+            1,
+            16
+          ],
+          "audit": "挂载 construction/error/serde/validation/value，导出 AssetRef/Error；新增 //! 说明 GUID 是身份、path_hint 是解析/迁移提示且模块不验证二者对应。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 0,
+          "byte_length": 199,
+          "sha256": "89fbedfafc7d4fc7da7b4fb46b450175d7ee7c70f074095205090ab9755b6621",
+          "new_start_line": 1,
+          "exact_text": "//! 表示持久化的项目资产身份及其可选定位提示。\n//! GUID 决定资产身份，路径提示供注册表解析或迁移修复使用；本模块不验证两者指向同一资产。\n\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 240,
+        "reconstructed_sha256": "5544211696fa4b0bb198ca44182714aec567a7efc2fa94309bfb5d9b195ca7f4",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/asset_ref/serde.rs",
+      "before_sha256": "8b4d8f35bfc3217ab1fbe4e89ca0ee172873c13dd941d5038ce30207d04f1f74",
+      "after_sha256": "8b4d8f35bfc3217ab1fbe4e89ca0ee172873c13dd941d5038ce30207d04f1f74",
+      "before_lines": 39,
+      "after_lines": 39,
+      "before_bytes": 1081,
+      "after_bytes": 1081,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "AssetRefRepr 与 Serialize/Deserialize",
+          "lines": [
+            1,
+            39
+          ],
+          "audit": "wire repr deny_unknown_fields；Serialize 写字段，Deserialize 经 repr 后调用 try_new，保持 sub 校验。"
+        }
+      ],
+      "no_change_reason": "类型与校验函数现有说明已覆盖字段和校验，无需重复。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 1081,
+        "reconstructed_sha256": "8b4d8f35bfc3217ab1fbe4e89ca0ee172873c13dd941d5038ce30207d04f1f74",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/asset_ref/validation.rs",
+      "before_sha256": "2f2e581b194ea9f69951abca1e21fb355b9b6b299895839f3bcff854c77fb1a8",
+      "after_sha256": "2f2e581b194ea9f69951abca1e21fb355b9b6b299895839f3bcff854c77fb1a8",
+      "before_lines": 18,
+      "after_lines": 18,
+      "before_bytes": 602,
+      "after_bytes": 602,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "validate_sub_path",
+          "lines": [
+            1,
+            18
+          ],
+          "audit": "拒绝空值、# 和控制字符并报告 UTF-8 字节索引；斜杠允许表示层级。"
+        }
+      ],
+      "no_change_reason": "已有中文注释说明分段与允许斜杠。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 602,
+        "reconstructed_sha256": "2f2e581b194ea9f69951abca1e21fb355b9b6b299895839f3bcff854c77fb1a8",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/asset_ref/value.rs",
+      "before_sha256": "79c705b1cbb3d780e93363ae575504aa4e89b0bdba923227dae56708aee3b47d",
+      "after_sha256": "79c705b1cbb3d780e93363ae575504aa4e89b0bdba923227dae56708aee3b47d",
+      "before_lines": 26,
+      "after_lines": 26,
+      "before_bytes": 733,
+      "after_bytes": 733,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "AssetRef 字段与访问器",
+          "lines": [
+            1,
+            26
+          ],
+          "audit": "GUID 是身份，path_hint 是候选定位/迁移提示，sub 必须与注册表标签精确相同；getter 仅复制/借用这些字段。"
+        }
+      ],
+      "no_change_reason": "已有双语类型文档完整说明字段语义。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 733,
+        "reconstructed_sha256": "79c705b1cbb3d780e93363ae575504aa4e89b0bdba923227dae56708aee3b47d",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/project_name/error.rs",
+      "before_sha256": "3dd5ea356dfe6c20ae835f6bc04a8a3d512b9d8b4dc654f6ce78e7deb4e668fa",
+      "after_sha256": "5037b5199c9117cd8fd89e91721857c9c0125b26f7df3654a58627bce458ab37",
+      "before_lines": 17,
+      "after_lines": 18,
+      "before_bytes": 756,
+      "after_bytes": 836,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "ProjectNameError",
+          "lines": [
+            1,
+            18
+          ],
+          "audit": "各变体覆盖空值、空白、多组件、非法字符、Windows 尾点/空格 alias 和设备保留名；新增中文总述。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 23,
+          "byte_length": 80,
+          "sha256": "9a04168483a7686f98f2d9c4c42832e4b671df4fd2fac40d00f6d6bae3acc767",
+          "new_start_line": 3,
+          "exact_text": "/// 项目名称不满足跨平台单文件名组件规则时返回的错误。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 756,
+        "reconstructed_sha256": "3dd5ea356dfe6c20ae835f6bc04a8a3d512b9d8b4dc654f6ce78e7deb4e668fa",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/project_name/mod.rs",
+      "before_sha256": "7ce8f1883f7d488d027e8333c0973bed5ecb70aca634898f8ae2e1ab0bf8209a",
+      "after_sha256": "f8234da1c9dd36725f30d4f6a7a993fe41e5ecd998ca03b83d5aec4c596b9039",
+      "before_lines": 7,
+      "after_lines": 10,
+      "before_bytes": 145,
+      "after_bytes": 330,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "validator 子模块与导出",
+          "lines": [
+            1,
+            10
+          ],
+          "audit": "仅挂载 error/validate 并重导出 validator；新增 //! 说明文本规则复用及文件系统路径/创建仍属调用方。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 0,
+          "byte_length": 185,
+          "sha256": "a3f9014a125ff38099a30f124c82643a8b9ce996d29b80609a91e6d87a4ace06",
+          "new_start_line": 1,
+          "exact_text": "//! 校验可移植的单段项目名称，供清单、模板和路径构造前复用。\n//! 此处只验证名称文本；文件系统中的路径解析与创建由调用方负责。\n\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 145,
+        "reconstructed_sha256": "7ce8f1883f7d488d027e8333c0973bed5ecb70aca634898f8ae2e1ab0bf8209a",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/project_name/validate.rs",
+      "before_sha256": "1954a8708f33696ed8541a9f67f610aa7b24afc63f77332ec55563a27d47dd99",
+      "after_sha256": "1954a8708f33696ed8541a9f67f610aa7b24afc63f77332ec55563a27d47dd99",
+      "before_lines": 61,
+      "after_lines": 61,
+      "before_bytes": 2054,
+      "after_bytes": 2054,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "CRLF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "validate_project_name / is_windows_reserved",
+          "lines": [
+            1,
+            61
+          ],
+          "audit": "拒绝空值/首尾空白/多组件/绝对或前缀形状/非法字符/Windows 尾点空格/设备名含上标 COM/LPT；测试覆盖代表边界。CRLF 原字节未改。"
+        }
+      ],
+      "no_change_reason": "现有中文函数文档充分；rustfmt 差异只涉及此未改 CRLF 源的 matches! 排版。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 2054,
+        "reconstructed_sha256": "1954a8708f33696ed8541a9f67f610aa7b24afc63f77332ec55563a27d47dd99",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/rel_path/deserialize.rs",
+      "before_sha256": "ce0c94bab867aca910ef3f6d4c44857e3fe9fc12b57a909f269b85e9c2707c6f",
+      "after_sha256": "ce0c94bab867aca910ef3f6d4c44857e3fe9fc12b57a909f269b85e9c2707c6f",
+      "before_lines": 14,
+      "after_lines": 14,
+      "before_bytes": 444,
+      "after_bytes": 444,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "RelPath::deserialize",
+          "lines": [
+            1,
+            14
+          ],
+          "audit": "Serde 解析字符串后复用 RelPath::parse，不存在单独校验旁路。"
+        }
+      ],
+      "no_change_reason": "已有中文注释和 rel_path 模块文档说明复用词法解析。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 444,
+        "reconstructed_sha256": "ce0c94bab867aca910ef3f6d4c44857e3fe9fc12b57a909f269b85e9c2707c6f",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/rel_path/error.rs",
+      "before_sha256": "2912123591103e7dc52feed7abc84122b843faaa722c9f42a629b348b5364d85",
+      "after_sha256": "cd187ca64afbfa218e57e4e35e7177a74d51f5135664be4d958ab1e31efe7709",
+      "before_lines": 12,
+      "after_lines": 13,
+      "before_bytes": 456,
+      "after_bytes": 554,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "RelPathError",
+          "lines": [
+            1,
+            13
+          ],
+          "audit": "Empty/AbsoluteOrPrefixed/DotComponent 对应 parser 拒绝分支；新增中文说明错误仅代表词法形状，不证明实际项目根 containment，消除英文 project-contained 可能引起的误读。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 95,
+          "byte_length": 98,
+          "sha256": "1820443c2caf64df68b3532f2bb712a9ab716dfb8dac237948abf696f70acd80",
+          "new_start_line": 4,
+          "exact_text": "/// 错误只描述相对路径的词法形状；它不证明目标在实际项目根目录内。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 456,
+        "reconstructed_sha256": "2912123591103e7dc52feed7abc84122b843faaa722c9f42a629b348b5364d85",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/rel_path/mod.rs",
+      "before_sha256": "0c8a5a039c122f251170eaa96e8a13a070b374aaa55bdee3254a37013867182f",
+      "after_sha256": "8081076ac5286cb45f0fab1e0e4b9ab5d7a215e2c546e759d49af293e864307f",
+      "before_lines": 11,
+      "after_lines": 14,
+      "before_bytes": 194,
+      "after_bytes": 389,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "parser/serde 子模块与导出",
+          "lines": [
+            1,
+            14
+          ],
+          "audit": "挂载 deserialize/error/parse/value 并导出 RelPath；新增 //! 说明规范化、Serde 共用解析和不访问文件系统。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 0,
+          "byte_length": 195,
+          "sha256": "bc366f0bd19b1b914360b5d363152beba625e8ffc311a844a75b2268419c798f",
+          "new_start_line": 1,
+          "exact_text": "//! 将输入解析为规范化的相对路径值，并让 Serde 复用同一词法校验。\n//! 解析不访问文件系统；实际目标是否位于项目根目录内仍由使用方验证。\n\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 194,
+        "reconstructed_sha256": "0c8a5a039c122f251170eaa96e8a13a070b374aaa55bdee3254a37013867182f",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/rel_path/parse.rs",
+      "before_sha256": "fd3b19310c81b777b5d4eb45337546ca2da61b610eb45fc07d99c94c7e59421e",
+      "after_sha256": "fd3b19310c81b777b5d4eb45337546ca2da61b610eb45fc07d99c94c7e59421e",
+      "before_lines": 55,
+      "after_lines": 55,
+      "before_bytes": 2059,
+      "after_bytes": 2059,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "CRLF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "RelPath parser 与设备名过滤",
+          "lines": [
+            1,
+            55
+          ],
+          "audit": "统一分隔符、折叠空段，拒绝空/绝对/平台前缀/点与双点/冒号/设备名；仅词法规范化。CRLF 原字节未改。"
+        }
+      ],
+      "no_change_reason": "已有中文注释说明路径规范化和设备名过滤；rustfmt 差异只涉及此未改 CRLF 源。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 2059,
+        "reconstructed_sha256": "fd3b19310c81b777b5d4eb45337546ca2da61b610eb45fc07d99c94c7e59421e",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/rel_path/value.rs",
+      "before_sha256": "8c2da2d32fec15208b8eed2f8b9f4856f0218f6c536cb9411eea2c9fbafacd65",
+      "after_sha256": "8c2da2d32fec15208b8eed2f8b9f4856f0218f6c536cb9411eea2c9fbafacd65",
+      "before_lines": 42,
+      "after_lines": 42,
+      "before_bytes": 1313,
+      "after_bytes": 1313,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "RelPath 值、构造和路径转换",
+          "lines": [
+            1,
+            42
+          ],
+          "audit": "内部保存规范化字符串；parse 复用 parser，to_path_buf/join_to 生成 PathBuf，join_to 注释要求 caller 在落盘前另行证明 containment。"
+        }
+      ],
+      "no_change_reason": "双语类型文档与 join_to 注释已区分词法值和文件系统 containment。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 1313,
+        "reconstructed_sha256": "8c2da2d32fec15208b8eed2f8b9f4856f0218f6c536cb9411eea2c9fbafacd65",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/canonical_descriptor_identity.rs",
+      "before_sha256": "e48056564079f5888d8cf201b17549535cb74db947e23acf10f1053d08924625",
+      "after_sha256": "277685cc0b6b827b914648a8bd2ee34e0e0002fbcd57be228a3273797543ab93",
+      "before_lines": 62,
+      "after_lines": 63,
+      "before_bytes": 2356,
+      "after_bytes": 2460,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "CanonicalDescriptorIdentity 类型/Deserialize/new/path",
+          "lines": [
+            6,
+            52
+          ],
+          "audit": "持有物理 PathBuf；new 只检查非空、绝对和不含 . / .. 段，不访问/规范化文件系统；Deserialize 复用 new；path 返回借用物理路径。"
+        },
+        {
+          "name": "CanonicalDescriptorIdentityError",
+          "lines": [
+            54,
+            63
+          ],
+          "audit": "Empty、NotAbsolute、ContainsDotSegment 对应 new 的三个分支；新增中文说明属于词法校验错误。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 1983,
+          "byte_length": 104,
+          "sha256": "c898a5fea141b267e9927573f8c40327d3a307eb24066a5e4ce2b6e03c90cb6e",
+          "new_start_line": 55,
+          "exact_text": "/// 物理描述符身份的输入为空、非绝对路径或含点段时返回的词法校验错误。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 2356,
+        "reconstructed_sha256": "e48056564079f5888d8cf201b17549535cb74db947e23acf10f1053d08924625",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_digest.rs",
+      "before_sha256": "8805b0bf4db0b53d245729e9318a4c2086e741bc866fed25da358f81c203c4c8",
+      "after_sha256": "8805b0bf4db0b53d245729e9318a4c2086e741bc866fed25da358f81c203c4c8",
+      "before_lines": 102,
+      "after_lines": 102,
+      "before_bytes": 3423,
+      "after_bytes": 3423,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "摘要类型、字节构造和访问器",
+          "lines": [
+            10,
+            36
+          ],
+          "audit": "BLAKE3 摘要覆盖调用者传入的原始 bytes；不负责读文件/限大小；访问器暴露固定摘要字节或 hex。"
+        },
+        {
+          "name": "规范 parse、Display 与 Serde",
+          "lines": [
+            38,
+            95
+          ],
+          "audit": "parse 限定小写 hex 长度/字符；Display/Serialize 输出同一规范文本，Deserialize 复用 parse；digest 本身不证明文件身份或读取状态。"
+        },
+        {
+          "name": "hex 字符转换",
+          "lines": [
+            96,
+            102
+          ],
+          "audit": "只接受小写 ASCII hex 并产生 nibble，边界由测试覆盖。"
+        }
+      ],
+      "no_change_reason": "现有双语文档已说明按原字节哈希、规范文本、变化后重新预检责任。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 3423,
+        "reconstructed_sha256": "8805b0bf4db0b53d245729e9318a4c2086e741bc866fed25da358f81c203c4c8",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_digest_parse_error.rs",
+      "before_sha256": "695658fca7a6b6221d6b2001867a4094d9d17042f3a58ebcaea518a3eb888576",
+      "after_sha256": "695658fca7a6b6221d6b2001867a4094d9d17042f3a58ebcaea518a3eb888576",
+      "before_lines": 22,
+      "after_lines": 22,
+      "before_bytes": 770,
+      "after_bytes": 770,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "ProjectManifestDigestParseError",
+          "lines": [
+            1,
+            22
+          ],
+          "audit": "拥有被拒绝文本及期望字符数供错误报告，不保存输入借用生命周期。"
+        }
+      ],
+      "no_change_reason": "现有双语错误文档充分。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 770,
+        "reconstructed_sha256": "695658fca7a6b6221d6b2001867a4094d9d17042f3a58ebcaea518a3eb888576",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/project_guid.rs",
+      "before_sha256": "7c2be44e09b58510285ca2931fd7af73b6bb274ab219b0dabedc85b1b2b0788c",
+      "after_sha256": "7c2be44e09b58510285ca2931fd7af73b6bb274ab219b0dabedc85b1b2b0788c",
+      "before_lines": 66,
+      "after_lines": 66,
+      "before_bytes": 2208,
+      "after_bytes": 2208,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "ProjectGuid 构造/解析/显示",
+          "lines": [
+            12,
+            58
+          ],
+          "audit": "Uuid newtype；new 生成 v4；try_from_uuid 拒绝 nil 而不检查跨源唯一性；FromStr 委托 Uuid parser 后复用 nil 检查；Display 格式化 UUID。"
+        },
+        {
+          "name": "Serde 反序列化",
+          "lines": [
+            59,
+            66
+          ],
+          "audit": "手写 Deserialize 复用 try_from_uuid，nil wire 值无法绕过约束。"
+        }
+      ],
+      "no_change_reason": "已有双语说明解释缺失 ID 需显式迁移生成、nil 限制和非唯一性保证边界。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 2208,
+        "reconstructed_sha256": "7c2be44e09b58510285ca2931fd7af73b6bb274ab219b0dabedc85b1b2b0788c",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/project_guid_parse_error.rs",
+      "before_sha256": "884c98390b6388f8e8545db6263c69a5b8c083fb6fe36365780cbec4a60b03f3",
+      "after_sha256": "884c98390b6388f8e8545db6263c69a5b8c083fb6fe36365780cbec4a60b03f3",
+      "before_lines": 15,
+      "after_lines": 15,
+      "before_bytes": 541,
+      "after_bytes": 541,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "ProjectGuidParseError",
+          "lines": [
+            1,
+            15
+          ],
+          "audit": "InvalidUuid/Nil 分别代表格式无效和保留 nil 值；现有说明限定 nil 为非空身份约束而非跨项目冲突检测。"
+        }
+      ],
+      "no_change_reason": "已有双语文档充分。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 541,
+        "reconstructed_sha256": "884c98390b6388f8e8545db6263c69a5b8c083fb6fe36365780cbec4a60b03f3",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/project_identity.rs",
+      "before_sha256": "97ee494d03c700277f55b5a955e76e4613cab0eafb9303ba23472cd0cdb856c5",
+      "after_sha256": "97ee494d03c700277f55b5a955e76e4613cab0eafb9303ba23472cd0cdb856c5",
+      "before_lines": 49,
+      "after_lines": 49,
+      "before_bytes": 1897,
+      "after_bytes": 1897,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "ProjectIdentity 字段/构造/访问",
+          "lines": [
+            8,
+            49
+          ],
+          "audit": "组合 descriptor path、ProjectGuid、manifest digest；构造只组装已验证值，不访问文件、不证明内容或跨源一致性；manifest bytes 变化后调用方重新预检；getter 返回成员借用或 Copy。"
+        }
+      ],
+      "no_change_reason": "现有双语文档覆盖 tuple、重新预检和无文件系统校验边界。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 1897,
+        "reconstructed_sha256": "97ee494d03c700277f55b5a955e76e4613cab0eafb9303ba23472cd0cdb856c5",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/operation_id_error.rs",
+      "before_sha256": "5bb3fdb0ec17293147e64e1d89e64f92914a19890d8c81b071930d58941bef7c",
+      "after_sha256": "26cbe9926c79c317032577970e403c75ef0ef704291c3f71f0650c4ff27a0bad",
+      "before_lines": 8,
+      "after_lines": 9,
+      "before_bytes": 310,
+      "after_bytes": 389,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "ProjectActivationOperationIdError",
+          "lines": [
+            1,
+            9
+          ],
+          "audit": "NilNonce 对应 try_from_parts 唯一拒绝；手写反序列化也复用该入口。新增中文说明两种入口一致拒绝。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 130,
+          "byte_length": 79,
+          "sha256": "c6a1e9bf832e97a53bc22e8d072c908f56f655a971ecef5ce2c2ce0bab9adf97",
+          "new_start_line": 4,
+          "exact_text": "/// 操作身份的 nil nonce 在构造和反序列化入口都会被拒绝。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 310,
+        "reconstructed_sha256": "5bb3fdb0ec17293147e64e1d89e64f92914a19890d8c81b071930d58941bef7c",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/source_instance_error.rs",
+      "before_sha256": "8d35a5f3e7b5349fb2aaf0f7a520399c43799f4cac6e0eab4f68ec01cedb8795",
+      "after_sha256": "2d82d60c96160628ca650e62983b6376fb0949344e3df16d1dae5a64059a5a20",
+      "before_lines": 8,
+      "after_lines": 9,
+      "before_bytes": 239,
+      "after_bytes": 317,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "ProjectLaunchInstanceIdError",
+          "lines": [
+            1,
+            9
+          ],
+          "audit": "Nil 对应 try_from_uuid 拒绝；手写 Deserialize 复用。新增中文说明两个入口的 nil 约束。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 77,
+          "byte_length": 78,
+          "sha256": "7c00d8c1cb6da4bc24067aa6385e5d47007ce1b4f198d817affbdbb79110026f",
+          "new_start_line": 4,
+          "exact_text": "/// 启动实例的 nil UUID 在构造和反序列化入口都会被拒绝。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 239,
+        "reconstructed_sha256": "8d35a5f3e7b5349fb2aaf0f7a520399c43799f4cac6e0eab4f68ec01cedb8795",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/persisted_asset_reference.rs",
+      "before_sha256": "ffd2890519c2bad4d41eff5fa0c8bfbd4f74fb4e1b3f192f01f3bd298e19a301",
+      "after_sha256": "f9d372a0c2ef4f201125b585d946cef6208540efe8fb6a6731c97a18a3e8962d",
+      "before_lines": 117,
+      "after_lines": 118,
+      "before_bytes": 4212,
+      "after_bytes": 4290,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "modified only by listed explanatory comment insertions",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "公开持久化引用、tagged wire enum 与错误",
+          "lines": [
+            9,
+            46
+          ],
+          "audit": "只持久化 Project(AssetRef) 或 Builtin(ResourceLocator)；kind/snake_case/deny_unknown_fields，project flatten AssetRef；错误保留原 locator 供 Display 诊断。"
+        },
+        {
+          "name": "变体构造与访问器",
+          "lines": [
+            48,
+            89
+          ],
+          "audit": "新增 project 文档解释包装已构造的 AssetRef；try_builtin 校验 scheme 并错误时保留输入；builtin 仅适用已可信 locator，错用会 panic；访问器按变体返回借用 Option。"
+        },
+        {
+          "name": "Serialize/Deserialize",
+          "lines": [
+            91,
+            118
+          ],
+          "audit": "Serialize 委托 kind；Deserialize 对 project 复用 AssetRef 校验，对 builtin 再用 try_builtin 验证 scheme。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 1776,
+          "byte_length": 78,
+          "sha256": "24fee2f896099ea7c6b10d349699a23e49069368ea3decb5b87a608e97ff34db",
+          "new_start_line": 49,
+          "exact_text": "    /// 将已构造的项目资产引用包装为持久化 project 变体。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从 exact-path unified=0 diff 取得插入块；在当前 raw-byte 缓冲中逐字节校验后按偏移降序仅在内存中移除，不写文件、不规范化行尾。",
+        "reconstructed_bytes": 4212,
+        "reconstructed_sha256": "ffd2890519c2bad4d41eff5fa0c8bfbd4f74fb4e1b3f192f01f3bd298e19a301",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/retired_asset_reference.rs",
+      "before_sha256": "e9421b8173eee0aa38b7ad16e41ccb8fde7151eba61cadb311c77129614379c0",
+      "after_sha256": "e9421b8173eee0aa38b7ad16e41ccb8fde7151eba61cadb311c77129614379c0",
+      "before_lines": 23,
+      "after_lines": 23,
+      "before_bytes": 692,
+      "after_bytes": 692,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "RetiredAssetReference 与 getter",
+          "lines": [
+            6,
+            23
+          ],
+          "audit": "仅供迁移 resolver 使用，私有构造保留旧 GUID/locator；类型说明指出字段形状有效不证明两者对应同一注册资产。"
+        }
+      ],
+      "no_change_reason": "已有双语文档明确是退役迁移输入并由 resolver 决定身份，不需改。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 692,
+        "reconstructed_sha256": "e9421b8173eee0aa38b7ad16e41ccb8fde7151eba61cadb311c77129614379c0",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/activation_operation_id.rs",
+      "before_sha256": "8e7523f5177f7b1847c8021ddddc3ac8b114c3425a9c974e56db4b59f962653d",
+      "after_sha256": "8e7523f5177f7b1847c8021ddddc3ac8b114c3425a9c974e56db4b59f962653d",
+      "before_lines": 81,
+      "after_lines": 81,
+      "before_bytes": 3122,
+      "after_bytes": 3122,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "激活身份四项用例",
+          "lines": [
+            1,
+            81
+          ],
+          "audit": "覆盖生成器 origin/单调非重复 ID、零值拒绝、字段往返、nil origin/nonce、零序号和未知字段拒绝。"
+        }
+      ],
+      "no_change_reason": "测试名和断言直接说明契约，无需注释。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 3122,
+        "reconstructed_sha256": "8e7523f5177f7b1847c8021ddddc3ac8b114c3425a9c974e56db4b59f962653d",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/asset_ref.rs",
+      "before_sha256": "2285a7d8167816cf67a29c19cc0c812e6d9aa4a93f684bebacf4edb5b3de562e",
+      "after_sha256": "2285a7d8167816cf67a29c19cc0c812e6d9aa4a93f684bebacf4edb5b3de562e",
+      "before_lines": 138,
+      "after_lines": 138,
+      "before_bytes": 4348,
+      "after_bytes": 4348,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "AssetRef 七项用例",
+          "lines": [
+            1,
+            138
+          ],
+          "audit": "覆盖 JSON shape/roundtrip、bincode 历史字节、None、构造和反序列化 sub 拒绝、path_hint traversal。"
+        }
+      ],
+      "no_change_reason": "测试名和断言已表达所有边界。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 4348,
+        "reconstructed_sha256": "2285a7d8167816cf67a29c19cc0c812e6d9aa4a93f684bebacf4edb5b3de562e",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/project_name.rs",
+      "before_sha256": "be9a96155ba137f4054af226b91d4dc18fd171e59136b3f9ec6698cefcc6a358",
+      "after_sha256": "be9a96155ba137f4054af226b91d4dc18fd171e59136b3f9ec6698cefcc6a358",
+      "before_lines": 47,
+      "after_lines": 47,
+      "before_bytes": 1157,
+      "after_bytes": 1157,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "CRLF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "project name 接受/拒绝矩阵",
+          "lines": [
+            1,
+            47
+          ],
+          "audit": "覆盖单可移植组件及 path/prefix/reserved/Windows trailing aliases/非法字符；CRLF 原样未改。"
+        }
+      ],
+      "no_change_reason": "用例名称和断言直接表达矩阵。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 1157,
+        "reconstructed_sha256": "be9a96155ba137f4054af226b91d4dc18fd171e59136b3f9ec6698cefcc6a358",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/rel_path.rs",
+      "before_sha256": "a9cc57751dd07e366827849ebe568a222d5c5519dd84e4f27c4d17d4f34b337b",
+      "after_sha256": "a9cc57751dd07e366827849ebe568a222d5c5519dd84e4f27c4d17d4f34b337b",
+      "before_lines": 35,
+      "after_lines": 35,
+      "before_bytes": 879,
+      "after_bytes": 879,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "relative path normalize/reject",
+          "lines": [
+            1,
+            35
+          ],
+          "audit": "覆盖 portable separator 规范化和 empty/absolute/dot/parent/prefix 等词法拒绝。"
+        }
+      ],
+      "no_change_reason": "测试名和断言自描述。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 879,
+        "reconstructed_sha256": "a9cc57751dd07e366827849ebe568a222d5c5519dd84e4f27c4d17d4f34b337b",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/manifest_digest.rs",
+      "before_sha256": "1910d528f946feeefae8377cf2ebd8d1ba56e8e55fafec4f5ed8ba06a15733f9",
+      "after_sha256": "1910d528f946feeefae8377cf2ebd8d1ba56e8e55fafec4f5ed8ba06a15733f9",
+      "before_lines": 31,
+      "after_lines": 31,
+      "before_bytes": 1117,
+      "after_bytes": 1117,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "manifest digest 三项用例",
+          "lines": [
+            1,
+            31
+          ],
+          "audit": "原始字节 BLAKE3、内容改变摘要改变、非规范 wire 文本拒绝。"
+        }
+      ],
+      "no_change_reason": "断言直述契约。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 1117,
+        "reconstructed_sha256": "1910d528f946feeefae8377cf2ebd8d1ba56e8e55fafec4f5ed8ba06a15733f9",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/project_guid.rs",
+      "before_sha256": "a869b86ba8eb994ec476da65bee0733f78736f773e2e53d5d0d5029782167fed",
+      "after_sha256": "a869b86ba8eb994ec476da65bee0733f78736f773e2e53d5d0d5029782167fed",
+      "before_lines": 79,
+      "after_lines": 79,
+      "before_bytes": 2344,
+      "after_bytes": 2344,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "ProjectGuid 六项用例",
+          "lines": [
+            1,
+            79
+          ],
+          "audit": "parse/display、畸形/nil、生成值不同、模板持久化不同 GUID、summary 缺 ID 拒绝。"
+        }
+      ],
+      "no_change_reason": "测试名和断言自描述。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 2344,
+        "reconstructed_sha256": "a869b86ba8eb994ec476da65bee0733f78736f773e2e53d5d0d5029782167fed",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/project_identity.rs",
+      "before_sha256": "421b649dc51543f4527cfb388a9277cad0312e4bed3cd662eb835e030a65adcc",
+      "after_sha256": "421b649dc51543f4527cfb388a9277cad0312e4bed3cd662eb835e030a65adcc",
+      "before_lines": 84,
+      "after_lines": 84,
+      "before_bytes": 3185,
+      "after_bytes": 3185,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "身份四项用例",
+          "lines": [
+            1,
+            84
+          ],
+          "audit": "三元组保留；相对/点段拒绝；允许 filename literal dots；Windows 非 Unicode path 保留。"
+        }
+      ],
+      "no_change_reason": "测试名和断言自描述。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 3185,
+        "reconstructed_sha256": "421b649dc51543f4527cfb388a9277cad0312e4bed3cd662eb835e030a65adcc",
+        "matches_assignment_before": true
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/persisted_asset_reference.rs",
+      "before_sha256": "bb33dadbf334fa19c97a9eae283fbbb99ce1e45b2908cdce25ef0731b651e8a4",
+      "after_sha256": "bb33dadbf334fa19c97a9eae283fbbb99ce1e45b2908cdce25ef0731b651e8a4",
+      "before_lines": 18,
+      "after_lines": 18,
+      "before_bytes": 651,
+      "after_bytes": 651,
+      "status_before": "clean at exact prewrite grant recheck",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "persisted reference 两项用例",
+          "lines": [
+            1,
+            18
+          ],
+          "audit": "builtin variant 拒绝非 builtin scheme；project variant 拒绝 locator 字段。"
+        }
+      ],
+      "no_change_reason": "测试名和断言自描述。",
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "无插入；当前 SHA 与授权 before pin 相同。",
+        "reconstructed_bytes": 651,
+        "reconstructed_sha256": "bb33dadbf334fa19c97a9eae283fbbb99ce1e45b2908cdce25ef0731b651e8a4",
+        "matches_assignment_before": true
+      }
+    }
+  ],
+  "context_evidence": [
+    {
+      "path": "zircon_runtime_interface/src/project/mod.rs",
+      "sha256": "597addb153d0c537568f0e18d3043dfabd90e745a786cb477ccd1cb6d9f0c23a",
+      "read_spans": [
+        "1-104"
+      ],
+      "use": "项目公共模块/re-export 和测试挂载，只读不计覆盖。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/mod.rs",
+      "sha256": "12cecad134d6d6c0a5cedcebb4d5498e71d652be3e26b0bfa61e380caac9f256",
+      "read_spans": [
+        "1-24"
+      ],
+      "use": "挂载 R025 项目契约测试，只读不计覆盖。"
+    },
+    {
+      "path": "zircon_hub/src/process/editor_launch.rs",
+      "sha256": "dac87734eedf23e1f9e436ac2ee9325da84fdac01a5c066979568d25f88d926a",
+      "read_spans": [
+        "7",
+        "19",
+        "106-108"
+      ],
+      "use": "Hub 进程级 OnceLock 持有 generator，创建 launch instance 并生成 operation id。"
+    },
+    {
+      "path": "zircon_app/src/entry/cli/launch_args.rs",
+      "sha256": "b76e15a5867889584a0f035ad3e8aaa7b3a191cccb4dfb3764b98f616ebd9d62",
+      "read_spans": [
+        "14-22",
+        "468-470"
+      ],
+      "use": "CLI 进程级 OnceLock generator 发放 launch id。"
+    },
+    {
+      "path": "zircon_app/src/entry/entry_runner/editor.rs",
+      "sha256": "6d9adbf002ba843abed38499017fa5c6306d37865a3bb75182c789c86051d07f",
+      "read_spans": [
+        "39",
+        "94",
+        "662-667"
+      ],
+      "use": "应用进程级 generator 发放 operation id 并送给启动意图。"
+    },
+    {
+      "path": "zircon_editor/src/ui/host/editor_manager_project_activation_effects.rs",
+      "sha256": "a72231ee537cabf8b74bb0f89663f76c4a44e27e1269278bab1264ddf94ebfd3",
+      "read_spans": [
+        "10",
+        "32",
+        "65"
+      ],
+      "use": "Editor 激活效果消费 operation id 和 manifest summary。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/session_lock/record.rs",
+      "sha256": "c08a34483a70284c895adbe740c31a9818c741f301663b2ca4a87490548f6f52",
+      "read_spans": [
+        "1",
+        "135",
+        "149",
+        "173",
+        "233"
+      ],
+      "use": "session lock record 存储、构造和返回 operation id。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/project_launch_intent.rs",
+      "sha256": "00b9edfe0fb4452b2f72d5b6c24dca7c669fb6c4f0fcb9cde60391ca85fcbc3c",
+      "read_spans": [
+        "6",
+        "62",
+        "70",
+        "86",
+        "109",
+        "135",
+        "155",
+        "190"
+      ],
+      "use": "启动意图拥有 operation id；构造/反序列化时调用 project-name validator。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/project/manager/persisted_reference.rs",
+      "sha256": "203e070b043cff292b0f1cadd18c8025e093400b36c2c19120be4ce98a81f75c",
+      "read_spans": [
+        "19",
+        "87-102"
+      ],
+      "use": "运行时将 builtin 包装为 builtin 持久化变体；项目资产路径解析为 RelPath 并经 AssetRef::try_new 构造。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/retired_asset_ref_migration/migrate.rs",
+      "sha256": "8ddf4f6da2e3a756b81e04528fccb99870c5ec3886a0d0e144e2b8a9b192c106",
+      "read_spans": [
+        "93-95",
+        "154-158",
+        "196-200",
+        "357"
+      ],
+      "use": "旧引用经 resolver 后分流 project/builtin；RetiredAssetReference 为 resolver 输入。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/project/paths.rs",
+      "sha256": "849e5975342230abf928a1ee8a0944ba3d7b4fd5b67440b2416d6c86a5febe86",
+      "read_spans": [
+        "full-file"
+      ],
+      "use": "运行时以授权 asset root 消费 RelPath。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/project/manifest/validation.rs",
+      "sha256": "e2528d416eea11d15253a4e5715308fb2c166b39ea68980ee5e9c0729abd297",
+      "read_spans": [
+        "full-file"
+      ],
+      "use": "清单验证资产根层级/数量并映射到具体路径。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/project/package_asset_registry.rs",
+      "sha256": "ad77aec95d97dce1947bad66fd2f83ba7eb9787428a307dae134d29150674ab5",
+      "read_spans": [
+        "full-file"
+      ],
+      "use": "package registry 执行物理 canonicalization/containment。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/manifest_summary/parse.rs",
+      "sha256": "0909098ea413d39f1f9db62a22f84b837775247b573e45b65178d1732beb3917",
+      "read_spans": [
+        "4",
+        "79"
+      ],
+      "use": "summary parser 调用 validate_project_name 并解析 GUID/RelPath 字段。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/template_pack/render.rs",
+      "sha256": "c67b5e623fb8c0c11748178c1f781753f8c728607bbd72de27b9b62e4a8bb3f3",
+      "read_spans": [
+        "3",
+        "29",
+        "44",
+        "180"
+      ],
+      "use": "模板渲染校验 name、创建 GUID 并解析输出 RelPath；staging path containment 由调用方约束。"
+    },
+    {
+      "path": "zircon_editor/src/core/project/preflight_manifest_reader.rs",
+      "sha256": "92b04791cc0f0d814d0b7c7431304aff1da0c16a046b56e197f2d4f32c134179",
+      "read_spans": [
+        "62"
+      ],
+      "use": "Editor 从 manifest 原始字节构造 ProjectManifestDigest。"
+    },
+    {
+      "path": "zircon_editor/src/core/project/project_preflight/preflight_receipt.rs",
+      "sha256": "b9af148d5d48b1f24fc7543cc275e15136566ab46707a4e80fbf61ac7261e705",
+      "read_spans": [
+        "37-47",
+        "82",
+        "87",
+        "108"
+      ],
+      "use": "从已解析物理路径构造 CanonicalDescriptorIdentity，组合 ProjectIdentity 后供预检逻辑返回。"
+    },
+    {
+      "path": "zircon_editor/src/core/project/project_preflight/revalidation.rs",
+      "sha256": "151cf7e010c294a441d92636a3d1220130b98e748ad00be4d049c7a3097f9a68",
+      "read_spans": [
+        "full-file"
+      ],
+      "use": "重新读取时比较 manifest digest。"
+    },
+    {
+      "path": "zircon_editor/src/core/project/authority/preflight.rs",
+      "sha256": "afb02082f190df3477319d86c7e816dd6e8806280c0317d225118ebe692f6cde",
+      "read_spans": [
+        "210"
+      ],
+      "use": "当前 manifest 缺 ProjectGuid 时拒绝。"
+    },
+    {
+      "path": "zircon_editor/src/core/project/authority/create_project.rs",
+      "sha256": "4edfee1ccc8c730f9bc325d5229d74ac13260725e4c9669cbcbd3f556de13c94",
+      "read_spans": [
+        "50",
+        "138"
+      ],
+      "use": "创建路径要求模板持久化 ProjectGuid。"
+    },
+    {
+      "path": "zircon_runtime/src/asset/project/manifest/project_manifest.rs",
+      "sha256": "862eccba6ca7f434d371065c86290f69c6aeffa613f2aa2b824aeffdafec7464",
+      "read_spans": [
+        "full-file"
+      ],
+      "use": "运行时 manifest 拥有 GUID/RelPath，new 创建新 GUID。"
+    }
+  ],
+  "calls_traits_registration": {
+    "direct_call_paths": [
+      "Hub、CLI 与 Application Editor 进程分别以 OnceLock 持有 ProjectActivationOperationIdGenerator；operation id 进入 ProjectLaunchIntent、Editor activation effect 和 session lock recovery record。",
+      "Editor preflight 从 manifest 原始 bytes 构造 ProjectManifestDigest，以已解析物理路径构造 CanonicalDescriptorIdentity，再组合 ProjectGuid 构成 ProjectIdentity；bytes 变化后 revalidation 重比较 digest。",
+      "manifest summary、template render 和 launch intent 调用 validate_project_name；RelPath 在模板/summary/runtime 消费，真实文件系统 containment 由 Runtime 的 root/registry 完成。",
+      "Runtime persisted-reference 转换与 retired-reference migration 调 AssetRef::try_new/PersistedAssetReference 的 project/builtin 分流；retired reference 交 resolver 判身份。"
+    ],
+    "serde_and_trait_inventory": [
+      "OperationId derives Serialize; manual Deserialize validates deny_unknown_fields wire via try_from_parts。",
+      "Sequence 与 LaunchInstance manual Deserialize 重用非零/nil 构造器；AssetRef repr deny_unknown_fields, manual Deserialize calls try_new。",
+      "RelPath、CanonicalDescriptorIdentity、ProjectGuid 与 ProjectManifestDigest 的 Deserialize 重用 parser/constructor 验证。",
+      "PersistedAssetReference tagged snake_case enum with deny_unknown_fields; Deserialize revalidates builtin scheme and delegates project shape to AssetRef。",
+      "ProjectGuid implements Display/FromStr; digest implements Display; launch instance Default; errors use thiserror. Checked derive/manual serde implementations and concrete callers; no other trait-generated runtime dispatch."
+    ],
+    "macro_ffi_dynamic": [
+      "精确 39 个文件未见 macro_rules!、FFI extern 项/入口、动态注册点或 unsafe block；Serde/thiserror derive 与 #[path] mount 已区分记录。"
+    ]
+  },
+  "test_contracts": [
+    {
+      "path": "zircon_runtime_interface/src/project/activation_operation_id/tests/generator.rs",
+      "cases": [
+        "allocator_emits_the_last_valid_sequence_once_before_exhaustion"
+      ],
+      "audit": "u64::MAX 发放一次后耗尽。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/activation_operation_id.rs",
+      "cases": [
+        "activation_operation_id_generator_keeps_origin_and_allocates_monotonic_distinct_ids",
+        "activation_operation_sequence_rejects_zero",
+        "activation_operation_id_preserves_explicit_transport_fields",
+        "operation_identity_rejects_invalid_or_unrecognized_wire_components"
+      ],
+      "audit": "生成、零值、字段传输、nil 和未知字段拒绝。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/asset_ref.rs",
+      "cases": [
+        "asset_ref_json_roundtrip_preserves_guid_path_hint_and_subasset",
+        "asset_ref_human_readable_shape_has_exact_keys_and_rejects_unknown_fields",
+        "asset_ref_bincode_roundtrip_is_deterministic",
+        "asset_ref_without_subasset_keeps_none_semantics",
+        "asset_ref_constructor_rejects_invalid_subasset_paths",
+        "asset_ref_deserialization_rejects_invalid_subasset_paths",
+        "asset_ref_deserialization_rejects_path_hint_traversal"
+      ],
+      "audit": "字段形状、序列化稳定性及 sub/path 校验。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/project_name.rs",
+      "cases": [
+        "project_name_accepts_one_portable_filename_component",
+        "project_name_rejects_paths_prefixes_reserved_names_and_windows_tail_aliases"
+      ],
+      "audit": "可移植名称接受/拒绝矩阵。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/rel_path.rs",
+      "cases": [
+        "relative_path_normalizes_portable_separators",
+        "relative_path_rejects_empty_absolute_dot_parent_and_prefix_forms"
+      ],
+      "audit": "分隔符规范化和词法拒绝矩阵。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/manifest_digest.rs",
+      "cases": [
+        "project_manifest_digest_matches_blake3_content_identity",
+        "project_manifest_digest_changes_when_manifest_bytes_change",
+        "project_manifest_digest_rejects_noncanonical_wire_text"
+      ],
+      "audit": "原字节散列、内容变化、wire 格式。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/project_guid.rs",
+      "cases": [
+        "project_guid_preserves_a_canonical_uuid_across_parse_and_display",
+        "project_guid_rejects_malformed_text",
+        "project_guid_rejects_the_nil_uuid_identity",
+        "generated_project_guids_are_non_nil_and_distinct",
+        "rendered_project_templates_persist_distinct_project_guids_in_the_manifest",
+        "current_manifest_summary_rejects_a_missing_project_guid"
+      ],
+      "audit": "UUID parse/display、nil、生成、模板和当前清单契约。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/project_identity.rs",
+      "cases": [
+        "project_identity_preserves_canonical_descriptor_guid_and_manifest_digest",
+        "canonical_descriptor_identity_rejects_nonphysical_path_shapes",
+        "canonical_descriptor_identity_preserves_literal_filename_dots",
+        "canonical_descriptor_identity_preserves_non_unicode_windows_paths"
+      ],
+      "audit": "身份三元组与物理路径词法边界。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/persisted_asset_reference.rs",
+      "cases": [
+        "serde_rejects_non_builtin_locator_for_builtin_variant",
+        "serde_rejects_locator_payload_for_project_variant"
+      ],
+      "audit": "tagged project/builtin 字段与 scheme 互斥。"
+    }
+  ],
+  "issues": {
+    "marker_scan": "39 个正式路径未见既有 TODO/BUG/SAFETY/FIXME；本批没有可证明缺陷或必须提出的未决意图，未增加问题标签。",
+    "added_tags": [],
+    "confirmed_bugs": [],
+    "confirmed_todos": []
+  },
+  "validation": {
+    "source_before_hashes_verified": true,
+    "coverage_rows_verified": 39,
+    "coverage_owner": "contracts_luna",
+    "coverage_batch": "R025",
+    "sources_clean_before_review": true,
+    "original_bytes_preserved": true,
+    "byte_reconstruction": {
+      "method": "以 raw-byte SHA/EOL 为基线，核对统一差异里的精确 UTF-8 插入块，再在内存中按偏移降序移除；未重写文件或规范化行尾。",
+      "source_count": 39,
+      "changed_files": 14,
+      "unchanged_files": 25,
+      "all_reconstructed_before_sha_matches": true,
+      "added_comment_lines": 21,
+      "added_blank_separator_lines": 4
+    },
+    "rustfmt_all_paths": {
+      "command": "rustfmt --edition 2021 --check --config skip_children=true <39 exact R025 paths>",
+      "exit_code": 1,
+      "result": "只有两份未修改 CRLF 文件报告原有 matches! 排版差异；其余路径无输出，未自动格式化。",
+      "affected_unchanged_paths": [
+        {
+          "path": "zircon_runtime_interface/src/project/project_name/validate.rs",
+          "sha256": "1954a8708f33696ed8541a9f67f610aa7b24afc63f77332ec55563a27d47dd99",
+          "line_ending": "CRLF"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/rel_path/parse.rs",
+          "sha256": "fd3b19310c81b777b5d4eb45337546ca2da61b610eb45fc07d99c94c7e59421e",
+          "line_ending": "CRLF"
+        }
+      ]
+    },
+    "rustfmt_changed_paths": {
+      "command": "rustfmt --edition 2021 --check --config skip_children=true <14 modified R025 paths>",
+      "exit_code": 0
+    },
+    "git_diff_check": {
+      "command": "git --no-optional-locks diff --check -- <39 exact R025 source paths>",
+      "exit_code": 0,
+      "result": "无 whitespace 错误；Git 有 checkout 行尾提示，未发生文件写入。"
+    },
+    "tests": "未运行 Rust tests/Cargo；本批选择 scoped 静态格式和 diff 检查。",
+    "cargo_build": "not run",
+    "git_mutation": "none"
+  },
+  "artifact_lifecycle": {
+    "created_artifacts": [
+      "docs/plans/source-comments/reviews/R025.json"
+    ],
+    "temporary_script_or_source_copy_created": false,
+    "build_cache_or_generated_fixture_created": false,
+    "cleanup_bytes": 0,
+    "owned_commands": "所有 apply_patch 与读取/哈希/rustfmt/git check 命令均已结束。",
+    "external_owner_release_claimed": false
+  },
+  "handoff": {
+    "main_independent_review": "pending",
+    "formal_acceptance": false,
+    "jenkins_acceptance": "pending",
+    "owner_release": "not claimed",
+    "next_action": "主审独立复核对象/调用边界、插入块原字节反演、格式结果和 child 元数据；R025 owner 停止编辑这些源。"
+  }
+}
+

@@ -1,5 +1,6 @@
 use super::{RichTextFormat, TextStyle};
 
+// 同时锁定版本化格式的写出、往返和旧拼写拒绝边界。
 #[test]
 fn rich_text_formats_use_versioned_artifact_identity() {
     for (format, wire_value) in [
@@ -21,6 +22,7 @@ fn rich_text_formats_use_versioned_artifact_identity() {
     }
 }
 
+// 夹具只省略新增斜体与特性字段，其余样式字段仍显式给出。
 #[test]
 fn legacy_text_style_defaults_new_shaping_identity_fields() {
     let legacy = r#"{

@@ -1,5 +1,9 @@
 use crate::text::document::{TextDocumentAdmissionFailure, TextDocumentStoreError};
 
+/// 区分会话同步、编辑意图、公开偏移编码与底层文档存储的拒绝原因。
+///
+/// `Store` 保留原存储错误，供调用方判定；`diagnostic_code` 则投影为不含正文的静态诊断码。
+/// 同步方法没有直接返回错误时，会先按 owner 保存此值，再由后续身份查询或编辑返回。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui) enum UiTextDocumentSessionError {
     SourceNotSynchronized,

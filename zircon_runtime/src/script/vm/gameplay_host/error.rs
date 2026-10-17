@@ -31,7 +31,7 @@ pub(super) enum GameplayHostError {
 
 impl GameplayHostError {
     pub(super) fn missing_entity(operation: &'static str, entity: EntityId) -> Self {
-        Self::MissingEntity { operation, entity }
+        Self::Scene(SceneError::MissingEntity { operation, entity })
     }
 }
 

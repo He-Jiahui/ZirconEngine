@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::core::framework::render::{
     MotionVectorCameraStatus, PostProcessPassGraph, RenderBudgetKey,
@@ -76,6 +76,7 @@ struct RenderGraphStageExecution
     graph_pass_coverage: Option<Vec<u8>>,
     execution_cursor: Option<RenderGraphExecutionCursor>,
     history_writes: SceneHistoryWriteIntent,
+    virtual_geometry_readbacks: Vec<crate::graphics::scene::VirtualGeometryNativeReadbackPacket>,
 }
 
 struct RecordedGraphPass {
@@ -107,6 +108,7 @@ struct RecordedGraphPass {
     output_target_writeback_report: Option<RenderCameraTargetWritebackReport>,
     plugin_outputs: RenderPluginRendererOutputs,
     history_writes: SceneHistoryWriteIntent,
+    virtual_geometry_readbacks: Vec<crate::graphics::scene::VirtualGeometryNativeReadbackPacket>,
 }
 
 struct PreparedStagePass<'a> {
@@ -140,6 +142,7 @@ impl<'a> RenderGraphStageExecution<'a> {
             graph_pass_coverage: None,
             execution_cursor: None,
             history_writes: SceneHistoryWriteIntent::default(),
+            virtual_geometry_readbacks: Vec::new(),
         }
     }
 
@@ -370,11 +373,19 @@ impl<'a> RenderGraphStageExecution<'a> {
         merge_plugin_renderer_outputs(&mut *self.plugin_outputs, outputs);
     }
 
+    pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn take_virtual_geometry_readbacks(
+        &mut self,
+    ) -> Vec<crate::graphics::scene::VirtualGeometryNativeReadbackPacket> {
+        std::mem::take(&mut self.virtual_geometry_readbacks)
+    }
+
     fn commit_recorded_pass(
         &mut self,
         mut recorded: RecordedGraphPass,
         replay_stats: Option<&MeshDrawReplayStatsAccumulator>,
     ) {
+        self.virtual_geometry_readbacks
+            .append(&mut recorded.virtual_geometry_readbacks);
         self.buffer_uploads.append(&mut recorded.buffer_uploads);
         self.texture_uploads.append(recorded.texture_uploads);
         self.screen_space_ui_upload_commits
@@ -875,6 +886,7 @@ fn execute_graph_pass(
         screen_space_ui_upload_commits,
         hzb_occlusion_params_commits,
         history_writes,
+        virtual_geometry_readbacks,
     ) = context
         .gpu_mut()
         .map(|gpu| {
@@ -894,6 +906,7 @@ fn execute_graph_pass(
                 gpu.take_screen_space_ui_upload_commits(),
                 gpu.take_hzb_occlusion_params_commits(),
                 gpu.take_history_writes(),
+                gpu.take_virtual_geometry_readbacks(),
             )
         })
         .unwrap_or_else(|| {
@@ -913,6 +926,7 @@ fn execute_graph_pass(
                 Vec::new(),
                 Vec::new(),
                 SceneHistoryWriteIntent::default(),
+                Vec::new(),
             )
         });
     drop(context);
@@ -983,6 +997,7 @@ fn execute_graph_pass(
         screen_space_ui_upload_commits,
         hzb_occlusion_params_commits,
         history_writes,
+        virtual_geometry_readbacks,
         output_target_writeback_report,
         plugin_outputs: pass_plugin_outputs,
     })

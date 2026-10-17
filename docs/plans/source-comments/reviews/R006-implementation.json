@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R006",
+  "implementer": "main",
+  "created_at_utc": "2026-10-14T20:42:20.025479+00:00",
+  "authority": {
+    "owner": "main",
+    "mode": "scoped-comments-only-canonical-source",
+    "paths": [
+      "zircon_runtime_interface/src/reflect/field_info.rs"
+    ],
+    "before_sha256": {
+      "zircon_runtime_interface/src/reflect/field_info.rs": "8824d277465d382ec001afe65b465eae433ab516eba1c6a00cfb1c48fac5e8c9"
+    },
+    "record": "docs/plans/source-comments/reviews/R006-implementation.json",
+    "authority": "Explicit user source audit and parent precise clean-file preflight; child fixed review complete and chief all three source/test files read. Clarify owned DTO lifetime and NumericRange constructor boundary while preserving old comments.",
+    "formal_acceptance": false
+  },
+  "fixed_child_record": {
+    "path": "docs/plans/source-comments/reviews/R006.json",
+    "sha256": "96ced3415635e9b2db6dc91ffe4d9139e648a2a3fb80ca5042914dcd520bdc64"
+  },
+  "changes": [
+    {
+      "path": "zircon_runtime_interface/src/reflect/field_info.rs",
+      "before_sha256": "8824d277465d382ec001afe65b465eae433ab516eba1c6a00cfb1c48fac5e8c9",
+      "after_sha256": "96b7c2205f0cb13f0748a99338cca15740bab62d397a0f009f54309e400bba65",
+      "before_bytes": 5466,
+      "after_bytes": 6321,
+      "before_lines": 138,
+      "after_lines": 152,
+      "line_endings": "CRLF preserved",
+      "insertions": [
+        {
+          "original_byte_offset": 280,
+          "after_byte_offset": 280,
+          "bytes": 603,
+          "content_sha256": "9c364187b11ff7764b392ddb9c8ceb0aaa623b7b3c52c2e13074680a8ee396fc",
+          "line_count": 12,
+          "kind": "///",
+          "content": "///\r\n/// # 职责与使用时机\r\n/// 派生宏或手工注册先组装此声明，再将它放入类型元数据，交给目录和 Runtime 注册端接纳。\r\n///\r\n/// # 约束\r\n/// 构造器与构建方法只组装字段元数据；名称、别名、默认值及编辑提示是否符合字段声明，仍须由注册端检查。\r\n///\r\n/// # 生命周期\r\n/// 文本、集合及可选反射值由此对象拥有，不持有 World 或字段存储的借用；克隆元数据不会创建对象实例。\r\n///\r\n/// # 参考\r\n/// [`Self::new`]、[`Self::from_stable_keys`]、[`ReflectNumericRange::new`]。\r\n",
+          "evidence": "R006 fixed child contracts; full NumericRange source and R005 Runtime numeric admission independently read"
+        },
+        {
+          "original_byte_offset": 1572,
+          "after_byte_offset": 2175,
+          "bytes": 252,
+          "content_sha256": "cbe741ea4dfefc485a9b6e82d57ec6cc5c061cce47a830048470efce91b2fccb",
+          "line_count": 2,
+          "kind": "///",
+          "content": "    /// 此处“本类型构造器”指 [`ReflectNumericRange::new`]；其反序列化也经过相同的数值检查。\r\n    /// [`Self::new`] 与 [`Self::with_numeric_range`] 只组装字段信息，不检查范围与字段声明类型的匹配。\r\n",
+          "evidence": "R006 fixed child contracts; full NumericRange source and R005 Runtime numeric admission independently read"
+        }
+      ],
+      "proof": {
+        "original_full_bytes_reconstructed": true,
+        "reconstructed_sha256": "8824d277465d382ec001afe65b465eae433ab516eba1c6a00cfb1c48fac5e8c9",
+        "original_comments_preserved": true,
+        "inserted_lines_only_comments": true,
+        "API_behavior_changed": false
+      }
+    }
+  ],
+  "comment_selection": "Owned declaration lifetime/admission and precise NumericRange constructor boundary are valuable; existing ID and field helpers remain unchanged and are fully reviewed.",
+  "issues": [],
+  "builds_tests_source_copies_or_temp_helpers_created": false,
+  "validation": "pending exact scoped checks and independent implementation review",
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

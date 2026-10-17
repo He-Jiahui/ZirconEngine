@@ -53,8 +53,8 @@ pub(crate) use view_projection::{
     resolve_component_variant, resolve_edit_action_id, resolve_node_popup_open,
     resolve_node_value_number, resolve_node_value_percent, resolve_node_value_text,
     resolve_transition_in, resolve_transition_kind, resolve_transition_progress,
-    resolve_visual_assets, view_template_resource_generation, ViewTemplateNodePatch,
-    ViewTemplateResourceGeneration, UnrealDockHeaderSource,
+    resolve_visual_assets, view_template_resource_generation, UnrealDockHeaderSource,
+    ViewTemplateNodePatch, ViewTemplateResourceGeneration,
 };
 pub(crate) use viewport_chrome::{blank_viewport_chrome, scene_viewport_chrome};
 pub(crate) use welcome::welcome_pane_nodes;

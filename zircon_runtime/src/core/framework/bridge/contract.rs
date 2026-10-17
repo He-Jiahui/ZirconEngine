@@ -7,8 +7,16 @@ use super::InterfaceSlot;
 /// Implementations must be `Send + Sync + 'static` and must not borrow from an ECS `World`.
 /// World access belongs in scheduled systems so the scheduler can keep conflict information
 /// authoritative.
+///
+/// # 职责与使用时机
+/// 插件通过此标记把 Rust 接口关联到桥表注册键；导出与导入使用同一静态 ID，重复导出由插件注册表拒绝。
+///
+/// # 生命周期与参考
+/// 当前插件表以共享所有权句柄持有 provider；ECS 访问继续遵守上面的调度约定。
+/// 参见 [`Self::INTERFACE_ID`]、[`super::StrongBridge`] 和 [`BridgeInvocationTable`]。
 pub trait PluginInterface: Send + Sync + 'static {
     /// Globally unique interface id such as `physics.query.v1`.
+    /// 导出登记、消费方导入与槽位解析共同使用的静态身份；两侧须约定相同值。
     const INTERFACE_ID: &'static str;
 }
 
@@ -81,11 +89,17 @@ impl BridgeInterfaceStatus {
 }
 
 /// 插件拥有者在帧边界变更接口可用性时写入生命周期报告的原因。
+///
+/// 此值描述请求的操作；报告中的各 entry 快照给出操作后的实际状态。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BridgeOwnerTransitionMode {
+    /// 请求启用或恢复 owner 的已有槽位；可调用状态仍取决于当前 provider 与代际。
     Activate,
+    /// 将已有 entry 切到禁用代际，同时保留已安装的 provider。
     Disable,
+    /// 禁用已有 entry 并清空表内 provider；entry 与槽位仍保留。
     Deactivate,
+    /// 替换 owner 匹配槽位的 provider；原为禁用代际的 entry 继续保持禁用。
     Reload,
 }
 

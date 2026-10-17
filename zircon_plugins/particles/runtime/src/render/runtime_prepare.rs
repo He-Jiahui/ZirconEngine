@@ -54,6 +54,100 @@ pub fn particle_runtime_prepare_collector_registration_with_manager_and_owner(
     )
 }
 
+/// Feature-local logical bindings for the same real particle backend. Distinct namespaces
+/// prevent independent particle/VFX owners from overwriting each other's external aliases.
+#[derive(Clone, Copy)]
+pub struct ParticleGraphResourceNames {
+    pub particles_a: &'static str,
+    pub particles_b: &'static str,
+    pub emitter_params: &'static str,
+    pub counters: &'static str,
+    pub alive_indices: &'static str,
+    pub indirect_draw_args: &'static str,
+}
+
+pub fn particle_graph_runtime_prepare_collector_registration(
+    collector_id: &'static str,
+    manager: ParticlesManager,
+    runtime_owner: ParticleGpuRuntimeOwnerHandle,
+    names: ParticleGraphResourceNames,
+) -> RuntimePrepareCollectorRegistration {
+    RuntimePrepareCollectorRegistration::new_collector(
+        collector_id,
+        Arc::new(ParticleGraphRuntimePrepareCollector {
+            manager,
+            runtime_owner,
+            names,
+        }),
+    )
+}
+
+struct ParticleGraphRuntimePrepareCollector {
+    manager: ParticlesManager,
+    runtime_owner: ParticleGpuRuntimeOwnerHandle,
+    names: ParticleGraphResourceNames,
+}
+
+impl RuntimePrepareCollector for ParticleGraphRuntimePrepareCollector {
+    fn requests_gpu_readback(&self) -> bool {
+        true
+    }
+
+    fn collect(
+        &self,
+        context: &mut RuntimePrepareCollectorContext<'_>,
+    ) -> Result<RenderPluginRendererOutputs, GraphicsError> {
+        let instances = self.manager.gpu_runtime_instances();
+        let mut owner = self
+            .runtime_owner
+            .lock()
+            .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+        owner.activate_device_epoch(context.device_epoch());
+        if !context.gpu_work_admitted() {
+            return Err(GraphicsError::Asset(
+                "particle graph GPU preparation was not admitted".into(),
+            ));
+        }
+        let frame = {
+            let mut gpu = context.gpu_recording_context();
+            owner
+                .prepare_instances_for_graph(gpu.device, &mut gpu.buffer_uploads, &instances)
+                .map_err(|error| GraphicsError::Asset(error.to_string()))?
+        };
+        let Some(frame) = frame else {
+            return Ok(RenderPluginRendererOutputs::default());
+        };
+        let transaction_id = frame.transaction_id();
+        context.register_frame_transaction(RuntimePrepareFrameTransaction::new(
+            "particles.gpu.graph-frame",
+            {
+                let owner = self.runtime_owner.clone();
+                move || owner.commit_frame_transaction(transaction_id)
+            },
+            {
+                let owner = self.runtime_owner.clone();
+                move || owner.rollback_frame_transaction(transaction_id)
+            },
+        ));
+        let bindings = owner
+            .active_bindings()
+            .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+        for (name, buffer) in [
+            (self.names.particles_a, bindings.particles_a),
+            (self.names.particles_b, bindings.particles_b),
+            (self.names.emitter_params, bindings.emitter_params),
+            (self.names.counters, bindings.counters),
+            (self.names.alive_indices, bindings.alive_indices),
+            (self.names.indirect_draw_args, bindings.indirect_draw_args),
+        ] {
+            context.register_static_external_buffer_binding_with_backing(name, name, buffer);
+        }
+        // These are prepared inputs, not completed GPU feedback. The feature's executor must
+        // record simulation and any diagnostic copies before publishing completed results.
+        Ok(RenderPluginRendererOutputs::default())
+    }
+}
+
 struct ParticleRuntimePrepareCollector {
     manager: ParticlesManager,
     runtime_owner: ParticleGpuRuntimeOwnerHandle,

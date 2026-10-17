@@ -1,0 +1,326 @@
+{
+  "batch": "R007",
+  "task": "source-comments-20261014-01a13a81",
+  "owner": "reflection_luna",
+  "status": "implementation_complete_pending_independent_review",
+  "scope": {
+    "audited_files": [
+      "zircon_runtime_interface/src/reflect/editor_hint.rs",
+      "zircon_runtime_interface/src/reflect/numeric_range.rs",
+      "zircon_runtime_interface/src/reflect/error.rs",
+      "zircon_runtime_interface/src/reflect/object_address.rs",
+      "zircon_runtime_interface/src/reflect/script_visibility.rs"
+    ],
+    "context_files_formal_coverage": false,
+    "excluded_nonexistent_path": "zircon_runtime_interface/src/reflect/field_info/",
+    "assignment_sha256": "f7bfd91a2c62eabc2a70d56936f2ec2955bcb1b29e87256071956f6f52fbf61f",
+    "pre_edit": "All assigned before hashes matched; staged and unstaged path diffs were empty.",
+    "authority": "Parent authorized these five DTO sources and this record; source changes are comments only."
+  },
+  "files": {
+    "zircon_runtime_interface/src/reflect/editor_hint.rs": {
+      "before_sha256": "a0f52918e05d48a58c73f868e524004760b1bdfdae6fe52d1b9ddfb94d721351",
+      "after_sha256": "348d87c632ff36b2a3f42e87c567a8c450a132a6898beec4cb7660925ec6d928",
+      "before_lines": 64,
+      "after_lines": 68,
+      "objects": [
+        "ReflectEditorHint (15 variants)",
+        "ReflectEnumOption (3 fields)",
+        "ReflectEnumOption::new",
+        "ReflectEnumOption::with_documentation"
+      ],
+      "block_audit": [
+        "Enum variants: None, String, MultilineString, Bool, Integer, Unsigned, Scalar, Vec2, Vec3, Vec4, Enum, Entity, Resource, Color, Json; each prior summary is documented. Derives serde; no manual impl.",
+        "ReflectEnumOption owns value/display_name/documentation; all fields documented.",
+        "new converts Into<String> values, sets documentation None; existing doc assigns uniqueness/normalization checks to Runtime catalog.",
+        "with_documentation stores optional display text and returns Self; existing doc sufficient."
+      ],
+      "callers_traits_registration": "derive fields expansion emits editor_hint; Runtime TypeRegistry validates hint/type compatibility and enum metadata. Interface metadata test constructs options and round-trips FieldInfo; this does not execute UI.",
+      "trait_impls_and_derives": "Clone/Debug/PartialEq/Eq/Serialize/Deserialize derives; no manual traits.",
+      "ffi_review": "No extern/ABI/FFI in target file; conclusion limited to target.",
+      "test_contracts": [
+        "reflect_contracts.rs::field_metadata_preserves_editability_defaults_and_docs (316-370): Enum/Bool hints and enum options round-trip; no Runtime registration/UI execution."
+      ],
+      "documentation_decision": "Only enum JSON unit-variant name representation was missing; other type, field and method docs are sufficient.",
+      "insertions": [
+        {
+          "after_byte_offset": 154,
+          "inserted_byte_length": 114,
+          "inserted_sha256": "eb303a96162a7c28f90e940572743c406a8827e6ed7da7762a5d5361e1f16247",
+          "line_span_after": [
+            4,
+            7
+          ],
+          "exact_text": "///\n/// # serde 线格式\n///\n/// 在 JSON 中，每个单元变体以其变体名表示，例如 `Scalar`。\n",
+          "original_bytes_reconstructed": true,
+          "reconstructed_sha256": "a0f52918e05d48a58c73f868e524004760b1bdfdae6fe52d1b9ddfb94d721351"
+        }
+      ],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/reflect/numeric_range.rs": {
+      "before_sha256": "5400800b9ea1e4906f0bc09170c6a2e81a90a7c39de1ff58464925199c68e7d3",
+      "after_sha256": "80f06e8727377daddb58a975aed29418c932dd445a0f906669d1a3c8fdd7d1e4",
+      "before_lines": 134,
+      "after_lines": 138,
+      "objects": [
+        "ReflectNumericRange fields min/max/step/precision",
+        "new",
+        "min/max/step/precision getters",
+        "Deserialize::deserialize",
+        "ReflectNumericRangeWire",
+        "ReflectNumericRangeError (5 variants)",
+        "Display::fmt (5 arms)",
+        "std::error::Error impl"
+      ],
+      "block_audit": [
+        "new validates finite min, max and step; min<=max when both set; step>0; precision is stored as a hint. All success/error branches reviewed.",
+        "Four const getters return copied Option values; step and precision have documented limits.",
+        "Deserialize decodes private wire DTO then reuses new; wire DTO has four Option fields and deny_unknown_fields.",
+        "Error variants NonFiniteMin/Max/Step, Inverted{min,max}, NonPositiveStep{step}; all documented. Display covers all five; marker Error impl is empty."
+      ],
+      "callers_traits_registration": "FieldInfo stores this as optional metadata only; Runtime validate_numeric_metadata checks applicability to declared field type. Do not infer value clamping/write execution from this DTO.",
+      "trait_impls_and_derives": "Clone/Debug/PartialEq/Serialize derive; custom Deserialize; Error Clone/Copy/Debug/PartialEq; manual Display and Error.",
+      "ffi_review": "No extern/ABI/FFI in target file; conclusion limited to target.",
+      "test_contracts": [
+        "reflect_contracts.rs::numeric_range_rejects_invalid_constructor_and_wire_states (396-430): nonfinite values, inverted bounds, zero/negative step and inverted wire rejection.",
+        "field_metadata_preserves_editability_defaults_and_docs (316-370): valid range embedded in FieldInfo round-trip. Does not assert all wire keys, unknown-field rejection, Runtime matching, or write clamp."
+      ],
+      "documentation_decision": "Existing constructor/getter/error and Deserialize implementation comments cover behavior. Added type-level JSON keys, unknown-key rejection, and reuse of new, which were missing.",
+      "insertions": [
+        {
+          "after_byte_offset": 255,
+          "inserted_byte_length": 191,
+          "inserted_sha256": "fa72bf554a2711e04e54e2c3d9316d48e2ebcbc7a83ee68a5d6a36e08707c22b",
+          "line_span_after": [
+            7,
+            10
+          ],
+          "exact_text": "///\n/// # serde 线格式\n///\n/// 序列化对象包含 `min`、`max`、`step`、`precision` 四项；反序列化拒绝未知字段，并经 [`Self::new`] 复用边界与步长校验。\n",
+          "original_bytes_reconstructed": true,
+          "reconstructed_sha256": "5400800b9ea1e4906f0bc09170c6a2e81a90a7c39de1ff58464925199c68e7d3"
+        }
+      ],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/reflect/error.rs": {
+      "before_sha256": "f7f8750bc95027cbaa6130923c7612e4643f0fdbe947d493f5f111f0a9c2526e",
+      "after_sha256": "94a7bac7c02201e6498d1345f648ea847b50e1eff826e0e1f43a40d5a6d9aff2",
+      "before_lines": 299,
+      "after_lines": 303,
+      "objects": [
+        "ReflectError (19 variants and documented payload fields)",
+        "lifecycle_target_change",
+        "Display::fmt (19 arms)",
+        "std::error::Error impl",
+        "lifecycle_cancellation_tests (2 tests)"
+      ],
+      "block_audit": [
+        "All 19 variants reviewed: LifecycleTargetReplaced, InvalidTypePath, UnknownType, AmbiguousShortTypePath, DuplicateTypePath, NoComponentAdapter, NoResourceAdapter, MissingEntity, MissingComponent, NonRemovableComponent, MissingResource, UnknownField, NonEditableField, TypeMismatch, UnsupportedConversion, AddressKindMismatch, InvalidRegistration, InvalidFieldRegistration, InvalidValue.",
+        "lifecycle_target_change returns Some(target) only for lifecycle replacement, otherwise None.",
+        "Display matches each variant and formats its diagnostic fields; Error impl is empty.",
+        "In-file tests check World/Schedule lifecycle wire and getter, plus unchanged UnsupportedConversion wire and getter None."
+      ],
+      "callers_traits_registration": "Shared across SchemaCatalog/TypeRegistry, derive-generated field getters, WorldReflection, conversions, and script descriptor validation. Caller evidence does not imply every variant comes from each call site.",
+      "trait_impls_and_derives": "Clone/Debug/PartialEq/Eq/Serialize/Deserialize derives; manual Display/Error.",
+      "ffi_review": "No extern/ABI/FFI in target file; conclusion limited to target.",
+      "test_contracts": [
+        "In-file two lifecycle_cancellation_tests described above.",
+        "reflect_contract_dtos_use_expected_json_shapes (167-274): exact UnknownField tagged JSON.",
+        "reflect_error_display_includes_type_field_and_entity_context (547-603): selected Display contexts, not every exact string."
+      ],
+      "documentation_decision": "All prior type/variant/field/method docs suffice except JSON internally tagged object layout, now added at type level.",
+      "insertions": [
+        {
+          "after_byte_offset": 385,
+          "inserted_byte_length": 130,
+          "inserted_sha256": "c52ce269a806428bf1619ba10821e249c48cf41dacb1f55244e4a7b305c42b69",
+          "line_span_after": [
+            9,
+            12
+          ],
+          "exact_text": "///\n/// # serde 线格式\n///\n/// JSON 对象以 `kind` 字段标识变体名，其余变体数据与该标签并列存放。\n",
+          "original_bytes_reconstructed": true,
+          "reconstructed_sha256": "f7f8750bc95027cbaa6130923c7612e4643f0fdbe947d493f5f111f0a9c2526e"
+        }
+      ],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/reflect/object_address.rs": {
+      "before_sha256": "736a95d3e3e1236826b03f5d776a19e6b34d9bc64f849cb7dcc47fe6ae0f840a",
+      "after_sha256": "ab3aeb22fc258645da507d8a8ac2d763a0873ffedc75401c486585a497cd8bc6",
+      "before_lines": 38,
+      "after_lines": 42,
+      "objects": [
+        "ReflectObjectAddress (Component, Resource)",
+        "component",
+        "resource",
+        "type_path"
+      ],
+      "block_audit": [
+        "Component owns entity:u64/type_path:String; Resource owns type_path:String; serde internally tagged kind. Public variants and Deserialize can bypass helper path validation.",
+        "component/resource consume Into<String>, validate type path, do not query instance or resource existence.",
+        "type_path returns &str borrowed from self-owned String.",
+        "Runtime WorldReflection branches by variant and performs registry/adapter and existence checks later."
+      ],
+      "callers_traits_registration": "WorldReflection reflect_fields/read/write dispatches Component/Resource; component access checks entity/component; resource uses registered adapter. Successful address construction does not prove target exists.",
+      "trait_impls_and_derives": "Clone/Debug/PartialEq/Eq/Serialize/Deserialize derives; no manual impl.",
+      "ffi_review": "No extern/ABI/FFI in target file; conclusion limited to target.",
+      "test_contracts": [
+        "reflect_contract_dtos_use_expected_json_shapes (167-209): exact Component/Resource JSON shape.",
+        "reflect_object_address_schema_and_read_write_dtos_roundtrip (434-510): valid addresses, type_path and serde round-trip; no World existence test."
+      ],
+      "documentation_decision": "Existing docs explain path validation and later World checks, including bypass boundary. Added only missing JSON tag/payload shape; getter borrow is clear from signature.",
+      "insertions": [
+        {
+          "after_byte_offset": 426,
+          "inserted_byte_length": 145,
+          "inserted_sha256": "8410d754647c029e98373f12e0c69be45002985a71b47f53aecf39e7d8974a10",
+          "line_span_after": [
+            8,
+            11
+          ],
+          "exact_text": "///\n/// # serde 线格式\n///\n/// JSON 对象以 `kind` 标识 `Component` 或 `Resource`，并将对应变体字段放在同一对象中。\n",
+          "original_bytes_reconstructed": true,
+          "reconstructed_sha256": "736a95d3e3e1236826b03f5d776a19e6b34d9bc64f849cb7dcc47fe6ae0f840a"
+        }
+      ],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/reflect/script_visibility.rs": {
+      "before_sha256": "2b13aa2b7a0de27ce21fc8dbe4864f485cb1fcd64a39c8d721955aa292cdd061",
+      "after_sha256": "3f6ff9ea352f01d109da0cbd6823193f93d555bc0cd6d5dd5fb2dc531cde2960",
+      "before_lines": 12,
+      "after_lines": 16,
+      "objects": [
+        "ReflectScriptVisibility",
+        "Private",
+        "Public"
+      ],
+      "block_audit": [
+        "Two documented variants; Private carries #[default], serde rename_all=snake_case.",
+        "Type docs distinguish this projection marker from Editor and remote schema visibility; Public still needs host role/type conditions."
+      ],
+      "callers_traits_registration": "Registration defaults to Private and has a builder; derive attributes parse public/private and emit variants. VM schema requires Public plus component; script descriptors apply additional ABI checks. Public is not complete authorization.",
+      "trait_impls_and_derives": "Clone/Copy/Debug/Default/PartialEq/Eq/Serialize/Deserialize derives.",
+      "ffi_review": "No extern/ABI/FFI in target file; conclusion limited to target.",
+      "test_contracts": [
+        "reflect_contracts.rs::script_visibility_is_independent_from_remote_visibility (105-127): remote_visible=false and Public serialize independently; JSON string `public` and round-trip. Does not execute VM projection."
+      ],
+      "documentation_decision": "Added the missing JSON snake_case wire names and default; existing responsibility/variant docs sufficient.",
+      "insertions": [
+        {
+          "after_byte_offset": 256,
+          "inserted_byte_length": 119,
+          "inserted_sha256": "f344b451215d6f3392c03058b4d5d321cb21c85ce84d2dda30037bacd76753d8",
+          "line_span_after": [
+            6,
+            9
+          ],
+          "exact_text": "///\n/// # serde 线格式\n///\n/// JSON 使用小写变体名 `private` 与 `public`；`Private` 是默认变体。\n",
+          "original_bytes_reconstructed": true,
+          "reconstructed_sha256": "2b13aa2b7a0de27ce21fc8dbe4864f485cb1fcd64a39c8d721955aa292cdd061"
+        }
+      ],
+      "issues": []
+    }
+  },
+  "context_files": {
+    "zircon_runtime_interface/src/reflect/mod.rs": {
+      "sha256": "a7fd6a34ad0f8d841e3091b26c07b63bfb578d37fdbe4e315c766efbc0cbf6c5",
+      "line_count": 78,
+      "formal_coverage": false
+    },
+    "zircon_runtime_interface/src/reflect/field_info.rs": {
+      "sha256": "96b7c2205f0cb13f0748a99338cca15740bab62d397a0f009f54309e400bba65",
+      "line_count": 152,
+      "formal_coverage": false
+    },
+    "zircon_runtime_interface/src/reflect/type_registration.rs": {
+      "sha256": "83f9fbefe89e20d157cba170e8ac1b3b18ec67561b8b6c9ce98eb67b9bf09070",
+      "line_count": 137,
+      "formal_coverage": false
+    },
+    "zircon_runtime_interface/src/reflect/schema_catalog/fingerprint.rs": {
+      "sha256": "47622f8d6774449b530cd834531a86df830561e2e87be19dcf69af028f9441fa",
+      "line_count": 444,
+      "formal_coverage": false
+    },
+    "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs": {
+      "sha256": "97b5e1dfb3fa29350af272f05cc20f8f2d364f56c1324a6f066b435c27b9a1a6",
+      "line_count": 422,
+      "formal_coverage": false
+    },
+    "zircon_runtime_interface/src/tests/reflect_contracts.rs": {
+      "sha256": "384eb1061f0ae15131109362978628c6011ad4498f665f516de18de8432a0647",
+      "line_count": 706,
+      "formal_coverage": false
+    },
+    "zircon_reflect_derive/src/attributes.rs": {
+      "sha256": "14ccb1d43969b9178bc0f125acd031b9c2f967de13db1a868787e4f3d33a4eef",
+      "line_count": 352,
+      "formal_coverage": false
+    },
+    "zircon_reflect_derive/src/derive.rs": {
+      "sha256": "7351e19214f9ff5fcdd539503cd94de8aebcc8c2113b030be151e51ec1da5a55",
+      "line_count": 251,
+      "formal_coverage": false
+    },
+    "zircon_reflect_derive/src/fields.rs": {
+      "sha256": "faad588c0123f1c6af93020bf91aee886926ca4ea0b7d1c3f76d9791c63bacee",
+      "line_count": 533,
+      "formal_coverage": false
+    },
+    "zircon_runtime/src/scene/reflect/type_registry.rs": {
+      "sha256": "eae2abb018182c9f0f49a28fcd219bf8c5999ec1806fb8fd691180cc5b44c705",
+      "line_count": 1131,
+      "formal_coverage": false
+    },
+    "zircon_runtime/src/scene/reflect/world_reflection.rs": {
+      "sha256": "764d991f0dacd964ef45584e0b9fca316e22725bee354f7e54aa49b2863b255f",
+      "line_count": 663,
+      "formal_coverage": false
+    },
+    "zircon_runtime/src/script/vm/reflection/schema.rs": {
+      "sha256": "fffe4a5b41e9b2fc7345b31169ad6b3f54ec6da6e021b974e33ec10483c58b71",
+      "line_count": 44,
+      "formal_coverage": false
+    },
+    "zircon_runtime/src/core/framework/script/descriptors.rs": {
+      "sha256": "33e84d0df42db43f986be9694bff0ae74b158651bd26183a9079d1705e6fdb06",
+      "line_count": 383,
+      "formal_coverage": false
+    },
+    "zircon_runtime/src/scene/tests/ecs_reflect/foundation/registry.rs": {
+      "sha256": "500a939a49fe18dd2d14264aa746a954aa93c8af0c873956e53f5dd31df48243",
+      "line_count": 371,
+      "formal_coverage": false
+    }
+  },
+  "r006_context_review": {
+    "path": "zircon_runtime_interface/src/reflect/field_info.rs",
+    "sha256": "96b7c2205f0cb13f0748a99338cca15740bab62d397a0f009f54309e400bba65",
+    "formal_coverage": false,
+    "conclusion": "只读独立复核：String/Vec/Option<ReflectedValue> 字段归 FieldInfo DTO 拥有，不借用 World/字段存储；clone 不创建实例。with_numeric_range 仅组装；ReflectNumericRange::new/反序列化校验数值，Runtime 注册校验字段类型适配。新增说明区分正确，未将 builder 说成验证执行。未修改该源或 R006 记录。"
+  },
+  "test_review": {
+    "interface_contracts": "已核对七个相关测试：type_registration_serializes_canonical_role_and_owner (59-101), script_visibility_is_independent_from_remote_visibility (105-127), reflect_contract_dtos_use_expected_json_shapes (167-274), field_metadata_preserves_editability_defaults_and_docs (316-370), numeric_range_rejects_invalid_constructor_and_wire_states (396-430), reflect_object_address_schema_and_read_write_dtos_roundtrip (434-510), reflect_error_display_includes_type_field_and_entity_context (547-603)。",
+    "test_boundary": "测试断言仅证明对应 DTO JSON/构造器/显示契约；不证明实际 Runtime 注册、World 访问、UI、VM 投影或写入执行。未运行 Cargo 或测试。",
+    "local_error_tests": "ReflectError 内两测试验证 World/Schedule lifecycle tagged payload/getter，以及 UnsupportedConversion wire 保持兼容/getter None。"
+  },
+  "issues": {
+    "new": [],
+    "preexisting": [],
+    "bugs": [],
+    "todos": [],
+    "note": "五文件未发现 TODO/BUG/SAFETY 标记；未证明缺陷，无问题编号。"
+  },
+  "validation": {
+    "git_diff_check": "passed, exit 0, exact five audited paths",
+    "rustfmt": "rustfmt --check --edition 2021 --config skip_children=true on exact five paths passed, exit 0; no rewrite",
+    "diff": "five four-line rustdoc insertions only; no code, API, derives, attributes, branches, assertions or tests changed",
+    "tests": "not run",
+    "git_writes": "none"
+  },
+  "coverage_basis": "Read each full assigned file; per-file block_audit enumerates all declarations, fields, variants, methods, custom serde branches, trait blocks and tests. Context hashes are pinned but excluded from formal source coverage."
+}

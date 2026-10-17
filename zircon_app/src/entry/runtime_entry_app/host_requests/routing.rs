@@ -1,7 +1,7 @@
 use winit::event_loop::ActiveEventLoop;
 use zircon_runtime::diagnostic_log::write_warn;
 use zircon_runtime_interface::{
-    ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeHostRequestV1, ZrRuntimeImeHostRequestV1,
+    ZrRuntimeGamepadRumbleRequestV2, ZrRuntimeHostRequestV1, ZrRuntimeImeHostRequestV1,
     ZrRuntimeViewportHandle, ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1,
 };
 
@@ -88,6 +88,10 @@ pub(super) fn apply_runtime_host_request(
             }
         }
         ZrRuntimeHostRequestV1::GamepadRumble(request) => {
+            let _ = request;
+            Err("runtime_gamepad_rumble_generation_required".to_string())
+        }
+        ZrRuntimeHostRequestV1::GamepadRumbleV2(request) => {
             apply_runtime_gamepad_rumble_request(app, request).map_err(str::to_string)
         }
         ZrRuntimeHostRequestV1::Cursor(request) => {
@@ -138,7 +142,7 @@ pub(super) fn apply_runtime_host_request(
 
 fn apply_runtime_gamepad_rumble_request(
     app: &mut RuntimeEntryApp,
-    request: ZrRuntimeGamepadRumbleRequestV1,
+    request: ZrRuntimeGamepadRumbleRequestV2,
 ) -> Result<(), &'static str> {
     #[cfg(feature = "gamepad-gilrs")]
     {

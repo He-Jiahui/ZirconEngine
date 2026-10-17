@@ -32,8 +32,14 @@ pub use cpu_reference::{
 };
 pub use cull_input::RenderVirtualGeometryCullInputSnapshot;
 pub use execution::{
-    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExecutionState,
-    RenderVirtualGeometryHardwareRasterizationRecord, RenderVirtualGeometryPageRequestInspection,
+    RenderVirtualGeometryClusterSelectionInput, RenderVirtualGeometryCpuPrepareToken,
+    RenderVirtualGeometryExecutionData, RenderVirtualGeometryExecutionIdentity,
+    RenderVirtualGeometryExecutionInputs, RenderVirtualGeometryExecutionSegment,
+    RenderVirtualGeometryExecutionState, RenderVirtualGeometryHardwareRasterizationRecord,
+    RenderVirtualGeometryPageRequestInspection, RenderVirtualGeometryPrepareClusterInput,
+    RenderVirtualGeometryPrepareDrawSegmentInput, RenderVirtualGeometryPrepareFrameInput,
+    RenderVirtualGeometryPreparePageInput, RenderVirtualGeometryPrepareRequestInput,
+    RenderVirtualGeometryPreparedCpuFrame, RenderVirtualGeometryPreparedCpuInspection,
     RenderVirtualGeometryResidentPageInspection, RenderVirtualGeometrySelectedCluster,
     RenderVirtualGeometrySubmissionEntry, RenderVirtualGeometrySubmissionRecord,
     RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBufferMark,

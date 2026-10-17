@@ -25,7 +25,8 @@ impl RetainedEditorHost {
                     height,
                     list.size,
                 )
-            }).transpose();
+            })
+            .transpose();
         let list_size = match size_result {
             Ok(size) => size.flatten(),
             Err(error) => {
@@ -34,8 +35,7 @@ impl RetainedEditorHost {
                 return None;
             }
         };
-        let Some(list_size) = list_size
-        else {
+        let Some(list_size) = list_size else {
             self.clear_asset_reference_drag_on_error(clear_drag_on_error);
             self.set_status_line(format!(
                 "Unknown asset reference pointer target {surface_mode}/{list_kind}"

@@ -17,10 +17,21 @@ struct TestStoreRoot(std::path::PathBuf);
 
 impl TestStoreRoot {
     fn new() -> Self {
-        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("..")
-            .join(".codex_tmp")
-            .join("render-artifact-store-tests")
+        let registered = std::path::PathBuf::from(
+            std::env::var_os("CARGO_TARGET_DIR").expect("registered Cargo output root is required"),
+        )
+        .canonicalize()
+        .unwrap();
+        assert!(["D:/cargo-targets", "E:/cargo-targets", "F:/cargo-targets"]
+            .iter()
+            .any(|root| {
+                std::path::Path::new(root)
+                    .canonicalize()
+                    .ok()
+                    .is_some_and(|allowed| registered.starts_with(allowed))
+            }));
+        let root = registered
+            .join("zircon-test-output/runtime-memory-webgpu-20261016/render-artifact-store-tests")
             .join(format!(
                 "{}-{}",
                 std::process::id(),
@@ -38,7 +49,13 @@ impl TestStoreRoot {
 
 impl Drop for TestStoreRoot {
     fn drop(&mut self) {
-        if let Err(error) = std::fs::remove_dir_all(&self.0) {
+        let parent = std::path::PathBuf::from(std::env::var_os("CARGO_TARGET_DIR").unwrap())
+            .join("zircon-test-output/runtime-memory-webgpu-20261016/render-artifact-store-tests")
+            .canonicalize()
+            .unwrap();
+        let candidate = self.0.canonicalize().unwrap();
+        assert!(candidate.starts_with(&parent) && candidate != parent);
+        if let Err(error) = std::fs::remove_dir_all(&candidate) {
             assert_eq!(error.kind(), std::io::ErrorKind::NotFound);
         }
     }

@@ -1,6 +1,6 @@
-"""Submit validation, task commit and main integration to Jenkins."""
+"""Commit a Jenkins task branch, then enqueue scheduled validation/integration."""
 from pathlib import Path
 import runpy
 
 if __name__ == "__main__":
-    runpy.run_path(str(Path(__file__).resolve().parents[1] / "jenkins-management/delivery.py"), run_name="__main__")
+    runpy.run_path(str(Path(__file__).resolve().parents[1] / "jenkins-management/branch_integration.py"), run_name="__main__")

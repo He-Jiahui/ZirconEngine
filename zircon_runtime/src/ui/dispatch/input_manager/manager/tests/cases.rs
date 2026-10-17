@@ -1,3 +1,5 @@
+//! 管理器组件事件、可见时限及合成计时输入的直接回归用例。
+
 use std::{collections::BTreeMap, time::Duration};
 
 use zircon_runtime_interface::ui::{
@@ -18,6 +20,7 @@ use crate::ui::surface::UiSurface;
 
 use super::UiInputManager;
 
+/// 混合可见时限取最早项，到期后应请求立即推进帧。
 #[test]
 fn frame_visible_timer_deadline_returns_earliest_non_negative_delay() {
     let now = UiInputTimestamp::from_micros(1_000);
@@ -47,6 +50,7 @@ fn frame_visible_timer_deadline_returns_earliest_non_negative_delay() {
     );
 }
 
+/// 双击候选只参与输入分类，不应单独要求唤醒帧。
 #[test]
 fn double_click_candidate_is_not_a_frame_visible_deadline() {
     let now = UiInputTimestamp::from_micros(1_000);
@@ -69,6 +73,7 @@ fn double_click_candidate_is_not_a_frame_visible_deadline() {
     );
 }
 
+/// 逐种菜单验证悬停选项会设置、替换和撤销同一目标的子菜单候选。
 #[test]
 fn hovered_menu_option_arms_replaces_and_clears_submenu_hover_timer() {
     let target = UiNodeId::new(2);
@@ -125,6 +130,7 @@ fn hovered_menu_option_arms_replaces_and_clears_submenu_hover_timer() {
     }
 }
 
+/// 夹具写入的属性应成为键入检索与子菜单计时的实际参数。
 #[test]
 fn popup_menu_shells_expose_typeahead_and_submenu_timer_contracts() {
     let target = UiNodeId::new(2);
@@ -143,6 +149,7 @@ fn popup_menu_shells_expose_typeahead_and_submenu_timer_contracts() {
     }
 }
 
+/// 文本队列与映射队列均可替换计时项，关闭事件清除目标的通知时限。
 #[test]
 fn toast_queue_value_arms_replaces_and_clears_auto_hide_timer() {
     let target = UiNodeId::new(2);
@@ -198,6 +205,7 @@ fn toast_queue_value_arms_replaces_and_clears_auto_hide_timer() {
     assert_eq!(manager.timers().toast_id(target), None);
 }
 
+/// 到期前保持静默，到期后发出与目标及通知标识对应的提交事件。
 #[test]
 fn toast_auto_hide_tick_dispatches_expired_commit_event() {
     let target = UiNodeId::new(2);
@@ -266,6 +274,7 @@ fn toast_auto_hide_tick_dispatches_expired_commit_event() {
     assert_eq!(manager.timers().toast_expiration(target), None);
 }
 
+/// 悬停同时更新管理器时限与表面候选，离开时两处都撤销。
 #[test]
 fn tooltip_hover_arms_and_clears_manager_timer_candidate() {
     let target = UiNodeId::new(2);
@@ -303,6 +312,7 @@ fn tooltip_hover_arms_and_clears_manager_timer_candidate() {
     assert_eq!(surface.input.tooltip, None);
 }
 
+/// 到期后的合成输入须保留目标、标识及合成标记，并请求宿主显示提示框。
 #[test]
 fn tooltip_hover_timer_tick_dispatches_elapsed_default_action() {
     let target = UiNodeId::new(2);
@@ -363,6 +373,7 @@ fn tooltip_hover_timer_tick_dispatches_elapsed_default_action() {
     assert_eq!(manager.timers().tooltip_expiration(target), None);
 }
 
+/// 外部解析的提示内容仍使用管理器时钟，显示后的进入动画才产生后续帧期限。
 #[test]
 fn externally_resolved_tooltip_candidate_uses_manager_timer_and_surface_state() {
     let target = UiNodeId::new(2);
@@ -438,6 +449,7 @@ fn externally_resolved_tooltip_candidate_uses_manager_timer_and_surface_state() 
     assert_eq!(surface.input.tooltip, None);
 }
 
+/// 后续文本活动应同时清除待显示时限和表面候选。
 #[test]
 fn tooltip_candidate_clears_on_following_input_activity() {
     let target = UiNodeId::new(2);
@@ -470,6 +482,7 @@ fn tooltip_candidate_clears_on_following_input_activity() {
     assert_eq!(surface.input.tooltip, None);
 }
 
+/// 以相同计时属性构造不同菜单壳，隔离组件种类对契约的影响。
 fn submenu_hover_surface(component: &str) -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.input_manager.submenu_hover"));
     surface
@@ -496,6 +509,7 @@ submenu_hover_delay_ms = 80
     surface
 }
 
+/// 构造带通知提交绑定的表面，供到期结果验证后续组件事件。
 fn toast_surface(toast_id: &str, duration_ms: i64) -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.input_manager.toast"));
     surface
@@ -527,6 +541,7 @@ fn toast_surface(toast_id: &str, duration_ms: i64) -> UiSurface {
     surface
 }
 
+/// 把提示文本与毫秒延迟放入元数据，派发时由表面读取。
 fn tooltip_surface(tooltip_id: &str, delay_ms: i64) -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.input_manager.tooltip"));
     surface
@@ -556,6 +571,7 @@ fn tooltip_surface(tooltip_id: &str, delay_ms: i64) -> UiSurface {
     surface
 }
 
+/// 构造已投递的选项变化报告，让用例直接进入管理器的计时阶段。
 fn hover_changed_result(target: UiNodeId, option_id: &str) -> UiInputDispatchResult {
     component_event_result(
         target,
@@ -566,6 +582,7 @@ fn hover_changed_result(target: UiNodeId, option_id: &str) -> UiInputDispatchRes
     )
 }
 
+/// 最小报告标记为已投递，避免把组件事件的路由与计时逻辑混在同一断言。
 fn component_event_result(target: UiNodeId, event: UiComponentEvent) -> UiInputDispatchResult {
     let mut result = UiInputDispatchResult::new(
         UiInputEvent::Text(UiTextInputEvent {
@@ -587,6 +604,7 @@ fn component_event_result(target: UiNodeId, event: UiComponentEvent) -> UiInputD
     result
 }
 
+/// 夹具只接受变化绑定；未知事件名称应使夹具构造立即失败。
 fn binding(id: &str, event: &str) -> zircon_runtime_interface::ui::template::UiBindingRef {
     zircon_runtime_interface::ui::template::UiBindingRef {
         component_event: None,

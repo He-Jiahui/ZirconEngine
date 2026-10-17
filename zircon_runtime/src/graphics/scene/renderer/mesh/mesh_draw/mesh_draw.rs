@@ -14,6 +14,7 @@ use super::material_texture_set::MaterialTextureSet;
 use super::virtual_geometry_submission_detail::VirtualGeometrySubmissionDetail;
 use super::MeshCommandSortInput;
 
+#[derive(Clone)]
 pub(crate) struct MeshDraw {
     pub(super) mesh: Arc<GpuMeshResource>,
     pub(super) geometry_source: MeshDrawGeometrySource,
@@ -27,6 +28,9 @@ pub(crate) struct MeshDraw {
     pub(super) draw_index_count: u32,
     pub(super) indirect_args_buffer: Option<Arc<wgpu::Buffer>>,
     pub(super) indirect_args_offset: u64,
+    pub(super) virtual_geometry_indexed_run: Option<
+        crate::graphics::scene::scene_renderer::mesh::mesh_draw::VirtualGeometryIndexedRunRef,
+    >,
     pub(super) virtual_geometry_submission_key: Option<(u64, u32)>,
     pub(super) virtual_geometry_submission_detail: Option<VirtualGeometrySubmissionDetail>,
     pub(super) material_textures: MaterialTextureSet,
@@ -106,6 +110,7 @@ impl MeshDraw {
             draw_index_count,
             indirect_args_buffer,
             indirect_args_offset,
+            virtual_geometry_indexed_run: None,
             virtual_geometry_submission_key: virtual_geometry_submission_detail
                 .map(|detail| (detail.entity(), detail.page_id())),
             virtual_geometry_submission_detail,

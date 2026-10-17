@@ -55,7 +55,10 @@ fn is_windows_reserved(value: &str) -> bool {
     matches!(value, "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$")
         || ["COM", "LPT"].iter().any(|prefix| {
             value.strip_prefix(prefix).is_some_and(|suffix| {
-                matches!(suffix, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³")
+                matches!(
+                    suffix,
+                    "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³"
+                )
             })
         })
 }

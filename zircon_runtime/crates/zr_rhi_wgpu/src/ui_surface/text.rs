@@ -9,10 +9,10 @@ use zr_rhi::{
     UiSurfaceCommand, UiSurfaceDrawList, UiSurfaceResolvedCommandKind, UiSurfaceTextStyle,
 };
 
-#[path = "text/layout_evidence.rs"]
-mod layout_evidence;
 #[path = "text/font_sources.rs"]
 mod font_sources;
+#[path = "text/layout_evidence.rs"]
+mod layout_evidence;
 use super::batching::DrawOp;
 use super::color_space::{target_color_mode, UiTargetColorMode};
 use super::geometry::{
@@ -108,15 +108,27 @@ impl WgpuUiTextRenderer {
             let revision = (snapshot.collection_id, snapshot.generation);
             if snapshot.admission_error.is_some() || self.font_revision != Some(revision) {
                 if font_sources::install(snapshot, &mut self.font_system).is_err() {
-                    self.batches.clear(); self.batch_cache_key = None; self.layout_snapshot = None;
-                    return WgpuUiTextPrepareStats { text_prepare_failure_count: 1, ..Default::default() };
+                    self.batches.clear();
+                    self.batch_cache_key = None;
+                    self.layout_snapshot = None;
+                    return WgpuUiTextPrepareStats {
+                        text_prepare_failure_count: 1,
+                        ..Default::default()
+                    };
                 }
                 self.batches.clear();
                 self.layout_snapshot = None;
-                self.atlas = TextAtlas::with_color_mode(device, queue, &self._cache, self.target_format, text_color_mode(self.target_format));
+                self.atlas = TextAtlas::with_color_mode(
+                    device,
+                    queue,
+                    &self._cache,
+                    self.target_format,
+                    text_color_mode(self.target_format),
+                );
                 self.font_revision = Some(revision);
                 self.swash_cache = SwashCache::new();
-                self.font_face_cache.clear(); self.batch_cache_key = None;
+                self.font_face_cache.clear();
+                self.batch_cache_key = None;
             }
         }
         let cache_key = text_batch_cache_key(draw_list, projection_size);
@@ -190,24 +202,35 @@ impl WgpuUiTextRenderer {
                 );
                 if self.observe_layout {
                     let mut observation = observe_buffer(
-                        &self.font_system, &mut self.font_face_cache, &buffer,
-                        command, *command_index, text, clip,
+                        &self.font_system,
+                        &mut self.font_face_cache,
+                        &buffer,
+                        command,
+                        *command_index,
+                        text,
+                        clip,
                         Some(UiSurfaceTextRequest {
                             font_family: font_family.map(str::to_owned),
                             font_weight,
-                            font_style: if matches!(style, UiSurfaceTextStyle::Emphasis | UiSurfaceTextStyle::StrongEmphasis) {
+                            font_style: if matches!(
+                                style,
+                                UiSurfaceTextStyle::Emphasis | UiSurfaceTextStyle::StrongEmphasis
+                            ) {
                                 "italic"
                             } else {
                                 "normal"
-                            }.to_owned(),
+                            }
+                            .to_owned(),
                             font_size,
                             line_height,
                         }),
                     );
                     if let Some(snapshot) = draw_list.font_snapshot() {
                         for face in &mut observation.faces {
-                            if let Some(source) = snapshot.sources.iter().find(|source|
-                                source.face_index == face.face_index && source.raster_sha256 == face.sha256) {
+                            if let Some(source) = snapshot.sources.iter().find(|source| {
+                                source.face_index == face.face_index
+                                    && source.raster_sha256 == face.sha256
+                            }) {
                                 face.resource_path = source.resource_path.clone();
                                 face.resource_sha256 = source.resource_sha256.clone();
                             }

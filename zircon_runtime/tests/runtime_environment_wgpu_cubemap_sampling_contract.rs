@@ -17,9 +17,7 @@ const SKYBOX_SHADER: &str = concat!(
 const REALTIME_CAPTURE_SHADER: &str = concat!(
     include_str!("../src/graphics/shader/wgsl/zr_procedural_sky.wgsl"),
     "\n",
-    include_str!(
-        "../src/graphics/scene/renderer/shaders/realtime_ibl_capture.wgsl"
-    ),
+    include_str!("../src/graphics/scene/renderer/shaders/realtime_ibl_capture.wgsl"),
 );
 const RESOLVED_PROCEDURAL_SUN_SOURCE: &str =
     include_str!("../src/core/framework/render/skybox/procedural_sky/resolved_sun.rs");

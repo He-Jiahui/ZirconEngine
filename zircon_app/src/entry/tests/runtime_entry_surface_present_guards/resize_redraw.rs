@@ -94,7 +94,7 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
     for required_path in [
         "self.complete_presented_frame(event_loop);",
         "fn complete_presented_frame(&mut self, event_loop: &dyn ActiveEventLoop)",
-        "fn emit_first_frame_product_diagnostics_once(&mut self)",
+        "fn complete_presented_frame_with_diagnostics(",
     ] {
         assert!(
             runtime_surface_present_source.contains(required_path),
@@ -106,25 +106,29 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         &[
             "fn complete_presented_frame",
             "self.capture_first_presented_frame_if_requested()",
-            "if self.require_persisted_scene_diagnostics {",
-            "self.emit_first_frame_product_diagnostics_once()",
-            "self.presented_frame_count = self.presented_frame_count.saturating_add(1);",
-            "presented_frame_exit_diagnostic(",
+            "Self::complete_presented_frame_with_diagnostics(",
+            "match completion",
+            "Ok(Some(diagnostic))",
         ],
         "runtime first-frame startup smoke should complete diagnostics before applying its exit policy",
     );
     assert_source_order(
         runtime_surface_present_source.as_str(),
         &[
-            "fn emit_first_frame_product_diagnostics_once",
-            "if should_emit_first_frame_product_diagnostics(",
-            "self.emit_first_frame_product_diagnostics()?;",
-            "self.first_frame_product_diagnostics_emitted = true;",
+            "fn complete_presented_frame_with_diagnostics(",
+            "let snapshot = snapshot()?;",
+            "validate_product_snapshot_for_policy(&snapshot, policy, input_probe_enabled)?;",
+            "emit(product_frame_diagnostic(&snapshot, viewport, policy));",
+            "*diagnostics_emitted = true;",
+            "*presented_frame_count = (*presented_frame_count).saturating_add(1);",
+            "presented_frame_exit_diagnostic(",
         ],
-        "runtime product diagnostics should be emitted once for the first successful present",
+        "runtime product diagnostics must validate and emit before committing once/count and evaluating exit",
     );
     for required_path in [
         "ProfileControlCommand::RuntimeDiagnosticsSnapshot",
+        "RuntimeProductProofPolicy::GeneralProject",
+        "RuntimeProductProofPolicy::F2LitMesh",
         "project_identity",
         "scene_uri",
         "render_backend_name",

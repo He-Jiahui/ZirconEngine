@@ -291,12 +291,12 @@ fn runtime_15_graphics_dead_code_guard_forbidden_attribute_literal_is_constant_b
         );
     }
 
-    let runtime_15_plan = super::read_repo(
+    let _runtime_15_plan = super::read_repo(
         "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
     );
-    let runtime_index = super::read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = super::read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention_doc =
+    let _runtime_index = super::read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = super::read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention_doc =
         super::read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = super::read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _module_doc = super::read_repo("docs/zircon_runtime/structure/module-convention.md");
 }

@@ -178,7 +178,16 @@ fn gamepad_axis_binding_reports_continuous_action_value() {
 
     input.begin_frame();
     input.submit_event(InputEvent::ButtonPressed(modifier.clone()));
+    input.submit_event(InputEvent::GamepadConnection(crate::input::GamepadConnectionInfo {
+        gamepad: pad,
+        generation: std::num::NonZeroU64::MIN,
+        connected: true,
+        name: None,
+        vendor_id: None,
+        product_id: None,
+    }));
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad: pad,
         axis,
         value: 0.75,
@@ -224,6 +233,7 @@ fn gamepad_axis_binding_reports_continuous_action_value() {
 
     input.begin_frame();
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad: pad,
         axis,
         value: -0.75,
@@ -263,7 +273,16 @@ fn consumed_gamepad_axis_does_not_activate_gameplay_action() {
     let input = DefaultInputManager::default();
 
     input.begin_frame();
+    input.submit_event(InputEvent::GamepadConnection(crate::input::GamepadConnectionInfo {
+        gamepad: pad,
+        generation: std::num::NonZeroU64::MIN,
+        connected: true,
+        name: None,
+        vendor_id: None,
+        product_id: None,
+    }));
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad: pad,
         axis,
         value: 0.85,

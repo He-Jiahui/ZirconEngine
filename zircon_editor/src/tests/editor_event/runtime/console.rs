@@ -27,7 +27,12 @@ fn console_filter_builtin_bindings_change_visible_history_and_restore_all_messag
     let runtime = EventRuntimeHarness::new("zircon_editor_event_console_filter");
     runtime.runtime.set_status_line("Compiled materials");
     runtime.runtime.set_status_line("Scene ready");
-    let total_counts = runtime.runtime.editor_snapshot().unwrap().console_output.counts();
+    let total_counts = runtime
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .console_output
+        .counts();
 
     let error_effects =
         dispatch_builtin_template_binding(&runtime.runtime, "ConsolePaneBody/FilterError")

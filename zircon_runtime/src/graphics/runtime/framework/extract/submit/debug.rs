@@ -91,12 +91,7 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
                 .to_vec()
         })
         .unwrap_or_default();
-    let cull_input = build_cull_input_snapshot(
-        extract,
-        &page_upload_plan,
-        available_page_slots.len(),
-        evictable_page_inspections.len(),
-    );
+    let cull_input = build_virtual_geometry_cull_input(context)?;
     let node_and_cluster_cull =
         build_node_and_cluster_cull_snapshot(frame_extract, context, cull_input);
     let draw_segments = context
@@ -178,4 +173,450 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
         submission_order: execution.submission_order,
         submission_records: execution.submission_records,
     })
+}
+
+pub(super) fn build_virtual_geometry_execution_data(
+    context: &FrameSubmissionContext,
+) -> Option<crate::core::framework::render::RenderVirtualGeometryExecutionData> {
+    let extract = context.virtual_geometry_extract()?;
+    let plan = context
+        .virtual_geometry_page_upload_plan()
+        .cloned()
+        .unwrap_or_default();
+    let prepared = context.virtual_geometry_prepared_cpu_frame()?;
+    let paired = &prepared.execution_inputs;
+    let resident = match paired.prepare.as_ref() {
+        Some(author) => author
+            .resident_pages
+            .iter()
+            .chain(&author.evictable_pages)
+            .map(|page| page.page_id)
+            .collect::<BTreeSet<_>>(),
+        None => plan.resident_pages.iter().copied().collect::<BTreeSet<_>>(),
+    };
+    let requested = match paired.prepare.as_ref() {
+        Some(author) => author
+            .pending_page_requests
+            .iter()
+            .map(|request| request.page_id)
+            .collect::<BTreeSet<_>>(),
+        None => plan
+            .requested_pages
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>(),
+    };
+    let lookup = ExecutionLookup::new(extract);
+    let mut execution = build_execution_snapshot(
+        &lookup,
+        &context.visibility_context().virtual_geometry_draw_segments,
+        &resident,
+        &requested,
+    );
+    if paired.selections.is_some() || paired.prepare.is_some() {
+        execution.segments = prepared.paired_execution_segments.clone()?;
+    }
+    // The main detail builder consumes these same segment values. Diagnostics
+    // keep their historical projection; production gets the actual page owner.
+    for segment in &mut execution.segments {
+        let mut slot = None;
+        for &(page, value) in &prepared.author_resident_page_slots {
+            if page != segment.page_id {
+                continue;
+            }
+            if slot.is_some_and(|previous| previous != value) {
+                return None;
+            }
+            slot = Some(value);
+        }
+        let mut request = None;
+        for fact in &prepared.author_pending_page_requests {
+            if fact.0 != segment.page_id {
+                continue;
+            }
+            if request.is_some_and(|previous| previous != *fact) {
+                return None;
+            }
+            request = Some(*fact);
+        }
+        if segment.state
+            == crate::core::framework::render::RenderVirtualGeometryExecutionState::Resident
+        {
+            segment.submission_slot = Some(slot?);
+        } else {
+            segment.submission_slot = request.and_then(|fact| fact.2);
+        }
+        segment.frontier_rank = request.map(|fact| fact.1).unwrap_or(0);
+    }
+    // Full original author catalog. No visibility/refinement projection, debug
+    // record, sorting or de-duplication participates in this copy.
+    let author_cluster_catalog = extract.clusters.clone();
+    let (selected_clusters, mut candidate_author_indices) = match paired.selections.as_ref() {
+        Some(author) => paired_selection_catalog(extract, author)?,
+        None => build_lossless_candidate_catalog(extract, &resident, &requested)?,
+    };
+    if paired.selections.is_none() && paired.prepare.is_some() {
+        // A paired prepare may describe a slice of a larger declared entity.
+        // Preserve that producer's original total; do not infer it from a
+        // filtered catalog length, current rows or completion counts.
+        for (candidate, provenance) in selected_clusters.iter().zip(&mut candidate_author_indices) {
+            let mut total = None;
+            for segment in &execution.segments {
+                if segment.entity != candidate.entity
+                    || segment.instance_index != candidate.instance_index
+                    || segment.page_id != candidate.page_id
+                {
+                    continue;
+                }
+                let end = segment
+                    .cluster_start_ordinal
+                    .checked_add(segment.cluster_span_count)?;
+                if candidate.cluster_ordinal < segment.cluster_start_ordinal
+                    || candidate.cluster_ordinal >= end
+                {
+                    continue;
+                }
+                if total.is_some_and(|previous| previous != segment.cluster_total_count) {
+                    return None;
+                }
+                total = Some(segment.cluster_total_count);
+            }
+            if let Some(value) = total {
+                if candidate.cluster_ordinal >= value {
+                    return None;
+                }
+                provenance.2 = value;
+            }
+        }
+    }
+    let mut cull_input = build_virtual_geometry_cull_input(context)?;
+    if let Some(author) = paired.prepare.as_ref() {
+        cull_input.visible_entity_count = u32::try_from(author.visible_entities.len()).ok()?;
+        cull_input.visible_cluster_count = u32::try_from(author.visible_clusters.len()).ok()?;
+        cull_input.resident_page_count = u32::try_from(author.resident_pages.len()).ok()?;
+        cull_input.pending_page_request_count =
+            u32::try_from(author.pending_page_requests.len()).ok()?;
+        cull_input.available_page_slot_count = u32::try_from(author.available_slots.len()).ok()?;
+        cull_input.evictable_page_count = u32::try_from(author.evictable_pages.len()).ok()?;
+        cull_input.cluster_selection_input_source =
+            RenderVirtualGeometryClusterSelectionInputSource::PrepareDerivedFrameOwned;
+    }
+    if paired.selections.is_some() {
+        cull_input.visible_cluster_count = u32::try_from(selected_clusters.len()).ok()?;
+        cull_input.cluster_selection_input_source =
+            RenderVirtualGeometryClusterSelectionInputSource::ExplicitFrameOwned;
+    }
+    Some(
+        crate::core::framework::render::RenderVirtualGeometryExecutionData {
+            author_cluster_catalog,
+            candidate_author_indices,
+            instances: extract.instances.clone(),
+            resident_page_payloads: context.virtual_geometry_resident_page_payloads().to_vec(),
+            debug: extract.debug,
+            cull_input,
+            prepared_cpu_frame: Some(prepared),
+            selected_clusters,
+            execution_segments: execution.segments,
+        },
+    )
+}
+
+pub(super) fn build_virtual_geometry_cull_input(
+    context: &FrameSubmissionContext,
+) -> Option<crate::core::framework::render::RenderVirtualGeometryCullInputSnapshot> {
+    let extract = context.virtual_geometry_extract()?;
+    let plan = context
+        .virtual_geometry_page_upload_plan()
+        .cloned()
+        .unwrap_or_default();
+    let available = build_available_page_slots(extract, &plan);
+    let sizes = build_page_size_index(extract);
+    let pages = build_resident_page_inspections(&plan, &sizes);
+    let evictable = build_evictable_page_inspections(&plan, &pages, &sizes);
+    Some(build_cull_input_snapshot(
+        extract,
+        &plan,
+        available.len(),
+        evictable.len(),
+    ))
+}
+
+impl FrameSubmissionContext {
+    pub(in crate::graphics::runtime::render_framework) fn virtual_geometry_cull_input(
+        &self,
+    ) -> Option<crate::core::framework::render::RenderVirtualGeometryCullInputSnapshot> {
+        build_virtual_geometry_cull_input(self)
+    }
+}
+
+fn build_lossless_candidate_catalog(
+    extract: &crate::core::framework::render::RenderVirtualGeometryExtract,
+    resident: &BTreeSet<u32>,
+    requested: &BTreeSet<u32>,
+) -> Option<(
+    Vec<crate::core::framework::render::RenderVirtualGeometrySelectedCluster>,
+    Vec<(u32, u32, u32)>,
+)> {
+    use crate::core::framework::render::{
+        RenderVirtualGeometryExecutionState, RenderVirtualGeometrySelectedCluster,
+    };
+    let mut candidates = Vec::new();
+    let mut provenance = Vec::new();
+    for (instance_index, instance) in extract.instances.iter().enumerate() {
+        let instance_index = u32::try_from(instance_index).ok()?;
+        let ids = crate::graphics::visibility::cluster_ids_for_stable_instance_key(
+            extract,
+            instance.stable_instance_key_or_legacy(),
+        );
+        let total = u32::try_from(ids.len().max(1)).ok()?;
+        let start = usize::try_from(instance.cluster_offset).ok()?;
+        let end = usize::try_from(
+            instance
+                .cluster_offset
+                .checked_add(instance.cluster_count)?,
+        )
+        .ok()?;
+        for (local_index, cluster) in extract.clusters.get(start..end)?.iter().enumerate() {
+            if cluster.entity != instance.entity {
+                return None;
+            }
+            let array_index = start.checked_add(local_index)?;
+            let ordinal = u32::try_from(ids.binary_search(&cluster.cluster_id).ok()?).ok()?;
+            let state = if resident.contains(&cluster.page_id) {
+                RenderVirtualGeometryExecutionState::Resident
+            } else if requested.contains(&cluster.page_id) {
+                RenderVirtualGeometryExecutionState::PendingUpload
+            } else {
+                RenderVirtualGeometryExecutionState::Missing
+            };
+            candidates.push(RenderVirtualGeometrySelectedCluster {
+                instance_index: Some(instance_index),
+                entity: cluster.entity,
+                cluster_id: cluster.cluster_id,
+                cluster_ordinal: ordinal,
+                page_id: cluster.page_id,
+                lod_level: cluster.lod_level,
+                state,
+            });
+            provenance.push((instance_index, u32::try_from(array_index).ok()?, total));
+        }
+    }
+    if extract.instances.is_empty() {
+        // Instance-less authored input remains instance-less. The policy key is
+        // the existing legacy key; raw array index and policy ordinal differ.
+        for (array_index, cluster) in extract.clusters.iter().enumerate() {
+            let key =
+                crate::core::framework::render::render_mesh_stable_instance_key(cluster.entity, 0);
+            let ids =
+                crate::graphics::visibility::cluster_ids_for_stable_instance_key(extract, key);
+            let ordinal = u32::try_from(ids.binary_search(&cluster.cluster_id).ok()?).ok()?;
+            let total = u32::try_from(ids.len().max(1)).ok()?;
+            let state = if resident.contains(&cluster.page_id) {
+                RenderVirtualGeometryExecutionState::Resident
+            } else if requested.contains(&cluster.page_id) {
+                RenderVirtualGeometryExecutionState::PendingUpload
+            } else {
+                RenderVirtualGeometryExecutionState::Missing
+            };
+            candidates.push(RenderVirtualGeometrySelectedCluster {
+                instance_index: None,
+                entity: cluster.entity,
+                cluster_id: cluster.cluster_id,
+                cluster_ordinal: ordinal,
+                page_id: cluster.page_id,
+                lod_level: cluster.lod_level,
+                state,
+            });
+            provenance.push((u32::MAX, u32::try_from(array_index).ok()?, total));
+        }
+    }
+    Some((candidates, provenance))
+}
+
+#[cfg(test)]
+mod lossless_indexed_author_tests {
+    use super::*;
+    use crate::core::framework::render::{
+        RenderVirtualGeometryCluster, RenderVirtualGeometryExecutionState,
+        RenderVirtualGeometryExtract, RenderVirtualGeometryInstance,
+    };
+    #[test]
+    fn normal_catalog_keeps_raw_duplicates_missing_rows_and_separate_policy_ordinals() {
+        let extract = RenderVirtualGeometryExtract {
+            instances: vec![RenderVirtualGeometryInstance {
+                entity: 7,
+                stable_instance_key: 77,
+                cluster_offset: 0,
+                cluster_count: 3,
+                ..Default::default()
+            }],
+            clusters: vec![
+                RenderVirtualGeometryCluster {
+                    entity: 7,
+                    cluster_id: 9,
+                    page_id: 30,
+                    ..Default::default()
+                },
+                RenderVirtualGeometryCluster {
+                    entity: 7,
+                    cluster_id: 2,
+                    page_id: 40,
+                    ..Default::default()
+                },
+                RenderVirtualGeometryCluster {
+                    entity: 7,
+                    cluster_id: 9,
+                    page_id: 30,
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        };
+        let (rows, provenance) =
+            build_lossless_candidate_catalog(&extract, &BTreeSet::from([30]), &BTreeSet::new())
+                .expect("valid original ranges");
+        assert_eq!(
+            rows.iter()
+                .map(|row| (row.cluster_id, row.cluster_ordinal))
+                .collect::<Vec<_>>(),
+            vec![(9, 1), (2, 0), (9, 1)]
+        );
+        assert_eq!(provenance, vec![(0, 0, 2), (0, 1, 2), (0, 2, 2)]);
+        assert_eq!(
+            rows.iter().map(|row| row.state).collect::<Vec<_>>(),
+            vec![
+                RenderVirtualGeometryExecutionState::Resident,
+                RenderVirtualGeometryExecutionState::Missing,
+                RenderVirtualGeometryExecutionState::Resident,
+            ]
+        );
+        assert_eq!(extract.clusters.len(), 3);
+    }
+}
+
+fn paired_selection_catalog(
+    extract: &crate::core::framework::render::RenderVirtualGeometryExtract,
+    selections: &[crate::core::framework::render::RenderVirtualGeometryClusterSelectionInput],
+) -> Option<(
+    Vec<crate::core::framework::render::RenderVirtualGeometrySelectedCluster>,
+    Vec<(u32, u32, u32)>,
+)> {
+    use crate::core::framework::render::RenderVirtualGeometrySelectedCluster;
+    let mut rows = Vec::with_capacity(selections.len());
+    let mut provenance = Vec::with_capacity(selections.len());
+    let mut occurrences =
+        std::collections::BTreeMap::<(Option<u32>, u64, u32, u32, u8), usize>::new();
+    for author in selections {
+        let (start, end) = match author.instance_index {
+            Some(index) => {
+                let instance = extract.instances.get(usize::try_from(index).ok()?)?;
+                if instance.entity != author.entity {
+                    return None;
+                }
+                (
+                    instance.cluster_offset,
+                    instance
+                        .cluster_offset
+                        .checked_add(instance.cluster_count)?,
+                )
+            }
+            None if extract.instances.is_empty() => {
+                (0, u32::try_from(extract.clusters.len()).ok()?)
+            }
+            None => return None,
+        };
+        let mut matches = Vec::new();
+        for index in start..end {
+            let cluster = extract.clusters.get(usize::try_from(index).ok()?)?;
+            if cluster.entity == author.entity
+                && cluster.cluster_id == author.cluster_id
+                && cluster.page_id == author.page_id
+                && cluster.lod_level == author.lod_level
+            {
+                matches.push(index);
+            }
+        }
+        if matches.is_empty() {
+            return None;
+        }
+        let key = (
+            author.instance_index,
+            author.entity,
+            author.cluster_id,
+            author.page_id,
+            author.lod_level,
+        );
+        let occurrence = occurrences.entry(key).or_insert(0);
+        // A unique raw source may be intentionally admitted multiple times. For
+        // repeated raw sources preserve their original occurrence order.
+        let raw = if matches.len() == 1 {
+            matches[0]
+        } else {
+            *matches.get(*occurrence)?
+        };
+        *occurrence = occurrence.checked_add(1)?;
+        let total = u32::try_from(author.entity_cluster_total_count).ok()?;
+        if author.cluster_ordinal >= total {
+            return None;
+        }
+        rows.push(RenderVirtualGeometrySelectedCluster {
+            instance_index: author.instance_index,
+            entity: author.entity,
+            cluster_id: author.cluster_id,
+            cluster_ordinal: author.cluster_ordinal,
+            page_id: author.page_id,
+            lod_level: author.lod_level,
+            state: author.state,
+        });
+        provenance.push((author.instance_index.unwrap_or(u32::MAX), raw, total));
+    }
+    Some((rows, provenance))
+}
+
+#[cfg(test)]
+mod paired_indexed_author_contract_tests {
+    use super::*;
+    use crate::core::framework::render::{
+        RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    };
+    #[test]
+    fn absent_instances_keep_duplicate_raw_rows_and_explicit_empty_stays_empty() {
+        let extract = RenderVirtualGeometryExtract {
+            clusters: vec![
+                RenderVirtualGeometryCluster {
+                    entity: 2,
+                    cluster_id: 20,
+                    page_id: 300,
+                    ..Default::default()
+                },
+                RenderVirtualGeometryCluster {
+                    entity: 2,
+                    cluster_id: 20,
+                    page_id: 300,
+                    ..Default::default()
+                },
+                RenderVirtualGeometryCluster {
+                    entity: 3,
+                    cluster_id: 30,
+                    page_id: 301,
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        };
+        let (rows, provenance) =
+            build_lossless_candidate_catalog(&extract, &BTreeSet::from([300]), &BTreeSet::new())
+                .expect("raw authored catalog");
+        assert_eq!(rows.len(), 3);
+        assert!(rows.iter().all(|row| row.instance_index.is_none()));
+        assert_eq!(
+            provenance,
+            vec![(u32::MAX, 0, 1), (u32::MAX, 1, 1), (u32::MAX, 2, 1)]
+        );
+        let (empty, empty_provenance) =
+            paired_selection_catalog(&extract, &[]).expect("explicit zero candidates");
+        assert!(empty.is_empty());
+        assert!(empty_provenance.is_empty());
+        assert_eq!(extract.clusters.len(), 3);
+    }
 }

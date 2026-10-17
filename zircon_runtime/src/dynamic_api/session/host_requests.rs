@@ -1,12 +1,13 @@
 use zircon_runtime_interface::ui::dispatch::UiClipboardRequest;
 use zircon_runtime_interface::{
     ZrRuntimeClipboardHostRequestV1, ZrRuntimeCursorGrabModeV1, ZrRuntimeCursorHostRequestV1,
-    ZrRuntimeCursorPositionV1, ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeImeCursorAreaV1,
+    ZrRuntimeCursorPositionV1, ZrRuntimeGamepadRumbleRequestV2, ZrRuntimeImeCursorAreaV1,
     ZrRuntimeImeHostRequestV1, ZrRuntimeImeSurroundingTextV1, ZrRuntimeViewportHandle,
 };
 
 use crate::core::framework::input::{
     CursorGrabMode, CursorHostRequest, GamepadRumbleRequest, ImeHostRequest, ImeSurroundingText,
+    QueuedGamepadRumbleRequest,
 };
 
 // JSON control characters can expand to six bytes. Keeping the source window at 32 KiB leaves
@@ -102,23 +103,27 @@ fn floor_char_boundary(value: &str, mut offset: usize) -> usize {
 }
 
 pub(in crate::dynamic_api) fn runtime_gamepad_rumble_request(
-    request: GamepadRumbleRequest,
-) -> ZrRuntimeGamepadRumbleRequestV1 {
-    match request {
+    request: QueuedGamepadRumbleRequest,
+) -> ZrRuntimeGamepadRumbleRequestV2 {
+    let generation = request.generation();
+    match request.request() {
         GamepadRumbleRequest::Add {
             gamepad,
             intensity,
             duration_millis,
         } => {
             let intensity = intensity.clamped();
-            ZrRuntimeGamepadRumbleRequestV1::add(
+            ZrRuntimeGamepadRumbleRequestV2::add(
                 gamepad.0,
+                generation,
                 intensity.strong_motor,
                 intensity.weak_motor,
                 duration_millis,
             )
         }
-        GamepadRumbleRequest::Stop { gamepad } => ZrRuntimeGamepadRumbleRequestV1::stop(gamepad.0),
+        GamepadRumbleRequest::Stop { gamepad } => {
+            ZrRuntimeGamepadRumbleRequestV2::stop(gamepad.0, generation)
+        }
     }
 }
 

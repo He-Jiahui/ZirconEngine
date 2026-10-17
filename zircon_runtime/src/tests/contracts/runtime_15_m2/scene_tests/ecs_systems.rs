@@ -15,32 +15,30 @@ fn runtime_15_scene_ecs_systems_many_single_queries_uses_owner_name() {
         "scene ECS systems many/single query owner should be readable",
     );
     let test_budget_guard = read_text(
-        &manifest_root.join(
-            "src/tests/contracts/structure/test_size/scene_ecs_systems.rs",
-        ),
+        &manifest_root.join("src/tests/contracts/structure/test_size/scene_ecs_systems.rs"),
         "scene ECS systems test-budget guard should be readable",
     );
-    let runtime_15_plan = read_repo_text(
+    let _runtime_15_plan = read_repo_text(
         manifest_root,
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(
+    let _runtime_index = read_repo_text(
         manifest_root,
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let review_findings = read_repo_text(
+    let _review_findings = read_repo_text(
         manifest_root,
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
-    let structure_convention = read_repo_text(
+    let _structure_convention = read_repo_text(
         manifest_root,
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
-    let module_doc = read_repo_text(
+    let _module_doc = read_repo_text(
         manifest_root,
         "docs/zircon_runtime/structure/module-convention.md",
     );
-    let ecs_doc = read_repo_text(manifest_root, "docs/zircon_runtime/scene/ecs.md");
+    let _ecs_doc = read_repo_text(manifest_root, "docs/zircon_runtime/scene/ecs.md");
 
     assert!(
         !retired_query_helpers.exists(),

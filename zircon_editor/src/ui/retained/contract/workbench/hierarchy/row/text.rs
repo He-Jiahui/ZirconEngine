@@ -5,6 +5,7 @@ use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_metrics, current_host_palette, HostControlMetrics,
 };
 
+#[cfg(test)]
 use super::super::super::super::{ACCENT, MUTED_TEXT};
 
 pub(super) fn draw_hierarchy_row_text(
@@ -21,11 +22,18 @@ pub(super) fn draw_hierarchy_row_text(
                 if node.selected {
                     current_host_palette().text_selected
                 } else {
-                    MUTED_TEXT
+                    crate::ui::retained_host::host_contract::paint_theme::current_host_palette()
+                        .text_muted
                 },
             )
         },
-        |value| (value, ACCENT),
+        |value| {
+            (
+                value,
+                crate::ui::retained_host::host_contract::paint_theme::current_host_palette()
+                    .focus_ring,
+            )
+        },
     );
     let metrics = current_host_metrics();
     draw_text_bars_clipped(

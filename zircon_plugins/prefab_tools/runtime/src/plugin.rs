@@ -90,16 +90,14 @@ pub fn prefab_instance_component_descriptor() -> ComponentTypeDescriptor {
 }
 
 pub fn prefab_importer_descriptors() -> Vec<zircon_runtime::asset::AssetImporterDescriptor> {
-    vec![
-        zircon_runtime::asset::AssetImporterDescriptor::new(
-            PREFAB_IMPORTER_ID,
-            PLUGIN_ID,
-            zircon_runtime::asset::AssetKind::Prefab,
-            1,
-        )
-        .with_full_suffixes([".prefab.toml"])
-        .with_required_capabilities([PREFAB_TOOLS_RUNTIME_CAPABILITY]),
-    ]
+    vec![zircon_runtime::asset::AssetImporterDescriptor::new(
+        PREFAB_IMPORTER_ID,
+        PLUGIN_ID,
+        zircon_runtime::asset::AssetKind::Prefab,
+        1,
+    )
+    .with_full_suffixes([".prefab.toml"])
+    .with_required_capabilities([PREFAB_TOOLS_RUNTIME_CAPABILITY])]
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(PrefabToolsRuntimePlugin);

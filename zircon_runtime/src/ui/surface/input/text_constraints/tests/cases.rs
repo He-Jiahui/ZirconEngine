@@ -1,3 +1,5 @@
+//! 验证清洗值、约束回执和预编辑范围的联合结果；直接使用父模块的私有策略类型。
+
 use zircon_runtime_interface::ui::{
     dispatch::{UiImePreeditClause, UiImePreeditClauseKind, UiTextByteRange},
     surface::UiTextRange,
@@ -12,6 +14,7 @@ use super::{
 };
 
 #[test]
+// CRLF 的两个字节边界都需映射，但单行清洗只累计一个硬换行分隔符。
 fn constrained_preedit_maps_each_crlf_boundary_and_counts_one_separator() {
     let constraints = TextInputConstraints {
         max_graphemes: None,
@@ -57,6 +60,7 @@ fn constrained_preedit_maps_each_crlf_boundary_and_counts_one_separator() {
 }
 
 #[test]
+// 原本为空且未移动的样式区段应保留，不能与过滤后坍缩的非空区段混淆。
 fn empty_preedit_clause_is_preserved_when_constraints_do_not_move_it() {
     let clauses = [UiImePreeditClause::new(
         UiTextByteRange::new(1, 1),
@@ -76,6 +80,7 @@ fn empty_preedit_clause_is_preserved_when_constraints_do_not_move_it() {
 }
 
 #[test]
+// 人为提供与源码扫描不同的计数，确认该入口实际采用调用方给定的文档索引数量。
 fn max_length_uses_the_retained_document_grapheme_count_when_supplied() {
     let constraints = TextInputConstraints {
         max_graphemes: Some(2),
@@ -95,6 +100,7 @@ fn max_length_uses_the_retained_document_grapheme_count_when_supplied() {
 }
 
 #[test]
+// 计数器必须保持有限的静态名称集合，而不是按输入内容生成名称。
 fn grapheme_authority_profile_uses_only_fixed_names() {
     let unique = TEXT_INPUT_GRAPHEME_AUTHORITY_COUNTER_NAMES
         .into_iter()
@@ -106,6 +112,7 @@ fn grapheme_authority_profile_uses_only_fixed_names() {
 }
 
 #[test]
+// 组合字符与 ZWJ 夹具同时区分 grapheme 数和扫描字节数，替换范围内不计入扫描量。
 fn source_scan_receipt_counts_only_bytes_outside_the_replaced_range() {
     assert_eq!(
         retained_grapheme_count_from_source(
@@ -117,6 +124,7 @@ fn source_scan_receipt_counts_only_bytes_outside_the_replaced_range() {
 }
 
 #[test]
+// 显式的大上限仍受 NumberField 预算夹取；此处使用 ASCII 数字使字节数与 grapheme 数一致。
 fn number_field_constraint_never_exceeds_the_invariant_edit_buffer_budget() {
     let mut surface = crate::ui::surface::UiSurface::new(
         zircon_runtime_interface::ui::event_ui::UiTreeId::new("number.limit"),

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundAutomationBinding, SoundAutomationBindingId, SoundClipId,
-    SoundDynamicEventCatalog, SoundDynamicEventInvocation, SoundExternalSourceBlock,
+    SoundDynamicEventCatalog, SoundDynamicEventInvocation, SoundError, SoundExternalSourceBlock,
     SoundGameplayEmission, SoundHrtfProfileDescriptor, SoundImpulseResponseId,
     SoundListenerDescriptor, SoundListenerId, SoundMixerGraph, SoundParameterId,
     SoundPlaybackFinished, SoundPlaybackId, SoundRayTracedImpulseResponseDescriptor,
@@ -111,8 +111,10 @@ impl SoundEngineState {
         }
     }
 
-    pub(crate) fn next_source_id(&mut self) -> SoundSourceId {
-        self.next_source_id += 1;
-        SoundSourceId::new(self.next_source_id)
+    pub(crate) fn next_source_id(&self) -> Result<SoundSourceId, SoundError> {
+        let next = self.next_source_id.checked_add(1).ok_or_else(|| {
+            SoundError::InvalidParameter("sound source id space is exhausted".to_string())
+        })?;
+        Ok(SoundSourceId::new(next))
     }
 }

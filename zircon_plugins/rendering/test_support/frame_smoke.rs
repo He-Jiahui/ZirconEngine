@@ -1,11 +1,14 @@
 //! Shared real WGPU frame fixture for rendering feature runtime product smokes.
+#[path = "project.rs"]
+mod product_project;
+
 use std::sync::Arc;
 
 use zircon_runtime::asset::pipeline::manager::{ProjectAssetManager, ProjectAssetManagerAccess};
 use zircon_runtime::core::framework::render::{
     CapturedFrame, GeometryExtract, RenderFrameExtract, RenderFramework, RenderMeshSnapshot,
-    RenderPassExecutorRegistration, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
-    RenderWorldSnapshotHandle, RendererCommon,
+    RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle,
+    RendererCommon,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::manager::{manager_service_handle, RegisteredManagerService};
@@ -15,7 +18,10 @@ use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
 };
-use zircon_runtime::graphics::{RenderFeatureDescriptor, WgpuRenderFramework};
+use zircon_runtime::graphics::{
+    RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
+    WgpuRenderFramework,
+};
 
 const ASSET_MODULE: &str = "RenderingFeatureSmokeAssetRuntime";
 const ASSET_SERVICE: &str = "RenderingFeatureSmokeAssetRuntime.Manager.ProjectAssetManager";
@@ -29,6 +35,7 @@ struct SmokeRuntime {
 impl SmokeRuntime {
     fn new() -> Self {
         let manager = Arc::new(ProjectAssetManager::default());
+        product_project::open_smoke_project(&manager, "render_feature_smoke");
         let runtime = CoreRuntime::new();
         runtime
             .register_module(
@@ -73,11 +80,24 @@ pub fn render_nonempty_product_frame(
     features: impl IntoIterator<Item = RenderFeatureDescriptor>,
     executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
 ) -> (CapturedFrame, RenderStats) {
+    render_nonempty_product_frame_with_prepare(features, executors, [], |_| {})
+}
+
+/// Adds real feature-owned preparation and extract configuration without substituting the
+/// product render/capture path used by the original feature smokes.
+pub fn render_nonempty_product_frame_with_prepare(
+    features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+    executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+    collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+    configure: impl FnOnce(&mut RenderFrameExtract),
+) -> (CapturedFrame, RenderStats) {
     let runtime = SmokeRuntime::new();
-    let framework = WgpuRenderFramework::new_with_plugin_render_features(
+    let framework = WgpuRenderFramework::new_with_plugin_render_extensions(
         runtime.access.clone(),
         features,
         executors,
+        collectors,
+        [],
         [],
         runtime.worker_pool(),
     )
@@ -122,6 +142,7 @@ pub fn render_nonempty_product_frame(
             common: RendererCommon::default(),
         }],
     );
+    configure(&mut extract);
     framework
         .submit_frame_extract(viewport, extract)
         .expect("feature smoke scene should submit");

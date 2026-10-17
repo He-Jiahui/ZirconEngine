@@ -114,7 +114,119 @@ fn export_render_product_planar_reflection_mirror_floor_png() {
     assert!(report_path.is_file());
 }
 
+#[test]
+fn diagnose_render_product_planar_capture_and_main_through_production_readback() {
+    fn report(label: &str, hdr: &crate::core::framework::render::CapturedHdrFrame) {
+        assert_eq!(
+            hdr.rgba16f.len(),
+            (hdr.width as usize) * (hdr.height as usize)
+        );
+        let mut maxima = [0.0_f32; 3];
+        let mut sums = [0.0_f64; 3];
+        let mut red = 0_usize;
+        let mut cyan = 0_usize;
+        let mut gold = 0_usize;
+        for pixel in &hdr.rgba16f {
+            assert!(pixel.iter().all(|value| value.is_finite()));
+            let [r, g, b, _] = *pixel;
+            for channel in 0..3 {
+                maxima[channel] = maxima[channel].max(pixel[channel]);
+                sums[channel] += f64::from(pixel[channel]);
+            }
+            red += usize::from(r > 0.15 && r > 1.8 * g && r > 1.8 * b);
+            cyan += usize::from(g > 0.15 && b > 0.15 && g > 1.8 * r && b > 1.8 * r);
+            gold += usize::from(r > 0.15 && g > 0.05 && r > 1.8 * b && g > 1.8 * b);
+        }
+        let means = sums.map(|sum| sum / hdr.rgba16f.len() as f64);
+        eprintln!(
+            "planar-diagnostic {label}: size={}x{} generation={} max={maxima:?} mean={means:?} red={red} cyan={cyan} gold={gold} report={:?}",
+            hdr.width, hdr.height, hdr.generation, hdr.capture_report
+        );
+    }
+
+    let (baseline, baseline_hdr, _) = render_mirror_floor_observed(true, false, false, true);
+    let (main, main_hdr, _) = render_mirror_floor_observed(true, true, false, true);
+    let (capture, capture_hdr, capture_projection) =
+        render_mirror_floor_observed(true, true, true, true);
+    assert_eq!(baseline.stats.last_camera_loop_submission_count, 1);
+    assert_eq!(main.stats.last_camera_loop_submission_count, 2);
+    assert_eq!(capture.stats.last_camera_loop_submission_count, 1);
+    assert_eq!(
+        UVec2::new(main.frame.width, main.frame.height),
+        PRODUCT_VIEWPORT_SIZE
+    );
+    assert_eq!(
+        UVec2::new(capture.frame.width, capture.frame.height),
+        UVec2::splat(CAPTURE_RESOLUTION)
+    );
+    assert!(capture
+        .stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass == PLANAR_FILTER_EXECUTOR_ID));
+    let baseline_hdr = baseline_hdr.expect("baseline HDR product");
+    let main_hdr = main_hdr.expect("main HDR product");
+    let capture_hdr = capture_hdr.expect("capture-camera HDR product");
+    report("baseline-main", &baseline_hdr);
+    report("planar-main", &main_hdr);
+    report("capture-camera", &capture_hdr);
+    let projection = capture_projection.expect("actual selected capture projection");
+    for (label, center) in [
+        ("red", Vec3::new(-1.55, 0.18, -0.1)),
+        ("cyan", Vec3::new(0.05, 0.42, -1.05)),
+        ("gold", Vec3::new(1.55, -0.05, 0.55)),
+        ("floor", Vec3::new(0.0, FLOOR_SURFACE_Y, 0.0)),
+    ] {
+        let clip = projection * center.extend(1.0);
+        let ndc = clip.truncate() / clip.w;
+        let x = ((ndc.x * 0.5 + 0.5) * capture_hdr.width as f32).floor() as i32;
+        let y = ((-ndc.y * 0.5 + 0.5) * capture_hdr.height as f32).floor() as i32;
+        let mut maximum = [0.0_f32; 3];
+        let mut sample_count = 0_usize;
+        for dy in -4..=4 {
+            for dx in -4..=4 {
+                let px = x + dx;
+                let py = y + dy;
+                if px < 0
+                    || py < 0
+                    || px >= capture_hdr.width as i32
+                    || py >= capture_hdr.height as i32
+                {
+                    continue;
+                }
+                let pixel =
+                    capture_hdr.rgba16f[(py as usize) * capture_hdr.width as usize + px as usize];
+                for channel in 0..3 {
+                    maximum[channel] = maximum[channel].max(pixel[channel]);
+                }
+                sample_count += 1;
+            }
+        }
+        eprintln!(
+            "planar-diagnostic geometry={label} center={center:?} clip={clip:?} pixel=({x},{y}) neighborhood_samples={sample_count} neighborhood_max={maximum:?}"
+        );
+    }
+    eprintln!(
+        "planar-diagnostic original-main-difference={:?} capture_passes={:?}",
+        frame_difference(&baseline.frame, &main.frame),
+        capture.stats.last_graph_executed_passes
+    );
+}
+
 fn render_mirror_floor(registered: bool, with_probe: bool) -> ProductRender {
+    render_mirror_floor_observed(registered, with_probe, false, false).0
+}
+
+fn render_mirror_floor_observed(
+    registered: bool,
+    with_probe: bool,
+    capture_only: bool,
+    collect_hdr: bool,
+) -> (
+    ProductRender,
+    Option<crate::core::framework::render::CapturedHdrFrame>,
+    Option<Mat4>,
+) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let target = register_capture_target(&asset_manager);
     let floor = register_material(
@@ -169,21 +281,72 @@ fn render_mirror_floor(registered: bool, with_probe: bool) -> ProductRender {
         .expect("planar product profile should be accepted");
 
     let start = Instant::now();
+    let mut extract = mirror_floor_extract(with_probe, target, floor, red, cyan, gold);
+    let capture_projection = if capture_only {
+        let main = extract
+            .view
+            .selected_camera_descriptor()
+            .expect("original main camera");
+        let probe = extract
+            .lighting
+            .advanced_lighting
+            .planar_probes
+            .first()
+            .expect("original extracted planar probe");
+        let camera =
+            crate::core::framework::render::derive_planar_reflection_camera(main, probe, target)
+                .expect("original capture camera should derive");
+        let clip_from_world = camera
+            .camera
+            .projection_override
+            .expect("derived capture projection")
+            * crate::core::math::view_matrix(camera.camera.transform);
+        extract.view = extract.view.with_cameras(vec![camera]);
+        assert_eq!(extract.view.cameras.len(), 1);
+        Some(clip_from_world)
+    } else {
+        None
+    };
+
     framework
-        .submit_frame_extract(
-            viewport,
-            mirror_floor_extract(with_probe, target, floor, red, cyan, gold),
-        )
+        .submit_frame_extract(viewport, extract)
         .expect("planar product frame should submit");
     let submit_cpu_micros = start.elapsed().as_micros();
     let frame = framework.capture_frame(viewport).unwrap().unwrap();
+    let hdr = if collect_hdr {
+        Some(
+            framework
+                .capture_scene_color_hdr(viewport)
+                .expect("completed production HDR readback")
+                .expect("submitted viewport retains HDR scene color"),
+        )
+    } else {
+        None
+    };
     let stats = framework.query_stats().unwrap();
-    framework.destroy_viewport(viewport).unwrap();
-    ProductRender {
-        frame,
-        stats,
-        submit_cpu_micros,
+    if collect_hdr {
+        eprintln!(
+            "planar-diagnostic readiness registered={registered} with_probe={with_probe} capture_only={capture_only}: materials={} ready={} fallback={} validation_errors={} diagnostics={} mesh_draws={} opaque_draws={} shader_variants={:?}",
+            stats.last_material_count,
+            stats.last_material_ready_count,
+            stats.last_material_fallback_count,
+            stats.last_material_validation_error_count,
+            stats.last_material_diagnostic_count,
+            stats.last_mesh_draw_count,
+            stats.last_mesh_opaque_draw_count,
+            stats.last_shader_variant_miss_report,
+        );
     }
+    framework.destroy_viewport(viewport).unwrap();
+    (
+        ProductRender {
+            frame,
+            stats,
+            submit_cpu_micros,
+        },
+        hdr,
+        capture_projection,
+    )
 }
 
 fn mirror_floor_extract(

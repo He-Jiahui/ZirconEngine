@@ -5,7 +5,7 @@ use zircon_runtime::core::framework::net::{
     NetTransportKind,
 };
 
-use super::{NetRpcRuntimeManager, NetRpcSessionState, close_sessions_for_connections};
+use super::{close_sessions_for_connections, NetRpcRuntimeManager, NetRpcSessionState};
 
 const BENCHMARK_SESSION_COUNT: usize = 4_096;
 const BENCHMARK_CLOSE_EVENT_COUNT: usize = 256;
@@ -48,11 +48,9 @@ fn batched_transport_close_preserves_event_order_and_duplicates() {
             .collect::<Vec<_>>(),
         vec![second_session, first_session, second_session]
     );
-    assert!(
-        closed
-            .iter()
-            .all(|session| session.state == NetSessionHandshakeState::Closed)
-    );
+    assert!(closed
+        .iter()
+        .all(|session| session.state == NetSessionHandshakeState::Closed));
 }
 
 #[test]

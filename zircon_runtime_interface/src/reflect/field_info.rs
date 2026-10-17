@@ -5,6 +5,18 @@ use super::{
 };
 
 /// 稳定 ID 用于访问，name 用于诊断及显式旧名导入，display_name 与 documentation 供编辑器呈现。
+///
+/// # 职责与使用时机
+/// 派生宏或手工注册先组装此声明，再将它放入类型元数据，交给目录和 Runtime 注册端接纳。
+///
+/// # 约束
+/// 构造器与构建方法只组装字段元数据；名称、别名、默认值及编辑提示是否符合字段声明，仍须由注册端检查。
+///
+/// # 生命周期
+/// 文本、集合及可选反射值由此对象拥有，不持有 World 或字段存储的借用；克隆元数据不会创建对象实例。
+///
+/// # 参考
+/// [`Self::new`]、[`Self::from_stable_keys`]、[`ReflectNumericRange::new`]。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ReflectFieldInfo {
     /// 独立于当前名称和目录槽位的稳定字段身份。
@@ -28,6 +40,8 @@ pub struct ReflectFieldInfo {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_value: Option<ReflectedValue>,
     /// 可选编辑数值范围；数值合法性由本类型构造器校验，字段类型适配由 Runtime 注册端校验。
+    /// 此处“本类型构造器”指 [`ReflectNumericRange::new`]；其反序列化也经过相同的数值检查。
+    /// [`Self::new`] 与 [`Self::with_numeric_range`] 只组装字段信息，不检查范围与字段声明类型的匹配。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub numeric_range: Option<ReflectNumericRange>,
     /// 枚举值及其呈现信息；Runtime 注册端会校验值唯一性和数量。

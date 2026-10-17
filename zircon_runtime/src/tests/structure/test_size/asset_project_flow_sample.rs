@@ -8,12 +8,12 @@ fn runtime_15_asset_project_flow_sample_tests_are_folder_backed() {
     let importers = read_runtime_src("asset/tests/project/asset_flow_sample/importers.rs");
     let fixtures = read_runtime_src("asset/tests/project/asset_flow_sample/fixtures.rs");
     let assertions = read_runtime_src("asset/tests/project/asset_flow_sample/assertions.rs");
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert_contains_all(
         "asset project flow sample parent test module mounts",

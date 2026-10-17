@@ -63,3 +63,19 @@ impl MaterialPropertyOverrideBlock {
 #[cfg(test)]
 #[path = "../../../render/material/tests/property_override_block.rs"]
 mod tests;
+
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for MaterialPropertyOverrideBlock {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        zircon_runtime_interface::retained_memory::RetainedOwnerV1::retained_bound_v1(
+            &self.values,
+            m,
+        )
+    }
+}
+unsafe impl zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1
+    for MaterialPropertyOverrideBlock
+{
+}

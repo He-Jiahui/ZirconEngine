@@ -1,0 +1,150 @@
+{
+  "schema": "zircon.source-comments.root-amendment.v1",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R058",
+  "owner": "root",
+  "state": "task-added-comment-corrected-awaiting-root-final-records",
+  "formal_acceptance": false,
+  "source_path": "zircon_runtime_interface/src/ui/tests/focus_performance_tests.rs",
+  "scope": "Only one documentation line added by this task; all original source bytes/comments/code/API/macros retained. Other9source files and fixed child unchanged.",
+  "fixed_child": {
+    "path": "docs/plans/source-comments/reviews/R058.json",
+    "sha256": "98d1caf80267c72ff5e844afec0833c58355ce6a558d77e1ff090a0813a7b359",
+    "bytes": 306124
+  },
+  "authority": {
+    "owner": "root",
+    "source_path": "zircon_runtime_interface/src/ui/tests/focus_performance_tests.rs",
+    "before_current_sha256": "c0e881b93385d3bd922d3dc461531b6f4018f7763f2ea52163b5c30c1887b192",
+    "record_path": "docs/plans/source-comments/reviews/R058-root-amendments.json",
+    "scope": "Correct only task-added benchmark timing description after root full source review; fixed child and other9sources unchanged; original bytes preserved.",
+    "basis": "core_sol gpt-6.1-sol max full10source static advisory; measure times entire closure incl materialization/collection/drop, not only sort/insert.",
+    "registered_at_utc": "2026-10-16T10:44:38.374582+00:00"
+  },
+  "before_current": {
+    "sha256": "c0e881b93385d3bd922d3dc461531b6f4018f7763f2ea52163b5c30c1887b192",
+    "bytes": 7071,
+    "lines": 187
+  },
+  "after_current": {
+    "sha256": "0482fc510995977bff648e21c1ce0d76d1974f29bb4163d23cc6c4b52dc94952",
+    "bytes": 7074,
+    "lines": 187
+  },
+  "original_before_task": {
+    "sha256": "2f75b35648a57afc3cd3b41f4ee677ce37cf18934c652c9ee29d46ca5286ac8e",
+    "bytes": 6257,
+    "lines": 178,
+    "raw_HEAD_equal": true
+  },
+  "replacement": {
+    "current_lines": [
+      3,
+      3
+    ],
+    "old_task_added_text": "//! 计时只覆盖各闭包中的排序或插入；输入克隆在对应计时前完成，不代表 Surface 或整帧性能。",
+    "new_task_added_text": "//! 计时覆盖传入闭包的完整执行；分区测试的输入克隆在计时前完成，不代表 Surface 或整帧性能。",
+    "byte_delta": 3,
+    "line_delta": 0
+  },
+  "reason": "measure starts Instant before invoking the complete run closure. legacy_focus_chain includes sort, projection and collect; visit-set closures include construction, insertions, len and local set destruction. Partition input clones occur before measure; returned values are black_box consumed after elapsed. This is a local measurement description, not a measured speed claim or Surface/frame acceptance.",
+  "root_read_evidence": [
+    "7301b0 exit0 full focus.rs/focus_performance_tests.rs/focus_tests.rs (593 lines)",
+    "ac87e2 exit1 only at final absent pilot file; prior remaining7sources fully read (326 lines)",
+    "abb2fb exit0 verifies current header/insertion; 90a1cf exit0 reads first19object groups and independently verifies R064/R065 grants.",
+    "core_sol gpt-6.1-sol max independent static advisory: 39291a/b8d119/7dea83/1bb395/04ff82/645684 exit0 and native93292->8a4c59,38912->bef904,34964->bd891e exit0; readonly/no pending/no writes"
+  ],
+  "final_insertions_for_this_source": [
+    {
+      "before_line": 1,
+      "before_offset_bytes": 0,
+      "after_offset_bytes": 0,
+      "length_bytes": 380,
+      "sha256": "2d143939bc642a53b889916716ec5832278e08de09933e5f2000d4e088601355",
+      "exact_text": "//! 焦点链分区与访问集合的局部证据；成员一致性是普通测试，两个计时测试显式忽略。\n//!\n//! 计时覆盖传入闭包的完整执行；分区测试的输入克隆在计时前完成，不代表 Surface 或整帧性能。\n//! 性能比例断言只有实际运行指定测试后才构成测量结果，源码中的标记本身不是性能验收。\n\n",
+      "current_lines": [
+        1,
+        5
+      ]
+    },
+    {
+      "before_line": 14,
+      "before_offset_bytes": 318,
+      "after_offset_bytes": 698,
+      "length_bytes": 86,
+      "sha256": "da3cdded577476e475c49c6707a246f2f55f46d527bb74f92a06004b7efaba95",
+      "exact_text": "/// 对照计时所用的旧候选形状，仅在本测试模块中构造和消费。\n",
+      "current_lines": [
+        19,
+        19
+      ]
+    },
+    {
+      "before_line": 21,
+      "before_offset_bytes": 461,
+      "after_offset_bytes": 927,
+      "length_bytes": 122,
+      "sha256": "d6696454d56933ab0cd50e9d244d91659efa3493e953cf90b5c39115d574e348",
+      "exact_text": "/// 消费候选数组，按显式索引优先、顺序值及前序位置排序，返回自有标识数组作为对照。\n",
+      "current_lines": [
+        27,
+        27
+      ]
+    },
+    {
+      "before_line": 35,
+      "before_offset_bytes": 870,
+      "after_offset_bytes": 1458,
+      "length_bytes": 119,
+      "sha256": "57b36020600141a7c0f28a6758b7b38d6084d8e7c9e246c2b755bf10b123d6ea",
+      "exact_text": "/// 消费非空样本并取排序后的第九十五百分位；本模块调用方每次提供固定组数的样本。\n",
+      "current_lines": [
+        42,
+        42
+      ]
+    },
+    {
+      "before_line": 40,
+      "before_offset_bytes": 995,
+      "after_offset_bytes": 1702,
+      "length_bytes": 110,
+      "sha256": "bf0dad76da0e19a9c0dbd3260972fc65c2beef46240cb3800de06c875afed0c5",
+      "exact_text": "/// 恰好执行一次传入闭包，返回纳秒耗时和闭包结果；输入准备不自动纳入计时。\n",
+      "current_lines": [
+        48,
+        48
+      ]
+    }
+  ],
+  "original_byte_preservation": {
+    "inverse_before_sha256": "2f75b35648a57afc3cd3b41f4ee677ce37cf18934c652c9ee29d46ca5286ac8e",
+    "inverse_after_sha256": "2f75b35648a57afc3cd3b41f4ee677ce37cf18934c652c9ee29d46ca5286ac8e",
+    "inverse_bytes": 6257,
+    "same_original_bytes": true,
+    "original_lines_preserved": true
+  },
+  "writer": {
+    "pid": 2868,
+    "interpreter": "C:/Users/HeJiahui/AppData/Local/Python/pythoncore-3.14-64/python.exe",
+    "arguments": [
+      "-B",
+      "-X",
+      "utf8"
+    ],
+    "terminal_receipt_location": "Root main/post and artifact registry after this invocation actually exits; this record does not self-assert future terminal.",
+    "actual_terminal_receipt": "7d09a8 exit0/PID2868; source and initial amendment writes completed."
+  },
+  "created_at_utc": "2026-10-16T11:31:00.627017+00:00",
+  "tests_executed": false,
+  "cleanup": {
+    "created_helpers": 0,
+    "source_copies": 0,
+    "deleted_files": 0,
+    "released_bytes": 0
+  },
+  "metadata_correction": {
+    "scope": "Receipt attribution only; replace mistaken header/insertion citation with actual abb2fb; no source or original child change.",
+    "pid": 20224,
+    "source_still": "0482fc510995977bff648e21c1ce0d76d1974f29bb4163d23cc6c4b52dc94952"
+  }
+}

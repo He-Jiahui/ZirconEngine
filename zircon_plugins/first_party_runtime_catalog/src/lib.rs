@@ -24,14 +24,18 @@ pub fn first_party_runtime_catalog_for_manifest(
 ) -> FirstPartyRuntimeCatalogReport {
     let runtime_plugins =
         first_party_runtime_plugin_registrations_for_manifest(target_mode, manifest);
-    let runtime_plugin_features = if runtime_plugins
-        .iter()
-        .any(|registration| registration.package_manifest.id == RuntimePluginId::Net.key())
-    {
-        first_party_net_feature_registrations()
-    } else {
-        Vec::new()
-    };
+    let mut runtime_plugin_features = Vec::new();
+    for registration in runtime_plugins.iter() {
+        match registration.package_manifest.id.as_str() {
+            id if id == RuntimePluginId::Net.key() => {
+                runtime_plugin_features.extend(first_party_net_feature_registrations());
+            }
+            id if id == RuntimePluginId::Rendering.key() => {
+                runtime_plugin_features.extend(first_party_rendering_feature_registrations());
+            }
+            _ => {}
+        }
+    }
 
     FirstPartyRuntimeCatalogReport {
         runtime_plugins,
@@ -49,6 +53,20 @@ fn first_party_net_feature_registrations() -> Vec<RuntimePluginFeatureRegistrati
 
 #[cfg(not(feature = "base-runtime-plugins"))]
 fn first_party_net_feature_registrations() -> Vec<RuntimePluginFeatureRegistrationReport> {
+    Vec::new()
+}
+
+#[cfg(feature = "base-runtime-plugins")]
+fn first_party_rendering_feature_registrations() -> Vec<RuntimePluginFeatureRegistrationReport> {
+    vec![
+        zircon_plugin_rendering_post_process_runtime::plugin_feature_registration(),
+        zircon_plugin_rendering_reflection_probes_runtime::plugin_feature_registration(),
+        zircon_plugin_rendering_baked_lighting_runtime::plugin_feature_registration(),
+    ]
+}
+
+#[cfg(not(feature = "base-runtime-plugins"))]
+fn first_party_rendering_feature_registrations() -> Vec<RuntimePluginFeatureRegistrationReport> {
     Vec::new()
 }
 

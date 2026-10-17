@@ -42,13 +42,13 @@ fn runtime_15_ui_shared_core_guard_child_owners_are_folder_backed() {
     let scroll_mutation = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/ui_shared_core/scroll_mutation.rs",
     );
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
 
     assert_contains_all(
         "UI shared core guard parent mounts child owners",

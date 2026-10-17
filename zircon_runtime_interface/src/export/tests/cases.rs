@@ -51,16 +51,33 @@ fn export_preset_strict_loader_rejects_unknown_payload_fields() {
 
 #[test]
 fn export_preset_rejects_unsafe_profile_refs() {
-    for profile in ["", " ", "../outside", "..", "C:\\outside", "C:relative", "/tmp/out", "bad/name", "bad\\name", "nul"] {
+    for profile in [
+        "",
+        " ",
+        "../outside",
+        "..",
+        "C:\\outside",
+        "C:relative",
+        "/tmp/out",
+        "bad/name",
+        "bad\\name",
+        "nul",
+    ] {
         let preset = ExportPreset::new(profile, ExportTargetMode::ServerRuntime);
-        assert!(matches!(
-            preset.validate(),
-            Err(super::ExportPresetValidationError::InvalidProfileRef)
-        ), "profile should be rejected: {profile:?}");
+        assert!(
+            matches!(
+                preset.validate(),
+                Err(super::ExportPresetValidationError::InvalidProfileRef)
+            ),
+            "profile should be rejected: {profile:?}"
+        );
     }
     for profile in ["windows-release", "editor_2", "A"] {
         let preset = ExportPreset::new(profile, ExportTargetMode::ServerRuntime);
-        assert!(preset.validate().is_ok(), "profile should be accepted: {profile:?}");
+        assert!(
+            preset.validate().is_ok(),
+            "profile should be accepted: {profile:?}"
+        );
     }
 }
 

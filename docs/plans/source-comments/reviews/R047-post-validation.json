@@ -1,0 +1,1070 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R047",
+  "owner": "root",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "formal_acceptance": false,
+  "companion_of": "R038",
+  "status": "passed-local-scoped-checks-managed-acceptance-open",
+  "fixed_child_record": {
+    "path": "docs\\plans\\source-comments\\reviews\\R047.json",
+    "sha256": "beb39dc0c4ab6de7eafe3c8c7bf26bdc07ba104241af28f426fd515b064f64e7",
+    "bytes": 786965
+  },
+  "proof": {
+    "utc": "2026-10-15T23:09:27.799269+00:00",
+    "head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+    "child_record": {
+      "path": "docs\\plans\\source-comments\\reviews\\R047.json",
+      "sha256": "beb39dc0c4ab6de7eafe3c8c7bf26bdc07ba104241af28f426fd515b064f64e7",
+      "bytes": 786965
+    },
+    "files": [
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs",
+        "before_sha256": "246c10533e92d3c7f4f75956acd0d4f4c16c5afe22f7635a4a672fc85f025325",
+        "after_sha256": "a141c2f929c4a7e0eae3d0c508a96e8bbc3f43003db5bf718437f1c6ad7ae941",
+        "before_bytes": 2980,
+        "after_bytes": 4038,
+        "before_lines": 78,
+        "after_lines": 89,
+        "before_eol": {
+          "crlf": 0,
+          "lf_only": 78
+        },
+        "after_eol": {
+          "crlf": 0,
+          "lf_only": 89
+        },
+        "reconstructed_before_sha256": "246c10533e92d3c7f4f75956acd0d4f4c16c5afe22f7635a4a672fc85f025325",
+        "current_sha256": "a141c2f929c4a7e0eae3d0c508a96e8bbc3f43003db5bf718437f1c6ad7ae941",
+        "bom_before": false,
+        "bom_after": false,
+        "original_bytes_preserved": true,
+        "original_comments_api_strings_assertions_preserved": true,
+        "inserted_blocks": 8,
+        "inserted_lines": 11,
+        "objects": 5,
+        "tests": 3,
+        "partitions": 9
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+        "before_sha256": "61b9c9dcad27c05acdbfb14126fc14dcdfe5b7ec7afb53eee33e9b1526446d63",
+        "after_sha256": "80ae10826a326c0c5abf06d44ca2536a9c17e81c169462653e26122c28e4a2a4",
+        "before_bytes": 25056,
+        "after_bytes": 27844,
+        "before_lines": 758,
+        "after_lines": 791,
+        "before_eol": {
+          "crlf": 0,
+          "lf_only": 758
+        },
+        "after_eol": {
+          "crlf": 0,
+          "lf_only": 791
+        },
+        "reconstructed_before_sha256": "61b9c9dcad27c05acdbfb14126fc14dcdfe5b7ec7afb53eee33e9b1526446d63",
+        "current_sha256": "80ae10826a326c0c5abf06d44ca2536a9c17e81c169462653e26122c28e4a2a4",
+        "bom_before": false,
+        "bom_after": false,
+        "original_bytes_preserved": true,
+        "original_comments_api_strings_assertions_preserved": true,
+        "inserted_blocks": 19,
+        "inserted_lines": 33,
+        "objects": 12,
+        "tests": 7,
+        "partitions": 32
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts.rs",
+        "before_sha256": "fed1c421e4e83c5bf9993a1ea8c17227567eb44f2d52f22a0f8c4b7046cf7734",
+        "after_sha256": "3cc0a5b3af97a0106ed8cd3fa822b9555130ce1e8b5e02b0f5e6968e522ac4f6",
+        "before_bytes": 38182,
+        "after_bytes": 39179,
+        "before_lines": 905,
+        "after_lines": 918,
+        "before_eol": {
+          "crlf": 0,
+          "lf_only": 905
+        },
+        "after_eol": {
+          "crlf": 0,
+          "lf_only": 918
+        },
+        "reconstructed_before_sha256": "fed1c421e4e83c5bf9993a1ea8c17227567eb44f2d52f22a0f8c4b7046cf7734",
+        "current_sha256": "3cc0a5b3af97a0106ed8cd3fa822b9555130ce1e8b5e02b0f5e6968e522ac4f6",
+        "bom_before": false,
+        "bom_after": false,
+        "original_bytes_preserved": true,
+        "original_comments_api_strings_assertions_preserved": true,
+        "inserted_blocks": 6,
+        "inserted_lines": 13,
+        "objects": 5,
+        "tests": 2,
+        "partitions": 64
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/ime.rs",
+        "before_sha256": "9775132582b214eef33af0e8e0665802b0b22cb30a496d8125d7fd61f37b63b7",
+        "after_sha256": "d6da8379866873c14badeaef7076f54d15a64dcc4bff0c69357e5a09b5788344",
+        "before_bytes": 7709,
+        "after_bytes": 8363,
+        "before_lines": 217,
+        "after_lines": 224,
+        "before_eol": {
+          "crlf": 0,
+          "lf_only": 217
+        },
+        "after_eol": {
+          "crlf": 0,
+          "lf_only": 224
+        },
+        "reconstructed_before_sha256": "9775132582b214eef33af0e8e0665802b0b22cb30a496d8125d7fd61f37b63b7",
+        "current_sha256": "d6da8379866873c14badeaef7076f54d15a64dcc4bff0c69357e5a09b5788344",
+        "bom_before": false,
+        "bom_after": false,
+        "original_bytes_preserved": true,
+        "original_comments_api_strings_assertions_preserved": true,
+        "inserted_blocks": 6,
+        "inserted_lines": 7,
+        "objects": 5,
+        "tests": 5,
+        "partitions": 15
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs",
+        "before_sha256": "5735d9b296c28a1250a265c9f177ecc8f21a28dd6583787b38e79d64c03f5585",
+        "after_sha256": "a17475d9438554041e45e85beebcaec812dd2d213909137ccb694e348c9b1236",
+        "before_bytes": 8142,
+        "after_bytes": 8437,
+        "before_lines": 207,
+        "after_lines": 211,
+        "before_eol": {
+          "crlf": 0,
+          "lf_only": 207
+        },
+        "after_eol": {
+          "crlf": 0,
+          "lf_only": 211
+        },
+        "reconstructed_before_sha256": "5735d9b296c28a1250a265c9f177ecc8f21a28dd6583787b38e79d64c03f5585",
+        "current_sha256": "a17475d9438554041e45e85beebcaec812dd2d213909137ccb694e348c9b1236",
+        "bom_before": false,
+        "bom_after": false,
+        "original_bytes_preserved": true,
+        "original_comments_api_strings_assertions_preserved": true,
+        "inserted_blocks": 2,
+        "inserted_lines": 4,
+        "objects": 1,
+        "tests": 1,
+        "partitions": 12
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_transient_contracts.rs",
+        "before_sha256": "03bbf8d96c306ae0fab8a456b9cb2d0a5446d83825dd6efb3eacf8b7c1646e7d",
+        "after_sha256": "610b6da46aa10f0b2e8ffd27f3d35f74ae6247c937d7a9ef4d23c6d9898d451b",
+        "before_bytes": 4012,
+        "after_bytes": 4423,
+        "before_lines": 104,
+        "after_lines": 109,
+        "before_eol": {
+          "crlf": 0,
+          "lf_only": 104
+        },
+        "after_eol": {
+          "crlf": 0,
+          "lf_only": 109
+        },
+        "reconstructed_before_sha256": "03bbf8d96c306ae0fab8a456b9cb2d0a5446d83825dd6efb3eacf8b7c1646e7d",
+        "current_sha256": "610b6da46aa10f0b2e8ffd27f3d35f74ae6247c937d7a9ef4d23c6d9898d451b",
+        "bom_before": false,
+        "bom_after": false,
+        "original_bytes_preserved": true,
+        "original_comments_api_strings_assertions_preserved": true,
+        "inserted_blocks": 3,
+        "inserted_lines": 5,
+        "objects": 3,
+        "tests": 2,
+        "partitions": 8
+      }
+    ],
+    "summary": {
+      "files": 6,
+      "before_lines": 2269,
+      "after_lines": 2342,
+      "before_bytes": 86081,
+      "after_bytes": 92284,
+      "inserted_blocks": 44,
+      "inserted_lines": 73,
+      "safety_blocks": 12,
+      "function_declarations": 31,
+      "test_functions": 20,
+      "top_level_helpers": 10,
+      "nested_trait_helpers": 1,
+      "continuous_partitions": 140,
+      "brace_regions": 170,
+      "field_use_sites": 151,
+      "member_access_name_groups": 94,
+      "enum_variant_use_name_groups": 143,
+      "local_binding_sites": 176,
+      "macro_sites": 417,
+      "attribute_sites": 22,
+      "path_modules": 2,
+      "import_groups": 6,
+      "lexical_control_sites": 102,
+      "literal_tokens_preserved": 121,
+      "static_raw_operand_pairs": 42,
+      "readonly_context_files": 19,
+      "bounded_evidence_refs": 599
+    },
+    "raw_operand_vectors": [
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs",
+        "id": "test_attributes",
+        "needle": "#[test]",
+        "before": 3,
+        "after": 3,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs",
+        "id": "path_attributes",
+        "needle": "#[path =",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs",
+        "id": "include_str_macro",
+        "needle": "include_str!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs",
+        "id": "include_bytes_macro",
+        "needle": "include_bytes!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs",
+        "id": "include_macro",
+        "needle": "include!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs",
+        "id": "unsafe_blocks",
+        "needle": "unsafe {",
+        "before": 3,
+        "after": 3,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs",
+        "id": "ime_json_assertion",
+        "needle": "encoded.contains(\"\\\"target_converted\\\"\")",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+        "id": "test_attributes",
+        "needle": "#[test]",
+        "before": 7,
+        "after": 7,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+        "id": "path_attributes",
+        "needle": "#[path =",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+        "id": "include_str_macro",
+        "needle": "include_str!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+        "id": "include_bytes_macro",
+        "needle": "include_bytes!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+        "id": "include_macro",
+        "needle": "include!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+        "id": "unsafe_blocks",
+        "needle": "unsafe {",
+        "before": 9,
+        "after": 9,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+        "id": "ime_json_assertion",
+        "needle": "encoded.contains(\"\\\"target_converted\\\"\")",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts.rs",
+        "id": "test_attributes",
+        "needle": "#[test]",
+        "before": 2,
+        "after": 2,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts.rs",
+        "id": "path_attributes",
+        "needle": "#[path =",
+        "before": 2,
+        "after": 2,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts.rs",
+        "id": "include_str_macro",
+        "needle": "include_str!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts.rs",
+        "id": "include_bytes_macro",
+        "needle": "include_bytes!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts.rs",
+        "id": "include_macro",
+        "needle": "include!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts.rs",
+        "id": "unsafe_blocks",
+        "needle": "unsafe {",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts.rs",
+        "id": "ime_json_assertion",
+        "needle": "encoded.contains(\"\\\"target_converted\\\"\")",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/ime.rs",
+        "id": "test_attributes",
+        "needle": "#[test]",
+        "before": 5,
+        "after": 5,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/ime.rs",
+        "id": "path_attributes",
+        "needle": "#[path =",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/ime.rs",
+        "id": "include_str_macro",
+        "needle": "include_str!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/ime.rs",
+        "id": "include_bytes_macro",
+        "needle": "include_bytes!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/ime.rs",
+        "id": "include_macro",
+        "needle": "include!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/ime.rs",
+        "id": "unsafe_blocks",
+        "needle": "unsafe {",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/ime.rs",
+        "id": "ime_json_assertion",
+        "needle": "encoded.contains(\"\\\"target_converted\\\"\")",
+        "before": 1,
+        "after": 1,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs",
+        "id": "test_attributes",
+        "needle": "#[test]",
+        "before": 1,
+        "after": 1,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs",
+        "id": "path_attributes",
+        "needle": "#[path =",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs",
+        "id": "include_str_macro",
+        "needle": "include_str!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs",
+        "id": "include_bytes_macro",
+        "needle": "include_bytes!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs",
+        "id": "include_macro",
+        "needle": "include!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs",
+        "id": "unsafe_blocks",
+        "needle": "unsafe {",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs",
+        "id": "ime_json_assertion",
+        "needle": "encoded.contains(\"\\\"target_converted\\\"\")",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_transient_contracts.rs",
+        "id": "test_attributes",
+        "needle": "#[test]",
+        "before": 2,
+        "after": 2,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_transient_contracts.rs",
+        "id": "path_attributes",
+        "needle": "#[path =",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_transient_contracts.rs",
+        "id": "include_str_macro",
+        "needle": "include_str!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_transient_contracts.rs",
+        "id": "include_bytes_macro",
+        "needle": "include_bytes!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_transient_contracts.rs",
+        "id": "include_macro",
+        "needle": "include!",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_transient_contracts.rs",
+        "id": "unsafe_blocks",
+        "needle": "unsafe {",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_transient_contracts.rs",
+        "id": "ime_json_assertion",
+        "needle": "encoded.contains(\"\\\"target_converted\\\"\")",
+        "before": 0,
+        "after": 0,
+        "new_comments": 0
+      }
+    ],
+    "markers": [],
+    "context_recheck": [
+      {
+        "path": "zircon_runtime_interface/src/ui/window/runtime_event_abi.rs",
+        "id": "E01",
+        "sha256": "3a327faedb3b4b2bffc0ff576d85b4a35a94649321a347b4762e28c33379f657",
+        "bytes": 3701,
+        "lines": 71,
+        "selected_ranges": [
+          [
+            1,
+            71
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/window/runtime_event.rs",
+        "id": "E02",
+        "sha256": "9688cba399053dbc8c5ba62a1e0c71f30af469bcdaa7dfbab11de2f4841490a9",
+        "bytes": 4316,
+        "lines": 98,
+        "selected_ranges": [
+          [
+            1,
+            98
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/buffer.rs",
+        "id": "E03",
+        "sha256": "4f311bf8fb2e1c436581e2f96f9b54567127644a121ac3ca6890b7ce05c4dad7",
+        "bytes": 17842,
+        "lines": 357,
+        "selected_ranges": [
+          [
+            190,
+            243
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/window/pump.rs",
+        "id": "E04",
+        "sha256": "63c3d22ec4b4551896df1e4f5ef4a954ffb3c119e6a4fe9bf09a5477ebfb0375",
+        "bytes": 2939,
+        "lines": 75,
+        "selected_ranges": [
+          [
+            1,
+            75
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/window/input/window_event.rs",
+        "id": "E05",
+        "sha256": "7b2e0501b19a6ee316bd2e311858c7e92183eb610814c5f4d5d01640831dff53",
+        "bytes": 1908,
+        "lines": 52,
+        "selected_ranges": [
+          [
+            1,
+            52
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/window/input/normalization.rs",
+        "id": "E06",
+        "sha256": "c2ffe748215a8a4e3726676214fb86b16de8597ba6adb589200de3a77707c060",
+        "bytes": 4939,
+        "lines": 135,
+        "selected_ranges": [
+          [
+            1,
+            135
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs",
+        "id": "E07",
+        "sha256": "3b72d4b177dd7025beb392eec0f69e40084ebed1c34d8ea9e46497e43a4f68d2",
+        "bytes": 31349,
+        "lines": 783,
+        "selected_ranges": [
+          [
+            1,
+            429
+          ],
+          [
+            430,
+            590
+          ],
+          [
+            589,
+            627
+          ],
+          [
+            628,
+            645
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/window/input/platform_event.rs",
+        "id": "E08",
+        "sha256": "11659ae767304eddceb7efead12d2ae67d3b126d00f16d0566846da0ed54ac2c",
+        "bytes": 21852,
+        "lines": 683,
+        "selected_ranges": [
+          [
+            1,
+            340
+          ],
+          [
+            341,
+            683
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/window/input/context.rs",
+        "id": "E09",
+        "sha256": "888dbebc55691184b992132e30ed9518976e4f012a7f4f1290d480a4f113de9d",
+        "bytes": 5697,
+        "lines": 131,
+        "selected_ranges": [
+          [
+            1,
+            128
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/window/input/touch.rs",
+        "id": "E10",
+        "sha256": "58c1f55f68f3e9fa22acc70ce5d8ceec9f165fcc7a4b6f6a2819a4542ad690a2",
+        "bytes": 1324,
+        "lines": 34,
+        "selected_ranges": [
+          [
+            1,
+            34
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/window/event.rs",
+        "id": "E11",
+        "sha256": "f718a3e7fe98bcf44e0c1d9b3fea1b05103e0ed552be4e98b01a0977c1690d22",
+        "bytes": 9974,
+        "lines": 257,
+        "selected_ranges": [
+          [
+            1,
+            257
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/window/impact.rs",
+        "id": "E12",
+        "sha256": "efed6fb55fecdf25395e2851b48d04f7d76f8703fc875c210778f71407c2a93f",
+        "bytes": 2798,
+        "lines": 85,
+        "selected_ranges": [
+          [
+            1,
+            85
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/dispatch/input/event.rs",
+        "id": "E13",
+        "sha256": "081d5c2404e751385ca6f113d00e168b58c43c9acc1a73fa4b931f22cc38b69c",
+        "bytes": 8117,
+        "lines": 268,
+        "selected_ranges": [
+          [
+            125,
+            168
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/surface/render/editable_text.rs",
+        "id": "E14",
+        "sha256": "e926f940e36ba99b6090b770e62864a4d5d8c8926d281f668c049ade2cc4aaec",
+        "bytes": 7197,
+        "lines": 227,
+        "selected_ranges": [
+          [
+            1,
+            145
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+        "id": "E15",
+        "sha256": "aff4edd1b0d58e5d202ab5e04a7fda6c0074acadb08f8e652a09a6fc8ed72353",
+        "bytes": 21815,
+        "lines": 691,
+        "selected_ranges": [
+          [
+            1,
+            105
+          ],
+          [
+            107,
+            122
+          ],
+          [
+            124,
+            139
+          ],
+          [
+            157,
+            171
+          ],
+          [
+            206,
+            225
+          ],
+          [
+            227,
+            233
+          ],
+          [
+            235,
+            237
+          ],
+          [
+            255,
+            269
+          ],
+          [
+            283,
+            299
+          ],
+          [
+            301,
+            319
+          ],
+          [
+            337,
+            351
+          ],
+          [
+            369,
+            381
+          ],
+          [
+            383,
+            392
+          ],
+          [
+            394,
+            406
+          ],
+          [
+            421,
+            430
+          ],
+          [
+            432,
+            447
+          ],
+          [
+            450,
+            465
+          ],
+          [
+            474,
+            479
+          ],
+          [
+            482,
+            496
+          ],
+          [
+            606,
+            619
+          ],
+          [
+            622,
+            630
+          ],
+          [
+            656,
+            675
+          ],
+          [
+            677,
+            690
+          ],
+          [
+            632,
+            655
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+        "id": "E16",
+        "sha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+        "bytes": 9105,
+        "lines": 208,
+        "selected_ranges": [
+          [
+            35,
+            85
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/ui/accessibility.rs",
+        "id": "E17",
+        "sha256": "318579126115e20d84b3251529eae53e520c9fb95e88ee469d4772263d386199",
+        "bytes": 6857,
+        "lines": 237,
+        "selected_ranges": [
+          [
+            88,
+            135
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/lib.rs",
+        "id": "E18",
+        "sha256": "e851a09cf3b0946ce83a7723a48da45656746820bc0375b9285df9c740409078",
+        "bytes": 15930,
+        "lines": 254,
+        "selected_ranges": [
+          [
+            249,
+            254
+          ]
+        ],
+        "matches_child_read_pin": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "id": "E19",
+        "sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+        "bytes": 2666,
+        "lines": 79,
+        "selected_ranges": [
+          [
+            64,
+            79
+          ]
+        ],
+        "matches_child_read_pin": true
+      }
+    ],
+    "checks": {
+      "scoped_diff_check": {
+        "exit_code": 0,
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/window_input_contracts.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/window_input_contracts/ime.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/window_transient_contracts.rs.\nThe file will have its original line endings in your working directory\n"
+      },
+      "scoped_index_empty": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "numstat": "13\t0\tzircon_runtime_interface/src/tests/window_input_contracts.rs\n7\t0\tzircon_runtime_interface/src/tests/window_input_contracts/ime.rs\n4\t0\tzircon_runtime_interface/src/tests/window_input_contracts/window_events.rs\n33\t0\tzircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs\n11\t0\tzircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs\n5\t0\tzircon_runtime_interface/src/tests/window_transient_contracts.rs\n"
+    },
+    "patch": {
+      "bytes": 18470,
+      "sha256": "e2c979e39c10f7619106c4d9f9a3a8441b9b5de4da0d1be15f35a864c2be8f86",
+      "stderr": "warning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/window_input_contracts.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/window_input_contracts/ime.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/window_transient_contracts.rs.\nThe file will have its original line endings in your working directory\n"
+    },
+    "reused_rustfmt": {
+      "native_chunk_id": "c00d4e",
+      "exit_code": 0,
+      "stdout_stderr": "",
+      "command": "rustfmt --check --edition 2021 --config skip_children=true zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs zircon_runtime_interface/src/tests/window_input_contracts.rs zircon_runtime_interface/src/tests/window_input_contracts/ime.rs zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs zircon_runtime_interface/src/tests/window_transient_contracts.rs"
+    },
+    "mutables_before": {
+      "docs/plans/source-comments/assignments.json": {
+        "bytes": 239836,
+        "sha256": "97ebf23a5cac5beaa36e3c3596f4ee7dc94687b578b07e129f35a08ad9b8b9d9"
+      },
+      "docs/plans/source-comments/coverage.jsonl": {
+        "bytes": 17525067,
+        "sha256": "a0f32326a14b824e252313722627854847c9aa2a8bcdde82996fd3e793a47fd6"
+      },
+      "docs/plans/source-comments/issues.jsonl": {
+        "bytes": 705873,
+        "sha256": "f8d5c13ce91a7dbe15da3afe21de034fb3b4117387d595f07b227a5578ea1852"
+      },
+      "E:\\cargo-targets\\zircon-local\\reports\\source-comments-20261014-01a13a81\\artifacts.json": {
+        "bytes": 344665,
+        "sha256": "6659b15d87650c0e1aefd7d819ec7520eaac738453c1e5f6e4a055d86714aba7"
+      }
+    },
+    "grant_status": "assigned",
+    "tests_executed": false,
+    "cargo_or_build_executed": false,
+    "formal_acceptance": false
+  },
+  "root_independent_structure": {
+    "receipt": "18fcb9",
+    "exit_code": 0,
+    "original_bytes_preserved_in_all_six": true,
+    "all_insertions_comments_or_blank": true,
+    "HEAD_normalized_equals_exact_before_grant": true,
+    "real_fn_inventory_matches": true,
+    "all_140_before_after_raw_block_hashes_and_partitions_match": true
+  },
+  "change_guard": {
+    "initial_receipt": "fe785d",
+    "session_id": 11228,
+    "terminal_receipt": "9882f3",
+    "exit_code": 0,
+    "result": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "e2c979e39c10f7619106c4d9f9a3a8441b9b5de4da0d1be15f35a864c2be8f86",
+        "base": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+        "files": [
+          "zircon_runtime_interface/src/tests/window_input_contracts.rs",
+          "zircon_runtime_interface/src/tests/window_input_contracts/ime.rs",
+          "zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs",
+          "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+          "zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs",
+          "zircon_runtime_interface/src/tests/window_transient_contracts.rs"
+        ],
+        "declaredPaths": [
+          "zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs",
+          "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+          "zircon_runtime_interface/src/tests/window_input_contracts.rs",
+          "zircon_runtime_interface/src/tests/window_input_contracts/ime.rs",
+          "zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs",
+          "zircon_runtime_interface/src/tests/window_transient_contracts.rs"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": []
+    }
+  },
+  "formatting": {
+    "evidence_reused": {
+      "native_chunk_id": "c00d4e",
+      "exit_code": 0,
+      "stdout_stderr": "",
+      "command": "rustfmt --check --edition 2021 --config skip_children=true zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs zircon_runtime_interface/src/tests/window_input_contracts.rs zircon_runtime_interface/src/tests/window_input_contracts/ime.rs zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs zircon_runtime_interface/src/tests/window_transient_contracts.rs"
+    },
+    "all_six_final_pins_rechecked": true,
+    "reason": "相同六源、配置和环境，无后续相关源码变化，不重复格式检查。"
+  },
+  "runtime_tests": {
+    "cargo": false,
+    "rust": false,
+    "python_suites": false,
+    "build": false,
+    "static_raw_checks": true
+  },
+  "pending": [
+    "实际管理验证/提交/企业微信通知尚无终态，不计正式验收。"
+  ],
+  "artifact_lifecycle": {
+    "actual_freed_bytes": 0,
+    "deleted_files": 0,
+    "no_new_build_cache_temp_or_source_copy": true
+  },
+  "record_writer": {
+    "method": "apply_patch",
+    "expected_new_file": true,
+    "independent_readback_required": true,
+    "notes": "不通过长Windows命令行传输大JSON，不编造native PID/退出码；实际输出字节与预期SHA由后续独立只读回执固定。"
+  }
+}

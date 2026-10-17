@@ -39,7 +39,8 @@ fn optimization_batch_20260826em_editor128_capacity_preserves_five_layer_paper()
 
 #[test]
 fn optimization_batch_20260826em_editor128_paper_reserves_maximum_command_count() {
-    let source = include_str!("../../../../../retained/contract/paint/primitives/paper/commands.rs");
+    let source =
+        include_str!("../../../../../retained/contract/paint/primitives/paper/commands.rs");
     let builder_start = source.find("fn push_paper_primitive_commands").unwrap();
     let builder_end = source[builder_start..]
         .find("fn reserve_paper_command_capacity")

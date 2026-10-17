@@ -117,6 +117,12 @@ impl RenderFramework for FakeRenderFramework {
         Ok(RenderStats {
             active_viewports: 2,
             submitted_frames: 7,
+            last_ambient_occlusion_execution_report:
+                crate::core::framework::render::RenderAmbientOcclusionExecutionReport {
+                    evaluate_candidate_artifact_fingerprint: 9_007_199_254_740_993,
+                    evaluate_resolved_artifact_fingerprint: 9_007_199_254_740_994,
+                    ..Default::default()
+                },
             last_frame_history_status: FrameHistoryStatus::new(
                 Some(FrameHistoryHandle::new(41)),
                 Some(FrameHistoryHandle::new(40)),
@@ -403,6 +409,7 @@ impl RenderFramework for FakeRenderFramework {
             last_mesh_previous_velocity_transform_draw_count: 5,
             last_mesh_missing_velocity_transform_draw_count: 2,
             last_mesh_taa_reactive_mask_command_count: 3,
+            last_taa_reactive_mask_encoded_write_bytes: 1234,
             last_mesh_static_batch_candidate_group_count: 2,
             last_mesh_static_batch_candidate_draw_count: 5,
             last_mesh_dynamic_batch_candidate_group_count: 3,

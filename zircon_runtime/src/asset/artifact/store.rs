@@ -99,7 +99,7 @@ impl ArtifactStore {
         );
         let artifact_uri = AssetUri::parse(&format!("lib://{relative_path}"))?;
         let artifact_path = resolve_artifact_cache_path(paths, &artifact_uri)?;
-        let cache_asset = ArtifactCacheAsset::from_imported(asset)?;
+        let cache_asset = super::cache_payload::from_imported_for_write(asset)?;
         let staged = StagedArtifactPayload::write(paths.asset_artifact_root(), &cache_asset)?;
         let chunks = publish_chunks(paths.asset_artifact_root(), staged.path())?;
         let raw_bytes = staged.raw_bytes();
@@ -244,7 +244,7 @@ struct StagedArtifactPayload {
 impl StagedArtifactPayload {
     fn write(
         artifact_root: &Path,
-        cache_asset: &ArtifactCacheAsset,
+        cache_asset: &(impl serde::Serialize + ?Sized),
     ) -> Result<Self, AssetImportError> {
         let (path, file) = create_staging_file(artifact_root)?;
         let result: Result<Self, AssetImportError> = (|| {

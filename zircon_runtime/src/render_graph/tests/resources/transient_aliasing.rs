@@ -84,9 +84,7 @@ fn transient_allocation_indexes_buckets_slots_and_reservations() {
 
 #[test]
 fn transient_materialization_uses_compiler_allocation_ids_not_bucket_hashes() {
-    let source = include_str!(
-        "../../../graphics/scene/execution/transient_materialization.rs"
-    );
+    let source = include_str!("../../../graphics/scene/execution/transient_materialization.rs");
 
     assert!(source.contains("allocation_id: CompiledRenderGraphTransientAllocationId"));
     assert!(source.contains("TransientMaterializationSlotKey::from_allocation"));

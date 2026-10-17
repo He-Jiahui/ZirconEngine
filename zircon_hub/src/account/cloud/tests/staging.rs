@@ -1,10 +1,10 @@
 use std::{fs, path::PathBuf, time::SystemTime};
 
 use zircon_runtime_interface::project::{
-    PROJECT_MANIFEST_FORMAT_VERSION, PROJECT_PACKAGE_LOCK_SCHEMA_VERSION_V1, ProjectGuid,
-    ProjectManifestDigest, ProjectPackageLock, ProjectPackageLockAuthority,
+    ProjectGuid, ProjectManifestDigest, ProjectPackageLock, ProjectPackageLockAuthority,
     ProjectPackageLockPlatform, ProjectPackageLockProject, ProjectPackageLockRuntimeMode,
-    ProjectPackageLockState, ProjectPackageLockTarget,
+    ProjectPackageLockState, ProjectPackageLockTarget, PROJECT_MANIFEST_FORMAT_VERSION,
+    PROJECT_PACKAGE_LOCK_SCHEMA_VERSION_V1,
 };
 
 use super::*;
@@ -617,23 +617,18 @@ fn stale_download_pruning_keeps_same_revision_other_accounts_and_conflict_recove
         prune_stale_download_stages(&root, ORGANIZATION, PROJECT, &scope, "5", &project_lease,),
         Ok(1)
     );
-    assert!(
-        !root
-            .join(format!(".zircon/cloud/staging/{STALE_STAGE}"))
-            .exists()
-    );
-    assert!(
-        root.join(format!(".zircon/cloud/staging/{CONFLICT_STAGE}"))
-            .exists()
-    );
-    assert!(
-        root.join(format!(".zircon/cloud/staging/{OTHER_SCOPE_STAGE}"))
-            .exists()
-    );
-    assert!(
-        root.join(format!(".zircon/cloud/staging/{CURRENT_STAGE}"))
-            .exists()
-    );
+    assert!(!root
+        .join(format!(".zircon/cloud/staging/{STALE_STAGE}"))
+        .exists());
+    assert!(root
+        .join(format!(".zircon/cloud/staging/{CONFLICT_STAGE}"))
+        .exists());
+    assert!(root
+        .join(format!(".zircon/cloud/staging/{OTHER_SCOPE_STAGE}"))
+        .exists());
+    assert!(root
+        .join(format!(".zircon/cloud/staging/{CURRENT_STAGE}"))
+        .exists());
     drop(project_lease);
     fs::remove_dir_all(root).unwrap();
 }
@@ -659,18 +654,16 @@ fn explicit_download_discard_checks_scope_and_revision_and_preserves_local_files
     ));
 
     let project_lease = ProjectCloudSyncLease::acquire(&root).unwrap();
-    assert!(
-        discard_bound_download_stage(
-            &root,
-            STAGE,
-            ORGANIZATION,
-            PROJECT,
-            "7",
-            &"d".repeat(64),
-            &project_lease,
-        )
-        .is_err()
-    );
+    assert!(discard_bound_download_stage(
+        &root,
+        STAGE,
+        ORGANIZATION,
+        PROJECT,
+        "7",
+        &"d".repeat(64),
+        &project_lease,
+    )
+    .is_err());
     assert!(staged.directory.exists());
     discard_bound_download_stage(
         &root,
@@ -751,11 +744,9 @@ fn concurrent_same_content_publishers_never_replace_or_publish_partial_bytes() {
         .map(|writer| writer.join().unwrap())
         .collect::<Vec<_>>();
     assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
-    assert!(
-        results
-            .iter()
-            .all(|result| { result.is_ok() || *result == Err("hub_cloud_sync_stage_exists") })
-    );
+    assert!(results
+        .iter()
+        .all(|result| { result.is_ok() || *result == Err("hub_cloud_sync_stage_exists") }));
     assert_eq!(fs::read(&target).unwrap(), b"complete");
     assert_eq!(fs::read_dir(&parent).unwrap().count(), 1);
     fs::remove_dir_all(root).unwrap();
@@ -900,51 +891,47 @@ fn incomplete_or_private_remote_paths_cannot_be_applied() {
     let (root, guid) = fixture();
     let (manifest, digest, mut blobs) = manifest(&[("Content/remote.txt", b"remote")]);
     blobs.clear();
-    assert!(
-        stage_snapshot(
-            &root,
-            STAGE,
-            ORGANIZATION,
-            PROJECT,
-            "1",
-            &digest,
-            manifest,
-            blobs
-        )
-        .is_err()
-    );
+    assert!(stage_snapshot(
+        &root,
+        STAGE,
+        ORGANIZATION,
+        PROJECT,
+        "1",
+        &digest,
+        manifest,
+        blobs
+    )
+    .is_err());
     assert!(!stage_path_allowed(".zircon/session.lock"));
     let project_lease = ProjectCloudSyncLease::acquire(&root).unwrap();
-    assert!(
-        apply_additions(
-            &root,
-            guid,
-            &StagedSnapshot {
-                stage_id: STAGE.into(),
-                organization_id: ORGANIZATION.into(),
-                project_id: PROJECT.into(),
-                revision: "1".into(),
-                manifest_digest: "a".repeat(64),
-                manifest: Manifest {
-                    schema_version: 1,
-                    engine: "Zircon".into(),
-                    package_lock_digest: "a".repeat(64),
-                    package_lock: None,
-                    ignore_policy: "zircon-project-v1".into(),
-                    source_revision: None,
-                    files: vec![FileEntry {
-                        path: ".zircon/session.lock".into(),
-                        digest: "a".repeat(64),
-                        bytes: 1
-                    }]
-                },
-                directory: stage_directory(&root, STAGE).unwrap()
+    assert!(apply_additions(
+        &root,
+        guid,
+        &StagedSnapshot {
+            stage_id: STAGE.into(),
+            organization_id: ORGANIZATION.into(),
+            project_id: PROJECT.into(),
+            revision: "1".into(),
+            manifest_digest: "a".repeat(64),
+            manifest: Manifest {
+                schema_version: 1,
+                engine: "Zircon".into(),
+                package_lock_digest: "a".repeat(64),
+                package_lock: None,
+                ignore_policy: "zircon-project-v1".into(),
+                source_revision: None,
+                files: vec![FileEntry {
+                    path: ".zircon/session.lock".into(),
+                    digest: "a".repeat(64),
+                    bytes: 1
+                }]
             },
-            "1",
-            &project_lease,
-        )
-        .is_err()
-    );
+            directory: stage_directory(&root, STAGE).unwrap()
+        },
+        "1",
+        &project_lease,
+    )
+    .is_err());
     drop(project_lease);
     fs::remove_dir_all(root).unwrap();
 }
@@ -988,17 +975,15 @@ fn upload_snapshot_and_blobs_resume_only_for_the_same_operation_scope() {
     for (entry, bytes) in blobs {
         assert_eq!(read_upload_blob(&resumed, &entry).unwrap(), bytes);
     }
-    assert!(
-        find_upload_snapshot(
-            &root,
-            STAGE,
-            ORGANIZATION,
-            "00000000-0000-4000-8000-000000000099",
-            guid,
-            &scope_fingerprint,
-        )
-        .is_err()
-    );
+    assert!(find_upload_snapshot(
+        &root,
+        STAGE,
+        ORGANIZATION,
+        "00000000-0000-4000-8000-000000000099",
+        guid,
+        &scope_fingerprint,
+    )
+    .is_err());
     assert!(
         find_upload_snapshot(&root, STAGE, ORGANIZATION, PROJECT, guid, &"d".repeat(64),).is_err()
     );
@@ -1028,18 +1013,16 @@ fn terminal_upload_discard_requires_the_same_scope_and_releases_quota() {
     assert!(before > 0);
 
     let project_lease = ProjectCloudSyncLease::acquire(&root).unwrap();
-    assert!(
-        discard_upload_snapshot(
-            &root,
-            STAGE,
-            ORGANIZATION,
-            PROJECT,
-            guid,
-            &"f".repeat(64),
-            &project_lease,
-        )
-        .is_err()
-    );
+    assert!(discard_upload_snapshot(
+        &root,
+        STAGE,
+        ORGANIZATION,
+        PROJECT,
+        guid,
+        &"f".repeat(64),
+        &project_lease,
+    )
+    .is_err());
     assert!(upload.directory.exists());
     assert_eq!(cloud_artifact_usage(&root).unwrap(), before);
 
@@ -1394,23 +1377,19 @@ fn startup_recovery_prunes_only_unjournaled_uploads_matching_the_full_local_scop
     assert_eq!(removed, 2);
     assert!(!root.join(".zircon/cloud/uploads").join(STAGE).exists());
     assert!(!complete.directory.exists());
-    assert!(
-        operation_directory(&root, UPLOAD_ROOT, known_unknown_id)
-            .unwrap()
-            .exists()
-    );
-    assert!(
-        find_upload_snapshot(
-            &root,
-            other_scope_id,
-            ORGANIZATION,
-            PROJECT,
-            guid,
-            &other_scope_fingerprint,
-        )
+    assert!(operation_directory(&root, UPLOAD_ROOT, known_unknown_id)
         .unwrap()
-        .is_some()
-    );
+        .exists());
+    assert!(find_upload_snapshot(
+        &root,
+        other_scope_id,
+        ORGANIZATION,
+        PROJECT,
+        guid,
+        &other_scope_fingerprint,
+    )
+    .unwrap()
+    .is_some());
     assert!(corrupt_directory.exists());
     assert!(cloud_artifact_usage(&root).unwrap() < before);
 

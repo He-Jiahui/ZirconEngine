@@ -1,18 +1,18 @@
 use crate::scene::world::DetachPreparationOwner;
 use crate::scene::World;
 
-/// The owning transaction keeps this World container exclusively borrowed and
-/// alive until this guard is dropped, before any lifecycle callback is replayed.
-/// No stored row/column reference crosses that replay boundary.
-pub(super) struct LifecycleStagingGuard {
-    world: *mut World,
+/// Keeps World exclusively borrowed until lifecycle staging is restored.
+/// Publication reborrows World through this guard, before lifecycle callbacks
+/// replay; no stored row/column reference crosses that boundary.
+pub(super) struct LifecycleStagingGuard<'world> {
+    world: &'world mut World,
     owner: DetachPreparationOwner,
     previous: bool,
     event_start: usize,
 }
 
-impl LifecycleStagingGuard {
-    pub(super) fn new(world: &mut World, previous: bool, event_start: usize) -> Self {
+impl<'world> LifecycleStagingGuard<'world> {
+    pub(super) fn new(world: &'world mut World, previous: bool, event_start: usize) -> Self {
         let owner = world.owner_identity().clone();
         Self {
             world,
@@ -21,14 +21,15 @@ impl LifecycleStagingGuard {
             event_start,
         }
     }
+
+    pub(super) fn world(&mut self) -> &mut World {
+        &mut *self.world
+    }
 }
 
-impl Drop for LifecycleStagingGuard {
+impl Drop for LifecycleStagingGuard<'_> {
     fn drop(&mut self) {
-        // SAFETY: the enclosing transaction retains the original exclusive
-        // World-container borrow through this guard's entire lexical lifetime.
-        // The guard runs before lifecycle dispatch and creates no retained loan.
-        let world = unsafe { &mut *self.world };
+        let world = &mut *self.world;
         if self.owner.is_same_world(world.owner_identity()) {
             world.record_staged_lifecycle_events = self.previous;
             if std::thread::panicking() {

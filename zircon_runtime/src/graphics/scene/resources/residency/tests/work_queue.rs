@@ -25,8 +25,7 @@ fn work_queue_partitions_routes_and_keeps_failed_semantic_admission_queued() {
                 RenderSceneResourceReferenceDelta::acquire(mesh, 1),
                 RenderSceneResourceReferenceDelta::acquire(material, 1),
             ],
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             device_epoch(41, 2),
             demand_generation(7),
         )
@@ -82,16 +81,16 @@ fn work_queue_cancels_dispatched_semantic_work_but_drops_unstarted_requests_loca
         ResourceKind::Texture,
         Vec::new(),
     );
-    let management = resources.management_generation();
-    let readiness = resources.readiness_generation();
+    let projection = resources.projection_snapshot();
+    let management = projection.management();
+    let readiness = projection.readiness();
     let device = device_epoch(42, 3);
     let demand = demand_generation(8);
     let mut residency = RenderAssetResidencyManager::new();
     let acquired = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(texture, 1)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand,
         )
@@ -109,8 +108,7 @@ fn work_queue_cancels_dispatched_semantic_work_but_drops_unstarted_requests_loca
     let released = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::release(texture, 1)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand,
         )
@@ -122,8 +120,7 @@ fn work_queue_cancels_dispatched_semantic_work_but_drops_unstarted_requests_loca
     let reacquired = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(texture, 1)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand_generation(9),
         )
@@ -132,8 +129,7 @@ fn work_queue_cancels_dispatched_semantic_work_but_drops_unstarted_requests_loca
     let rereleased = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::release(texture, 1)],
-            &management,
-            &readiness,
+            &projection,
             device,
             demand_generation(9),
         )

@@ -20,6 +20,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
     order: i32,
     opacity: f32,
 ) {
+    let command_start = commands.len();
     let style = select_workbench_toast_style(node);
     let metrics = toast_metrics();
     let surface_radius = toast_surface_radius(node, metrics);
@@ -47,7 +48,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         && icon.width >= status_mark_size
         && icon.height >= status_mark_size
     {
-        push_toast_status_mark(commands, &icon, clip, order + 1, style.mark, opacity);
+        push_toast_status_mark(commands, node, &icon, clip, order + 1, style.mark, opacity);
     }
 
     let close = toast_close_rect(rect, metrics);
@@ -82,6 +83,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
             opacity,
         );
     }
+    crate::ui::retained_host::host_contract::window::toast_presentation::record_toast_paint(
+        node, rect, clip, opacity, commands.len() > command_start,
+    );
 }
 
 fn toast_surface_radius(

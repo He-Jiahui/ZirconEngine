@@ -1,3 +1,4 @@
+//! 窗口适配层与 Runtime 共享的输入事件、瞬态效果、回复、结果和诊断契约。
 #[path = "clipboard.rs"]
 mod clipboard;
 #[path = "effect.rs"]

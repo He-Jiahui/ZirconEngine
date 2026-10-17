@@ -159,3 +159,20 @@ fn finite_real(value: Option<f64>) -> Option<Real> {
     let value = value? as Real;
     value.is_finite().then_some(value)
 }
+
+impl zircon_runtime::core::framework::retained_memory::RetainedOwnerV1 for AiPerceptionSource {
+    fn retained_bound_v1(
+        &self,
+        _: &mut zircon_runtime::core::framework::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime::core::framework::retained_memory::RetentionContractError> {
+        Ok(())
+    }
+}
+impl zircon_runtime::core::framework::retained_memory::RetainedOwnerV1 for AiPerceptionReceiver {
+    fn retained_bound_v1(
+        &self,
+        _: &mut zircon_runtime::core::framework::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime::core::framework::retained_memory::RetentionContractError> {
+        Ok(())
+    }
+}

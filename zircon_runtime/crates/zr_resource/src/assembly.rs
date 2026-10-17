@@ -55,11 +55,11 @@ pub mod io {
 
     pub mod transaction {
         pub use crate::io::transaction::{
-            commit_prepared_files, detect_pending_transactions,
-            is_project_transaction_sibling_path, recover_pending_transactions,
-            DurableCommitDisposition, DurableCommitReport, DurableRecoveryReport,
-            DurableTransactionError, JournalDocument, PreparedFileWrite, RecoveryMode,
-            RecoveryPolicy, TransactionFault, TransactionPhase,
+            commit_prepared_files, commit_prepared_files_with_revisions,
+            detect_pending_transactions, is_project_transaction_sibling_path,
+            recover_pending_transactions, DurableCommitDisposition, DurableCommitReceipt,
+            DurableCommitReport, DurableRecoveryReport, DurableTransactionError, JournalDocument,
+            PreparedFileWrite, RecoveryMode, RecoveryPolicy, TransactionFault, TransactionPhase,
         };
     }
 }

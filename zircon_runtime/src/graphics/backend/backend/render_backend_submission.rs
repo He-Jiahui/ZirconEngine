@@ -1,5 +1,5 @@
 //! 资源上传、绘制及诊断尾包共用设备提交时间线；调用方以票据观察完成，不自行提交原生队列。
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::core::framework::render::{
     RenderFrameSubmissionBoundaryReason, RenderFrameSubmissionMetrics,

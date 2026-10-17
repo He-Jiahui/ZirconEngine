@@ -120,12 +120,18 @@ fn spawn_node_lifecycle_observers_see_the_final_fixed_component_signature() {
     let saw_final_signature_from_observer = Arc::clone(&saw_final_signature);
     world.observe_component_lifecycle::<Name>(
         crate::scene::ecs::LifecycleEventKind::Add,
-        move |world, event| {
-            *saw_final_signature_from_observer
-                .lock()
-                .expect("observer state lock") = world
-                .node_record(event.entity())
-                .is_some_and(|_| world.contains_component_id(event.entity(), local_transform_id));
+        // SAFETY: Only an external boolean observation is assigned from World reads; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                *saw_final_signature_from_observer
+                    .lock()
+                    .expect("observer state lock") =
+                    world.node_record(event.entity()).is_some_and(|_| {
+                        world.contains_component_id(event.entity(), local_transform_id)
+                    });
+            })
         },
     );
 
@@ -149,10 +155,15 @@ fn bundle_lifecycle_observers_see_the_final_component_signature() {
     let saw_final_signature_from_observer = Arc::clone(&saw_final_signature);
     world.observe_component_lifecycle::<Health>(
         crate::scene::ecs::LifecycleEventKind::Add,
-        move |world, _event| {
-            *saw_final_signature_from_observer
-                .lock()
-                .expect("observer state lock") = world.contains_component_id(entity, mana_id);
+        // SAFETY: Only an external boolean observation is assigned from World reads; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, _event| {
+                *saw_final_signature_from_observer
+                    .lock()
+                    .expect("observer state lock") = world.contains_component_id(entity, mana_id);
+            })
         },
     );
 
@@ -173,12 +184,17 @@ fn bundle_spawn_lifecycle_observers_see_the_final_component_signature() {
     let saw_final_signature_from_observer = Arc::clone(&saw_final_signature);
     world.observe_component_lifecycle::<Health>(
         crate::scene::ecs::LifecycleEventKind::Add,
-        move |world, event| {
-            *saw_final_signature_from_observer
-                .lock()
-                .expect("observer state lock") = world
-                .node_record(event.entity())
-                .is_some_and(|_| world.contains_component_id(event.entity(), mana_id));
+        // SAFETY: Only an external boolean observation is assigned from World reads; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                *saw_final_signature_from_observer
+                    .lock()
+                    .expect("observer state lock") = world
+                    .node_record(event.entity())
+                    .is_some_and(|_| world.contains_component_id(event.entity(), mana_id));
+            })
         },
     );
 

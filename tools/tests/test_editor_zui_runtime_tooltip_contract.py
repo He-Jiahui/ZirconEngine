@@ -3,6 +3,8 @@ import unittest
 from pathlib import Path
 
 
+# 仅检查源码文本接线，不执行 Rust 输入派发、计时或渲染行为。
+# 由本文件的第三个父目录定位仓库，物理读取位置不随启动目录变化。
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_MANAGER = REPO_ROOT / (
     "zircon_runtime/src/ui/dispatch/input_manager/manager.rs"
@@ -17,6 +19,7 @@ SURFACE_TIMERS = REPO_ROOT / (
 RUNTIME_METADATA_DIRTY = REPO_ROOT / (
     "zircon_runtime/src/ui/surface/property_mutation/metadata_dirty.rs"
 )
+# 路径常量不在导入时读取；各测试方法会按自己的语句顺序重新读取。
 WORKBENCH_TOOLTIP = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"
     "workbench/icon_tooltip.rs"
@@ -84,9 +87,12 @@ EVENT_LOOP_LIFECYCLE = REPO_ROOT / (
 )
 
 
+# unittest 按名称发现独立方法；一个方法的读取错误不等于其他方法未被调度。
 class EditorZuiRuntimeTooltipContractTests(unittest.TestCase):
+    # 检查输入管理器的外部提示框时序接线，不验证实际到期时间。
     def test_runtime_input_manager_owns_external_tooltip_timing(self):
         source = RUNTIME_MANAGER.read_text(encoding="utf-8")
+        # 合并空白的文本仅供一项接线断言，其余断言仍检查原始文本。
         compact = " ".join(source.split())
 
         self.assertIn("pub fn arm_tooltip_candidate(", source)
@@ -97,7 +103,10 @@ class EditorZuiRuntimeTooltipContractTests(unittest.TestCase):
         self.assertIn("self.timers.expire_tooltip_intro(now);", source)
         self.assertIn("self.timers.clear_tooltip_intro();", source)
 
+    # 检查候选更新与后续 tick 的文本分工；所有输入读完后才开始断言。
     def test_workbench_candidate_does_not_open_popup_before_runtime_tick(self):
+        # BUG: [CR-ZCA-R074-0001] 首个旧物理路径缺失，这里先抛 FileNotFoundError。
+        # 本方法共9次读取，后8次读取及34项断言均被遮蔽；后续缺失路径不会先报错。
         source = WORKBENCH_TOOLTIP.read_text(encoding="utf-8")
         resolver_source = WORKBENCH_TOOLTIP_RESOLVER.read_text(encoding="utf-8")
         window = WORKBENCH_WINDOW.read_text(encoding="utf-8")
@@ -107,6 +116,7 @@ class EditorZuiRuntimeTooltipContractTests(unittest.TestCase):
         surface_timers = SURFACE_TIMERS.read_text(encoding="utf-8")
         metadata_dirty = RUNTIME_METADATA_DIRTY.read_text(encoding="utf-8")
         pointer_tests = WORKBENCH_POINTER_TESTS.read_text(encoding="utf-8")
+        # 以下按固定分隔串切片，不是 Rust 语法解析，也不能证明完整函数边界。
         update = source.split(
             "pub(crate) fn update_workbench_icon_tooltip_candidate(", 1
         )[1].split("pub(crate) fn next_workbench_icon_tooltip_delay(", 1)[0]
@@ -158,7 +168,10 @@ class EditorZuiRuntimeTooltipContractTests(unittest.TestCase):
             "tooltip_intro_progress_and_status_are_render_only", metadata_dirty
         )
 
+    # 检查原生输入到宿主回调的文本接线，不生成或派发指针事件。
     def test_native_mouse_events_preserve_standard_pointer_metadata(self):
+        # BUG: [CR-ZCA-R074-0002] 首次读取仍指向缺失的旧物理路径，这里先抛 FileNotFoundError。
+        # 后5次读取及8项断言不会到达；这是本方法自身的失败入口。
         platform = PLATFORM_INPUT.read_text(encoding="utf-8")
         pointer = POINTER_EVENTS.read_text(encoding="utf-8")
         window = WINDOW_EVENTS.read_text(encoding="utf-8")
@@ -181,9 +194,12 @@ class EditorZuiRuntimeTooltipContractTests(unittest.TestCase):
         self.assertGreaterEqual(keyboard.count("invoke_workbench_input_activity"), 2)
         self.assertIn("on_workbench_input_activity", methods)
 
+    # 检查锚点顺序、目标桥接及计时所有者的文本约束，不实例化窗口。
     def test_native_dock_tabs_use_the_runtime_tooltip_timer_through_a_real_zui_anchor(
         self,
     ):
+        # BUG: [CR-ZCA-R074-0003] 首个窗口资源旧路径缺失，这里先抛 FileNotFoundError。
+        # 后10次读取及39项断言被遮蔽，与其他测试方法的缺失读取相互独立。
         window = WORKBENCH_WINDOW.read_text(encoding="utf-8")
         target = NATIVE_TOOLTIP_TARGET.read_text(encoding="utf-8")
         native_root = NATIVE_POINTER_ROOT.read_text(encoding="utf-8")
@@ -196,6 +212,7 @@ class EditorZuiRuntimeTooltipContractTests(unittest.TestCase):
         bridge = WORKBENCH_TOOLTIP.read_text(encoding="utf-8")
         surface_dispatch = WORKBENCH_POINTER_DISPATCH.read_text(encoding="utf-8")
 
+        # 只取首个分隔区段；嵌套结构和实际资源加载需由其他验证覆盖。
         root_children = window.split("children = [", 1)[1].split("]", 1)[0]
         self.assertIn('{ node = "host_chrome_tooltip_anchor" }', root_children)
         self.assertLess(
@@ -256,6 +273,7 @@ class EditorZuiRuntimeTooltipContractTests(unittest.TestCase):
         self.assertNotIn("deadline", native_sources.lower())
         self.assertIn("next_workbench_icon_tooltip_delay", host)
 
+    # 检查独立唤醒槽接线；生产段只取首个测试配置标记之前的原始文本。
     def test_input_timer_has_an_independent_wait_until_slot(self):
         host = HOST_TOOLTIP.read_text(encoding="utf-8")
         redraw = WINDOW_REDRAW.read_text(encoding="utf-8")
@@ -270,6 +288,7 @@ class EditorZuiRuntimeTooltipContractTests(unittest.TestCase):
         production = host.split("#[cfg(test)]", 1)[0]
         self.assertNotIn("std::thread::sleep", production)
 
+    # 计数和包含检查只约束源码标记，不证明弹窗遮挡的运行时效果。
     def test_host_popups_occlude_underlying_workbench_tooltips(self):
         host = HOST_TOOLTIP.read_text(encoding="utf-8")
         methods = HOST_CALLBACK_METHODS.read_text(encoding="utf-8")
@@ -281,5 +300,6 @@ class EditorZuiRuntimeTooltipContractTests(unittest.TestCase):
         self.assertIn("host_page_overflow_menu_state.open", methods)
 
 
+# 直接执行时交给 unittest；也可从本测试目录显式发现并加载。
 if __name__ == "__main__":
     unittest.main()

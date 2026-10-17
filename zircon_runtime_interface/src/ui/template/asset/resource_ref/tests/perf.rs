@@ -1,6 +1,7 @@
 //! 旧分配式实现作为语义基线，逐例验证字段路径优先于 URI 后缀并覆盖大小写、query/fragment 和尾斜线；release 基准比较 P95。
 use super::*;
 
+// 分配式旧实现仅作测试基线，便于检查借用遍历是否改变分类顺序。
 fn legacy_infer_from_path(path: &str) -> Option<UiResourceKind> {
     let normalized = path.to_ascii_lowercase();
     let segments: Vec<&str> = normalized
@@ -58,6 +59,7 @@ fn legacy_infer_from_path_and_uri(path: &str, uri: &str) -> UiResourceKind {
 }
 
 #[test]
+// 七组固定样例比较分类语义，不触发声明验证或资源加载。
 fn borrowed_resource_kind_inference_preserves_legacy_results() {
     for (path, uri) in [
         ("root.props.ICON", "asset://audio/click.mp3"),
@@ -88,6 +90,7 @@ fn runtime_interface03_batch54_borrowed_resource_kind_release_benchmark() {
     let mut legacy_samples = Vec::with_capacity(SAMPLE_COUNT);
     let mut optimized_samples = Vec::with_capacity(SAMPLE_COUNT);
 
+    // 相同输入交替测量两条实现，减少固定先后顺序对样本的影响。
     for sample in 0..SAMPLE_COUNT {
         let measure_legacy = || {
             let started = Instant::now();
@@ -120,6 +123,7 @@ fn runtime_interface03_batch54_borrowed_resource_kind_release_benchmark() {
 
     legacy_samples.sort_unstable();
     optimized_samples.sort_unstable();
+    // 该夹具用 11 个已排序样本的末项作为 P95 比较值，再检查声明的改进阈值。
     let p95 = SAMPLE_COUNT - 1;
     eprintln!(
         "RUNTIME_INTERFACE03_BORROWED_RESOURCE_KIND_BENCH_V1 iterations={ITERATIONS} samples={SAMPLE_COUNT} legacy_p95_ns={} optimized_p95_ns={}",

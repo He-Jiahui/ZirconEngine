@@ -31,16 +31,12 @@ fn discover_asset_catalog_reads_project_and_engine_assets() {
     fs::remove_dir_all(project_root).unwrap();
     fs::remove_dir_all(repo_root).unwrap();
 
-    assert!(
-        entries
-            .iter()
-            .any(|entry| entry.source == "Project" && entry.kind == "image")
-    );
-    assert!(
-        entries
-            .iter()
-            .any(|entry| entry.source == "Editor" && entry.name == "add.svg")
-    );
+    assert!(entries
+        .iter()
+        .any(|entry| entry.source == "Project" && entry.kind == "image"));
+    assert!(entries
+        .iter()
+        .any(|entry| entry.source == "Editor" && entry.name == "add.svg"));
 }
 
 #[test]
@@ -88,16 +84,12 @@ fn discover_asset_catalog_labels_selected_project_assets() {
     assert!(entries.iter().any(|entry| {
         entry.name == "hero.glb" && entry.source == SELECTED_PROJECT_ASSET_SOURCE
     }));
-    assert!(
-        entries
-            .iter()
-            .any(|entry| entry.name == "ambient.ogg" && entry.source == PROJECT_ASSET_SOURCE)
-    );
-    assert!(
-        !entries
-            .iter()
-            .any(|entry| entry.name == "hero.glb" && entry.source == PROJECT_ASSET_SOURCE)
-    );
+    assert!(entries
+        .iter()
+        .any(|entry| entry.name == "ambient.ogg" && entry.source == PROJECT_ASSET_SOURCE));
+    assert!(!entries
+        .iter()
+        .any(|entry| entry.name == "hero.glb" && entry.source == PROJECT_ASSET_SOURCE));
 }
 
 #[test]
@@ -139,11 +131,9 @@ fn discover_asset_catalog_orders_selected_project_assets_first() {
 
     assert_eq!(entries[0].source, SELECTED_PROJECT_ASSET_SOURCE);
     assert_eq!(entries[1].source, PROJECT_ASSET_SOURCE);
-    assert!(
-        entries[2..]
-            .iter()
-            .all(|entry| entry.source != SELECTED_PROJECT_ASSET_SOURCE)
-    );
+    assert!(entries[2..]
+        .iter()
+        .all(|entry| entry.source != SELECTED_PROJECT_ASSET_SOURCE));
 }
 
 #[test]
@@ -183,11 +173,9 @@ fn discover_asset_catalog_keeps_first_source_engine_root_before_fallback_limit()
     fs::remove_dir_all(preferred_root).unwrap();
     fs::remove_dir_all(fallback_root).unwrap();
 
-    assert!(
-        entries
-            .iter()
-            .any(|entry| entry.name == "source-settings-tool.svg" && entry.source == "Editor")
-    );
+    assert!(entries
+        .iter()
+        .any(|entry| entry.name == "source-settings-tool.svg" && entry.source == "Editor"));
 }
 
 #[test]

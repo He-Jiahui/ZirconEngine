@@ -23,6 +23,7 @@ use super::{
 };
 
 #[test]
+// 同时校验兼容数字码、物理与逻辑名称、文本及合成标记，避免只覆盖单一路径。
 fn translate_winit_keyboard_matrix_matches_runtime_input_baseline() {
     let event = KeyEvent {
         physical_key: PhysicalKey::Code(KeyCode::KeyA),
@@ -60,6 +61,7 @@ fn translate_winit_keyboard_matrix_matches_runtime_input_baseline() {
 }
 
 #[test]
+// 原生扫描码与逻辑键分别决定身份和兼容码；释放状态不因文本仍存在而改变。
 fn translate_winit_keyboard_preserves_native_scan_codes_and_named_release() {
     let event = KeyEvent {
         physical_key: PhysicalKey::Unidentified(NativeKeyCode::Windows(0x1c)),
@@ -92,6 +94,7 @@ fn translate_winit_keyboard_preserves_native_scan_codes_and_named_release() {
 }
 
 #[test]
+// 经公开窗口入口验证合成位穿过规范化，不只检查内部键盘辅助函数。
 fn translate_winit_window_keyboard_preserves_synthetic_flag() {
     let event = KeyEvent {
         physical_key: PhysicalKey::Code(KeyCode::KeyP),
@@ -120,6 +123,7 @@ fn translate_winit_window_keyboard_preserves_synthetic_flag() {
 }
 
 #[test]
+// 提交保留组合语义，禁用编码为取消；开启通知没有共享输入载荷。
 fn translate_winit_ime_preedit_commit_and_disable_match_runtime_input_baseline() {
     let preedit = translate_ime_event(
         input_context(),
@@ -177,6 +181,7 @@ fn translate_winit_ime_preedit_commit_and_disable_match_runtime_input_baseline()
 }
 
 #[test]
+// 同时检查两轴精确单位和旧纵向标量，像素与行分支的兼容比例不同。
 fn translate_winit_wheel_preserves_precise_delta_and_line_delta_scale() {
     let input = translate_mouse_wheel_event(
         input_context(),
@@ -213,6 +218,7 @@ fn translate_winit_wheel_preserves_precise_delta_and_line_delta_scale() {
 }
 
 #[test]
+// 此矩阵直接检查共享触摸规范化，不声称经过平台窗口事件匹配分支。
 fn translate_winit_touch_phase_maps_pointer_id_through_runtime_platform_input() {
     let cases = [
         (
@@ -261,6 +267,7 @@ fn translate_winit_touch_phase_maps_pointer_id_through_runtime_platform_input() 
 }
 
 #[test]
+// 复用同一接触身份检查按下、移动与离开取消，避免中途退回鼠标语义。
 fn translate_winit_pointer_touch_events_map_to_touch_platform_input() {
     let finger_id = FingerId::from_raw(77);
     let down = super::translate_winit_window_event(
@@ -324,6 +331,7 @@ fn translate_winit_pointer_touch_events_map_to_touch_platform_input() {
 }
 
 #[test]
+// 锁定键的默认 false 只表示适配结果，不是对系统锁定状态的查询。
 fn translate_winit_modifiers_matches_shared_contract() {
     let modifiers = translate_winit_modifiers(
         ModifiersState::SHIFT | ModifiersState::CONTROL | ModifiersState::META,
@@ -338,6 +346,7 @@ fn translate_winit_modifiers_matches_shared_contract() {
 }
 
 #[test]
+// 夹具显式把新 DPI 放入下一次上下文，验证物理尺寸按该快照生成逻辑尺寸。
 fn translate_winit_window_surface_events_use_window_pump_contract() {
     let context = input_context();
     let resized = super::translate_winit_window_event(
@@ -407,6 +416,7 @@ fn translate_winit_window_surface_events_use_window_pump_contract() {
     ));
 }
 
+// 仅补元数据，其余缓存保持默认；需要 DPI 或光标位置的用例必须显式设置。
 fn input_context() -> UiWindowInputContext {
     UiWindowInputContext {
         metadata: input_metadata(),
@@ -414,6 +424,7 @@ fn input_context() -> UiWindowInputContext {
     }
 }
 
+// 固定窗口、时间和序号以核对传递，不模拟宿主递增或事件时钟。
 fn input_metadata() -> UiInputEventMetadata {
     let mut metadata =
         UiInputEventMetadata::new(UiInputTimestamp::from_micros(123), UiInputSequence::new(7));
@@ -422,6 +433,7 @@ fn input_metadata() -> UiInputEventMetadata {
 }
 
 #[test]
+// 覆盖缓存有无两种情况，检查零点回退和元数据原样传递。
 fn translate_winit_window_wheel_uses_last_cursor_position_and_preserves_metadata() {
     for position in [None, Some(UiPoint::new(24.0, 36.0))] {
         let mut context = input_context();

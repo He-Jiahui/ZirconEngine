@@ -10,11 +10,13 @@ struct TestComponent(&'static str);
 #[derive(Debug, PartialEq, Eq)]
 struct StoredHealth(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(StoredHealth { 0 });
 impl Component for StoredHealth {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct SparseMana(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(SparseMana { 0 });
 impl Component for SparseMana {
     const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }
@@ -316,14 +318,20 @@ fn detached_subtree_restores_table_sparse_hierarchy_and_stable_order_without_wor
             serde_json::json!({ "value": 9 }),
         )
         .unwrap();
-    let observer_values = Arc::new(Mutex::new(Vec::new()));
+    let observer_values = Arc::new(crate::tests::prelude::RetainedObserverLogV1::new());
     let observer_values_for_callback = Arc::clone(&observer_values);
-    world.observe_entity_event::<DetachedProbe>(child, move |_world, entity, event| {
-        observer_values_for_callback
-            .lock()
-            .unwrap()
-            .push((entity, event.0));
-    });
+    world.observe_entity_event::<DetachedProbe>(
+        child,
+        crate::core::framework::retained_memory::RetainedEntityObserverV1::new(
+            observer_values_for_callback,
+            |observer_values_for_callback, _world, entity, event| {
+                observer_values_for_callback
+                    .lock()
+                    .unwrap()
+                    .push((entity, event.0));
+            },
+        ),
+    );
     let parent_health_ticks = world
         .component_change_ticks::<StoredHealth>(parent)
         .unwrap();

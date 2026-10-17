@@ -8,3 +8,5 @@ pub(super) mod build_instance_upload_plan;
 pub(super) mod build_particle_upload_plan;
 #[path = "geometry_plan/mod.rs"]
 pub(super) mod build_virtual_geometry_plan;
+
+pub(crate) use build_virtual_geometry_plan::cluster_ids_for_stable_instance_key;

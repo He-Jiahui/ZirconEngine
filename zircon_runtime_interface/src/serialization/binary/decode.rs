@@ -42,6 +42,7 @@ pub(in crate::serialization) fn decode_binary_payload(body: &[u8]) -> Result<Val
 ///
 /// 调用方须已依据同一封套头验证目标 schema 和 schema 版本。这里仍完整解码并校验扁平
 /// `BinaryValue` 流，再由 serde 解码到 `T`；输入只应包含 payload body。
+/// `T: DeserializeOwned` 保证返回值不借用该 body，调用方可在解码完成后释放输入切片。
 pub(in crate::serialization) fn decode_binary_current<T>(
     body: &[u8],
 ) -> Result<T, super::value::DirectBinaryDecodeError>

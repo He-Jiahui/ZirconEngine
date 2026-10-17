@@ -33,8 +33,8 @@ use super::morph_payload_upload::morph_payload_from_mesh_asset;
 use super::pending_material_draw::PendingMaterialDraw;
 use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::skinning::{
-    prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
-    SkinnedMeshPreparedPrimitive,
+    prepare_skinned_mesh_asset_primitive, skin_model_primitive_with_palette,
+    SkinnedMeshJointPalette, SkinnedMeshPreparedPrimitive,
 };
 
 #[path = "../../material_inputs.rs"]
@@ -53,7 +53,7 @@ struct DynamicMeshPrimitive {
     source_morph_weights: Option<Vec<f32>>,
     skinned: bool,
     skinned_palette_signature: Option<u64>,
-    skinned_joint_palette: Option<SkinnedMeshJointPaletteStorage>,
+    skinned_joint_palette: Option<Arc<SkinnedMeshJointPaletteStorage>>,
     skinned_gpu_source: Option<PendingSkinnedGpuSource>,
     gpu_morphed_source: Option<Arc<GpuMeshResource>>,
 }
@@ -152,18 +152,18 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     mesh_instance.mobility,
                     command_sort_input,
                     mesh.index_count,
-                    &dynamic_primitive.primitive,
+                    Arc::new(dynamic_primitive.primitive),
                     instance_tint,
                     model_matrix,
                     normal_transform_flags,
                     build_context.reverse_view_raster_winding,
                     dynamic_primitive.cpu_morphed,
                     dynamic_primitive.morph_payload,
-                    dynamic_primitive.source_morph_weights.clone(),
+                    dynamic_primitive.source_morph_weights,
                     dynamic_primitive.skinned,
                     dynamic_primitive.skinned_palette_signature,
                     dynamic_primitive.skinned_joint_palette,
-                    previous_skinned_joint_palette,
+                    previous_skinned_joint_palette.clone(),
                     dynamic_primitive.skinned_gpu_source,
                     dynamic_primitive.gpu_morphed_source,
                     mesh_instance.mesh_lod,
@@ -208,7 +208,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
         material_revision,
     );
     let previous_skinned_joint_palette = None;
-    let skinned_primitives = frame
+    let skinned_model = frame
         .extract
         .animation_poses
         .iter()
@@ -217,16 +217,9 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
             let skinned_palette_signature = skinned_palette_signature(entry.skeleton);
             let model_asset = streamer.load_model_asset(mesh_instance.model.id())?;
             let skeleton = streamer.load_animation_skeleton_asset(entry.skeleton)?;
-            Some((
-                skinned_palette_signature,
-                model_asset
-                    .primitives
-                    .iter()
-                    .map(|primitive| {
-                        prepare_skinned_model_primitive(primitive, &skeleton, &entry.pose).ok()
-                    })
-                    .collect::<Vec<_>>(),
-            ))
+            let palette =
+                SkinnedMeshJointPalette::from_skeleton_pose(&skeleton, &entry.pose).ok()?;
+            Some((skinned_palette_signature, model_asset, palette))
         });
 
     for (mesh_index, mesh) in model.meshes.iter().enumerate() {
@@ -240,13 +233,17 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
             stable_instance_key,
             &model_matrix,
         );
-        if let Some(skinned_primitive) = skinned_primitives
-            .as_ref()
-            .and_then(|(_, primitives)| primitives.get(mesh_index))
-            .and_then(|primitive| primitive.as_ref())
+        if let Some((signature, source, palette)) =
+            skinned_model
+                .as_ref()
+                .and_then(|(signature, model, palette)| {
+                    Some((*signature, model.primitives.get(mesh_index)?, palette))
+                })
         {
-            let skinned_palette_signature =
-                skinned_primitives.as_ref().map(|(signature, _)| *signature);
+            // The prepared GPU mesh already owns the shader source. Only allocate
+            // the CPU fallback, once, and share it across this primitive's draws.
+            let primitive = Arc::new(skin_model_primitive_with_palette(source, palette));
+            let joint_palette_storage = palette.to_storage();
             push_dynamic_mesh_draws(
                 pending_draws,
                 streamer,
@@ -263,7 +260,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 mesh_instance.mobility,
                 command_sort_input,
                 mesh.index_count,
-                &skinned_primitive.primitive,
+                primitive,
                 instance_tint,
                 model_matrix,
                 normal_transform_flags,
@@ -272,13 +269,11 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 None,
                 None,
                 true,
-                skinned_palette_signature,
-                skinned_primitive.joint_palette_storage,
-                previous_skinned_joint_palette,
-                skinned_gpu_source_candidate_available(
-                    skinned_primitive.joint_palette_storage.as_ref(),
-                )
-                .then_some(PendingSkinnedGpuSource::Prepared(mesh.clone())),
+                Some(signature),
+                joint_palette_storage.clone(),
+                previous_skinned_joint_palette.clone(),
+                skinned_gpu_source_candidate_available(joint_palette_storage.as_deref())
+                    .then_some(PendingSkinnedGpuSource::Prepared(mesh.clone())),
                 None,
                 mesh_instance.mesh_lod,
             );
@@ -437,9 +432,9 @@ fn dynamic_direct_mesh_primitive(
             source_morph_weights,
             skinned: true,
             skinned_palette_signature: Some(skinned_palette_signature),
-            skinned_joint_palette: prepared.joint_palette_storage,
+            skinned_joint_palette: prepared.joint_palette_storage.clone(),
             skinned_gpu_source: direct_skinned_gpu_source(
-                prepared.joint_palette_storage.as_ref(),
+                prepared.joint_palette_storage.as_deref(),
                 *mesh_id,
                 prepared_mesh.clone(),
                 prepared.shader_skinning_source_primitive,
@@ -595,7 +590,7 @@ fn direct_skinned_gpu_source(
     skinned_gpu_source_candidate_available(joint_palette_storage).then(|| {
         if has_active_morph_weights(morph_weights) && !morph_payload_available {
             PendingSkinnedGpuSource::CpuMorphed {
-                primitive: shader_skinning_source_primitive,
+                primitive: Arc::new(shader_skinning_source_primitive),
                 morph_shape_signature: morph_shape_signature(mesh_id, morph_weights),
             }
         } else {
@@ -620,7 +615,7 @@ fn push_dynamic_mesh_draws(
     mobility: Mobility,
     command_sort_input: MeshCommandSortInput,
     index_count: u32,
-    dynamic_primitive: &ModelPrimitiveAsset,
+    dynamic_primitive: Arc<ModelPrimitiveAsset>,
     instance_tint: Vec4,
     model_matrix: [[f32; 4]; 4],
     normal_transform_flags: u32,
@@ -630,8 +625,8 @@ fn push_dynamic_mesh_draws(
     source_morph_weights: Option<Vec<f32>>,
     skinned: bool,
     skinned_palette_signature: Option<u64>,
-    skinned_joint_palette: Option<SkinnedMeshJointPaletteStorage>,
-    previous_skinned_joint_palette: Option<SkinnedMeshJointPaletteStorage>,
+    skinned_joint_palette: Option<Arc<SkinnedMeshJointPaletteStorage>>,
+    previous_skinned_joint_palette: Option<Arc<SkinnedMeshJointPaletteStorage>>,
     skinned_gpu_source: Option<PendingSkinnedGpuSource>,
     gpu_morphed_source: Option<Arc<GpuMeshResource>>,
     mesh_lod: Option<RenderMeshLodSelection>,
@@ -649,7 +644,7 @@ fn push_dynamic_mesh_draws(
         normal_transform_flags,
         reverse_view_raster_winding,
     );
-    let local_bounds = local_bounds_for_model_primitive(dynamic_primitive);
+    let local_bounds = local_bounds_for_model_primitive(&dynamic_primitive);
     for (first_index, draw_index_count, draw_tint) in
         raster_draws_for_mesh(index_count, material_tinted(material, instance_tint))
     {
@@ -693,8 +688,8 @@ fn push_dynamic_mesh_draws(
             normal_transform_flags,
             skinned,
             skinned_palette_signature,
-            skinned_joint_palette,
-            previous_skinned_joint_palette,
+            skinned_joint_palette: skinned_joint_palette.clone(),
+            previous_skinned_joint_palette: previous_skinned_joint_palette.clone(),
             skinned_gpu_source: skinned_gpu_source.clone(),
             resolved_skinned_gpu_source: None,
             previous_skinned_gpu_source: None,

@@ -9,21 +9,25 @@ use crate::scene::{EntityId, World};
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
 impl Component for Health {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct Enemy;
 
+zircon_runtime_interface::impl_retained_owner_v1!(Enemy {});
 impl Component for Enemy {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct Player;
 
+zircon_runtime_interface::impl_retained_owner_v1!(Player {});
 impl Component for Player {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct SparseScore(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(SparseScore { 0 });
 impl Component for SparseScore {
     const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }

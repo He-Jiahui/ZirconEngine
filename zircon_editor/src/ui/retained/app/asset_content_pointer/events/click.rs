@@ -146,7 +146,14 @@ impl RetainedEditorHost {
         let asset_locator = asset.locator.clone();
         let asset_kind = asset.kind;
         let asset_revision = asset.resource_revision;
-        let current = (match self.runtime.editor_snapshot() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }).asset_browser;
+        let current = (match self.runtime.editor_snapshot() {
+            Ok(value) => value,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        })
+        .asset_browser;
         if current.catalog_revision != snapshot.catalog_revision
             || current.view_mode != snapshot.view_mode
             || !current

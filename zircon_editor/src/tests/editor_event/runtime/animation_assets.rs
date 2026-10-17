@@ -188,7 +188,8 @@ fn workbench_menu_open_ui_asset_opens_ui_asset_editor_for_shared_asset() {
     assert!(record.effects.contains(&EditorEventEffect::LayoutChanged));
     let ui_asset_view = runtime
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset"))
         .expect("indexed UI asset should open its toolkit view");
@@ -232,7 +233,8 @@ fn asset_open_event_rejects_canonical_unindexed_ui_asset_locator() {
     assert!(!record.effects.contains(&EditorEventEffect::LayoutChanged));
     assert!(!runtime
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .any(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset")));
     assert_eq!(
@@ -303,7 +305,8 @@ fn asset_open_event_routes_animation_assets_to_animation_editor_views() {
 
     let graph_views = runtime
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .filter(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph")
@@ -353,11 +356,21 @@ fn asset_kind_filter_event_accepts_physics_and_animation_asset_kinds() {
             .expect("asset kind filter event");
 
         assert_eq!(
-            runtime.runtime.editor_snapshot().unwrap().asset_activity.kind_filter,
+            runtime
+                .runtime
+                .editor_snapshot()
+                .unwrap()
+                .asset_activity
+                .kind_filter,
             Some(expected)
         );
         assert_eq!(
-            runtime.runtime.editor_snapshot().unwrap().asset_browser.kind_filter,
+            runtime
+                .runtime
+                .editor_snapshot()
+                .unwrap()
+                .asset_browser
+                .kind_filter,
             Some(expected)
         );
         assert!(record

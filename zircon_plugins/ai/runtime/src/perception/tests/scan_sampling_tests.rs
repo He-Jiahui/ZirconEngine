@@ -98,7 +98,9 @@ fn benchmark_samples_csv(samples: &[u128]) -> String {
 fn benchmark_world(node_count: usize) -> World {
     let mut world = World::empty();
     for index in 0..node_count {
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("spawn AI test fixture node");
         world
             .update_transform(
                 entity,

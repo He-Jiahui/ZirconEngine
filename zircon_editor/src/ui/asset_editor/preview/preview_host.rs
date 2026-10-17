@@ -89,8 +89,10 @@ impl UiAssetPreviewHost {
         let relative = resource
             .strip_prefix("res://")
             .ok_or_else(|| unavailable(format!("invalid builtin resource {resource}")))?;
+        let relative = zircon_runtime::asset::AssetRelativePath::parse(relative)
+            .map_err(|error| unavailable(format!("invalid builtin resource path: {error}")))?;
         let path = zircon_runtime::asset::runtime_asset_path_with_dev_asset_root(
-            &format!("/assets/{relative}"),
+            &relative,
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets"),
         );
         let outcome =

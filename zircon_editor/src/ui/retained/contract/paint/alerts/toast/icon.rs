@@ -9,6 +9,7 @@ use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeD
 
 pub(super) fn push_toast_status_mark(
     commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
     icon: &FrameRect,
     clip: &FrameRect,
     order: i32,
@@ -22,7 +23,7 @@ pub(super) fn push_toast_status_mark(
         order,
         // BUG: [CR-EDITOR-PAINT-OVERLAY-0005] toast 标记种类固定为成功，忽略节点声明的严重性/图标；
         // WorkbenchToast 资源声明 severity=info 且 icon=info，这里仍选择成功图形。应由实际投影tone决定资源，而不仅改变颜色。
-        AlertTone::Success,
+        super::super::identity::alert_tone(node).unwrap_or(AlertTone::Info),
         color,
         opacity,
     );
@@ -42,5 +43,41 @@ pub(super) fn toast_status_mark_size_for_metrics(
         node.value_number
     } else {
         metrics.icon_size
+    }
+}
+
+#[cfg(test)]
+mod finite_p2_regression_tests {
+    use super::*;
+    #[test]
+    fn toast_severity_selects_distinct_real_status_assets() {
+        let icon = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 24.0,
+            height: 24.0,
+        };
+        let keys = |severity: &str| {
+            let mut node = TemplatePaneNodeData::default();
+            node.validation_level = severity.into();
+            let mut commands = Vec::new();
+            push_toast_status_mark(
+                &mut commands,
+                &node,
+                &icon,
+                &icon,
+                0,
+                [127, 127, 127, 255],
+                1.0,
+            );
+            commands
+                .iter()
+                .find_map(|c| c.image_pixels.as_ref())
+                .expect("actual alert asset pixels")
+                .resource_key
+                .to_string()
+        };
+        assert_ne!(keys("info"), keys("success"));
+        assert_ne!(keys("warning"), keys("error"));
     }
 }

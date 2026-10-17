@@ -279,7 +279,9 @@ fn no_physics_keeps_sight_unknown_instead_of_falling_back_to_visible() {
 fn sound_event_registers_hearing_stimulus() {
     let mut world = World::empty();
     let receiver = spawn_receiver(&mut world, Vec3::ZERO, receiver_config(1.0));
-    let source = world.spawn_node(NodeKind::Empty);
+    let source = world
+        .spawn_node(NodeKind::Empty)
+        .expect("spawn AI source node");
     let event = AiHearingStimulusEvent::sound_playback(source, Vec3::new(3.0, 0.0, 0.0), 0.75)
         .with_max_range(8.0);
     assert_eq!(event.origin, AiHearingStimulusOrigin::SoundPlayback);
@@ -329,7 +331,9 @@ fn hearing_backlog_is_bounded_and_expires_stale_events() {
     for _ in 0..31 {
         spawn_receiver(&mut world, Vec3::ZERO, receiver_config(1.0));
     }
-    let source = world.spawn_node(NodeKind::Empty);
+    let source = world
+        .spawn_node(NodeKind::Empty)
+        .expect("spawn AI source node");
     let events = (0..=AI_HEARING_PENDING_EVENT_CAPACITY)
         .map(|_| AiHearingStimulusEvent::sound_playback(source, Vec3::ZERO, 1.0))
         .collect::<Vec<_>>();
@@ -381,7 +385,9 @@ fn hearing_backlog_uses_stable_receiver_ids_across_listener_churn() {
     let mut world = World::empty();
     let first = spawn_receiver(&mut world, Vec3::ZERO, receiver_config(2.0));
     let second = spawn_receiver(&mut world, Vec3::ZERO, receiver_config(2.0));
-    let source = world.spawn_node(NodeKind::Empty);
+    let source = world
+        .spawn_node(NodeKind::Empty)
+        .expect("spawn AI source node");
     let event = AiHearingStimulusEvent::sound_playback(source, Vec3::ZERO, 1.0);
     let mut budget = AiTickBudget::new(1);
     let mut perceived = PerceivedStimuli::default();
@@ -400,7 +406,9 @@ fn hearing_backlog_uses_stable_receiver_ids_across_listener_churn() {
     assert_eq!(first_report.event_pairs, 1);
     assert!(perceived.snapshot(first).unwrap().stimuli.len() == 1);
 
-    assert!(world.remove_entity(first));
+    world
+        .remove_entity(first)
+        .expect("remove stale perception receiver");
     let late_receiver = spawn_receiver(&mut world, Vec3::ZERO, receiver_config(2.0));
     let second_report = tick_perception(
         &world,
@@ -454,7 +462,9 @@ fn event_and_static_pairs_share_budget_without_starvation() {
         Vec3::new(0.0, 0.0, -2.0),
         AiPerceptionChannels::SIGHT,
     );
-    let hearing_source = world.spawn_node(NodeKind::Empty);
+    let hearing_source = world
+        .spawn_node(NodeKind::Empty)
+        .expect("spawn AI hearing source node");
     let event =
         AiHearingStimulusEvent::sound_playback(hearing_source, Vec3::new(1.0, 0.0, 0.0), 1.0);
     let mut budget = AiTickBudget::new(1);
@@ -513,7 +523,9 @@ fn authored_dynamic_components_feed_perception_scan() {
     for descriptor in ai_perception_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
     }
-    let receiver = world.spawn_node(NodeKind::Empty);
+    let receiver = world
+        .spawn_node(NodeKind::Empty)
+        .expect("spawn AI receiver node");
     world
         .set_dynamic_component(
             receiver,
@@ -526,7 +538,9 @@ fn authored_dynamic_components_feed_perception_scan() {
             .unwrap(),
         )
         .unwrap();
-    let source = world.spawn_node(NodeKind::Empty);
+    let source = world
+        .spawn_node(NodeKind::Empty)
+        .expect("spawn AI source node");
     world
         .update_transform(
             source,
@@ -815,7 +829,9 @@ fn perception_subscription_skips_history_then_consumes_animation_bus_events() {
     let (receiver, source) = level.with_world_mut(|world| {
         registration.extensions.apply_to_world(world).unwrap();
         let receiver = spawn_receiver(world, Vec3::ZERO, receiver_config(1.0));
-        let source = world.spawn_node(NodeKind::Empty);
+        let source = world
+            .spawn_node(NodeKind::Empty)
+            .expect("spawn AI source node");
         world
             .update_transform(
                 source,
@@ -993,7 +1009,9 @@ fn receiver_config(forget_seconds: f32) -> AiPerceptionReceiver {
 }
 
 fn spawn_receiver(world: &mut World, position: Vec3, receiver: AiPerceptionReceiver) -> u64 {
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("spawn AI receiver node");
     world
         .update_transform(entity, Transform::from_translation(position))
         .unwrap();
@@ -1002,7 +1020,9 @@ fn spawn_receiver(world: &mut World, position: Vec3, receiver: AiPerceptionRecei
 }
 
 fn spawn_source(world: &mut World, position: Vec3, channels: AiPerceptionChannels) -> u64 {
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("spawn AI source node");
     world
         .update_transform(entity, Transform::from_translation(position))
         .unwrap();

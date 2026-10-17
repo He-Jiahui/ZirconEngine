@@ -42,6 +42,8 @@ impl UiNumberModelId {
 }
 
 /// Monotonic revision of a NumberField canonical Float value.
+/// `new` 仅包装计数；支持范围由 [`Self::is_supported`] 限为有符号 64 位非负值域。
+/// 值快照不自行维持单调性或持有 Runtime 数值模型。
 #[derive(
     Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
 )]
@@ -70,6 +72,7 @@ pub struct UiNumberModelKey {
 }
 
 impl UiNumberModelKey {
+    /// 核对非 nil 模型身份和修订支持范围，不查询模型存在性、树归属或当前修订。
     pub fn validate(self) -> Result<(), UiNumberModelUpdateFailure> {
         if !self.model_id.is_valid() {
             return Err(UiNumberModelUpdateFailure::InvalidModelId);
@@ -93,6 +96,9 @@ pub enum UiNumberModelUpdateOrigin {
 }
 
 /// Versioned Float model update qualified by an expected numeric model revision.
+///
+/// 构造与派生反序列化仅组装字段，业务准入须显式调用 `validate` 并交给 Runtime。
+/// 自定义 Debug 隐去数值，Serde 仍编码 `value`；该载体不提供清零或保密存储。
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct UiNumberModelUpdateRequest {
     pub schema_version: u32,
@@ -105,6 +111,16 @@ pub struct UiNumberModelUpdateRequest {
 }
 
 impl UiNumberModelUpdateRequest {
+    /// 组装数值更新并生成请求标识，不在此处校验或提交模型。
+    ///
+    /// # 参数
+    /// - `tree_id`、`node_id`：预期接收更新的树与节点。
+    /// - `expected_model`：调用者观察到的模型身份与修订快照。
+    /// - `origin`：保留聚焦编辑缓冲区或显式替换的意图。
+    /// - `value`：待应用的浮点值，有限性由 [`Self::validate`] 检查。
+    ///
+    /// # 返回
+    /// 字段已持有但尚未通过显式校验的请求；实际归属、冲突和提交由 Runtime 判断。
     pub fn new(
         tree_id: UiTreeId,
         node_id: UiNodeId,
@@ -182,6 +198,9 @@ pub enum UiNumberModelUpdateFailure {
 }
 
 /// Content-free acknowledgement for one numeric model update request.
+///
+/// 这是模型处理结果的值快照，不持有模型；派生反序列化不自动调用本类型的 `validate`。
+/// 显式校验只证明回执字段组合一致，不证明 Runtime 实际执行过对应更新。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiNumberModelUpdateReceipt {
     pub schema_version: u32,
@@ -197,6 +216,7 @@ pub struct UiNumberModelUpdateReceipt {
 
 impl UiNumberModelUpdateReceipt {
     /// 依据状态核对当前模型键和失败原因；`Applied` 允许修订保持或递增一次。
+    /// 成功应用时须保持同一模型身份；未变状态要求原键，冲突状态要求不同的有效当前键。
     pub fn validate(&self) -> Result<(), UiNumberModelUpdateFailure> {
         if self.schema_version != UI_NUMBER_MODEL_UPDATE_SCHEMA_VERSION {
             return Err(UiNumberModelUpdateFailure::UnsupportedSchemaVersion);

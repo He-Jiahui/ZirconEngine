@@ -211,10 +211,13 @@ fn environment_read_recovers_a_bundle_staged_after_initial_recovery_before_missi
         staged,
         "fixture must stage after the initial recovery check"
     );
-    assert!(matches!(
-        result,
-        Err(super::IblSourceCubemapStagingError::MissingBundleManifest)
-    ));
+    assert!(
+        matches!(
+            &result,
+            Err(super::IblSourceCubemapStagingError::MissingBundleManifest)
+        ),
+        "unexpected environment recovery result: {result:?}"
+    );
     assert_eq!(
         fs::read_dir(store.bundle_journal_directory())
             .expect("the next reader iteration must recover the staged journal")
@@ -301,7 +304,10 @@ fn source_read_recovers_a_bundle_staged_after_initial_recovery_before_missing() 
         staged,
         "fixture must stage after the initial recovery check"
     );
-    assert!(matches!(result, Ok(IblSourceCubemapStagingRead::Missing)));
+    assert!(
+        matches!(&result, Ok(IblSourceCubemapStagingRead::Missing)),
+        "unexpected source recovery result: {result:?}"
+    );
     assert_eq!(
         fs::read_dir(store.bundle_journal_directory())
             .expect("the next reader iteration must recover the staged journal")
@@ -495,9 +501,10 @@ fn environment_read_retries_a_missing_recipe_after_reused_source_publication() {
     let publisher = store.clone();
     let mut published = false;
     let environment = store
-        .read_source_cubemap_environment_with_snapshot_hooks(
+        .read_source_cubemap_environment_with_snapshot_and_missing_manifest_hooks(
             &reused_recipe,
             uri(),
+            || Ok(()),
             || Ok(()),
             || Ok(()),
             || Ok(()),

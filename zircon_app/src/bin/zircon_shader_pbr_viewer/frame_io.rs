@@ -11,7 +11,7 @@ use zircon_runtime::core::framework::render::{
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::graphics::ViewportFrame;
 
-const READY_FRAME_EVIDENCE_SCHEMA: &str = "zircon_shader_pbr_viewer_ready_frame_evidence_v18";
+const READY_FRAME_EVIDENCE_SCHEMA: &str = "zircon_shader_pbr_viewer_ready_frame_evidence_v19";
 // This reports only reuse inside the viewer's MeshPipelineCache, never a persisted driver PSO.
 pub(crate) const ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE: &str =
     "process_local_mesh_pipeline_cache";
@@ -79,7 +79,7 @@ pub(crate) struct ReadyFrameEvidenceMetadata {
     pub(crate) scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait: Duration,
     pub(crate) scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization:
         Duration,
-    pub(crate) scene_startup_renderer_environment_brdf_lut_texture_upload_submission: Duration,
+    pub(crate) scene_startup_renderer_system_texture_upload_batch_submission: Duration,
     pub(crate) scene_startup_renderer_deferred_initialization: Duration,
     pub(crate) scene_startup_renderer_deferred_standard_pipeline: Duration,
     pub(crate) scene_startup_resource_streamer_initialization: Duration,
@@ -287,7 +287,7 @@ fn write_ready_frame_metadata(
          scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized={}\n\
          scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait_ns={}\n\
          scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization_ns={}\n\
-         scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns={}\n\
+         scene_startup_renderer_system_texture_upload_batch_submission_ns={}\n\
          scene_startup_renderer_deferred_initialization_ns={}\n\
          scene_startup_renderer_deferred_standard_pipeline_ns={}\n\
          scene_startup_resource_streamer_initialization_ns={}\n\
@@ -418,7 +418,7 @@ fn write_ready_frame_metadata(
             .scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization
             .as_nanos(),
         metadata
-            .scene_startup_renderer_environment_brdf_lut_texture_upload_submission
+            .scene_startup_renderer_system_texture_upload_batch_submission
             .as_nanos(),
         metadata
             .scene_startup_renderer_deferred_initialization

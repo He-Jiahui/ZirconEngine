@@ -3,7 +3,13 @@ use std::path::Path;
 use super::super::{
     RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
 };
-use super::{load_from_path, save_to_path_atomically};
+use crate::asset::project::{ProjectPaths, ResolvedProjectPathIdentity};
+
+use super::atomic::{
+    admit_archive_path_write, reserve_archive_path_mutation,
+    save_artifact_to_prepared_path_atomically,
+};
+use super::load_from_path;
 
 pub(in crate::scene::dynamic_scene::session) fn mutate_archive_at_path_atomically(
     path: impl AsRef<Path>,
@@ -21,9 +27,13 @@ pub(in crate::scene::dynamic_scene::session) fn mutate_archive_at_path_with_repo
     path: impl AsRef<Path>,
     mutate: impl FnOnce(&mut RuntimeSessionArchive) -> Result<T, RuntimeSessionArchiveError>,
 ) -> Result<T, RuntimeSessionArchiveError> {
-    let path = path.as_ref();
-    let mut archive = load_from_path(path)?;
+    let path = ProjectPaths::resolve_path(path)?;
+    let reservation =
+        reserve_archive_path_mutation(ResolvedProjectPathIdentity::from(path.clone()));
+    let mut archive = load_from_path(path.operation_path())?;
     let report = mutate(&mut archive)?;
-    save_to_path_atomically(&archive, path)?;
+    let artifact = archive.sealed_artifact()?;
+    let ticket = admit_archive_path_write(&artifact, reservation)?;
+    save_artifact_to_prepared_path_atomically(&artifact, &path, &ticket)?;
     Ok(report)
 }

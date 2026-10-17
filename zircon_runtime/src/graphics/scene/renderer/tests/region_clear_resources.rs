@@ -47,11 +47,8 @@ fn scene_region_clear_resources_build_for_offscreen_backend() {
 fn scene_region_clear_defers_color_upload_to_frame_transaction() {
     let source = include_str!("../scene_clear/region_clear_resources.rs");
     let production = source.split("#[cfg(test)]").next().unwrap();
-    let stage_source = include_str!(
-        "../../../core/render/execute_compiled_scene_graph_stages.rs"
-    );
-    let frame_source =
-        include_str!("../core/render/render/render.rs");
+    let stage_source = include_str!("../../../core/render/execute_compiled_scene_graph_stages.rs");
+    let frame_source = include_str!("../core/render/render/render.rs");
 
     assert!(production.contains("WgpuBufferUpload::from_bytes("));
     assert!(!production.contains("queue.write_buffer("));

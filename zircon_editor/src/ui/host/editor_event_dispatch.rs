@@ -89,6 +89,24 @@ pub enum EditorEventDispatcherError {
 }
 
 impl EditorHostEventController {
+    pub(crate) fn dispatch_authorized_scene_save(
+        &self,
+        overwrite: crate::core::document::OverwriteLease,
+    ) -> Result<EditorEventRecord, EditorEventDispatchError> {
+        self.dispatch_normalized_event_with_metadata_using(
+            EditorEventSource::RetainedHost,
+            EditorEvent::WorkbenchMenu(MenuAction::SaveProject),
+            None,
+            None,
+            None,
+            EventRecordPolicy::Durable,
+            move |controller, _| {
+                super::editor_event_execution::execute_scene_save(controller, Some(overwrite))
+                    .map_err(EditorEventExecutionError::Menu)
+            },
+        )
+    }
+
     pub(crate) fn dispatch_authorized_close_views(
         &self,
         window_id: MainPageId,

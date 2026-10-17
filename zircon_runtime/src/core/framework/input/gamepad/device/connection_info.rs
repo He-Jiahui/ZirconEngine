@@ -5,6 +5,8 @@
 //!
 //! # 参考
 //! [`GamepadConnectionInfo`]、[`crate::core::framework::input::InputEvent`]。
+use std::num::NonZeroU64;
+
 use serde::{Deserialize, Serialize};
 
 use super::GamepadId;
@@ -19,7 +21,7 @@ use super::GamepadId;
 ///
 /// # 约束
 ///
-/// connected 是这条消息报告的状态，不是读取时的实时查询。默认输入管理器只在连接集合保存 gamepad；断连时释放该编号的按钮并移除轴和模拟按钮值，其他设备及窗口焦点不因这条消息失去连接。名称和硬件 ID 不保存在默认帧快照的连接集合中。
+/// connected 是这条消息报告的状态，不是读取时的实时查询。默认输入管理器为 gamepad 保留当前非零 generation 与开闭状态；旧代通知被拒绝，高代通知先退役旧输入，断连释放该编号按钮并移除模拟状态。其他设备及窗口焦点不因这条消息失去连接。名称和硬件 ID 不保存在默认帧快照的连接集合中。
 ///
 /// # 所有权与生命周期
 ///
@@ -44,6 +46,9 @@ pub struct GamepadConnectionInfo {
     ///
     /// [`crate::core::framework::input::GamepadId`]、[`crate::core::framework::input::InputEvent::GamepadConnection`]
     pub gamepad: GamepadId,
+    /// Producer-captured connection incarnation. Closed generations cannot reopen.
+    /// Missing/zero generations are rejected by deserialization; routing IDs remain unchanged.
+    pub generation: NonZeroU64,
     /// 报告本次通知是连接（true）还是断开（false）。
     ///
     /// # 使用时机
@@ -52,7 +57,7 @@ pub struct GamepadConnectionInfo {
     ///
     /// # 约束
     ///
-    /// 这是一次观察。默认管理器的断连分支仅清理该编号的输入状态；连接集合不会被用来拒绝之后提交的按钮或轴事件。
+    /// 这是生产端捕获的一次观察。默认管理器仅接受已观察且仍打开的同代按钮/轴样本；断连留下关闭代际，后续同代连接也不能重新打开。只有更高代连接可建立新输入周期。
     ///
     /// # 所有权与生命周期
     ///
@@ -66,7 +71,7 @@ pub struct GamepadConnectionInfo {
     ///
     /// # 约束
     ///
-    /// None 表示此次未提供名称；公开值允许 Some(空字符串)。当前 ABI 接收端将空载荷或非法 UTF-8 转为 None，合法非空载荷复制成 String。默认连接快照不存储该名称。
+    /// None 表示此次未提供名称；公开值允许 Some(空字符串)。V2 ABI 在代际头之后借用名称，空名称转为 None，非法 UTF-8 拒绝，合法非空名称复制成 String。默认连接快照不存储该名称。
     ///
     /// # 所有权与生命周期
     ///
@@ -80,7 +85,7 @@ pub struct GamepadConnectionInfo {
     ///
     /// # 约束
     ///
-    /// 此共享类型允许任意 u16，包括 Some(0)。当前 V1 桥接以 0 表示缺失，接收端还把超出 u16 的值转为 None；不要据它单独识别一台设备。
+    /// 此共享类型允许任意 u16，包括 Some(0)。V2 桥接保留原有设备标量约定，以 0 表示缺失，接收端还把超出 u16 的值转为 None；不要据它单独识别一台设备。
     ///
     /// # 所有权与生命周期
     ///
@@ -94,7 +99,7 @@ pub struct GamepadConnectionInfo {
     ///
     /// # 约束
     ///
-    /// 共享类型保留任意 u16；当前 V1 桥接将 0 或超出 u16 的值读为 None。它不替代 gamepad，也没有设备世代或跨会话唯一性约束。
+    /// 共享类型保留任意 u16；V2 桥接保留原有设备标量约定，将 0 或超出 u16 的值读为 None。它不替代 gamepad，也没有设备世代或跨会话唯一性约束。
     ///
     /// # 所有权与生命周期
     ///

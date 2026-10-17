@@ -1,3 +1,7 @@
+//! 检查阶段与 dirty 投影，并保留源码形状守卫和手动性能样本。
+//! 源码断言只匹配原始文本边界；性能样本只比较本文件构造的调用序列。
+//! `ignore` 只控制默认运行选择，性能样本的构建配置由执行方决定。
+
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -66,6 +70,8 @@ fn optimization_batch_20260826ar_pointer_reply_scans_invocations_once() {
         "fn pointer_release_target",
     );
 
+    // BUG: [CR-ZCA-R054-0001] 该切片只取包装函数；扫描已委派给切片终点后的 helper，故下方正向 contains 在当前源码为 false。
+    // 后续应按真实委派边界修正守卫；不能靠在包装函数注释中加入目标字串使其通过。
     assert!(reply_path.contains("scan_pointer_invocations"));
     assert!(!source.contains("fn pointer_reply_phase("));
     assert_eq!(

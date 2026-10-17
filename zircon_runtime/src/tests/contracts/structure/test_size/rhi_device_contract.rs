@@ -11,22 +11,20 @@ fn runtime_15_rhi_device_contract_tests_are_folder_backed() {
     );
     let bind_groups =
         read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/tests/device_contract/bind_groups.rs");
-    let invalid_descriptors = read_repo(
-        "zircon_runtime/crates/zr_rhi_wgpu/tests/device_contract/invalid_descriptors.rs",
-    );
+    let invalid_descriptors =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/tests/device_contract/invalid_descriptors.rs");
     // BUG: [CR-RUNTIME-TESTS-BUDGET-0002] 此设备传输测试路径在当前工作树不存在，统一仓库读取器会立即终止；需按现行目录入口调整读取与后续锚点。
     let transfer_and_fences = read_repo(
         "zircon_runtime/crates/zr_rhi_wgpu/src/tests/device_contract/transfer_and_fences.rs",
     );
-    let framework_boundary = read_repo(
-        "zircon_runtime/crates/zr_rhi_wgpu/tests/device_contract/framework_boundary.rs",
-    );
-    let runtime_15_plan =
+    let framework_boundary =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/tests/device_contract/framework_boundary.rs");
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert_contains_all(
         "RHI device contract parent test module mounts",

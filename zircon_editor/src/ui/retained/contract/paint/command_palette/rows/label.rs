@@ -19,14 +19,39 @@ pub(super) fn push_command_row_label(
     color: [u8; 4],
     opacity: f32,
 ) {
+    push_command_row_label_with_detail(
+        commands, row_rect, clip, order, text, false, color, opacity,
+    );
+}
+
+pub(super) fn push_command_row_label_with_detail(
+    commands: &mut Vec<HostPaintCommand>,
+    row_rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    text: &str,
+    has_detail: bool,
+    color: [u8; 4],
+    opacity: f32,
+) {
     if text.is_empty() || intersect(row_rect, clip).is_none() {
         return;
     }
     let metrics = command_palette_metrics();
     let style = command_row_label_text_style(color, &metrics);
+    let mut slot = row_label_rect(row_rect);
+    if has_detail {
+        let detail = super::super::layout::row_detail_rect(row_rect);
+        slot.width = slot
+            .width
+            .min((detail.x - metrics.row_text_x - slot.x).max(0.0));
+    }
+    let Some(slot_clip) = intersect(&slot, clip) else {
+        return;
+    };
     commands.push(HostPaintCommand::text(
-        row_label_rect(row_rect),
-        Some(clip.clone()),
+        slot,
+        Some(slot_clip),
         order,
         text.to_string(),
         style.color,

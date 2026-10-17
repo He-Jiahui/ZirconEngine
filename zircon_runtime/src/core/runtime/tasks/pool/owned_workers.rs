@@ -2,7 +2,7 @@ use std::io;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::thread::{self, JoinHandle};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use super::super::thread_is_join_ready;
 

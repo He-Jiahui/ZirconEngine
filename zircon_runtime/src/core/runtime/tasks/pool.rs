@@ -4,7 +4,7 @@ mod owned_workers;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, TryLockError, Weak};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use rayon::ThreadPool;
 
@@ -174,6 +174,18 @@ impl TaskPool {
 
     pub fn spawn(&self, task: impl FnOnce() + Send + 'static) {
         self.submission_or_panic().spawn(task);
+    }
+
+    /// Returns a refused task without running or dropping its captures.
+    pub(crate) fn try_spawn<F>(&self, task: F) -> Result<(), F>
+    where
+        F: FnOnce() + Send + 'static,
+    {
+        let Some(submission) = self.try_acquire_submission() else {
+            return Err(task);
+        };
+        submission.spawn(task);
+        Ok(())
     }
 
     pub fn install<R: Send>(&self, task: impl FnOnce() -> R + Send) -> R {

@@ -35,22 +35,27 @@ impl ZrRuntimeBuildSetExpectationV1 {
         })
     }
 
+    /// 借用构造时提供的预期 BuildSet ID；是否来自独立可信构建由调用方保证。
     pub fn build_set_id(&self) -> &ZrRuntimeBuildSetId {
         &self.build_set_id
     }
 
+    /// 返回编译时冻结的接口定义，供旁车清单逐字段比较。
     pub fn interface_spec(&self) -> &ZrRuntimeInterfaceSpecV1 {
         &self.interface_spec
     }
 
+    /// 返回 Host 当前 payload schema 集合的摘要。
     pub fn payload_schema_digest(&self) -> &ZrRuntimeDigestV1 {
         &self.payload_schema_digest
     }
 
+    /// 借用构造时指定的预期目标；加载端应使用自身编译目标，在执行动态代码前核对。
     pub fn target(&self) -> &ZrRuntimeTargetModelV1 {
         &self.target
     }
 
+    /// 返回 Host 要求清单具备的能力集合；引用借用 expectation 内部集合。
     pub fn required_capabilities(&self) -> &BTreeSet<String> {
         &self.required_capabilities
     }

@@ -11,7 +11,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_te
     let Some(text) = command.text.as_ref() else {
         return false;
     };
-    let _request = crate::ui::retained_host::host_contract::paint_text::HostTextFontRequestScope::enter(command.text_font_request.as_ref());
+    let _request =
+        crate::ui::retained_host::host_contract::paint_text::HostTextFontRequestScope::enter(
+            command.text_font_request.as_ref(),
+        );
     let color = color_with_opacity(
         command
             .foreground_color

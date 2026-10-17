@@ -1,3 +1,6 @@
+//! 将键入检索到期输入映射为当前菜单绑定的语义报告。
+//! 统一输入入口调用本模块；输入管理器持有时钟和到期队列，返回回执拥有事件及报告。
+
 use zircon_runtime_interface::ui::dispatch::{
     UiDispatchPhase, UiDispatchReply, UiInputDispatchResult, UiInputEvent,
     UiTypeaheadTimerInputEvent,
@@ -7,6 +10,14 @@ use super::super::surface::UiSurface;
 use super::{route_policy::annotate_route_policy, route_steps::annotate_result_route_steps};
 
 /// 将菜单 typeahead 缓冲区到期通知转成语义事件；计时与替换由输入管理器拥有。
+///
+/// # 调用时机
+/// 统一输入入口收到到期通知后调用，并重新确认目标仍是可交互的菜单。
+/// # 参数与返回
+/// `surface` 提供当前保留树和绑定；`typeahead` 为拥有的通知，返回拥有事件与组件报告的回执。
+/// # 约束与参考
+/// 无可用绑定时回执未处理；绑定查询错误也折叠为空报告。计时来源见
+/// [`UiInputManager::tick`](crate::ui::dispatch::UiInputManager::tick)。
 pub(super) fn dispatch_typeahead_timer_input(
     surface: &mut UiSurface,
     typeahead: UiTypeaheadTimerInputEvent,
@@ -25,6 +36,7 @@ pub(super) fn dispatch_typeahead_timer_input(
         return with_typeahead_route_policy(surface, result);
     }
 
+    // 此处按当前绑定生成到期报告；回执交付后由绑定的消费者继续处理菜单语义。
     let component_events = surface
         .apply_default_typeahead_expired_component_event(typeahead.target)
         .unwrap_or_default();
@@ -47,6 +59,7 @@ pub(super) fn dispatch_typeahead_timer_input(
     with_typeahead_route_policy(surface, result)
 }
 
+/// 依据当前表面补齐默认动作策略和步骤投影，再交还原回执的所有权。
 fn with_typeahead_route_policy(
     surface: &UiSurface,
     mut result: UiInputDispatchResult,

@@ -214,15 +214,31 @@ fn residual_lock(root: &Path) -> crate::core::recovery::SessionLockInspection {
 }
 
 fn temporary_root(label: &str) -> PathBuf {
-    std::env::current_dir()
-        .unwrap()
-        .join("target")
-        .join(format!(
-            "zircon-editor-{label}-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ))
+    // The native validation owner must preregister this physical scratch tree and bind TEMP/TMP.
+    // Read-only canonicalization rejects unprepared roots before any fixture is created.
+    let approved = std::fs::canonicalize("E:/cargo-targets/zircon-local")
+        .expect("native owner must prepare the approved physical artifact root");
+    let physical = approved
+        .to_str()
+        .expect("approved physical fixture root must be Unicode")
+        .replace('\\', "/");
+    let physical = physical.strip_prefix("//?/").unwrap_or(&physical);
+    assert!(
+        physical.eq_ignore_ascii_case("E:/cargo-targets/zircon-local"),
+        "approved fixture root must physically resolve below the E drive cargo-targets root"
+    );
+    let scratch = std::fs::canonicalize(std::env::temp_dir())
+        .expect("native owner must prepare its registered TEMP/TMP directory");
+    assert!(
+        scratch.starts_with(&approved),
+        "recovery fixtures require registered TEMP/TMP below E:/cargo-targets/zircon-local"
+    );
+    scratch.join(format!(
+        "zircon-editor-{label}-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ))
 }

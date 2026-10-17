@@ -57,8 +57,7 @@ fn node_and_cluster_cull_pass_carries_hierarchy_node_id_from_render_clusters_to_
         output.traversal_records()[3],
         VirtualGeometryNodeAndClusterCullTraversalRecord {
             op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
-            child_source:
-                VirtualGeometryNodeAndClusterCullTraversalChildSource::FixedFanout,
+            child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::FixedFanout,
             instance_index: 0,
             entity: 7,
             cluster_array_index: 11,
@@ -134,8 +133,7 @@ fn node_and_cluster_cull_pass_uses_authored_hierarchy_child_range_for_enqueue_ch
         output.traversal_records()[3],
         VirtualGeometryNodeAndClusterCullTraversalRecord {
             op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
-            child_source:
-                VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy,
+            child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy,
             instance_index: 0,
             entity: 7,
             cluster_array_index: 11,
@@ -235,8 +233,7 @@ fn node_and_cluster_cull_pass_points_authored_children_at_child_id_table() {
         output.traversal_records()[3],
         VirtualGeometryNodeAndClusterCullTraversalRecord {
             op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
-            child_source:
-                VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy,
+            child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy,
             instance_index: 0,
             entity: 7,
             cluster_array_index: 11,

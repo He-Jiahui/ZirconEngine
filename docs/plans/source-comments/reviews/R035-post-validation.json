@@ -1,0 +1,942 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R035",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T15:40:22.692812+00:00",
+  "status": "scoped-static-validation-passed",
+  "files": {
+    "zircon_runtime_interface/src/runtime_api/constants.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/constants.rs",
+      "before_sha256": "356598acdf3e3c309e3e2c3f92db77c4ff16e2da15260650514c54a6c74ccdfe",
+      "sha256": "16c82fb714f3e6d5676a56517ab04ff183ce50e34425e188acc816011a5cb2c7",
+      "before_lines": 117,
+      "lines": 120,
+      "bytes": 6281,
+      "changed": true,
+      "insertion_blocks": 1,
+      "added_lines": 3,
+      "inserted_bytes": 233,
+      "child_object_groups": 102,
+      "child_members": 0,
+      "child_controls": 0,
+      "gapfree_partitions": 1
+    },
+    "zircon_runtime_interface/src/runtime_api/mod.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/mod.rs",
+      "before_sha256": "55a90c9da8bf19ca4ff8bc6383b29ca6857e99f4e015fbd8cc0f41d7edc22b63",
+      "sha256": "55a90c9da8bf19ca4ff8bc6383b29ca6857e99f4e015fbd8cc0f41d7edc22b63",
+      "before_lines": 145,
+      "lines": 145,
+      "bytes": 9834,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_lines": 0,
+      "inserted_bytes": 0,
+      "child_object_groups": 11,
+      "child_members": 0,
+      "child_controls": 0,
+      "gapfree_partitions": 6
+    },
+    "zircon_runtime_interface/src/runtime_api/session/app_session_configuration_v2.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/session/app_session_configuration_v2.rs",
+      "before_sha256": "4ce27891dc5a1549207e092518ec00752bdef1650d0177d68adb55a7b591a50c",
+      "sha256": "4ce27891dc5a1549207e092518ec00752bdef1650d0177d68adb55a7b591a50c",
+      "before_lines": 357,
+      "lines": 357,
+      "bytes": 19729,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_lines": 0,
+      "inserted_bytes": 0,
+      "child_object_groups": 26,
+      "child_members": 28,
+      "child_controls": 27,
+      "gapfree_partitions": 13
+    },
+    "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs",
+      "before_sha256": "ff4ee54350fa4332b730ae0db67eb5f47ea4de3fbda59fc6f188e844aad41a71",
+      "sha256": "07c3dadd7ca9227c89d721911084a4306382ee7ae99be7db81bb8157935a7567",
+      "before_lines": 193,
+      "lines": 248,
+      "bytes": 11061,
+      "changed": true,
+      "insertion_blocks": 37,
+      "added_lines": 55,
+      "inserted_bytes": 4917,
+      "child_object_groups": 24,
+      "child_members": 23,
+      "child_controls": 14,
+      "gapfree_partitions": 17
+    },
+    "zircon_runtime_interface/src/runtime_api/session/events.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "before_sha256": "b44a63486795ddbd2e28ff7bf5a174a25a689d1cfb287f0978b114328ef4cc09",
+      "sha256": "aff4edd1b0d58e5d202ab5e04a7fda6c0074acadb08f8e652a09a6fc8ed72353",
+      "before_lines": 659,
+      "lines": 691,
+      "bytes": 21815,
+      "changed": true,
+      "insertion_blocks": 30,
+      "added_lines": 32,
+      "inserted_bytes": 3557,
+      "child_object_groups": 51,
+      "child_members": 14,
+      "child_controls": 2,
+      "gapfree_partitions": 46
+    },
+    "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs",
+      "before_sha256": "bad083c57b6c23a41f53f11acc5d9cfc92f11f9a48109a359fa8bcb25c8c56af",
+      "sha256": "bad083c57b6c23a41f53f11acc5d9cfc92f11f9a48109a359fa8bcb25c8c56af",
+      "before_lines": 130,
+      "lines": 130,
+      "bytes": 5615,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_lines": 0,
+      "inserted_bytes": 0,
+      "child_object_groups": 15,
+      "child_members": 5,
+      "child_controls": 7,
+      "gapfree_partitions": 12
+    },
+    "zircon_runtime_interface/src/runtime_api/session/ime_composition_v2.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/session/ime_composition_v2.rs",
+      "before_sha256": "25f5554bb34546ba65afdfb1adcff07e0e0324dd196af66f8a0827858565e710",
+      "sha256": "25f5554bb34546ba65afdfb1adcff07e0e0324dd196af66f8a0827858565e710",
+      "before_lines": 502,
+      "lines": 502,
+      "bytes": 26265,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_lines": 0,
+      "inserted_bytes": 0,
+      "child_object_groups": 29,
+      "child_members": 30,
+      "child_controls": 78,
+      "gapfree_partitions": 21
+    },
+    "zircon_runtime_interface/src/runtime_api/session/operation.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/session/operation.rs",
+      "before_sha256": "1a3fbe1cbe23cd16a233985ce08601593bdad8ac4968fc6a857d79784a8f63c2",
+      "sha256": "a3b618b39359fc96428b54a4a8966e21364cb2a72150becdbebc7eb5f2e13b90",
+      "before_lines": 410,
+      "lines": 412,
+      "bytes": 17810,
+      "changed": true,
+      "insertion_blocks": 1,
+      "added_lines": 2,
+      "inserted_bytes": 259,
+      "child_object_groups": 35,
+      "child_members": 39,
+      "child_controls": 29,
+      "gapfree_partitions": 28
+    },
+    "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+      "before_sha256": "a2d1c53720742b7841e48a6f0cad63f635d8ce8bc715df71655f02dc880221be",
+      "sha256": "a2d1c53720742b7841e48a6f0cad63f635d8ce8bc715df71655f02dc880221be",
+      "before_lines": 279,
+      "lines": 279,
+      "bytes": 13434,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_lines": 0,
+      "inserted_bytes": 0,
+      "child_object_groups": 27,
+      "child_members": 14,
+      "child_controls": 0,
+      "gapfree_partitions": 20
+    },
+    "zircon_runtime_interface/src/runtime_api/session/requests.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/session/requests.rs",
+      "before_sha256": "b433935038333e289e463f3518e1e146ba47778921069463ab3cb38d37f5ea1c",
+      "sha256": "b433935038333e289e463f3518e1e146ba47778921069463ab3cb38d37f5ea1c",
+      "before_lines": 175,
+      "lines": 175,
+      "bytes": 7822,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_lines": 0,
+      "inserted_bytes": 0,
+      "child_object_groups": 16,
+      "child_members": 15,
+      "child_controls": 0,
+      "gapfree_partitions": 11
+    },
+    "zircon_runtime_interface/src/runtime_api/session/tests/app_session_config_v2.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/session/tests/app_session_config_v2.rs",
+      "before_sha256": "ac527529883ed0f9edb4cc3b1be24e389dc34f56bb61440e8e3b2ec79b390454",
+      "sha256": "ac527529883ed0f9edb4cc3b1be24e389dc34f56bb61440e8e3b2ec79b390454",
+      "before_lines": 70,
+      "lines": 70,
+      "bytes": 2462,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_lines": 0,
+      "inserted_bytes": 0,
+      "child_object_groups": 6,
+      "child_members": 0,
+      "child_controls": 0,
+      "gapfree_partitions": 6
+    },
+    "zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs",
+      "before_sha256": "19f5fbc98829b3b160e85c851ec7405a6b80a8189c60f76c202f3fd3ff1c5a9e",
+      "sha256": "d011cb685be2c298de3ab6fb08385e067b00aaa77c41d59310c99eb56bf7cdef",
+      "before_lines": 86,
+      "lines": 90,
+      "bytes": 2867,
+      "changed": true,
+      "insertion_blocks": 4,
+      "added_lines": 4,
+      "inserted_bytes": 437,
+      "child_object_groups": 7,
+      "child_members": 0,
+      "child_controls": 0,
+      "gapfree_partitions": 5
+    },
+    "zircon_runtime_interface/src/runtime_api/session/tests/ime_composition_v2.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/session/tests/ime_composition_v2.rs",
+      "before_sha256": "bbf01d92208e605e4d7432d5a273ad6bc2f32f3b45a31125c00d449436630cbd",
+      "sha256": "bbf01d92208e605e4d7432d5a273ad6bc2f32f3b45a31125c00d449436630cbd",
+      "before_lines": 105,
+      "lines": 105,
+      "bytes": 3807,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_lines": 0,
+      "inserted_bytes": 0,
+      "child_object_groups": 7,
+      "child_members": 0,
+      "child_controls": 0,
+      "gapfree_partitions": 7
+    },
+    "zircon_runtime_interface/src/runtime_api/session/translated_events.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+      "before_sha256": "76a6df697cfef4a3ebe400ab7ea020576e248fdc87de2edb38dd26e7ffc68d5d",
+      "sha256": "d1c38e8165a88ea8a9fe9741e9dae09b0963ec6a3b5e1065c5c7543016d70ba7",
+      "before_lines": 76,
+      "lines": 86,
+      "bytes": 3157,
+      "changed": true,
+      "insertion_blocks": 8,
+      "added_lines": 10,
+      "inserted_bytes": 995,
+      "child_object_groups": 11,
+      "child_members": 3,
+      "child_controls": 0,
+      "gapfree_partitions": 7
+    },
+    "zircon_runtime_interface/src/runtime_api/tests/ime_compose_capability_v2.rs": {
+      "path": "zircon_runtime_interface/src/runtime_api/tests/ime_compose_capability_v2.rs",
+      "before_sha256": "35dcca3bb81dbfbef345073fe3da013a0dd664600e8dbc371ccdfbaf8fa569a6",
+      "sha256": "35dcca3bb81dbfbef345073fe3da013a0dd664600e8dbc371ccdfbaf8fa569a6",
+      "before_lines": 56,
+      "lines": 56,
+      "bytes": 1714,
+      "changed": false,
+      "insertion_blocks": 0,
+      "added_lines": 0,
+      "inserted_bytes": 0,
+      "child_object_groups": 3,
+      "child_members": 0,
+      "child_controls": 0,
+      "gapfree_partitions": 3
+    }
+  },
+  "root_actual_validation": {
+    "receipt_chain": {
+      "initial_chunk": "d790ae",
+      "native_session": 5908,
+      "terminal_chunk": "b814f3",
+      "exit": 0
+    },
+    "head": {
+      "command": [
+        "git",
+        "--no-optional-locks",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stdout": "f28ba39a5095f4964c046ecc702778627f80cfd5\n",
+      "stderr": ""
+    },
+    "checks": [
+      {
+        "command": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--check",
+          "f28ba39a5095f4964c046ecc702778627f80cfd5",
+          "--",
+          "zircon_runtime_interface/src/runtime_api/constants.rs",
+          "zircon_runtime_interface/src/runtime_api/mod.rs",
+          "zircon_runtime_interface/src/runtime_api/session/app_session_configuration_v2.rs",
+          "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs",
+          "zircon_runtime_interface/src/runtime_api/session/events.rs",
+          "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs",
+          "zircon_runtime_interface/src/runtime_api/session/ime_composition_v2.rs",
+          "zircon_runtime_interface/src/runtime_api/session/operation.rs",
+          "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+          "zircon_runtime_interface/src/runtime_api/session/requests.rs",
+          "zircon_runtime_interface/src/runtime_api/session/tests/app_session_config_v2.rs",
+          "zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs",
+          "zircon_runtime_interface/src/runtime_api/session/tests/ime_composition_v2.rs",
+          "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+          "zircon_runtime_interface/src/runtime_api/tests/ime_compose_capability_v2.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime_interface/src/runtime_api/constants.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/runtime_api/session/editor_transform.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/runtime_api/session/events.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/runtime_api/session/operation.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs.\nThe file will have its original line endings in your working directory\n"
+      },
+      {
+        "command": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "zircon_runtime_interface/src/runtime_api/constants.rs",
+          "zircon_runtime_interface/src/runtime_api/mod.rs",
+          "zircon_runtime_interface/src/runtime_api/session/app_session_configuration_v2.rs",
+          "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs",
+          "zircon_runtime_interface/src/runtime_api/session/events.rs",
+          "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs",
+          "zircon_runtime_interface/src/runtime_api/session/ime_composition_v2.rs",
+          "zircon_runtime_interface/src/runtime_api/session/operation.rs",
+          "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+          "zircon_runtime_interface/src/runtime_api/session/requests.rs",
+          "zircon_runtime_interface/src/runtime_api/session/tests/app_session_config_v2.rs",
+          "zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs",
+          "zircon_runtime_interface/src/runtime_api/session/tests/ime_composition_v2.rs",
+          "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+          "zircon_runtime_interface/src/runtime_api/tests/ime_compose_capability_v2.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "raw_inverse_and_inventory": {
+      "files": 15,
+      "before_lines": 3360,
+      "lines": 3466,
+      "changed": 6,
+      "blocks": 81,
+      "added": 106,
+      "inserted_bytes": 10398,
+      "object_groups": 370,
+      "members": 171,
+      "control_sites": 157,
+      "partitions": 203,
+      "parent_anchors": 370
+    },
+    "pre_record_preflight": {
+      "receipt": "65d690",
+      "exit": 0,
+      "source_pins_equal": true,
+      "root_declaration_start_sets_equal": true,
+      "artifact_preregistration_confirmed": true
+    }
+  },
+  "change_guard": {
+    "tool": "zircon-change-guard",
+    "version": 2,
+    "mode": "patch",
+    "status": "passed",
+    "input": {
+      "patchDigest": "90a8e18a050560f22739106b3779980a8034c1e3d79095ae7a4ee774100ef003",
+      "base": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+      "files": [
+        "zircon_runtime_interface/src/runtime_api/constants.rs",
+        "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs",
+        "zircon_runtime_interface/src/runtime_api/session/events.rs",
+        "zircon_runtime_interface/src/runtime_api/session/operation.rs",
+        "zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs",
+        "zircon_runtime_interface/src/runtime_api/session/translated_events.rs"
+      ],
+      "declaredPaths": [
+        "zircon_runtime_interface/src/runtime_api/constants.rs",
+        "zircon_runtime_interface/src/runtime_api/mod.rs",
+        "zircon_runtime_interface/src/runtime_api/session/app_session_configuration_v2.rs",
+        "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs",
+        "zircon_runtime_interface/src/runtime_api/session/events.rs",
+        "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs",
+        "zircon_runtime_interface/src/runtime_api/session/ime_composition_v2.rs",
+        "zircon_runtime_interface/src/runtime_api/session/operation.rs",
+        "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+        "zircon_runtime_interface/src/runtime_api/session/requests.rs",
+        "zircon_runtime_interface/src/runtime_api/session/tests/app_session_config_v2.rs",
+        "zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs",
+        "zircon_runtime_interface/src/runtime_api/session/tests/ime_composition_v2.rs",
+        "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+        "zircon_runtime_interface/src/runtime_api/tests/ime_compose_capability_v2.rs"
+      ],
+      "writeGrantCheck": true,
+      "permissionRoot": "E:/Git/ZirconEngine",
+      "contributor": false
+    },
+    "summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "markers": {
+      "closed": [],
+      "opened": [],
+      "moved": []
+    },
+    "findings": [],
+    "suppressed": []
+  },
+  "change_guard_process": {
+    "command": [
+      "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\python\\python.exe",
+      "-B",
+      "E:\\Git\\ZirconEngine\\.codex\\skills\\zircon-change-guard\\scripts\\change_guard.py",
+      "--json",
+      "patch",
+      "--git",
+      "--base",
+      "f28ba39a5095f4964c046ecc702778627f80cfd5",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/constants.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/mod.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/session/app_session_configuration_v2.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/session/ime_composition_v2.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/session/operation.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/session/requests.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/session/tests/app_session_config_v2.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/session/tests/ime_composition_v2.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+      "--path",
+      "zircon_runtime_interface/src/runtime_api/tests/ime_compose_capability_v2.rs"
+    ],
+    "exit": 0,
+    "stderr": ""
+  },
+  "root_actual_read_receipts": {
+    "formal_source": [
+      {
+        "receipt": "29ea92/b394b8",
+        "span_in_concatenated_sources": [
+          0,
+          850
+        ]
+      },
+      {
+        "receipt": "988103",
+        "span_in_concatenated_sources": [
+          850,
+          1250
+        ]
+      },
+      {
+        "receipt": "f77c01",
+        "span_in_concatenated_sources": [
+          1250,
+          1650
+        ]
+      },
+      {
+        "receipt": "165a82",
+        "span_in_concatenated_sources": [
+          1650,
+          2050
+        ]
+      },
+      {
+        "receipt": "41bb60",
+        "span_in_concatenated_sources": [
+          2050,
+          2450
+        ]
+      },
+      {
+        "receipt": "d3317ce",
+        "span_in_concatenated_sources": [
+          2450,
+          2850
+        ]
+      },
+      {
+        "receipt": "08b02a",
+        "span_in_concatenated_sources": [
+          2850,
+          3250
+        ]
+      },
+      {
+        "receipt": "ea2ee8",
+        "span_in_concatenated_sources": [
+          3250,
+          3466
+        ],
+        "note": "The source tail was completely visible; the separately following metadata portion was truncated and re-read via 896574."
+      }
+    ],
+    "current_context": [
+      {
+        "receipt": "4b109c",
+        "ranges": {
+          "E01": [
+            [
+              1,
+              96
+            ]
+          ],
+          "E07": [
+            [
+              1,
+              244
+            ]
+          ],
+          "E24": [
+            [
+              1,
+              224
+            ]
+          ],
+          "E37": [
+            [
+              11,
+              77
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "34aa1d",
+        "ranges": {
+          "E03": [
+            [
+              1,
+              170
+            ]
+          ],
+          "E04": [
+            [
+              113,
+              225
+            ]
+          ],
+          "E05": [
+            [
+              1,
+              58
+            ]
+          ]
+        },
+        "limitation": "Only these fully visible ranges credited from truncated output."
+      },
+      {
+        "receipt": "b11624",
+        "ranges": {
+          "E03": [
+            [
+              171,
+              280
+            ],
+            [
+              415,
+              510
+            ]
+          ],
+          "E04": [
+            [
+              1,
+              112
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "8b99bb",
+        "ranges": {
+          "E08": [
+            [
+              1,
+              221
+            ]
+          ],
+          "E09": [
+            [
+              1,
+              23
+            ]
+          ],
+          "E10": [
+            [
+              90,
+              155
+            ],
+            [
+              189,
+              345
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "a74803",
+        "ranges": {
+          "E03": [
+            [
+              281,
+              414
+            ],
+            [
+              511,
+              659
+            ]
+          ],
+          "E06": [
+            [
+              1,
+              116
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "acdc09",
+        "ranges": {
+          "E12": [
+            [
+              1,
+              185
+            ]
+          ],
+          "E13": [
+            [
+              121,
+              198
+            ]
+          ],
+          "E40": [
+            [
+              276,
+              312
+            ],
+            [
+              349,
+              421
+            ]
+          ],
+          "E42": [
+            [
+              56,
+              116
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "5465bb",
+        "ranges": {
+          "E20": [
+            [
+              863,
+              930
+            ]
+          ],
+          "E21": [
+            [
+              1,
+              135
+            ]
+          ],
+          "E23": [
+            [
+              1,
+              223
+            ]
+          ],
+          "E37": [
+            [
+              212,
+              278
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "f93580",
+        "ranges": {
+          "E20": [
+            [
+              1107,
+              1488
+            ]
+          ]
+        },
+        "limitation": "Variable-definition reading discrepancy was resolved by the independent raw-source recovery f9815c. It is not treated as a source defect."
+      },
+      {
+        "receipt": "f9815c",
+        "ranges": {
+          "E20": [
+            [
+              1180,
+              1306
+            ]
+          ]
+        },
+        "sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52"
+      },
+      {
+        "receipt": "5a809d",
+        "ranges": {
+          "E20": [
+            [
+              1623,
+              1681
+            ]
+          ],
+          "E26": [
+            [
+              1,
+              110
+            ]
+          ],
+          "E18": [
+            [
+              1,
+              52
+            ]
+          ],
+          "E19": [
+            [
+              438,
+              481
+            ],
+            [
+              552,
+              611
+            ]
+          ],
+          "E28": [
+            [
+              100,
+              185
+            ]
+          ],
+          "E29": [
+            [
+              62,
+              87
+            ],
+            [
+              126,
+              151
+            ]
+          ],
+          "E39": [
+            [
+              90,
+              181
+            ]
+          ]
+        }
+      }
+    ],
+    "read_policy": "All 15 owned current sources (3466 physical lines) read completely. Cross-tree context is selected-range review with fresh SHA pins; the child independently read its recorded context ranges. Hash equality is not by itself a claim that root read every line of all 34 context files."
+  },
+  "source_string_contracts": {
+    "matrix_record": "docs/plans/source-comments/reviews/R035.json",
+    "matrix_record_sha256": "41dce4c6a08db18340080afdc8adfa12304174a9c19f15fdcb30c131beb9e069",
+    "matrix_field": "source_string_contracts.raw_needle_rows",
+    "literal_needles": 20,
+    "source_paths": 15,
+    "actual_before_after_count_predicates": 300,
+    "all_equal": true,
+    "new_documentation_contribution": 0,
+    "limitation": "Static evaluation of the actual literal matrix and call-context review; no Rust test execution or whole-workspace acceptance."
+  },
+  "reused_validation": {
+    "rustfmt": {
+      "receipt": "34deaf",
+      "validated_at_utc": "2026-10-15T13:33:59.399160+00:00",
+      "executable": "C:/Users/HeJiahui/.cargo/bin/rustfmt.EXE",
+      "name": "rustfmt-final15",
+      "command": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "zircon_runtime_interface/src/runtime_api/constants.rs",
+        "zircon_runtime_interface/src/runtime_api/mod.rs",
+        "zircon_runtime_interface/src/runtime_api/session/app_session_configuration_v2.rs",
+        "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs",
+        "zircon_runtime_interface/src/runtime_api/session/events.rs",
+        "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs",
+        "zircon_runtime_interface/src/runtime_api/session/ime_composition_v2.rs",
+        "zircon_runtime_interface/src/runtime_api/session/operation.rs",
+        "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+        "zircon_runtime_interface/src/runtime_api/session/requests.rs",
+        "zircon_runtime_interface/src/runtime_api/session/tests/app_session_config_v2.rs",
+        "zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs",
+        "zircon_runtime_interface/src/runtime_api/session/tests/ime_composition_v2.rs",
+        "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+        "zircon_runtime_interface/src/runtime_api/tests/ime_compose_capability_v2.rs"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "source_pins": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/constants.rs",
+          "sha256": "16c82fb714f3e6d5676a56517ab04ff183ce50e34425e188acc816011a5cb2c7"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/mod.rs",
+          "sha256": "55a90c9da8bf19ca4ff8bc6383b29ca6857e99f4e015fbd8cc0f41d7edc22b63"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/app_session_configuration_v2.rs",
+          "sha256": "4ce27891dc5a1549207e092518ec00752bdef1650d0177d68adb55a7b591a50c"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs",
+          "sha256": "07c3dadd7ca9227c89d721911084a4306382ee7ae99be7db81bb8157935a7567"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+          "sha256": "aff4edd1b0d58e5d202ab5e04a7fda6c0074acadb08f8e652a09a6fc8ed72353"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs",
+          "sha256": "bad083c57b6c23a41f53f11acc5d9cfc92f11f9a48109a359fa8bcb25c8c56af"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/ime_composition_v2.rs",
+          "sha256": "25f5554bb34546ba65afdfb1adcff07e0e0324dd196af66f8a0827858565e710"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/operation.rs",
+          "sha256": "a3b618b39359fc96428b54a4a8966e21364cb2a72150becdbebc7eb5f2e13b90"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+          "sha256": "a2d1c53720742b7841e48a6f0cad63f635d8ce8bc715df71655f02dc880221be"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/requests.rs",
+          "sha256": "b433935038333e289e463f3518e1e146ba47778921069463ab3cb38d37f5ea1c"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/app_session_config_v2.rs",
+          "sha256": "ac527529883ed0f9edb4cc3b1be24e389dc34f56bb61440e8e3b2ec79b390454"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs",
+          "sha256": "d011cb685be2c298de3ab6fb08385e067b00aaa77c41d59310c99eb56bf7cdef"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/ime_composition_v2.rs",
+          "sha256": "bbf01d92208e605e4d7432d5a273ad6bc2f32f3b45a31125c00d449436630cbd"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+          "sha256": "d1c38e8165a88ea8a9fe9741e9dae09b0963ec6a3b5e1065c5c7543016d70ba7"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/tests/ime_compose_capability_v2.rs",
+          "sha256": "35dcca3bb81dbfbef345073fe3da013a0dd664600e8dbc371ccdfbaf8fa569a6"
+        }
+      ]
+    },
+    "no_repeat_rustfmt_needed": "All 15 source hashes still match the completed child formatter check; no subsequent R035 source change."
+  },
+  "final_diff_evidence": {
+    "command": [
+      "git",
+      "--no-optional-locks",
+      "diff",
+      "--no-ext-diff",
+      "--text",
+      "--unified=0",
+      "f28ba39a5095f4964c046ecc702778627f80cfd5",
+      "--",
+      "zircon_runtime_interface/src/runtime_api/constants.rs",
+      "zircon_runtime_interface/src/runtime_api/mod.rs",
+      "zircon_runtime_interface/src/runtime_api/session/app_session_configuration_v2.rs",
+      "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs",
+      "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs",
+      "zircon_runtime_interface/src/runtime_api/session/ime_composition_v2.rs",
+      "zircon_runtime_interface/src/runtime_api/session/operation.rs",
+      "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+      "zircon_runtime_interface/src/runtime_api/session/requests.rs",
+      "zircon_runtime_interface/src/runtime_api/session/tests/app_session_config_v2.rs",
+      "zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs",
+      "zircon_runtime_interface/src/runtime_api/session/tests/ime_composition_v2.rs",
+      "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+      "zircon_runtime_interface/src/runtime_api/tests/ime_compose_capability_v2.rs"
+    ],
+    "sha256": "54548a815e603aabf7fc48bb59b46d6cabd7c2d9e1c763787e95063e4068bbd7",
+    "bytes": 16533,
+    "added_lines": 106,
+    "removed_lines": 0,
+    "added_lines_are_comments_or_blank": true,
+    "original_code_and_old_comments_reconstruct_exactly": true,
+    "scoped_staged_paths": []
+  },
+  "metadata_preflight": {
+    "receipt": "65d690",
+    "global_pins": {
+      "coverage.jsonl": {
+        "sha256": "460d8c1deb8a4408352d691070fd106be77baa60e43b0d0d2f4331126a84ebc1",
+        "bytes": 17467923
+      },
+      "issues.jsonl": {
+        "sha256": "d2f3ccc16b142711d3f98f96676829aca0ded0c5ec91b8887a49139ddd2a4611",
+        "bytes": 696284
+      },
+      "assignments.json": {
+        "sha256": "f481e26446fc5a706688b92c77e83d8c28d7110be90c3ea473d047e0caed949c",
+        "bytes": 176577
+      },
+      "artifacts.json": {
+        "sha256": "f7d6ee545c0ac9932f853702874126141378548f26813fd93b7d86a9adb5ad9c",
+        "bytes": 180908
+      }
+    },
+    "context_drift_at_preflight": []
+  },
+  "historical_nonpassing_or_partial_reads": [
+    "Old child wrapper389 has no terminal receipt and is not a passing validation.",
+    "Initial restored child inventory33e49e was truncated; final compact79087f/recovery21096c supplies the fixed tables and pins.",
+    "Root 34aa1d metadata/context output was truncated; b11624 and a74803 recover required ranges. Root ea2ee8 source tail is fully read; 896574 separately recovers metadata."
+  ],
+  "Rust_tests_or_builds_run": false,
+  "managed_coordinator_validation": "pending actual coordinator receipt; source-pinned static review is separate",
+  "formal_acceptance": false,
+  "coordinator_commit": null
+}

@@ -11,7 +11,7 @@ fn retained_tick_owns_the_single_editor_job_event_pump_call() {
         .find("self.pump_editor_job_events();")
         .expect("retained tick should pump editor job events");
     let task_diagnostics = production
-        .find("self.editor_manager.pump_runtime_task_diagnostics(0)")
+        .find(".pump_runtime_task_diagnostics(0)")
         .expect("retained tick should project runtime task diagnostics");
     let heartbeat = production
         .find(".refresh_project_session_heartbeat_if_due(Instant::now())")
@@ -62,10 +62,10 @@ fn retained_tick_collects_recovery_worker_results_after_job_events_before_heartb
         .find("self.pump_editor_job_events();")
         .expect("retained tick should pump job events first");
     let task_diagnostics = production
-        .find("self.editor_manager.pump_runtime_task_diagnostics(0)")
+        .find(".pump_runtime_task_diagnostics(0)")
         .expect("retained tick should project runtime task diagnostics after job events");
     let recovery = production
-        .find("self.editor_manager.pump_project_recovery_decisions()")
+        .find(".pump_project_recovery_decisions()")
         .expect("retained tick should collect recovery decisions and worker results");
     let heartbeat = production
         .find(".refresh_project_session_heartbeat_if_due(Instant::now())")
@@ -85,7 +85,7 @@ fn retained_tick_drives_project_autosave_after_recovery_and_session_heartbeat() 
         .next()
         .expect("tick source should contain its production section");
     let recovery = production
-        .find("self.editor_manager.pump_project_recovery_decisions()")
+        .find(".pump_project_recovery_decisions()")
         .expect("retained tick should process project recovery first");
     let heartbeat = production
         .find(".refresh_project_session_heartbeat_if_due(Instant::now())")

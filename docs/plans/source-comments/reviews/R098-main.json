@@ -1,0 +1,312 @@
+{
+  "schema": "zircon-source-comment-main-review-v4",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R098",
+  "owner": "root",
+  "created_at_utc": "2026-10-17T13:21:24.588499+00:00",
+  "status": "reviewed-local-pending-designated-Jenkins",
+  "formal_acceptance": false,
+  "source_write_release_claimed": false,
+  "child_review_record": {
+    "path": "docs/plans/source-comments/reviews/R098.json",
+    "sha256": "70d529c25a6bc2312b46b99a11273065e0656668ace0f9ccfee54c1de28cd913",
+    "bytes": 79147
+  },
+  "post_validation_record": {
+    "path": "docs/plans/source-comments/reviews/R098-post-validation.json",
+    "sha256": "55b08938cda1619db194a649e47b4174a16843d446c9f19514385a2027f272c7",
+    "bytes": 173174,
+    "actual_terminal": "root959/41775a native85975 ->root960/4a51d2 exit0/PID24828;10commands0;guard0/0/0"
+  },
+  "sources": [
+    {
+      "id": "F1",
+      "path": "zircon_runtime/src/text/model/font/database.rs",
+      "sha256": "0e88df2ef295315637e0dc67db8c7260aaff42041239aa4f4f3f004f49125c86",
+      "bytes": 2234,
+      "lines": 52,
+      "before_sha256": "3c209651f17be365c0659303a7ff04ee04fd1a1a5dec6476608696c3ba2c6acc",
+      "before_bytes": 1810,
+      "before_lines": 44,
+      "changed": true,
+      "inserted_groups": 2,
+      "inserted_lines": 8,
+      "inserted_bytes": 424,
+      "deleted_lines": 0,
+      "original_byte_inverse_equal_raw_HEAD": true
+    },
+    {
+      "id": "F2",
+      "path": "zircon_runtime/src/text/model/font/face.rs",
+      "sha256": "0a1eace5660db1ef066a3f0a532d3f492007175e06071f2163e093bca339cd71",
+      "bytes": 3779,
+      "lines": 91,
+      "before_sha256": "2311c2c0783238c526fafa2a4098ecf0e2265c5d7931e326e769b591cdc91f98",
+      "before_bytes": 2755,
+      "before_lines": 73,
+      "changed": true,
+      "inserted_groups": 5,
+      "inserted_lines": 18,
+      "inserted_bytes": 1024,
+      "deleted_lines": 0,
+      "original_byte_inverse_equal_raw_HEAD": true
+    },
+    {
+      "id": "F3",
+      "path": "zircon_runtime/src/text/model/font/family.rs",
+      "sha256": "32d679bf4c71469b4023bb016f0ab5dc2c61ce22dee6902f33a40191adf084be",
+      "bytes": 490,
+      "lines": 14,
+      "before_sha256": "32d679bf4c71469b4023bb016f0ab5dc2c61ce22dee6902f33a40191adf084be",
+      "before_bytes": 490,
+      "before_lines": 14,
+      "changed": false,
+      "inserted_groups": 0,
+      "inserted_lines": 0,
+      "inserted_bytes": 0,
+      "deleted_lines": 0,
+      "original_byte_inverse_equal_raw_HEAD": true
+    }
+  ],
+  "counts": {
+    "files": 3,
+    "changed_files": 2,
+    "unchanged_files": 1,
+    "object_groups": 25,
+    "types": 11,
+    "members": 20,
+    "variants": 3,
+    "enum_payloads": 1,
+    "constants": 3,
+    "impls": 4,
+    "functions": 4,
+    "normal_tests": 0,
+    "ignored_tests": 0,
+    "semantic_blocks": 18,
+    "attributes": 13,
+    "macro_calls": 1,
+    "parameters": 4,
+    "assertion_sites": 0,
+    "inserted_groups": 7,
+    "inserted_lines": 26,
+    "inserted_bytes": 1448,
+    "deleted_lines": 0,
+    "physical_ranges": 214,
+    "tests_executed": 0,
+    "new_issues": 0,
+    "preexisting_open_TODOs": 1
+  },
+  "independent_root_recomputation": {
+    "inverse_groups": 7,
+    "original_line_bytes": 131,
+    "physical_ranges": 214,
+    "range_canonical_sha256": "1c199a12f44f695f00b104d79fe0806341d27da8e5a9e9144ad95640a1f21f23",
+    "contexts": 12,
+    "members": 20,
+    "variants": 3,
+    "constants": 3,
+    "attributes": 13,
+    "macro_inputs": 1,
+    "source_and_reader_pins_current": true,
+    "metadata_only_no_source_writes": true
+  },
+  "manual_review": {
+    "evidence": {
+      "source_full": "root956/bd14da exit0/PID50040 full exact3 final157LF plus legacy issue752; original131LF root883/827be6 exit0/PID20976",
+      "models": "root957/8fe090 exit0/PID39732 full database/family models and all contexts/calls/counts/traits/issues/core.4e04d7 exit0/PID29584 face object model shown; face block/attribute middle display897tokens truncated, not counted full until958 recovery.",
+      "context_and_recovery": "root958/ad875d exit0/PID16764 all10faceblocks/7attributes and current selected12contexts including2extras; duplicated readers/parent pins reuse only",
+      "core": "core_timer_sol gpt-6.1-sol/max821c25 exit0/PID8924 all7added blocks/inverse, no must-fix/newissue; bounded only",
+      "child_final": "adfc27 exit0/PID18012 final;cee1fd exit1/PID33948 false placeholder rejection of real fieldname name, no writes;corrected c10576 exit0/PID23792 full nodups/models/ranges/inverse/raw/pins",
+      "agent_issue_crosscheck": "reflection outer91/c8861e native52679->5398d6 exit0/PID41448;7ab632 exit0/PID42840;f94364 exit0/PID2768 unchanged current tag/LEGACY key/coverage/child and bounded matching/metadata paths",
+      "R096_book": "root956 independent CreateProcess spawn_ready rejected before native, no PID/session/body; root957/aa16d4 exit0/PID41640 recovery all604reviewed current/42historical/5candidates+notice",
+      "all_owned_objects_members_and_gapfree_blocks_manually_read": true,
+      "context_coverage_expansion": false
+    },
+    "all_source_157_LF_read": true,
+    "all25_objects_18_gapfree_blocks_20fields_3variants_read": true,
+    "context_files_formal_coverage": false,
+    "findings": [
+      "Nine structs, one enum and one alias carry numeric identities/owned family and coordinate declarations. IDs do not own the font database or pin resources, and FaceIndex is a collection-source index distinct from FontFaceId.",
+      "single_family and regular construct owned values and fixed400/Normal/100 defaults; regular also uses index0 and empty axes. Actual consumers perform matching, registration, source validity and coverage checks later.",
+      "Only clamped explicitly constrains FontWeight100..=900 and FontStretch50..=200. Direct tuple construction and derived Deserialize do not call these functions. Stretch is selection preference, not layout scale; TextStyle helper has a separate1..=1000 policy.",
+      "VariationCoords owns an unchecked Vec of axis declarations. Actual database.instance validates face then effective_variations and registry.resolve_or_insert canonicalization; normalization/instance identity is a consumer boundary, not a Serde hook or angle-unit contract.",
+      "All10derive,2serde-default and1default-variant attributes and the ownedvec macro input are byte-preserved. Missing variations/faces select empty defaults; FontStyle Default is Normal. Floating variants do not acquire Eq/finite guarantees.",
+      "Family descriptor original two-line type documentation is adequate; its14LF stay byte-identical. This is a reviewed unchanged source, not an unreviewed omission.",
+      "One preexisting TODO remains exactly once. Root confirms angle bits in cache key versus payload-ignoring score; this establishes the recorded question, not a proven functional defect or the intended angle unit. Reuse existing LEGACY key and preserve initial pin/line.",
+      "Owned tests0. One external synthetic stored-face test compares equal/different axis instance IDs through2assertions; static only and does not prove real-font rendering, global ID stability, angle behavior or coverage."
+    ]
+  },
+  "call_edges": [
+    {
+      "id": "E1",
+      "context": "C1",
+      "lines": [
+        1,
+        16
+      ],
+      "from": "text::model::font",
+      "to": "database/face/family and public reexports",
+      "contract": "Three direct leaf mounts; no owned #[cfg(test)] module in the entire three leaves or full font parent. Model parent C2:1-2 mounts font."
+    },
+    {
+      "id": "E2",
+      "context": "C3",
+      "lines": [
+        93,
+        131
+      ],
+      "from": "FontDatabase::match_face",
+      "to": "&FontQuery -> Option<FontMatch>",
+      "contract": "Cache lookup then requested-family order105, project/runtime fallback chains106-125; synth flags in fallback result114-118. Query is data; this consumer performs selection, not query constructor or derived Serde."
+    },
+    {
+      "id": "E3",
+      "context": "C4",
+      "lines": [
+        12,
+        25
+      ],
+      "from": "FontDatabase::instance",
+      "to": "FontFaceId + &VariationCoords -> Result<InstancedFaceId,...>",
+      "contract": "Unknown face rejected17-18; metadata.effective_variations20-22 then instances.resolve_or_insert23-25. IDs alone do not hold the database or face bytes; model value declaration does not run this path."
+    },
+    {
+      "id": "E4",
+      "context": "C5",
+      "lines": [
+        44,
+        69
+      ],
+      "from": "descriptor metadata/fontdb conversion",
+      "to": "FontStretch::clamped and FontWeight::clamped",
+      "contract": "Width class is translated45-56 then explicitly clamped57; fontdb metadata explicit weight64 and stretch66 calls. This demonstrates clamp is a consumer call, not a serde hook."
+    },
+    {
+      "id": "E5",
+      "context": "C5",
+      "lines": [
+        22,
+        41
+      ],
+      "from": "descriptor_from_font_metadata",
+      "to": "FontFaceDescriptor value literal",
+      "contract": "Family source priority28-33, copied metadata attributes/face_index34-40 and empty variations. This assembles metadata, does not itself register a face."
+    },
+    {
+      "id": "E6",
+      "context": "C9",
+      "lines": [
+        5,
+        24
+      ],
+      "from": "text_font_variations_hash_stable",
+      "to": "FontFaceDescriptor::regular and VariationCoords",
+      "contract": "regular('Inter') passed to register_stored_face with synthetic byte payload; database.instance compares resulting IDs for same/different coordinate sequences. Test context only."
+    },
+    {
+      "id": "E7",
+      "context": "C6",
+      "lines": [
+        69,
+        80
+      ],
+      "from": "FontFaceMetadata parse path",
+      "to": "FontWeight::clamped",
+      "contract": "Weight from parsed face is explicitly clamped73; no implicit guarantee for direct tuple/Serde paths."
+    }
+  ],
+  "documentation_review": {
+    "all_original_bytes_comments_API_preserved": true,
+    "new_groups": 7,
+    "purpose_parameters_returns_constraints_lifecycle_covered_where_relevant": true,
+    "existing_docs_retained": true,
+    "no_required_source_revision": true
+  },
+  "validation": {
+    "rustfmt": {
+      "reused_same_final_pins": true,
+      "actual": "R09807a63a exit0/PID27004 exact3; finalc10576 exit0/PID23792 confirms unchanged final pins; no relevant source changes",
+      "args": [
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true"
+      ],
+      "tests_or_builds": 0
+    },
+    "scoped_git_and_guard": "Rootpost10commands0, diff+8/+18/+0/-0, cachedempty, guard0/0/0;7 exactinverse groups restore all old bytes/rawHEAD and stage grant. One existing TODO remains open under its legacy ledger identity.",
+    "Cargo_build_test_execution": 0
+  },
+  "issues": {
+    "new": [],
+    "preexisting": [
+      {
+        "id": "CR-TEXT-LAYOUT-0001",
+        "coverage_issue": "LEGACY:zircon_runtime/src/text/model/font/face.rs:19:TODO",
+        "source": "zircon_runtime/src/text/model/font/face.rs",
+        "before_line": 19,
+        "current_line": 26,
+        "current_sha256": "0a1eace5660db1ef066a3f0a532d3f492007175e06071f2163e093bca339cd71",
+        "status": "open-TODO-intent-unresolved",
+        "source_tag": "TODO: [CR-TEXT-LAYOUT-0001] 确认 Oblique 参数的单位及选面意图；style_distance 忽略角度而选面缓存按浮点位区分，缺少角度行为测试；下一步核对字体元数据与斜体合成消费端。",
+        "issue_ledger_initial_line": 752,
+        "evidence": [
+          {
+            "path": "zircon_runtime/src/text/font/matching.rs",
+            "sha256": "4b4131ab29b2cc60229d5fb7bd6395e56dbb01f9661cd81fb8a5ef75111d1877",
+            "lines": [
+              94,
+              103
+            ],
+            "fact": "Oblique/Oblique score0 ignores f32 payload."
+          },
+          {
+            "path": "zircon_runtime/src/text/font/database/face_matching.rs",
+            "sha256": "9b7a18c4e88cbf28b439510de5675768a4ce121f4be28ecfdda7646b24378551",
+            "lines": [
+              81,
+              88
+            ],
+            "fact": "Oblique cache key uses angle.to_bits();match_score313-321 calls style_distance."
+          }
+        ],
+        "next_action": "Keep TODO open; trace font metadata and synthetic-oblique consumers and find/add authorized angle-contract evidence later. Current selected tests do not establish angle units or intent; no exhaustive test absence claim."
+      }
+    ],
+    "reserved_unused": [
+      "CR-ZCA-R098-0001"
+    ],
+    "external_closures": []
+  },
+  "external_drift_boundary": {
+    "withdrawal": ".jenkins/records/source-comments-20261014-01a13a81-reviewed-source-drift-20261017.md",
+    "sha256": "f22e2dd4b796089f659245eced7d05f5f76436b46a4c18e61d4ee41c2d3e2961",
+    "needs_recheck": 42,
+    "scope_release_claimed": false
+  },
+  "artifact_lifecycle": {
+    "helpers": 0,
+    "temporary_files": 0,
+    "source_copies": 0,
+    "builds": 0,
+    "generated_fixtures": 0,
+    "released_bytes": 0,
+    "retained": "Canonical source/child/main/post/handoff and necessary failure evidence"
+  },
+  "completion": {
+    "local_review_complete": true,
+    "designated_receiver": "01a0f6e1-e9a8-7b92-aed8-5220c71a9c43",
+    "Jenkins_acceptance": false,
+    "phase_commit": false,
+    "attached_WeCom": false,
+    "whole_repository": false
+  },
+  "writer": {
+    "pid": 43448,
+    "write_set": [
+      "docs/plans/source-comments/reviews/R098-main.json"
+    ],
+    "source_writes": []
+  }
+}

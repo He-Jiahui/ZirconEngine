@@ -452,17 +452,35 @@ fn live_workbench_tree_owner_focus_reaches_source_commands_and_native_pixels() {
     let mut bridge = crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge::new_with_runtime(
         std::sync::Arc::clone(&runtime), UiSize::new(1280.0, 800.0),
     ).unwrap();
-    let rows = [(1, "Camera"), (2, "Sun")].into_iter().map(|(entity, name)| {
-        zircon_runtime::scene::WorldInspectionHierarchyRow {
-            entity, parent: None, depth: 0, display_name: name.into(),
-            kind: "Entity".into(), subtree_hash: 0, active_in_hierarchy: true,
-            has_children: false,
-        }
-    }).collect::<Vec<_>>();
-    let entries = crate::ui::workbench::snapshot::SceneEntries::from_hierarchy_rows_at_generation(rows, [], 1);
+    let rows = [(1, "Camera"), (2, "Sun")]
+        .into_iter()
+        .map(
+            |(entity, name)| zircon_runtime::scene::WorldInspectionHierarchyRow {
+                entity,
+                parent: None,
+                depth: 0,
+                display_name: name.into(),
+                kind: "Entity".into(),
+                subtree_hash: 0,
+                active_in_hierarchy: true,
+                has_children: false,
+            },
+        )
+        .collect::<Vec<_>>();
+    let entries = crate::ui::workbench::snapshot::SceneEntries::from_hierarchy_rows_at_generation(
+        rows,
+        [],
+        1,
+    );
     bridge.resync_scene_hierarchy(&entries).unwrap();
-    assert_eq!(bridge.scene_entity_for_control("WorkbenchSceneRootItem"), Some(1));
-    assert_eq!(bridge.scene_entity_for_control("WorkbenchSceneEnvironmentItem"), Some(2));
+    assert_eq!(
+        bridge.scene_entity_for_control("WorkbenchSceneRootItem"),
+        Some(1)
+    );
+    assert_eq!(
+        bridge.scene_entity_for_control("WorkbenchSceneEnvironmentItem"),
+        Some(2)
+    );
     let mut surface = bridge.surface().clone();
     let find = |surface: &zircon_runtime::ui::surface::UiSurface, control: &str| {
         surface

@@ -19,6 +19,7 @@ const SAMPLE_PAIRS: usize = 21;
 const BATCHES_PER_SAMPLE: usize = 2_048;
 const RESULTS_PER_BATCH: usize = 256;
 
+/// 验证请求顺序、效果触发重绘，以及继承表面重绘标志的三个维度。
 #[test]
 fn runtime_hotpath_batch_runtime177_182_dispatch_metadata_preserves_requests_and_redraw() {
     let mut first = dispatch_result(1);
@@ -49,6 +50,7 @@ fn runtime_hotpath_batch_runtime177_182_dispatch_metadata_preserves_requests_and
     assert!(inherited_redraw);
 }
 
+/// 在行为用例之外约束辅助函数的原始文本扫描形状。
 #[test]
 fn runtime_hotpath_batch_runtime177_182_dispatch_metadata_uses_single_result_pass() {
     let source = include_str!("../../input_manager/outcome.rs");
@@ -64,6 +66,7 @@ fn runtime_hotpath_batch_runtime177_182_dispatch_metadata_uses_single_result_pas
     assert!(helper_source.contains("host_requests.extend"));
 }
 
+/// 忽略基准交替运行旧、新收集器；计时只代表此处请求稀疏的固定夹具。
 #[test]
 #[ignore = "managed Windows release performance evidence"]
 fn runtime_hotpath_batch_runtime177_182_dispatch_outcome_single_pass_bench() {
@@ -99,6 +102,7 @@ legacy_raw_ns={} optimized_raw_ns={}",
     );
 }
 
+/// 用无副作用文本输入构造独立结果，便于控制请求及效果分布。
 fn dispatch_result(index: usize) -> UiInputDispatchResult {
     UiInputDispatchResult::new(
         UiInputEvent::Text(UiTextInputEvent {
@@ -109,6 +113,7 @@ fn dispatch_result(index: usize) -> UiInputDispatchResult {
     )
 }
 
+/// 用索引标识请求顺序，不依赖真实宿主执行。
 fn host_request(index: usize) -> UiDispatchHostRequest {
     UiDispatchHostRequest {
         effect_index: index,
@@ -120,6 +125,7 @@ fn host_request(index: usize) -> UiDispatchHostRequest {
     }
 }
 
+/// 只在尾项放置请求，使基准覆盖稀疏汇总路径。
 fn dispatch_fixture() -> Vec<UiInputDispatchResult> {
     let mut results = (0..RESULTS_PER_BATCH)
         .map(dispatch_result)
@@ -132,6 +138,7 @@ fn dispatch_fixture() -> Vec<UiInputDispatchResult> {
     results
 }
 
+/// 保留双遍历对照实现，仅用于本文件的独立计时比较。
 fn legacy_collect_dispatch_metadata(
     results: &[UiInputDispatchResult],
     initial_redraw_requested: bool,

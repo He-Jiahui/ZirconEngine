@@ -1,9 +1,14 @@
+//! World 修订与生命周期可见性的回归夹具。
+//!
+//! 内容等值比较不能替代修订断言；序列化、克隆和回调时序分别核对。
+
 use std::sync::{Arc, Mutex};
 
 use crate::scene::components::{Mobility, Name};
 use crate::scene::ecs::LifecycleEventKind;
 use crate::scene::{NodeKind, SceneError, World};
 
+/// 区分成功结构更新、结构无操作及缺实体错误对 World 修订的影响。
 #[test]
 fn world_generation_advances_only_for_successful_structural_mutations() {
     let mut world = World::empty();
@@ -66,6 +71,7 @@ fn imported_node_record_spawn_advances_generation_exactly_once() {
     assert_eq!(target.world_generation(), 1);
 }
 
+/// 核对回调已能看到组件行、生命周期修订与派生脏标志；该时刻一般修订仍未完成外层推进。
 #[test]
 fn fixed_presence_rebuild_marks_derived_state_before_lifecycle_callbacks() {
     let mut world = World::empty();
@@ -76,15 +82,23 @@ fn fixed_presence_rebuild_marks_derived_state_before_lifecycle_callbacks() {
     let observations = Arc::new(Mutex::new(Vec::new()));
     for kind in [LifecycleEventKind::Add, LifecycleEventKind::Insert] {
         let observations = observations.clone();
-        world.observe_component_lifecycle::<Name>(kind, move |world, event| {
-            observations.lock().unwrap().push((
-                event.kind(),
-                world.has_pending_scene_systems(),
-                world.world_generation(),
-                world.lifecycle_visibility_revision(),
-                world.get::<Name>(event.entity()).is_some(),
-            ));
-        });
+        world.observe_component_lifecycle::<Name>(
+            kind,
+            // SAFETY: Only the external observation log changes after optional World reads;
+            // retained World payload is untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                    observations.lock().unwrap().push((
+                        event.kind(),
+                        world.has_pending_scene_systems(),
+                        world.world_generation(),
+                        world.lifecycle_visibility_revision(),
+                        world.get::<Name>(event.entity()).is_some(),
+                    ));
+                })
+            },
+        );
     }
 
     let entity = world
@@ -114,6 +128,7 @@ fn fixed_presence_rebuild_marks_derived_state_before_lifecycle_callbacks() {
     assert!(world.get::<Name>(entity).is_some());
 }
 
+/// 同时断言内容与修订，避免把 World 的等值比较当作运行时计数未变的证据。
 #[test]
 fn rejected_imported_node_record_does_not_mutate_or_advance_generation() {
     let mut world = World::empty();
@@ -207,6 +222,7 @@ fn component_replacement_advances_the_query_generation_revision() {
     assert_eq!(world.world_generation(), after_rename);
 }
 
+/// 缺失查询不借出组件，因而不触发成功可变借出的修订副作用。
 #[test]
 fn failed_mutable_component_lookup_does_not_advance_generation() {
     let mut world = World::empty();
@@ -219,6 +235,7 @@ fn failed_mutable_component_lookup_does_not_advance_generation() {
     assert_eq!(world.world_generation(), generation);
 }
 
+/// 核对整体修订不写入持久化数据，解码出的新 World 重新从零计数。
 #[test]
 fn world_generation_is_runtime_state_not_persisted_scene_data() {
     let mut world = World::empty();
@@ -234,6 +251,7 @@ fn world_generation_is_runtime_state_not_persisted_scene_data() {
     assert_eq!(restored.world_generation(), 0);
 }
 
+/// 克隆保留旧生命周期修订后重建一次；解码从默认值重建一次，两者预期不同。
 #[test]
 fn lifecycle_visibility_revision_is_runtime_state_rebuilt_once_per_world_reconstruction() {
     let mut world = World::empty();

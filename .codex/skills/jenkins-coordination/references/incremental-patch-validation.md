@@ -26,6 +26,10 @@ application, compilation and validation, with a reusable source baseline.
 - Edit the shared checkout with `apply_patch` or another scoped patch operation.
   Preserve preexisting and foreign changes. Do not derive task ownership from a
   whole-checkout diff; select the authorized paths and changes explicitly.
+- Ordinary local requests register automatically through the verified current
+  receiver. Supply a stable session/request identity and exact inputs; no manual
+  session grant or authorization publication is required for implementation and
+  validation. Keep unknown deliveries on their original reconciliation path.
 - Bind the patch to an immutable base revision, before/after content hashes,
   dependency inputs, an explicit path allowlist and a request identity. Include
   additions, deletions, renames and binary payloads when the task requires them.

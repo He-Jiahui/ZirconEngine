@@ -17,6 +17,7 @@ pub struct UiPipelineStageReport {
 }
 
 impl Default for UiPipelineStageReport {
+    /// 字段缺省基线，不代表输入收集阶段曾执行或已完成测量。
     fn default() -> Self {
         Self {
             stage: UiPipelineStage::InputCollect,
@@ -30,6 +31,16 @@ impl Default for UiPipelineStageReport {
 }
 
 impl UiPipelineStageReport {
+    /// 组装未标为跳过的阶段观测，不运行该阶段。
+    ///
+    /// # 参数
+    /// - `stage`：观测对应的阶段标识。
+    /// - `elapsed_micros`：调用方提供的耗时，单位微秒。
+    /// - `dirty_reasons`：移入报告的原因列表，本函数不去重。
+    /// - `counters`：调用方已采集的计数值。
+    ///
+    /// # 返回
+    /// 说明列表为空的独立报告；原因向量归返回值所有。
     pub fn new(
         stage: UiPipelineStage,
         elapsed_micros: u64,
@@ -46,6 +57,12 @@ impl UiPipelineStageReport {
         }
     }
 
+    /// 为本次未测得重建工作的阶段保留一行报告。
+    ///
+    /// # 参数与返回
+    /// `stage` 指定阶段，`dirty_reasons` 的所有权转入返回值。
+    /// 返回行标为跳过，耗时、计数及说明列表沿用缺省值；调用方仍可追加说明。
+    /// 此标志只描述本报告，不推断整帧行为，含义见 [`Self`]。
     pub fn skipped(stage: UiPipelineStage, dirty_reasons: Vec<UiPipelineDirtyReason>) -> Self {
         Self {
             stage,

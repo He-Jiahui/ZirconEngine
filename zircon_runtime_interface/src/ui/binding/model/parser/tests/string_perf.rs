@@ -1,5 +1,11 @@
+//! 字符串解析的结果等价测试与显式忽略的微基准。
+//!
+//! 普通测试只比较局部字符串读取的结果及错误，不覆盖完整绑定或路由执行。
+//! 两个微基准轮换实现的测量顺序、比较采样分位值；默认忽略且不作为跨机器性能保证。
+
 use super::*;
 
+/// 逐字符增长的历史比较实现；只用于局部字符串结果与测量对照。
 fn parse_string_growing(input: &str) -> Result<String, UiBindingParseError> {
     let mut parser = BindingParser::new(input);
     parser.expect('"')?;
@@ -28,10 +34,12 @@ fn parse_string_growing(input: &str) -> Result<String, UiBindingParseError> {
     Err(UiBindingParseError::UnterminatedString)
 }
 
+/// 直接调用当前解析器的字符串读取方法，不要求输入余部被消费。
 fn parse_string_sliced(input: &str) -> Result<String, UiBindingParseError> {
     BindingParser::new(input).parse_string()
 }
 
+/// 比较普通文本、字符串内 Unicode、转义及错误输入的结果，不把局部读取当作完整绑定解析。
 #[test]
 fn runtime_interface03_batch49_50_sliced_binding_strings_preserve_growing_results() {
     for input in [
@@ -48,11 +56,13 @@ fn runtime_interface03_batch49_50_sliced_binding_strings_preserve_growing_result
     }
 }
 
+/// 对非空采样向量排序后取本文件约定的分位索引；两个调用方均提供固定数量样本。
 fn p95(mut samples: Vec<u128>) -> u128 {
     samples.sort_unstable();
     samples[(samples.len() * 95).div_ceil(100) - 1]
 }
 
+/// 显式忽略的无转义长字符串微基准；阈值仅约束本次样本，需另行选择执行。
 #[test]
 #[ignore = "release-only sliced unescaped binding-string benchmark"]
 fn runtime_interface03_batch49_50_sliced_unescaped_binding_string_release_benchmark() {
@@ -100,6 +110,7 @@ fn runtime_interface03_batch49_50_sliced_unescaped_binding_string_release_benchm
     );
 }
 
+/// 显式忽略的转义字符串微基准，覆盖分块追加路径；本次注释审查不执行测量。
 #[test]
 #[ignore = "release-only chunked escaped binding-string benchmark"]
 fn runtime_interface03_batch49_50_chunked_escaped_binding_string_release_benchmark() {

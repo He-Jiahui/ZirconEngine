@@ -46,25 +46,34 @@ pub enum EditorAssetOperationInvokeError {
 
 impl EditorHostEventController {
     pub(crate) fn content_browser_assets_to_sync(&self) -> Result<Vec<String>, String> {
-        let current = self.enter_editor_manager().map_err(|error| error.to_string())?
+        let current = self
+            .enter_editor_manager()
+            .map_err(|error| error.to_string())?
             .active_scene_identity_for_session();
         let shell = self.shell().lock();
-        let uri = current.as_ref()
+        let uri = current
+            .as_ref()
             .filter(|identity| Some(identity.document()) == shell.state.active_scene_document)
             .map(|identity| identity.scene_uri());
         shell.state.content_browser_assets_to_sync(uri)
     }
 
     pub(crate) fn sync_selection_to_content_browser(&self) -> Result<Vec<String>, String> {
-        let current = self.enter_editor_manager().map_err(|error| error.to_string())?
+        let current = self
+            .enter_editor_manager()
+            .map_err(|error| error.to_string())?
             .active_scene_identity_for_session();
         let targets = {
             let mut shell = self.shell().lock();
-            let uri = current.as_ref()
+            let uri = current
+                .as_ref()
                 .filter(|identity| Some(identity.document()) == shell.state.active_scene_document)
                 .map(|identity| identity.scene_uri());
             let targets = shell.state.content_browser_assets_to_sync(uri)?;
-            shell.state.asset_workspace.sync_content_browser_assets(&targets);
+            shell
+                .state
+                .asset_workspace
+                .sync_content_browser_assets(&targets);
             targets
         };
         if !targets.is_empty() {

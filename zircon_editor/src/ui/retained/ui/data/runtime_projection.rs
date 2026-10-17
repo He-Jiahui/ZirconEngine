@@ -52,7 +52,7 @@ pub(super) fn project_pane_template_nodes_with_runtime(
     project_pane_template_nodes_with_runtime_for_pane(body, content_size, runtime, None)
 }
 
-fn project_pane_template_nodes_with_runtime_for_pane(
+pub(super) fn project_pane_template_nodes_with_runtime_for_pane(
     body: &PaneBodyPresentation,
     content_size: PaneContentSize,
     runtime: Option<&EditorUiHostRuntime>,
@@ -60,10 +60,19 @@ fn project_pane_template_nodes_with_runtime_for_pane(
 ) -> Option<Vec<host_contract::TemplatePaneNodeData>> {
     let runtime = pane_template_runtime(runtime)?;
     let nodes = (|| {
-        let projection = runtime.project_pane_body(body).ok()?;
+        let mut projection = runtime.project_pane_body(body).ok()?;
         let mut surface = runtime.build_shared_surface(&body.document_id).ok()?;
         runtime
             .apply_pane_component_patches_to_surface(body, &mut surface)
+            .ok()?;
+        let detail_layout = module_plugin_detail_layout_attributes(body, content_size.width);
+        runtime
+            .apply_module_plugin_detail_layout(
+                &body.document_id,
+                &mut projection.root,
+                &mut surface,
+                detail_layout,
+            )
             .ok()?;
         surface
             .compute_layout(UiSize::new(
@@ -147,4 +156,108 @@ pub(super) fn builtin_host_runtime() -> Option<&'static EditorUiHostRuntime> {
             Some(runtime)
         })
         .as_ref()
+}
+
+impl EditorUiHostRuntime {
+    /// The built-in retained projector and its callbacks share the same registry.
+    pub(crate) fn retained_builtin_pane_runtime() -> Option<&'static Self> {
+        builtin_host_runtime()
+    }
+}
+
+fn module_plugin_detail_layout_attributes(
+    body: &PaneBodyPresentation,
+    width: f32,
+) -> std::collections::BTreeMap<String, std::collections::BTreeMap<String, toml::Value>> {
+    use crate::ui::retained_host::host_contract::{
+        measure_runtime_text_width, paint_theme::current_host_metrics,
+    };
+    use std::collections::BTreeMap;
+    use toml::Value;
+    let PanePayload::ModulePluginsV1(payload) = &body.payload else {
+        return BTreeMap::new();
+    };
+    let Some(detail) = payload.details.as_ref() else {
+        return BTreeMap::new();
+    };
+    let metrics = current_host_metrics();
+    let line_height = metrics.line_height(metrics.font_body);
+    let available = (width - metrics.gap_m * 2.0).max(metrics.font_body * 2.0);
+    let fixed_height = |height: f32| {
+        Value::Table(toml::Table::from_iter([
+            (
+                "width".into(),
+                Value::Table(toml::Table::from_iter([(
+                    "stretch".into(),
+                    Value::String("Stretch".into()),
+                )])),
+            ),
+            (
+                "height".into(),
+                Value::Table(toml::Table::from_iter([
+                    ("min".into(), Value::Float(height as f64)),
+                    ("preferred".into(), Value::Float(height as f64)),
+                    ("max".into(), Value::Float(height as f64)),
+                    ("stretch".into(), Value::String("Fixed".into())),
+                ])),
+            ),
+        ]))
+    };
+    let mut patches = BTreeMap::new();
+    for (control, source) in [
+        ("ModulePluginDetailsTitle", &detail.title),
+        ("ModulePluginFeatureName", &detail.selected_name),
+        ("ModulePluginFeatureIdentity", &detail.selected_identity),
+        ("ModulePluginFeatureStates", &detail.selected_states),
+        ("ModulePluginFeatureReason", &detail.selected_reason),
+        ("ModulePluginFeatureEmpty", &detail.empty_label),
+    ] {
+        // Break long qualified IDs as well as prose. Full source values remain in
+        // the payload; only presentation gains line breaks, using the paint font.
+        let mut lines = Vec::new();
+        for paragraph in source.split('\n') {
+            let mut line = String::new();
+            for ch in paragraph.chars() {
+                let mut candidate = line.clone();
+                candidate.push(ch);
+                if !line.is_empty()
+                    && measure_runtime_text_width(&candidate, metrics.font_body) > available
+                {
+                    lines.push(std::mem::take(&mut line));
+                }
+                line.push(ch);
+            }
+            lines.push(line);
+        }
+        let height = (lines.len() as f32 * line_height + metrics.gap_s * 2.0).max(line_height);
+        patches.insert(
+            control.into(),
+            BTreeMap::from([
+                ("text".into(), Value::String(lines.join("\n"))),
+                ("layout".into(), fixed_height(height)),
+            ]),
+        );
+    }
+    let row_height = line_height * 5.0 + metrics.gap_s * 2.0;
+    patches.insert(
+        "ModulePluginFeatureRows".into(),
+        BTreeMap::from([
+            (
+                "layout".into(),
+                fixed_height(detail.rows.len().max(1) as f32 * row_height),
+            ),
+            (
+                "visibility".into(),
+                Value::String(
+                    if detail.rows.is_empty() {
+                        "Collapsed"
+                    } else {
+                        "Visible"
+                    }
+                    .into(),
+                ),
+            ),
+        ]),
+    );
+    patches
 }

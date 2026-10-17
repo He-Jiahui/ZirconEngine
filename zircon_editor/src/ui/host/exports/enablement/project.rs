@@ -18,12 +18,12 @@ impl EditorManager {
         Ok(report)
     }
 
-    pub(in crate::ui::host) fn set_project_plugin_enabled_unpublished(
+    pub(super) fn prepare_project_plugin_selection(
         &self,
-        manifest: &mut ProjectManifest,
+        manifest: &ProjectManifest,
         plugin_id: &str,
         enabled: bool,
-    ) -> Result<EditorPluginEnableReport, String> {
+    ) -> Result<(Option<usize>, ProjectPluginSelection, Vec<String>), String> {
         let runtime_catalog = self.runtime_plugin_catalog();
         let editor_catalog = self.editor_plugin_catalog();
         let editor_package = editor_catalog.package(plugin_id);
@@ -62,6 +62,17 @@ impl EditorManager {
             });
         }
         let editor_capabilities = editor_catalog.capabilities_for_package(plugin_id);
+        Ok((existing_index, selection, editor_capabilities.to_vec()))
+    }
+
+    pub(in crate::ui::host) fn set_project_plugin_enabled_unpublished(
+        &self,
+        manifest: &mut ProjectManifest,
+        plugin_id: &str,
+        enabled: bool,
+    ) -> Result<EditorPluginEnableReport, String> {
+        let (existing_index, selection, editor_capabilities) =
+            self.prepare_project_plugin_selection(manifest, plugin_id, enabled)?;
         let capability_snapshot = if editor_capabilities.is_empty() {
             self.validate_editor_plugin_state(plugin_id, enabled)?;
             self.update_editor_plugin_state_unpublished(plugin_id, enabled)?;

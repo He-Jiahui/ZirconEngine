@@ -349,7 +349,6 @@ fn persistent_render_2d_components_do_not_retain_world_map_owners() {
             .join("fixed_components.rs"),
     )
     .expect("read fixed component adapter source");
-
     for retired_owner in ["pub(super) sprite_2d:", "pub(super) mesh_2d:"] {
         assert!(
             !world_source.contains(retired_owner),
@@ -487,6 +486,15 @@ fn persistent_physics_components_do_not_retain_world_map_owners() {
             .join("fixed_components.rs"),
     )
     .expect("read fixed component adapter source");
+    let projection_source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("scene")
+            .join("world")
+            .join("typed_api")
+            .join("projection_rebuild.rs"),
+    )
+    .expect("read component projection source");
     let physics_snapshot = fixed_components_source
         .split("fn persistent_component_snapshot")
         .nth(1)
@@ -523,11 +531,14 @@ fn persistent_physics_components_do_not_retain_world_map_owners() {
         "World persistence must project physics values from generic component storage"
     );
     assert!(
-        // BUG: [CR-R02-runtime_ecs_commands_bundle_commit-0001] 执行到该断言必失败；完整组件行恢复已替代旧的物理存在性宏，当前三个 contains 均为 false。证据：fixed_components.rs 与 records.rs 的行发布入口。
-        fixed_components_source.contains("append_storage_presence!(RigidBodyComponent)")
-            && fixed_components_source.contains("append_storage_presence!(ColliderComponent)")
-            && fixed_components_source.contains("append_storage_presence!(JointComponent)"),
-        "record restore must include generic-only physics components in its final archetype signature"
+        projection_source
+            .contains("stage_values(self, &mut rows, persistent_physics.rigid_bodies);")
+            && projection_source
+                .contains("stage_values(self, &mut rows, persistent_physics.colliders);")
+            && projection_source
+                .contains("stage_values(self, &mut rows, persistent_physics.joints);")
+            && projection_source.contains("self.commit_rebuilt_component_row(entity, row);"),
+        "record restore must stage generic physics components into each final archetype row"
     );
     assert!(
         physics_snapshot.contains("for_each_table_component")
@@ -553,7 +564,16 @@ fn unit_bundle_spawn_validates_and_publishes_the_default_node_signature() {
 // 以下源码守卫约束提交与重建共用完整组件行，避免观察者接触临时空原型。
 #[test]
 fn bundle_commit_derives_one_final_archetype_signature_from_staged_metadata() {
-    let source = std::fs::read_to_string(
+    let commit_source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("scene")
+            .join("world")
+            .join("bundle_transaction")
+            .join("deferred_bundle_commit.rs"),
+    )
+    .expect("read bundle transaction source");
+    let transaction_source = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("src")
             .join("scene")
@@ -561,13 +581,12 @@ fn bundle_commit_derives_one_final_archetype_signature_from_staged_metadata() {
             .join("typed_api")
             .join("bundle_transaction.rs"),
     )
-    .expect("read bundle transaction source");
-    let finish = source
-        .split("pub(crate) fn finish")
+    .expect("read bundle transaction type source");
+    let finish = commit_source
+        .split("pub(crate) fn finish_with_deferred_spawn")
         .nth(1)
-        .and_then(|text| text.split("fn validate_commit_invariants").next())
         .expect("read bundle transaction finish body");
-    let final_signature = source
+    let final_signature = transaction_source
         .split("fn final_archetype_signature")
         .nth(1)
         .and_then(|text| text.split("fn validate_final_state").next())
@@ -609,7 +628,7 @@ fn typed_storage_projection_rebuild_publishes_one_complete_row_per_entity() {
     .expect("read component projection rebuild source");
     // BUG: [CR-R02-runtime_ecs_commands_bundle_commit-0003] 执行到此切分必 panic；实际入口使用跨父模块限定可见性，旧文本无匹配，nth(1) 得到 None。证据：projection_rebuild.rs 当前定义。
     let projection = source
-        .split("pub(super) fn rebuild_component_storage_projection_with_owned_components")
+        .split("pub(in super::super) fn rebuild_component_storage_projection_with_owned_components")
         .nth(1)
         .expect("read typed storage projection rebuild");
 

@@ -18,7 +18,8 @@ mod shaders;
 mod transparent;
 
 pub use backend::{
-    ParticleGpuBackend, ParticleGpuBackendError, ParticleGpuBuffers, ParticleGpuReadbackRequest,
+    ParticleGpuBackend, ParticleGpuBackendError, ParticleGpuBuffers, ParticleGpuFragmentMaterial,
+    ParticleGpuReadbackRequest,
 };
 pub use layout::{
     compile_particle_gpu_layout, ParticleGpuAttribute, ParticleGpuEmitterLayout, ParticleGpuLayout,

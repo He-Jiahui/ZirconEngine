@@ -137,36 +137,77 @@ fn another_control_focus_preserves_committed_value_and_has_no_edit_feedback() {
 
 #[test]
 fn labeled_field_edit_feedback_uses_only_the_value_lane_even_when_empty_or_collapsed() {
-    for (width, committed, draft) in [(240.0, "200", "12345"), (240.0, "", ""), (80.0, "200", "12345")] {
+    for (width, committed, draft) in [
+        (240.0, "200", "12345"),
+        (240.0, "", ""),
+        (80.0, "200", "12345"),
+    ] {
         let node = TemplatePaneNodeData {
             control_id: "WorkbenchComponentPropertyVirtualRow0".into(),
-            role: "InputField".into(), component_role: "input-field".into(),
-            text: "Far".into(), value_text: committed.into(),
+            role: "InputField".into(),
+            component_role: "input-field".into(),
+            text: "Far".into(),
+            value_text: committed.into(),
             authored_field_label_width: Some(92.0),
             authored_field_padding: [Some(8.0), Some(8.0), Some(4.0), Some(4.0)],
-            font_size: 13.333333, line_height_ratio: 1.2,
-            frame: TemplateNodeFrameData { x: 0.0, y: 0.0, width, height: 28.0 },
+            font_size: 13.333333,
+            line_height_ratio: 1.2,
+            frame: TemplateNodeFrameData {
+                x: 0.0,
+                y: 0.0,
+                width,
+                height: 28.0,
+            },
             ..Default::default()
         };
         let focus = HostTextInputFocusData {
-            control_id: node.control_id.clone(), value_text: draft.into(),
+            control_id: node.control_id.clone(),
+            value_text: draft.into(),
             caret_scalar_offset: Some(draft.chars().count()),
-            selection_anchor_scalar_offset: Some(0), ..Default::default()
+            selection_anchor_scalar_offset: Some(0),
+            ..Default::default()
         };
-        let clip = FrameRect { x: 0.0, y: 0.0, width, height: 28.0 };
+        let clip = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width,
+            height: 28.0,
+        };
         let mut commands = Vec::new();
-        push_template_node_commands(&mut commands, &node, &FrameRect::default(), &clip, Some(&focus), 5);
-        assert!(commands.iter().any(|command| command.text.as_deref() == Some("Far")), "editing must retain the property name");
-        let caret: Vec<_> = commands.iter().filter(|command| command.background_color == Some([232, 238, 247, 255])).collect();
+        push_template_node_commands(
+            &mut commands,
+            &node,
+            &FrameRect::default(),
+            &clip,
+            Some(&focus),
+            5,
+        );
+        assert!(
+            commands
+                .iter()
+                .any(|command| command.text.as_deref() == Some("Far")),
+            "editing must retain the property name"
+        );
+        let caret: Vec<_> = commands
+            .iter()
+            .filter(|command| command.background_color == Some([232, 238, 247, 255]))
+            .collect();
         if width > 92.0 {
-            assert!(commands.iter().any(|command| command.text.as_deref() == Some(draft) && command.frame.x >= 100.0));
+            assert!(commands
+                .iter()
+                .any(|command| command.text.as_deref() == Some(draft) && command.frame.x >= 100.0));
             assert_eq!(caret.len(), 1);
             assert!(caret[0].frame.x >= 100.0 && caret[0].frame.right() <= width - 8.0);
             let field_clip = caret[0].clip_frame.as_ref().unwrap();
             assert!(field_clip.x >= 100.0 && field_clip.right() <= width - 8.0);
         } else {
-            assert!(caret.is_empty(), "a collapsed value cannot paint a caret in the label lane");
-            assert!(!commands.iter().any(|command| command.text.as_deref() == Some(draft)));
+            assert!(
+                caret.is_empty(),
+                "a collapsed value cannot paint a caret in the label lane"
+            );
+            assert!(!commands
+                .iter()
+                .any(|command| command.text.as_deref() == Some(draft)));
         }
         assert_eq!(node.text.as_str(), "Far");
         assert_eq!(node.value_text.as_str(), committed);

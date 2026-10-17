@@ -4,7 +4,8 @@ use crate::core::framework::render::{
     RenderPassProfileEntry, RenderStats, RenderSubsystemProfileEntry,
 };
 use crate::graphics::backend::{GpuPipelineStatisticsFrameResult, GpuTimerFrameResult};
-use std::{collections::VecDeque, sync::Arc, time::Instant};
+use std::{collections::VecDeque, sync::Arc};
+use web_time::Instant;
 
 use super::budget::{memory_budget_warning_count, BudgetDegradeLadder, GpuMemoryBudget};
 

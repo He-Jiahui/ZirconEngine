@@ -414,6 +414,7 @@ fn cursor_rebuild_does_not_reuse_a_retired_high_water_order() {
     assert_eq!(tree.nodes.paint_order_cursor_rebuild_node_visits(), 1);
 }
 
+// 普通序号范围内的退役身份不能因清空节点映射而复用；极值导入另需边界夹具。
 #[test]
 fn clearing_nodes_does_not_reuse_a_retired_node_incarnation() {
     let mut tree = UiTree::new(UiTreeId::new("node-incarnation.clear"));
@@ -427,6 +428,7 @@ fn clearing_nodes_does_not_reuse_a_retired_node_incarnation() {
     assert!(tree.node_incarnation(UiNodeId::new(0)).unwrap() > retired);
 }
 
+// 仅比较批量根节点插入的序号分配路径，不代表完整布局或整帧耗时；按轮交替先后顺序。
 #[test]
 #[ignore = "release-only paint-order performance evidence"]
 fn paint_order_cursor_release_benchmark_evidence() {
@@ -495,6 +497,7 @@ fn paint_order_cursor_release_benchmark_evidence() {
     );
 }
 
+// 输入由上面的有限采样夹具提供；最近秩百分位先排序，21 个样本的 P95 取第 20 个值。
 fn nearest_rank_percentile(samples: &[u128], percentile: usize) -> u128 {
     assert!(!samples.is_empty());
     assert!((1..=100).contains(&percentile));

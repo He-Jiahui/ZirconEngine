@@ -36,17 +36,22 @@ impl EditorProjectDocument {
         let root = project.paths().root().to_path_buf();
         let (editor_workspace, workspace_restore_diagnostics) =
             load_editor_workspace_with_diagnostics(&root);
+        let (world, scene_source_revision) = if allows_scene_restore {
+            let (world, revision) =
+                Scene::load_scene_document(project, &project.manifest().default_scene)?
+                    .into_parts();
+            (world, Some(revision))
+        } else {
+            (Scene::new(), None)
+        };
 
         Ok(Self {
             root_path: root,
             manifest: project.manifest().clone(),
             project_info,
             project_settings,
-            world: if allows_scene_restore {
-                Scene::load_scene_from_uri(project, &project.manifest().default_scene)?
-            } else {
-                Scene::new()
-            },
+            world,
+            scene_source_revision,
             editor_workspace,
             workspace_restore_diagnostics,
         })

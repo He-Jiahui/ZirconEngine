@@ -1,3 +1,6 @@
+//! 聚合 BinaryValue 节点表示、值域转换和直接目标类型反序列化。
+//! 旧 schema 经 JSON 值进入迁移链；当前 schema 直接从节点流恢复目标类型，两条读取路径都执行值域校验。
+
 #[path = "binary_value.rs"]
 mod binary_value;
 #[path = "direct_decode.rs"]

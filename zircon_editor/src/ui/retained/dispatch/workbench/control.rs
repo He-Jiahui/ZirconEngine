@@ -75,6 +75,9 @@ fn dispatch_componentized_workbench_binding_for_control(
     binding: EditorUiBinding,
 ) -> Result<UiHostEventEffects, String> {
     if let EditorUiBindingPayload::MenuAction { action_id } = binding.payload() {
+        if let Some(result) = bridge.dispatch_inspector_component_add(runtime, source_control_id, action_id) {
+            return result;
+        }
         if action_id == "workbench.content_drawer.sync_selection" {
             if runtime.sync_selection_to_content_browser()?.is_empty() {
                 return Ok(UiHostEventEffects::default());
@@ -163,6 +166,9 @@ pub(crate) fn dispatch_componentized_workbench_option_selected(
     control_id: &str,
     option_id: &str,
 ) -> Result<UiHostEventEffects, String> {
+    if let Some(result) = bridge.select_inspector_component_add_type(runtime, control_id, option_id) {
+        return result;
+    }
     if bridge.is_pending_activity_decision_option(control_id, option_id) {
         runtime
             .resolve_activity_decision(option_id)
@@ -208,7 +214,11 @@ pub(crate) fn dispatch_componentized_workbench_surface_control_edited(
     value: &str,
 ) -> Option<Result<UiHostEventEffects, String>> {
     let edited = match bridge
-        .edit_inspector_filter(control_id, binding_id, value)
+        .edit_inspector_component_add(control_id, binding_id, value)
+        .and_then(|edited| match edited {
+            Some(edited) => Ok(Some(edited)),
+            None => bridge.edit_inspector_filter(control_id, binding_id, value),
+        })
         .and_then(|edited| match edited {
             Some(edited) => Ok(Some(edited)),
             None => bridge.edit_inspector_component_property(control_id, binding_id, value),

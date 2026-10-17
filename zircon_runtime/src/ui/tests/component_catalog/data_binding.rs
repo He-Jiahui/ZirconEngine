@@ -1,4 +1,7 @@
 //! 组件事件信封把文档目标和类型化事件传给宿主适配器；投影属性、状态与错误必须跨序列化边界保持可辨。
+//!
+//! 断言覆盖信封 JSON、种类分歧拒绝、投影值域、结果标志、错误显示与静态字段描述符。
+//! 宿主写入、投影应用和实际控件交互仍由对应消费端负责；本文件不调用这些执行入口。
 
 use crate::ui::component::inspector_selected_entity_data_source;
 use zircon_runtime_interface::ui::component::{

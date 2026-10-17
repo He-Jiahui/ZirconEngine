@@ -7,7 +7,7 @@ use super::super::pending_mesh_draw::{PendingMeshGeometry, PendingSkinnedGpuSour
 
 #[test]
 fn direct_cpu_morphed_geometry_stays_static_shader_fallback() {
-    let geometry = PendingMeshGeometry::CpuMorphed(test_primitive());
+    let geometry = PendingMeshGeometry::CpuMorphed(std::sync::Arc::new(test_primitive()));
 
     assert_eq!(
         super::pending_mesh_geometry_source(&geometry, None, false, false),
@@ -37,7 +37,7 @@ fn prepared_skinned_gpu_source_with_morph_slot_uses_skinned_morphed_shader_sourc
     let Some(mesh) = test_gpu_mesh() else {
         return;
     };
-    let geometry = PendingMeshGeometry::CpuMorphed(test_primitive());
+    let geometry = PendingMeshGeometry::CpuMorphed(std::sync::Arc::new(test_primitive()));
     let source = PendingSkinnedGpuSource::Prepared(mesh);
 
     assert_eq!(
@@ -51,9 +51,9 @@ fn cpu_morphed_skinned_gpu_source_keeps_skinned_shader_fallback() {
     let Some(mesh) = test_gpu_mesh() else {
         return;
     };
-    let geometry = PendingMeshGeometry::CpuMorphed(test_primitive());
+    let geometry = PendingMeshGeometry::CpuMorphed(std::sync::Arc::new(test_primitive()));
     let source = PendingSkinnedGpuSource::CpuMorphed {
-        primitive: test_primitive(),
+        primitive: std::sync::Arc::new(test_primitive()),
         morph_shape_signature: 7,
     };
     drop(mesh);
@@ -82,7 +82,7 @@ fn test_gpu_mesh() -> Option<std::sync::Arc<GpuMeshResource>> {
         .ok()?;
     Some(std::sync::Arc::new(GpuMeshResource::from_asset(
         &backend.device,
-        ModelPrimitiveAsset {
+        &ModelPrimitiveAsset {
             vertices: vec![
                 crate::asset::MeshVertex::new(Vec3::ZERO, Vec3::Z, Vec2::ZERO),
                 crate::asset::MeshVertex::new(Vec3::X, Vec3::Z, Vec2::ZERO),

@@ -183,10 +183,13 @@ fn failed_child_mount_preserves_the_live_module_and_input_state() {
     let before = bridge.surface().clone();
     let before_projection = bridge.host_projection().clone();
     let before_bindings = bridge.bindings_by_id.clone();
-    let (projection, mut surface, _) = bridge.runtime.project_workbench_module_workspace(
-        "res://ui/editor/modules/core/gameplay/effect_workspace.zui",
-        "WorkbenchEffectWorkspace",
-    ).unwrap();
+    let (projection, mut surface, _) = bridge
+        .runtime
+        .project_workbench_module_workspace(
+            "res://ui/editor/modules/core/gameplay/effect_workspace.zui",
+            "WorkbenchEffectWorkspace",
+        )
+        .unwrap();
     let root = surface.tree.roots[0];
     surface
         .tree
@@ -354,28 +357,60 @@ fn module_tools_trigger_invocation_proof_rejects_forged_sources_and_paths() {
     ] {
         select(&mut bridge, item);
         let spec = crate::ui::retained_host::host_contract::componentized_workbench_regions::module_tools_menu_spec(menu).unwrap();
-        let metadata = |control: &str| bridge.surface().tree.nodes.values()
-            .filter_map(|node| node.template_metadata.as_ref())
-            .find(|metadata| metadata.control_id.as_deref() == Some(control)).unwrap().clone();
+        let metadata = |control: &str| {
+            bridge
+                .surface()
+                .tree
+                .nodes
+                .values()
+                .filter_map(|node| node.template_metadata.as_ref())
+                .find(|metadata| metadata.control_id.as_deref() == Some(control))
+                .unwrap()
+                .clone()
+        };
         let root = metadata(spec.root_control_id);
         let trigger = metadata(spec.trigger_control_id);
-        let owned = |root: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
-                     trigger: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata| {
-            spec.trigger_source_is_owned(
-                root.source_path.as_deref().unwrap_or(""), root.instance_path.as_deref(),
-                trigger.source_path.as_deref().unwrap_or(""),
-                trigger.source_node_id.as_deref().unwrap_or(""), trigger.instance_path.as_deref(),
-            )
-        };
-        assert!(owned(&root, &trigger), "the actual compiled caller is admitted: {menu}");
+        let owned =
+            |root: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
+             trigger: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata| {
+                spec.trigger_source_is_owned(
+                    root.source_path.as_deref().unwrap_or(""),
+                    root.instance_path.as_deref(),
+                    trigger.source_path.as_deref().unwrap_or(""),
+                    trigger.source_node_id.as_deref().unwrap_or(""),
+                    trigger.instance_path.as_deref(),
+                )
+            };
+        assert!(
+            owned(&root, &trigger),
+            "the actual compiled caller is admitted: {menu}"
+        );
         let current = bridge.surface().surface_frame();
-        let trigger_row = bridge.host_projection().node_by_control_id(spec.trigger_control_id).unwrap();
-        assert!(std::sync::Arc::ptr_eq(trigger_row.source_surface_frame.as_ref().unwrap(), &current));
+        let trigger_row = bridge
+            .host_projection()
+            .node_by_control_id(spec.trigger_control_id)
+            .unwrap();
+        assert!(std::sync::Arc::ptr_eq(
+            trigger_row.source_surface_frame.as_ref().unwrap(),
+            &current
+        ));
         let mut wrong_caller = trigger.clone();
-        wrong_caller.instance_path.as_mut().unwrap().last_mut().unwrap().source_node_id = "forged_caller".into();
+        wrong_caller
+            .instance_path
+            .as_mut()
+            .unwrap()
+            .last_mut()
+            .unwrap()
+            .source_node_id = "forged_caller".into();
         assert!(!owned(&root, &wrong_caller));
         let mut wrong_caller_path = trigger.clone();
-        wrong_caller_path.instance_path.as_mut().unwrap().last_mut().unwrap().source_path = "res://forged/module.zui".into();
+        wrong_caller_path
+            .instance_path
+            .as_mut()
+            .unwrap()
+            .last_mut()
+            .unwrap()
+            .source_path = "res://forged/module.zui".into();
         assert!(!owned(&root, &wrong_caller_path));
         let mut missing_chain = trigger.clone();
         missing_chain.instance_path = None;
@@ -384,18 +419,31 @@ fn module_tools_trigger_invocation_proof_rejects_forged_sources_and_paths() {
         missing_root_chain.instance_path = None;
         assert!(!owned(&missing_root_chain, &trigger));
         let mut wrong_prefix = trigger.clone();
-        wrong_prefix.instance_path.as_mut().unwrap().insert(0,
+        wrong_prefix.instance_path.as_mut().unwrap().insert(
+            0,
             zircon_runtime_interface::ui::v2::UiTemplateNodeInstancePathStep {
-                source_path: "res://foreign/root.zui".into(), source_node_id: "foreign_instance".into(),
-            });
-        assert!(!owned(&root, &wrong_prefix), "an arbitrary matching caller cannot authorize a foreign prefix");
+                source_path: "res://foreign/root.zui".into(),
+                source_node_id: "foreign_instance".into(),
+            },
+        );
+        assert!(
+            !owned(&root, &wrong_prefix),
+            "an arbitrary matching caller cannot authorize a foreign prefix"
+        );
         let mut forged_primitive = trigger.clone();
         forged_primitive.source_path = root.source_path.clone();
         assert!(!owned(&root, &forged_primitive));
         let mut forged_leaf = trigger.clone();
         forged_leaf.source_node_id = Some(spec.trigger_source_node_id.into());
         assert!(!owned(&root, &forged_leaf));
-        assert!(std::sync::Arc::ptr_eq(&current, &bridge.surface().surface_frame()));
-        assert_eq!(metadata(spec.trigger_control_id), trigger, "negative probes never rewrite the live source");
+        assert!(std::sync::Arc::ptr_eq(
+            &current,
+            &bridge.surface().surface_frame()
+        ));
+        assert_eq!(
+            metadata(spec.trigger_control_id),
+            trigger,
+            "negative probes never rewrite the live source"
+        );
     }
 }

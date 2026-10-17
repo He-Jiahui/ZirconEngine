@@ -47,6 +47,7 @@ pub(in crate::graphics::scene::scene_renderer::core) fn route_frame_submission_c
         backend.append_submission_statuses(tickets, statuses);
     })?;
     streamer.maintain_render_asset_gpu_residency_after_rhi_poll(backend, poll_receipt);
+    #[cfg(feature = "native-host")]
     core.ibl_bake_runtime_writebacks
         .poll_completed()
         .map_err(|error| GraphicsError::Asset(error.to_string()))?;

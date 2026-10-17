@@ -32,3 +32,11 @@
 - [ ] 完成 Runtime03 产品、Jenkins 和 milestone 验收。
 
 对应完成列表：[Runtime03 absolute budget completion list](../../../astra/features/runtime/2026-10-13-runtime03-absolute-p95-budget-completion-list.md)。
+
+## 2026-10-15 原始采样器对齐复核
+
+已只读核对原 producer `zircon_runtime/src/foundation/runtime/worker/tests/config_original_matrix.rs`：25,287 B，SHA-256 `ee9de4d19642bda6f4572ac99911474fe5da509071ebd45a3200d83c4e0d3038`。flush 路径在写入循环后分别记录 `burst_ns` 和 `completion_ns`（214–225 行）；最后一个 owner 的释放路径在实际 `drop(manager)` 周围计完成耗时（299–302 行），578–580 行逐样本输出两个原始字段。
+
+因此现有原始样本可以按冻结契约分别计算 `burst_ns + completion_ns` 和 `completion_ns`，不需要修改 producer 或将其原有 `numeric_performance_budget: null` 改写。task-graph close 位于上述计时之外（357 行），worker-exit 审核代码仍保留（506–507 行）。这里确认的是源码和计时边界；尚未执行原生测试或测得时延。
+
+本次只读证据：root177 / `ae4a2f`，实际 exit 0，Python PID 49208，无子进程。仍需合批原生 exit 0、60 行完整样本及各 cell 两项 P95 全部达标，并保持原 helper、守恒、磁盘内容、真实 worker/task-graph join 和内存门槛。预算数值、量化方法与规范 JSON 均未更改。

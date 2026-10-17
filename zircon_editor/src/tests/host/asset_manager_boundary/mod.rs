@@ -116,12 +116,9 @@ fn editor_asset_boundary_lives_in_editor_crate() {
 fn editor_asset_project_access_stays_host_owned_and_typed() {
     let module_source = include_str!("../../../ui/host/module.rs");
     let runtime_services_source = include_str!("../../../ui/host/runtime_services.rs");
-    let default_manager_source = include_str!(
-        "../../../ui/host/assets/manager/assets/mod.rs"
-    );
-    let relocation_source = include_str!(
-        "../../../ui/host/assets/manager/assets/project_relocation.rs"
-    );
+    let default_manager_source = include_str!("../../../ui/host/assets/manager/assets/mod.rs");
+    let relocation_source =
+        include_str!("../../../ui/host/assets/manager/assets/project_relocation.rs");
 
     assert!(
         module_source.contains("EditorProjectAssetRuntimeAccess::new(&core)?"),

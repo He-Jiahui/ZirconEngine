@@ -226,3 +226,17 @@ impl<'de> Deserialize<'de> for AnimationParameterSet {
 #[cfg(test)]
 #[path = "tests/parameter_set.rs"]
 mod tests;
+
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for AnimationParameterSet {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        // COW preserves the old allocation when any history alias still owns it.
+        m.arc_payload(self.values.as_ref())
+    }
+}
+unsafe impl zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1
+    for AnimationParameterSet
+{
+}

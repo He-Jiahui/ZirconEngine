@@ -8,6 +8,7 @@ use super::{ZrRuntimeDigestV1, ZrRuntimeIdentityFormatError};
 pub struct ZrRuntimeBuildSetId(String);
 
 impl ZrRuntimeBuildSetId {
+    /// 解析 64 个小写十六进制字符组成的身份；只校验文本，不证明其来自可信构建产物。
     pub fn parse(value: impl Into<String>) -> Result<Self, ZrRuntimeIdentityFormatError> {
         let value = value.into();
         let is_lowercase_hex = value.len() == 64
@@ -23,6 +24,7 @@ impl ZrRuntimeBuildSetId {
         Ok(Self(value))
     }
 
+    /// 借用规范文本，生命周期受当前身份值约束。
     pub fn as_str(&self) -> &str {
         &self.0
     }

@@ -1,3 +1,5 @@
+//! 用身份、准入错误和最后克隆释放断言检查会话家族，不模拟并发或字体热更新。
+
 use crate::text::font::FontCollectionService;
 use crate::text::{TextRuntimeContext, TextRuntimeContextLifecycleState};
 use crate::ui::text::UiTextMeasureCache;

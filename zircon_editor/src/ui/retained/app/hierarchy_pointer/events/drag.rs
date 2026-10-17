@@ -45,7 +45,14 @@ impl RetainedEditorHost {
                 self.retire_hierarchy_drag();
                 return;
             }
-            let scene_entries = (match self.prepare_hierarchy_pointer_target(width, height, true) { Ok(value) => value, Err(error) => { self.retire_hierarchy_drag(); self.set_status_line(error.to_string()); return; } });
+            let scene_entries = (match self.prepare_hierarchy_pointer_target(width, height, true) {
+                Ok(value) => value,
+                Err(error) => {
+                    self.retire_hierarchy_drag();
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            });
             let dispatch = self
                 .hierarchy_pointer_bridge
                 .handle_move(UiPoint::new(x, y));
@@ -93,8 +100,23 @@ impl RetainedEditorHost {
         self.active_asset_drag_payload = None;
         self.active_object_drag_payload = None;
 
-        let scene_entries = (match self.prepare_hierarchy_pointer_target(width, height, true) { Ok(value) => value, Err(error) => { self.retire_hierarchy_drag(); self.set_status_line(error.to_string()); return; } });
-        let authoritative_scene_entries = (match self.runtime.editor_snapshot() { Ok(value) => value, Err(error) => { self.retire_hierarchy_drag(); self.set_status_line(error.to_string()); return; } }).scene_entries;
+        let scene_entries = (match self.prepare_hierarchy_pointer_target(width, height, true) {
+            Ok(value) => value,
+            Err(error) => {
+                self.retire_hierarchy_drag();
+                self.set_status_line(error.to_string());
+                return;
+            }
+        });
+        let authoritative_scene_entries = (match self.runtime.editor_snapshot() {
+            Ok(value) => value,
+            Err(error) => {
+                self.retire_hierarchy_drag();
+                self.set_status_line(error.to_string());
+                return;
+            }
+        })
+        .scene_entries;
 
         let dispatch = self
             .hierarchy_pointer_bridge
@@ -107,7 +129,14 @@ impl RetainedEditorHost {
                 &scene_entries,
                 &authoritative_scene_entries,
             ),
-            (match self.capture_hierarchy_drag_identity() { Ok(value) => value, Err(error) => { self.retire_hierarchy_drag(); self.set_status_line(error.to_string()); return; } }),
+            (match self.capture_hierarchy_drag_identity() {
+                Ok(value) => value,
+                Err(error) => {
+                    self.retire_hierarchy_drag();
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            }),
         ) {
             if !self
                 .hierarchy_input_owner

@@ -17,7 +17,7 @@ fn optimization_batch_20260829am_editor258_preallocated_targets_preserve_filter_
 
 #[test]
 fn optimization_batch_20260829am_editor258_native_target_path_preallocates_from_window_count() {
-    let source = include_str!("../../../../retained_host/app/native_windows/target.rs");
+    let source = include_str!("../../native_windows/target.rs");
     let builder = source
         .split("fn collect_native_floating_window_targets")
         .nth(1)

@@ -8,11 +8,11 @@ fn runtime_15_code_review_findings_plugin_importer_dx_structure_guard_is_child_o
     let child = read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_CHILD);
     let structure_assertions_child =
         read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_CHILD);
-    let review_mounts_child = read_runtime_src(PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_CHILD);
-    let delegation_child = read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_DELEGATION_CHILD);
-    let child_ownership_child =
+    let _review_mounts_child = read_runtime_src(PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_CHILD);
+    let _delegation_child = read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_DELEGATION_CHILD);
+    let _child_ownership_child =
         read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_CHILD_OWNERSHIP_CHILD);
-    let d13_sdk_child = read_runtime_src(PLUGIN_IMPORTER_D13_STRUCTURE_ASSERTIONS_CHILD);
+    let _d13_sdk_child = read_runtime_src(PLUGIN_IMPORTER_D13_STRUCTURE_ASSERTIONS_CHILD);
 
     assert_contains_all(
         "code review findings structure guard parent mounts plugin-importer DX child owner",

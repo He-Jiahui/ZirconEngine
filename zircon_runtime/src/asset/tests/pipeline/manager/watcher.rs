@@ -47,13 +47,14 @@ fn asset_manager_watcher_reports_changes_from_the_second_manifest_root() {
         match changes.recv_timeout(remaining.min(Duration::from_millis(150))) {
             Ok(change) if change.kind == AssetChangeKind::Modified => {
                 if change.uri.to_string() == "res://materials/grid.zmaterial" {
-                    observed_uri = Some(change.uri);
+                    observed_uri = Some(change.uri.clone());
                     break;
                 }
             }
             Ok(_) => {}
-            Err(RecvTimeoutError::Timeout) => continue,
-            Err(RecvTimeoutError::Disconnected) => break,
+            Err(crate::asset::watch::AssetEventRecvTimeoutError::Timeout) => continue,
+            Err(crate::asset::watch::AssetEventRecvTimeoutError::Disconnected) => break,
+            Err(error) => panic!("asset subscriber lost ordered events: {error}"),
         }
     }
 
@@ -223,8 +224,9 @@ fn watcher_ignores_meta_sidecar_updates_for_revision_tracking() {
                     break;
                 }
             }
-            Err(RecvTimeoutError::Timeout) => continue,
-            Err(RecvTimeoutError::Disconnected) => break,
+            Err(crate::asset::watch::AssetEventRecvTimeoutError::Timeout) => continue,
+            Err(crate::asset::watch::AssetEventRecvTimeoutError::Disconnected) => break,
+            Err(error) => panic!("asset subscriber lost ordered events: {error}"),
         }
     }
 
@@ -320,8 +322,9 @@ fn watcher_reimports_modified_asset_once_without_revision_loop() {
                     material_changes += 1;
                 }
             }
-            Err(RecvTimeoutError::Timeout) => continue,
-            Err(RecvTimeoutError::Disconnected) => break,
+            Err(crate::asset::watch::AssetEventRecvTimeoutError::Timeout) => continue,
+            Err(crate::asset::watch::AssetEventRecvTimeoutError::Disconnected) => break,
+            Err(error) => panic!("asset subscriber lost ordered events: {error}"),
         }
     }
 
@@ -397,8 +400,9 @@ fn watcher_removes_only_the_deleted_source_from_runtime_resources() {
                 break;
             }
             Ok(_) => {}
-            Err(RecvTimeoutError::Timeout) => continue,
-            Err(RecvTimeoutError::Disconnected) => break,
+            Err(crate::asset::watch::AssetEventRecvTimeoutError::Timeout) => continue,
+            Err(crate::asset::watch::AssetEventRecvTimeoutError::Disconnected) => break,
+            Err(error) => panic!("asset subscriber lost ordered events: {error}"),
         }
     }
 

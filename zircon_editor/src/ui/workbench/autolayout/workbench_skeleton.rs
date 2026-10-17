@@ -77,15 +77,13 @@ impl WorkbenchSkeleton {
         ];
 
         Self {
-            top_toolbar_asset:
-                "res://ui/editor/unreal/components/toolbar.zui".to_string(),
+            top_toolbar_asset: "res://ui/editor/unreal/components/toolbar.zui".to_string(),
             activity_rail_left_asset: None,
             activity_rail_right_asset: None,
             document_tabs_asset: None,
             regions,
             bottom_output_asset: "res://ui/editor/host/console_body.zui".to_string(),
-            status_bar_asset: "res://ui/editor/unreal/components/status_bar.zui"
-                .to_string(),
+            status_bar_asset: "res://ui/editor/unreal/components/status_bar.zui".to_string(),
             default_drawer_modes: EditorRegion::ALL
                 .into_iter()
                 .filter(|region| region.drawer_slot().is_some())

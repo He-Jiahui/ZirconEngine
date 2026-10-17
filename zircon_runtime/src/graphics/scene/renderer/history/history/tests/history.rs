@@ -138,11 +138,8 @@ fn shared_scene_history_does_not_allocate_unqualified_ambient_occlusion_storage(
 fn exposure_history_reset_uses_frame_upload_transaction_without_raw_queue() {
     let source = include_str!("../history.rs");
     let production = source.split("#[cfg(test)]").next().unwrap();
-    let render =
-        include_str!("../../../core/render/render/render.rs");
-    let submit = include_str!(
-        "../../../../core/render/submit_compiled_scene_frame.rs"
-    );
+    let render = include_str!("../../../core/render/render/render.rs");
+    let submit = include_str!("../../../../core/render/submit_compiled_scene_frame.rs");
 
     assert!(production.contains("prepare_exposure_history_reset"));
     assert!(!production.contains("queue.write_buffer("));

@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R010",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T00:03:15.934077+00:00",
+  "status": "local-scoped-static-checks-passed",
+  "actual_tool_receipt": {
+    "chunk_id": "1ea75f",
+    "exit_code": 0
+  },
+  "checks": [
+    {
+      "label": "R010-final-rustfmt",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "argv_template": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "exact-batch-source-paths"
+      ],
+      "full_argv_evidence": "actual terminal tool receipt 1ea75f, bound to final source paths"
+    },
+    {
+      "label": "diff-check",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/scene/tests/ecs_reflect/foundation/registry.rs.\nThe file will have its original line endings in your working directory\n",
+      "full_argv_evidence": "actual terminal tool receipt 1ea75f, bound to final source paths"
+    },
+    {
+      "label": "staged-paths",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "full_argv_evidence": "actual terminal tool receipt 1ea75f, bound to final source paths"
+    },
+    {
+      "label": "R010-guard",
+      "exit_code": 0,
+      "stdout": "{\"tool\":\"zircon-change-guard\",\"version\":2,\"mode\":\"patch\",\"status\":\"passed\",\"input\":{\"patchDigest\":\"9b0319696c92535cfc2dc2db06c652f1e72659fde33ff43a91a87b87604e6bf6\",\"base\":\"f28ba39a5095f4964c046ecc702778627f80cfd5\",\"files\":[\"zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs\",\"zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs\",\"zircon_runtime/src/scene/tests/ecs_reflect/foundation/registry.rs\"],\"declaredPaths\":[\"zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs\",\"zircon_runtime/src/scene/tests/ecs_reflect/foundation/registry.rs\",\"zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs\"],\"writeGrantCheck\":true,\"permissionRoot\":\"E:/Git/ZirconEngine\",\"contributor\":false},\"summary\":{\"errors\":0,\"warnings\":0,\"suppressed\":0},\"markers\":{\"closed\":[],\"opened\":[\"CR-ZCA-R010-0001\"],\"moved\":[]},\"findings\":[],\"suppressed\":[]}",
+      "stderr": "",
+      "full_argv_evidence": "actual terminal tool receipt 1ea75f, bound to final source paths"
+    },
+    {
+      "label": "HEAD",
+      "exit_code": 0,
+      "stdout": "f28ba39a5095f4964c046ecc702778627f80cfd5\n",
+      "stderr": "",
+      "full_argv_evidence": "actual terminal tool receipt 1ea75f, bound to final source paths"
+    }
+  ],
+  "files": [
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs",
+      "before_sha256": "1609f71e289d1ae4a2516eb78ca310df16f35cfc76f8662ee943914a074f3d96",
+      "child_snapshot_sha256": "e09db2f9925cc8c7f146473d0a1fb21bc8adc21a459ea66f67b21fde23aa1452",
+      "after_sha256": "e09db2f9925cc8c7f146473d0a1fb21bc8adc21a459ea66f67b21fde23aa1452",
+      "original_source_reconstructed_by_inverse_task_edits": true,
+      "normalized_original_equals_pinned_HEAD": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/foundation/registry.rs",
+      "before_sha256": "500a939a49fe18dd2d14264aa746a954aa93c8af0c873956e53f5dd31df48243",
+      "child_snapshot_sha256": "1fabb02e44c756d8b54fcc5e2c3e27b40b9f4396f0c9f3fb370da4b27d21f0d1",
+      "after_sha256": "1fabb02e44c756d8b54fcc5e2c3e27b40b9f4396f0c9f3fb370da4b27d21f0d1",
+      "original_source_reconstructed_by_inverse_task_edits": true,
+      "normalized_original_equals_pinned_HEAD": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs",
+      "before_sha256": "edfbf16b138f02fee1219b543e8203ec064f9502ca7f8c8bf662ce9588076bb7",
+      "child_snapshot_sha256": "fd0c816c855eede9f42d038dcdb1c6b6ab7498d6a07871c630d8e0971cee0eb9",
+      "after_sha256": "f32b6daa07acf266facd5cc722b00810179c821107caf8db28ba22888fa1f653",
+      "original_source_reconstructed_by_inverse_task_edits": true,
+      "normalized_original_equals_pinned_HEAD": true
+    }
+  ],
+  "all_checks_bound_to_final_physical_source": true,
+  "source_tests_or_Cargo_executed": false,
+  "managed_coordinator_format": "pending-real-route-binding",
+  "formal_acceptance": false,
+  "dependent_source_shape_predicates": [
+    {
+      "name": "descriptor-fields",
+      "before_predicates": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "after_predicates": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "expected_contains_results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "predicate_result_unchanged": true,
+      "current_assertion_conjunction": true
+    },
+    {
+      "name": "field-constructor",
+      "before_predicates": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "after_predicates": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "expected_contains_results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "predicate_result_unchanged": true,
+      "current_assertion_conjunction": true
+    },
+    {
+      "name": "short-path",
+      "before_predicates": [
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "after_predicates": [
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "expected_contains_results": [
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "predicate_result_unchanged": true,
+      "current_assertion_conjunction": true
+    },
+    {
+      "name": "property-path",
+      "before_predicates": [
+        true,
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "after_predicates": [
+        true,
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "expected_contains_results": [
+        true,
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "predicate_result_unchanged": true,
+      "current_assertion_conjunction": true
+    },
+    {
+      "name": "read-field",
+      "before_predicates": [
+        false,
+        false,
+        false
+      ],
+      "after_predicates": [
+        false,
+        false,
+        false
+      ],
+      "expected_contains_results": [
+        true,
+        true,
+        false
+      ],
+      "predicate_result_unchanged": true,
+      "current_assertion_conjunction": false
+    },
+    {
+      "name": "ensure-component",
+      "before_predicates": [
+        true,
+        true,
+        true,
+        false
+      ],
+      "after_predicates": [
+        true,
+        true,
+        true,
+        false
+      ],
+      "expected_contains_results": [
+        true,
+        true,
+        true,
+        false
+      ],
+      "predicate_result_unchanged": true,
+      "current_assertion_conjunction": true
+    },
+    {
+      "name": "declared-field",
+      "before_predicates": [
+        true,
+        true,
+        true,
+        false
+      ],
+      "after_predicates": [
+        true,
+        true,
+        true,
+        false
+      ],
+      "expected_contains_results": [
+        true,
+        true,
+        true,
+        false
+      ],
+      "predicate_result_unchanged": true,
+      "current_assertion_conjunction": true
+    },
+    {
+      "name": "JSON-presence",
+      "before_predicates": [
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "after_predicates": [
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "expected_contains_results": [
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "predicate_result_unchanged": true,
+      "current_assertion_conjunction": true
+    },
+    {
+      "name": "world-dense-fields",
+      "before_predicates": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "after_predicates": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "expected_contains_results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "predicate_result_unchanged": true,
+      "current_assertion_conjunction": true
+    }
+  ],
+  "all_nine_predicate_vectors_unchanged": true,
+  "known_preexisting_failure": "CR-ZCA-R010-0001",
+  "detailed_lexical_evidence_record": {
+    "path": "docs/plans/source-comments/reviews/R008-post-validation.json",
+    "sha256": "6da6b53732c91593380105bb161f07857f7f01c39b6f3299a8d20a8db6c603a4",
+    "field": "dependent_source_shape_predicates"
+  }
+}

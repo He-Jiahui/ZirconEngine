@@ -1,50 +1,105 @@
 use std::sync::Arc;
 
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
-use zircon_runtime::core::math::UVec2;
-use zircon_runtime::scene::world::World;
-use crate::test_support::render_feature_fixtures::virtual_geometry_render_feature_descriptor;
-use crate::virtual_geometry::{
-        ViewportRenderFrame, VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
-        VirtualGeometryPrepareRequest,
-};
-use zircon_runtime::graphics::{
-    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
-    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
-};
 use zircon_runtime::core::framework::render::{
     RenderFrameExtract, RenderSceneSnapshot, RenderVirtualGeometryExtract,
     RenderVirtualGeometryPage, RenderWorldSnapshotHandle,
 };
+use zircon_runtime::core::framework::render::{
+    RenderFramework, RenderFrameworkError, RenderQualityProfile, RenderViewportDescriptor,
+};
+use zircon_runtime::core::math::UVec2;
+use zircon_runtime::scene::world::World;
 
-fn compile_virtual_geometry_pipeline(
-    extract: &RenderFrameExtract,
-) -> CompiledRenderPipeline {
-    RenderPipelineAsset::default_forward_plus()
-        .with_plugin_render_features([virtual_geometry_render_feature_descriptor()])
-        .compile_with_options(
-            extract,
-            &RenderPipelineCompileOptions::default()
-                .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap()
+use crate::test_support::render_feature_fixtures::{
+    pluginized_wgpu_render_framework_with_uploader_collector, PluginizedWgpuRenderFrameworkFixture,
+};
+use crate::virtual_geometry::{
+    VirtualGeometryGpuReadback, VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
+    VirtualGeometryPrepareRequest, VirtualGeometryUploaderTestCollector,
+};
+
+fn compile_virtual_geometry_pipeline(_extract: &RenderFrameExtract) {}
+
+fn virtual_geometry_scene_renderer(
+    asset_manager: Arc<ProjectAssetManager>,
+) -> PluginizedWgpuRenderFrameworkFixture {
+    pluginized_wgpu_render_framework_with_uploader_collector(
+        asset_manager,
+        Arc::new(VirtualGeometryUploaderTestCollector::default()),
+    )
 }
 
-fn virtual_geometry_scene_renderer(_asset_manager: Arc<ProjectAssetManager>) -> SceneRenderer {
-    SceneRenderer::new_with_plugin_render_features(
-        Arc::new(ProjectAssetManager::default()),
-        [virtual_geometry_render_feature_descriptor()],
-    )
-    .unwrap()
+struct ViewportRenderFrame {
+    extract: RenderFrameExtract,
+    viewport_size: UVec2,
+    prepare: Option<VirtualGeometryPrepareFrame>,
+}
+
+impl ViewportRenderFrame {
+    fn from_extract(extract: RenderFrameExtract, viewport_size: UVec2) -> Self {
+        Self {
+            extract,
+            viewport_size,
+            prepare: None,
+        }
+    }
+
+    fn with_virtual_geometry_prepare(
+        mut self,
+        prepare: Option<VirtualGeometryPrepareFrame>,
+    ) -> Self {
+        self.prepare = prepare;
+        self
+    }
+}
+
+trait UploaderFrameTestExt {
+    fn render_frame_with_pipeline(
+        &mut self,
+        frame: ViewportRenderFrame,
+        _pipeline: &(),
+        _capture: Option<()>,
+    ) -> Result<(), RenderFrameworkError>;
+    fn take_last_virtual_geometry_gpu_readback(&self) -> Option<VirtualGeometryGpuReadback>;
+}
+
+impl UploaderFrameTestExt for PluginizedWgpuRenderFrameworkFixture {
+    fn render_frame_with_pipeline(
+        &mut self,
+        mut frame: ViewportRenderFrame,
+        _pipeline: &(),
+        _capture: Option<()>,
+    ) -> Result<(), RenderFrameworkError> {
+        if let Some(prepare) = frame.prepare.take() {
+            self.uploader_collector().set_prepare(prepare);
+        }
+        let viewport = self.create_viewport(RenderViewportDescriptor::new(frame.viewport_size))?;
+        self.set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("virtual-geometry-uploader-contract")
+                .with_virtual_geometry(true)
+                .with_hybrid_global_illumination(false)
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_temporal_history(false)
+                .with_bloom(false)
+                .with_color_grading(false)
+                .with_reflection_probes(false)
+                .with_baked_lighting(false)
+                .with_particle_rendering(false)
+                .with_async_compute(false),
+        )?;
+        self.submit_frame_extract(viewport, frame.extract)
+    }
+
+    fn take_last_virtual_geometry_gpu_readback(&self) -> Option<VirtualGeometryGpuReadback> {
+        Some(
+            self.uploader_collector()
+                .take_readback()
+                .expect("actual GPU readback should complete"),
+        )
+    }
 }
 
 fn build_extract(

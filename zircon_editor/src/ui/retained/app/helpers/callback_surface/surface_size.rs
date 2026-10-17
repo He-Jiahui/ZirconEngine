@@ -31,7 +31,8 @@ impl RetainedEditorHost {
             return Ok(cached_size);
         }
 
-        Ok(self.resolve_host_frame_backed_size_for_kind(kind)?
+        Ok(self
+            .resolve_host_frame_backed_size_for_kind(kind)?
             .unwrap_or(UiSize::new(0.0, 0.0)))
     }
 
@@ -42,8 +43,10 @@ impl RetainedEditorHost {
         height: f32,
         cached_size: UiSize,
     ) -> Result<Option<UiSize>, crate::ui::host::EditorError> {
-        asset_surface_kind(surface_mode).map(|kind| {
-            self.resolve_callback_surface_size_for_kind(width, height, cached_size, kind)
-        }).transpose()
+        asset_surface_kind(surface_mode)
+            .map(|kind| {
+                self.resolve_callback_surface_size_for_kind(width, height, cached_size, kind)
+            })
+            .transpose()
     }
 }

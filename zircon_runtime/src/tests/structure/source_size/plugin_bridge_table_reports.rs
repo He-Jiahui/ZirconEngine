@@ -6,20 +6,20 @@ fn runtime_15_plugin_bridge_table_reports_are_child_owner() {
     let reports = read_runtime_src("plugin/bridge/table/reports.rs");
     let bridge_root = read_runtime_src("plugin/bridge.rs");
     let neutral_bridge = read_runtime_src("core/framework/bridge/contract.rs");
-    let runtime_15_plan = read_repo(
+    let _runtime_15_plan = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo(
+    let _runtime_index = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let review_findings = read_repo(
+    let _review_findings = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
-    let structure_convention = read_repo(
+    let _structure_convention = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
 
     assert_contains_all(
         "plugin bridge table parent delegates diagnostics/report DTOs",

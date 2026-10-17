@@ -1,8 +1,7 @@
 use super::*;
 use zircon_runtime::core::framework::render::{
-    FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
-    ViewportCameraSnapshot,
+    FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::Vec4;
 use zircon_runtime::graphics::{
@@ -11,8 +10,8 @@ use zircon_runtime::graphics::{
     RenderPipelineCompileOptions,
 };
 use zircon_runtime::render_graph::{
-    RenderGraphComputeDispatchExtent, RenderGraphPassResourceAccess,
-    RenderGraphResourceAccessKind, RenderGraphResourceDesc, RenderGraphResourceKind,
+    RenderGraphComputeDispatchExtent, RenderGraphPassResourceAccess, RenderGraphResourceAccessKind,
+    RenderGraphResourceDesc, RenderGraphResourceKind,
 };
 use zircon_runtime::rhi::TextureFormat;
 
@@ -26,11 +25,9 @@ fn contact_shadow_feature_registers_hzb_ray_march_pass() {
 
     let feature = &report.extensions.render_features()[0];
     assert_eq!(feature.name, FEATURE_NAME);
-    assert!(
-        feature
-            .required_extract_sections
-            .contains(&"visibility".to_string())
-    );
+    assert!(feature
+        .required_extract_sections
+        .contains(&"visibility".to_string()));
 
     let pass = &feature.stage_passes[0];
     assert_eq!(pass.stage, RenderPassStage::AmbientOcclusion);
@@ -201,18 +198,12 @@ fn contact_shadow_executor_rejects_pass_flag_contract_drift() {
 
 #[test]
 fn contact_shadow_shader_declares_expected_compute_bindings() {
-    assert!(
-        CONTACT_SHADOW_SHADER_SOURCE
-            .contains("@group(0) @binding(0) var depth_tex: texture_depth_2d")
-    );
-    assert!(
-        CONTACT_SHADOW_SHADER_SOURCE
-            .contains("@group(0) @binding(1) var normal_tex: texture_2d<f32>")
-    );
-    assert!(
-        CONTACT_SHADOW_SHADER_SOURCE
-            .contains("@group(0) @binding(2) var hzb_furthest_tex: texture_2d<f32>")
-    );
+    assert!(CONTACT_SHADOW_SHADER_SOURCE
+        .contains("@group(0) @binding(0) var depth_tex: texture_depth_2d"));
+    assert!(CONTACT_SHADOW_SHADER_SOURCE
+        .contains("@group(0) @binding(1) var normal_tex: texture_2d<f32>"));
+    assert!(CONTACT_SHADOW_SHADER_SOURCE
+        .contains("@group(0) @binding(2) var hzb_furthest_tex: texture_2d<f32>"));
     assert!(CONTACT_SHADOW_SHADER_SOURCE.contains(
         "@group(0) @binding(3) var contact_shadow_out: texture_storage_2d<rgba8unorm, write>"
     ));

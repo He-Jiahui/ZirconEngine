@@ -4,8 +4,8 @@ use std::{
     env,
     path::{Path, PathBuf},
     sync::{
-        Arc,
         atomic::{AtomicU64, Ordering},
+        Arc,
     },
     time::Duration,
 };
@@ -45,19 +45,19 @@ pub(in crate::tauri_app) use window_geometry::{NormalWindowGeometry, WindowGeome
 
 use crate::assets::AssetCatalogEntry;
 use crate::engines::{
-    SourceEngineInstall, SourceEngineValidation, ensure_active_source_engine,
-    prune_project_engine_bindings, same_source_engine_path, source_engine_display_name,
-    source_engine_id, upsert_source_engine, validate_source_engine,
+    ensure_active_source_engine, prune_project_engine_bindings, same_source_engine_path,
+    source_engine_display_name, source_engine_id, upsert_source_engine, validate_source_engine,
+    SourceEngineInstall, SourceEngineValidation,
 };
 use crate::error::HubError;
 use crate::learn::LearnCatalogEntry;
 use crate::plugins::PluginCatalogEntry;
 use crate::projects::{
-    RecentProject, SharedRecentProjectsSnapshot, load_shared_recent_projects_snapshot,
-    metadata_for_path, normalize_project_root, project_filesystem_path_key, project_metadata_key,
-    project_paths_match, reconcile_shared_recent_projects_snapshot,
+    load_shared_recent_projects_snapshot, metadata_for_path, normalize_project_root,
+    project_filesystem_path_key, project_metadata_key, project_paths_match,
+    reconcile_shared_recent_projects_snapshot, RecentProject, SharedRecentProjectsSnapshot,
 };
-use crate::settings::{HubConfig, HubRuntimeState, HubSettings, default_hub_config_path};
+use crate::settings::{default_hub_config_path, HubConfig, HubRuntimeState, HubSettings};
 use crate::state::{
     EngineMessageId, HubMessage, HubMessageId, HubPage, HubSnapshot, ProjectAvailabilitySnapshot,
     ProjectFilterMode, ProjectMessageId, ProjectSortMode, ProjectSubpage, ProjectViewMode,
@@ -65,14 +65,14 @@ use crate::state::{
 };
 use crate::team::TeamOverview;
 use zircon_runtime_interface::hub_protocol::{
-    HubRecentProjectV1, HubRecentProjectsLoad, HubRecentProjectsLoadDisposition,
-    HubRecentProjectsStore, HubRecentProjectsStoreError, HubRecentProjectsWritePolicy,
-    hub_recent_projects_path,
+    hub_recent_projects_path, HubRecentProjectV1, HubRecentProjectsLoad,
+    HubRecentProjectsLoadDisposition, HubRecentProjectsStore, HubRecentProjectsStoreError,
+    HubRecentProjectsWritePolicy,
 };
 
 use super::action_id::HubActionId;
 use super::action_request::{HubAction, HubActionRequest};
-use super::view_model::{HubSettingsPayload, HubViewModel, validate_settings_for_save};
+use super::view_model::{validate_settings_for_save, HubSettingsPayload, HubViewModel};
 
 const VISUAL_TASK_STATE_ENV: &str = "ZIRCON_HUB_VISUAL_TASK_STATE";
 const HUB_RECENT_PROJECTS_STARTUP_MIGRATION_WAIT: Duration = Duration::from_millis(250);

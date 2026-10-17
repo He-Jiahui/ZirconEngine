@@ -40,6 +40,7 @@ use crate::asset::project::manager::durable_transaction::{
 };
 
 pub(crate) struct PreparedFullProjectGeneration {
+    pub(super) watch_sources: Vec<super::WatchSourceCandidate>,
     journal_directory: PathBuf,
     writes: Vec<PreparedFileWrite>,
     meta_paths: Vec<PathBuf>,
@@ -94,6 +95,14 @@ impl ProjectManager {
         &mut self,
         watch_changes: Option<&[AssetChange]>,
     ) -> Result<(Vec<ResourceRecord>, PreparedFullProjectGeneration), AssetImportError> {
+        self.prepare_full_generation_with_geometry_demand(watch_changes, None)
+    }
+
+    pub(super) fn prepare_full_generation_with_geometry_demand(
+        &mut self,
+        watch_changes: Option<&[AssetChange]>,
+        geometry_demand: Option<&crate::core::resource::ResourceActiveGeneration>,
+    ) -> Result<(Vec<ResourceRecord>, PreparedFullProjectGeneration), AssetImportError> {
         let mut observation = ProjectGenerationObservation::new();
         let parallel_executor = self.environment_ibl_parallel_executor.clone();
         let sources = {
@@ -138,6 +147,8 @@ impl ProjectManager {
         let mut imported = Vec::with_capacity(sources.len());
         let mut restored_records = Vec::new();
         let mut ready_shaders = Vec::new();
+        let mut ready_geometry = HashMap::new();
+        let mut watch_sources = Vec::new();
         let mut writes = Vec::new();
         let mut prepared_ibl_paths = BTreeMap::new();
 
@@ -195,6 +206,9 @@ impl ProjectManager {
             );
             let config_hash = build_identity.action_key().to_string();
             let root_asset_id = AssetId::from_asset_uuid(meta.uuid);
+            let previous_members = std::iter::once(AssetId::from_asset_uuid(previous_meta.uuid))
+                .chain(previous_meta.entries.iter().map(|entry| AssetId::from_asset_uuid(entry.uuid)))
+                .collect::<Vec<_>>();
             let import_context =
                 AssetImportContext::new(file.clone(), uri.clone(), source_bytes, import_settings)
                     .with_build_identity(build_identity)
@@ -254,6 +268,13 @@ impl ProjectManager {
                         Vec::new(),
                     ),
                 );
+                watch_sources.push(super::WatchSourceCandidate {
+                    owner: root_asset_id, previous_members,
+                    outcome: crate::core::resource::ResourceSourceOutcome::Unchanged,
+                    members: metadata.iter().map(|record| crate::core::resource::ResourceSourceMember {
+                        record: record.clone(), payload: None,
+                    }).collect(),
+                });
                 for record in metadata {
                     let asset_id = record.id();
                     dependencies_by_id.insert(
@@ -309,6 +330,8 @@ impl ProjectManager {
                                 descriptor.as_ref(),
                                 outcome,
                                 &mut ready_shaders,
+                                &mut ready_geometry,
+                                geometry_demand,
                                 &mut writes,
                                 &mut observation,
                             )?;
@@ -361,6 +384,15 @@ impl ProjectManager {
                     reference_repairs,
                 ),
             );
+            watch_sources.push(super::WatchSourceCandidate {
+                owner: root_asset_id, previous_members,
+                outcome: if metadata.iter().any(|record| record.state == ResourceState::Error) {
+                    crate::core::resource::ResourceSourceOutcome::Failed
+                } else { crate::core::resource::ResourceSourceOutcome::CompleteSuccess },
+                members: metadata.iter().map(|record| crate::core::resource::ResourceSourceMember {
+                    record: record.clone(), payload: ready_geometry.remove(&record.id),
+                }).collect(),
+            });
             for record in metadata {
                 let asset_id = record.id();
                 dependencies_by_id.insert(
@@ -442,6 +474,14 @@ impl ProjectManager {
         );
         observation.mark_prepare_succeeded();
 
+        for source in &mut watch_sources {
+            for member in &mut source.members {
+                if let Some(record) = registry.get(member.record.id) { member.record = record.clone(); }
+            }
+            if source.members.iter().any(|member| member.record.state == ResourceState::Error) {
+                source.outcome = crate::core::resource::ResourceSourceOutcome::Failed;
+            }
+        }
         self.registry = registry.finish();
         self.asset_registry = Arc::new(asset_registry);
         self.shader_import_dependencies = shader_import_dependencies;
@@ -449,6 +489,7 @@ impl ProjectManager {
         Ok((
             imported,
             PreparedFullProjectGeneration {
+                watch_sources,
                 journal_directory: journal_directory(&self.paths),
                 writes,
                 meta_paths,
@@ -551,6 +592,8 @@ impl ProjectManager {
         descriptor: Option<&AssetImporterDescriptor>,
         mut outcome: AssetImportOutcome,
         ready_shaders: &mut Vec<(ResourceRecord, ShaderAsset)>,
+        ready_geometry: &mut HashMap<AssetId, Arc<dyn crate::core::resource::ResourceData>>,
+        geometry_demand: Option<&crate::core::resource::ResourceActiveGeneration>,
         writes: &mut Vec<PreparedFileWrite>,
         observation: &mut ProjectGenerationObservation,
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
@@ -630,8 +673,16 @@ impl ProjectManager {
                 .with_artifact_locator(artifact.locator)
                 .with_state(ResourceState::Ready)
                 .with_diagnostics(entry.diagnostics);
-            if let ImportedAsset::Shader(shader) = entry.asset {
-                ready_shaders.push((record.clone(), shader));
+            match entry.asset {
+                ImportedAsset::Shader(shader) => ready_shaders.push((record.clone(), shader)),
+                asset @ (ImportedAsset::Model(_) | ImportedAsset::Mesh(_)) => {
+                    // Retain owned output only for demand captured before import. Cold output
+                    // leaves this arm immediately; its durable artifact remains a lazy intent.
+                    if geometry_demand.is_some_and(|active| active.row(record.id).is_some()) {
+                        ready_geometry.insert(record.id, asset.into_resource_data());
+                    }
+                }
+                _ => {}
             }
             records.push(record);
         }

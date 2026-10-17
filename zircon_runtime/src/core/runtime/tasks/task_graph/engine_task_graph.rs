@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use super::super::callback_dispatcher::TaskCallbackDispatcher;
 use super::super::{

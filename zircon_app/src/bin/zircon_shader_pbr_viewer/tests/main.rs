@@ -13,8 +13,8 @@ fn early_fatal_paths_write_a_terminal_source_chain() {
         production
             .matches(".with_source_chain(viewer_terminal_source_chain(&config))")
             .count(),
-        2,
-        "RenderDoc preload and EventLoop creation failures must retain input provenance"
+        3,
+        "input identity, RenderDoc preload, and EventLoop creation failures must retain input provenance"
     );
 }
 
@@ -43,4 +43,15 @@ fn profiling_build_uses_environment_capture_lifecycle() {
                 .find("stop_and_export_capture_from_env")
                 .expect("capture export")
     );
+}
+
+#[test]
+fn event_loop_returns_to_host_for_terminal_record_and_cleanup() {
+    let production = MAIN_SOURCE
+        .split("#[cfg(test)]")
+        .next()
+        .expect("main source should retain production code before tests");
+    assert!(production.contains("EventLoopExtRunOnDemand"));
+    assert!(production.contains("run_app_on_demand(&mut app)"));
+    assert!(production.contains("app.finish_after_event_loop()"));
 }

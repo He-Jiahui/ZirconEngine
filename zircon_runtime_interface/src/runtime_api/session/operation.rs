@@ -401,6 +401,8 @@ pub type ZrRuntimePollOperationFnV2 = unsafe extern "C" fn(
 /// # 约束与生命周期
 /// 非空输出取得一次释放权，须在同 provider/session 存活期间经 release_allocation 归还；
 /// 解码、版本或句柄核对失败仍须清理。登记成功才提交服务收获，失败回滚收获标志。
+/// 上述回滚指输出登记 finalizer 失败分支；后续提交分派失败不保证回滚或回收已登记分配。
+/// 当前收获实现在 finalizer 写出描述符，返回错误也须检查实际输出；参见 `with_session_result_committed`。
 /// # 参考
 /// [`ZrRuntimeOperationResultV1`]、`harvest_operation_ffi`、`RuntimeOwnedOutputReleaser`。
 pub type ZrRuntimeHarvestOperationFnV2 = unsafe extern "C" fn(

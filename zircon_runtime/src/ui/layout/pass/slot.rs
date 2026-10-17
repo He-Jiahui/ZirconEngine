@@ -16,6 +16,16 @@ use super::workspace::{UiArrangeChildScratch, UiLayoutPassWorkspace};
 use crate::ui::layout::taffy_bridge::{taffy_main_axis, TaffyParentProductCache};
 
 #[derive(Debug, Default)]
+/// 按树结构派生并由布局所有者持有的索引，缓存子顺序、父尺寸依赖、响应式候选及布局暂存数据。
+///
+/// # 所有权与失效
+/// 初始化和同步依赖树记录的变更、顺序代数和父节点集合；这不是任意公开字段写入的完整变化检测器。
+/// 子顺序以 `Arc` 返回，重建后旧快照仍可读；当前缓存版本用于核对 Taffy 产品。
+/// `RefCell` 只约束同一所有者内的借用，不能据此推断可并发共享；工作区和产品闭包返回后才结束借用。
+///
+/// # 生命周期与参考
+/// 克隆保留派生索引和虚拟列表投影，但重置工作区与 Taffy 产品缓存。
+/// 完整与增量入口分别使用 `refresh_for_tree` 和同步方法维护这些派生状态。
 pub(crate) struct UiLayoutSlotIndex {
     state: RefCell<UiLayoutSlotIndexState>,
     workspace: RefCell<UiLayoutPassWorkspace>,
@@ -25,6 +35,7 @@ pub(crate) struct UiLayoutSlotIndex {
 }
 
 impl Clone for UiLayoutSlotIndex {
+    /// 复制索引状态和虚拟列表投影，但重置工作区与 Taffy 产品缓存，避免沿用旧计算暂存结果。
     fn clone(&self) -> Self {
         Self {
             state: RefCell::new(self.state.borrow().clone()),

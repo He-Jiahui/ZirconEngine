@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::core::{
     CoreError, LifecycleState, ModuleCleanupContext, ModuleContext, ModuleLifecycle,
@@ -43,6 +43,10 @@ impl CoreHandle {
         if Instant::now() >= deadline {
             return Err(module_ready_timeout(module_name, ready_budget));
         }
+        // A synchronous readiness probe cannot block the browser event loop.
+        #[cfg(target_arch = "wasm32")]
+        return Err(module_ready_timeout(module_name, ready_budget));
+        #[cfg(not(target_arch = "wasm32"))]
         loop {
             std::thread::sleep(
                 MODULE_READY_POLL_INTERVAL.min(deadline.saturating_duration_since(Instant::now())),

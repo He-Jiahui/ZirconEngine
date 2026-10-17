@@ -16,14 +16,7 @@ fn optimization_batch_gg_runtime489_reference_segments_preserves_path_rules() {
         );
     }
 
-    let invalid = [
-        "",
-        "/assets",
-        "assets/",
-        "assets//main",
-        "assets/.",
-        ".",
-    ];
+    let invalid = ["", "/assets", "assets/", "assets//main", "assets/.", "."];
     for reference in invalid {
         let mut diagnostics = Vec::new();
         validate_runtime_plugin_package_bevy_reference_path_segments(

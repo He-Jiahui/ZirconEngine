@@ -60,13 +60,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
         if focused_input.is_some() {
             // Specialized fields paint committed values without focus feedback.
             // Keep their surface and text slot, and reuse shared edit feedback.
-            if let Some(text_index) = (command_start..commands.len())
-                .rev()
-                .find(|index| commands[*index].text.is_some()
+            if let Some(text_index) = (command_start..commands.len()).rev().find(|index| {
+                commands[*index].text.is_some()
                     && super::super::template_fields::is_field_value_text_command(
-                        node, &rect, &commands[*index].frame,
-                    ))
-            {
+                        node,
+                        &rect,
+                        &commands[*index].frame,
+                    )
+            }) {
                 let focus = focused_input.unwrap();
                 commands[text_index].text = Some(focus.value_text.to_string());
                 commands[text_index].z_index = commands[text_index].z_index.saturating_add(1);

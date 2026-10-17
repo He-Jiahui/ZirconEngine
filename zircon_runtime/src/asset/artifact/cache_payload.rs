@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{
-    AssetImportError, AssetUri, DataAsset, ImportedAsset, MaterialGraphAsset, PhysicsMaterialAsset,
-    PrefabAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset, TexturePayload,
-    TileMapAsset, TileSetAsset, UiIconAsset, UiThemeAsset,
+    AssetCodecError, AssetUri, DataAsset, ImportedAsset, MaterialGraphAsset, ModelAsset,
+    PhysicsMaterialAsset, PrefabAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset,
+    TextureAsset, TexturePayload, TileMapAsset, TileSetAsset, UiIconAsset, UiThemeAsset,
 };
 use crate::core::framework::animation::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
@@ -45,7 +45,7 @@ use ui::{ArtifactCacheUiAssetDocument, ArtifactCacheUiV2AssetDocument};
 /// Every field must serialize, even when optional, because bincode is not a
 /// self-describing map format and skipped fields shift the remaining bytes.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub(super) enum ArtifactCacheAsset {
+pub(super) enum ArtifactCacheAsset<ModelPayload = ArtifactCacheModelAsset> {
     Data(ArtifactCacheDataAsset),
     Texture(ArtifactCacheTextureAsset),
     Shader(ArtifactCacheShaderAsset),
@@ -62,7 +62,7 @@ pub(super) enum ArtifactCacheAsset {
     TileMap(TileMapAsset),
     Prefab(ArtifactCachePrefabAsset),
     Scene(ArtifactCacheSceneAsset),
-    Model(ArtifactCacheModelAsset),
+    Model(ModelPayload),
     Mesh(ArtifactCacheMeshAsset),
     AnimationSkeleton(AnimationSkeletonAsset),
     AnimationClip(AnimationClipAsset),
@@ -79,9 +79,12 @@ pub(super) enum ArtifactCacheAsset {
     UiV2Style(ArtifactCacheUiV2AssetDocument),
 }
 
-impl ArtifactCacheAsset {
+impl<ModelPayload> ArtifactCacheAsset<ModelPayload> {
     /// 在 ArtifactStore 写入前把编辑格式转换为顺序式缓存载荷，并拒绝无效纹理元数据。
-    pub(super) fn from_imported(asset: &ImportedAsset) -> Result<Self, AssetImportError> {
+    fn from_imported_with_model<'a>(
+        asset: &'a ImportedAsset,
+        model: impl FnOnce(&'a ModelAsset) -> ModelPayload,
+    ) -> Result<Self, AssetCodecError> {
         Ok(match asset {
             ImportedAsset::Data(asset) => Self::Data(ArtifactCacheDataAsset::from(asset)),
             ImportedAsset::Texture(asset) => {
@@ -109,7 +112,7 @@ impl ArtifactCacheAsset {
                     .scene
                     .validate_component_references()
                     .map_err(|error| {
-                        AssetImportError::Parse(format!(
+                        AssetCodecError::Parse(format!(
                         "reject prefab artifact with malformed scene component references: {error}"
                     ))
                     })?;
@@ -117,13 +120,13 @@ impl ArtifactCacheAsset {
             }
             ImportedAsset::Scene(asset) => {
                 asset.validate_component_references().map_err(|error| {
-                    AssetImportError::Parse(format!(
+                    AssetCodecError::Parse(format!(
                         "reject scene artifact with malformed component references: {error}"
                     ))
                 })?;
                 Self::Scene(ArtifactCacheSceneAsset::from(asset))
             }
-            ImportedAsset::Model(asset) => Self::Model(ArtifactCacheModelAsset::from(asset)),
+            ImportedAsset::Model(asset) => Self::Model(model(asset)),
             ImportedAsset::Mesh(asset) => Self::Mesh(ArtifactCacheMeshAsset::from(asset)),
             ImportedAsset::AnimationSkeleton(asset) => Self::AnimationSkeleton(asset.clone()),
             ImportedAsset::AnimationClip(asset) => Self::AnimationClip(asset.clone()),
@@ -154,9 +157,22 @@ impl ArtifactCacheAsset {
             ),
         })
     }
+}
+
+pub(super) fn from_imported_for_write(
+    asset: &ImportedAsset,
+) -> Result<impl Serialize + '_, AssetCodecError> {
+    ArtifactCacheAsset::from_imported_with_model(asset, model::ArtifactCacheModelAssetRef::new)
+}
+
+impl ArtifactCacheAsset {
+    #[cfg(test)]
+    pub(super) fn from_imported(asset: &ImportedAsset) -> Result<Self, AssetCodecError> {
+        Self::from_imported_with_model(asset, ArtifactCacheModelAsset::from)
+    }
 
     /// 在库工件读出后恢复运行时资产；转换失败必须作为缓存损坏传播，不能默默使用部分数据。
-    pub(super) fn into_imported(self) -> Result<ImportedAsset, AssetImportError> {
+    pub(super) fn into_imported(self) -> Result<ImportedAsset, AssetCodecError> {
         Ok(match self {
             Self::Data(asset) => ImportedAsset::Data(asset.into_asset()?),
             Self::Texture(asset) => ImportedAsset::Texture(asset.into_asset()?),
@@ -215,7 +231,7 @@ impl From<&DataAsset> for ArtifactCacheDataAsset {
 }
 
 impl ArtifactCacheDataAsset {
-    fn into_asset(self) -> Result<DataAsset, AssetImportError> {
+    fn into_asset(self) -> Result<DataAsset, AssetCodecError> {
         Ok(DataAsset {
             uri: self.uri,
             format: self.format,
@@ -249,7 +265,7 @@ impl From<&TextureAsset> for ArtifactCacheTextureAsset {
 }
 
 impl ArtifactCacheTextureAsset {
-    fn into_asset(self) -> Result<TextureAsset, AssetImportError> {
+    fn into_asset(self) -> Result<TextureAsset, AssetCodecError> {
         let texture = TextureAsset {
             uri: self.uri,
             width: self.width,
@@ -263,15 +279,13 @@ impl ArtifactCacheTextureAsset {
     }
 }
 
-fn validate_artifact_cache_texture_metadata(
-    texture: &TextureAsset,
-) -> Result<(), AssetImportError> {
+fn validate_artifact_cache_texture_metadata(texture: &TextureAsset) -> Result<(), AssetCodecError> {
     let uri = texture.uri.to_string();
     let diagnostics = texture.texture_descriptor().validate_metadata(&uri);
     let Some(message) = format_cached_texture_metadata_errors(&uri, &diagnostics) else {
         return Ok(());
     };
-    Err(AssetImportError::Parse(message))
+    Err(AssetCodecError::Parse(message))
 }
 
 fn format_cached_texture_metadata_errors(
@@ -385,7 +399,7 @@ impl From<&PrefabAsset> for ArtifactCachePrefabAsset {
 }
 
 impl ArtifactCachePrefabAsset {
-    fn into_asset(self) -> Result<PrefabAsset, AssetImportError> {
+    fn into_asset(self) -> Result<PrefabAsset, AssetCodecError> {
         Ok(PrefabAsset {
             uri: self.uri,
             name: self.name,

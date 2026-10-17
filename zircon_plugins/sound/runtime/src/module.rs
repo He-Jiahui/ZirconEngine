@@ -5,7 +5,8 @@ use zircon_runtime::asset::ASSET_MODULE_NAME;
 use zircon_runtime::core::framework::sound::SoundManager;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
-    CoreError, DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+    CoreError, DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
+    ServiceKind, StartupMode,
 };
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
@@ -22,6 +23,7 @@ pub struct SoundModule;
 
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(SOUND_MODULE_NAME, "Audio mixing, buses, and playback")
+        .with_module_dependency(ModuleDependencySpec::named(ASSET_MODULE_NAME))
         .with_driver(DriverDescriptor::new(
             qualified_name(SOUND_MODULE_NAME, ServiceKind::Driver, "SoundDriver"),
             StartupMode::Immediate,

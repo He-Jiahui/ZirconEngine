@@ -1,15 +1,17 @@
 use std::sync::Arc;
 
-use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::core::math::{view_matrix, Mat4, Transform, UVec2, Vec3};
-use crate::scene::world::World;
-use crate::test_support::render_feature_fixtures::virtual_geometry_render_feature_descriptor;
-use crate::virtual_geometry::types::{
-    VirtualGeometryNodeAndClusterCullChildWorkItem,
+use crate::test_support::render_feature_fixtures::{
+    pluginized_wgpu_render_framework_with_uploader_collector,
+    virtual_geometry_render_feature_descriptor, PluginizedWgpuRenderFrameworkFixture,
+};
+use crate::virtual_geometry::{
+    VirtualGeometryGpuReadback, VirtualGeometryNodeAndClusterCullChildWorkItem,
     VirtualGeometryNodeAndClusterCullClusterWorkItem,
     VirtualGeometryNodeAndClusterCullTraversalChildSource,
     VirtualGeometryNodeAndClusterCullTraversalOp, VirtualGeometryNodeAndClusterCullTraversalRecord,
+    VirtualGeometryUploaderTestCollector,
 };
+use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
     RenderFrameExtract, RenderSceneSnapshot, RenderVirtualGeometryCluster,
     RenderVirtualGeometryClusterSelectionInputSource, RenderVirtualGeometryCullInputSnapshot,
@@ -26,17 +28,88 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
     RenderWorldSnapshotHandle,
 };
+use zircon_runtime::core::math::{view_matrix, Mat4, Transform, UVec2, Vec3};
+use zircon_runtime::scene::world::World;
 
-use crate::{
-    types::{
-        ViewportRenderFrame, VirtualGeometryClusterSelection, VirtualGeometryPrepareCluster,
-        VirtualGeometryPrepareClusterState, VirtualGeometryPrepareFrame,
-        VirtualGeometryPreparePage, VirtualGeometryPrepareRequest,
-    },
+use crate::virtual_geometry::{
+    VirtualGeometryClusterSelection, VirtualGeometryPrepareCluster,
+    VirtualGeometryPrepareClusterState, VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
+    VirtualGeometryPrepareRequest,
+};
+use zircon_runtime::graphics::{
     BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
-    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
+    RenderPipelineAsset, RenderPipelineCompileOptions,
 };
 
+fn virtual_geometry_uploader_fixture(
+    asset_manager: Arc<ProjectAssetManager>,
+) -> PluginizedWgpuRenderFrameworkFixture {
+    pluginized_wgpu_render_framework_with_uploader_collector(
+        asset_manager,
+        Arc::new(VirtualGeometryUploaderTestCollector::default()),
+    )
+}
+
+struct UploaderViewportFrame {
+    extract: RenderFrameExtract,
+    viewport_size: UVec2,
+    prepare: Option<VirtualGeometryPrepareFrame>,
+}
+
+impl UploaderViewportFrame {
+    fn from_extract(extract: RenderFrameExtract, viewport_size: UVec2) -> Self {
+        Self {
+            extract,
+            viewport_size,
+            prepare: None,
+        }
+    }
+
+    fn with_virtual_geometry_prepare(
+        mut self,
+        prepare: Option<VirtualGeometryPrepareFrame>,
+    ) -> Self {
+        self.prepare = prepare;
+        self
+    }
+}
+
+trait VirtualGeometryUploaderFixtureTestExt {
+    fn render_frame_with_pipeline(
+        &mut self,
+        frame: UploaderViewportFrame,
+        pipeline: &CompiledRenderPipeline,
+        _capture: Option<()>,
+    ) -> Result<(), String>;
+
+    fn take_last_virtual_geometry_gpu_readback(&self) -> Option<VirtualGeometryGpuReadback>;
+}
+
+impl VirtualGeometryUploaderFixtureTestExt for PluginizedWgpuRenderFrameworkFixture {
+    fn render_frame_with_pipeline(
+        &mut self,
+        frame: UploaderViewportFrame,
+        pipeline: &CompiledRenderPipeline,
+        _capture: Option<()>,
+    ) -> Result<(), String> {
+        self.render_compiled_virtual_geometry_test_frame(
+            frame.viewport_size,
+            frame.extract,
+            frame.prepare,
+            pipeline,
+        )
+        .map(|_| ())
+        .map_err(|error| error.to_string())
+    }
+
+    fn take_last_virtual_geometry_gpu_readback(&self) -> Option<VirtualGeometryGpuReadback> {
+        Some(
+            self.uploader_collector()
+                .take_readback()
+                .expect("actual GPU readback should complete"),
+        )
+    }
+}
 fn compile_virtual_geometry_pipeline(extract: &RenderFrameExtract) -> CompiledRenderPipeline {
     RenderPipelineAsset::default_forward_plus()
         .with_plugin_render_features([virtual_geometry_render_feature_descriptor()])
@@ -57,18 +130,18 @@ fn compile_virtual_geometry_pipeline(extract: &RenderFrameExtract) -> CompiledRe
         .unwrap()
 }
 
-fn virtual_geometry_scene_renderer(asset_manager: Arc<ProjectAssetManager>) -> SceneRenderer {
-    SceneRenderer::new_with_plugin_render_features(
-        asset_manager,
-        [virtual_geometry_render_feature_descriptor()],
+fn virtual_geometry_scene_renderer(
+    asset_manager: Arc<ProjectAssetManager>,
+) -> crate::test_support::render_feature_fixtures::PluginizedWgpuRenderFrameworkFixture {
+    crate::test_support::render_feature_fixtures::pluginized_wgpu_render_framework_with_uploader_collector(
+        asset_manager, Arc::new(crate::virtual_geometry::VirtualGeometryUploaderTestCollector::default()),
     )
-    .unwrap()
 }
 
 #[test]
 fn virtual_geometry_gpu_uploader_readback_reports_completed_page_ids_from_prepare_snapshot() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
+    let mut renderer = virtual_geometry_uploader_fixture(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -80,7 +153,7 @@ fn virtual_geometry_gpu_uploader_readback_reports_completed_page_ids_from_prepar
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            UploaderViewportFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),
@@ -128,7 +201,7 @@ fn virtual_geometry_gpu_uploader_readback_reports_completed_page_ids_from_prepar
 #[test]
 fn virtual_geometry_gpu_uploader_readback_respects_streaming_bytes_even_with_evictable_pages() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
+    let mut renderer = virtual_geometry_uploader_fixture(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size, 1, vec![page(200, true)]);
 
@@ -136,7 +209,7 @@ fn virtual_geometry_gpu_uploader_readback_respects_streaming_bytes_even_with_evi
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            UploaderViewportFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),
@@ -184,7 +257,7 @@ fn virtual_geometry_gpu_uploader_readback_respects_streaming_bytes_even_with_evi
 #[test]
 fn virtual_geometry_gpu_uploader_readback_skips_oversized_requests_and_completes_ones_that_fit() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
+    let mut renderer = virtual_geometry_uploader_fixture(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size, 1, vec![page(400, false), page(500, false)]);
 
@@ -192,7 +265,7 @@ fn virtual_geometry_gpu_uploader_readback_skips_oversized_requests_and_completes
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            UploaderViewportFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),
@@ -239,7 +312,7 @@ fn virtual_geometry_gpu_uploader_readback_skips_oversized_requests_and_completes
 #[test]
 fn virtual_geometry_gpu_uploader_readback_assigns_free_slots_before_recycling_evictable_slots() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
+    let mut renderer = virtual_geometry_uploader_fixture(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size, 3, vec![page(200, true), page(500, true)]);
 
@@ -247,7 +320,7 @@ fn virtual_geometry_gpu_uploader_readback_assigns_free_slots_before_recycling_ev
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            UploaderViewportFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),
@@ -308,7 +381,7 @@ fn virtual_geometry_gpu_uploader_readback_assigns_free_slots_before_recycling_ev
 #[test]
 fn virtual_geometry_gpu_uploader_readback_prioritizes_explicit_frontier_rank_over_input_order() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
+    let mut renderer = virtual_geometry_uploader_fixture(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size, 1, vec![page(300, false), page(600, false)]);
 
@@ -316,7 +389,7 @@ fn virtual_geometry_gpu_uploader_readback_prioritizes_explicit_frontier_rank_ove
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            UploaderViewportFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),
@@ -367,7 +440,7 @@ fn virtual_geometry_gpu_uploader_readback_prioritizes_explicit_frontier_rank_ove
 fn virtual_geometry_gpu_uploader_readback_uses_explicit_request_assigned_slot_over_evictable_input_order(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
+    let mut renderer = virtual_geometry_uploader_fixture(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -384,7 +457,7 @@ fn virtual_geometry_gpu_uploader_readback_uses_explicit_request_assigned_slot_ov
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            UploaderViewportFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),
@@ -457,7 +530,7 @@ fn virtual_geometry_gpu_uploader_readback_uses_explicit_request_assigned_slot_ov
 #[test]
 fn virtual_geometry_gpu_uploader_readback_rejects_stale_explicit_recycle_slot_contract() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
+    let mut renderer = virtual_geometry_uploader_fixture(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -475,7 +548,7 @@ fn virtual_geometry_gpu_uploader_readback_rejects_stale_explicit_recycle_slot_co
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            UploaderViewportFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),
@@ -563,7 +636,7 @@ fn virtual_geometry_gpu_uploader_readback_rejects_stale_explicit_recycle_slot_co
 fn virtual_geometry_gpu_uploader_readback_preserves_frontier_recycle_preference_after_stale_requests_are_skipped(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
+    let mut renderer = virtual_geometry_uploader_fixture(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -582,7 +655,7 @@ fn virtual_geometry_gpu_uploader_readback_preserves_frontier_recycle_preference_
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            UploaderViewportFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),
@@ -727,38 +800,39 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
     let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
-                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
-                    visible_entities: vec![mesh],
-                    visible_clusters: vec![
-                        VirtualGeometryPrepareCluster {
-                            entity: mesh,
-                            cluster_id: 20,
-                            page_id: 200,
-                            lod_level: 0,
-                            resident_slot: None,
-                            state: VirtualGeometryPrepareClusterState::Missing,
-                        },
-                        VirtualGeometryPrepareCluster {
-                            entity: mesh,
-                            cluster_id: 30,
-                            page_id: 300,
-                            lod_level: 0,
-                            resident_slot: Some(0),
-                            state: VirtualGeometryPrepareClusterState::Resident,
-                        },
-                    ],
-                    cluster_draw_segments: Vec::new(),
-                    resident_pages: vec![VirtualGeometryPreparePage {
+        .render_compiled_virtual_geometry_test_frame_with_selections(
+            viewport_size,
+            extract,
+            Some(VirtualGeometryPrepareFrame {
+                visible_entities: vec![mesh],
+                visible_clusters: vec![
+                    VirtualGeometryPrepareCluster {
+                        entity: mesh,
+                        cluster_id: 20,
+                        page_id: 200,
+                        lod_level: 0,
+                        resident_slot: None,
+                        state: VirtualGeometryPrepareClusterState::Missing,
+                    },
+                    VirtualGeometryPrepareCluster {
+                        entity: mesh,
+                        cluster_id: 30,
                         page_id: 300,
-                        slot: 0,
-                        size_bytes: 4096,
-                    }],
-                    pending_page_requests: Vec::new(),
-                    available_slots: Vec::new(),
-                    evictable_pages: Vec::new(),
-                })),
+                        lod_level: 0,
+                        resident_slot: Some(0),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    },
+                ],
+                cluster_draw_segments: Vec::new(),
+                resident_pages: vec![VirtualGeometryPreparePage {
+                    page_id: 300,
+                    slot: 0,
+                    size_bytes: 4096,
+                }],
+                pending_page_requests: Vec::new(),
+                available_slots: Vec::new(),
+                evictable_pages: Vec::new(),
+            }),
             &compiled,
             None,
         )
@@ -889,8 +963,7 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         "expected the uploader readback helper to preserve the render-path selected-cluster count once prepare-owned ClusterSelection truth reaches the render path directly"
     );
     assert_eq!(
-        helper_selected_clusters,
-        expected_selected_clusters,
+        helper_selected_clusters, expected_selected_clusters,
         "expected the non-consuming GPU readback helper to mirror the same execution-backed selected-cluster subset as the stored uploader readback"
     );
     assert_eq!(
@@ -936,7 +1009,8 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         "expected the renderer-owned hardware-rasterization source snapshot to keep the same execution-owned provenance after the uploader DTO is consumed"
     );
     assert_eq!(
-        renderer.last_virtual_geometry_hardware_rasterization_record_count(), 1,
+        renderer.last_virtual_geometry_hardware_rasterization_record_count(),
+        1,
         "expected the renderer-owned hardware-rasterization record count to preserve the same execution-owned startup record count after the uploader DTO is consumed"
     );
     assert_eq!(
@@ -945,7 +1019,8 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         "expected the stored uploader DTO to preserve the real VisBuffer64 render-path provenance once prepare-owned ClusterSelection truth reaches the render path directly"
     );
     assert_eq!(
-        readback.visbuffer64_entry_count(), 1,
+        readback.visbuffer64_entry_count(),
+        1,
         "expected the stored uploader DTO to preserve the real render-path VisBuffer64 entry count once prepare-owned ClusterSelection truth reaches the render path directly"
     );
     assert_eq!(
@@ -992,7 +1067,8 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         "expected the stored uploader DTO to preserve the real selected-cluster render-path provenance once prepare-owned ClusterSelection truth reaches the render path directly"
     );
     assert_eq!(
-        readback.selected_cluster_count(), 1,
+        readback.selected_cluster_count(),
+        1,
         "expected the stored uploader DTO to preserve the real render-path selected-cluster count once prepare-owned ClusterSelection truth reaches the render path directly"
     );
     let visbuffer64_words = renderer
@@ -1124,31 +1200,30 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
     .to_cols_array_2d();
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
-                .with_virtual_geometry_cluster_selections(Some(vec![
-                    VirtualGeometryClusterSelection {
-                        submission_index: 0,
-                        instance_index: Some(0),
-                        entity: mesh,
-                        cluster_id: 30,
-                        cluster_ordinal: 1,
-                        page_id: 300,
-                        lod_level: 0,
-                        submission_page_id: 300,
-                        submission_lod_level: 0,
-                        entity_cluster_start_ordinal: 1,
-                        entity_cluster_span_count: 1,
-                        entity_cluster_total_count: 2,
-                        lineage_depth: 0,
-                        frontier_rank: 0,
-                        resident_slot: None,
-                        submission_slot: Some(0),
-                        state: VirtualGeometryPrepareClusterState::PendingUpload,
-                    },
-                ])),
-            &compiled,
+        .render_compiled_virtual_geometry_test_frame_with_selections(
+            viewport_size,
+            extract,
             None,
+            &compiled,
+            Some(vec![VirtualGeometryClusterSelection {
+                submission_index: 0,
+                instance_index: Some(0),
+                entity: mesh,
+                cluster_id: 30,
+                cluster_ordinal: 1,
+                page_id: 300,
+                lod_level: 0,
+                submission_page_id: 300,
+                submission_lod_level: 0,
+                entity_cluster_start_ordinal: 1,
+                entity_cluster_span_count: 1,
+                entity_cluster_total_count: 2,
+                lineage_depth: 0,
+                frontier_rank: 0,
+                resident_slot: None,
+                submission_slot: Some(0),
+                state: VirtualGeometryPrepareClusterState::PendingUpload,
+            }]),
         )
         .unwrap();
 
@@ -1207,8 +1282,7 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
         .expect("expected node-and-cluster-cull startup buffer readback to succeed")
         .expect("expected a real renderer-owned node-and-cluster-cull startup buffer");
     assert_eq!(
-        node_and_cluster_cull_input,
-        cull_input,
+        node_and_cluster_cull_input, cull_input,
         "expected the first NodeAndClusterCull startup seam to preserve the exact packed cull-input DTO so a later NaniteGlobalStateBuffer / GPU hierarchy traversal can swap producers without changing host-side inspection contracts"
     );
     let node_and_cluster_cull_global_state = renderer
@@ -1505,9 +1579,14 @@ fn virtual_geometry_node_and_cluster_cull_reuses_previous_renderer_owned_global_
     let second_extract =
         build_node_and_cluster_cull_history_extract(viewport_size, second_camera_transform);
     let compiled = compile_virtual_geometry_pipeline(&first_extract);
+    let viewport = renderer
+        .create_virtual_geometry_test_viewport(viewport_size)
+        .unwrap();
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(first_extract, viewport_size),
+        .submit_compiled_virtual_geometry_at_viewport(
+            viewport,
+            first_extract,
+            None,
             &compiled,
             None,
         )
@@ -1518,8 +1597,10 @@ fn virtual_geometry_node_and_cluster_cull_reuses_previous_renderer_owned_global_
         .expect("expected first global-state buffer");
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(second_extract, viewport_size),
+        .submit_compiled_virtual_geometry_at_viewport(
+            viewport,
+            second_extract,
+            None,
             &compiled,
             None,
         )
@@ -1530,13 +1611,11 @@ fn virtual_geometry_node_and_cluster_cull_reuses_previous_renderer_owned_global_
         .expect("expected second global-state buffer");
 
     assert_eq!(
-        second_global_state.previous_camera_translation,
-        first_global_state.camera_translation,
+        second_global_state.previous_camera_translation, first_global_state.camera_translation,
         "expected the second no-debug-snapshot render path to reuse the renderer-owned NodeAndClusterCull global-state history instead of falling back to the second frame camera"
     );
     assert_eq!(
-        second_global_state.previous_view_proj,
-        first_global_state.view_proj,
+        second_global_state.previous_view_proj, first_global_state.view_proj,
         "expected renderer-owned NodeAndClusterCull history to preserve the previous frame view-projection when no frame debug snapshot was stored"
     );
     assert_ne!(
@@ -1638,8 +1717,10 @@ fn virtual_geometry_node_and_cluster_cull_page_requests_are_readable_from_last_s
     let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size),
+        .render_compiled_virtual_geometry_test_frame_with_selections(
+            viewport_size,
+            extract,
+            None,
             &compiled,
             None,
         )
@@ -1678,31 +1759,30 @@ fn virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback()
     let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
-                .with_virtual_geometry_cluster_selections(Some(vec![
-                    VirtualGeometryClusterSelection {
-                        submission_index: 0,
-                        instance_index: Some(0),
-                        entity: mesh,
-                        cluster_id: 30,
-                        cluster_ordinal: 1,
-                        page_id: 300,
-                        lod_level: 0,
-                        submission_page_id: 300,
-                        submission_lod_level: 0,
-                        entity_cluster_start_ordinal: 1,
-                        entity_cluster_span_count: 1,
-                        entity_cluster_total_count: 2,
-                        lineage_depth: 0,
-                        frontier_rank: 0,
-                        resident_slot: Some(0),
-                        submission_slot: Some(0),
-                        state: VirtualGeometryPrepareClusterState::Resident,
-                    },
-                ])),
-            &compiled,
+        .render_compiled_virtual_geometry_test_frame_with_selections(
+            viewport_size,
+            extract,
             None,
+            &compiled,
+            Some(vec![VirtualGeometryClusterSelection {
+                submission_index: 0,
+                instance_index: Some(0),
+                entity: mesh,
+                cluster_id: 30,
+                cluster_ordinal: 1,
+                page_id: 300,
+                lod_level: 0,
+                submission_page_id: 300,
+                submission_lod_level: 0,
+                entity_cluster_start_ordinal: 1,
+                entity_cluster_span_count: 1,
+                entity_cluster_total_count: 2,
+                lineage_depth: 0,
+                frontier_rank: 0,
+                resident_slot: Some(0),
+                submission_slot: Some(0),
+                state: VirtualGeometryPrepareClusterState::Resident,
+            }]),
         )
         .unwrap();
 
@@ -1851,8 +1931,10 @@ fn virtual_geometry_visbuffer64_clear_only_source_exists_without_cluster_selecti
     let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size),
+        .render_compiled_virtual_geometry_test_frame_with_selections(
+            viewport_size,
+            extract,
+            None,
             &compiled,
             None,
         )

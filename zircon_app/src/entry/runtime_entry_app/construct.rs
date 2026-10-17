@@ -39,7 +39,7 @@ impl RuntimeEntryApp {
             exit_after_presented_frames: config.exit_after_presented_frames,
             presented_frame_count: 0,
             first_frame_capture_path: config.first_frame_capture_path,
-            require_persisted_scene_diagnostics: config.require_persisted_scene_diagnostics,
+            product_proof_policy: config.product_proof_policy,
             first_frame_capture_written: false,
             first_frame_product_diagnostics_emitted: false,
             mvp_input_probe_submitted: false,
@@ -54,6 +54,8 @@ impl RuntimeEntryApp {
             gamepads: super::gamepad::create_gilrs(),
             #[cfg(feature = "gamepad-gilrs")]
             gamepad_connections_announced: false,
+            #[cfg(feature = "gamepad-gilrs")]
+            gamepad_producer: super::gamepad::producer::GamepadProducer::default(),
             #[cfg(feature = "gamepad-gilrs")]
             gamepad_rumble_effects: None,
         }

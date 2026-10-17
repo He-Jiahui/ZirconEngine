@@ -5,27 +5,15 @@ fn runtime_07_render_product_diagnostics_owner_split_keeps_families_folder_backe
         include_str!("../../../core/runtime/diagnostics/render_stats_store/product.rs");
     let camera =
         include_str!("../../../core/runtime/diagnostics/render_stats_store/product/camera.rs");
-    let visibility = include_str!(
-        "../../../core/runtime/diagnostics/product/visibility.rs"
-    );
-    let hzb =
-        include_str!("../../../core/runtime/diagnostics/render_stats_store/product/hzb.rs");
-    let light_grid = include_str!(
-        "../../../core/runtime/diagnostics/product/light_grid.rs"
-    );
-    let effect_stack = include_str!(
-        "../../../core/runtime/diagnostics/product/effect_stack.rs"
-    );
-    let material =
-        include_str!("../../../core/runtime/diagnostics/product/material.rs");
+    let visibility = include_str!("../../../core/runtime/diagnostics/product/visibility.rs");
+    let hzb = include_str!("../../../core/runtime/diagnostics/render_stats_store/product/hzb.rs");
+    let light_grid = include_str!("../../../core/runtime/diagnostics/product/light_grid.rs");
+    let effect_stack = include_str!("../../../core/runtime/diagnostics/product/effect_stack.rs");
+    let material = include_str!("../../../core/runtime/diagnostics/product/material.rs");
     let light =
         include_str!("../../../core/runtime/diagnostics/render_stats_store/product/light.rs");
-    let mesh_queue = include_str!(
-        "../../../core/runtime/diagnostics/product/mesh_queue.rs"
-    );
-    let gpu_scene = include_str!(
-        "../../../core/runtime/diagnostics/product/gpu_scene.rs"
-    );
+    let mesh_queue = include_str!("../../../core/runtime/diagnostics/product/mesh_queue.rs");
+    let gpu_scene = include_str!("../../../core/runtime/diagnostics/product/gpu_scene.rs");
     let sprite =
         include_str!("../../../core/runtime/diagnostics/render_stats_store/product/sprite.rs");
     let ui = include_str!("../../../core/runtime/diagnostics/render_stats_store/product/ui.rs");
@@ -34,11 +22,9 @@ fn runtime_07_render_product_diagnostics_owner_split_keeps_families_folder_backe
     let runtime_07_plan = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
     );
-    let runtime_index =
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let hotspot_doc = include_str!(
-        "../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
-    );
+    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let hotspot_doc =
+        include_str!("../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md");
     let large_file_doc =
         include_str!("../../../../../docs/architecture/large-file-ownership-m1.md");
 

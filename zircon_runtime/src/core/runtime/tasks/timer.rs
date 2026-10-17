@@ -5,7 +5,7 @@ use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock, Weak};
 use std::thread::{self, JoinHandle};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::core::{CoreError, CoreResult};
 

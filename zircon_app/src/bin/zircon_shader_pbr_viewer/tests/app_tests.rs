@@ -452,7 +452,7 @@ fn ready_frame_evidence_exports_one_unified_environment_runtime_snapshot() {
     let scene_source = include_str!("../scene.rs");
     let frame_io_source = include_str!("../frame_io.rs");
 
-    assert!(frame_io_source.contains("zircon_shader_pbr_viewer_ready_frame_evidence_v18"));
+    assert!(frame_io_source.contains("zircon_shader_pbr_viewer_ready_frame_evidence_v19"));
     assert!(
         scene_source.contains("fn environment_runtime_snapshot(")
             && scene_source.contains(") -> Result<EnvironmentRuntimeSnapshot, Box<dyn Error>>")
@@ -551,7 +551,7 @@ fn screenshot_export_writes_versioned_ibl_provenance() {
         "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized:",
         "scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait:",
         "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization:",
-        "scene_startup_renderer_environment_brdf_lut_texture_upload_submission:",
+        "scene_startup_renderer_system_texture_upload_batch_submission:",
         "scene_startup_renderer_deferred_standard_pipeline: startup_timing",
         "scene_startup_total: startup_timing.total()",
         "ibl_staging_equirect_projection_parallel_work_items: ibl_staging_output",
@@ -680,9 +680,10 @@ fn one_shot_evidence_waits_for_the_async_base_pipeline_without_blocking_the_even
         "needs_required_material_base_pipeline && !required_material_base_pipeline_ready;",
         "if defer_one_shot_until_base_pipeline_ready {",
         "if self.one_shot_base_pipeline_wait_has_expired(Instant::now()) {",
+        "self.exit_with_failure(",
+        "TerminalPhase::PipelineReadiness",
         "PBR Base pipeline startup timed out",
         "self.reset_base_pipeline_recheck();",
-        "event_loop.exit();",
         "return;",
         ".expect(\"the one-shot timeout check must initialize its deadline\");",
         "self.schedule_base_pipeline_recheck(event_loop, Some(deadline));",

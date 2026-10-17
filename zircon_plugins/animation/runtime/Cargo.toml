@@ -5,14 +5,18 @@ edition.workspace = true
 license.workspace = true
 description = "Animation runtime plugin package for Zircon."
 
+[features]
+default = ["native-host"]
+native-host = ["dep:zircon_plugin_sdk", "zircon_plugin_sdk/runtime", "zircon_runtime/native-host"]
+
 [dependencies]
 crossbeam-channel = "0.5.15"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 spade = "2.15.1"
 toml = "1.1.2"
-zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
-zircon_runtime = { workspace = true, features = ["animation", "physics-contracts"] }
+zircon_plugin_sdk = { workspace = true, optional = true }
+zircon_runtime = { path = "../../../zircon_runtime", default-features = false, features = ["animation", "physics-contracts"] }
 
 [dev-dependencies]
 zircon_plugin_physics_runtime = { path = "../../physics/runtime" }

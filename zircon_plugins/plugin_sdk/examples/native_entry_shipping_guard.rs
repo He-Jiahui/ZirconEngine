@@ -67,10 +67,12 @@ fn host() -> NativePluginHostFunctionTableV3 {
 }
 
 fn main() {
-    assert!(
-        cfg!(panic = "unwind"),
-        "shipping panic guard fixture requires panic=unwind"
-    );
+    const {
+        assert!(
+            cfg!(panic = "unwind"),
+            "shipping panic guard fixture requires panic=unwind"
+        );
+    }
 
     SECONDARY_DROPS.store(0, Ordering::SeqCst);
     let callback_status =

@@ -274,6 +274,14 @@ public static class FixtureProduct
 
     public static int Main(string[] args)
     {
+        var isEditor = String.Equals(
+            Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName),
+            "zircon_editor.exe", StringComparison.OrdinalIgnoreCase);
+        if (isEditor && Array.IndexOf(args, "--runtime-product-proof") >= 0)
+        {
+            Console.Error.WriteLine("editor_runtime_product_proof_leaked");
+            return 33;
+        }
         if (Array.IndexOf(args, "--fixture-child") >= 0)
         {
             System.Threading.Thread.Sleep(30000);
@@ -486,9 +494,24 @@ public static class FixtureProduct
                 var inputEvidence = Environment.GetEnvironmentVariable("ZIRCON_RUNTIME_MVP_INPUT_PROBE") == "1"
                     ? " input_viewport_resize_count=2 input_pointer_move_count=1 input_mouse_button_press_count=1 input_mouse_button_release_count=1 input_keyboard_press_count=1 input_keyboard_release_count=1"
                     : "";
+                var proofIndex = Array.IndexOf(args, "--runtime-product-proof");
+                var hasLitMeshProof = proofIndex >= 0 && proofIndex + 1 < args.Length &&
+                    String.Equals(args[proofIndex + 1], "f2-lit-mesh", StringComparison.Ordinal);
+                var proofEvidence = !hasLitMeshProof && projectIndex >= 0 && projectIndex + 1 < args.Length
+                    ? " proof_policy=general-project"
+                    : "";
+                if (hasLitMeshProof && !HasFixtureControl(args, "skip-runtime-proof-echo"))
+                {
+                    proofEvidence = HasFixtureControl(args, "wrong-runtime-proof-echo")
+                        ? " proof_policy=none"
+                        : " proof_policy=f2-lit-mesh";
+                }
+                var zeroMeshAndLight = HasFixtureControl(args, "zero-runtime-mesh-and-light");
+                var meshDrawCount = zeroMeshAndLight || HasFixtureControl(args, "zero-runtime-mesh") ? "0" : "1";
+                var directionalLightCount = zeroMeshAndLight ? "0" : "1";
                 var materialFallbackCount = HasFixtureControl(args, "material-fallback") ? "1" : "0";
                 File.AppendAllText(logPath,
-                    "runtime_product_frame_diagnostics frame_index=1 viewport=16x16 project_identity=" + projectIdentity + " scene_uri=res://scenes/main.scene.toml selected_model_resource_id=fixture-cube-model-resource selected_material_resource_id=fixture-default-material-resource render_backend=fixture-wgpu render_adapter=Fixture WGPU Adapter render_adapter_type=discrete_gpu device_max_bind_groups=5 device_max_texture_dimension_2d=16384 device_max_texture_array_layers=256 device_max_sampled_textures_per_shader_stage=16 device_max_storage_buffers_per_shader_stage=8 device_max_storage_buffer_binding_size=134217728 graph_executed_pass_count=1 mesh_draw_count=1 directional_light_count=1 material_fallback_count=" + materialFallbackCount + " material_validation_error_count=0" + inputEvidence +
+                    "runtime_product_frame_diagnostics frame_index=1 viewport=16x16 project_identity=" + projectIdentity + " scene_uri=res://scenes/main.scene.toml selected_model_resource_id=fixture-cube-model-resource selected_material_resource_id=fixture-default-material-resource render_backend=fixture-wgpu render_adapter=Fixture WGPU Adapter render_adapter_type=discrete_gpu device_max_bind_groups=5 device_max_texture_dimension_2d=16384 device_max_texture_array_layers=256 device_max_sampled_textures_per_shader_stage=16 device_max_storage_buffers_per_shader_stage=8 device_max_storage_buffer_binding_size=134217728 graph_executed_pass_count=1 mesh_draw_count=" + meshDrawCount + " directional_light_count=" + directionalLightCount + " material_fallback_count=" + materialFallbackCount + " material_validation_error_count=0" + inputEvidence + proofEvidence +
                     Environment.NewLine);
             }
             var capturePath = Environment.GetEnvironmentVariable("ZIRCON_RUNTIME_CAPTURE_FRAME_PNG");
@@ -1087,6 +1110,54 @@ try {
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot 'fixture-hash-drift'))) 'Hash-drift rejection created a staging directory.'
     $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
 
+    foreach ($invalidProofCase in @(
+        @{
+            run_id = 'fixture-f2-without-project'
+            project_root = $null
+            no_launch = $false
+            pattern = 'RuntimeProductProof.*requires ProjectRoot or CreateProject'
+        },
+        @{
+            run_id = 'fixture-f2-no-launch'
+            project_root = $fixture.ProjectRoot
+            no_launch = $true
+            pattern = 'RuntimeProductProof.*requires a runtime product launch'
+        }
+    )) {
+        $proofAdmissionArguments = @{
+            ProductInputManifest = $fixture.ProductInputManifest
+            TemplateRoot = $fixture.TemplateRoot
+            EngineAssetRoot = $fixture.EngineAssetRoot
+            RuntimeProductProof = 'f2-lit-mesh'
+            StagingRoot = $fixture.StagingRoot
+            RunId = $invalidProofCase.run_id
+            RepeatCount = 1
+            TimeoutSeconds = 10
+            AllowUnsafeStagingRoot = $true
+        }
+        if ($null -ne $invalidProofCase.project_root) {
+            $proofAdmissionArguments.ProjectRoot = $invalidProofCase.project_root
+        }
+        if ($invalidProofCase.no_launch) {
+            $proofAdmissionArguments.NoLaunch = $true
+        }
+        $invalidProofRejected = $false
+        $invalidProofError = $null
+        try {
+            & $stager @proofAdmissionArguments | Out-Null
+        }
+        catch {
+            $invalidProofError = $_.Exception.Message
+            $invalidProofRejected = $invalidProofError -match $invalidProofCase.pattern
+        }
+        Assert-True $invalidProofRejected "Invalid runtime proof request '$($invalidProofCase.run_id)' was not rejected at admission. Actual result: $invalidProofError"
+        Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot $invalidProofCase.run_id))) 'Invalid runtime proof admission published a staging directory.'
+        $invalidProofReceipt = Get-MvpStagingTerminalReceiptFixture -StagingRoot $fixture.StagingRoot -RunId $invalidProofCase.run_id
+        Assert-True ($invalidProofReceipt.outcome -eq 'failed') 'Invalid runtime proof admission did not publish a failed terminal outcome.'
+        Assert-True ($invalidProofReceipt.phase -eq 'admission') 'Invalid runtime proof request escaped the admission phase.'
+        Assert-True (-not $invalidProofReceipt.staging_directory_published) 'Invalid runtime proof admission claimed a published stage.'
+    }
+
     $cancelledRunId = 'fixture-prelaunch-cancelled'
     $cancelRequest = Write-MvpStagingCancellationRequest `
         -StagingRoot $fixture.StagingRoot `
@@ -1210,6 +1281,7 @@ try {
         -ProductInputManifest $fixture.ProductInputManifest `
         -TemplateRoot $fixture.TemplateRoot `
         -EngineAssetRoot $fixture.EngineAssetRoot `
+        -RuntimeProductProof 'f2-lit-mesh' `
         -ProjectRoot $fixture.ProjectRoot `
         -AuthoringAutomationRequest $authoringAutomationRequest `
         -ReopenAutomationRequest $defaultReopenAutomationPath `
@@ -1237,6 +1309,9 @@ try {
     }
     foreach ($productProcess in @($authoringLaunched.product_runs)) {
         Assert-ProcessTiming -Evidence $productProcess -Label "$($productProcess.product) product process"
+    }
+    foreach ($authoringRuntime in @($authoringLaunched.product_runs | Where-Object { $_.product -eq 'runtime' })) {
+        Assert-True ($authoringRuntime.runtime_product_diagnostics.proof_policy -eq 'f2-lit-mesh') 'F5 authoring runtime attempts did not preserve the explicitly requested F2 proof.'
     }
     Assert-True (@($authoringLaunched.reopen_automation).Count -eq 2) 'MVP staging launch fixture did not run independent persisted-state reopen reports twice.'
     Assert-True (@($authoringLaunched.product_runs).Count -eq 5) 'MVP staging launch fixture did not preserve two pre-edit products, two editor reopens, and one after-edit runtime.'
@@ -1410,10 +1485,127 @@ try {
         Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
     }
 
+    $noProjectLaunched = (& $stager `
+            -ProductInputManifest $fixture.ProductInputManifest `
+            -TemplateRoot $fixture.TemplateRoot `
+            -EngineAssetRoot $fixture.EngineAssetRoot `
+            -StagingRoot $fixture.StagingRoot `
+            -RunId 'fixture-f0-no-project' `
+            -RepeatCount 1 `
+            -TimeoutSeconds 10 `
+            -AllowUnsafeStagingRoot)
+    Assert-True $noProjectLaunched.launched 'F0 without a project did not launch the staged products.'
+    Assert-True ($null -eq $noProjectLaunched.staged_project_root) 'F0 without a project invented a staged project root.'
+    Assert-True (@($noProjectLaunched.product_runs).Count -eq 2) 'F0 without a project did not retain both staged product runs.'
+    foreach ($productRun in @($noProjectLaunched.product_runs)) {
+        Assert-True ($productRun.first_frame_presented -and $productRun.teardown_complete) 'F0 without a project lost first-frame or teardown evidence.'
+        Assert-True ($null -eq $productRun.runtime_product_diagnostics) 'F0 without a project required F2 runtime diagnostics.'
+    }
+    $noProjectRuntimeRun = @($noProjectLaunched.product_runs | Where-Object { $_.product -eq 'runtime' })[0]
+    Assert-True ($null -eq $noProjectRuntimeRun.frame_capture) 'F0 without a project requested project PNG evidence.'
+    $noProjectDiagnosticText = (@($noProjectRuntimeRun.diagnostic_logs | ForEach-Object {
+        Get-Content -Raw -LiteralPath (Join-Path $noProjectLaunched.staging_root $_.path)
+    }) -join "`n")
+    Assert-True ($noProjectDiagnosticText -notmatch 'proof_policy=f2-lit-mesh(?:\s|$)') 'F0 without a project forwarded the explicit F2 runtime proof selector.'
+
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'zero-runtime-mesh-and-light'
+    try {
+        $ordinaryProjectLaunched = (& $stager `
+                -ProductInputManifest $fixture.ProductInputManifest `
+                -TemplateRoot $fixture.TemplateRoot `
+                -EngineAssetRoot $fixture.EngineAssetRoot `
+                -ProjectRoot $fixture.ProjectRoot `
+                -StagingRoot $fixture.StagingRoot `
+                -RunId 'fixture-f0-project-zero-mesh-light' `
+                -RepeatCount 1 `
+                -TimeoutSeconds 10 `
+                -AllowUnsafeStagingRoot)
+        Assert-True $ordinaryProjectLaunched.launched 'An ordinary project with zero mesh/light counts did not launch under the default proof policy.'
+        Assert-True (@($ordinaryProjectLaunched.product_runs).Count -eq 2) 'An ordinary project lost a staged product run.'
+        $ordinaryProjectRuntime = @($ordinaryProjectLaunched.product_runs | Where-Object { $_.product -eq 'runtime' })[0]
+        Assert-True ($ordinaryProjectRuntime.first_frame_presented -and $ordinaryProjectRuntime.teardown_complete) 'An ordinary project lost first-frame or teardown evidence.'
+        Assert-True ($ordinaryProjectRuntime.frame_capture.path -eq 'captures/runtime-1.png') 'An ordinary project lost its requested PNG evidence.'
+        Assert-True ($ordinaryProjectRuntime.frame_capture.sha256 -match '^[0-9A-F]{64}$') 'An ordinary project PNG lost its evidence hash.'
+        Assert-True ($null -eq $ordinaryProjectRuntime.runtime_product_diagnostics) 'An ordinary project was promoted to strict F2 proof without an explicit selector.'
+        $ordinaryProjectDiagnosticText = (@($ordinaryProjectRuntime.diagnostic_logs | ForEach-Object {
+            Get-Content -Raw -LiteralPath (Join-Path $ordinaryProjectLaunched.staging_root $_.path)
+        }) -join "`n")
+        Assert-True ($ordinaryProjectDiagnosticText -match 'mesh_draw_count=0(?:\s|$)') 'The ordinary-project fixture did not emit its requested zero mesh count.'
+        Assert-True ($ordinaryProjectDiagnosticText -match 'directional_light_count=0(?:\s|$)') 'The ordinary-project fixture did not emit its requested zero light count.'
+        Assert-True ($ordinaryProjectDiagnosticText -match 'proof_policy=general-project(?:\s|$)') 'The ordinary-project fixture did not emit its General project policy.'
+        Assert-True ($ordinaryProjectDiagnosticText -notmatch 'proof_policy=f2-lit-mesh(?:\s|$)') 'The default ordinary-project launch forwarded the explicit F2 runtime proof selector.'
+    }
+    finally {
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
+    }
+
+    foreach ($proofFailure in @(
+        @{
+            run_id = 'fixture-f2-missing-proof-echo'
+            control = 'skip-runtime-proof-echo'
+            pattern = 'proof_policy'
+            expected_diagnostics = @('mesh_draw_count=1')
+            absent_diagnostic = 'proof_policy='
+        },
+        @{
+            run_id = 'fixture-f2-wrong-proof-echo'
+            control = 'wrong-runtime-proof-echo'
+            pattern = 'proof_policy'
+            expected_diagnostics = @('proof_policy=none')
+            absent_diagnostic = 'proof_policy=f2-lit-mesh'
+        },
+        @{
+            run_id = 'fixture-f2-zero-mesh'
+            control = 'zero-runtime-mesh'
+            pattern = 'mesh_draw_count'
+            expected_diagnostics = @('proof_policy=f2-lit-mesh', 'mesh_draw_count=0', 'directional_light_count=1')
+            absent_diagnostic = $null
+        }
+    )) {
+        Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control $proofFailure.control
+        try {
+            $invalidProofEvidenceRejected = $false
+            $invalidProofEvidenceError = $null
+            try {
+                & $stager `
+                    -ProductInputManifest $fixture.ProductInputManifest `
+                    -TemplateRoot $fixture.TemplateRoot `
+                    -EngineAssetRoot $fixture.EngineAssetRoot `
+                    -RuntimeProductProof 'f2-lit-mesh' `
+                    -ProjectRoot $fixture.ProjectRoot `
+                    -StagingRoot $fixture.StagingRoot `
+                    -RunId $proofFailure.run_id `
+                    -RepeatCount 1 `
+                    -TimeoutSeconds 10 `
+                    -AllowUnsafeStagingRoot | Out-Null
+            }
+            catch {
+                $invalidProofEvidenceError = $_.Exception.Message
+                $invalidProofEvidenceRejected = $invalidProofEvidenceError -match $proofFailure.pattern
+            }
+            Assert-True $invalidProofEvidenceRejected "Invalid F2 evidence '$($proofFailure.run_id)' was not rejected for its requested contract. Actual result: $invalidProofEvidenceError"
+            $failedProofStage = Join-Path $fixture.StagingRoot $proofFailure.run_id
+            $failedProofDiagnosticText = [IO.File]::ReadAllText((Join-Path $failedProofStage 'logs/runtime-1.diagnostics/fixture.log'))
+            foreach ($diagnosticPattern in $proofFailure.expected_diagnostics) {
+                Assert-True ($failedProofDiagnosticText -match $diagnosticPattern) "F2 failure fixture '$($proofFailure.run_id)' did not exercise '$diagnosticPattern'."
+            }
+            if ($null -ne $proofFailure.absent_diagnostic) {
+                Assert-True ($failedProofDiagnosticText -notmatch $proofFailure.absent_diagnostic) "F2 failure fixture '$($proofFailure.run_id)' emitted an unexpected proof echo."
+            }
+            $failedProofReceipt = Get-MvpStagingTerminalReceiptFixture -StagingRoot $fixture.StagingRoot -RunId $proofFailure.run_id
+            Assert-True ($failedProofReceipt.outcome -eq 'failed') 'Rejected F2 evidence did not publish a failed terminal outcome.'
+            Assert-True ($failedProofReceipt.phase -eq 'product_startup') 'Rejected F2 evidence lost its product-startup failure phase.'
+        }
+        finally {
+            Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
+        }
+    }
+
     $launched = (& $stager `
             -ProductInputManifest $fixture.ProductInputManifest `
             -TemplateRoot $fixture.TemplateRoot `
             -EngineAssetRoot $fixture.EngineAssetRoot `
+            -RuntimeProductProof 'f2-lit-mesh' `
             -ProjectRoot $fixture.ProjectRoot `
             -StagingRoot $fixture.StagingRoot `
             -RunId 'fixture-launch' `
@@ -1447,6 +1639,7 @@ try {
         Assert-True ($runtimeRun.frame_capture.width -eq 16 -and $runtimeRun.frame_capture.height -eq 16) 'MVP staging launch fixture did not inspect runtime PNG dimensions.'
         Assert-True ($runtimeRun.frame_capture.non_background_pixels -ge 100) 'MVP staging launch fixture accepted an insufficiently visible runtime PNG.'
         Assert-True ($runtimeRun.frame_capture.non_transparent_pixels -eq 256) 'MVP staging launch fixture lost runtime PNG alpha evidence.'
+        Assert-True ($runtimeRun.runtime_product_diagnostics.proof_policy -eq 'f2-lit-mesh') 'MVP staging launch fixture did not preserve the requested proof policy echoed by the runtime CLI.'
         Assert-True ($runtimeRun.runtime_product_diagnostics.project_identity -eq 'fixture-project') 'MVP staging launch fixture did not preserve runtime project identity evidence.'
         Assert-True ($runtimeRun.runtime_product_diagnostics.scene_uri -eq 'res://scenes/main.scene.toml') 'MVP staging launch fixture did not preserve runtime scene evidence.'
         Assert-True ($runtimeRun.runtime_product_diagnostics.render_adapter -eq 'Fixture WGPU Adapter') 'MVP staging launch fixture did not preserve an adapter identity containing spaces.'
@@ -1539,6 +1732,7 @@ try {
         -ProductInputManifest $fixture.ProductInputManifest `
         -TemplateRoot $fixture.TemplateRoot `
         -EngineAssetRoot $fixture.EngineAssetRoot `
+        -RuntimeProductProof 'f2-lit-mesh' `
         -StagingRoot $fixture.StagingRoot `
         -RunId 'fixture-created-project' `
         -CreateProject `
@@ -1550,6 +1744,7 @@ try {
     Assert-True (Test-Path -LiteralPath (Join-Path $created.staged_project_root 'zircon-project.toml')) 'Staged editor did not create the project manifest.'
     Assert-True (@($created.product_runs).Count -eq 2) 'Created project did not flow into the staged runtime and editor runs.'
     $createdRuntimeRun = @($created.product_runs | Where-Object { $_.product -eq 'runtime' })[0]
+    Assert-True ($createdRuntimeRun.runtime_product_diagnostics.proof_policy -eq 'f2-lit-mesh') 'Created-project F2 launch did not preserve the runtime proof-policy echo.'
     Assert-True ($createdRuntimeRun.runtime_product_diagnostics.project_identity -eq 'fixture-created-project') 'Created project did not become the staged runtime product identity.'
     $createdStartupSummary = Get-Content -Raw -Encoding UTF8 (Join-Path $created.staging_root 'startup-summary.json') | ConvertFrom-Json
     Assert-True ($createdStartupSummary.staged_project_root -match '^project[\\/]ZirconMvpFixture$') 'Created project startup evidence did not record the canonical staged project root.'
@@ -1728,6 +1923,7 @@ try {
                 -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
+                -RuntimeProductProof 'f2-lit-mesh' `
                 -ProjectRoot $fixture.ProjectRoot `
                 -StagingRoot $fixture.StagingRoot `
                 -RunId $missingDiagnosticsRunId `
@@ -1811,6 +2007,7 @@ try {
                 -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
+                -RuntimeProductProof 'f2-lit-mesh' `
                 -ProjectRoot $fixture.ProjectRoot `
                 -StagingRoot $fixture.StagingRoot `
                 -RunId $materialFallbackRunId `

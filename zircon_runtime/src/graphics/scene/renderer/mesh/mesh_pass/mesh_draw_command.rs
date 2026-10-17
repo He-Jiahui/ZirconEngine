@@ -2,7 +2,10 @@ use std::ops::Deref;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-use crate::core::framework::render::{packed_sort_key_u64, RenderPhase, RenderPhaseSortComponents};
+use crate::core::framework::render::{
+    packed_sort_key_u64, RenderPhase, RenderPhaseSortComponents,
+    RenderVirtualGeometryExecutionIdentity,
+};
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::resources::{GpuMeshResource, PipelineKey};
 
@@ -302,6 +305,10 @@ impl MeshDrawCommandPayloadStorage {
 pub(crate) struct MeshDrawCommand {
     pub(crate) source_entity: EntityId,
     pub(crate) source_draw_index: usize,
+    pub(crate) virtual_geometry_execution_identity: Option<RenderVirtualGeometryExecutionIdentity>,
+    pub(crate) virtual_geometry_indexed_run: Option<
+        crate::graphics::scene::scene_renderer::mesh::mesh_draw::VirtualGeometryIndexedRunRef,
+    >,
     pub(crate) sort_key: u64,
     pub(crate) instance_source: DrawInstanceSource,
     pub(crate) gpu_scene_bind_group: Option<MeshBindHandle>,
@@ -333,6 +340,8 @@ impl MeshDrawCommand {
         Self {
             source_entity: 0,
             source_draw_index: 0,
+            virtual_geometry_execution_identity: None,
+            virtual_geometry_indexed_run: None,
             sort_key,
             instance_source,
             gpu_scene_bind_group: None,
@@ -378,6 +387,8 @@ impl MeshDrawCommand {
         Self {
             source_entity,
             source_draw_index,
+            virtual_geometry_execution_identity: None,
+            virtual_geometry_indexed_run: None,
             sort_key,
             instance_source: DrawInstanceSource::GpuSceneInstance {
                 first_instance_index,
@@ -401,6 +412,8 @@ impl MeshDrawCommand {
         let Self {
             source_entity,
             source_draw_index,
+            virtual_geometry_execution_identity,
+            virtual_geometry_indexed_run,
             sort_key,
             instance_source,
             gpu_scene_bind_group,
@@ -411,6 +424,8 @@ impl MeshDrawCommand {
         let command = Self {
             source_entity,
             source_draw_index,
+            virtual_geometry_execution_identity,
+            virtual_geometry_indexed_run,
             sort_key,
             instance_source,
             gpu_scene_bind_group,
@@ -427,6 +442,24 @@ impl MeshDrawCommand {
 
     pub(crate) fn pipeline_key(&self) -> &PipelineKey {
         &self.payload.as_ref().pipeline_key
+    }
+
+    pub(crate) fn with_virtual_geometry_indexed_run(
+        mut self,
+        run: Option<
+            crate::graphics::scene::scene_renderer::mesh::mesh_draw::VirtualGeometryIndexedRunRef,
+        >,
+    ) -> Self {
+        self.virtual_geometry_indexed_run = run;
+        self
+    }
+
+    pub(crate) fn with_virtual_geometry_execution_identity(
+        mut self,
+        identity: Option<RenderVirtualGeometryExecutionIdentity>,
+    ) -> Self {
+        self.virtual_geometry_execution_identity = identity;
+        self
     }
 
     pub(crate) fn with_source_draw_index(mut self, source_draw_index: usize) -> Self {

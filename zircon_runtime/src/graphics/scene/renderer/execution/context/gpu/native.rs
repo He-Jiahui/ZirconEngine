@@ -139,6 +139,25 @@ impl<'device, 'encoder> RenderPassGpuRecordingContext
 }
 
 impl RenderPassGpuNativeContext<'_, '_> {
+    /// Wait for a diagnostic buffer map after this frame has been submitted.
+    ///
+    /// The one-shot capability retains this device without exposing a resource-creation or queue
+    /// surface. Calling it while recording the pass cannot submit the current encoder.
+    pub fn readback_completion_waiter(
+        &self,
+    ) -> impl FnOnce() -> Result<(), String> + Send + 'static {
+        let device = self.device.clone();
+        move || {
+            device
+                .poll(wgpu::PollType::Wait {
+                    submission_index: None,
+                    timeout: Some(std::time::Duration::from_secs(30)),
+                })
+                .map(|_| ())
+                .map_err(|error| format!("wait for submitted diagnostic readback: {error}"))
+        }
+    }
+
     fn record_create(&self, record: impl FnOnce(&mut RenderPassNativeResourceCreateMetrics)) {
         let mut metrics = self.native_resource_creates.get();
         record(&mut metrics);

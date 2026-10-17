@@ -42,17 +42,23 @@ fn borrowed_exact_capacity_payload_decode_performance_contract() {
     let payload = triangle_payload(BENCHMARK_ITEM_COUNT, BENCHMARK_ITEM_COUNT as u32);
     let vertices = mesh_vertices(BENCHMARK_ITEM_COUNT * 3);
     let indices = (0..vertices.len() as u32).collect::<Vec<_>>();
+    let cluster_remap = BTreeMap::new();
     let legacy = || {
         black_box(legacy_render_page_vertices(&payload, &vertices, &indices));
     };
     let optimized = || {
-        black_box(render_page_vertices(&payload, &vertices, &indices, &BTreeMap::new()));
+        black_box(render_page_vertices(
+            &payload,
+            &vertices,
+            &indices,
+            &cluster_remap,
+        ));
     };
 
     legacy();
     optimized();
     let legacy_capacity = legacy_render_page_vertices(&payload, &vertices, &indices).capacity();
-    let optimized_capacity = render_page_vertices(&payload, &vertices, &indices, &BTreeMap::new())
+    let optimized_capacity = render_page_vertices(&payload, &vertices, &indices, &cluster_remap)
         .0
         .capacity();
     let (legacy_samples, optimized_samples) = paired_samples(legacy, optimized);

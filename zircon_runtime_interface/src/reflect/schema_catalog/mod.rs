@@ -28,10 +28,8 @@ use field_index::ReflectSchemaFieldIndex;
 use fingerprint::fingerprint;
 
 /// 公开候选项，供注册端显式提交元数据和依赖。
-
 pub use entry::ReflectSchemaCatalogEntry;
 /// 公开内容指纹及其编码版本，供快照与模式查询按同一契约比较。
-
 pub use fingerprint::{ReflectSchemaFingerprint, REFLECT_SCHEMA_CATALOG_ALGORITHM_VERSION};
 
 /// Admitted neutral reflection catalog shared by runtime, tooling, editor, and script hosts.
@@ -316,6 +314,7 @@ impl ReflectSchemaCatalog {
         self.ambiguous_short_paths.iter().map(String::as_str)
     }
 
+    /// 返回当前已接纳的目录项数量；惰性拓扑与指纹缓存不计入此数。
     pub fn len(&self) -> usize {
         self.entries.len()
     }
@@ -332,6 +331,7 @@ impl ReflectSchemaCatalog {
         self.entries.contains_key(type_path)
     }
 
+    /// 目录没有已接纳的项时返回真；惰性查询缓存不影响这一结果。
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }

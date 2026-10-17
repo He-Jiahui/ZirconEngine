@@ -12,6 +12,98 @@ pub(super) fn module_plugin_status_rows(
 ) -> Vec<ModulePluginStatusViewData> {
     let mut rows = Vec::with_capacity(report.plugins.len());
     rows.extend(report.plugins.iter().map(module_plugin_status_row));
+    if let Some(operation) = report.enablement.as_ref() {
+        use crate::ui::host::PluginEnablementRecovery as Recovery;
+        let index = rows
+            .iter()
+            .position(|r| r.plugin_id.as_str() == operation.plugin_id)
+            .unwrap_or_else(|| {
+                rows.push(ModulePluginStatusViewData {
+                    plugin_id: operation.plugin_id.clone().into(),
+                    display_name: "Pending project plugin change".into(),
+                    package_source: "Project".into(),
+                    load_state: "".into(),
+                    enabled: false,
+                    required: false,
+                    target_modes: "".into(),
+                    packaging: "".into(),
+                    runtime_crate: "".into(),
+                    editor_crate: "".into(),
+                    runtime_capabilities: "".into(),
+                    editor_capabilities: "".into(),
+                    optional_features: "".into(),
+                    feature_action_label: "".into(),
+                    feature_action_id: "".into(),
+                    diagnostics: "".into(),
+                    primary_action_label: "".into(),
+                    primary_action_id: "".into(),
+                    packaging_action_label: "".into(),
+                    packaging_action_id: "".into(),
+                    target_modes_action_label: "".into(),
+                    target_modes_action_id: "".into(),
+                    unload_action_label: "".into(),
+                    unload_action_id: "".into(),
+                    hot_reload_action_label: "".into(),
+                    hot_reload_action_id: "".into(),
+                });
+                rows.len() - 1
+            });
+        let row = &mut rows[index];
+        let action = |verb| {
+            format!(
+                "workbench.plugin.enablement.{verb}:{}",
+                operation.operation_id
+            )
+        };
+        row.diagnostics = operation.status_message().into();
+        if operation.recovery != Recovery::None {
+            row.packaging_action_id = "".into();
+            row.target_modes_action_id = "".into();
+            row.feature_action_id = "".into();
+            row.unload_action_id = "".into();
+            row.hot_reload_action_id = "".into();
+        }
+        match operation.recovery {
+            Recovery::None => {}
+            Recovery::PendingRuntimeApply => {
+                row.load_state = "Saved; runtime changes pending".into();
+                if operation.recovery_admission.is_some() {
+                    row.primary_action_label = "Revert pending change".into();
+                    row.primary_action_id = action("revert").into();
+                } else {
+                    row.primary_action_label = "Retry runtime apply".into();
+                    row.primary_action_id = action("retry").into();
+                    row.packaging_action_label = "Revert pending change".into();
+                    row.packaging_action_id = action("revert").into();
+                }
+            }
+            Recovery::RuntimeRepairRequired => {
+                row.load_state = "Saved; runtime repair required".into();
+                if operation.recovery_admission.is_some() {
+                    row.primary_action_label = "Revert pending change".into();
+                    row.primary_action_id = action("revert").into();
+                } else {
+                    row.primary_action_label = "Close project, then reopen to resolve".into();
+                    row.primary_action_id = "".into();
+                }
+            }
+            Recovery::FileRecoveryRequired => {
+                row.load_state = "Project file recovery required".into();
+                row.primary_action_label = "Recover project files".into();
+                row.primary_action_id = if operation.recovery_admission.is_some() {
+                    action("recover").into()
+                } else {
+                    "".into()
+                };
+            }
+            Recovery::RestartRequired => {
+                row.load_state = "Pending change reverted; project can be reopened".into();
+                row.primary_action_label = "Open project".into();
+                row.primary_action_id = action("open").into();
+            }
+        }
+    }
+
     rows
 }
 
@@ -72,3 +164,71 @@ fn target_mode_summary(target_modes: &[RuntimeTargetMode]) -> String {
 #[cfg(test)]
 #[path = "view_rows/tests/target_mode_join.rs"]
 mod target_mode_join_tests;
+
+#[cfg(test)]
+mod enablement_state_tests {
+    use super::*;
+    use crate::ui::host::*;
+    #[test]
+    fn typed_operation_projects_reachable_recovery_actions_without_a_live_plugin_row() {
+        for (recovery, label, verb) in [
+            (
+                PluginEnablementRecovery::PendingRuntimeApply,
+                "Saved; runtime changes pending",
+                Some("retry"),
+            ),
+            (
+                PluginEnablementRecovery::RuntimeRepairRequired,
+                "Saved; runtime repair required",
+                None,
+            ),
+            (
+                PluginEnablementRecovery::FileRecoveryRequired,
+                "Project file recovery required",
+                None,
+            ),
+            (
+                PluginEnablementRecovery::RestartRequired,
+                "Pending change reverted; project can be reopened",
+                Some("open"),
+            ),
+        ] {
+            let operation = PluginEnablementOperationReport {
+                operation_id: "typed-op".into(),
+                project_root: std::path::PathBuf::from("E:/cargo-targets/zircon-local/not-created"),
+                project_instance: "".into(),
+                session_generation: 0,
+                plugin_id: "not-loaded".into(),
+                requested_enabled: true,
+                expected_revision: None,
+                committed_revision: None,
+                phase: PluginEnablementPhase::Reconcile,
+                durable: PluginEnablementDurable::Durable,
+                applied: PluginEnablementApplied::NotApplied,
+                recovery,
+                primary_cause: None,
+                rollback_cause: None,
+                detail: None,
+                recovery_admission: None,
+            };
+            let report = EditorPluginStatusReport {
+                plugins: vec![],
+                diagnostics: vec![],
+                enablement: Some(operation),
+            };
+            let rows = module_plugin_status_rows(&report);
+            let row = rows
+                .iter()
+                .find(|row| row.plugin_id.as_str() == "not-loaded")
+                .unwrap();
+            assert_eq!(row.load_state.as_str(), label);
+            assert!(!row.enabled);
+            assert_eq!(
+                row.primary_action_id.as_str(),
+                verb.map(|v| format!("workbench.plugin.enablement.{v}:typed-op"))
+                    .unwrap_or_default()
+            );
+            assert!(row.unload_action_id.is_empty() && row.hot_reload_action_id.is_empty());
+        }
+    }
+}

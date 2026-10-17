@@ -11,6 +11,8 @@ pub(in crate::asset::pipeline::manager) fn clear_removed_project_resources(
     previous_locators: &HashSet<AssetUri>,
     project: &ProjectManager,
 ) -> ResourceMutationBatch {
+    // Source-unit membership protects failed active-only members and retires real deletions.
+    batch = batch.reconcile_sources(project.registry().values().map(|record| record.id()));
     let current = collect_project_locator_refs(
         project
             .registry()

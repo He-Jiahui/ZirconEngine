@@ -231,6 +231,7 @@ $taskStart.FileName = $taskCodex
 $taskStart.WorkingDirectory = $taskRepository
 $taskStart.UseShellExecute = $false
 $taskStart.CreateNoWindow = $true
+$taskStart.RedirectStandardInput = $true
 $taskStart.RedirectStandardOutput = $true
 $taskStart.RedirectStandardError = $true
 $taskStart.Arguments = ($taskArguments | ForEach-Object { ConvertTo-TaskWindowsArgument $_ }) -join ' '
@@ -251,6 +252,8 @@ $taskStarted = $false
 try {
     if (-not $taskProcess.Start()) { throw 'The official strict host did not start.' }
     $taskStarted = $true
+    $taskProcess.StandardInput.Close()
+    try { $taskProcess.PriorityClass = [Diagnostics.ProcessPriorityClass]::AboveNormal } catch { Write-Warning "The owned official host priority could not be raised." }
     $taskHostArgs = @($taskCodex) + $taskArguments
     $taskDigestAlgorithm = [Security.Cryptography.SHA256]::Create()
     try {
@@ -264,6 +267,8 @@ try {
         arguments=$taskHostArgs; release=@{path=$taskRelease; sha256=$taskReleaseSha}
         dispatcher=@{path=$PSCommandPath; sha256=(Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()}
         profile='zircon-strict'; includeManagedConfig=$true; automaticRestart=$false; runtimeAcceptance=$false
+        stdio=@{stdinRedirected=$true;stdinClosed=$true;stdoutAsyncDrain=$true;stderrAsyncDrain=$true}
+        scheduling=@{ownedHostOnly=$true;hostPriorityClass=[string]$taskProcess.PriorityClass}
     }
     $taskHostRaw = [Text.Encoding]::UTF8.GetBytes(($taskHostEvidence | ConvertTo-Json -Depth 8) + [Environment]::NewLine)
     $taskHostStream = [IO.File]::Open($taskHostRecord, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::Read)

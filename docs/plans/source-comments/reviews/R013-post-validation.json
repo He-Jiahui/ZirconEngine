@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R013",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T03:54:43.912766+00:00",
+  "status": "scoped-static-validation-passed",
+  "files": {
+    "zircon_runtime_interface/src/serialization/schema_id.rs": {
+      "before_sha256": "24db4fd7d2a41b25bafbbe18d6f2a7c4c7030e50689a930e6e77829ef59a4dff",
+      "reviewed_sha256": "0d7fa42798d6f96121fb4dcfb5042e15a9d73fb7c2d79430bfb8b168a46c8e07",
+      "bytes": 8700,
+      "lines": 228,
+      "full_source_review_spans": [
+        [
+          1,
+          228
+        ]
+      ],
+      "objects_reviewed": 5,
+      "insertion_blocks": 1,
+      "all_original_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/tests/schema_id_contract.rs": {
+      "before_sha256": "6e02f95f42352ce0b17af82a7b49b1d5b594aca35fda557dda406dc47b25bc58",
+      "reviewed_sha256": "6e02f95f42352ce0b17af82a7b49b1d5b594aca35fda557dda406dc47b25bc58",
+      "bytes": 2917,
+      "lines": 92,
+      "full_source_review_spans": [
+        [
+          1,
+          92
+        ]
+      ],
+      "objects_reviewed": 4,
+      "insertion_blocks": 0,
+      "all_original_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/mod.rs": {
+      "before_sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "reviewed_sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "bytes": 1689,
+      "lines": 53,
+      "full_source_review_spans": [
+        [
+          1,
+          53
+        ]
+      ],
+      "objects_reviewed": 3,
+      "insertion_blocks": 0,
+      "all_original_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/tests/mod.rs": {
+      "before_sha256": "497341e9ea1ad82fed314704cff7ae97b982f80fefa8c1a38cc73f87adbc12a3",
+      "reviewed_sha256": "55ae7bab29bd22dc3c0e7f0422a3d1d7aca12445131fb0401cccf76a09f50ed9",
+      "bytes": 3192,
+      "lines": 79,
+      "full_source_review_spans": [
+        [
+          1,
+          79
+        ]
+      ],
+      "objects_reviewed": 5,
+      "insertion_blocks": 5,
+      "all_original_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/versioned_schema.rs": {
+      "before_sha256": "cf1121e8f7cbcb918de31b9513cd534517ef6aa60d1c2416a430af6e00c34b9f",
+      "reviewed_sha256": "cf1121e8f7cbcb918de31b9513cd534517ef6aa60d1c2416a430af6e00c34b9f",
+      "bytes": 1389,
+      "lines": 26,
+      "full_source_review_spans": [
+        [
+          1,
+          26
+        ]
+      ],
+      "objects_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_bytes_reconstructed": true
+    }
+  },
+  "actual_root_validation": {
+    "root_receipt": {
+      "chunk_id": "66b3bb",
+      "exit_code": 0
+    },
+    "same_source_pins_reverified_at_booking": true,
+    "exact_reverse_insertion_check": {
+      "sources": 5,
+      "blocks": 6,
+      "before_raw_sha256_restored": true,
+      "normalized_HEAD_match": true
+    },
+    "checks": [
+      {
+        "name": "rustfmt-exact-five",
+        "exit_code": 0,
+        "command": "rustfmt --check --edition 2021 --config skip_children=true <five exact assigned paths>"
+      },
+      {
+        "name": "git-diff-check-exact-five",
+        "exit_code": 0,
+        "stderr": "Only configured LF-to-CRLF warnings; no format rewrite."
+      },
+      {
+        "name": "staged-exact-five-empty",
+        "exit_code": 0
+      },
+      {
+        "name": "change-guard-exact-five",
+        "exit_code": 0,
+        "errors": 0,
+        "warnings": 0,
+        "declared_paths": 5,
+        "changed_paths": 2,
+        "opened": [
+          "CR-ZCA-R013-0001"
+        ]
+      }
+    ],
+    "patch_sha256": "ce0741b152c4708ec1a3d4c4289c65a5da3e1ce47bd336b04bbfc67c5e8cf030",
+    "patch_bytes": 3242,
+    "history": [
+      {
+        "chunk_id": "6fdf6d",
+        "exit_code": 1,
+        "scope": "Read-only first metadata reconstruction precheck stopped on missing insertions key for an unchanged child file; no formatter, source write or acceptance claim occurred.",
+        "resolution": "Corrected dictionary access to an empty insertion list; full exact five-file check subsequently passed in 66b3bb."
+      }
+    ],
+    "Rust_tests_Cargo_build_or_generator_run": false,
+    "limits": "Local scoped evidence only; pending managed rustfmt/lock/authorization/formal Jenkins receipts are not passing."
+  },
+  "all_original_bytes_and_comments_preserved": true,
+  "source_tests_or_Cargo_executed": false,
+  "managed_coordinator_format": "pending",
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

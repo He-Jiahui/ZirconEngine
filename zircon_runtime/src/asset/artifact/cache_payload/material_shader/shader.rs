@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{
-    AssetImportError, AssetReference, AssetUri, ShaderAsset, ShaderDependencyAsset,
+    AssetCodecError, AssetReference, AssetUri, ShaderAsset, ShaderDependencyAsset,
     ShaderEntryPointAsset, ShaderImportRedirectAsset, ShaderMaterialPropertyAsset,
     ShaderOptionAsset, ShaderSourceFileAsset, ShaderSourceLanguage, ShaderTextureSlotAsset,
 };
@@ -119,7 +119,7 @@ impl From<&ShaderAsset> for ArtifactCacheShaderAsset {
 
 impl ArtifactCacheShaderAsset {
     // 属性、选项及 editor 表转换成功后，重新生成材质工件，替换缓存中的派生字段；非材质类型会清空这些字段。
-    pub(in super::super) fn into_asset(self) -> Result<ShaderAsset, AssetImportError> {
+    pub(in super::super) fn into_asset(self) -> Result<ShaderAsset, AssetCodecError> {
         let mut asset = ShaderAsset {
             uri: self.uri,
             kind: self.kind,
@@ -215,7 +215,7 @@ impl From<&ShaderOptionAsset> for ArtifactCacheShaderOptionAsset {
 }
 
 impl ArtifactCacheShaderOptionAsset {
-    fn into_asset(self) -> Result<ShaderOptionAsset, AssetImportError> {
+    fn into_asset(self) -> Result<ShaderOptionAsset, AssetCodecError> {
         Ok(ShaderOptionAsset {
             name: self.name,
             kind: self.kind,
@@ -253,7 +253,7 @@ impl From<&ShaderMaterialPropertyAsset> for ArtifactCacheShaderMaterialPropertyA
 }
 
 impl ArtifactCacheShaderMaterialPropertyAsset {
-    fn into_asset(self) -> Result<ShaderMaterialPropertyAsset, AssetImportError> {
+    fn into_asset(self) -> Result<ShaderMaterialPropertyAsset, AssetCodecError> {
         Ok(ShaderMaterialPropertyAsset {
             name: self.name,
             kind: self.kind,

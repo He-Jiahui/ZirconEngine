@@ -778,19 +778,41 @@ fn full_and_sparse_projection_preserve_valid_logical_paint_padding_presence() {
 
 #[test]
 fn labeled_field_projection_keeps_authored_name_and_logical_width_at_dpi() {
-    let mut node = test_host_node("InputField", "input-field", Some("200"), [("text", "Far"), ("value_text", "200")]);
-    node.properties.insert("layout_label_width".into(), RetainedUiHostValue::Float(92.0));
+    let mut node = test_host_node(
+        "InputField",
+        "input-field",
+        Some("200"),
+        [("text", "Far"), ("value_text", "200")],
+    );
+    node.properties.insert(
+        "layout_label_width".into(),
+        RetainedUiHostValue::Float(92.0),
+    );
     assert_eq!(projected_workbench_text(&node, "input-field"), "Far");
     let projection = RetainedUiHostProjection {
-        source_surface_frame: None, document_id: "labeled-property".into(), nodes: vec![node.clone()],
+        source_surface_frame: None,
+        document_id: "labeled-property".into(),
+        nodes: vec![node.clone()],
     };
     let nodes = to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
-        Some(&projection), None, None, 1.5,
+        Some(&projection),
+        None,
+        None,
+        1.5,
     );
     let data = nodes.get(0).unwrap();
     assert_eq!(data.text.as_str(), "Far");
     assert_eq!(data.value_text.as_str(), "200");
-    assert_eq!(data.authored_field_label_width, Some(92.0), "authored label width remains logical");
-    node.properties.insert("layout_label_width".into(), RetainedUiHostValue::Float(0.0));
-    assert_eq!(projected_workbench_text(&node, "input-field"), "200", "plain fields keep existing display semantics");
+    assert_eq!(
+        data.authored_field_label_width,
+        Some(92.0),
+        "authored label width remains logical"
+    );
+    node.properties
+        .insert("layout_label_width".into(), RetainedUiHostValue::Float(0.0));
+    assert_eq!(
+        projected_workbench_text(&node, "input-field"),
+        "200",
+        "plain fields keep existing display semantics"
+    );
 }

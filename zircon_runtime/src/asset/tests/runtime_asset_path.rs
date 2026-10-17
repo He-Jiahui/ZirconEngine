@@ -7,7 +7,7 @@ use crate::asset::project::ProjectPaths;
 use super::{
     default_product_asset_root_from_executable, resolve_environment_asset_root, root_status,
     runtime_asset_path, runtime_asset_path_from_candidates, runtime_asset_path_with_dev_asset_root,
-    runtime_asset_root_candidates_with_inputs,
+    runtime_asset_root_candidates_with_inputs, AssetRelativePath, AssetRelativePathError,
 };
 
 const SAMPLE_PAIRS: usize = 21;
@@ -116,7 +116,7 @@ fn missing_product_asset_does_not_fall_back_to_a_development_root() {
     std::fs::write(dev_asset_root.join(relative), b"development-only fixture").unwrap();
 
     let resolved = runtime_asset_path_from_candidates(
-        relative,
+        &AssetRelativePath::parse(relative).unwrap(),
         super::RuntimeAssetRootCandidates {
             paths: vec![product_asset_root.clone(), dev_asset_root],
             authoritative: true,
@@ -142,7 +142,7 @@ fn selected_existing_root_does_not_change_per_requested_asset() {
     std::fs::write(dev_asset_root.join(relative), b"development-only fixture").unwrap();
 
     let resolved = runtime_asset_path_from_candidates(
-        relative,
+        &AssetRelativePath::parse(relative).unwrap(),
         super::RuntimeAssetRootCandidates {
             paths: vec![product_asset_root.clone(), dev_asset_root],
             authoritative: false,
@@ -174,7 +174,7 @@ fn root_probe_skips_missing_and_regular_file_candidates() {
     assert_eq!(root_status(&directory), (true, true));
     assert_eq!(
         runtime_asset_path_from_candidates(
-            Path::new("icons/test.svg"),
+            &AssetRelativePath::parse("icons/test.svg").unwrap(),
             super::RuntimeAssetRootCandidates {
                 paths: vec![root.join("missing"), regular_file, directory.clone()],
                 authoritative: false,
@@ -253,12 +253,18 @@ fn relative_environment_asset_root_without_an_executable_is_not_cwd_relative() {
 
 #[test]
 fn runtime_asset_path_accepts_paths_with_or_without_assets_prefix() {
-    let direct = runtime_asset_path("ui/runtime/fixtures/hud_overlay.zui");
-    let prefixed = runtime_asset_path("assets/ui/runtime/fixtures/hud_overlay.zui");
-    let rooted = runtime_asset_path("/assets/ui/runtime/fixtures/hud_overlay.zui");
+    let relative = AssetRelativePath::parse("ui/runtime/fixtures/hud_overlay.zui").unwrap();
+    let legacy =
+        AssetRelativePath::from_assets_prefixed("assets/ui/runtime/fixtures/hud_overlay.zui")
+            .unwrap();
+    let direct = runtime_asset_path(&relative);
+    let prefixed = runtime_asset_path(&legacy);
 
     assert_eq!(direct, prefixed);
-    assert_eq!(direct, rooted);
+    assert_eq!(
+        AssetRelativePath::parse("/assets/ui/runtime/fixtures/hud_overlay.zui"),
+        Err(AssetRelativePathError::Rooted)
+    );
     assert!(
         direct.ends_with("ui/runtime/fixtures/hud_overlay.zui"),
         "unexpected runtime asset path: {}",
@@ -276,8 +282,9 @@ fn runtime_asset_path_can_use_a_call_site_dev_asset_root() {
     std::fs::create_dir_all(expected.parent().unwrap()).unwrap();
     std::fs::write(&expected, b"fixture").unwrap();
 
-    let resolved =
-        runtime_asset_path_with_dev_asset_root("assets/ui/editor/editor_main_frame.zui", &dev_root);
+    let relative =
+        AssetRelativePath::from_assets_prefixed("assets/ui/editor/editor_main_frame.zui").unwrap();
+    let resolved = runtime_asset_path_with_dev_asset_root(&relative, &dev_root);
 
     let _ = std::fs::remove_dir_all(&dev_root);
     assert_eq!(resolved, expected);
@@ -445,4 +452,116 @@ fn raw_samples(samples: &[u64]) -> String {
         .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(",")
+}
+
+#[test]
+fn strict_relative_path_preserves_valid_spelling() {
+    for value in [
+        "ui/runtime/fixtures/hud_overlay.zui",
+        "assets/ui/icon.zui",
+        "fonts/with space/default#100%.font.toml",
+        "\u{6d4b}\u{8bd5}/\u{5b57}\u{4f53}.font.toml",
+    ] {
+        let relative = AssetRelativePath::parse(value).unwrap();
+        assert_eq!(relative.as_path().as_os_str(), value);
+    }
+}
+
+#[test]
+fn strict_relative_path_rejects_root_prefix_and_traversal_components() {
+    for value in [
+        "",
+        ".",
+        "..",
+        "./ui/icon.zui",
+        "../ui/icon.zui",
+        "ui/./icon.zui",
+        "ui/../icon.zui",
+        "ui/../../icon.zui",
+        "/ui/icon.zui",
+        "/assets/ui/icon.zui",
+        "//server/share/icon.zui",
+        "C:/ui/icon.zui",
+        "C:ui/icon.zui",
+        "ui/icon.zui:stream",
+        r"\ui\icon.zui",
+        r"\\server\share\icon.zui",
+        r"\\?\C:\ui\icon.zui",
+        r"ui\icon.zui",
+        "ui//icon.zui",
+        "ui/icon.zui/",
+        "ui/\0icon.zui",
+        "ui/\nicon.zui",
+    ] {
+        assert!(AssetRelativePath::parse(value).is_err(), "{value:?}");
+    }
+    assert_eq!(
+        AssetRelativePath::parse("a/../b"),
+        Err(AssetRelativePathError::ParentDirectory)
+    );
+}
+
+#[test]
+fn legacy_assets_prefix_is_explicit_and_stripped_only_once() {
+    assert_eq!(
+        AssetRelativePath::parse("assets/ui/icon.zui")
+            .unwrap()
+            .as_path(),
+        Path::new("assets/ui/icon.zui")
+    );
+    assert_eq!(
+        AssetRelativePath::from_assets_prefixed("assets/assets/ui/icon.zui")
+            .unwrap()
+            .as_path(),
+        Path::new("assets/ui/icon.zui")
+    );
+    for value in [
+        "ui/icon.zui",
+        "/assets/ui/icon.zui",
+        "assets/",
+        "assets/../icon.zui",
+        "assets/./icon.zui",
+        "assets//icon.zui",
+        r"assets/C:\icon.zui",
+    ] {
+        assert!(
+            AssetRelativePath::from_assets_prefixed(value).is_err(),
+            "{value:?}"
+        );
+    }
+}
+
+#[test]
+fn asset_root_query_requires_the_explicit_root_value() {
+    assert_eq!(
+        AssetRelativePath::parse(""),
+        Err(AssetRelativePathError::Empty)
+    );
+    assert!(AssetRelativePath::root().as_path().as_os_str().is_empty());
+    assert_eq!(
+        runtime_asset_path(&AssetRelativePath::root()),
+        super::runtime_asset_root()
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn strict_relative_path_rejects_non_utf8_spelling_on_unix() {
+    use std::os::unix::ffi::OsStrExt;
+    let path = Path::new(std::ffi::OsStr::from_bytes(b"ui/\xff.zui"));
+    assert_eq!(
+        AssetRelativePath::parse(path),
+        Err(AssetRelativePathError::NonUtf8)
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn strict_relative_path_rejects_non_utf8_spelling_on_windows() {
+    use std::os::windows::ffi::OsStringExt;
+    let value = std::ffi::OsString::from_wide(&[b'u' as u16, b'i' as u16, 47, 0xd800]);
+    assert_eq!(
+        AssetRelativePath::parse(Path::new(&value)),
+        Err(AssetRelativePathError::NonUtf8)
+    );
 }

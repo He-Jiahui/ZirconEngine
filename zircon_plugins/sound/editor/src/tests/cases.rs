@@ -123,7 +123,10 @@ fn sound_editor_ui_template_routes_are_registered_operations() {
         .collect::<BTreeSet<_>>();
     let routes = ui_template_routes(&[
         ("mixer_console.zui", include_str!("../../mixer_console.zui")),
-        ("acoustic_debug.zui", include_str!("../../acoustic_debug.zui")),
+        (
+            "acoustic_debug.zui",
+            include_str!("../../acoustic_debug.zui"),
+        ),
         (
             "audio_source.drawer.zui",
             include_str!("../../audio_source.drawer.zui"),

@@ -179,19 +179,19 @@ fn runtime_15_render_shader_template_assembly_support_children_are_folder_backed
         ],
     );
 
-    let slice = "Runtime 15 M3 render shader template assembly guard support child-owner split";
-    let status = "runtime_15_render_shader_template_assembly_guard_support_child_owner_split_static_passed_cargo_deferred";
-    let guard = "runtime_15_render_shader_template_assembly_support_children_are_folder_backed";
-    let runtime_plan =
+    let _slice = "Runtime 15 M3 render shader template assembly guard support child-owner split";
+    let _status = "runtime_15_render_shader_template_assembly_guard_support_child_owner_split_static_passed_cargo_deferred";
+    let _guard = "runtime_15_render_shader_template_assembly_support_children_are_folder_backed";
+    let _runtime_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let module_convention = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _module_convention = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
-    let assertion_slice =
+    let _assertion_slice =
         "Runtime 15 M3 render shader template assembly assertion contract child-owner split";
-    let assertion_status = "runtime_15_render_shader_template_assembly_assertion_contract_child_owner_split_static_passed_cargo_deferred";
+    let _assertion_status = "runtime_15_render_shader_template_assembly_assertion_contract_child_owner_split_static_passed_cargo_deferred";
 
     assert_contains_all(
         "mesh pipeline shader source keeps tests in child owner",
@@ -231,9 +231,9 @@ fn runtime_15_render_shader_template_assembly_support_children_are_folder_backed
             "ResourceStreamer::new_for_test_with_plugin_shading_models",
         ],
     );
-    let shader_source_tests_slice =
+    let _shader_source_tests_slice =
         "Runtime 15 M3 mesh pipeline shader source tests child-owner split";
-    let shader_source_tests_status = "runtime_15_mesh_pipeline_shader_source_tests_child_owner_split_static_passed_cargo_deferred";
+    let _shader_source_tests_status = "runtime_15_mesh_pipeline_shader_source_tests_child_owner_split_static_passed_cargo_deferred";
 
     for owner in [
         PARENT_OWNER,

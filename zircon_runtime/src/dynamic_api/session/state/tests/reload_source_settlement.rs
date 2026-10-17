@@ -627,37 +627,51 @@ mod lifecycle_interruption {
                 session.level.with_world_mut(|world| {
                     world.observe_component_lifecycle::<Name>(
                         LifecycleEventKind::Add,
-                        move |world, _| {
-                            assert_eq!(first.fetch_add(1, Ordering::SeqCst), 0);
-                            match target {
-                                LifecycleTargetChange::World => {
-                                    let fresh_world = replacement.lock().unwrap().take().unwrap();
-                                    let owner =
-                                        retained.upgrade().expect("original owner remains alive");
-                                    *owner.lock().unwrap() =
-                                        Some(std::mem::replace(world, fresh_world));
-                                }
-                                LifecycleTargetChange::Schedule => {
-                                    *world.schedule_mut() = Default::default();
-                                    let updates = Arc::clone(&fresh);
-                                    world
-                                        .register_native_system::<(), _>(
-                                            "tests.session.asset-reload.fresh",
-                                            SystemStage::Update,
-                                            0,
-                                            move |()| {
-                                                updates.fetch_add(1, Ordering::SeqCst);
-                                            },
-                                        )
-                                        .unwrap();
-                                }
-                            }
+                        // SAFETY: This retires the current World or schedule. Remaining work is
+                        // counter-only scheduling; replacement history is never adopted.
+                        unsafe {
+                            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                                move |world, _| {
+                                    assert_eq!(first.fetch_add(1, Ordering::SeqCst), 0);
+                                    match target {
+                                        LifecycleTargetChange::World => {
+                                            let fresh_world = replacement.lock().unwrap().take().unwrap();
+                                            let owner =
+                                                retained.upgrade().expect("original owner remains alive");
+                                            *owner.lock().unwrap() =
+                                                Some(std::mem::replace(world, fresh_world));
+                                        }
+                                        LifecycleTargetChange::Schedule => {
+                                            *world.schedule_mut() = Default::default();
+                                            let updates = Arc::clone(&fresh);
+                                            world
+                                                .register_native_system::<(), _>(
+                                                    "tests.session.asset-reload.fresh",
+                                                    SystemStage::Update,
+                                                    0,
+                                                    move |()| {
+                                                        updates.fetch_add(1, Ordering::SeqCst);
+                                                    },
+                                                )
+                                                .unwrap();
+                                        }
+                                    }
+                                },
+                            )
                         },
                     );
                     world.observe_component_lifecycle::<Name>(
                         LifecycleEventKind::Add,
-                        move |_, _| {
-                            stale.fetch_add(1, Ordering::SeqCst);
+                        // SAFETY: Only an external atomic counter changes; retained World
+                        // payload and dynamic JSON are untouched.
+                        unsafe {
+                            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                                move |_, _| {
+                                    stale.fetch_add(1, Ordering::SeqCst);
+                                },
+                            )
                         },
                     );
                 });
@@ -847,8 +861,13 @@ mod lifecycle_interruption {
         let calls = Arc::clone(calls);
         world.observe_component_lifecycle::<crate::scene::components::LocalTransform>(
             LifecycleEventKind::Insert,
-            move |_, _| {
-                calls.fetch_add(1, Ordering::SeqCst);
+            // SAFETY: Only an external atomic counter changes; retained World payload and
+            // dynamic JSON are untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                    calls.fetch_add(1, Ordering::SeqCst);
+                })
             },
         );
     }
@@ -986,28 +1005,42 @@ mod lifecycle_interruption {
                     register_transform_probe(world, &calls);
                     world.observe_component_lifecycle::<Name>(
                         LifecycleEventKind::Add,
-                        move |world, _| {
-                            assert_eq!(first.fetch_add(1, Ordering::SeqCst), 0);
-                            match target {
-                                LifecycleTargetChange::World => {
-                                    let replacement = replacement.lock().unwrap().take().unwrap();
-                                    *retained
-                                        .upgrade()
-                                        .expect("old World owner remains alive")
-                                        .lock()
-                                        .unwrap() = Some(std::mem::replace(world, replacement));
-                                }
-                                LifecycleTargetChange::Schedule => {
-                                    *world.schedule_mut() = Default::default();
-                                    register_transform_probe(world, &probe);
-                                }
-                            }
+                        // SAFETY: This retires the current World or schedule. Remaining work is
+                        // counter-only scheduling; replacement history is never adopted.
+                        unsafe {
+                            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                                move |world, _| {
+                                    assert_eq!(first.fetch_add(1, Ordering::SeqCst), 0);
+                                    match target {
+                                        LifecycleTargetChange::World => {
+                                            let replacement = replacement.lock().unwrap().take().unwrap();
+                                            *retained
+                                                .upgrade()
+                                                .expect("old World owner remains alive")
+                                                .lock()
+                                                .unwrap() = Some(std::mem::replace(world, replacement));
+                                        }
+                                        LifecycleTargetChange::Schedule => {
+                                            *world.schedule_mut() = Default::default();
+                                            register_transform_probe(world, &probe);
+                                        }
+                                    }
+                                },
+                            )
                         },
                     );
                     world.observe_component_lifecycle::<Name>(
                         LifecycleEventKind::Add,
-                        move |_, _| {
-                            stale.fetch_add(1, Ordering::SeqCst);
+                        // SAFETY: Only an external atomic counter changes; retained World
+                        // payload and dynamic JSON are untouched.
+                        unsafe {
+                            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                                move |_, _| {
+                                    stale.fetch_add(1, Ordering::SeqCst);
+                                },
+                            )
                         },
                     );
                 });

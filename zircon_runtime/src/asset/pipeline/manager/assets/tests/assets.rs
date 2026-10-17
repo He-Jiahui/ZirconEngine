@@ -1,33 +1,33 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use crossbeam_channel::unbounded;
-
-use super::{ProjectAssetChangeSubscriber, ProjectAssetManager};
+use super::ProjectAssetManager;
 use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::asset::AssetUri;
 
 #[test]
 fn delivered_asset_change_invokes_the_subscription_wake() {
-    let (sender, receiver) = unbounded();
+    let manager = ProjectAssetManager::default();
     let wake_count = Arc::new(AtomicUsize::new(0));
     let wake_count_for_callback = Arc::clone(&wake_count);
-    let subscriber = ProjectAssetChangeSubscriber::new(
-        sender,
-        Some(Arc::new(move || {
-            wake_count_for_callback.fetch_add(1, Ordering::Relaxed);
-        })),
-    );
+    let receiver = manager.subscribe_asset_changes_internal(Some(Arc::new(move || {
+        wake_count_for_callback.fetch_add(1, Ordering::Relaxed);
+    })));
     let change = AssetChange::new(
         AssetChangeKind::Modified,
         AssetUri::parse("res://textures/albedo.png").unwrap(),
         None,
     );
 
-    assert!(subscriber.send(change));
-    subscriber.wake();
+    let generation = manager.project_generation_write();
+    manager.publish_project_generation(generation, vec![change.clone()]);
 
     assert_eq!(receiver.len(), 1);
+    let delivered = receiver
+        .try_recv()
+        .expect("published change must be delivered");
+    assert_eq!(delivered.kind, change.kind);
+    assert_eq!(delivered.uri, change.uri);
     assert_eq!(wake_count.load(Ordering::Relaxed), 1);
 }
 

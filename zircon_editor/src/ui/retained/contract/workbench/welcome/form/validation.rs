@@ -3,6 +3,7 @@ use super::super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::super::paint_primitives::draw_rounded_rect_clipped;
 use super::super::super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::super::super::paint_theme::current_host_metrics;
+#[cfg(test)]
 use super::super::super::style::{WELCOME_SUCCESS, WELCOME_WARNING};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -22,9 +23,9 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_validation(
         "Enter a project name and location"
     };
     let color = if pane.welcome.form.can_create {
-        WELCOME_SUCCESS
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().success
     } else {
-        WELCOME_WARNING
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().warning
     };
     let metrics = current_host_metrics();
     let marker_size = metrics.gap_m.min(validation.height.max(0.0));

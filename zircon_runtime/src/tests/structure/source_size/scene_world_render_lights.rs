@@ -5,14 +5,14 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 fn runtime_15_scene_world_render_light_collectors_are_child_owner() {
     let parent = read_runtime_src("scene/world/render.rs");
     let lights = read_runtime_src("scene/world/render/lights.rs");
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let render_extract_doc = read_repo("docs/zircon_runtime/scene/render_extract.md");
-    let render_submit_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _render_extract_doc = read_repo("docs/zircon_runtime/scene/render_extract.md");
+    let _render_submit_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert_contains_all(
         "scene world render parent keeps frame extract orchestration and shared layer helper",

@@ -11,6 +11,7 @@ use crate::core::TaskPool;
 #[cfg(test)]
 use crate::core::{math::UVec2, resource::ResourceId};
 #[cfg(test)]
+#[cfg(feature = "native-host")]
 use crate::graphics::shader::ShaderVariantCacheDisk;
 
 use super::super::environment_capture_scheduler::{
@@ -25,12 +26,28 @@ pub(in crate::graphics::runtime::render_framework) struct WgpuRenderFrameworkCor
     pub(in crate::graphics::runtime::render_framework) device_fault_gate:
         Arc<zr_rhi::DeviceFaultGate>,
     pub(in crate::graphics::runtime::render_framework) state: Mutex<RenderFrameworkState>,
+    pub(in crate::graphics::runtime::render_framework) virtual_geometry_readback_budget:
+        Arc<crate::graphics::scene::VirtualGeometryReadbackBudget>,
     pub(in crate::graphics::runtime::render_framework) operation_lock: Mutex<()>,
     pub(in crate::graphics::runtime::render_framework) compute_task_pool: TaskPool,
     pub(in crate::graphics::runtime::render_framework) planar_reflection_updates:
         Mutex<PlanarReflectionUpdateState>,
     pub(in crate::graphics::runtime::render_framework) environment_captures:
         Mutex<EnvironmentCaptureScheduler>,
+    #[cfg(feature = "test-support")]
+    pub(in crate::graphics::runtime::render_framework) compiled_pipeline_override:
+        Mutex<Option<TestCompiledVirtualGeometryOverride>>,
+}
+
+#[cfg(feature = "test-support")]
+pub(in crate::graphics::runtime::render_framework) struct TestCompiledVirtualGeometryOverride {
+    pub(in crate::graphics::runtime::render_framework) viewport:
+        crate::core::framework::render::RenderViewportHandle,
+    pub(in crate::graphics::runtime::render_framework) viewport_generation: u64,
+    pub(in crate::graphics::runtime::render_framework) pipeline:
+        Arc<crate::graphics::CompiledRenderPipeline>,
+    pub(in crate::graphics::runtime::render_framework) inputs:
+        crate::core::framework::render::RenderVirtualGeometryExecutionInputs,
 }
 
 pub struct WgpuRenderFramework {
@@ -46,6 +63,11 @@ pub(in crate::graphics::runtime::render_framework) trait WgpuRenderFrameworkAcce
     fn lock_state(&self) -> MutexGuard<'_, RenderFrameworkState>;
     fn lock_planar_reflection_updates(&self) -> MutexGuard<'_, PlanarReflectionUpdateState>;
     fn compute_task_pool(&self) -> &TaskPool;
+    fn virtual_geometry_readback_budget(
+        &self,
+    ) -> &Arc<crate::graphics::scene::VirtualGeometryReadbackBudget>;
+    #[cfg(feature = "test-support")]
+    fn take_test_compiled_pipeline_override(&self) -> Option<TestCompiledVirtualGeometryOverride>;
     fn begin_environment_capture_work_item(&self) -> Option<EnvironmentCaptureWorkItem>;
     fn advance_environment_capture_work_item(
         &self,
@@ -67,6 +89,42 @@ pub(in crate::graphics::runtime::render_framework) trait WgpuRenderFrameworkAcce
 }
 
 impl WgpuRenderFrameworkCore {
+    #[cfg(feature = "test-support")]
+    pub(in crate::graphics::runtime::render_framework) fn arm_test_virtual_geometry_override(
+        &self,
+        viewport: crate::core::framework::render::RenderViewportHandle,
+        viewport_generation: u64,
+        pipeline: &crate::graphics::CompiledRenderPipeline,
+        inputs: crate::core::framework::render::RenderVirtualGeometryExecutionInputs,
+    ) -> Result<(), RenderFrameworkError> {
+        let mut pending = self
+            .compiled_pipeline_override
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        if pending.is_some() {
+            return Err(RenderFrameworkError::UnsupportedCapability {
+                capability: "compiled virtual geometry override already armed".to_string(),
+            });
+        }
+        *pending = Some(TestCompiledVirtualGeometryOverride {
+            viewport,
+            viewport_generation,
+            pipeline: Arc::new(pipeline.clone()),
+            inputs,
+        });
+        Ok(())
+    }
+
+    #[cfg(feature = "test-support")]
+    pub(in crate::graphics::runtime::render_framework) fn take_test_compiled_pipeline_override(
+        &self,
+    ) -> Option<TestCompiledVirtualGeometryOverride> {
+        self.compiled_pipeline_override
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take()
+    }
+
     pub(in crate::graphics::runtime::render_framework) fn ensure_device_admission(
         &self,
     ) -> Result<(), RenderFrameworkError> {
@@ -122,6 +180,17 @@ impl WgpuRenderFrameworkAccess for WgpuRenderFrameworkCore {
 
     fn compute_task_pool(&self) -> &TaskPool {
         &self.compute_task_pool
+    }
+
+    fn virtual_geometry_readback_budget(
+        &self,
+    ) -> &Arc<crate::graphics::scene::VirtualGeometryReadbackBudget> {
+        &self.virtual_geometry_readback_budget
+    }
+
+    #[cfg(feature = "test-support")]
+    fn take_test_compiled_pipeline_override(&self) -> Option<TestCompiledVirtualGeometryOverride> {
+        WgpuRenderFrameworkCore::take_test_compiled_pipeline_override(self)
     }
 
     fn begin_environment_capture_work_item(&self) -> Option<EnvironmentCaptureWorkItem> {
@@ -182,6 +251,17 @@ impl WgpuRenderFrameworkAccess for WgpuRenderFramework {
 
     fn compute_task_pool(&self) -> &TaskPool {
         &self.core.compute_task_pool
+    }
+
+    fn virtual_geometry_readback_budget(
+        &self,
+    ) -> &Arc<crate::graphics::scene::VirtualGeometryReadbackBudget> {
+        &self.core.virtual_geometry_readback_budget
+    }
+
+    #[cfg(feature = "test-support")]
+    fn take_test_compiled_pipeline_override(&self) -> Option<TestCompiledVirtualGeometryOverride> {
+        self.core.take_test_compiled_pipeline_override()
     }
 
     fn begin_environment_capture_work_item(&self) -> Option<EnvironmentCaptureWorkItem> {
@@ -552,6 +632,7 @@ impl WgpuRenderFramework {
     }
 
     #[cfg(test)]
+    #[cfg(feature = "native-host")]
     pub(crate) fn replace_shader_variant_disk_cache_for_tests(
         &self,
         cache: ShaderVariantCacheDisk,

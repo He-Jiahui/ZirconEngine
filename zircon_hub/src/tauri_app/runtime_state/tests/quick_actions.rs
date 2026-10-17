@@ -31,12 +31,10 @@ fn package_action_creates_project_package_and_records_success_history() {
         .as_ref()
         .expect("package action should record package output dir");
     assert!(package_dir.join("zircon-package.toml").is_file());
-    assert!(
-        package_dir
-            .join("project")
-            .join("zircon-project.toml")
-            .is_file()
-    );
+    assert!(package_dir
+        .join("project")
+        .join("zircon-project.toml")
+        .is_file());
 
     fs::remove_dir_all(temp).unwrap();
 }
@@ -68,12 +66,10 @@ fn install_action_packages_project_then_copies_package_to_device_root() {
         .as_ref()
         .expect("install action should record install dir");
     assert!(install_dir.join("zircon-package.toml").is_file());
-    assert!(
-        install_dir
-            .join("project")
-            .join("zircon-project.toml")
-            .is_file()
-    );
+    assert!(install_dir
+        .join("project")
+        .join("zircon-project.toml")
+        .is_file());
 
     fs::remove_dir_all(temp).unwrap();
 }

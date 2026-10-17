@@ -48,9 +48,15 @@ impl ProjectAssetManager {
             asset_importers: Arc::new(RwLock::new(AssetImporter::default().registry().clone())),
             resource_manager: resource_manager_with_builtins(),
             residency_stripes: Arc::new(std::array::from_fn(|_| Mutex::new(()))),
-            change_subscribers: Arc::new(Mutex::new(Vec::new())),
+            change_events: crate::asset::watch::AssetEventLog::new(
+                crate::asset::watch::CHANGE_LOG_LIMITS.0,
+                crate::asset::watch::CHANGE_LOG_LIMITS.1,
+            ),
             generation_wake_subscribers: Arc::new(Mutex::new(Vec::new())),
-            watch_error_subscribers: Arc::new(Mutex::new(Vec::new())),
+            watch_errors: crate::asset::watch::AssetEventLog::new(
+                crate::asset::watch::ERROR_LOG_LIMITS.0,
+                crate::asset::watch::ERROR_LOG_LIMITS.1,
+            ),
             watcher_activation: Arc::new(Mutex::new(Option::<Arc<ProjectWatcherActivation>>::None)),
             watcher_admission: Arc::new(Default::default()),
             watch_refresh_gate: Arc::new(Mutex::new(())),

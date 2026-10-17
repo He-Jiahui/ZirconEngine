@@ -31,9 +31,9 @@ if (!params.SESSION_ID || !params.REQUEST_ID || !params.ATTEMPT_ID || !params.GE
 try {
     stage('Managed execution') {
         def result = invokeControl('run-execution', [identity: identity, executionId: executionId, recipeRef: recipeRef])
-        for (int poll = 0; result.status in ['pending', 'running', 'waiting', 'ready'] && poll < 120; poll++) {
+        for (int poll = 0; result.status in ['pending', 'running', 'waiting', 'ready', 'reconciling'] && poll < 120; poll++) {
             sleep(time: Math.min(30, 2 + poll.intdiv(4)), unit: 'SECONDS')
-            if (result.status in ['pending', 'waiting', 'ready']) {
+            if (result.status in ['pending', 'waiting', 'ready', 'reconciling']) {
                 invokeControl('reconcile-execution', [identity: identity, executionId: executionId, recipeRef: recipeRef])
             }
             result = invokeControl('observe-execution', [identity: identity, executionId: executionId, recipeRef: recipeRef])

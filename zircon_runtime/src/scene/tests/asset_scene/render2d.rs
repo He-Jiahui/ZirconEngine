@@ -28,7 +28,9 @@ fn scene_assets_roundtrip_sprite_and_mesh2d_through_project_reimport_and_render_
     let root = unique_temp_project_root("scene_2d_project_reopen");
     let mut project = create_test_project(&root);
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
-    let mut world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
+    let (mut world, source_revision) = World::load_scene_document(&project, &scene_uri)
+        .unwrap()
+        .into_parts();
 
     // Older canonical documents have no 2D table and continue to load as absent components.
     assert!(world.nodes().iter().all(|node| {
@@ -118,7 +120,9 @@ fn scene_assets_roundtrip_sprite_and_mesh2d_through_project_reimport_and_render_
         ]
     );
 
-    world.save_scene_to_project(&project, &scene_uri).unwrap();
+    world
+        .save_scene_to_project(&project, &scene_uri, &source_revision)
+        .unwrap();
     let source_path = project
         .existing_or_primary_project_source_path_for_uri(&scene_uri)
         .unwrap();

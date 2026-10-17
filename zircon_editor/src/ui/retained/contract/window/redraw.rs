@@ -25,9 +25,7 @@ impl UiHostWindow {
     pub(crate) fn background_event_wake_callback(
         &self,
     ) -> zircon_runtime::core::framework::channel::ChannelWakeCallback {
-        capture_trace::wake_callback(
-            "editor_background_subscription", self.event_wake.callback(),
-        )
+        capture_trace::wake_callback("editor_background_subscription", self.event_wake.callback())
     }
 
     pub(crate) fn background_visual_asset_wake_callback(
@@ -295,8 +293,12 @@ impl UiHostWindow {
         }
         let mut state = self.state.borrow_mut();
         capture_trace::record("external_redraw", || {
-            format!("owner={:#x} cursor={:?} existing={:?} next={redraw:?}",
-                &*state as *const _ as usize, state.presentation_generation().cursor(), state.external_redraw_request)
+            format!(
+                "owner={:#x} cursor={:?} existing={:?} next={redraw:?}",
+                &*state as *const _ as usize,
+                state.presentation_generation().cursor(),
+                state.external_redraw_request
+            )
         });
         let existing = std::mem::replace(
             &mut state.external_redraw_request,

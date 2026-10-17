@@ -13,5 +13,7 @@ zircon_runtime = { workspace = true }
 
 [dev-dependencies]
 pollster = "0.4.0"
+toml.workspace = true
 image.workspace = true
 zircon_runtime = { workspace = true, features = ["graphics", "test-support"] }
+zircon_runtime_interface.workspace = true

@@ -33,21 +33,34 @@ impl PoseTargetBindings {
 #[derive(Debug)]
 struct PoseTargetBinding {
     index: CompiledDescendantNameIndex,
-    exact_names: BTreeMap<Box<str>, EntityId>,
-    short_names: BTreeMap<Box<str>, EntityId>,
+    exact_names: BTreeMap<Box<str>, Option<EntityId>>,
+    short_names: BTreeMap<Box<str>, Option<EntityId>>,
 }
 
 impl From<CompiledDescendantNameIndex> for PoseTargetBinding {
     fn from(index: CompiledDescendantNameIndex) -> Self {
-        let mut exact_names = BTreeMap::new();
-        let mut short_names = BTreeMap::new();
+        let mut exact_names = BTreeMap::<Box<str>, Option<EntityId>>::new();
+        let mut short_names = BTreeMap::<Box<str>, Option<EntityId>>::new();
         for entry in index.entries() {
             exact_names
                 .entry(entry.name().into())
-                .or_insert(entry.entity());
+                .and_modify(|entity| *entity = None)
+                .or_insert(Some(entry.entity()));
             let alias = short_node_name(entry.name());
             if alias != entry.name() {
-                short_names.entry(alias.into()).or_insert(entry.entity());
+                short_names
+                    .entry(alias.into())
+                    .and_modify(|entity| *entity = None)
+                    .or_insert(Some(entry.entity()));
+            }
+        }
+        // A plain exact name and a qualified alias can name different entities.
+        // Keep plain-only indices allocation-free while marking that collision ambiguous.
+        for (name, exact_entity) in &exact_names {
+            if let Some(alias_entity) = short_names.get_mut(name.as_ref()) {
+                if *alias_entity != *exact_entity {
+                    *alias_entity = None;
+                }
             }
         }
         Self {
@@ -59,7 +72,6 @@ impl From<CompiledDescendantNameIndex> for PoseTargetBinding {
 }
 
 impl PoseTargetBinding {
-    // BUG: [CR-PLUGIN-ANIMATION-0003] 合法骨架若有重复短骨名，写回阶段仅凭 name 查首个后代，不同骨的姿态会写到同一节点；证据：pose_apply.rs 的逐骨 resolve 与目标表的完整路径身份。
     fn resolve(&self, bone_name: &str) -> Option<EntityId> {
         let trimmed = bone_name.trim();
         if trimmed.is_empty() {
@@ -74,8 +86,15 @@ impl PoseTargetBinding {
             if candidates[..index].contains(&candidate) {
                 continue;
             }
-            if let Some(entity) = self.exact_names.get(candidate).copied() {
-                return Some(entity);
+            if let Some(entity) = self.exact_names.get(candidate) {
+                if self
+                    .short_names
+                    .get(candidate)
+                    .is_some_and(|alias| alias != entity)
+                {
+                    return None;
+                }
+                return *entity;
             }
         }
         for index in 0..candidates.len() {
@@ -83,8 +102,8 @@ impl PoseTargetBinding {
             if candidates[..index].contains(&candidate) {
                 continue;
             }
-            if let Some(entity) = self.short_names.get(candidate).copied() {
-                return Some(entity);
+            if let Some(entity) = self.short_names.get(candidate) {
+                return *entity;
             }
         }
         None

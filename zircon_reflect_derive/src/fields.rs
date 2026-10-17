@@ -348,6 +348,15 @@ fn slot_literal(index: usize) -> LitInt {
 /// 从一个未跳过的 Rust 字段构造反射字段，优先使用显式类型路径，必要时才推断。
 ///
 /// `index` 是原始结构体字段索引，因此 tuple 字段在跳过前仍保留正确成员编号；输出槽位随后按收集结果压紧。
+///
+/// # 使用时机与生命周期
+/// `collect_fields` 在排除 `skip` 字段后逐项调用；返回记录只参与本次 derive 的元数据和访问分支生成。
+///
+/// # 参数
+/// `field` 是原始 Rust 字段，`attributes` 是已解析的字段选项，`index` 是过滤前的声明序号。
+///
+/// # 返回值
+/// 返回带成员、Rust 类型和值类型路径的规范字段；空名称、空显式类型路径、无法推断的类型或无效提示会返回带字段位置的 `syn::Error`。
 fn reflected_field(
     field: &Field,
     index: usize,
@@ -396,6 +405,15 @@ fn reflected_field(
 /// 合并字段名、身份键、类型路径和编辑器提示，生成元数据及访问器共享的字段记录。
 ///
 /// `member` 与 `ty` 同时为 `None` 表示虚拟字段；其读写由可选访问器路径处理。
+///
+/// # 使用时机与生命周期
+/// `collect_virtual_fields` 和 `reflected_field` 共用此构造步骤；结果只保存在当前展开的规范字段序列中。
+///
+/// # 参数
+/// `name`、`value_type_path` 和 `attributes` 提供解析后的字段配置，`member` 与 `ty` 描述实体成员，`span` 用于提示名错误定位。
+///
+/// # 返回值
+/// 返回供元数据及访问分支共用的字段记录；缺省身份键取字段名，提示缺省时按值类型推导，可序列化和编辑器可见默认均为 `true`；不支持的提示返回 `syn::Error`。
 fn build_reflected_field(
     name: String,
     member: Option<Member>,
@@ -485,6 +503,8 @@ fn inferred_editor_hint(value_type_path: &str) -> &'static str {
 }
 
 /// 验证提示名属于 runtime-interface 的 `ReflectEditorHint` 变体集合并生成同名标识符。
+///
+/// `span` 用作不支持提示名的编译错误位置；名称受支持时返回可插入 token 的 `syn::Ident`。
 fn parse_editor_hint(name: &str, span: proc_macro2::Span) -> syn::Result<syn::Ident> {
     const SUPPORTED: &[&str] = &[
         "None",

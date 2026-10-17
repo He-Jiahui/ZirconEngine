@@ -5,7 +5,7 @@ mod publication;
 mod trigger;
 
 pub use publication::{
-    ReflectionProbeCaptureProjectPublicationError, publish_reflection_probe_capture_source,
+    publish_reflection_probe_capture_source, ReflectionProbeCaptureProjectPublicationError,
 };
 pub use trigger::{
     ReflectionProbeCaptureEditorCommand, ReflectionProbeCaptureEditorCommandError,

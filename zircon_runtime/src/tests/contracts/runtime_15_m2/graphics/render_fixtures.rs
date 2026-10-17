@@ -5,15 +5,11 @@ use super::*;
 fn runtime_15_render_feature_fallback_capability_fixtures_use_current_names() {
     let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let submission_features = read_text(
-        &manifest_root.join(
-            "src/graphics/extract/submission/resolve_enabled_features.rs",
-        ),
+        &manifest_root.join("src/graphics/extract/submission/resolve_enabled_features.rs"),
         "render submission enabled-feature fixture source should be readable",
     );
     let runtime_features = read_text(
-        &manifest_root.join(
-            "src/graphics/scene/core/runtime_features/from_pipeline.rs",
-        ),
+        &manifest_root.join("src/graphics/scene/core/runtime_features/from_pipeline.rs"),
         "scene renderer runtime-feature fixture source should be readable",
     );
     let runtime_15_plan = read_repo_text(
@@ -93,8 +89,7 @@ fn runtime_15_render_feature_fallback_capability_fixtures_use_current_names() {
 fn runtime_15_render_material_stale_texture_fixtures_use_current_names() {
     let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let material_runtime = read_text(
-        &manifest_root
-            .join("src/graphics/scene/tests/material_runtime.rs"),
+        &manifest_root.join("src/graphics/scene/tests/material_runtime.rs"),
         "render product material runtime fixture source should be readable",
     );
     let runtime_15_plan = read_repo_text(
@@ -175,21 +170,15 @@ fn runtime_15_render_material_stale_texture_fixtures_use_current_names() {
 fn runtime_15_render_graph_fallback_fixtures_use_current_names() {
     let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let advanced_resources = read_text(
-        &manifest_root.join(
-            "src/graphics/core/core/resources/advanced_plugin_resources.rs",
-        ),
+        &manifest_root.join("src/graphics/core/core/resources/advanced_plugin_resources.rs"),
         "advanced plugin resources fixture source should be readable",
     );
     let compute_workload = read_text(
-        &manifest_root.join(
-            "src/graphics/render_graph_execution_record/compute_workload.rs",
-        ),
+        &manifest_root.join("src/graphics/render_graph_execution_record/compute_workload.rs"),
         "render graph compute workload fixture source should be readable",
     );
     let compute_workload_tests = read_text(
-        &manifest_root.join(
-            "src/graphics/scene/renderer/tests/compute_workload_cases.rs",
-        ),
+        &manifest_root.join("src/graphics/scene/renderer/tests/compute_workload_cases.rs"),
         "render graph compute workload test fixture source should be readable",
     );
     let runtime_15_plan = read_repo_text(

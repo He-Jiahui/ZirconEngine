@@ -1,12 +1,10 @@
 //! 普通及确认对话框共用尺寸token，并保留各自必要覆盖。
 const EDITOR_TOKENS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
-const DIALOG_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/workbench/primitives/feedback/dialog.zui"
-);
-const CONFIRM_DIALOG_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/workbench/primitives/feedback/confirm_dialog.zui"
-);
+const DIALOG_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/workbench/primitives/feedback/dialog.zui");
+const CONFIRM_DIALOG_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/workbench/primitives/feedback/confirm_dialog.zui");
 
 #[test]
 /// 确保变体从共享主题取得尺寸而非复制像素边界；这是静态资产约束，不验证模态焦点。

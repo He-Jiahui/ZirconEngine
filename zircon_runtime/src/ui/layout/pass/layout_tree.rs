@@ -1,4 +1,4 @@
-use std::time::Instant;
+use web_time::Instant;
 
 use zircon_runtime_interface::ui::layout::{UiFrame, UiLayoutEngineSelectionReport, UiSize};
 use zircon_runtime_interface::ui::tree::{UiTree, UiTreeError};
@@ -15,6 +15,20 @@ use super::slot::UiLayoutSlotIndex;
 
 /// Runs a standalone layout pass with one process-default compatibility text cache.
 /// Retained product surfaces call the owner-aware layout pass with their existing cache.
+///
+/// 对可独立计算的树执行响应式解析、全树测量和根安排，并返回本次后端选择报告。
+///
+/// # 参数
+/// - `tree`：原地更新的树；根、父子边及节点引用应满足 `UiTree` 的结构契约。
+/// - `root_size`：每个根的可用布局尺寸；安排根时将负宽高钳到零。
+///
+/// # 返回与失败
+/// 成功返回后端选择诊断，几何结果写入 `tree`。错误可能发生在部分节点已经更新之后，
+/// 调用方不能用旧报告推断树仍是旧几何。
+///
+/// # 生命周期与参考
+/// 文本缓存和槽位索引只服务本次调用；普通 `Result` 返回前结束文本缓存帧。
+/// 长期持有的表面使用 `compute_layout_tree_with_text_measure_cache_and_slot_index` 复用所属缓存。
 pub fn compute_layout_tree(
     tree: &mut UiTree,
     root_size: UiSize,
@@ -41,6 +55,18 @@ fn compute_layout_tree_with_text_measure_cache(
     )
 }
 
+/// 使用表面持有的文本缓存和索引执行完整布局，供完整重建路径调用。
+///
+/// # 参数与顺序
+/// `tree` 和 `root_size` 是待发布几何的树与根尺寸；`text_measure_cache`、`slot_index`
+/// 由同一布局所有者跨调用保留。先解析响应式属性并重建索引，再测量所有根、安排根和内联组件。
+///
+/// # 返回与生命周期
+/// 返回本次选择报告或结构错误；错误不回滚已经写入的树状态。
+/// 本入口不开始或结束文本缓存帧，帧边界由表面调用方管理。
+///
+/// # 参考
+/// 独立调用使用 `compute_layout_tree`；增量重建使用 `super::compute_incremental_layout_tree_with_text_measure_cache`。
 pub(crate) fn compute_layout_tree_with_text_measure_cache_and_slot_index(
     tree: &mut UiTree,
     root_size: UiSize,

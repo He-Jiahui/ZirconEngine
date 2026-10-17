@@ -101,6 +101,7 @@ pub use host::{
     ZrRuntimeClipboardHostRequestV1, ZrRuntimeClipboardResultV1, ZrRuntimeCursorGrabModeV1,
     ZrRuntimeCursorHostRequestKindV1, ZrRuntimeCursorHostRequestV1, ZrRuntimeCursorPositionV1,
     ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
+    ZrRuntimeGamepadRumbleRequestV2,
     ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimeImeCoordinateSpaceV1,
     ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1, ZrRuntimeImeHostRequestV1,
     ZrRuntimeImeSurroundingTextV1, ZrRuntimeImeTextRangeV1,
@@ -112,6 +113,9 @@ pub use host::{
 
 // Session lifecycle, event, operation, plugin event, and viewport contracts.
 pub use session::{
+    ZrRuntimeGamepadGenerationV2, ZrRuntimeGamepadGenerationV2Error,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V2, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V2,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V2, ZR_RUNTIME_GAMEPAD_GENERATION_V2_HEADER_BYTES,
     GatewaySessionIdentity, ZrRuntimeAccessibilityTreeRequestV1,
     ZrRuntimeAppSessionConfigurationError, ZrRuntimeAppSessionConfigurationV2,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeDrainPluginEventsFnV2,

@@ -1,3 +1,5 @@
+//! 手工 DTO 的源映射与编辑装饰几何回归用例。
+//! 直接指定视觉文本、run 和度量，不经过真实整形，也不作为分配或性能验收。
 use super::source_map::*;
 use super::*;
 use crate::ui::{
@@ -9,6 +11,7 @@ use crate::ui::{
     },
 };
 
+/// 手工固定混合方向的视觉顺序与源区间，供多个边界投影用例复用。
 fn mixed_bidi_line() -> UiResolvedTextLine {
     UiResolvedTextLine {
         text: "abc בא".to_string(),
@@ -30,6 +33,7 @@ fn mixed_bidi_line() -> UiResolvedTextLine {
 }
 
 #[test]
+/// 同一逻辑边界因亲和性映射到不同视觉字节边缘，再使用手工度量换算 advance。
 fn mixed_bidi_logical_boundary_affinity_selects_distinct_visual_edges() {
     let line = mixed_bidi_line();
     let map = UiTextLineSourceMap::new(&line);
@@ -50,6 +54,7 @@ fn mixed_bidi_logical_boundary_affinity_selects_distinct_visual_edges() {
 }
 
 #[test]
+/// 用非等宽度量检查多字节及组合字素的视觉字节边界，而非字素序号。
 fn visual_advance_prefix_preserves_non_uniform_grapheme_boundaries() {
     let line = UiResolvedTextLine {
         text: "a\u{754c}e\u{301}".to_string(),
@@ -80,6 +85,7 @@ fn visual_advance_prefix_preserves_non_uniform_grapheme_boundaries() {
 }
 
 #[test]
+/// 手工度量覆盖预编辑高亮、分从句下划线及光标的颜色与几何。
 fn text_ime_preedit_span_injected_with_real_metrics() {
     let layout = UiResolvedTextLayout {
         lines: vec![UiResolvedTextLine {
@@ -172,6 +178,7 @@ fn text_ime_preedit_span_injected_with_real_metrics() {
 }
 
 #[test]
+/// 跨两行投影时保持组合高亮、选区及逐从句下划线的声明顺序。
 fn multiline_selection_and_preedit_clauses_preserve_paint_order() {
     let layout = UiResolvedTextLayout {
         lines: vec![
@@ -312,6 +319,7 @@ fn multiline_selection_and_preedit_clauses_preserve_paint_order() {
 }
 
 #[test]
+/// 从句区间按 UTF-8 源字节保存，避免多字节字符被当作一个字节。
 fn preedit_clauses_preserve_multibyte_utf8_source_ranges() {
     let layout = UiResolvedTextLayout {
         lines: vec![UiResolvedTextLine {
@@ -374,6 +382,7 @@ fn preedit_clauses_preserve_multibyte_utf8_source_ranges() {
 }
 
 #[test]
+/// 度量项数不匹配或含非法项时，内部位置回零，行尾使用已知宽度。
 fn invalid_glyph_advances_expose_only_known_line_endpoints() {
     let invalid_lines = [
         UiResolvedTextLine {
@@ -415,6 +424,7 @@ fn invalid_glyph_advances_expose_only_known_line_endpoints() {
 }
 
 #[test]
+/// 等长 LTR run 的内部源边界在亲和性、命中回映和选区投影间保持一致。
 fn isomorphic_single_run_preserves_internal_ltr_caret_and_selection_offsets() {
     let line = mixed_bidi_line();
     let map = UiTextLineSourceMap::new(&line);
@@ -463,6 +473,7 @@ fn isomorphic_single_run_preserves_internal_ltr_caret_and_selection_offsets() {
 }
 
 #[test]
+/// 等长 RTL run 反转源边缘方向，同时保留内部字节位置的往返结果。
 fn isomorphic_single_rtl_run_reverses_internal_source_offsets() {
     let line = UiResolvedTextLine {
         text: "\u{5d1}\u{5d0}".to_string(),
@@ -512,6 +523,7 @@ fn isomorphic_single_rtl_run_reverses_internal_source_offsets() {
 }
 
 #[test]
+/// 同一源区间可投影成两个分离视觉片段，不强求视觉连续。
 fn mixed_bidi_source_range_projects_discontiguous_visual_spans() {
     let line = mixed_bidi_line();
     let map = UiTextLineSourceMap::new(&line);
@@ -530,6 +542,7 @@ fn mixed_bidi_source_range_projects_discontiguous_visual_spans() {
 }
 
 #[test]
+/// 用簇边界索引检查视觉前后缘恢复的 RTL 源端点和亲和性。
 fn visual_rtl_edges_round_trip_to_logical_offsets_and_affinity() {
     let line = mixed_bidi_line();
     let map = UiTextLineSourceMap::new(&line);
@@ -559,6 +572,7 @@ fn visual_rtl_edges_round_trip_to_logical_offsets_and_affinity() {
 }
 
 #[test]
+/// 视觉与源跨度不等时，内部光标按亲和性吸附整个 run 的逻辑边缘。
 fn non_isomorphic_multi_grapheme_caret_snaps_to_whole_run_edges() {
     let line = UiResolvedTextLine {
         text: "..".to_string(),
@@ -592,6 +606,7 @@ fn non_isomorphic_multi_grapheme_caret_snaps_to_whole_run_edges() {
 }
 
 #[test]
+/// 跨 run 的组合字符仍聚为一簇，本例只检查该簇两端的命中边界。
 fn combining_grapheme_split_across_runs_keeps_one_cluster_and_legal_caret_edges() {
     let line = UiResolvedTextLine {
         text: "a\u{0301}".to_string(),
@@ -648,6 +663,7 @@ fn combining_grapheme_split_across_runs_keeps_one_cluster_and_legal_caret_edges(
     );
 }
 
+/// 原样拥有文本并填充两种字节区间，不替手工夹具验证 DTO 一致性。
 fn run(
     text: &str,
     source_start: usize,

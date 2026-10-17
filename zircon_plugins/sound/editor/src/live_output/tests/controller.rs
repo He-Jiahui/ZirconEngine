@@ -38,9 +38,12 @@ fn live_output_actions_configure_start_stop_and_refresh() {
 
     let configure = controller.apply_action(SoundEditorOutputAction::Configure(cpal.clone()));
     assert!(configure.success, "{:?}", configure.error);
-    assert!(configure.snapshot.unwrap().devices.iter().any(|device| {
-        device.selected && device.descriptor.id.as_str() == cpal.id.as_str()
-    }));
+    assert!(configure
+        .snapshot
+        .unwrap()
+        .devices
+        .iter()
+        .any(|device| { device.selected && device.descriptor.id.as_str() == cpal.id.as_str() }));
 
     let start = controller.apply_action(SoundEditorOutputAction::Start);
     assert!(start.success, "{:?}", start.error);

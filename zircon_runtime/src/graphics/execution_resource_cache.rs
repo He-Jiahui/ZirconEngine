@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::core::framework::render::IblBakeArtifactRequest;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;

@@ -4,6 +4,19 @@ import { INPUT_CONTROL_STYLE_KEYS } from './zui-input-projection';
 import { SLIDER_STYLE_KEYS } from './zui-slider-projection';
 import { SEGMENTED_STYLE_KEYS } from './zui-segmented-projection';
 
+export const MATERIAL_LAYOUT_STYLE_KEYS = [
+  'layout_padding_left',
+  'layout_padding_right',
+  'layout_padding_top',
+  'layout_padding_bottom',
+  'layout_spacing',
+  'layout_min_width',
+  'layout_min_height',
+  'layout_icon_size',
+  'layout_leading_slot_width',
+  'layout_trailing_slot_width',
+] as const;
+
 function table(value: unknown): ZuiTable {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as ZuiTable)
@@ -140,6 +153,7 @@ function applyStyle(props: ZuiTable, style: ZuiTable): void {
     'font_family',
     'line_height',
     'line_height_ratio',
+    ...MATERIAL_LAYOUT_STYLE_KEYS,
     ...BUTTON_STATE_COLOR_KEYS,
     ...INPUT_CONTROL_STYLE_KEYS,
     ...SLIDER_STYLE_KEYS,

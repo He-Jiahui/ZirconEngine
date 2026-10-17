@@ -2,7 +2,8 @@
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
 use crate::graphics::scene::scene_renderer::post_process::POST_PROCESS_INTERMEDIATE_HDR_FORMAT;
 
-const TAA_RESOLVE_SHADER: &str = include_str!("../../scene/renderer/temporal/taa/shaders/taa_resolve.wgsl");
+const TAA_RESOLVE_SHADER: &str =
+    include_str!("../../scene/renderer/temporal/taa/shaders/taa_resolve.wgsl");
 const TAA_OUTPUT_FORMAT: wgpu::TextureFormat = POST_PROCESS_INTERMEDIATE_HDR_FORMAT;
 const TAA_HISTORY_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 

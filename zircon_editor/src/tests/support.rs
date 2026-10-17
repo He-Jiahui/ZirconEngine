@@ -107,8 +107,8 @@ pub(crate) fn register_test_editor_manager(
     use zircon_runtime::engine_module::factory;
 
     core.register_module(
-        ModuleDescriptor::new("EditorModule", "Editor manager test fixture")
-            .with_manager(ManagerDescriptor::new(
+        ModuleDescriptor::new("EditorModule", "Editor manager test fixture").with_manager(
+            ManagerDescriptor::new(
                 zircon_runtime::engine_module::qualified_name(
                     "EditorModule",
                     zircon_runtime::core::ServiceKind::Manager,
@@ -117,7 +117,8 @@ pub(crate) fn register_test_editor_manager(
                 StartupMode::Immediate,
                 Vec::new(),
                 factory(move |_| Ok(manager.clone() as ServiceObject)),
-            )),
+            ),
+        ),
     )
     .expect("fixture manager registration");
     core.activate_module("EditorModule")

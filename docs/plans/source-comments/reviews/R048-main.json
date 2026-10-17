@@ -1,0 +1,788 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R048",
+  "owner": "root",
+  "status": "independently-reviewed-local-pending-companion-and-managed-gates",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "formal_acceptance": false,
+  "fixed_records": {
+    "child": {
+      "path": "docs/plans/source-comments/reviews/R048.json",
+      "sha256": "7f1c89f0e291248ec38a857036c0eb7a5c609af96f6a70dde9bc3f963426c84a",
+      "bytes": 43510,
+      "version": "old367 source lines; kept immutable"
+    },
+    "amendment": {
+      "path": "docs/plans/source-comments/reviews/R048-comment-amendment.json",
+      "sha256": "f10dbabc51c8d6cd97ed5cbc68c1c9de5f6284a7b8d289b89a1fe9b35e587635",
+      "bytes": 17839,
+      "version": "all subsequent worker+root additions represented; exact original inverse"
+    }
+  },
+  "scope": {
+    "source_files": 2,
+    "changed_source_files": 2,
+    "source_lines_before": 356,
+    "source_lines_after": 409,
+    "added_physical_lines": 53,
+    "source_deletions": 0,
+    "files": [
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "before_sha256": "ad42b514d5bee3b5bac4d1e94e21c0d402ca8cbe344cacc51cf15352321d1bf5",
+        "historical_child_sha256": "a5dd085552581810273460f39d312f434a48813269127aa4fb4b3675760ed44c",
+        "worker_final_sha256": "8f4aeb1dbff6fbc9ea387cd00ff80a803c7986dec0b1b20f812ff2a6d218019a",
+        "current_sha256": "1eca8745e6fac3dae6ca0bbfe8fbbfa9c9c60d353c47b93680501f6e8a4c3a3b",
+        "before_bytes": 6333,
+        "current_bytes": 9759,
+        "before_lines": 188,
+        "current_lines": 237,
+        "all_original_bytes_preserved": true,
+        "head_blob_equals_grant": true,
+        "current_eol": {
+          "crlf": 0,
+          "lf_only": 237
+        }
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "before_sha256": "ec80690ed3c76ed7b5116d5d81d8a1251f98cf6805c390bf11c293160f561ec0",
+        "historical_child_sha256": "68e13afa01e7df34f3db60d84443f46f7a67c47fd88161eea12d526c17af7619",
+        "worker_final_sha256": "68e13afa01e7df34f3db60d84443f46f7a67c47fd88161eea12d526c17af7619",
+        "current_sha256": "68e13afa01e7df34f3db60d84443f46f7a67c47fd88161eea12d526c17af7619",
+        "before_bytes": 6721,
+        "current_bytes": 7065,
+        "before_lines": 168,
+        "current_lines": 172,
+        "all_original_bytes_preserved": true,
+        "head_blob_equals_grant": true,
+        "current_eol": {
+          "crlf": 0,
+          "lf_only": 172
+        }
+      }
+    ],
+    "named_declarations": [
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "line": 17,
+        "kind": "struct",
+        "name": "MaterialLayoutMetrics",
+        "root_review": "十项f32作者度量快照，Default零，不持有元数据引用；新增生命周期/约束/参见说明。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "line": 39,
+        "kind": "fn",
+        "name": "resolve",
+        "root_review": "识别十个作者键；键存在但值无效仍有作者度量，未命中才None。仅attributes和数值下界，正无穷未排除。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "line": 83,
+        "kind": "fn",
+        "name": "apply_to_content",
+        "root_review": "图标取决于调用方标志；间距另要求正内容宽度。宽含两槽/左右padding/尾宽，高为max(content,icon)+上下padding，最终只施加下界。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "line": 126,
+        "kind": "fn",
+        "name": "measure_material_content",
+        "root_review": "缺元数据或白名单外早退；Dropdown允许默认度量并强制走尾部装饰，其他组件需作者键；返回值拥有、借用不逃逸、无树写入。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "line": 155,
+        "kind": "fn",
+        "name": "dropdown_adornment_width",
+        "root_review": "style覆盖优先且存在无效覆盖遮蔽属性；只回退令牌。caret>0其他>=0，正无穷可过；临时闭包不保留借用。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "line": 172,
+        "kind": "fn",
+        "name": "supports_material_layout",
+        "root_review": "有限名称白名单，无动态组件注册；名称清楚不加机械说明。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "line": 217,
+        "kind": "fn",
+        "name": "has_icon_attribute",
+        "root_review": "四个键必须非空字符串；layout_icon_size自身不是图标源。IconButton正度量例外位于上层。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "line": 228,
+        "kind": "fn",
+        "name": "value_as_f32",
+        "root_review": "只接纳Float/Integer并cast到f32，其他None；不证明范围或有限性。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "line": 11,
+        "kind": "const",
+        "name": "PERF_MARKER",
+        "root_review": "PERF_MARKER为固定输出标记；MATCHES/SAMPLES为ignored基准局部参数，不成为本轮性能证据。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "line": 13,
+        "kind": "fn",
+        "name": "metadata",
+        "root_review": "Button+十项Float作者度量；Default两个map空，没有图标源；Owned夹具每次新建。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "line": 38,
+        "kind": "fn",
+        "name": "optimization_batch_20260830bm_runtime_material_metrics_preserves_results",
+        "root_review": "正常test，80x25对99x29静态夹具矛盾；保留代码/断言并贴有界BUG。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "line": 49,
+        "kind": "fn",
+        "name": "dropdown_measurement_reserves_explicit_native_caret_and_insets",
+        "root_review": "属性10+13+14+3=40，80宽变120；style caret20覆盖14后126。未执行。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "line": 74,
+        "kind": "fn",
+        "name": "dropdown_measurement_reserves_default_native_caret_and_insets",
+        "root_review": "无作者度量仍返回Some，四个默认令牌与生产相加边界相同；没有执行。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "line": 90,
+        "kind": "fn",
+        "name": "optimization_batch_20260830bm_runtime_material_metrics_source_contract",
+        "root_review": "include_str三个原始文本谓词，不等于执行布局；新增注释不贡献匹配。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "line": 99,
+        "kind": "fn",
+        "name": "optimization_batch_20260830bm_runtime_material_metrics_p95",
+        "root_review": "ignored，2M循环/17样本交错次序，比较该Float夹具而非所有Value；未测量性能。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "line": 100,
+        "kind": "const",
+        "name": "MATCHES",
+        "root_review": "PERF_MARKER为固定输出标记；MATCHES/SAMPLES为ignored基准局部参数，不成为本轮性能证据。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "line": 101,
+        "kind": "const",
+        "name": "SAMPLES",
+        "root_review": "PERF_MARKER为固定输出标记；MATCHES/SAMPLES为ignored基准局部参数，不成为本轮性能证据。"
+      }
+    ],
+    "field_audit": {
+      "MaterialLayoutMetrics": "十个f32度量字段逐项对照resolve赋值和apply消费；字段不持借用，Default全零，结构层文档足以解释共同约束。",
+      "field_names": [
+        "padding_left",
+        "padding_right",
+        "padding_top",
+        "padding_bottom",
+        "spacing",
+        "min_width",
+        "min_height",
+        "icon_size",
+        "leading_slot_width",
+        "trailing_slot_width"
+      ]
+    },
+    "test_functions": 5,
+    "ignored_tests": 1,
+    "continuous_partitions": [
+      {
+        "id": "R048-B001",
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "before_span": [
+          1,
+          5
+        ],
+        "current_span": [
+          1,
+          7
+        ],
+        "before_text_sha256": "fe0173767a70a49f424738fe11e370c2a3f3b53962f15f8878fefc8017faf70f",
+        "current_text_sha256": "b0cf57a40ab833da81245eabd4fd9b118597f806aa129cb1c0c51ffe05b9aa76",
+        "entry": "module documentation and imports",
+        "state_and_effect": "私有模块从调用方接收 UiTemplateNodeMetadata 与 UiSize。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B002",
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "before_span": [
+          6,
+          78
+        ],
+        "current_span": [
+          8,
+          106
+        ],
+        "before_text_sha256": "c77d292e28dc64c8448747562053eb43b773b2164fd0f6d22fe098b956971a30",
+        "current_text_sha256": "c0792f14716f157ecf72bb7e78ff76c8cb8e67f196752aef1dd99a117ac09a2d",
+        "entry": "MaterialLayoutMetrics struct and impl",
+        "state_and_effect": "两个私有方法均同步按值计算，不持有 metadata 引用。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B003",
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "before_span": [
+          79,
+          103
+        ],
+        "current_span": [
+          107,
+          148
+        ],
+        "before_text_sha256": "bd5d338506650b20efb08a6400934c4db0bc20df90f051a087430f9bc3dc91e0",
+        "current_text_sha256": "a96ca44fdc6fd523efbc69f6d06f6a8e18138cac51064a558ae3e10e0502da63",
+        "entry": "measure_material_content",
+        "state_and_effect": "返回 Option<UiSize>；数据借用仅在同步调用期间。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B004",
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "before_span": [
+          104,
+          122
+        ],
+        "current_span": [
+          149,
+          170
+        ],
+        "before_text_sha256": "fe9531fc7b08c5496f41534f1d48694b36bd6d9544e9946654a810e0a3402517",
+        "current_text_sha256": "406df398ea8469a8d9a6909ce7d58b068ab1accd6db06b335f8b5ea2f8a77ff4",
+        "entry": "dropdown_adornment_width",
+        "state_and_effect": "测量文本 lane 为 painter 的原生 caret 装饰预留水平空间。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B005",
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "before_span": [
+          123,
+          167
+        ],
+        "current_span": [
+          171,
+          215
+        ],
+        "before_text_sha256": "440421ca96440eefd0ef605cae267221009060cbc49385132418f3f17f54e4b2",
+        "current_text_sha256": "440421ca96440eefd0ef605cae267221009060cbc49385132418f3f17f54e4b2",
+        "entry": "supports_material_layout",
+        "state_and_effect": "未匹配名称提前返回 None；不存在运行时组件注册。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B006",
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "before_span": [
+          168,
+          177
+        ],
+        "current_span": [
+          216,
+          225
+        ],
+        "before_text_sha256": "e3998e4a6f9a8ea7a969824b47abb7d39600c322ebe17c2ea2638cd4efd4e822",
+        "current_text_sha256": "e3998e4a6f9a8ea7a969824b47abb7d39600c322ebe17c2ea2638cd4efd4e822",
+        "entry": "has_icon_attribute",
+        "state_and_effect": "layout_icon_size 单独不能让 Button 进入 icon 分支。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B007",
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "before_span": [
+          178,
+          188
+        ],
+        "current_span": [
+          226,
+          237
+        ],
+        "before_text_sha256": "718c71325cf7cca8dc06d63e9a09914733ac08c2438d851f2ad58046dd95a038",
+        "current_text_sha256": "8230bfa0af5f433b3ae75193af1e5a65b436c4a6da3d4582b5b47903db853625",
+        "entry": "numeric conversion and test module mount",
+        "state_and_effect": "当前范围无 ABI、FFI、Serde derive、插件/布局注册。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B008",
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "before_span": [
+          1,
+          10
+        ],
+        "current_span": [
+          1,
+          12
+        ],
+        "before_text_sha256": "12aa98261672d3f9932f828c1d99315b40500377c5c73a69b211088d0f2b88ea",
+        "current_text_sha256": "785afe7ba6e065a5c3b579a90ed2fbfa3aafb028157de255187fc1cf4832da18",
+        "entry": "test module/imports and PERF_MARKER",
+        "state_and_effect": "测试使用 toml::Value 与 UiTemplateNodeMetadata；未定义生产 API。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B009",
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "before_span": [
+          11,
+          33
+        ],
+        "current_span": [
+          13,
+          35
+        ],
+        "before_text_sha256": "0a72b3d363577f7e9c5186f77dab47164772c5915da0330199a0dd7f8f2e916c",
+        "current_text_sha256": "0a72b3d363577f7e9c5186f77dab47164772c5915da0330199a0dd7f8f2e916c",
+        "entry": "metadata fixture",
+        "state_and_effect": "Default 属性映射不含 icon/image/media/source；同时设 icon_size 不会构造图标载荷。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B010",
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "before_span": [
+          34,
+          42
+        ],
+        "current_span": [
+          36,
+          46
+        ],
+        "before_text_sha256": "728a50c8dfd6eed93dbcae495658561293237969edc6cc7da856c7ee709e5e46",
+        "current_text_sha256": "e56bdc6432df46921f23a481179fd20363f3f901a630b5595624cdfb1c3ef0a7",
+        "entry": "preserves_results fixture and assertion",
+        "state_and_effect": "实际代码路径对应 80×25，测试断言与传入 fixture 不符；断言未修改。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B011",
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "before_span": [
+          43,
+          67
+        ],
+        "current_span": [
+          47,
+          71
+        ],
+        "before_text_sha256": "275df243672cd982bea5fbd91158c4534f6488458cb10ebc7e83c3f26c5f065d",
+        "current_text_sha256": "275df243672cd982bea5fbd91158c4534f6488458cb10ebc7e83c3f26c5f065d",
+        "entry": "explicit Dropdown adornment test",
+        "state_and_effect": "断言 120 与 126 分别对应属性和覆盖后的额外宽度。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B012",
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "before_span": [
+          68,
+          83
+        ],
+        "current_span": [
+          72,
+          87
+        ],
+        "before_text_sha256": "3a226f1f36ebbead57bc1e2dced1101880024cce9bdab24c66c1ce747331e3ad",
+        "current_text_sha256": "3a226f1f36ebbead57bc1e2dced1101880024cce9bdab24c66c1ce747331e3ad",
+        "entry": "default Dropdown test",
+        "state_and_effect": "支撑 Dropdown 无 layout_* 时仍返回尺寸的例外。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B013",
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "before_span": [
+          84,
+          91
+        ],
+        "current_span": [
+          88,
+          95
+        ],
+        "before_text_sha256": "de9631cb8202c091ac34d367460197c7590e21caad4bfba064ccb1ca0e1c805f",
+        "current_text_sha256": "de9631cb8202c091ac34d367460197c7590e21caad4bfba064ccb1ca0e1c805f",
+        "entry": "source text predicates",
+        "state_and_effect": "只验证字符串存在/不存在，不执行生产尺寸计算。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      },
+      {
+        "id": "R048-B014",
+        "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+        "before_span": [
+          92,
+          168
+        ],
+        "current_span": [
+          96,
+          172
+        ],
+        "before_text_sha256": "788eaddb2e0232626691947ca1c348bec21ee0a48378885eff5e786ab1f836d2",
+        "current_text_sha256": "788eaddb2e0232626691947ca1c348bec21ee0a48378885eff5e786ab1f836d2",
+        "entry": "ignored p95 benchmark",
+        "state_and_effect": "被 #[ignore] 标记；本轮没有运行，未产生性能数值。",
+        "root_review": "全文核对进入、状态变化和后效；新增文档不改变这些代码路径。"
+      }
+    ]
+  },
+  "review_method": {
+    "root_full_read": [
+      {
+        "chunk": "9cd782",
+        "exit_code": 0,
+        "files": 2,
+        "lines": 374
+      },
+      {
+        "chunk": "46ce9d",
+        "exit_code": 0,
+        "operation": "independent final inverse, current doc region, six callee/mount contexts, scoped Git and raw operands"
+      },
+      {
+        "chunk": "f11dba",
+        "exit_code": 0,
+        "operation": "fourteen source partitions, issue schema, caller rg and additional measure/painter context"
+      },
+      {
+        "chunk": "8f6010",
+        "exit_code": 0,
+        "operation": "external material-layout source guard test full126 lines and literal target references"
+      }
+    ],
+    "all_original_code_and_comments_preserved": true,
+    "declaration_inventory_is_lexical_not_an_AST_proof": true,
+    "macro_trait_ffi": "Default派生为本模块owned f32字段提供零值；matches为固定组件名白名单。无手写trait实现、unsafe、FFI或动态注册入口；临时closure只在同步调用内借用。",
+    "block_review": "按14个连续原分区核对进入路径、状态变化与后续影响；局部loop/closure/early-return已随函数阅读全文。"
+  },
+  "readonly_context_reads": [
+    {
+      "path": "zircon_runtime_interface/src/ui/tree/node/template_node_metadata.rs",
+      "sha256": "6a23a0714d3cc642890c83172ad8671201c7acc5ba85544d1075b31f1a9abd19",
+      "actual_root_spans": [
+        [
+          14,
+          15
+        ],
+        [
+          35,
+          35
+        ],
+        [
+          44,
+          44
+        ]
+      ],
+      "scope": "read-only context; no coverage credit"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/layout/geometry.rs",
+      "sha256": "7c27f459366e953ddd69d9bb56659a22272d6e11ddfd957044ca27686f2949d0",
+      "actual_root_spans": [
+        [
+          19,
+          22
+        ],
+        [
+          26,
+          28
+        ]
+      ],
+      "scope": "read-only context; no coverage credit"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/mod.rs",
+      "sha256": "68d97f28cd606aa97b707a5c35e9f2632310f5be5c5409b037edfbf6573a0f97",
+      "actual_root_spans": [
+        [
+          19,
+          20
+        ]
+      ],
+      "scope": "read-only context; no coverage credit"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/measure.rs",
+      "sha256": "f3559a685523e7b7c39412a6fba4509930ea5d9b86f0cd136811234a396f5ad6",
+      "actual_root_spans": [
+        [
+          22,
+          22
+        ],
+        [
+          136,
+          136
+        ],
+        [
+          192,
+          192
+        ]
+      ],
+      "scope": "read-only context; no coverage credit"
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/render/dropdowns.rs",
+      "sha256": "e0b5cedeba72ad12e0d3f3daa66dc250a7ac56cb84ee50d8a6255a9a1fb867d1",
+      "actual_root_spans": [
+        [
+          132,
+          156
+        ],
+        [
+          215,
+          226
+        ],
+        [
+          385,
+          391
+        ]
+      ],
+      "scope": "read-only context; no coverage credit"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/layout_tree.rs",
+      "sha256": "16497673e45c5fb519f557cc960858741ec7b4eceb5cf0b2aae5b868cb92d6b1",
+      "actual_root_spans": [
+        [
+          66,
+          66
+        ]
+      ],
+      "scope": "read-only context; no coverage credit"
+    }
+  ],
+  "call_and_lifecycle_findings": [
+    {
+      "chain": "layout_tree measure roots -> measure_content_size -> measure_material_content -> outer layout padding",
+      "evidence": "46ce9d/f11dba; container content先计算，Some覆盖内容尺寸，随后布局padding由上层相加。",
+      "boundary": "材料模块不写树，不承担整个布局事务或回滚。"
+    },
+    {
+      "chain": "measure_leaf_content_size -> material helper -> legacy Button fallback on None",
+      "evidence": "46ce9d measure180–201; Some立即返回，None才继续默认Button padding。",
+      "boundary": "元数据借用不跨调用保存。"
+    },
+    {
+      "chain": "Dropdown measure adornments -> painter default visual/caret rect",
+      "evidence": "46ce9d/f11dba defaults132–156,text215–226,caret385–391",
+      "boundary": "四项默认数值来源吻合；不声称本次已经验证所有绘制分支。"
+    },
+    {
+      "chain": "test Button fixture -> resolve -> noicon -> apply -> assert",
+      "evidence": "CR-ZCA-R048-0001",
+      "boundary": "静态测试夹具失配，不是生产行为错误的一般结论。"
+    }
+  ],
+  "child_metadata_corrections": [
+    {
+      "kind": "historical version",
+      "detail": "child old source after367 lines; worker后来补至374，root补至409；不得把child hash当作最终版本。amendment固定所有阶段与最终inverse。"
+    },
+    {
+      "kind": "numeric conversion precision",
+      "detail": "child早期说明未显式排除正无穷；实际没有有限性保证，文档已精确补充。"
+    },
+    {
+      "kind": "caller completeness",
+      "detail": "child只列拥有的单遍测试；root全仓literal查到material_layout外部source guard，配套R051另行审查。"
+    }
+  ],
+  "issues": [
+    {
+      "id": "CR-ZCA-R048-0001",
+      "kind": "BUG",
+      "origin": "this-audit",
+      "status": "confirmed-static-test-fixture-mismatch-pending-separate-fix",
+      "batch": "R048",
+      "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+      "current_line": 42,
+      "source_sha256": "68e13afa01e7df34f3db60d84443f46f7a67c47fd88161eea12d526c17af7619",
+      "source_tag": "    // BUG: [CR-ZCA-R048-0001] 此 Button 仅设置 layout_icon_size，没有非空 icon/image/media/source，故 has_icon=false；",
+      "trigger": "执行正常preserves_results测试，Button fixture只写十项layout_* Float值，内容40x12，没有四个图标源字符串。",
+      "observable_impact": "has_icon=false，当前测量80x25，与原断言99x29不相等；只证明夹具与期望失配。",
+      "evidence": [
+        {
+          "path": "zircon_runtime/src/ui/layout/pass/material/tests/single_pass_tests.rs",
+          "sha256": "68e13afa01e7df34f3db60d84443f46f7a67c47fd88161eea12d526c17af7619",
+          "ranges": [
+            [
+              13,
+              45
+            ]
+          ],
+          "observation": "完整fixture与assert保留；无图标键。"
+        },
+        {
+          "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+          "sha256": "1eca8745e6fac3dae6ca0bbfe8fbbfa9c9c60d353c47b93680501f6e8a4c3a3b",
+          "ranges": [
+            [
+              39,
+              70
+            ],
+            [
+              83,
+              105
+            ],
+            [
+              130,
+              147
+            ],
+            [
+              217,
+              224
+            ]
+          ],
+          "observation": "度量解析，图标判定与尺寸算式；实际icon helper位置以当前named anchor/源码为准。"
+        },
+        {
+          "path": "zircon_runtime_interface/src/ui/tree/node/template_node_metadata.rs",
+          "sha256": "6a23a0714d3cc642890c83172ad8671201c7acc5ba85544d1075b31f1a9abd19",
+          "ranges": [
+            [
+              14,
+              15
+            ],
+            [
+              35,
+              35
+            ],
+            [
+              44,
+              44
+            ]
+          ],
+          "observation": "derive Default map为空。"
+        }
+      ],
+      "proof_kind": "逐语句静态闭合，root/core独立核对，未执行Rust测试",
+      "calculation": {
+        "has_icon": false,
+        "width": "max(40+12+14+4+5,80)=80",
+        "height": "max(max(12,0)+6+7,24)=25"
+      },
+      "validation_limit": "没有运行Cargo/单元测试；不将测试夹具缺陷泛化成生产布局缺陷。",
+      "next_action": "后续行为修复选择让fixture实际携带图标，或修正期望；本批不改变程序或断言。",
+      "formal_acceptance": false
+    }
+  ],
+  "external_test_companion": {
+    "planned_batch": "R051",
+    "parent_path": "zircon_runtime/src/ui/tests/material_layout.rs",
+    "parent_sha256": "063030e9e6c99317b96705435ac428f5d9ff340d40756146684dec07388b9691",
+    "parent_lines": 126,
+    "root_full_read_receipt": "8f6010 exit0",
+    "preexisting_todo": "CR-UI-TEST-0204 preserved",
+    "source_guard_observation": "旧let-Some-else字面量在审查前/最终material均为0次，正contains谓词静态不满足；新注释未贡献匹配。不是本批执行测试的结果。",
+    "owned_scope": "not part of R048 two-source coverage; parent andfive mounted children require own exactgrant androotreview",
+    "phase_handoff_ready": false
+  },
+  "source_string_contracts": [
+    {
+      "operand": "for (key, value) in &metadata.attributes",
+      "origin": "owned single_pass_tests",
+      "before_count": 1,
+      "current_count": 1,
+      "new_comment_contribution": 0,
+      "is_test_execution": false
+    },
+    {
+      "operand": "let target = match key.as_str()",
+      "origin": "owned single_pass_tests",
+      "before_count": 1,
+      "current_count": 1,
+      "new_comment_contribution": 0,
+      "is_test_execution": false
+    },
+    {
+      "operand": "fn number_attr(",
+      "origin": "owned single_pass_tests",
+      "before_count": 0,
+      "current_count": 0,
+      "new_comment_contribution": 0,
+      "is_test_execution": false
+    },
+    {
+      "operand": "has_layout_attribute",
+      "origin": "external material_layout source guard",
+      "before_count": 0,
+      "current_count": 0,
+      "new_comment_contribution": 0,
+      "is_test_execution": false
+    },
+    {
+      "operand": "let Some(metrics) = MaterialLayoutMetrics::resolve(metadata) else",
+      "origin": "external material_layout source guard",
+      "before_count": 0,
+      "current_count": 0,
+      "new_comment_contribution": 0,
+      "is_test_execution": false
+    }
+  ],
+  "validation_reference": {
+    "path": "docs/plans/source-comments/reviews/R048-post-validation.json",
+    "sha256": "debacdd7a6caf891eb341821392829b83732c60f1976c1f8ac8cba7812fc83e2",
+    "bytes": 18816
+  },
+  "acceptance": {
+    "per_file_local_review_ready": true,
+    "module_phase_handoff_ready": false,
+    "pending": [
+      "Complete R051 material-layout parent/child companion review andits actual validation.",
+      "Resolve actual required managed validation,original metadata writer observation,index lock/owner andphase gates.",
+      "Coordinator exactsnapshot authorizedphasecommit andattachedWeCom actualreceipt."
+    ],
+    "committed": false,
+    "notification_sent": false,
+    "pushed": false,
+    "whole_repository_complete": false
+  },
+  "artifact_lifecycle": {
+    "source_writers_terminal": true,
+    "chief_writer": {
+      "chunk": "a5a056",
+      "exit_code": 0,
+      "pid": 13504
+    },
+    "historical_child_writer": {
+      "outer_cell": "g2:1 prior contracts_luna host",
+      "write_set": [
+        "docs/plans/source-comments/reviews/R048.json"
+      ],
+      "terminal_known": false,
+      "native_identity": "not returned; do not infer PID or exit",
+      "actual_child_complete_readback": "9cd782 exit0",
+      "replayed_or_overwritten": false
+    },
+    "opaque_readonly_calls": "earlier stale/aborted readers not counted as native pass; replaced by bounded actual evidence",
+    "temporary_helpers_or_source_copies": false,
+    "builds_or_compiler_caches": false,
+    "deleted_files": 0,
+    "actual_freed_bytes": 0
+  },
+  "reviewed_at_utc": "2026-10-16T02:40:58.497919+00:00",
+  "record_writer": {
+    "pid": 3356,
+    "write_set": [
+      "docs/plans/source-comments/reviews/R048-main.json",
+      "docs/plans/source-comments/reviews/R048-post-validation.json"
+    ],
+    "terminal_receipt": "must observe original native exit andindependent exacthash readback; no self asserted success"
+  }
+}

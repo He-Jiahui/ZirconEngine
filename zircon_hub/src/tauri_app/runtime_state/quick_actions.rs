@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::engines::{SourceEngineInstall, active_source_engine};
+use crate::engines::{active_source_engine, SourceEngineInstall};
 use crate::error::HubError;
 use crate::state::{HubActionKind, HubActionRecord, HubMessage, TaskOperationKind, TaskStatus};
 

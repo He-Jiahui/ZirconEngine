@@ -10,7 +10,10 @@ use crate::core::CoreHandle;
 
 pub fn collect_runtime_diagnostics(core: &CoreHandle) -> RuntimeDiagnosticsSnapshot {
     let (render, physics, animation) = collect_runtime_diagnostic_domains(core);
-    let store = collect_diagnostic_store_snapshot(core, &render, &physics, &animation);
+    let (store, identities) = core.update_diagnostic_store(|store| {
+        record_diagnostic_domains(store, &render, &physics, &animation);
+        (store.snapshot(), store.identity_snapshot())
+    });
     let profile = profiling::snapshot();
 
     RuntimeDiagnosticsSnapshot {
@@ -18,6 +21,7 @@ pub fn collect_runtime_diagnostics(core: &CoreHandle) -> RuntimeDiagnosticsSnaps
         physics,
         animation,
         store,
+        identities,
         profile,
     }
 }

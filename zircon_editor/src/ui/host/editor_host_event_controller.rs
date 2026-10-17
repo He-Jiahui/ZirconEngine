@@ -30,6 +30,9 @@ use zircon_runtime::core::runtime::{ServiceCallGuard, ServiceHandle};
 const FIRST_PLAY_SESSION_GENERATION: u64 = 1;
 const UNKNOWN_PLAY_BACKEND_LOG_FRAME: u64 = 0;
 
+#[path = "inspector_component_add.rs"]
+mod inspector_component_add;
+
 #[path = "play_gizmo.rs"]
 mod play_gizmo;
 #[path = "editor_host_event_controller/play_hierarchy.rs"]

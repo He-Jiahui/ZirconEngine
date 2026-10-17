@@ -169,7 +169,13 @@ fn consume_panic_is_typed_and_does_not_starve_other_consumers() {
     ));
     assert_eq!(gateway.drain_call_count(12), 1);
     assert_eq!(healthy_state.lock().unwrap().sequences, [1]);
-    assert_eq!(panic_state.lock().unwrap().sequences, [1, 2]);
+    assert_eq!(
+        panic_state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .sequences,
+        [1, 2]
+    );
     assert_eq!(host.active_consumer_count(), 1);
     assert_eq!(host.quarantined_consumer_count(), 1);
     assert_eq!(host.last_pump_report().dropped(), 3);
@@ -200,7 +206,13 @@ fn consume_panic_is_typed_and_does_not_starve_other_consumers() {
     let quarantined = host.pump_with_budget(budget(5, 5)).unwrap();
     assert_eq!(quarantined.applied(), 0);
     assert_eq!(gateway.drain_call_count(12), 1);
-    assert_eq!(panic_state.lock().unwrap().sequences, [1, 2]);
+    assert_eq!(
+        panic_state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .sequences,
+        [1, 2]
+    );
 
     host.end_play_session(101).unwrap();
     assert_eq!(host.active_consumer_count(), 0);
@@ -345,6 +357,64 @@ fn remote_unsubscribe_failure_does_not_leave_a_consumer_active() {
     assert_eq!(host.active_consumer_count(), 0);
     assert_eq!(host.active_play_session_id(), None);
     assert_eq!(gateway.unsubscribed(), [11]);
+    assert_eq!(host.pending_remote_cleanup_count(), 1);
+
+    assert!(host.shutdown().is_err());
+    assert_eq!(host.pending_remote_cleanup_count(), 1);
+    assert_eq!(gateway.unsubscribed(), [11, 11]);
+
+    gateway.allow_unsubscribe(11);
+    host.shutdown().unwrap();
+    assert_eq!(host.pending_remote_cleanup_count(), 0);
+    assert_eq!(gateway.unsubscribed(), [11, 11, 11]);
+}
+
+#[test]
+fn deferred_remote_cleanup_retains_multiple_subscriptions_for_one_consumer() {
+    let gateway = Arc::new(FakeGateway::new(7));
+    let host =
+        EditorRuntimeEventConsumerHost::new(EditorRuntimeGatewayHandle::new(gateway.clone()));
+    register_state(
+        &host,
+        "tests.consumer.deferred-subscriptions",
+        "tests.events.deferred-subscriptions",
+        Arc::new(Mutex::new(RecordingState::default())),
+    );
+    host.begin_play_session(105, &[CAPABILITY.to_string()])
+        .unwrap();
+    gateway.fail_unsubscribe(11);
+    assert!(host.end_play_session(105).is_err());
+    assert_eq!(host.pending_remote_cleanup_count(), 1);
+
+    host.begin_play_session(106, &[CAPABILITY.to_string()])
+        .unwrap();
+    gateway.fail_unsubscribe(12);
+    assert!(host.end_play_session(106).is_err());
+    assert_eq!(host.active_consumer_count(), 0);
+    assert_eq!(host.pending_remote_cleanup_count(), 2);
+
+    gateway.allow_unsubscribe(11);
+    assert!(host.shutdown().is_err());
+    assert_eq!(host.pending_remote_cleanup_count(), 1);
+    let completed_attempts = gateway
+        .unsubscribed()
+        .iter()
+        .filter(|&&subscription| subscription == 11)
+        .count();
+
+    gateway.allow_unsubscribe(12);
+    host.shutdown().unwrap();
+    assert_eq!(host.pending_remote_cleanup_count(), 0);
+    assert_eq!(
+        gateway
+            .unsubscribed()
+            .iter()
+            .filter(|&&subscription| subscription == 11)
+            .count(),
+        completed_attempts,
+        "a completed subscription must not be retried with another pending subscription"
+    );
+    assert_eq!(gateway.unsubscribed().last(), Some(&12));
 }
 
 #[test]

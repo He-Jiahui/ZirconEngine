@@ -1,0 +1,31 @@
+{
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R007",
+  "reviewer": "main",
+  "created_at_utc": "2026-10-14T21:37:03.710662+00:00",
+  "path": "zircon_runtime_interface/src/reflect/error.rs",
+  "before_sha256": "94a7bac7c02201e6498d1345f648ea847b50e1eff826e0e1f43a40d5a6d9aff2",
+  "after_sha256": "d4cbcd305c834440ffd6d69e15a36d26d5d7a737e4353078f97ce2bdcfff6881",
+  "insertion": {
+    "after_byte_offset": 3272,
+    "bytes": 120,
+    "content_sha256": "66e2c184847340f068d2f84ffd8279c6193f1bb786b5803b43c1ffad49be00ed",
+    "line_count": 1,
+    "exact_text": "    /// Runtime 的 VM 声明类型准入也使用此变体；expected 与 actual 由报告错误的调用方提供。\r\n",
+    "before_bytes_reconstructed_sha256": "94a7bac7c02201e6498d1345f648ea847b50e1eff826e0e1f43a40d5a6d9aff2"
+  },
+  "evidence": {
+    "Runtime_source": "zircon_runtime/src/scene/reflect/type_registry.rs",
+    "Runtime_source_sha256": "eae2abb018182c9f0f49a28fcd219bf8c5999ec1806fb8fd691180cc5b44c705",
+    "read_spans": [
+      [
+        1042,
+        1074
+      ]
+    ],
+    "call_path": "Dynamic Component declared VM type admission -> ensure_reflected_value_type -> TypeMismatch; error is not limited to a concrete Rust field conversion."
+  },
+  "preserved_original_comments_and_bytes": true,
+  "status": "awaiting-scoped-validation",
+  "formal_acceptance": false
+}

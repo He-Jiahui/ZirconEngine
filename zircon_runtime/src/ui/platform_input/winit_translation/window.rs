@@ -8,10 +8,12 @@ use zircon_runtime_interface::ui::{
     },
 };
 
+// 规范化消费平台事件并移走元数据与文本，返回值不借用适配器或原通知。
 pub(super) fn input_event(event: UiWindowPlatformInputEvent) -> UiWindowInputPumpEvent {
     UiWindowInputPumpEvent::Input(event.normalize())
 }
 
+// 窗口通知只复制窗口级元数据，不经过普通输入规范化；其它输入身份不随此分支传播。
 pub(super) fn window_event(
     context: &UiWindowInputContext,
     kind: UiWindowEventKind,
@@ -19,6 +21,7 @@ pub(super) fn window_event(
     UiWindowInputPumpEvent::Window(UiWindowEvent::new(window_metadata(context), kind))
 }
 
+// 缺少窗口身份时仍生成默认身份；时间、序号和合成标记保持原值。
 pub(super) fn window_metadata(context: &UiWindowInputContext) -> UiWindowEventMetadata {
     UiWindowEventMetadata::for_window(
         context
@@ -34,6 +37,8 @@ pub(super) fn window_metadata(context: &UiWindowInputContext) -> UiWindowEventMe
 
 // resize 只有物理尺寸；沿用上下文的有效 DPI 才能与表面布局的逻辑尺寸保持一致。
 // 宿主应随缩放事件更新上下文，否则只能采用未提供 DPI 时的 1:1 回退。
+/// 使用本次物理尺寸和先前度量生成拥有的逻辑与物理尺寸，不改写传入环境。
+/// 先前缩放为非正或非有限数时采用单位缩放，不使用平台建议尺寸来反推比例。
 pub(super) fn window_metrics_from_physical_size(
     size: PhysicalSize<u32>,
     prior_metrics: Option<UiWindowMetrics>,

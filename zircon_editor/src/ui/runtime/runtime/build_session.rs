@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::UNIX_EPOCH;
-use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
+use zircon_runtime::asset::{runtime_asset_path_with_dev_asset_root, AssetRelativePath};
 use zircon_runtime::diagnostic_log::{
     diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
 };
@@ -333,7 +333,7 @@ fn resolve_builtin_import(
     else {
         return Ok(None);
     };
-    let source_path = editor_runtime_asset_path(path);
+    let source_path = editor_runtime_asset_path(path)?;
     if editor_template_verbose_enabled() {
         write_diagnostic_log(
             "editor_template_import",
@@ -354,8 +354,16 @@ fn resolve_builtin_import(
     )?))
 }
 
-fn editor_runtime_asset_path(relative: &str) -> std::path::PathBuf {
-    runtime_asset_path_with_dev_asset_root(relative, editor_dev_asset_root())
+fn editor_runtime_asset_path(relative: &str) -> Result<std::path::PathBuf, UiAssetError> {
+    let path =
+        AssetRelativePath::parse(relative).map_err(|error| UiAssetError::InvalidDocument {
+            asset_id: format!("res://{relative}"),
+            detail: format!("invalid builtin asset-relative path: {error}"),
+        })?;
+    Ok(runtime_asset_path_with_dev_asset_root(
+        &path,
+        editor_dev_asset_root(),
+    ))
 }
 
 fn editor_dev_asset_root() -> std::path::PathBuf {

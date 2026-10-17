@@ -76,9 +76,15 @@ pub(super) fn default_viewport_command(action_id: &str) -> Option<ViewportComman
         "workbench.viewport.display.wire_only" => {
             Some(ViewportCommand::SetDisplayMode(DisplayMode::WireOnly))
         }
-        "workbench.viewport.snap.translate.toggle" => Some(ViewportCommand::ToggleSnap(TransformHandleKind::Move)),
-        "workbench.viewport.snap.rotate.toggle" => Some(ViewportCommand::ToggleSnap(TransformHandleKind::Rotate)),
-        "workbench.viewport.snap.scale.toggle" => Some(ViewportCommand::ToggleSnap(TransformHandleKind::Scale)),
+        "workbench.viewport.snap.translate.toggle" => {
+            Some(ViewportCommand::ToggleSnap(TransformHandleKind::Move))
+        }
+        "workbench.viewport.snap.rotate.toggle" => {
+            Some(ViewportCommand::ToggleSnap(TransformHandleKind::Rotate))
+        }
+        "workbench.viewport.snap.scale.toggle" => {
+            Some(ViewportCommand::ToggleSnap(TransformHandleKind::Scale))
+        }
         "workbench.viewport.grid.visibility.on" => Some(ViewportCommand::SetGridVisibility(true)),
         "workbench.viewport.grid.visibility.off" => Some(ViewportCommand::SetGridVisibility(false)),
         "workbench.viewport.grid.hidden" => Some(ViewportCommand::SetGridMode(GridMode::Hidden)),

@@ -201,6 +201,15 @@ impl WgpuNativeDiagnosticReadbackFrame {
 }
 
 impl WgpuRenderDevice {
+    /// Reports the adapter operation available to the transitional native recorder.
+    /// This does not advertise an implemented fragment-storage operation in the neutral ABI.
+    pub fn native_fragment_writable_storage_supported(&self) -> bool {
+        self.adapter
+            .get_downlevel_capabilities()
+            .flags
+            .contains(wgpu::DownlevelFlags::FRAGMENT_WRITABLE_STORAGE)
+    }
+
     /// Starts one frame-scoped native recording lease for the transitional product renderer.
     pub fn begin_native_recording(
         &self,

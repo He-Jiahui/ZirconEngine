@@ -1,6 +1,6 @@
 //! 每个设备代际只发布一组系统纹理；首次提交上传后，材质与场景路径共享原生资源租约。
 use std::sync::{Arc, Mutex, OnceLock};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::graphics::types::GraphicsError;
 use zr_rhi::{DeviceGeneration, DeviceId, RenderDevice};

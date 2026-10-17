@@ -1,0 +1,2889 @@
+{
+  "schema": "zircon-source-comment-root-validation-v1",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R080",
+  "created_at_utc": "2026-10-17T01:14:06.249005+00:00",
+  "owner": "root",
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false,
+  "source_read_complete": true,
+  "child_review_record": {
+    "path": "docs/plans/source-comments/reviews/R080.json",
+    "sha256": "4bafeb82b6f3d47de4c26d9a7ea11eb8ff73c60991bd2bfe16564278be2ab3b4",
+    "bytes": 69755
+  },
+  "root_read_receipts": {
+    "source": "root630/8e0b36 exit0/PID37752 full8 final510LF; originals453LF previously555/559",
+    "models": "root632/b0441d exit0/PID21120 complete counts/schemas/8files/42insertions/35objects/65members/35partitions;root633/5a011b exit0/PID11864 contexts/callers/traits/37branches/12predicates",
+    "contexts": "root635/a16578 exit0/PID35344 full parent51+89 and collector442;root664/add705 exit0/PID27536 remaining5 context ranges",
+    "tail": "root668/2f2a6b native5006->dd4c32 exit0/PID37588 all remaining child keys including144ranges/execution/validation/history",
+    "two_leaf_delta": "root655/32349a native89502->656/975753 exit0/PID34944 independently reversed exact2 JSON leaves to old69696B/75aebcc6cc1e1788501ce740a2e39da523b73481e4ed1f7df95cf03a9fbdc8f2; no source changes"
+  },
+  "source_files": [
+    {
+      "id": "F0",
+      "path": "zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs",
+      "before_sha256": "645fb33338e36fbe869c12d96e465bdce3b9fa216005594c1c13ba70e36c634b",
+      "sha256": "014f5fa4b730cecd28b42ed480adaec568222b8939dbe7331fb147aebb81928f",
+      "before_bytes": 588,
+      "bytes": 813,
+      "before_lines": 20,
+      "lines": 22,
+      "inserted_blocks": 1,
+      "inserted_lines": 2,
+      "inserted_bytes": 225,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "final_lf": true,
+      "old_attributes_exact": true,
+      "actual_original_derive_attributes": [],
+      "actual_original_serde_attributes": [],
+      "child_attribute_display": "Leading indentation normalized; original byte inverse proves exact physical attributes."
+    },
+    {
+      "id": "F1",
+      "path": "zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs",
+      "before_sha256": "1ab57f5caf1e23c02918174353dbe6c45a4edea41fe10c37b6f6f9005229dd50",
+      "sha256": "ee17d2c3b6c0115d1fb34a842710f43a957a1f8c7525e878c295a7775cad2ad2",
+      "before_bytes": 806,
+      "bytes": 1585,
+      "before_lines": 25,
+      "lines": 38,
+      "inserted_blocks": 13,
+      "inserted_lines": 13,
+      "inserted_bytes": 779,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "final_lf": true,
+      "old_attributes_exact": true,
+      "actual_original_derive_attributes": [
+        {
+          "line": 5,
+          "text": "#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]"
+        },
+        {
+          "line": 19,
+          "text": "#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]"
+        }
+      ],
+      "actual_original_serde_attributes": [],
+      "child_attribute_display": "Leading indentation normalized; original byte inverse proves exact physical attributes."
+    },
+    {
+      "id": "F2",
+      "path": "zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs",
+      "before_sha256": "03d48d2a0b832b4628ab975daf8b7d6aaa81546c7a5910de6a54c682fb051f56",
+      "sha256": "9519fd10e94ad78634a51ce7969cd1b38cbf3b111b7f62990432eb19acfdf7f5",
+      "before_bytes": 554,
+      "bytes": 903,
+      "before_lines": 17,
+      "lines": 22,
+      "inserted_blocks": 5,
+      "inserted_lines": 5,
+      "inserted_bytes": 349,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "final_lf": true,
+      "old_attributes_exact": true,
+      "actual_original_derive_attributes": [
+        {
+          "line": 3,
+          "text": "#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]"
+        },
+        {
+          "line": 10,
+          "text": "#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]"
+        }
+      ],
+      "actual_original_serde_attributes": [
+        {
+          "line": 4,
+          "text": "#[serde(rename_all = \"snake_case\")]"
+        }
+      ],
+      "child_attribute_display": "Leading indentation normalized; original byte inverse proves exact physical attributes."
+    },
+    {
+      "id": "F3",
+      "path": "zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs",
+      "before_sha256": "e56e42e85ee2bff7551d231ca28befc95fe4ba8dafb9e924af6dfc91fed2ab22",
+      "sha256": "567468b43dad324279150618e3d20a3ca394b35d5c288624022f446b5ca5bed3",
+      "before_bytes": 789,
+      "bytes": 1076,
+      "before_lines": 20,
+      "lines": 23,
+      "inserted_blocks": 3,
+      "inserted_lines": 3,
+      "inserted_bytes": 287,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "final_lf": true,
+      "old_attributes_exact": true,
+      "actual_original_derive_attributes": [
+        {
+          "line": 3,
+          "text": "#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]"
+        },
+        {
+          "line": 13,
+          "text": "#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]"
+        }
+      ],
+      "actual_original_serde_attributes": [
+        {
+          "line": 4,
+          "text": "#[serde(rename_all = \"snake_case\")]"
+        },
+        {
+          "line": 16,
+          "text": "    #[serde(default)]"
+        },
+        {
+          "line": 18,
+          "text": "    #[serde(default, skip_serializing_if = \"Option::is_none\")]"
+        }
+      ],
+      "child_attribute_display": "Leading indentation normalized; original byte inverse proves exact physical attributes."
+    },
+    {
+      "id": "F4",
+      "path": "zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs",
+      "before_sha256": "442540e50d03da63706015f69fe7a3e2cb5d7db87aa64ac0e17dfba7f57ede40",
+      "sha256": "1bccca1c7a14d998e62a30e55ad20e9dc4f06a594c187c114174175004622d25",
+      "before_bytes": 464,
+      "bytes": 755,
+      "before_lines": 12,
+      "lines": 15,
+      "inserted_blocks": 3,
+      "inserted_lines": 3,
+      "inserted_bytes": 291,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "final_lf": true,
+      "old_attributes_exact": true,
+      "actual_original_derive_attributes": [
+        {
+          "line": 5,
+          "text": "#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]"
+        }
+      ],
+      "actual_original_serde_attributes": [
+        {
+          "line": 8,
+          "text": "    #[serde(default)]"
+        },
+        {
+          "line": 10,
+          "text": "    #[serde(default)]"
+        }
+      ],
+      "child_attribute_display": "Leading indentation normalized; original byte inverse proves exact physical attributes."
+    },
+    {
+      "id": "F5",
+      "path": "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs",
+      "before_sha256": "2b5ba87518f8dbf71c3f582d0806c9098d2e3e55929670f6fb1aed9ade0b55b7",
+      "sha256": "ef5ad96ec13361ecd1d24d0447d0f0ef351f68e0625ea74cad606bc7d1d9e585",
+      "before_bytes": 4535,
+      "bytes": 5361,
+      "before_lines": 124,
+      "lines": 135,
+      "inserted_blocks": 4,
+      "inserted_lines": 11,
+      "inserted_bytes": 826,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "final_lf": true,
+      "old_attributes_exact": true,
+      "actual_original_derive_attributes": [
+        {
+          "line": 3,
+          "text": "#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]"
+        }
+      ],
+      "actual_original_serde_attributes": [
+        {
+          "line": 4,
+          "text": "#[serde(rename_all = \"snake_case\")]"
+        }
+      ],
+      "child_attribute_display": "Leading indentation normalized; original byte inverse proves exact physical attributes."
+    },
+    {
+      "id": "F6",
+      "path": "zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs",
+      "before_sha256": "431ec7a7c95dad015992412e2715424c0b9038a06929c369d334f668c42224f5",
+      "sha256": "1b92c395addcb8d3e909199c0d9639d76cd7182d0fa8ae76e27e6234add83295",
+      "before_bytes": 3759,
+      "bytes": 5165,
+      "before_lines": 101,
+      "lines": 117,
+      "inserted_blocks": 9,
+      "inserted_lines": 16,
+      "inserted_bytes": 1406,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "final_lf": true,
+      "old_attributes_exact": true,
+      "actual_original_derive_attributes": [
+        {
+          "line": 8,
+          "text": "#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]"
+        }
+      ],
+      "actual_original_serde_attributes": [
+        {
+          "line": 12,
+          "text": "    #[serde(default)]"
+        }
+      ],
+      "child_attribute_display": "Leading indentation normalized; original byte inverse proves exact physical attributes."
+    },
+    {
+      "id": "F7",
+      "path": "zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs",
+      "before_sha256": "970781cb07d2e77bf6d9d0d858b96507ceda3d4a8a4da96a4e563312a7f5fcb5",
+      "sha256": "c9a3ec0436475fc6b673df1e2b6ccca1d1180cf359e887ea067d627796038c7f",
+      "before_bytes": 5036,
+      "bytes": 5411,
+      "before_lines": 134,
+      "lines": 138,
+      "inserted_blocks": 4,
+      "inserted_lines": 4,
+      "inserted_bytes": 375,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "final_lf": true,
+      "old_attributes_exact": true,
+      "actual_original_derive_attributes": [],
+      "actual_original_serde_attributes": [],
+      "child_attribute_display": "Leading indentation normalized; original byte inverse proves exact physical attributes."
+    }
+  ],
+  "counts": {
+    "before_files": 8,
+    "before_lines": 453,
+    "before_bytes": 16531,
+    "after_lines": 510,
+    "after_bytes": 21069,
+    "inserted_blocks": 42,
+    "inserted_lines": 57,
+    "removed_bytes": 0,
+    "objects": 35,
+    "types": 9,
+    "fields": 14,
+    "variants": 18,
+    "parameters": 20,
+    "explicit_returns": 13,
+    "continuous_blocks": 35,
+    "normal_tests": 1,
+    "ignored_tests": 1,
+    "tests_run": false,
+    "semantic_branches": 37,
+    "unique_ranges": 144
+  },
+  "range_proof": {
+    "schema": "one_based_inclusive; UTF8 original physical slices with LF",
+    "ranges": [
+      {
+        "id": "R0",
+        "file": "F1",
+        "before_first": 7,
+        "before_last": 17,
+        "current_first": 8,
+        "current_last": 27,
+        "before_sha256": "5fa72466a3cec29a5afdc98879e1ddcbe9039c54d3bf5cfa864aa775e0172f59",
+        "current_sha256": "119c026827ceff819c59e6dd7f5e7ef6ef86c1c72d87d97dcfee0d75d5c5bc41"
+      },
+      {
+        "id": "R1",
+        "file": "F1",
+        "before_first": 21,
+        "before_last": 25,
+        "current_first": 31,
+        "current_last": 38,
+        "before_sha256": "44331ca8270a83b5e45ad4c96c45f670bc480d9fd5cd32d2b7070859c957ab9e",
+        "current_sha256": "d9c1f7c0e88acb48a5bce9d32f5f89c60767fa1c4d584fd07fa90c4854c0964b"
+      },
+      {
+        "id": "R2",
+        "file": "F2",
+        "before_first": 5,
+        "before_last": 8,
+        "current_first": 6,
+        "current_last": 9,
+        "before_sha256": "5b87104fe10040529c0e485a26d63adb0da3f2aef35ef0834be0939cb55c4d32",
+        "current_sha256": "5b87104fe10040529c0e485a26d63adb0da3f2aef35ef0834be0939cb55c4d32"
+      },
+      {
+        "id": "R3",
+        "file": "F2",
+        "before_first": 12,
+        "before_last": 17,
+        "current_first": 13,
+        "current_last": 22,
+        "before_sha256": "1a9f8d7e14f5d2f4fe7528995f069e16f9e435a640eb614e65f77e04afa7a3a3",
+        "current_sha256": "764d4cb44202516eeeec1587677fd4352885741a77d4e8a14e4bf311dbce27ae"
+      },
+      {
+        "id": "R4",
+        "file": "F3",
+        "before_first": 6,
+        "before_last": 11,
+        "current_first": 7,
+        "current_last": 12,
+        "before_sha256": "eb34cfd7f6178f397be2489d8348efaa380411bb9c61104ee18c2c1bbe6240ca",
+        "current_sha256": "eb34cfd7f6178f397be2489d8348efaa380411bb9c61104ee18c2c1bbe6240ca"
+      },
+      {
+        "id": "R5",
+        "file": "F3",
+        "before_first": 15,
+        "before_last": 20,
+        "current_first": 16,
+        "current_last": 23,
+        "before_sha256": "714a8e86cd0e3ea87efa410470f2767142d6ba6a49be90ff951ad4ab9e9c7f17",
+        "current_sha256": "72c2d44cd18f53467b0816b79f55638b0e4b7bc1f1ad8df8f4f292de689fb3ca"
+      },
+      {
+        "id": "R6",
+        "file": "F4",
+        "before_first": 7,
+        "before_last": 12,
+        "current_first": 8,
+        "current_last": 15,
+        "before_sha256": "707caec7c601eb351f1f5e8a6fa351e250157d0c9c0a5b795703e8cc6a7a5bb8",
+        "current_sha256": "73c5cd5148eaa68e0e2c6122e8e636510466d9cce9ef786f6f3dc0162e001da8"
+      },
+      {
+        "id": "R7",
+        "file": "F5",
+        "before_first": 6,
+        "before_last": 11,
+        "current_first": 6,
+        "current_last": 11,
+        "before_sha256": "682f77c044c3eb2c119ab47f5ec29c07edd7beb913d01b7427e4fe63a5902eb4",
+        "current_sha256": "682f77c044c3eb2c119ab47f5ec29c07edd7beb913d01b7427e4fe63a5902eb4"
+      },
+      {
+        "id": "R8",
+        "file": "F6",
+        "before_first": 9,
+        "before_last": 14,
+        "current_first": 10,
+        "current_last": 18,
+        "before_sha256": "7585245f0cd9974fdf0ca3af8d7de37c3d32da257d866bdb61cc5b595f010c58",
+        "current_sha256": "4c1a007784a0b48fd2c75253d6b1728ae4cf20667be40d3cb458512ef3a44ff3"
+      },
+      {
+        "id": "R9",
+        "file": "F5",
+        "before_first": 15,
+        "before_last": 17,
+        "current_first": 23,
+        "current_last": 25,
+        "before_sha256": "da8324dc504323e7b682481ad772141f0d53dbed16bc56881a518f03d0362b2d",
+        "current_sha256": "da8324dc504323e7b682481ad772141f0d53dbed16bc56881a518f03d0362b2d"
+      },
+      {
+        "id": "R10",
+        "file": "F5",
+        "before_first": 21,
+        "before_last": 39,
+        "current_first": 29,
+        "current_last": 47,
+        "before_sha256": "25f8ba40ae75f1a7dd4aadf65d12f8b3aac5954df6da63033e6a79d803122d08",
+        "current_sha256": "25f8ba40ae75f1a7dd4aadf65d12f8b3aac5954df6da63033e6a79d803122d08"
+      },
+      {
+        "id": "R11",
+        "file": "F5",
+        "before_first": 41,
+        "before_last": 56,
+        "current_first": 49,
+        "current_last": 64,
+        "before_sha256": "a93448ef434066efd7f6a5821b21dc563ed062c0a9c51041ffc463a232b55891",
+        "current_sha256": "a93448ef434066efd7f6a5821b21dc563ed062c0a9c51041ffc463a232b55891"
+      },
+      {
+        "id": "R12",
+        "file": "F5",
+        "before_first": 58,
+        "before_last": 66,
+        "current_first": 67,
+        "current_last": 75,
+        "before_sha256": "6e055ad9e431106c2a4603b41e60c7487600b7fbc62977fa68d3a79b107448c6",
+        "current_sha256": "6e055ad9e431106c2a4603b41e60c7487600b7fbc62977fa68d3a79b107448c6"
+      },
+      {
+        "id": "R13",
+        "file": "F5",
+        "before_first": 69,
+        "before_last": 114,
+        "current_first": 78,
+        "current_last": 123,
+        "before_sha256": "5bee34c74730c1bc842aa50cbf6550d4f8edac39540db9a80e2801c5960843fb",
+        "current_sha256": "5bee34c74730c1bc842aa50cbf6550d4f8edac39540db9a80e2801c5960843fb"
+      },
+      {
+        "id": "R14",
+        "file": "F5",
+        "before_first": 116,
+        "before_last": 120,
+        "current_first": 126,
+        "current_last": 130,
+        "before_sha256": "147982ed41a1ce9e2c919155eab45a666315b7dca8ac1be9db2d55aed0329768",
+        "current_sha256": "147982ed41a1ce9e2c919155eab45a666315b7dca8ac1be9db2d55aed0329768"
+      },
+      {
+        "id": "R15",
+        "file": "F6",
+        "before_first": 18,
+        "before_last": 87,
+        "current_first": 30,
+        "current_last": 102,
+        "before_sha256": "8e9e7c65aee785e7b74045d08ec1554a3ef42cd5e709859ee961bd16102cdc35",
+        "current_sha256": "4c1ad98e4bd03fc1e1c712e6327d4eab3bde69b32bf9f17989445ae41b470236"
+      },
+      {
+        "id": "R16",
+        "file": "F6",
+        "before_first": 90,
+        "before_last": 92,
+        "current_first": 106,
+        "current_last": 108,
+        "before_sha256": "974630e7ed0b24685c3eb63bc9f9bff06000e8fc58f87e335830c276a6b49af6",
+        "current_sha256": "974630e7ed0b24685c3eb63bc9f9bff06000e8fc58f87e335830c276a6b49af6"
+      },
+      {
+        "id": "R17",
+        "file": "F6",
+        "before_first": 94,
+        "before_last": 101,
+        "current_first": 110,
+        "current_last": 117,
+        "before_sha256": "1671954e4ea8a738a75979203c054259b591c976f71891a049d1b20c07fa8e01",
+        "current_sha256": "1671954e4ea8a738a75979203c054259b591c976f71891a049d1b20c07fa8e01"
+      },
+      {
+        "id": "R18",
+        "file": "F7",
+        "before_first": 4,
+        "before_last": 24,
+        "current_first": 5,
+        "current_last": 25,
+        "before_sha256": "d7548564373955fe5c706766dfb9429e3f653f582aa7bd5243618aaf70c1dc99",
+        "current_sha256": "d7548564373955fe5c706766dfb9429e3f653f582aa7bd5243618aaf70c1dc99"
+      },
+      {
+        "id": "R19",
+        "file": "F7",
+        "before_first": 26,
+        "before_last": 34,
+        "current_first": 27,
+        "current_last": 35,
+        "before_sha256": "57827b254e338098932bffacd15da24d3de03fde7deee04e9750fc14f7d56412",
+        "current_sha256": "57827b254e338098932bffacd15da24d3de03fde7deee04e9750fc14f7d56412"
+      },
+      {
+        "id": "R20",
+        "file": "F7",
+        "before_first": 36,
+        "before_last": 54,
+        "current_first": 37,
+        "current_last": 55,
+        "before_sha256": "4799856facb0a9645d9b0f0b5bb24b0f4c50c77a0dfb05eeb66e8e5991797a29",
+        "current_sha256": "4799856facb0a9645d9b0f0b5bb24b0f4c50c77a0dfb05eeb66e8e5991797a29"
+      },
+      {
+        "id": "R21",
+        "file": "F7",
+        "before_first": 56,
+        "before_last": 58,
+        "current_first": 57,
+        "current_last": 59,
+        "before_sha256": "0297c6e6ffa974cc4bd9cc8decf58b6dc5834ded61cb6b151ee7763e7c94fedd",
+        "current_sha256": "0297c6e6ffa974cc4bd9cc8decf58b6dc5834ded61cb6b151ee7763e7c94fedd"
+      },
+      {
+        "id": "R22",
+        "file": "F7",
+        "before_first": 61,
+        "before_last": 77,
+        "current_first": 63,
+        "current_last": 79,
+        "before_sha256": "62b17cae01d17a5d414b90a2afe8b2274bf7a9ea6d8096f32a5d0a5a41684d3f",
+        "current_sha256": "62b17cae01d17a5d414b90a2afe8b2274bf7a9ea6d8096f32a5d0a5a41684d3f"
+      },
+      {
+        "id": "R23",
+        "file": "F7",
+        "before_first": 81,
+        "before_last": 134,
+        "current_first": 83,
+        "current_last": 138,
+        "before_sha256": "f762848cc0907a2961e99069e9fc158988ff309864404ac396601649c49f42cd",
+        "current_sha256": "ef0c3214fde4cb22e50c4307fe0bbfd16c6e5e625bfa339f44d55581f111be84"
+      },
+      {
+        "id": "R24",
+        "file": "F5",
+        "before_first": 13,
+        "before_last": 18,
+        "current_first": 13,
+        "current_last": 26,
+        "before_sha256": "92c71813892e2d7b23d37d03e7d5b73aee81e6e0255356a5b1109b0ab202ee8b",
+        "current_sha256": "bb0f3ca44972a097ea7fa6f3d50b8c297b3022cd5bc666e8719a07f51bf0ba4e"
+      },
+      {
+        "id": "R25",
+        "file": "F6",
+        "before_first": 16,
+        "before_last": 88,
+        "current_first": 20,
+        "current_last": 103,
+        "before_sha256": "28050aca08f2685ad348eeb014e5e1635ce6eaa3eb3f9317b80bbf32753eda99",
+        "current_sha256": "d2499c06c6367858157a8c7a1feebb904e2da46764e30ac470342a839eea3aab"
+      },
+      {
+        "id": "R26",
+        "file": "F0",
+        "before_first": 1,
+        "before_last": 2,
+        "current_first": 3,
+        "current_last": 4,
+        "before_sha256": "b3c34900435385b0dedb01032c3992976a2faef1a12f81a5ebaa08afae2af6a9",
+        "current_sha256": "b3c34900435385b0dedb01032c3992976a2faef1a12f81a5ebaa08afae2af6a9"
+      },
+      {
+        "id": "R27",
+        "file": "F0",
+        "before_first": 3,
+        "before_last": 4,
+        "current_first": 5,
+        "current_last": 6,
+        "before_sha256": "bd078b7b380c8f0a4cb0a6538cdc93c03d4b6e6e883b7ef3c4f83ea66faa502c",
+        "current_sha256": "bd078b7b380c8f0a4cb0a6538cdc93c03d4b6e6e883b7ef3c4f83ea66faa502c"
+      },
+      {
+        "id": "R28",
+        "file": "F0",
+        "before_first": 5,
+        "before_last": 6,
+        "current_first": 7,
+        "current_last": 8,
+        "before_sha256": "4d73a1d0462ec714815abf989b27c2df0fbe37a1ae606c35f6a8197c5d22a3db",
+        "current_sha256": "4d73a1d0462ec714815abf989b27c2df0fbe37a1ae606c35f6a8197c5d22a3db"
+      },
+      {
+        "id": "R29",
+        "file": "F0",
+        "before_first": 7,
+        "before_last": 8,
+        "current_first": 9,
+        "current_last": 10,
+        "before_sha256": "ab32cc1b441e2a4a4dce69c3fa13657db489162962b29180571b198d778517b3",
+        "current_sha256": "ab32cc1b441e2a4a4dce69c3fa13657db489162962b29180571b198d778517b3"
+      },
+      {
+        "id": "R30",
+        "file": "F0",
+        "before_first": 9,
+        "before_last": 10,
+        "current_first": 11,
+        "current_last": 12,
+        "before_sha256": "60c23275985f9588c94d2cc88dc258acebf545c130b8f2b4c324aba914360542",
+        "current_sha256": "60c23275985f9588c94d2cc88dc258acebf545c130b8f2b4c324aba914360542"
+      },
+      {
+        "id": "R31",
+        "file": "F0",
+        "before_first": 19,
+        "before_last": 20,
+        "current_first": 21,
+        "current_last": 22,
+        "before_sha256": "7672ba29789662fdda9e4303dbcb15f5624e5e4135f2906f7034c3d47516f18b",
+        "current_sha256": "7672ba29789662fdda9e4303dbcb15f5624e5e4135f2906f7034c3d47516f18b"
+      },
+      {
+        "id": "R32",
+        "file": "F5",
+        "before_first": 122,
+        "before_last": 124,
+        "current_first": 133,
+        "current_last": 135,
+        "before_sha256": "be471e78914b20d7eee62632db5948b2703b943262c544eea38be550c701460d",
+        "current_sha256": "be471e78914b20d7eee62632db5948b2703b943262c544eea38be550c701460d"
+      },
+      {
+        "id": "R33",
+        "file": "F7",
+        "before_first": 84,
+        "before_last": 84,
+        "current_first": 86,
+        "current_last": 86,
+        "before_sha256": "baedc1a3c9a720a2efef9b60903b31f65cfe3514ace9ad06393fd33d113d1e21",
+        "current_sha256": "baedc1a3c9a720a2efef9b60903b31f65cfe3514ace9ad06393fd33d113d1e21"
+      },
+      {
+        "id": "R34",
+        "file": "F7",
+        "before_first": 85,
+        "before_last": 85,
+        "current_first": 87,
+        "current_last": 87,
+        "before_sha256": "6d5d3a70cc603b26ad3da772cb044e6d0e6493224f9de06f9cb8dd38e8a61e53",
+        "current_sha256": "6d5d3a70cc603b26ad3da772cb044e6d0e6493224f9de06f9cb8dd38e8a61e53"
+      },
+      {
+        "id": "R35",
+        "file": "F1",
+        "before_first": 8,
+        "before_last": 8,
+        "current_first": 10,
+        "current_last": 10,
+        "before_sha256": "9b3d9e53e3f8bffb7445e8dbd7f87fcb4dea6a5c16c17a7036ae6b07e45301e8",
+        "current_sha256": "9b3d9e53e3f8bffb7445e8dbd7f87fcb4dea6a5c16c17a7036ae6b07e45301e8"
+      },
+      {
+        "id": "R36",
+        "file": "F1",
+        "before_first": 9,
+        "before_last": 9,
+        "current_first": 12,
+        "current_last": 12,
+        "before_sha256": "7cf7701d7c820cbf07d4063ca56163220938f7e95c1ef02ccbc274dfc512d896",
+        "current_sha256": "7cf7701d7c820cbf07d4063ca56163220938f7e95c1ef02ccbc274dfc512d896"
+      },
+      {
+        "id": "R37",
+        "file": "F1",
+        "before_first": 10,
+        "before_last": 10,
+        "current_first": 14,
+        "current_last": 14,
+        "before_sha256": "ff268bafd765a0a4787575d7bd6e54c25503684e9882464b1a1de7e58cf6c081",
+        "current_sha256": "ff268bafd765a0a4787575d7bd6e54c25503684e9882464b1a1de7e58cf6c081"
+      },
+      {
+        "id": "R38",
+        "file": "F1",
+        "before_first": 11,
+        "before_last": 11,
+        "current_first": 16,
+        "current_last": 16,
+        "before_sha256": "fe3d6e8d302a182ff42243d602b0c37c2957d7f3c0f8b9ebcd4d2773501ab973",
+        "current_sha256": "fe3d6e8d302a182ff42243d602b0c37c2957d7f3c0f8b9ebcd4d2773501ab973"
+      },
+      {
+        "id": "R39",
+        "file": "F1",
+        "before_first": 12,
+        "before_last": 12,
+        "current_first": 18,
+        "current_last": 18,
+        "before_sha256": "188a7146fe56e53a9c5895fe493ac9099f6340cb145f23496fba62366099dedb",
+        "current_sha256": "188a7146fe56e53a9c5895fe493ac9099f6340cb145f23496fba62366099dedb"
+      },
+      {
+        "id": "R40",
+        "file": "F1",
+        "before_first": 13,
+        "before_last": 13,
+        "current_first": 20,
+        "current_last": 20,
+        "before_sha256": "dfdafb93daff81220493049ad192cad401e76e7d9c815881400c4d4f79ab8f13",
+        "current_sha256": "dfdafb93daff81220493049ad192cad401e76e7d9c815881400c4d4f79ab8f13"
+      },
+      {
+        "id": "R41",
+        "file": "F1",
+        "before_first": 14,
+        "before_last": 14,
+        "current_first": 22,
+        "current_last": 22,
+        "before_sha256": "c2ee34ecb65b3da1a9d1d1c7594d24e671af5f70de6371bea6b5c15d255ca3a7",
+        "current_sha256": "c2ee34ecb65b3da1a9d1d1c7594d24e671af5f70de6371bea6b5c15d255ca3a7"
+      },
+      {
+        "id": "R42",
+        "file": "F1",
+        "before_first": 15,
+        "before_last": 15,
+        "current_first": 24,
+        "current_last": 24,
+        "before_sha256": "a09186181b84c9ae6f1ccd10ad6bcb808fc104901281b230d4b4fe2e2ec8ad57",
+        "current_sha256": "a09186181b84c9ae6f1ccd10ad6bcb808fc104901281b230d4b4fe2e2ec8ad57"
+      },
+      {
+        "id": "R43",
+        "file": "F1",
+        "before_first": 16,
+        "before_last": 16,
+        "current_first": 26,
+        "current_last": 26,
+        "before_sha256": "ba1e7915d2c6035469be5bf092caedaf59a9442c2323be8f45a94214d366459e",
+        "current_sha256": "ba1e7915d2c6035469be5bf092caedaf59a9442c2323be8f45a94214d366459e"
+      },
+      {
+        "id": "R44",
+        "file": "F1",
+        "before_first": 22,
+        "before_last": 22,
+        "current_first": 33,
+        "current_last": 33,
+        "before_sha256": "0427f84d62e8bee26a4b96fc9c6698c28fa7d50d6772dc32d132733a9c84240b",
+        "current_sha256": "0427f84d62e8bee26a4b96fc9c6698c28fa7d50d6772dc32d132733a9c84240b"
+      },
+      {
+        "id": "R45",
+        "file": "F1",
+        "before_first": 23,
+        "before_last": 23,
+        "current_first": 35,
+        "current_last": 35,
+        "before_sha256": "cb8fc9abcbc49b7c17b3f8fe1e2f3dda42023e53d111df1e4b4a991a8258b283",
+        "current_sha256": "cb8fc9abcbc49b7c17b3f8fe1e2f3dda42023e53d111df1e4b4a991a8258b283"
+      },
+      {
+        "id": "R46",
+        "file": "F1",
+        "before_first": 24,
+        "before_last": 24,
+        "current_first": 37,
+        "current_last": 37,
+        "before_sha256": "82ec4ab963d47d08fb7f3bd440b05b69aecc644c3aac9c18f74599f25250848d",
+        "current_sha256": "82ec4ab963d47d08fb7f3bd440b05b69aecc644c3aac9c18f74599f25250848d"
+      },
+      {
+        "id": "R47",
+        "file": "F2",
+        "before_first": 6,
+        "before_last": 6,
+        "current_first": 7,
+        "current_last": 7,
+        "before_sha256": "9fff227cbed0b8ed5d9cf074f58d73100e866a198d3438f067da152fede3df9f",
+        "current_sha256": "9fff227cbed0b8ed5d9cf074f58d73100e866a198d3438f067da152fede3df9f"
+      },
+      {
+        "id": "R48",
+        "file": "F2",
+        "before_first": 7,
+        "before_last": 7,
+        "current_first": 8,
+        "current_last": 8,
+        "before_sha256": "d5988f8c1d4d5cd2c8d58ab14c10443adb43f617dd7898666f12fa1c74650bdb",
+        "current_sha256": "d5988f8c1d4d5cd2c8d58ab14c10443adb43f617dd7898666f12fa1c74650bdb"
+      },
+      {
+        "id": "R49",
+        "file": "F2",
+        "before_first": 13,
+        "before_last": 13,
+        "current_first": 15,
+        "current_last": 15,
+        "before_sha256": "e2670d8f725b9a7cf012d32a134272f4cdc1c508152620b89bea4dc9e554d72e",
+        "current_sha256": "e2670d8f725b9a7cf012d32a134272f4cdc1c508152620b89bea4dc9e554d72e"
+      },
+      {
+        "id": "R50",
+        "file": "F2",
+        "before_first": 14,
+        "before_last": 14,
+        "current_first": 17,
+        "current_last": 17,
+        "before_sha256": "159406580da5875428115af1fe48f8d6fd3b213af8290eab7d3130f13d1cfae3",
+        "current_sha256": "159406580da5875428115af1fe48f8d6fd3b213af8290eab7d3130f13d1cfae3"
+      },
+      {
+        "id": "R51",
+        "file": "F2",
+        "before_first": 15,
+        "before_last": 15,
+        "current_first": 19,
+        "current_last": 19,
+        "before_sha256": "b0f7e8427ed0d7f8f301e91fe1d22e0246b9984af11a8ebf0ece3df9066a8fa0",
+        "current_sha256": "b0f7e8427ed0d7f8f301e91fe1d22e0246b9984af11a8ebf0ece3df9066a8fa0"
+      },
+      {
+        "id": "R52",
+        "file": "F2",
+        "before_first": 16,
+        "before_last": 16,
+        "current_first": 21,
+        "current_last": 21,
+        "before_sha256": "82ec4ab963d47d08fb7f3bd440b05b69aecc644c3aac9c18f74599f25250848d",
+        "current_sha256": "82ec4ab963d47d08fb7f3bd440b05b69aecc644c3aac9c18f74599f25250848d"
+      },
+      {
+        "id": "R53",
+        "file": "F3",
+        "before_first": 8,
+        "before_last": 8,
+        "current_first": 9,
+        "current_last": 9,
+        "before_sha256": "e605cb7b8de83c277137b24ffaab375b13adf79d170fe0676eac9514f7fbf2e0",
+        "current_sha256": "e605cb7b8de83c277137b24ffaab375b13adf79d170fe0676eac9514f7fbf2e0"
+      },
+      {
+        "id": "R54",
+        "file": "F3",
+        "before_first": 9,
+        "before_last": 9,
+        "current_first": 10,
+        "current_last": 10,
+        "before_sha256": "086a8785523f8a0b16c4a7fdc6e245e361ab8496e4c0acd7d3625c4522851ad2",
+        "current_sha256": "086a8785523f8a0b16c4a7fdc6e245e361ab8496e4c0acd7d3625c4522851ad2"
+      },
+      {
+        "id": "R55",
+        "file": "F3",
+        "before_first": 10,
+        "before_last": 10,
+        "current_first": 11,
+        "current_last": 11,
+        "before_sha256": "251ab29007b46e8f3d3b291f535b800bf0e49f347e235de14d20904d578a0c36",
+        "current_sha256": "251ab29007b46e8f3d3b291f535b800bf0e49f347e235de14d20904d578a0c36"
+      },
+      {
+        "id": "R56",
+        "file": "F3",
+        "before_first": 17,
+        "before_last": 17,
+        "current_first": 19,
+        "current_last": 19,
+        "before_sha256": "8b64362d40f4215991c7763fac6b72921b6fce51ee309b3086066a3f7bf61195",
+        "current_sha256": "8b64362d40f4215991c7763fac6b72921b6fce51ee309b3086066a3f7bf61195"
+      },
+      {
+        "id": "R57",
+        "file": "F3",
+        "before_first": 19,
+        "before_last": 19,
+        "current_first": 22,
+        "current_last": 22,
+        "before_sha256": "49a02816748cbe00cf499abe1b2f4c7954da3906d12c83fb21c5e1a667d5964b",
+        "current_sha256": "49a02816748cbe00cf499abe1b2f4c7954da3906d12c83fb21c5e1a667d5964b"
+      },
+      {
+        "id": "R58",
+        "file": "F4",
+        "before_first": 9,
+        "before_last": 9,
+        "current_first": 11,
+        "current_last": 11,
+        "before_sha256": "624bdc8d55073b26de912feadb5853eec7223aaf1dc57d52f9b422c824433f47",
+        "current_sha256": "624bdc8d55073b26de912feadb5853eec7223aaf1dc57d52f9b422c824433f47"
+      },
+      {
+        "id": "R59",
+        "file": "F4",
+        "before_first": 11,
+        "before_last": 11,
+        "current_first": 14,
+        "current_last": 14,
+        "before_sha256": "38847f4d4e68b99956fcc0a5fb87bacb2084b48376d22b5a3fa4db3e2aa13afd",
+        "current_sha256": "38847f4d4e68b99956fcc0a5fb87bacb2084b48376d22b5a3fa4db3e2aa13afd"
+      },
+      {
+        "id": "R60",
+        "file": "F5",
+        "before_first": 7,
+        "before_last": 7,
+        "current_first": 7,
+        "current_last": 7,
+        "before_sha256": "23346c523c0681f117d277e240bdb983955ef82e083ba430258a2143b75c7331",
+        "current_sha256": "23346c523c0681f117d277e240bdb983955ef82e083ba430258a2143b75c7331"
+      },
+      {
+        "id": "R61",
+        "file": "F5",
+        "before_first": 8,
+        "before_last": 8,
+        "current_first": 8,
+        "current_last": 8,
+        "before_sha256": "5df0e1ea9fd0353b8e770dfd242788faf240977537004ecab9f07bc9feaa6969",
+        "current_sha256": "5df0e1ea9fd0353b8e770dfd242788faf240977537004ecab9f07bc9feaa6969"
+      },
+      {
+        "id": "R62",
+        "file": "F5",
+        "before_first": 9,
+        "before_last": 9,
+        "current_first": 9,
+        "current_last": 9,
+        "before_sha256": "7ae91b48d25c7db1441b9bfcfd466e2e90bb009beb2f9261baac72e33a071932",
+        "current_sha256": "7ae91b48d25c7db1441b9bfcfd466e2e90bb009beb2f9261baac72e33a071932"
+      },
+      {
+        "id": "R63",
+        "file": "F5",
+        "before_first": 10,
+        "before_last": 10,
+        "current_first": 10,
+        "current_last": 10,
+        "before_sha256": "77ba8589e7f3f44e237ff8a1f82fa17ac92d7bce19965c585453afc9220c8815",
+        "current_sha256": "77ba8589e7f3f44e237ff8a1f82fa17ac92d7bce19965c585453afc9220c8815"
+      },
+      {
+        "id": "R64",
+        "file": "F6",
+        "before_first": 10,
+        "before_last": 10,
+        "current_first": 12,
+        "current_last": 12,
+        "before_sha256": "45d242e066f2cea812b8729217f478c559e378cb764a7653c340d5011c406e33",
+        "current_sha256": "45d242e066f2cea812b8729217f478c559e378cb764a7653c340d5011c406e33"
+      },
+      {
+        "id": "R65",
+        "file": "F6",
+        "before_first": 11,
+        "before_last": 11,
+        "current_first": 14,
+        "current_last": 14,
+        "before_sha256": "7a6b3a960640ae2c822a87f98afb780d7f5af47db9d4d8f717d4bfbee2e26cb8",
+        "current_sha256": "7a6b3a960640ae2c822a87f98afb780d7f5af47db9d4d8f717d4bfbee2e26cb8"
+      },
+      {
+        "id": "R66",
+        "file": "F6",
+        "before_first": 13,
+        "before_last": 13,
+        "current_first": 17,
+        "current_last": 17,
+        "before_sha256": "be5e6f9085ff53a9e5ce7ce4a06afbfd818b7b513c78666a3a08db7551884be0",
+        "current_sha256": "be5e6f9085ff53a9e5ce7ce4a06afbfd818b7b513c78666a3a08db7551884be0"
+      },
+      {
+        "id": "R67",
+        "file": "F5",
+        "before_first": 15,
+        "before_last": 15,
+        "current_first": 23,
+        "current_last": 23,
+        "before_sha256": "ca9a743c6249d3487536019e0512354c13e427709b4aa38c44650d0e58e7d65b",
+        "current_sha256": "ca9a743c6249d3487536019e0512354c13e427709b4aa38c44650d0e58e7d65b"
+      },
+      {
+        "id": "R68",
+        "file": "F5",
+        "before_first": 21,
+        "before_last": 21,
+        "current_first": 29,
+        "current_last": 29,
+        "before_sha256": "7a967f37d50e44014439134f4dce35e93484b607ce89c4396d310b0ce1db2c98",
+        "current_sha256": "7a967f37d50e44014439134f4dce35e93484b607ce89c4396d310b0ce1db2c98"
+      },
+      {
+        "id": "R69",
+        "file": "F5",
+        "before_first": 41,
+        "before_last": 41,
+        "current_first": 49,
+        "current_last": 49,
+        "before_sha256": "2cd0bdf9c0447329c58651841f1c0ebdf2045e84e265c1974bdbf5a4d5cb150a",
+        "current_sha256": "2cd0bdf9c0447329c58651841f1c0ebdf2045e84e265c1974bdbf5a4d5cb150a"
+      },
+      {
+        "id": "R70",
+        "file": "F5",
+        "before_first": 58,
+        "before_last": 58,
+        "current_first": 67,
+        "current_last": 67,
+        "before_sha256": "f56b2dbc312cd29ed0fbe988dc66e9c88f4adde07569dc71e9f892293ec4c8d3",
+        "current_sha256": "f56b2dbc312cd29ed0fbe988dc66e9c88f4adde07569dc71e9f892293ec4c8d3"
+      },
+      {
+        "id": "R71",
+        "file": "F5",
+        "before_first": 69,
+        "before_last": 69,
+        "current_first": 78,
+        "current_last": 78,
+        "before_sha256": "c24ce886d87b359cc9f07fe2c347de6866406e0dc0d31cbbf0b0b7c1313dc9a1",
+        "current_sha256": "c24ce886d87b359cc9f07fe2c347de6866406e0dc0d31cbbf0b0b7c1313dc9a1"
+      },
+      {
+        "id": "R72",
+        "file": "F5",
+        "before_first": 116,
+        "before_last": 116,
+        "current_first": 126,
+        "current_last": 126,
+        "before_sha256": "bb3af5109af5af09022fbf0e1682ffed3a94ab2924c366486ee89f0d1065a1c9",
+        "current_sha256": "bb3af5109af5af09022fbf0e1682ffed3a94ab2924c366486ee89f0d1065a1c9"
+      },
+      {
+        "id": "R73",
+        "file": "F6",
+        "before_first": 18,
+        "before_last": 18,
+        "current_first": 30,
+        "current_last": 30,
+        "before_sha256": "29e393f99c72e8cad413f6140cb784c53d160df289c786a1805776c750af1bc8",
+        "current_sha256": "29e393f99c72e8cad413f6140cb784c53d160df289c786a1805776c750af1bc8"
+      },
+      {
+        "id": "R74",
+        "file": "F6",
+        "before_first": 90,
+        "before_last": 90,
+        "current_first": 106,
+        "current_last": 106,
+        "before_sha256": "f4472ed345eef33b950ab9ec87356b2d17bcb73582e4328d969cfe2b9d09817f",
+        "current_sha256": "f4472ed345eef33b950ab9ec87356b2d17bcb73582e4328d969cfe2b9d09817f"
+      },
+      {
+        "id": "R75",
+        "file": "F6",
+        "before_first": 94,
+        "before_last": 94,
+        "current_first": 110,
+        "current_last": 110,
+        "before_sha256": "47399211d8ffae503ee2532877962fac9ccd0d2c38a28981a2ad6be79ef20f1c",
+        "current_sha256": "47399211d8ffae503ee2532877962fac9ccd0d2c38a28981a2ad6be79ef20f1c"
+      },
+      {
+        "id": "R76",
+        "file": "F7",
+        "before_first": 4,
+        "before_last": 4,
+        "current_first": 5,
+        "current_last": 5,
+        "before_sha256": "e830376c6dbf7e02c19373ce914023d480f0e1f59f49a8433eb1d387ab612544",
+        "current_sha256": "e830376c6dbf7e02c19373ce914023d480f0e1f59f49a8433eb1d387ab612544"
+      },
+      {
+        "id": "R77",
+        "file": "F7",
+        "before_first": 26,
+        "before_last": 26,
+        "current_first": 27,
+        "current_last": 27,
+        "before_sha256": "c25dbab5d9310bb81ffee0ea5a0904be6a056aabf52e0e670625d9b13299a690",
+        "current_sha256": "c25dbab5d9310bb81ffee0ea5a0904be6a056aabf52e0e670625d9b13299a690"
+      },
+      {
+        "id": "R78",
+        "file": "F7",
+        "before_first": 36,
+        "before_last": 36,
+        "current_first": 37,
+        "current_last": 37,
+        "before_sha256": "9e349d19dcb92d8f9754cb1fbb9780bb665eeef3c4270bcc3f924e7252a784fd",
+        "current_sha256": "9e349d19dcb92d8f9754cb1fbb9780bb665eeef3c4270bcc3f924e7252a784fd"
+      },
+      {
+        "id": "R79",
+        "file": "F7",
+        "before_first": 56,
+        "before_last": 56,
+        "current_first": 57,
+        "current_last": 57,
+        "before_sha256": "df1585e3f3791fd2eefd7691640b21724664935932f2c0a91a9ac1cfb8305c4c",
+        "current_sha256": "df1585e3f3791fd2eefd7691640b21724664935932f2c0a91a9ac1cfb8305c4c"
+      },
+      {
+        "id": "R80",
+        "file": "F0",
+        "before_first": 1,
+        "before_last": 10,
+        "current_first": 3,
+        "current_last": 12,
+        "before_sha256": "ad08d6fa4bae275aa9e5074e87c27bd12ac1dcb23278294d98aa68f50b70046a",
+        "current_sha256": "ad08d6fa4bae275aa9e5074e87c27bd12ac1dcb23278294d98aa68f50b70046a"
+      },
+      {
+        "id": "R81",
+        "file": "F0",
+        "before_first": 11,
+        "before_last": 17,
+        "current_first": 13,
+        "current_last": 19,
+        "before_sha256": "faf9b097e2dbe9c7ef4141716496ba5c054538a27e55ee918750dc694235b5ad",
+        "current_sha256": "faf9b097e2dbe9c7ef4141716496ba5c054538a27e55ee918750dc694235b5ad"
+      },
+      {
+        "id": "R82",
+        "file": "F0",
+        "before_first": 18,
+        "before_last": 20,
+        "current_first": 20,
+        "current_last": 22,
+        "before_sha256": "1b364c7d2ddc50c6d3a51011aa3c4040aa1e860b0e4b67d9ed0a1a0ff423912b",
+        "current_sha256": "1b364c7d2ddc50c6d3a51011aa3c4040aa1e860b0e4b67d9ed0a1a0ff423912b"
+      },
+      {
+        "id": "R83",
+        "file": "F1",
+        "before_first": 1,
+        "before_last": 4,
+        "current_first": 1,
+        "current_last": 4,
+        "before_sha256": "27a3d68e4d68a23106ffa454bfbcae2c7ce15542f77b966d45e7cd945cd5c88a",
+        "current_sha256": "27a3d68e4d68a23106ffa454bfbcae2c7ce15542f77b966d45e7cd945cd5c88a"
+      },
+      {
+        "id": "R84",
+        "file": "F1",
+        "before_first": 5,
+        "before_last": 17,
+        "current_first": 5,
+        "current_last": 27,
+        "before_sha256": "ebf98bb59642c615a449b265f989b537be4a5deb39170c5eff6885a9b2252595",
+        "current_sha256": "d1b833cd53383d3727f97ad63e7a28e775dcc02ea980ef90595eb41916f389de"
+      },
+      {
+        "id": "R85",
+        "file": "F1",
+        "before_first": 18,
+        "before_last": 25,
+        "current_first": 28,
+        "current_last": 38,
+        "before_sha256": "7bb10bb1c2e4e28bf310db951610fe4ba9edb244c8a1fb23f03ec0154e785e47",
+        "current_sha256": "9e91ffce09ae4f573fc8a475eb54ef44fac1e2b7e03607a4177f903dbb1bb73b"
+      },
+      {
+        "id": "R86",
+        "file": "F2",
+        "before_first": 1,
+        "before_last": 2,
+        "current_first": 1,
+        "current_last": 2,
+        "before_sha256": "1ed38751c1fac4cecd41f6d3575754cfe12599bf8935b0b71da62c82514577b4",
+        "current_sha256": "1ed38751c1fac4cecd41f6d3575754cfe12599bf8935b0b71da62c82514577b4"
+      },
+      {
+        "id": "R87",
+        "file": "F2",
+        "before_first": 3,
+        "before_last": 8,
+        "current_first": 3,
+        "current_last": 9,
+        "before_sha256": "ec8bcfbdc85ca05c69a2eb01233d298b4a6944428cb8c7274f9302852ae9c64e",
+        "current_sha256": "e00177efb778c03df924c895918d4c1620e4b353b22ad16e2992a65736f8c379"
+      },
+      {
+        "id": "R88",
+        "file": "F2",
+        "before_first": 9,
+        "before_last": 17,
+        "current_first": 10,
+        "current_last": 22,
+        "before_sha256": "805404268291c6ba11b0da098bb155d00d26fa58c64e33448a8b6133f805173f",
+        "current_sha256": "ad1be9c4cfeba6fedee19a74961aa2a6fd0e63f9ab46ca08c78e1ae922114511"
+      },
+      {
+        "id": "R89",
+        "file": "F3",
+        "before_first": 1,
+        "before_last": 3,
+        "current_first": 1,
+        "current_last": 3,
+        "before_sha256": "9b857b291b502505040e87ad69d342cd0cd071d35c5d77d763fd9d7d765f8c4d",
+        "current_sha256": "9b857b291b502505040e87ad69d342cd0cd071d35c5d77d763fd9d7d765f8c4d"
+      },
+      {
+        "id": "R90",
+        "file": "F3",
+        "before_first": 4,
+        "before_last": 11,
+        "current_first": 4,
+        "current_last": 12,
+        "before_sha256": "663629152ef73dbf83811a567ead9ffb1579b68a83331508ccebe18b60035b1b",
+        "current_sha256": "3e7b7e23abea9b31bb25833a0e95d85cd68a65e5cbbc06c20628f9065522f8f0"
+      },
+      {
+        "id": "R91",
+        "file": "F3",
+        "before_first": 12,
+        "before_last": 20,
+        "current_first": 13,
+        "current_last": 23,
+        "before_sha256": "c3ffe6817919b04f5003749bb96f5bfec6005115c12fa2b344fba265fcda8a4d",
+        "current_sha256": "92bd0696c458a7da0918abe654cebf095fffc49b9f96713aaa99dbc269f678d7"
+      },
+      {
+        "id": "R92",
+        "file": "F4",
+        "before_first": 1,
+        "before_last": 5,
+        "current_first": 1,
+        "current_last": 5,
+        "before_sha256": "5b103aa573e75c93713176dbf36e0aa3e24e0e95023f493ae96e5a1a7e1ebd52",
+        "current_sha256": "5b103aa573e75c93713176dbf36e0aa3e24e0e95023f493ae96e5a1a7e1ebd52"
+      },
+      {
+        "id": "R93",
+        "file": "F4",
+        "before_first": 6,
+        "before_last": 12,
+        "current_first": 6,
+        "current_last": 15,
+        "before_sha256": "b780463c8ebdbf6b8938b8baedf37e80e1b3c6b536bff3d1b0ce1e915cc8524b",
+        "current_sha256": "00129e6ca5836d61a70bf9592a0892a73d98e822cbfa98e2123994b28d5233b7"
+      },
+      {
+        "id": "R94",
+        "file": "F5",
+        "before_first": 1,
+        "before_last": 4,
+        "current_first": 1,
+        "current_last": 4,
+        "before_sha256": "7f4ea4f22e1f9f84b17fc8dc433e53187faf4c257e1fa79d31ac41530b3238e7",
+        "current_sha256": "7f4ea4f22e1f9f84b17fc8dc433e53187faf4c257e1fa79d31ac41530b3238e7"
+      },
+      {
+        "id": "R95",
+        "file": "F5",
+        "before_first": 5,
+        "before_last": 11,
+        "current_first": 5,
+        "current_last": 11,
+        "before_sha256": "b2946171484d4e666401fbebc8fe728334107e3dfb0ab6e9ea513cc127a6a9db",
+        "current_sha256": "b2946171484d4e666401fbebc8fe728334107e3dfb0ab6e9ea513cc127a6a9db"
+      },
+      {
+        "id": "R96",
+        "file": "F5",
+        "before_first": 12,
+        "before_last": 18,
+        "current_first": 12,
+        "current_last": 26,
+        "before_sha256": "3d311b6e5c66e53246b718921539f76fef630b358e8077a688da77059f209cb9",
+        "current_sha256": "7de5963428bfea00e7330357355178a3d6b004ff50024f402035a736c002acaf"
+      },
+      {
+        "id": "R97",
+        "file": "F5",
+        "before_first": 19,
+        "before_last": 39,
+        "current_first": 27,
+        "current_last": 47,
+        "before_sha256": "8f1e0d7d9e74476558ef8ae8a93e523088d3fdd80c6391601c9cc785fe5dfe22",
+        "current_sha256": "8f1e0d7d9e74476558ef8ae8a93e523088d3fdd80c6391601c9cc785fe5dfe22"
+      },
+      {
+        "id": "R98",
+        "file": "F5",
+        "before_first": 40,
+        "before_last": 56,
+        "current_first": 48,
+        "current_last": 64,
+        "before_sha256": "dd72af7387489735488c444c47a2a4c291715769dde953c280ba479c3c935607",
+        "current_sha256": "dd72af7387489735488c444c47a2a4c291715769dde953c280ba479c3c935607"
+      },
+      {
+        "id": "R99",
+        "file": "F5",
+        "before_first": 57,
+        "before_last": 66,
+        "current_first": 65,
+        "current_last": 75,
+        "before_sha256": "f22063af68998c741df8acd901b7ad5088497d75a5a6c005cd1d709a1a6958cb",
+        "current_sha256": "062853d21fb3fb0f33364b06668033b920ba2ff46e195af1ff829e5eac4a0d2e"
+      },
+      {
+        "id": "R100",
+        "file": "F5",
+        "before_first": 67,
+        "before_last": 114,
+        "current_first": 76,
+        "current_last": 123,
+        "before_sha256": "ffeac6446ee68a7d46d7f9a67a83b68d944adf8dcd0475b099a54da4d8db7de6",
+        "current_sha256": "ffeac6446ee68a7d46d7f9a67a83b68d944adf8dcd0475b099a54da4d8db7de6"
+      },
+      {
+        "id": "R101",
+        "file": "F5",
+        "before_first": 115,
+        "before_last": 120,
+        "current_first": 124,
+        "current_last": 130,
+        "before_sha256": "f7e1217d9a609a83d7f13d7dbca4ecc09628134321e1bc3d1ed3a87307f1011a",
+        "current_sha256": "6f53b6b8435857b1cf4aa9179a210fe94828fe145c9021fc936f584c6300d50e"
+      },
+      {
+        "id": "R102",
+        "file": "F5",
+        "before_first": 121,
+        "before_last": 124,
+        "current_first": 131,
+        "current_last": 135,
+        "before_sha256": "37391f86b720bfa2276fac7b1f13d6bc9a34cc6cc0cca388dbbe8d14369eba94",
+        "current_sha256": "74cf38a732743bab88f321d89c82945c0d2c2d5fa5d56c5f7a8432449ab1fcdd"
+      },
+      {
+        "id": "R103",
+        "file": "F6",
+        "before_first": 1,
+        "before_last": 7,
+        "current_first": 1,
+        "current_last": 7,
+        "before_sha256": "cdac322ff522405ddd21500b85d83291e8cc6e2a9ff8169698a9e7ace86d1908",
+        "current_sha256": "cdac322ff522405ddd21500b85d83291e8cc6e2a9ff8169698a9e7ace86d1908"
+      },
+      {
+        "id": "R104",
+        "file": "F6",
+        "before_first": 8,
+        "before_last": 14,
+        "current_first": 8,
+        "current_last": 18,
+        "before_sha256": "cfc5c3da0b38c6239f81c2ebb9ebc53037df61c7948f56f0fe99a2197648606e",
+        "current_sha256": "f4aae19b22a01812bbfb99eb60103af16b922123d0accb8b7717a0e11daede83"
+      },
+      {
+        "id": "R105",
+        "file": "F6",
+        "before_first": 15,
+        "before_last": 88,
+        "current_first": 19,
+        "current_last": 103,
+        "before_sha256": "0498f3b81c5a3effeca8741c2e6044ab540d116c6cc82ff13b415cd1dcab82e2",
+        "current_sha256": "0735032076dbfc13a52ea4c711b104484cceb614f228a737b4dd3fa8750a4b0a"
+      },
+      {
+        "id": "R106",
+        "file": "F6",
+        "before_first": 89,
+        "before_last": 92,
+        "current_first": 104,
+        "current_last": 108,
+        "before_sha256": "137def87986bb8e4db8e58721b34dd92ba607b66524dd4fcd21ccc80b179a479",
+        "current_sha256": "968da2b0dd194a5e54b1a3cffaa4eec6db21151cb3c98bcf783e3415dc574904"
+      },
+      {
+        "id": "R107",
+        "file": "F6",
+        "before_first": 93,
+        "before_last": 101,
+        "current_first": 109,
+        "current_last": 117,
+        "before_sha256": "2b9d565012bb7487e124cbc33bb6d5eaf0224ed076c64217d8169ffa69d044f1",
+        "current_sha256": "2b9d565012bb7487e124cbc33bb6d5eaf0224ed076c64217d8169ffa69d044f1"
+      },
+      {
+        "id": "R108",
+        "file": "F7",
+        "before_first": 1,
+        "before_last": 3,
+        "current_first": 1,
+        "current_last": 3,
+        "before_sha256": "b719388d946c1c0dfe45546221b528217c92da5be876eba1e832e63c40923f2d",
+        "current_sha256": "b719388d946c1c0dfe45546221b528217c92da5be876eba1e832e63c40923f2d"
+      },
+      {
+        "id": "R109",
+        "file": "F7",
+        "before_first": 25,
+        "before_last": 34,
+        "current_first": 26,
+        "current_last": 35,
+        "before_sha256": "ee68926eeadb24ae03fe621006db54f0fd13d7274333aa1eaa6b64762103f05d",
+        "current_sha256": "ee68926eeadb24ae03fe621006db54f0fd13d7274333aa1eaa6b64762103f05d"
+      },
+      {
+        "id": "R110",
+        "file": "F7",
+        "before_first": 35,
+        "before_last": 54,
+        "current_first": 36,
+        "current_last": 55,
+        "before_sha256": "12e91caa484abd4ea3d9d82cac648cfd151dc8dcc22cfa5c88ff5527c993c0f1",
+        "current_sha256": "12e91caa484abd4ea3d9d82cac648cfd151dc8dcc22cfa5c88ff5527c993c0f1"
+      },
+      {
+        "id": "R111",
+        "file": "F7",
+        "before_first": 55,
+        "before_last": 58,
+        "current_first": 56,
+        "current_last": 59,
+        "before_sha256": "2280b115625a9265c46671cd7caa778322b6b4cff38d7b99df6edb61e245b7ba",
+        "current_sha256": "2280b115625a9265c46671cd7caa778322b6b4cff38d7b99df6edb61e245b7ba"
+      },
+      {
+        "id": "R112",
+        "file": "F7",
+        "before_first": 59,
+        "before_last": 77,
+        "current_first": 60,
+        "current_last": 79,
+        "before_sha256": "a29c704abecd7110b2ecd0196efbf4818e3529893cc087fd77e5ff70092fa51a",
+        "current_sha256": "b59e15a2f1ec3cbe93d9742ab333c57b091e3c2dc23d69f22dc81283d850990a"
+      },
+      {
+        "id": "R113",
+        "file": "F7",
+        "before_first": 78,
+        "before_last": 134,
+        "current_first": 80,
+        "current_last": 138,
+        "before_sha256": "bf55fe08070ef424434eef1c3f5538716dbdf0139363a93a8ace45396632f431",
+        "current_sha256": "69346689182b7ec83154d3ba8218e38f15d98f7d68f75eacba7e17cdc29e4b93"
+      },
+      {
+        "id": "R114",
+        "file": "F5",
+        "before_first": 21,
+        "before_last": 25,
+        "current_first": 29,
+        "current_last": 33,
+        "before_sha256": "1b51d7ab6fcfe641a4189d129c958845676007fd67d51c2fdd3e89dd9db664b2",
+        "current_sha256": "1b51d7ab6fcfe641a4189d129c958845676007fd67d51c2fdd3e89dd9db664b2"
+      },
+      {
+        "id": "R115",
+        "file": "F5",
+        "before_first": 27,
+        "before_last": 38,
+        "current_first": 35,
+        "current_last": 46,
+        "before_sha256": "21c8d1dffcc7bca505165a3fd477e47e18d388fda5d6daf3a1da390b054bb6da",
+        "current_sha256": "21c8d1dffcc7bca505165a3fd477e47e18d388fda5d6daf3a1da390b054bb6da"
+      },
+      {
+        "id": "R116",
+        "file": "F5",
+        "before_first": 42,
+        "before_last": 43,
+        "current_first": 50,
+        "current_last": 51,
+        "before_sha256": "1baeee8ae9e9a8838b50655935ef808a964723a81ba439040af4329036fc79d2",
+        "current_sha256": "1baeee8ae9e9a8838b50655935ef808a964723a81ba439040af4329036fc79d2"
+      },
+      {
+        "id": "R117",
+        "file": "F5",
+        "before_first": 44,
+        "before_last": 45,
+        "current_first": 52,
+        "current_last": 53,
+        "before_sha256": "c0311275763b5bf9faf655ead2db0e4904e8888f92a35e6156c32f18e0ee4157",
+        "current_sha256": "c0311275763b5bf9faf655ead2db0e4904e8888f92a35e6156c32f18e0ee4157"
+      },
+      {
+        "id": "R118",
+        "file": "F5",
+        "before_first": 46,
+        "before_last": 50,
+        "current_first": 54,
+        "current_last": 58,
+        "before_sha256": "f9384ff81cc750e22eacd439d9129494a7d927c1d01730f6af73cf3023487cff",
+        "current_sha256": "f9384ff81cc750e22eacd439d9129494a7d927c1d01730f6af73cf3023487cff"
+      },
+      {
+        "id": "R119",
+        "file": "F5",
+        "before_first": 51,
+        "before_last": 55,
+        "current_first": 59,
+        "current_last": 63,
+        "before_sha256": "2b6fc8d361d6e40916e2c52f97b254f1cb43e38d7f02791195c80525141e2c74",
+        "current_sha256": "2b6fc8d361d6e40916e2c52f97b254f1cb43e38d7f02791195c80525141e2c74"
+      },
+      {
+        "id": "R120",
+        "file": "F5",
+        "before_first": 59,
+        "before_last": 65,
+        "current_first": 68,
+        "current_last": 74,
+        "before_sha256": "d4010c34fcc5cdd2972a1f1f94d84405fe485e03dbcdf24d2abf4bd4b96c92e0",
+        "current_sha256": "d4010c34fcc5cdd2972a1f1f94d84405fe485e03dbcdf24d2abf4bd4b96c92e0"
+      },
+      {
+        "id": "R121",
+        "file": "F5",
+        "before_first": 69,
+        "before_last": 74,
+        "current_first": 78,
+        "current_last": 83,
+        "before_sha256": "e8904b01349b6c2e03ebd43c76ccf345db5055a0751192a1c1c7233c28519a63",
+        "current_sha256": "e8904b01349b6c2e03ebd43c76ccf345db5055a0751192a1c1c7233c28519a63"
+      },
+      {
+        "id": "R122",
+        "file": "F5",
+        "before_first": 76,
+        "before_last": 78,
+        "current_first": 85,
+        "current_last": 87,
+        "before_sha256": "1109e2ea0fae48fc7e857e666d7f97e192e211c6fdda6e7e5205bf598e43f864",
+        "current_sha256": "1109e2ea0fae48fc7e857e666d7f97e192e211c6fdda6e7e5205bf598e43f864"
+      },
+      {
+        "id": "R123",
+        "file": "F5",
+        "before_first": 80,
+        "before_last": 88,
+        "current_first": 89,
+        "current_last": 97,
+        "before_sha256": "16c3127cbd24159fe0d5cd0f363a605b814799fe2da12c8fa6ecf7ec9fd0bed3",
+        "current_sha256": "16c3127cbd24159fe0d5cd0f363a605b814799fe2da12c8fa6ecf7ec9fd0bed3"
+      },
+      {
+        "id": "R124",
+        "file": "F5",
+        "before_first": 89,
+        "before_last": 100,
+        "current_first": 98,
+        "current_last": 109,
+        "before_sha256": "4d8fd9a4bd6bcc868aa483fe5a29f9ab2b67e1e437fa41cdcbeead32bbaacb34",
+        "current_sha256": "4d8fd9a4bd6bcc868aa483fe5a29f9ab2b67e1e437fa41cdcbeead32bbaacb34"
+      },
+      {
+        "id": "R125",
+        "file": "F5",
+        "before_first": 101,
+        "before_last": 113,
+        "current_first": 110,
+        "current_last": 122,
+        "before_sha256": "0062eabb36edbeeb81e5753b9b4cf1f03bc13c2161dd4a559e4a40c9be18765d",
+        "current_sha256": "0062eabb36edbeeb81e5753b9b4cf1f03bc13c2161dd4a559e4a40c9be18765d"
+      },
+      {
+        "id": "R126",
+        "file": "F6",
+        "before_first": 18,
+        "before_last": 26,
+        "current_first": 30,
+        "current_last": 38,
+        "before_sha256": "23c8e0b31b32821a1fb03cd89d36fd127b164c2dcc9ad043574e80356ef53512",
+        "current_sha256": "23c8e0b31b32821a1fb03cd89d36fd127b164c2dcc9ad043574e80356ef53512"
+      },
+      {
+        "id": "R127",
+        "file": "F6",
+        "before_first": 27,
+        "before_last": 33,
+        "current_first": 39,
+        "current_last": 45,
+        "before_sha256": "60f006de69ab52d8f983fa1c8e1608060795843feae4823c7a17e1d7cf20e95c",
+        "current_sha256": "60f006de69ab52d8f983fa1c8e1608060795843feae4823c7a17e1d7cf20e95c"
+      },
+      {
+        "id": "R128",
+        "file": "F6",
+        "before_first": 35,
+        "before_last": 44,
+        "current_first": 48,
+        "current_last": 57,
+        "before_sha256": "5381296c6ee46c6de6eec2fce509a7de0fd19a4916992974c6c7f79e4773a983",
+        "current_sha256": "5381296c6ee46c6de6eec2fce509a7de0fd19a4916992974c6c7f79e4773a983"
+      },
+      {
+        "id": "R129",
+        "file": "F6",
+        "before_first": 46,
+        "before_last": 60,
+        "current_first": 59,
+        "current_last": 73,
+        "before_sha256": "f3ef21b82a09af0ec61fd2b85f158e5ea6de5c46917e2d10f819cd441ef99471",
+        "current_sha256": "f3ef21b82a09af0ec61fd2b85f158e5ea6de5c46917e2d10f819cd441ef99471"
+      },
+      {
+        "id": "R130",
+        "file": "F6",
+        "before_first": 61,
+        "before_last": 67,
+        "current_first": 75,
+        "current_last": 81,
+        "before_sha256": "bf1f28e178f1f4100fadb5b7b433ab1a3469220caba25ec0beb8dff8ed2e6462",
+        "current_sha256": "bf1f28e178f1f4100fadb5b7b433ab1a3469220caba25ec0beb8dff8ed2e6462"
+      },
+      {
+        "id": "R131",
+        "file": "F6",
+        "before_first": 68,
+        "before_last": 74,
+        "current_first": 82,
+        "current_last": 88,
+        "before_sha256": "471a5fbb2b8b59bcd3ac8f3df3c5e29d9f28ea0f19cf17dee8799d8bc57c6c34",
+        "current_sha256": "471a5fbb2b8b59bcd3ac8f3df3c5e29d9f28ea0f19cf17dee8799d8bc57c6c34"
+      },
+      {
+        "id": "R132",
+        "file": "F6",
+        "before_first": 75,
+        "before_last": 84,
+        "current_first": 90,
+        "current_last": 99,
+        "before_sha256": "50ef86be45e35a36f8c38b8d4a541983661264825c864c3031a9b3918cb8bf77",
+        "current_sha256": "50ef86be45e35a36f8c38b8d4a541983661264825c864c3031a9b3918cb8bf77"
+      },
+      {
+        "id": "R133",
+        "file": "F6",
+        "before_first": 86,
+        "before_last": 87,
+        "current_first": 101,
+        "current_last": 102,
+        "before_sha256": "83a3d0e7c8956c9fe8969d68e1b1f6678b4d4cc987520ada90c3a2894fae7167",
+        "current_sha256": "83a3d0e7c8956c9fe8969d68e1b1f6678b4d4cc987520ada90c3a2894fae7167"
+      },
+      {
+        "id": "R134",
+        "file": "F7",
+        "before_first": 4,
+        "before_last": 9,
+        "current_first": 5,
+        "current_last": 10,
+        "before_sha256": "0964fe614deb54764e289a0d4e42765fb0562cc5f19cfdc998f1c61eedef5f5f",
+        "current_sha256": "0964fe614deb54764e289a0d4e42765fb0562cc5f19cfdc998f1c61eedef5f5f"
+      },
+      {
+        "id": "R135",
+        "file": "F7",
+        "before_first": 11,
+        "before_last": 22,
+        "current_first": 12,
+        "current_last": 23,
+        "before_sha256": "989f8710d6b0e1c1bf08dc42902d0d4ed973a2d4541880c8384fc0ee9b721a99",
+        "current_sha256": "989f8710d6b0e1c1bf08dc42902d0d4ed973a2d4541880c8384fc0ee9b721a99"
+      },
+      {
+        "id": "R136",
+        "file": "F7",
+        "before_first": 36,
+        "before_last": 45,
+        "current_first": 37,
+        "current_last": 46,
+        "before_sha256": "742a403c3f30910b238f7a24af6250252c6106251fbf3e96a3b366cff2e5ca17",
+        "current_sha256": "742a403c3f30910b238f7a24af6250252c6106251fbf3e96a3b366cff2e5ca17"
+      },
+      {
+        "id": "R137",
+        "file": "F7",
+        "before_first": 46,
+        "before_last": 53,
+        "current_first": 47,
+        "current_last": 54,
+        "before_sha256": "edaf1e777c55f98cb346c7a32a9e2076fd1cd0e5249b300405e754e5f2d46620",
+        "current_sha256": "edaf1e777c55f98cb346c7a32a9e2076fd1cd0e5249b300405e754e5f2d46620"
+      },
+      {
+        "id": "R138",
+        "file": "F7",
+        "before_first": 81,
+        "before_last": 90,
+        "current_first": 83,
+        "current_last": 92,
+        "before_sha256": "10c3669858105e6fe8065ceba6f94fdd29c6caf071eff440d218c24a703c88fd",
+        "current_sha256": "10c3669858105e6fe8065ceba6f94fdd29c6caf071eff440d218c24a703c88fd"
+      },
+      {
+        "id": "R139",
+        "file": "F7",
+        "before_first": 91,
+        "before_last": 101,
+        "current_first": 94,
+        "current_last": 104,
+        "before_sha256": "1431e2f2fc91dd71d519d80377bebf5f33ceeeea6d72d421956bba9fa05d4efe",
+        "current_sha256": "1431e2f2fc91dd71d519d80377bebf5f33ceeeea6d72d421956bba9fa05d4efe"
+      },
+      {
+        "id": "R140",
+        "file": "F7",
+        "before_first": 102,
+        "before_last": 111,
+        "current_first": 105,
+        "current_last": 114,
+        "before_sha256": "0183912cf059a8c624c71730d853a586b42342ae02c9dcadda1e0050bb4fe2e5",
+        "current_sha256": "0183912cf059a8c624c71730d853a586b42342ae02c9dcadda1e0050bb4fe2e5"
+      },
+      {
+        "id": "R141",
+        "file": "F7",
+        "before_first": 112,
+        "before_last": 119,
+        "current_first": 115,
+        "current_last": 122,
+        "before_sha256": "8fab8c33d80d9df34a96afb85f84fbc851d95be8ee4b72f1b2405ba6125494e0",
+        "current_sha256": "8fab8c33d80d9df34a96afb85f84fbc851d95be8ee4b72f1b2405ba6125494e0"
+      },
+      {
+        "id": "R142",
+        "file": "F7",
+        "before_first": 121,
+        "before_last": 127,
+        "current_first": 124,
+        "current_last": 131,
+        "before_sha256": "909caeef28a741cba80e96f223f015959e2c1854fb965faafd1e0eb2882a52d1",
+        "current_sha256": "8deaec71550bf41f1ee1d18825b9e7870dbe46d7d8f29c1b3f62efe751801a94"
+      },
+      {
+        "id": "R143",
+        "file": "F7",
+        "before_first": 128,
+        "before_last": 133,
+        "current_first": 132,
+        "current_last": 137,
+        "before_sha256": "91da5ebb8f56e349f06273940aaf063a0c68dc7b75f4dc8e4e914fcea99047c2",
+        "current_sha256": "91da5ebb8f56e349f06273940aaf063a0c68dc7b75f4dc8e4e914fcea99047c2"
+      }
+    ],
+    "count": 144,
+    "canonical_sha256": "98419d0aefdcc0ed7e7d3b781d8c3b98e63cdb8b857a14cd3a5abeb65ccddc47",
+    "objects": 35,
+    "members": 65,
+    "continuous_gapfree_partitions": 35,
+    "semantic_branches": 37,
+    "source_original_bytes_inverse_exact": true
+  },
+  "root_semantic_findings": [
+    "Nine shared declarative types own strings/vectors; Deserialize and construction do not auto-validate or load resources. Eq/Ord identity includes kind, original URI, full fallback; no Hash derive.",
+    "Collector explicitly validates, stops first error, BTreeMap keyed by complete reference retains first source attribution. Imported widget/style source overrides remain separate metadata. Resolver later caches complete reference and only Placeholder consumes fallback; static validate also checks an explicitly supplied URI for other modes.",
+    "Nearest path segment mapping may produce Some(GenericAsset) that prevents URI fallback; infer_from_path_pair returns only Some(Font), Some(Image), None. Only .font.toml uses helper ends_with_ascii_case, other extension comparisons directly eq_ignore_ascii_case.",
+    "Validation borrows trimmed views but never canonicalizes stored URI/cache identity; supported-prefix and extension classification are lexical and do not guarantee existence, authorization, registry success or executable asset loading.",
+    "Owned report clones remain valid separately from subsequent collector/resolver state. Ordinary7-sample test and ignored borrowed-vs-legacy timing are not end-to-end resource validity, actual allocation measurement or a performance acceptance receipt. Last of11 timing samples is a maximum, not an executed percentile guarantee."
+  ],
+  "record_corrections": {
+    "source_unchanged": true,
+    "old_child_sha256": "75aebcc6cc1e1788501ce740a2e39da523b73481e4ed1f7df95cf03a9fbdc8f2",
+    "new_child_sha256": "4bafeb82b6f3d47de4c26d9a7ea11eb8ff73c60991bd2bfe16564278be2ab3b4",
+    "two_json_leaf_paths": [
+      [
+        "members",
+        41,
+        6
+      ],
+      [
+        "callers",
+        8,
+        3
+      ]
+    ],
+    "actual_agent_CAS": "96/c93bfa native13424->82a141 exit0/PID33920;98/0a95ba native82922->5c2f3f exit0/PID29864 independent",
+    "failed_known_before_write": "88/92 explicit spawn_ready before body;94/0f626e native45698->9f7240 exit1/PID33556 unique-global-text count5 before open, corrected to exact logical JSON leaf paths. No unknown writer replay.",
+    "grant_erratum": "Original R080 authority generically mentions Eq/Hash; actual source derives Eq/Ord and no Hash. Root main must state exact derived identity, no code change."
+  },
+  "contexts": [
+    {
+      "id": "X_PARENT_TEMPLATE",
+      "path": "zircon_runtime_interface/src/ui/template/mod.rs",
+      "sha256": "257fda47889d1e1c390a0e59d9a1fafd8427df4abfaeaa088bb4212b809d98c0",
+      "bytes": 3706,
+      "lines": 51,
+      "read_ranges": [
+        [
+          1,
+          51
+        ]
+      ],
+      "range_sha256": [
+        "257fda47889d1e1c390a0e59d9a1fafd8427df4abfaeaa088bb4212b809d98c0"
+      ],
+      "formal_coverage": false,
+      "child_read_receipt": "0b91ce exit0/PID18048"
+    },
+    {
+      "id": "X_PARENT_ASSET",
+      "path": "zircon_runtime_interface/src/ui/template/asset/mod.rs",
+      "sha256": "91a95dd04e954ae6a8d0d105c7336251238596d3bfaecd28d9fcbb57ed9cbb0a",
+      "bytes": 4518,
+      "lines": 89,
+      "read_ranges": [
+        [
+          1,
+          89
+        ]
+      ],
+      "range_sha256": [
+        "91a95dd04e954ae6a8d0d105c7336251238596d3bfaecd28d9fcbb57ed9cbb0a"
+      ],
+      "formal_coverage": false,
+      "child_read_receipt": "0b91ce exit0/PID18048"
+    },
+    {
+      "id": "X_COLLECT",
+      "path": "zircon_runtime/src/ui/template/asset/resource_ref/collect.rs",
+      "sha256": "c0b9494e18419a2f5f217a727c2e5673fc3a382e3e15b17d835703933c03d65e",
+      "bytes": 15834,
+      "lines": 442,
+      "read_ranges": [
+        [
+          1,
+          65
+        ],
+        [
+          220,
+          327
+        ],
+        [
+          334,
+          392
+        ],
+        [
+          417,
+          428
+        ]
+      ],
+      "range_sha256": [
+        "26e66fdd710818e9e04397238bc116ee0a6d94bf57e07381c69066cccb114984",
+        "4ec07849f11b5dfaa38bf51e12e6981cfa6e90821a49f51bdf5495d3088baab6",
+        "e8da905b3c07a661580ea210dbb9375d178980c5a44f24d4a5fbae568c0b6382",
+        "aec9b4999f11fd951015bb82ab9e8f07fdd496e3dd6a3c85f9a415da01d06c4f"
+      ],
+      "formal_coverage": false,
+      "child_read_receipt": "688d91 exit0/PID23872"
+    },
+    {
+      "id": "X_RESOLVER",
+      "path": "zircon_runtime/src/ui/template/asset/resource_ref/resolver.rs",
+      "sha256": "a1134bfe96bb837170db5d15ab85555c6ade465b83e2215a3757c23e7192a174",
+      "bytes": 16070,
+      "lines": 457,
+      "read_ranges": [
+        [
+          1,
+          25
+        ],
+        [
+          129,
+          219
+        ],
+        [
+          334,
+          365
+        ]
+      ],
+      "range_sha256": [
+        "be858d2e9a34e82a2d3f252a8739e9cd81a9a17d8d2e4fcddfa5155c32e11009",
+        "e56f12091047a19407faf93d766a140ac1685060eb69d4b9905799ac749860d6",
+        "a2e800fdd81061094552040fd22652924473e4138ae7b8d3f06be3d0058d9481"
+      ],
+      "formal_coverage": false,
+      "child_read_receipt": "688d91 exit0/PID23872"
+    },
+    {
+      "id": "X_RUNTIME_MOUNT",
+      "path": "zircon_runtime/src/ui/template/asset/resource_ref/mod.rs",
+      "sha256": "21ae0f1772924769281e0617aa94c392f88a7a626a504db82321848a3f8c34e6",
+      "bytes": 828,
+      "lines": 19,
+      "read_ranges": [
+        [
+          1,
+          19
+        ]
+      ],
+      "range_sha256": [
+        "21ae0f1772924769281e0617aa94c392f88a7a626a504db82321848a3f8c34e6"
+      ],
+      "formal_coverage": false,
+      "child_read_receipt": "688d91 exit0/PID23872"
+    },
+    {
+      "id": "X_DOCUMENT",
+      "path": "zircon_runtime_interface/src/ui/template/asset/document.rs",
+      "sha256": "b21845024c31e941e424579c6fcab84169b4cb38154dc78a9c80a60a1f034210",
+      "bytes": 17065,
+      "lines": 386,
+      "read_ranges": [
+        [
+          1,
+          90
+        ]
+      ],
+      "range_sha256": [
+        "2c4bf73c2bc23b452acb5656893d854cee1091b5f1e073fd25cc66c32b763b40"
+      ],
+      "formal_coverage": false,
+      "child_read_receipt": "688d91 exit0/PID23872"
+    },
+    {
+      "id": "X_TESTS",
+      "path": "zircon_runtime/src/ui/tests/asset_resource_refs.rs",
+      "sha256": "edf703048e07e469d522618297835c449242bfb19b9bb9a470d2b6588934d5b3",
+      "bytes": 11575,
+      "lines": 394,
+      "read_ranges": [
+        [
+          118,
+          209
+        ]
+      ],
+      "range_sha256": [
+        "86710ca5497a086ec517695a275a7e566aede1251527a3a831c861d7bde02ea6"
+      ],
+      "formal_coverage": false,
+      "child_read_receipt": "688d91 exit0/PID23872"
+    },
+    {
+      "id": "X_TEST_MOUNT",
+      "path": "zircon_runtime/src/ui/tests/mod.rs",
+      "sha256": "4b1e97d1aad576402e7b5d9c5a1c95c9b0fce94f4ae9ac1736a22e437424733b",
+      "bytes": 8322,
+      "lines": 263,
+      "read_ranges": [
+        [
+          1,
+          70
+        ]
+      ],
+      "range_sha256": [
+        "9229625e028c45505f59e2036601b66ecd6376e44f25689f4f28cacc61b948c7"
+      ],
+      "formal_coverage": false,
+      "child_read_receipt": "688d91 exit0/PID23872"
+    }
+  ],
+  "raw_reader": {
+    "path": "tools/tests/test_runtime_interface03_resource_kind_inference_performance_contract.py",
+    "sha256": "771fc7a9acfceff1f8dbff5c5ee6e6dc1e550971aaa24d06a760711173bf4cfc",
+    "bytes": 1564,
+    "lines": 37,
+    "inventory_provenance": "Ignored untracked tools/tests/.gitignore:2:* candidate outside initial coverage, no source ownership or exclusion inferred. Registry source_inventory_observations preserves pending classification.",
+    "SOURCE": "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs",
+    "BENCH": "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind/tests/performance_tests.rs",
+    "BENCH_exists": false,
+    "whole_reader_comments_retained": true,
+    "body_before_sha256": "25f8ba40ae75f1a7dd4aadf65d12f8b3aac5954df6da63033e6a79d803122d08",
+    "body_current_sha256": "25f8ba40ae75f1a7dd4aadf65d12f8b3aac5954df6da63033e6a79d803122d08",
+    "predicates": [
+      {
+        "method": "M1",
+        "consumer_line": 17,
+        "domain": "body",
+        "needle": "rsplit([",
+        "expected_contains": true,
+        "observed_contains": true,
+        "new_comment_occurrences": 0,
+        "reachable_if_method_called": true,
+        "test_executed": false
+      },
+      {
+        "method": "M1",
+        "consumer_line": 18,
+        "domain": "body",
+        "needle": "infer_from_path_pair",
+        "expected_contains": true,
+        "observed_contains": true,
+        "new_comment_occurrences": 0,
+        "reachable_if_method_called": true,
+        "test_executed": false
+      },
+      {
+        "method": "M1",
+        "consumer_line": 19,
+        "domain": "body",
+        "needle": "to_ascii_lowercase",
+        "expected_contains": false,
+        "observed_contains": false,
+        "new_comment_occurrences": 0,
+        "reachable_if_method_called": true,
+        "test_executed": false
+      },
+      {
+        "method": "M1",
+        "consumer_line": 20,
+        "domain": "body",
+        "needle": "Vec<",
+        "expected_contains": false,
+        "observed_contains": false,
+        "new_comment_occurrences": 0,
+        "reachable_if_method_called": true,
+        "test_executed": false
+      },
+      {
+        "method": "M1",
+        "consumer_line": 21,
+        "domain": "body",
+        "needle": "format!(",
+        "expected_contains": false,
+        "observed_contains": false,
+        "new_comment_occurrences": 0,
+        "reachable_if_method_called": true,
+        "test_executed": false
+      },
+      {
+        "method": "M2",
+        "consumer_line": 27,
+        "domain": "source",
+        "needle": "eq_ignore_ascii_case",
+        "expected_contains": true,
+        "observed_contains": true,
+        "new_comment_occurrences": 0,
+        "reachable_if_method_called": false,
+        "test_executed": false
+      },
+      {
+        "method": "M2",
+        "consumer_line": 28,
+        "domain": "source",
+        "needle": "ends_with_ascii_case",
+        "expected_contains": true,
+        "observed_contains": true,
+        "new_comment_occurrences": 0,
+        "reachable_if_method_called": false,
+        "test_executed": false
+      },
+      {
+        "method": "M2",
+        "consumer_line": 29,
+        "domain": "source",
+        "needle": "let uri = uri.to_ascii_lowercase()",
+        "expected_contains": false,
+        "observed_contains": false,
+        "new_comment_occurrences": 0,
+        "reachable_if_method_called": false,
+        "test_executed": false
+      },
+      {
+        "method": "M2",
+        "consumer_line": 30,
+        "domain": "missing_bench",
+        "needle": "legacy_infer_from_path_and_uri",
+        "expected_contains": true,
+        "observed_contains": null,
+        "new_comment_occurrences": 0,
+        "reachable_if_method_called": false,
+        "test_executed": false
+      },
+      {
+        "method": "M2",
+        "consumer_line": 31,
+        "domain": "missing_bench",
+        "needle": "RUNTIME_INTERFACE03_BORROWED_RESOURCE_KIND_BENCH_V1",
+        "expected_contains": true,
+        "observed_contains": null,
+        "new_comment_occurrences": 0,
+        "reachable_if_method_called": false,
+        "test_executed": false
+      },
+      {
+        "method": "M2",
+        "consumer_line": 32,
+        "domain": "missing_bench",
+        "needle": "saturating_mul(5)",
+        "expected_contains": true,
+        "observed_contains": null,
+        "new_comment_occurrences": 0,
+        "reachable_if_method_called": false,
+        "test_executed": false
+      },
+      {
+        "method": "M2",
+        "consumer_line": 33,
+        "domain": "source",
+        "needle": "mod performance_tests",
+        "expected_contains": true,
+        "observed_contains": true,
+        "new_comment_occurrences": 0,
+        "reachable_if_method_called": false,
+        "test_executed": false
+      }
+    ],
+    "M1": "5 static predicates available, no test executed.",
+    "M2": "BENCH.read_text line25 would raise FileNotFoundError before all7 assertions;4 SOURCE-only comparisons statically match,3 unavailable benchmark comparisons not evaluated. No replacement with actual mounted perf source.",
+    "new_comment_contributions": 0,
+    "test_executed": false,
+    "formal_coverage": false
+  },
+  "validation": {
+    "rustfmt": {
+      "reuse": true,
+      "receipt": "Luna outer33/native2544->outer35/7cff0c exit0/PID35792",
+      "exact_final_source_pins_unchanged": true,
+      "argv_prefix": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true"
+      ],
+      "paths": [
+        "zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs",
+        "zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs",
+        "zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs",
+        "zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs",
+        "zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs",
+        "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs",
+        "zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs",
+        "zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs"
+      ],
+      "exit_code": 0,
+      "repeated": false
+    },
+    "commands": [
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "rev-parse",
+          "HEAD"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "c096fcebb5691399cff45d8e0033ad3575e3cc6199399be3a1150868831cc8ee",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "89789b74beaef9bf83cb61f8c13236ca730a81c0\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "ls-files",
+          "--stage",
+          "--",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "45391d49dfcb4b5c618717c0ec7155d2d6ed57dc6c34070a8f2b3146ee82bbae",
+        "stdout_bytes": 984,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "100644 4e4a7691cf262b25dfc3791892d58e38a6914cdd 0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs\n100644 2282d02ca4483257075dd84acb07aa1e72b39f98 0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs\n100644 35817d0729d01f8e8407b9a9b1204ba5513e9711 0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs\n100644 b67866db546ba7bcb2ec834317e885902c45b7d8 0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs\n100644 053dcfbe6e0196e1982f0512f1c9f6843649c6a6 0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs\n100644 5f08f6dfb4170055aad14852cd09e24599065e01 0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs\n100644 2f6d4b10e2ba93dfa2200fec619c2d87a8af5138 0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs\n100644 eaadbcdec225635247062bf8da2df2fa0565d447 0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "645fb33338e36fbe869c12d96e465bdce3b9fa216005594c1c13ba70e36c634b",
+        "stdout_bytes": 588,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "hash-object",
+          "--path=zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "dcb1d502c939b10ee5690289fcff9dbd40112932d749f1a48f150b1d11da8534",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "7adfac819be157b3b54cde29f076f29441219f31\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "1ab57f5caf1e23c02918174353dbe6c45a4edea41fe10c37b6f6f9005229dd50",
+        "stdout_bytes": 806,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "hash-object",
+          "--path=zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "a7b1419141356e74527a314b8b061001a5c5c64194c36ec853d292510fb84530",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "d699345634dd9d583f085df3eb9a7b05970e2108\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "03d48d2a0b832b4628ab975daf8b7d6aaa81546c7a5910de6a54c682fb051f56",
+        "stdout_bytes": 554,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "hash-object",
+          "--path=zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "a04b56b7fbcebd6381079aceb8a4dee5f735c8b849eb2854032c0eedef6fd8f5",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "58535c89b0547b88f47e6aa9bdbd85e1e59a0ff0\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "e56e42e85ee2bff7551d231ca28befc95fe4ba8dafb9e924af6dfc91fed2ab22",
+        "stdout_bytes": 789,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "hash-object",
+          "--path=zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "691225999f5eec27ce352719b9a9c05ce6ca89ee9b7d2a337bc85b9276236eed",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "2e5f7baffef6a9a0401057192a82b472c573051b\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "442540e50d03da63706015f69fe7a3e2cb5d7db87aa64ac0e17dfba7f57ede40",
+        "stdout_bytes": 464,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "hash-object",
+          "--path=zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "2e49374e000d0bdbc7c760d7ba919ac6415932ebb5233ddcc328762266d0129a",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "535a1654feba179f3bb7116a12551564e63760c5\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "2b5ba87518f8dbf71c3f582d0806c9098d2e3e55929670f6fb1aed9ade0b55b7",
+        "stdout_bytes": 4535,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "hash-object",
+          "--path=zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "95073151b478398145e752f2766140795c2628b1c2692ecd37fd3bcf9ff478bf",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "b4c3b0226fc68b19a041a1af2a78ad2585aa26aa\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "431ec7a7c95dad015992412e2715424c0b9038a06929c369d334f668c42224f5",
+        "stdout_bytes": 3759,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "hash-object",
+          "--path=zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "985e17ffd3170ffcc992cc066580a672500a7f7aa0c1b984b2c133ab154a128c",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "2dbb2d3c5c6636782d63ec2770250cd39046bb09\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "970781cb07d2e77bf6d9d0d858b96507ceda3d4a8a4da96a4e563312a7f5fcb5",
+        "stdout_bytes": 5036,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "hash-object",
+          "--path=zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "5ec3369b6c9e94e60848fb001fa9f047fccbd72e0e4bcc89b69f4ff20e4c80f2",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "de1f70d876713cc4cb028b473b4ed768481be1c1\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--numstat",
+          "--",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "553776ed1a6eb6b5cd3ca9013f6d78a3869b9734ae7cd53e5bf83c9fa8f5b8f9",
+        "stdout_bytes": 619,
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs.\nThe file will have its original line endings in your working directory\n",
+        "kind": "git",
+        "stdout": "13\t0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs\n5\t0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs\n3\t0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs\n2\t0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs\n3\t0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs\n11\t0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs\n4\t0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs\n16\t0\tzircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--check",
+          "--",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 0,
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs.\nThe file will have its original line endings in your working directory\n",
+        "kind": "git",
+        "stdout": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 0,
+        "stderr": "",
+        "kind": "git",
+        "stdout": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "status",
+          "--porcelain=v1",
+          "--untracked-files=all",
+          "--",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "10526401bd89fc792a726f132bcf380fe8487a98d72d209945680a655b749391",
+        "stdout_bytes": 608,
+        "stderr": "warning: unable to access 'C:\\Users\\HeJiahui/.config/git/ignore': Permission denied\n",
+        "kind": "git",
+        "stdout": " M zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs\n M zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs\n M zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs\n M zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs\n M zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs\n M zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs\n M zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs\n M zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs\n"
+      },
+      {
+        "argv": [
+          "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          ".codex/skills/zircon-change-guard/scripts/change_guard.py",
+          "--json",
+          "patch",
+          "--git",
+          "--base",
+          "HEAD",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs",
+          "--path",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "d1fb190b3ee6710ea62bbed071b11ff991d4bd7c0ddaffe93bba4fd7c94e94c3",
+        "stdout_bytes": 1946,
+        "stderr": "",
+        "kind": "check",
+        "stdout": "{\r\n  \"tool\": \"zircon-change-guard\",\r\n  \"version\": 2,\r\n  \"mode\": \"patch\",\r\n  \"status\": \"passed\",\r\n  \"input\": {\r\n    \"patchDigest\": \"7f79ecba71f3ee68d634ab13e61d791613526f6f5c4d79f6132485db1e8d2d27\",\r\n    \"base\": \"89789b74beaef9bf83cb61f8c13236ca730a81c0\",\r\n    \"files\": [\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs\"\r\n    ],\r\n    \"declaredPaths\": [\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs\",\r\n      \"zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs\"\r\n    ],\r\n    \"writeGrantCheck\": true,\r\n    \"permissionRoot\": \"E:/Git/ZirconEngine\",\r\n    \"contributor\": false\r\n  },\r\n  \"summary\": {\r\n    \"errors\": 0,\r\n    \"warnings\": 0,\r\n    \"suppressed\": 0\r\n  },\r\n  \"markers\": {\r\n    \"closed\": [],\r\n    \"opened\": [],\r\n    \"moved\": []\r\n  },\r\n  \"findings\": [],\r\n  \"suppressed\": []\r\n}\r\n"
+      }
+    ],
+    "change_guard": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "7f79ecba71f3ee68d634ab13e61d791613526f6f5c4d79f6132485db1e8d2d27",
+        "base": "89789b74beaef9bf83cb61f8c13236ca730a81c0",
+        "files": [
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs"
+        ],
+        "declaredPaths": [
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs",
+          "zircon_runtime_interface/src/ui/template/asset/resource_ref/tests/perf.rs"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": []
+    },
+    "guard_script_sha256": "bb9bf97836c3af3779447f5404c8afe39621356b2ad15ff4de3316d61b599734",
+    "config_sha256": "7b93e661049be8c99bd2fa696115f0e992002fa0c6b5852ce73629865e7ceade",
+    "tests_executed": 0,
+    "no_Cargo_or_benchmark_execution": true,
+    "issues_sha256": "b6df02c01fc7b778c41ee49fe7fefbbe25bfb6be34de7376be42969ce68ec069",
+    "issue_count": 895,
+    "new_issues": 0,
+    "head_observed": "89789b74beaef9bf83cb61f8c13236ca730a81c0",
+    "index": {
+      "sha256": "45120c88a8b9210a3b78124b29dcf4e86b1297d3e215c80efb9ca5297b68a90f",
+      "bytes": 7479846
+    },
+    "index_lock": {
+      "exists": true,
+      "owner": "unknown",
+      "root_deleted": false,
+      "root_git_metadata_writes": false,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mtime_ns_text": "1792192256891113100"
+    }
+  },
+  "child_execution_history": {
+    "command_convention": {
+      "shell": "PowerShell",
+      "python_argv": [
+        "C:/Users/HeJiahui/AppData/Local/Python/pythoncore-3.14-64/python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "-"
+      ],
+      "scripts": "Python stdin; complete commands remain in tool history; no helpers/copies/cache.",
+      "git_prefix": [
+        "git",
+        "--no-optional-locks"
+      ]
+    },
+    "schema": [
+      "receiptID",
+      "role",
+      "outer_native_or_tool",
+      "PID_or_null",
+      "exit_or_null",
+      "command_chars_or_null",
+      "actual_result_and_limits"
+    ],
+    "timeline": [
+      [
+        "H_DISCOVERY",
+        "readonly",
+        "outer103/b18b2f",
+        10660,
+        0,
+        null,
+        "native75552 tokens truncated; not complete review coverage"
+      ],
+      [
+        "H_LEDGER",
+        "readonly",
+        "outer104/9ab918",
+        10972,
+        0,
+        null,
+        "compact ledger"
+      ],
+      [
+        "H_FULL8",
+        "readonly",
+        "outer105/89315a native26945→1573df",
+        7872,
+        0,
+        null,
+        "exact8 full453L/16531B with initial/rawHEAD/stage0/cleanfilter/scopedGit"
+      ],
+      [
+        "H_MOUNTS",
+        "readonly",
+        "outer109/1d7320 native41814→0b91ce",
+        18048,
+        0,
+        null,
+        "two parent modules full and Python consumer full37L"
+      ],
+      [
+        "H_REJECT111",
+        "readonly request",
+        "outer111",
+        null,
+        null,
+        null,
+        "spawn_ready creation rejection: no native/session/PID/body/read/write"
+      ],
+      [
+        "H_REJECT113",
+        "readonly request",
+        "outer113",
+        null,
+        null,
+        null,
+        "spawn_ready creation rejection: no native/session/PID/body/read/write"
+      ],
+      [
+        "H_COMPILE117",
+        "readonly request",
+        "outer117/bab829 native12897→ee37bc",
+        null,
+        1,
+        null,
+        "compile-time SyntaxError line67 unterminated string literal; no Python body/read/write. JS replacement string suffix expansion corrected using callback"
+      ],
+      [
+        "H_SUPPLEMENT",
+        "readonly",
+        "outer120/c7dc98 native75129→688d91",
+        23872,
+        0,
+        9533,
+        "8pending/unowned/no assignment conflict; selected context+12guards. native11663 tokens complete, outer rendering recovered from saved output."
+      ],
+      [
+        "P_OLD_HEAD",
+        "readonly preflight",
+        "outer13→a9fa71",
+        null,
+        1,
+        15849,
+        "AssertionError <stdin>:42 obsolete f28 global HEAD equality. Metadata/child checks reached, source8 pin loop not reached, zero source writes"
+      ],
+      [
+        "P_REJECT15",
+        "readonly request",
+        "outer15",
+        null,
+        null,
+        628,
+        "CreateProcess Rejected(Failed to create unified exec process: wait for runner spawn_ready); no native/session/PID/body/read/write"
+      ],
+      [
+        "P_FRESH",
+        "readonly preflight",
+        "outer17 native38705/start5cc507→outer18/1bcf19",
+        23932,
+        0,
+        16083,
+        "Observed HEAD89789b74beaef9bf83cb61f8c13236ca730a81c0; full grant/8pins/rawHEAD/stage0/filter/scopedempty/childabsent. native17950 tokens complete; outer registry rendering truncated only."
+      ],
+      [
+        "W_PARTIAL",
+        "source writer",
+        "outer20 tools.apply_patch",
+        null,
+        1,
+        4595,
+        "wall856.9s: Failed to write file E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\ui\\template\\asset\\resource_ref\\value.rs. Partial impact unknown until P_CLASSIFY; never replayed"
+      ],
+      [
+        "P_CLASSIFY",
+        "readonly independent",
+        "outer23 native55431/startf41732→outer25/238e19",
+        36172,
+        0,
+        4660,
+        "six exact predicted_after; value/perf exact before; other0; 29blocks37LF applied. rawHEAD/stage0 unchanged, sourceattributes32=Archive, no ACL-cause inference; childabsent; LF intact"
+      ],
+      [
+        "P_RECOVERY",
+        "readonly preflight",
+        "outer27 native24683/start459070→outer28/85bc1b",
+        5268,
+        0,
+        4658,
+        "fresh six frozen-after/two-before/rawHEAD/stage0/cleanfilter/stagedempty/childabsent"
+      ],
+      [
+        "W_REMAINING",
+        "source writer",
+        "outer29 tools.apply_patch",
+        null,
+        null,
+        1696,
+        "only value/perf remaining13blocks20LF. Actual tool return {}; no exposed native exit/PID/session. Not called nativeexit0; final independent confirms exact after"
+      ],
+      [
+        "V_BOOL_ERROR",
+        "readonly checker",
+        "outer31 native51924/startfcd750→outer32/fb0054",
+        null,
+        1,
+        20482,
+        "NameError <stdin>:4 name true is not defined. Did you mean: True? Bare JSON Python literal; before PID/source read/inverse/fmt. zero sourcewrite"
+      ],
+      [
+        "V_FINAL8",
+        "readonly independent",
+        "outer33 native2544/startf15d74→outer35/7cff0c",
+        35792,
+        0,
+        20568,
+        "json.loads correction; full8 inverse==grant==rawHEAD, all42insertions/57LF;35objects/65members/35partitions hashed; exact8fmt/diff/raw12guards; native23226 tokens complete; sources frozen"
+      ],
+      [
+        "C_CHILD_PREFLIGHT",
+        "readonly",
+        "cell39/session37281→cb89bb",
+        34380,
+        0,
+        5452,
+        "fresh exact grant/8frozenpins/rawHEAD/assigned owner/plannedchildabsent/scopedcachedempty; collect198L same oldpin closes442L context; no write"
+      ],
+      [
+        "DRAFT3_READ_REJECT",
+        "readonly request",
+        "cell61",
+        null,
+        null,
+        1535,
+        "CreateProcess Rejected(\"Failed to create unified exec process: wait for runner spawn_ready\"); no native/session/PID/body/read/write. New shorter cell63 reads same frozen child; no unknown writer."
+      ],
+      [
+        "DRAFT3_READ_RECOVERY",
+        "readonly",
+        "cell63/f6ae06",
+        26988,
+        0,
+        1111,
+        "same draft SHA58021B; model refs and8frozenpins verified; no writes"
+      ]
+    ],
+    "source_partial_classification": {
+      "before_count": 2,
+      "predicted_after_count": 6,
+      "other_count": 0,
+      "receipt": "P_CLASSIFY",
+      "no_replay": true,
+      "source_attributes": "st_mode33206/st_file_attributes32 does not prove ACL or failure cause"
+    },
+    "exact_source_writer_failures_preserved": true,
+    "in_memory_only_errors": [
+      "missing old memory store evidence before execution",
+      "JS patchbuild SyntaxError missing ) before tool",
+      "augmented checker22125chars rejected in memory, reduced duplicate data before invoking20482chars"
+    ],
+    "artifact_lifecycle": {
+      "new_helpers": 0,
+      "source_copies": 0,
+      "builds": 0,
+      "tests_executed": 0,
+      "generated_fixtures": 0,
+      "temporary_files": 0,
+      "freed_bytes": 0,
+      "retained": "8 comment edits + sole preregistered child/failure evidence; root main/post/globals; no foreign cleanup."
+    },
+    "child_draft_records": [
+      [
+        "foundation",
+        "cell48/b98b8a",
+        31980,
+        0,
+        18857,
+        "50f025b0c9b081431ece6a365a7872e25a967f6fa7fc2b68b8b4490cc1a52658",
+        18765,
+        "cell51/b07148 exit0/PID36196"
+      ],
+      [
+        "ranges-objects",
+        "cell53/de07a7",
+        7976,
+        0,
+        20133,
+        "7b160b52e0f0f235a983ebab57c851dd8ffff6401222d701d8aee16b94b8a511",
+        36524,
+        "cell56/cd117d exit0/PID22724"
+      ],
+      [
+        "members-blocks-callers",
+        "cell57/5797f6",
+        30020,
+        0,
+        18650,
+        "978446fcc15492158f1bc9ee43e4b523452b039e73c825bf6563b8551953959b",
+        58021,
+        "cell63/f6ae06 exit0/PID26988"
+      ]
+    ],
+    "child_draft_schema": [
+      "stage",
+      "writer_receipt",
+      "PID",
+      "exit",
+      "actual_command_chars",
+      "draft_sha256",
+      "draft_bytes",
+      "independent_readback"
+    ]
+  },
+  "artifact_lifecycle": {
+    "new_helpers": 0,
+    "source_copies": 0,
+    "builds": 0,
+    "temporary_files": 0,
+    "generated_fixtures": 0,
+    "released_bytes": 0,
+    "retained": "Exact8 comment sources plus child/root main/post, designated Jenkins handoff, necessary failure evidence. No foreign cleanup."
+  },
+  "writer": {
+    "pid": 34272,
+    "write_set": [
+      "docs/plans/source-comments/reviews/R080-post-validation.json"
+    ],
+    "source_writes": [],
+    "prior_root_checker_failure": {
+      "receipt": "root674/42b687 native38282->a2f159 exit1/PID22876",
+      "location": "line37 compared child attribute display against original leading indentation",
+      "before_post_write": true,
+      "record_writes": 0,
+      "source_writes": 0,
+      "diagnosis": "root676/863fa7 native4808->bff743 exit0/PID34592 all8 unchanged/post absent; only5 Serde attribute entries omit4 leading spaces in child display, original bytes unchanged",
+      "correction": "Compare normalized display spellings and record exact original attribute text separately; no relaxation of raw byte inverse/line positions/source pins."
+    },
+    "actual_terminal": "Not observable at self-write; reconcile actual tool terminal and independent readback, no predicted exit."
+  }
+}

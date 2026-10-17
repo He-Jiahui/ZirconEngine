@@ -280,3 +280,78 @@ fn document_compilation_retains_last_known_good_across_invalid_intermediate_edit
     assert!(after_undo.0);
     assert_eq!(after_undo.1.map(AnimationDocumentRevision::value), Some(3));
 }
+
+#[test]
+fn animation_history_reserves_both_source_states_before_swap() {
+    use crate::core::editing::engine::{
+        EditCommandError, HistoryRetentionBudgetV1, HistoryRetentionDomainV1,
+    };
+    for large_live_source in [true, false] {
+        let id = DocumentId::new(9101);
+        let name = |large: bool| {
+            let mut value = String::with_capacity(if large { 64 * 1024 } else { 32 });
+            value.push_str("bounded animation source");
+            value
+        };
+        let live = AnimationAuthoringAsset::Graph(AnimationGraphAsset {
+            name: Some(name(large_live_source)),
+            parameters: Vec::new(),
+            nodes: Vec::new(),
+        });
+        let replacement = AnimationAuthoringAsset::Graph(AnimationGraphAsset {
+            name: Some(name(!large_live_source)),
+            parameters: Vec::new(),
+            nodes: Vec::new(),
+        });
+        let mut context = CoreEditContext::default();
+        context
+            .animation_documents_mut()
+            .attach(AnimationAuthoringDocument::new(
+                id,
+                AssetUri::parse("res://animation/budget.graph.zranim").unwrap(),
+                live,
+            ))
+            .unwrap();
+        let (revision, pointer, capacity) = {
+            let handle = context.animation_documents().handle(id).unwrap();
+            let document = handle.read();
+            let name = document.asset().as_graph().unwrap().name.as_ref().unwrap();
+            (document.revision(), name.as_ptr() as usize, name.capacity())
+        };
+        let domain = HistoryRetentionDomainV1::try_new(HistoryRetentionBudgetV1 {
+            record_bytes: 32 * 1024,
+            history_bytes: 128 * 1024,
+            committed_bytes: 16 * 1024 * 1024,
+            staging_bytes: 8 * 1024 * 1024,
+        })
+        .unwrap();
+        let engine =
+            EditorTransactionEngine::with_retention_domain_v1(context, 128, domain.clone())
+                .unwrap();
+        let history = HistoryContextId::Document(id);
+        let before = engine.history_status(history).unwrap();
+        let mut scope = engine.begin("animation budget", history).unwrap();
+        let error = scope
+            .push(AnimationEditCommand::new(
+                "animation budget",
+                id,
+                revision,
+                replacement,
+            ))
+            .unwrap_err();
+        drop(scope);
+        assert!(matches!(error, EditCommandError::Retention(_)));
+        assert_eq!(engine.history_status(history).unwrap(), before);
+        let after = engine
+            .with_context::<CoreEditContext, _>(|context| {
+                let handle = context.animation_documents().handle(id).unwrap();
+                let document = handle.read();
+                let name = document.asset().as_graph().unwrap().name.as_ref().unwrap();
+                (document.revision(), name.as_ptr() as usize, name.capacity())
+            })
+            .unwrap()
+            .unwrap();
+        assert_eq!(after, (revision, pointer, capacity));
+        assert_eq!(domain.snapshot().unwrap().staging_bytes, 0);
+    }
+}

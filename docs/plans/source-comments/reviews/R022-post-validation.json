@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R022",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T06:46:56.359918+00:00",
+  "status": "scoped-static-validation-passed",
+  "files": {
+    "zircon_runtime_interface/src/serialization/text/canonical_spool.rs": {
+      "before_sha256": "4084b62706b687499f618899fc40fc5e86b0f98efaa33d9b420bdbb2a80b023e",
+      "reviewed_sha256": "42b4b6566cdf5cb0dbc25dc6bb1d98bd21b816467ea964b4d6975b4f154ab84b",
+      "bytes": 12551,
+      "lines": 348,
+      "full_source_review_spans": [
+        [
+          1,
+          348
+        ]
+      ],
+      "child_object_groups_reviewed": 3,
+      "insertion_blocks": 8,
+      "all_original_raw_bytes_reconstructed": true,
+      "line_ending": "LF only; no BOM; final LF"
+    },
+    "zircon_runtime_interface/src/serialization/text/tests/canonical_spool.rs": {
+      "before_sha256": "d2b0e0b77dffa21ec569dcbbd67dc02d86114c8906078127bb6df65c5556e4e5",
+      "reviewed_sha256": "d2b0e0b77dffa21ec569dcbbd67dc02d86114c8906078127bb6df65c5556e4e5",
+      "bytes": 3893,
+      "lines": 112,
+      "full_source_review_spans": [
+        [
+          1,
+          112
+        ]
+      ],
+      "child_object_groups_reviewed": 6,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "line_ending": "CRLF only; no BOM; final LF"
+    },
+    "zircon_runtime_interface/src/serialization/text/canonical_map_key.rs": {
+      "before_sha256": "18767204804d8fcb8fcfba443fd94f1ef170b36c711496d401a6029480fea89c",
+      "reviewed_sha256": "e9931fcd768ac1249f299fba617b5e5bf439483731f6b274d50ab7df164bcf5c",
+      "bytes": 12081,
+      "lines": 381,
+      "full_source_review_spans": [
+        [
+          1,
+          381
+        ]
+      ],
+      "child_object_groups_reviewed": 4,
+      "insertion_blocks": 9,
+      "all_original_raw_bytes_reconstructed": true,
+      "line_ending": "LF only; no BOM; final LF"
+    },
+    "zircon_runtime_interface/src/serialization/text/canonical_writer/json_string.rs": {
+      "before_sha256": "007923a75f09e22aaeb5b153ed22e26ac6279667bb1691a937edf40cc6609008",
+      "reviewed_sha256": "9ae6f5483504a4910412d11e97a8c4c57e8ddaa995ed1c7dc041184ff748bb93",
+      "bytes": 4450,
+      "lines": 132,
+      "full_source_review_spans": [
+        [
+          1,
+          132
+        ]
+      ],
+      "child_object_groups_reviewed": 3,
+      "insertion_blocks": 5,
+      "all_original_raw_bytes_reconstructed": true,
+      "line_ending": "LF only; no BOM; final LF"
+    }
+  },
+  "root_actual_validation": {
+    "receipt": {
+      "chunk_id": "16aa70",
+      "exit_code": 0
+    },
+    "same_source_pins_reverified_at_booking": true,
+    "raw_reverse_insertion_sources": 4,
+    "raw_reverse_insertion_blocks": 22,
+    "all_original_bytes_restored": true,
+    "normalized_HEAD_match": true,
+    "checks": [
+      {
+        "name": "rustfmt4",
+        "exit_code": 0
+      },
+      {
+        "name": "diff4",
+        "exit_code": 0
+      },
+      {
+        "name": "staged4-empty",
+        "exit_code": 0
+      },
+      {
+        "name": "change-guard4",
+        "exit_code": 0,
+        "errors": 0,
+        "warnings": 0,
+        "changed_paths": 3,
+        "declared_paths": 4
+      }
+    ],
+    "patch_sha256": "9b2455681bd457d9911259272720f84baf65b6497345f59bf468009a3b987296",
+    "patch_bytes": 8496,
+    "Rust_tests_Cargo_build_generators_run": false
+  },
+  "managed_coordinator_format": "pending",
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

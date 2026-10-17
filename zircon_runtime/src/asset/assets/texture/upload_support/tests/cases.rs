@@ -160,9 +160,8 @@ fn optimization_batch_dg_borrowed_descriptor_matches_owned_rgba8_readiness() {
 #[test]
 fn optimization_batch_dg_resource_admission_reuses_one_render_descriptor() {
     let upload_source = include_str!("../../upload_support.rs");
-    let resolve_source = include_str!(
-        "../../../../../graphics/scene/resource_streamer/resolve_texture_id.rs"
-    );
+    let resolve_source =
+        include_str!("../../../../../graphics/scene/resource_streamer/resolve_texture_id.rs");
 
     assert!(upload_source.contains("pub(crate) fn upload_readiness_with_descriptor("));
     assert!(upload_source.contains("rgba8_upload_readiness(self, descriptor)"));

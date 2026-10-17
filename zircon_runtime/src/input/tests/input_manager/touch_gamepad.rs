@@ -45,6 +45,7 @@ fn input_manager_tracks_touch_and_gamepad_state() {
         y: 22.0,
     });
     input.submit_event(InputEvent::GamepadConnection(GamepadConnectionInfo {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         connected: true,
         name: Some("Pad".to_string()),
@@ -52,12 +53,14 @@ fn input_manager_tracks_touch_and_gamepad_state() {
         product_id: Some(2),
     }));
     input.submit_event(InputEvent::GamepadButton {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         button: GamepadButton::South,
         value: 1.0,
         pressed: true,
     });
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         axis: GamepadAxis::LeftStickX,
         value: 0.5,
@@ -90,6 +93,7 @@ fn input_manager_tracks_touch_and_gamepad_state() {
         y: 22.0,
     });
     input.submit_event(InputEvent::GamepadConnection(GamepadConnectionInfo {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         connected: false,
         name: None,
@@ -164,6 +168,7 @@ fn input_manager_event_log_harness_covers_window_keyboard_mouse_touch_and_gamepa
         y: 20.0,
     });
     input.submit_event(InputEvent::GamepadConnection(GamepadConnectionInfo {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         connected: true,
         name: Some("Harness Pad".to_string()),
@@ -171,12 +176,14 @@ fn input_manager_event_log_harness_covers_window_keyboard_mouse_touch_and_gamepa
         product_id: Some(200),
     }));
     input.submit_event(InputEvent::GamepadButton {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         button: GamepadButton::South,
         value: 1.0,
         pressed: true,
     });
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         axis: GamepadAxis::LeftStickX,
         value: 0.5,
@@ -375,7 +382,16 @@ fn gamepad_button_values_use_runtime_thresholds_and_hysteresis() {
     let button = GamepadButton::South;
     let input_button = InputButton::Gamepad { gamepad, button };
 
+    input.submit_event(InputEvent::GamepadConnection(crate::input::GamepadConnectionInfo {
+        gamepad: gamepad,
+        generation: std::num::NonZeroU64::MIN,
+        connected: true,
+        name: None,
+        vendor_id: None,
+        product_id: None,
+    }));
     input.submit_event(InputEvent::GamepadButton {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         button,
         value: 0.70,
@@ -389,6 +405,7 @@ fn gamepad_button_values_use_runtime_thresholds_and_hysteresis() {
     );
 
     input.submit_event(InputEvent::GamepadButton {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         button,
         value: 0.80,
@@ -400,6 +417,7 @@ fn gamepad_button_values_use_runtime_thresholds_and_hysteresis() {
 
     input.begin_frame();
     input.submit_event(InputEvent::GamepadButton {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         button,
         value: 0.70,
@@ -410,6 +428,7 @@ fn gamepad_button_values_use_runtime_thresholds_and_hysteresis() {
     assert!(!held_by_hysteresis.buttons.just_pressed(&input_button));
 
     input.submit_event(InputEvent::GamepadButton {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         button,
         value: 0.60,
@@ -447,7 +466,16 @@ fn gamepad_axis_values_use_deadzone_livezone_and_change_threshold() {
     let gamepad = GamepadId(5);
     let axis = GamepadAxis::LeftStickX;
 
+    input.submit_event(InputEvent::GamepadConnection(crate::input::GamepadConnectionInfo {
+        gamepad: gamepad,
+        generation: std::num::NonZeroU64::MIN,
+        connected: true,
+        name: None,
+        vendor_id: None,
+        product_id: None,
+    }));
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         axis,
         value: 0.03,
@@ -457,6 +485,7 @@ fn gamepad_axis_values_use_deadzone_livezone_and_change_threshold() {
     assert_eq!(deadzone.gamepad_axes[0].value, 0.0);
 
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         axis,
         value: 0.04,
@@ -466,6 +495,7 @@ fn gamepad_axis_values_use_deadzone_livezone_and_change_threshold() {
     assert_eq!(unchanged.gamepad_axes[0].value, 0.0);
 
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         axis,
         value: 0.50,
@@ -477,6 +507,7 @@ fn gamepad_axis_values_use_deadzone_livezone_and_change_threshold() {
     );
 
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         axis,
         value: 0.505,
@@ -485,6 +516,7 @@ fn gamepad_axis_values_use_deadzone_livezone_and_change_threshold() {
     assert_eq!(filtered.gamepad_axes[0].value, moved.gamepad_axes[0].value);
 
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         axis,
         value: -1.25,

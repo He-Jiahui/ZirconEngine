@@ -1,10 +1,10 @@
 use super::super::{
+    callback_status, NativePluginCallbackStatusV3, NativePluginOwnedByteBufferV3,
     NATIVE_EMPTY_CSTR, NATIVE_FREE_INVALID_BUFFER_DIAGNOSTICS,
-    NATIVE_FREE_OWNER_MISMATCH_DIAGNOSTICS, NativePluginCallbackStatusV3,
-    NativePluginOwnedByteBufferV3, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-    ZIRCON_NATIVE_PLUGIN_STATUS_OK, callback_status,
+    NATIVE_FREE_OWNER_MISMATCH_DIAGNOSTICS, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
-use super::registry::{REGISTRY, lock_registry};
+use super::registry::{lock_registry, REGISTRY};
 
 pub(in super::super) fn release(
     buffer: NativePluginOwnedByteBufferV3,

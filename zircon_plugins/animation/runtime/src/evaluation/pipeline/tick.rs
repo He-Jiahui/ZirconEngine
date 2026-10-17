@@ -16,19 +16,21 @@ use zircon_runtime::scene::{EntityId, LevelSystem};
 
 use super::animation_evaluation_pipeline::PresentationPoseChange;
 use super::diagnostics::AnimationSceneFrameDiagnostics;
-use super::direct_clip_worker::sample_direct_clip_pose_requests;
+use super::direct_clip_worker::sample_direct_clip_pose_requests_with_demand;
 use super::events::{enqueue_clip_event_samples, publish_clip_events, publish_events};
-use super::graph_evaluate::resolve_graph_pose_requests;
+use super::graph_evaluate::resolve_graph_pose_requests_with_demand;
 use super::parameter_apply::{
     apply_clip_player_updates, apply_sequence_player_updates, scan_animation_scene,
 };
 use super::pose_apply::apply_pose_transforms_to_scene_nodes;
+use super::requests::playback_requires_continuous_frame;
 use super::sequences::{apply_loaded_sequences, LoadedSequenceSample};
 use super::simulated_pose_blend::blend_simulated_pose_feed;
 use super::state_machine_layers::apply_state_machine_layers;
-use super::state_machine_step::resolve_state_machine_pose_requests;
+use super::state_machine_step::resolve_state_machine_pose_requests_with_demand;
 use super::AnimationEvaluationPipeline;
 pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: Real) {
+    let evaluation_frame = level.capture_animation_evaluation_frame();
     let Ok(animation) =
         animation_manager_handle(core).and_then(|handle| resolve_manager_service(core, handle))
     else {
@@ -154,9 +156,11 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         }
         frame_diagnostics.published_events = published_events;
         frame_diagnostics.record(core);
+        stage_animation_frame_demand(level, evaluation_frame, false);
         return;
     };
 
+    let mut requires_continuous_frame = scan.event_only_clip_requires_continuous_frame;
     let mut pending_clip_event_samples = scan.clip_event_samples;
     let loaded_sequences = scan
         .sequences
@@ -165,13 +169,22 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
             asset_manager
                 .load_animation_sequence_asset(pending.sequence_id)
                 .ok()
-                .map(|sequence| LoadedSequenceSample {
-                    entity: pending.entity,
-                    asset_id: pending.sequence_id,
-                    asset_revision: pending.asset_revision,
-                    sequence,
-                    time_seconds: pending.time_seconds,
-                    looping: pending.looping,
+                .map(|sequence| {
+                    requires_continuous_frame |= playback_requires_continuous_frame(
+                        pending.playing,
+                        pending.playback_speed,
+                        pending.time_seconds,
+                        sequence.duration_seconds,
+                        pending.looping,
+                    );
+                    LoadedSequenceSample {
+                        entity: pending.entity,
+                        asset_id: pending.sequence_id,
+                        asset_revision: pending.asset_revision,
+                        sequence,
+                        time_seconds: pending.time_seconds,
+                        looping: pending.looping,
+                    }
                 })
         })
         .collect::<Vec<_>>();
@@ -204,6 +217,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         mut active_state_updates,
         mut transition_updates,
         state_machine_journal,
+        sampled_requires_continuous_frame,
     )) = level.with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
         let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
         pipeline.begin_state_machine_runtime_transaction(&state_machine_sample_entities);
@@ -211,21 +225,22 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         pipeline
             .clip_evaluator_mut()
             .bind_resources(&asset_manager.resource_manager());
-        let animation_poses = sample_direct_clip_pose_requests(
+        let (animation_poses, direct_requires_frame) = sample_direct_clip_pose_requests_with_demand(
             core,
             pipeline,
             Arc::clone(asset_manager),
             scan.clip_samples,
         );
-        let (graph_poses, graph_event_samples) =
-            resolve_graph_pose_requests(pipeline, asset_manager, scan.graph_samples);
+        let (graph_poses, graph_event_samples, graph_requires_frame) =
+            resolve_graph_pose_requests_with_demand(pipeline, asset_manager, scan.graph_samples);
         let layer_samples = scan.state_machine_samples.clone();
         let (
             mut state_machine_poses,
             mut state_machine_event_samples,
             active_state_updates,
             transition_updates,
-        ) = resolve_state_machine_pose_requests(
+            machine_requires_frame,
+        ) = resolve_state_machine_pose_requests_with_demand(
             pipeline,
             asset_manager,
             scan.state_machine_samples,
@@ -248,11 +263,16 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
             active_state_updates,
             transition_updates,
             state_machine_journal,
+            direct_requires_frame
+                || graph_requires_frame
+                || machine_requires_frame
+                || layer_result.requires_continuous_frame,
         )
     })
     else {
         return;
     };
+    requires_continuous_frame |= sampled_requires_continuous_frame;
     animation_poses.extend(graph_poses);
     animation_poses.extend(state_machine_poses);
     pending_clip_event_samples.extend(graph_event_samples);
@@ -416,6 +436,17 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         return;
     }
     frame_diagnostics.record(core);
+    stage_animation_frame_demand(level, evaluation_frame, requires_continuous_frame);
+}
+
+fn stage_animation_frame_demand(
+    level: &LevelSystem,
+    evaluation_frame: Option<(u64, u64)>,
+    requires_continuous_frame: bool,
+) {
+    if let Some((epoch, frame)) = evaluation_frame {
+        let _ = level.stage_animation_evaluation_frame(epoch, frame, requires_continuous_frame);
+    }
 }
 
 fn retain_non_deferred_entity_map<T>(

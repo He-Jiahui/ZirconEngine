@@ -5,8 +5,7 @@ use super::*;
 fn runtime_15_gpu_model_embedded_primitive_uses_current_names() {
     let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let gpu_model_source = read_text(
-        &manifest_root
-            .join("src/graphics/scene/resources/gpu_model/resource_from_asset.rs"),
+        &manifest_root.join("src/graphics/scene/resources/gpu_model/resource_from_asset.rs"),
         "GPU model resource from asset owner should be readable",
     );
     let runtime_15_plan = read_repo_text(
@@ -40,9 +39,7 @@ fn runtime_15_gpu_model_embedded_primitive_uses_current_names() {
     assert_contains_all(
         "GPU model embedded primitive source names",
         &read_text(
-            &manifest_root.join(
-                "src/graphics/scene/gpu_model/tests/resource_from_asset.rs",
-            ),
+            &manifest_root.join("src/graphics/scene/gpu_model/tests/resource_from_asset.rs"),
             "GPU model resource from asset owner should be readable",
         ),
         &[

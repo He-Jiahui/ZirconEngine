@@ -1,8 +1,6 @@
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_runtime::asset::pipeline::manager::{
@@ -382,7 +380,8 @@ fn render_project_with_environment<T>(
     write_project_assets: impl FnOnce(&ProjectPaths),
     render: impl FnOnce(&WgpuRenderFramework, RenderViewportHandle, RenderSceneSnapshot) -> T,
 ) -> T {
-    let root = unique_temp_project_root(temp_label);
+    let fixture = ManagedConfigFixture::new(temp_label);
+    let root = fixture.root.operation_path().to_path_buf();
     let paths = ProjectPaths::from_root(&root).unwrap();
     paths
         .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
@@ -394,9 +393,10 @@ fn render_project_with_environment<T>(
     write_project_assets(&paths);
 
     let asset_runtime = CoreRuntime::new();
-    asset_runtime
-        .register_module(zircon_runtime::foundation::module_descriptor())
+    let mut foundation = zircon_runtime::foundation::module_descriptor();
+    zircon_runtime::foundation::bind_config_file_path(&mut foundation, fixture.config_path())
         .unwrap();
+    asset_runtime.register_module(foundation).unwrap();
     asset_runtime
         .register_module(TasksModule.descriptor())
         .unwrap();
@@ -451,7 +451,9 @@ fn render_project_with_environment<T>(
     drop(asset_manager);
     drop(core);
     drop(asset_runtime);
-    fs::remove_dir_all(&root).expect("remove Shader06 temporary product project");
+    drop(paths);
+    // The framework, asset services, Core handles and final config worker have closed.
+    drop(fixture);
     output
 }
 
@@ -938,20 +940,6 @@ fn shader_test_asset_dir() -> PathBuf {
     asset_dir
 }
 
-fn unique_temp_project_root(label: &str) -> PathBuf {
-    static NEXT_TEMP_PROJECT_ID: AtomicU64 = AtomicU64::new(1);
-
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let process_id = std::process::id();
-    let sequence = NEXT_TEMP_PROJECT_ID.fetch_add(1, Ordering::Relaxed);
-    std::env::temp_dir().join(format!(
-        "zircon_graphics_{label}_{process_id}_{sequence}_{unique}"
-    ))
-}
-
 fn luma(rgb: [f32; 3]) -> f32 {
     0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
 }
@@ -967,4 +955,70 @@ fn lerp4(a: [f32; 4], b: [f32; 4], t: f32) -> [f32; 4] {
         lerp(a[2], b[2], t),
         lerp(a[3], b[3], t),
     ]
+}
+
+struct ManagedConfigFixture {
+    root: zircon_runtime::asset::project::ResolvedProjectPathIdentity,
+}
+
+impl ManagedConfigFixture {
+    fn new(label: &str) -> Self {
+        use zircon_runtime::asset::ProjectPaths;
+        static NEXT_FIXTURE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+        let approved = ProjectPaths::resolve_existing("E:/cargo-targets/zircon-local")
+            .expect("the managed E drive fixture root must already exist");
+        let display = ProjectPaths::display_path(approved.operation_path());
+        assert!(
+            display
+                .to_str()
+                .expect("managed root must be Unicode")
+                .replace('\\', "/")
+                .eq_ignore_ascii_case("E:/cargo-targets/zircon-local"),
+            "the approved root must resolve to the physical E drive root"
+        );
+        let approved = ProjectPaths::resolve_identity(approved.operation_path()).unwrap();
+        let executable = std::env::current_exe().unwrap();
+        let binary = ProjectPaths::resolve_identity(executable.parent().unwrap()).unwrap();
+        assert!(
+            binary.is_within(&approved),
+            "test binary must physically live under the managed E root"
+        );
+        let id = NEXT_FIXTURE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = ProjectPaths::resolve_identity(binary.operation_path().join(format!(
+            "runtime55-{label}-{}-{nanos}-{id}",
+            std::process::id()
+        )))
+        .unwrap();
+        assert!(root.is_within(&binary));
+        // Every authority check precedes mkdir/write. create_dir never adopts an existing root.
+        std::fs::create_dir(root.operation_path()).unwrap();
+        let fixture = Self { root };
+        assert_eq!(
+            ProjectPaths::resolve_identity(fixture.root.operation_path()).unwrap(),
+            fixture.root
+        );
+        fixture
+    }
+
+    fn config_path(&self) -> std::path::PathBuf {
+        self.root.operation_path().join("config.json")
+    }
+}
+
+impl Drop for ManagedConfigFixture {
+    fn drop(&mut self) {
+        // The declaring scope/wrapper closes all runtimes, handles and worker owners first.
+        let current =
+            zircon_runtime::asset::ProjectPaths::resolve_identity(self.root.operation_path())
+                .unwrap();
+        assert_eq!(
+            current, self.root,
+            "cleanup must retain this fixture's physical identity"
+        );
+        std::fs::remove_dir_all(self.root.operation_path()).unwrap();
+    }
 }

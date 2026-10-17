@@ -49,10 +49,12 @@ impl EditorLogEventSink for EditorMessageLogEventSink {
         );
         if report.error().is_some() || !report.dropped().is_empty() {
             LogEventDelivery::Rejected
-        } else if report.backpressured().is_empty() {
-            LogEventDelivery::Delivered
-        } else {
+        } else if !report.backpressured().is_empty() {
             LogEventDelivery::Backpressured
+        } else if report.delivered().is_empty() {
+            LogEventDelivery::NotConfigured
+        } else {
+            LogEventDelivery::Delivered
         }
     }
 

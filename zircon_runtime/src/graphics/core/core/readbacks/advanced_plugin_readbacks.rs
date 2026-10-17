@@ -11,6 +11,7 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvance
     pub(super) outputs: RenderPluginRendererOutputs,
     external_buffer_binding_packet: Option<RuntimePrepareExternalBufferBindingPacket>,
     gpu_readbacks: Vec<RuntimePrepareGpuReadbackRequest>,
+    virtual_geometry_native_packets: Vec<crate::graphics::scene::VirtualGeometryTicketedReadback>,
     gpu_pass_profiles: Vec<RuntimePrepareGpuPassProfile>,
     runtime_prepare_frame_packet: RuntimePrepareFramePacket,
 }
@@ -22,6 +23,7 @@ impl SceneRendererAdvancedPluginReadbacks {
             external_buffer_binding_packet: None,
             gpu_readbacks: Vec::new(),
             gpu_pass_profiles: Vec::new(),
+            virtual_geometry_native_packets: Vec::new(),
             runtime_prepare_frame_packet: RuntimePrepareFramePacket::default(),
         }
     }
@@ -34,6 +36,7 @@ impl SceneRendererAdvancedPluginReadbacks {
             external_buffer_binding_packet: None,
             gpu_readbacks: Vec::new(),
             gpu_pass_profiles: Vec::new(),
+            virtual_geometry_native_packets: Vec::new(),
             runtime_prepare_frame_packet: RuntimePrepareFramePacket::default(),
         }
     }
@@ -51,6 +54,7 @@ impl SceneRendererAdvancedPluginReadbacks {
             ),
             gpu_readbacks: Vec::new(),
             gpu_pass_profiles: Vec::new(),
+            virtual_geometry_native_packets: Vec::new(),
             runtime_prepare_frame_packet: RuntimePrepareFramePacket::default(),
         }
     }
@@ -69,8 +73,23 @@ impl SceneRendererAdvancedPluginReadbacks {
             ),
             gpu_readbacks,
             gpu_pass_profiles: Vec::new(),
+            virtual_geometry_native_packets: Vec::new(),
             runtime_prepare_frame_packet: RuntimePrepareFramePacket::default(),
         }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn with_ticketed_native_packets(
+        mut self,
+        packets: Vec<crate::graphics::scene::VirtualGeometryTicketedReadback>,
+    ) -> Self {
+        self.virtual_geometry_native_packets = packets;
+        self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn take_native_packets(
+        &mut self,
+    ) -> Vec<crate::graphics::scene::VirtualGeometryTicketedReadback> {
+        std::mem::take(&mut self.virtual_geometry_native_packets)
     }
 
     pub(in crate::graphics::scene::scene_renderer::core) fn has_gpu_readbacks(&self) -> bool {

@@ -89,7 +89,9 @@ pub(super) fn execute_viewport_event(
         EditorViewportEvent::AlignView { orientation } => ViewportCommand::AlignView(*orientation),
         EditorViewportEvent::SetDisplayMode { mode } => ViewportCommand::SetDisplayMode(*mode),
         EditorViewportEvent::SetGridMode { mode } => ViewportCommand::SetGridMode(*mode),
-        EditorViewportEvent::SetGridVisibility { visible } => ViewportCommand::SetGridVisibility(*visible),
+        EditorViewportEvent::SetGridVisibility { visible } => {
+            ViewportCommand::SetGridVisibility(*visible)
+        }
         EditorViewportEvent::ToggleSnap { kind } => ViewportCommand::ToggleSnap(*kind),
         EditorViewportEvent::SetTranslateSnap { step } => ViewportCommand::SetTranslateSnap(*step),
         EditorViewportEvent::SetRotateSnapDegrees { step } => {

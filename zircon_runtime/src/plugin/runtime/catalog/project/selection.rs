@@ -15,7 +15,6 @@ use super::super::feature_registration_match::{
 };
 use super::super::feature_report::RuntimePluginFeatureDependencyReport;
 use super::super::feature_support::plugin_ids_match;
-use super::super::registration::order::order_runtime_plugin_registration_report_refs_for_target;
 use super::super::runtime_module_target::runtime_module_names_for_target;
 use super::super::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 
@@ -134,52 +133,9 @@ impl CompiledRuntimePluginBaseSelection {
             })
             .flat_map(|module| module.capabilities.iter().cloned())
             .collect::<HashSet<_>>();
-        let registration_indices_by_address = selected_registration_indices
-            .iter()
-            .map(|index| {
-                (
-                    &registrations[*index] as *const RuntimePluginRegistrationReport,
-                    *index,
-                )
-            })
-            .collect::<HashMap<_, _>>();
-        let selected_registration_refs = selected_registration_indices
-            .iter()
-            .map(|index| &registrations[*index])
-            .collect::<Vec<_>>();
-        let ordered_registrations = match order_runtime_plugin_registration_report_refs_for_target(
-            selected_registration_refs,
-            target,
-        ) {
-            Ok(registrations) => registrations,
-            Err(error) => {
-                return Self {
-                    ordered_plugin_registration_indices: Box::new([]),
-                    effective_enabled_plugins,
-                    available_capabilities,
-                    fatal_diagnostic: Some(format!(
-                        "runtime plugin module descriptor ordering failed: {error}"
-                    )),
-                };
-            }
-        };
-        let mut ordered_plugin_registration_indices =
-            Vec::with_capacity(ordered_registrations.len());
-        for registration in ordered_registrations {
-            let address = registration as *const RuntimePluginRegistrationReport;
-            let Some(index) = registration_indices_by_address.get(&address).copied() else {
-                return Self {
-                    ordered_plugin_registration_indices: Box::new([]),
-                    effective_enabled_plugins,
-                    available_capabilities,
-                    fatal_diagnostic: Some(format!(
-                        "runtime plugin selection lost registration package `{}` during ordering",
-                        registration.package_manifest.id
-                    )),
-                };
-            };
-            ordered_plugin_registration_indices.push(index);
-        }
+        // Module proposals can depend on core or host modules absent at this stage.
+        // The composition compiler validates and orders the complete activation graph.
+        let ordered_plugin_registration_indices = selected_registration_indices;
 
         Self {
             ordered_plugin_registration_indices: ordered_plugin_registration_indices.into(),
@@ -498,3 +454,62 @@ fn module_proposals(
 #[cfg(test)]
 #[path = "tests/selection.rs"]
 mod tests;
+
+// The raw plan retains requested intent. Only this admitted snapshot feeds
+// executable modules, feature dependency resolution and the extension registry.
+pub(super) fn manifest_admitted_for_maturity(
+    registrations: &[RuntimePluginRegistrationReport],
+    completed: &ProjectPluginManifest,
+    target: RuntimeTargetMode,
+    minimum: Option<crate::plugin::PluginMaturity>,
+) -> (ProjectPluginManifest, Vec<String>) {
+    let mut admitted = completed.clone();
+    let mut diagnostics = Vec::new();
+    let Some(minimum) = minimum else {
+        return (admitted, diagnostics);
+    };
+    let blocked = registrations
+        .iter()
+        .filter(|registration| {
+            registration
+                .package_manifest
+                .maturity
+                .is_unavailable_for_required_profile()
+                || !registration
+                    .package_manifest
+                    .maturity
+                    .meets_minimum(minimum)
+        })
+        .collect::<Vec<_>>();
+    let is_blocked = |id: &str| {
+        blocked.iter().any(|registration| {
+            plugin_ids_match(id, &registration.package_manifest.id)
+                || plugin_ids_match(id, &registration.project_selection.id)
+        })
+    };
+    for selection in &mut admitted.selections {
+        // Preserve inactive/unsupported owners and their independent feature intent.
+        // Their existing dependency diagnostics must neither be erased nor gain new policy fatals.
+        if !selection.enabled || !selection.supports_target(target) {
+            continue;
+        }
+        let blocked_owner = is_blocked(&selection.id);
+        if blocked_owner {
+            selection.enabled = false;
+        }
+        for feature in &mut selection.features {
+            if blocked_owner || is_blocked(feature.provider_package_id_or_owner(&selection.id)) {
+                if feature.enabled && feature.required && feature.supports_target(target) {
+                    diagnostics.push(format!(
+                        "required feature `{}` from `{}` is blocked by maturity {:?}",
+                        feature.id,
+                        feature.provider_package_id_or_owner(&selection.id),
+                        minimum,
+                    ));
+                }
+                feature.enabled = false;
+            }
+        }
+    }
+    (admitted, diagnostics)
+}

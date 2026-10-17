@@ -3,5 +3,13 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// 当前支持的原生窗口目标，数值仅用于跨边界传递，不承担生命周期所有权。
 pub enum RenderNativeSurfaceTarget {
-    Win32 { hwnd: u64, hinstance: Option<u64> },
+    Win32 {
+        hwnd: u64,
+        hinstance: Option<u64>,
+    },
+    /// Opaque browser host identity; the Canvas itself is owned by the WebGPU backend.
+    #[cfg(target_arch = "wasm32")]
+    Canvas {
+        identity: u64,
+    },
 }

@@ -1,12 +1,10 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f17_entity_path_option_lookup_uses_get_verb() {
-    let path_resolution =
-        include_str!("../../../scene/world/property_access/path_resolution.rs");
+    let path_resolution = include_str!("../../../scene/world/property_access/path_resolution.rs");
     let runtime_compiled = include_str!("../../../animation/sequence/compiled.rs");
     let runtime_target = include_str!("../../../animation/sequence/target.rs");
-    let plugin_runtime =
-        include_str!("../../../../../zircon_plugins/animation/runtime/src/lib.rs");
+    let plugin_runtime = include_str!("../../../../../zircon_plugins/animation/runtime/src/lib.rs");
     let property_paths_runtime_mutation =
         include_str!("../../../scene/tests/property_paths/runtime_mutation.rs");
     let property_paths_read = include_str!("../../../scene/tests/property_paths/read_paths.rs");

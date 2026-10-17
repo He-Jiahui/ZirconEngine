@@ -20,11 +20,11 @@ enum RuntimeFrameCadenceMode {
     Reactive,
     LowPower {
         interval: Duration,
-        next_deadline: Instant,
+        next_deadline: Option<Instant>,
     },
     FixedInterval {
         interval: Duration,
-        next_deadline: Instant,
+        next_deadline: Option<Instant>,
     },
 }
 
@@ -101,11 +101,11 @@ impl RuntimeFrameCadence {
         let mode = match policy {
             EventLoopPolicy::Game if window_occluded => RuntimeFrameCadenceMode::LowPower {
                 interval: BACKGROUND_FRAME_INTERVAL,
-                next_deadline: now + BACKGROUND_FRAME_INTERVAL,
+                next_deadline: now.checked_add(BACKGROUND_FRAME_INTERVAL),
             },
             EventLoopPolicy::Game if !window_focused => RuntimeFrameCadenceMode::LowPower {
                 interval: UNFOCUSED_GAME_FRAME_INTERVAL,
-                next_deadline: now + UNFOCUSED_GAME_FRAME_INTERVAL,
+                next_deadline: now.checked_add(UNFOCUSED_GAME_FRAME_INTERVAL),
             },
             EventLoopPolicy::Game | EventLoopPolicy::Continuous => {
                 RuntimeFrameCadenceMode::Continuous
@@ -119,15 +119,39 @@ impl RuntimeFrameCadence {
                 };
                 RuntimeFrameCadenceMode::LowPower {
                     interval,
-                    next_deadline: now + interval,
+                    next_deadline: now.checked_add(interval),
                 }
             }
             EventLoopPolicy::Headless => RuntimeFrameCadenceMode::FixedInterval {
                 interval: HEADLESS_FRAME_INTERVAL,
-                next_deadline: now + HEADLESS_FRAME_INTERVAL,
+                next_deadline: now.checked_add(HEADLESS_FRAME_INTERVAL),
             },
         };
         mode
+    }
+
+    /// Preserve the existing periodic phase, dropping missed slots instead of catching up.
+    /// None means no representable future deadline; callers wait for explicit work or a mode rebase.
+    fn next_periodic_deadline(
+        previous: Instant,
+        interval: Duration,
+        now: Instant,
+    ) -> Option<Instant> {
+        if interval.is_zero() {
+            return None;
+        }
+        if now < previous {
+            return Some(previous);
+        }
+        let elapsed_nanos = now.duration_since(previous).as_nanos();
+        let interval_nanos = interval.as_nanos();
+        let remaining_nanos = interval_nanos - elapsed_nanos % interval_nanos;
+        // remaining <= interval, so its seconds fit Duration's u64 and its remainder fits u32.
+        let remaining = Duration::new(
+            (remaining_nanos / 1_000_000_000) as u64,
+            (remaining_nanos % 1_000_000_000) as u32,
+        );
+        now.checked_add(remaining)
     }
 
     fn refresh_mode_at(&mut self, now: Instant) {
@@ -245,11 +269,20 @@ impl RuntimeFrameCadence {
                 let runtime_deadline_due = self
                     .runtime_deadline
                     .is_some_and(|runtime_deadline| now >= runtime_deadline);
-                if explicitly_requested || runtime_deadline_due || now >= *next_deadline {
+                let periodic_deadline_due =
+                    next_deadline.is_some_and(|deadline| now >= deadline);
+                if explicitly_requested || runtime_deadline_due || periodic_deadline_due {
                     if runtime_deadline_due {
                         self.runtime_deadline = None;
                     }
-                    *next_deadline = now + *interval;
+                    *next_deadline = if let Some(previous) =
+                        next_deadline.filter(|deadline| now >= *deadline)
+                    {
+                        Self::next_periodic_deadline(previous, *interval, now)
+                    } else {
+                        // Early explicit/runtime work keeps the existing inactivity rebase.
+                        now.checked_add(*interval)
+                    };
                     true
                 } else {
                     false
@@ -260,8 +293,8 @@ impl RuntimeFrameCadence {
                 next_deadline,
             } => {
                 let initial_frame = std::mem::take(&mut self.frame_requested);
-                if now >= *next_deadline {
-                    *next_deadline = now + *interval;
+                if let Some(previous) = next_deadline.filter(|deadline| now >= *deadline) {
+                    *next_deadline = Self::next_periodic_deadline(previous, *interval, now);
                     true
                 } else {
                     initial_frame
@@ -297,14 +330,18 @@ impl RuntimeFrameCadence {
                 .map(ControlFlow::WaitUntil)
                 .unwrap_or(ControlFlow::Wait),
             RuntimeFrameCadenceMode::LowPower { .. } if self.frame_requested => ControlFlow::Poll,
-            RuntimeFrameCadenceMode::LowPower { next_deadline, .. } => ControlFlow::WaitUntil(
-                self.runtime_deadline
-                    .map(|runtime_deadline| runtime_deadline.min(next_deadline))
-                    .unwrap_or(next_deadline),
-            ),
-            RuntimeFrameCadenceMode::FixedInterval { next_deadline, .. } => {
-                ControlFlow::WaitUntil(next_deadline)
+            RuntimeFrameCadenceMode::LowPower { next_deadline, .. } => {
+                match (self.runtime_deadline, next_deadline) {
+                    (Some(runtime), Some(periodic)) => ControlFlow::WaitUntil(runtime.min(periodic)),
+                    (Some(deadline), None) | (None, Some(deadline)) => {
+                        ControlFlow::WaitUntil(deadline)
+                    }
+                    (None, None) => ControlFlow::Wait,
+                }
             }
+            RuntimeFrameCadenceMode::FixedInterval { next_deadline, .. } => next_deadline
+                .map(ControlFlow::WaitUntil)
+                .unwrap_or(ControlFlow::Wait),
         }
     }
 

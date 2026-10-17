@@ -1,8 +1,9 @@
 //! IBL 缓存命中直接回填已烘焙资源；未命中则为本帧图编译保留唯一烘焙请求及失败重试权。
 use std::sync::{Arc, Mutex};
 
+#[cfg(feature = "native-host")]
 use crate::asset::artifact::resolve_ibl_bake_artifact_runtime_dispatch;
-use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
     source_cubemap_environment_with_bake_artifact, IblBakeArtifactContents, RenderFrameExtract,
     RenderFrameworkError, SourceCubemapEnvironment,
@@ -98,31 +99,42 @@ pub(super) fn resolve_and_rehydrate_environment_ibl_cache(
     if let Some(cached) = cached {
         return Ok(Some(EnvironmentIblCacheResolution::hydrated(Some(cached))));
     }
-    let Some(store) = asset_manager.ibl_bake_artifact_cache_store() else {
-        return Ok(Some(EnvironmentIblCacheResolution::from_kind(
-            EnvironmentIblCacheResolutionKind::RuntimeBakeUnavailable,
-        )));
-    };
-    let dispatch = resolve_ibl_bake_artifact_runtime_dispatch(&store, &request, &[])
-        .map_err(|error| RenderFrameworkError::Backend(error.to_string()))?;
-    let Some(payload) = dispatch.payload() else {
-        let resolution =
-            EnvironmentIblHydrationCache::reserve_runtime_bake(hydration_cache, request)
-                .map(EnvironmentIblCacheResolutionKind::RuntimeComputeRequired)
-                .unwrap_or(EnvironmentIblCacheResolutionKind::RuntimeBakePending);
-        return Ok(Some(EnvironmentIblCacheResolution::from_kind(resolution)));
-    };
-    let hydrated =
-        source_cubemap_environment_with_bake_artifact(environment, payload).map_err(|error| {
-            RenderFrameworkError::Backend(format!("rehydrate environment IBL artifact: {error:?}"))
-        })?;
-    hydration_cache
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-        .insert(request, hydrated.clone());
-    Ok(Some(EnvironmentIblCacheResolution::hydrated(Some(
-        hydrated,
-    ))))
+    #[cfg(not(feature = "native-host"))]
+    {
+        Err(RenderFrameworkError::Backend(
+            "browser environment IBL requires a desktop-preprocessed bake artifact".to_owned(),
+        ))
+    }
+    #[cfg(feature = "native-host")]
+    {
+        let Some(store) = asset_manager.ibl_bake_artifact_cache_store() else {
+            return Ok(Some(EnvironmentIblCacheResolution::from_kind(
+                EnvironmentIblCacheResolutionKind::RuntimeBakeUnavailable,
+            )));
+        };
+        let dispatch = resolve_ibl_bake_artifact_runtime_dispatch(&store, &request, &[])
+            .map_err(|error| RenderFrameworkError::Backend(error.to_string()))?;
+        let Some(payload) = dispatch.payload() else {
+            let resolution =
+                EnvironmentIblHydrationCache::reserve_runtime_bake(hydration_cache, request)
+                    .map(EnvironmentIblCacheResolutionKind::RuntimeComputeRequired)
+                    .unwrap_or(EnvironmentIblCacheResolutionKind::RuntimeBakePending);
+            return Ok(Some(EnvironmentIblCacheResolution::from_kind(resolution)));
+        };
+        let hydrated = source_cubemap_environment_with_bake_artifact(environment, payload)
+            .map_err(|error| {
+                RenderFrameworkError::Backend(format!(
+                    "rehydrate environment IBL artifact: {error:?}"
+                ))
+            })?;
+        hydration_cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(request, hydrated.clone());
+        Ok(Some(EnvironmentIblCacheResolution::hydrated(Some(
+            hydrated,
+        ))))
+    }
 }
 
 pub(super) fn compile_options_with_environment_ibl_bake_request(

@@ -10,6 +10,9 @@ use crate::core::recovery::{RestoreExecutionReport, RestoreStartup};
 use super::super::editor_error::EditorError;
 use super::super::editor_manager::EditorManager;
 use super::RecoveryExecutionCompletion;
+use super::service::{
+    RecoveryCompletionDisposition, RecoveryOwnerAdmission, RecoveryUnresolvedSummary,
+};
 
 const RECOVERY_TOAST_SOURCE: &str = "editor.recovery";
 const RECOVERY_SUCCESS_TOAST_LIFETIME: Duration = Duration::from_secs(5);
@@ -17,7 +20,7 @@ const RECOVERY_FAILURE_TOAST_LIFETIME: Duration = Duration::from_secs(8);
 const RECOVERY_SUCCESS_TITLE_KEY: &str = "editor.recovery.completed.title";
 const RECOVERY_SUCCESS_MESSAGE_KEY: &str = "editor.recovery.completed.message";
 const RECOVERY_FAILURE_TITLE_KEY: &str = "editor.recovery.failed.title";
-const RECOVERY_FAILURE_MESSAGE_KEY: &str = "editor.recovery.failed.message";
+const RECOVERY_FAILURE_MESSAGE_KEY: &str = "editor.recovery.unresolved.message";
 const RECOVERY_FAILURE_LOG_DETAIL_LIMIT: usize = 4;
 const UNKNOWN_RECOVERY_EXECUTION_FRAME: u64 = 0;
 
@@ -33,23 +36,42 @@ impl EditorManager {
             .notifications()
             .decisions()
             .map_err(project_recovery_error)?;
+        // The caller already owns the non-reentrant project transition guard.
+        let session = self.project_session_guard.lock()
+            .map_err(|_| project_recovery_error("project session owner lock is poisoned"))?;
+        let guard = session.as_ref()
+            .ok_or_else(|| project_recovery_error("project recovery requires an owned Ready session"))?;
+        let admission = RecoveryOwnerAdmission::from_guard(guard)
+            .map_err(project_recovery_error)?;
         self.project_recovery
-            .begin(center, project_root, startup)
+            .begin(center, project_root, startup, &admission)
             .map(|_| ())
             .map_err(project_recovery_error)
     }
 
     /// Advances receipt collection and worker completion outside rendering and native callbacks.
     pub(crate) fn pump_project_recovery_decisions(&self) -> Result<(), EditorError> {
-        let center = self
-            .context()
-            .notifications()
-            .decisions()
-            .map_err(project_recovery_error)?;
-        let completion = self
-            .project_recovery
-            .pump(center, self.context().jobs())
-            .map_err(project_recovery_error)?;
+        // This is a workload hint only; it confers no session authority and consumes no receipt.
+        // The guard is dropped before acquiring the project transition lane.
+        if !self.project_recovery.is_active() {
+            return Ok(());
+        }
+        let completion = {
+            // Tick does not hold this guard. Begin and Close use their already-held entry instead.
+            let _transition = self.begin_project_session_transition()?;
+            let center = self.context().notifications().decisions()
+                .map_err(project_recovery_error)?;
+            let session = self.project_session_guard.lock()
+                .map_err(|_| project_recovery_error("project session owner lock is poisoned"))?;
+            let guard = session.as_ref()
+                .ok_or_else(|| project_recovery_error("project recovery requires an owned Ready session"))?;
+            let admission = RecoveryOwnerAdmission::from_guard(guard)
+                .map_err(project_recovery_error)?;
+            self.project_recovery
+                .pump(center, self.context().jobs(), &admission)
+                .map_err(project_recovery_error)?
+        };
+        // User-facing publication and logging never run under the transition or owner locks.
         if let Some(completion) = completion {
             self.publish_recovery_execution_completion(completion)?;
         }
@@ -62,7 +84,7 @@ impl EditorManager {
     pub(in crate::ui::host) fn ensure_project_recovery_is_settled(
         &self,
     ) -> Result<(), EditorError> {
-        if self.project_recovery.is_active() {
+        if self.project_recovery.request_review_if_active() {
             return Err(EditorError::Project(
                 "project recovery choices or background restore work are still active; complete the recovery flow before closing the project"
                     .to_string(),
@@ -82,16 +104,25 @@ impl EditorManager {
         let source = NotificationSource::builtin(RECOVERY_TOAST_SOURCE)
             .map_err(|error| EditorError::Project(error.to_string()))?;
         let job = completion.job();
-        let (id_suffix, severity, title_key, message_key, lifetime) = match completion.result() {
-            Ok(report) if !report.has_failures() => (
+        if let Some(result) = completion.result() {
+            match result {
+                Ok(report) if report.has_failures() => {
+                    self.emit_recovery_document_failures(job.value(), report);
+                }
+                Err(error) => self.emit_recovery_execution_failure(job.value(), error),
+                Ok(_) => {}
+            }
+        }
+        let (id_suffix, severity, title_key, message_key, lifetime) = match completion.disposition() {
+            RecoveryCompletionDisposition::Completed => (
                 "completed",
                 ToastSeverity::Success,
                 RECOVERY_SUCCESS_TITLE_KEY,
                 RECOVERY_SUCCESS_MESSAGE_KEY,
                 RECOVERY_SUCCESS_TOAST_LIFETIME,
             ),
-            Ok(report) => {
-                self.emit_recovery_document_failures(job.value(), report);
+            RecoveryCompletionDisposition::Incomplete => {
+                self.emit_recovery_unresolved(job.value(), completion.unresolved());
                 (
                     "failed",
                     ToastSeverity::Error,
@@ -100,16 +131,8 @@ impl EditorManager {
                     RECOVERY_FAILURE_TOAST_LIFETIME,
                 )
             }
-            Err(error) => {
-                self.emit_recovery_execution_failure(job.value(), error);
-                (
-                    "failed",
-                    ToastSeverity::Error,
-                    RECOVERY_FAILURE_TITLE_KEY,
-                    RECOVERY_FAILURE_MESSAGE_KEY,
-                    RECOVERY_FAILURE_TOAST_LIFETIME,
-                )
-            }
+            // The resolved decision is the acknowledgement. Do not label it a successful restore.
+            RecoveryCompletionDisposition::EvidenceKept => return Ok(()),
         };
         let id = NotificationId::parse(format!("editor.recovery.{id_suffix}.{}", job.value()))
             .map_err(|error| EditorError::Project(error.to_string()))?;
@@ -138,6 +161,22 @@ impl EditorManager {
                 None,
             )
         });
+        if let Ok(entry) = entry {
+            let _ = self.context().logs().emit(entry);
+        }
+    }
+
+    fn emit_recovery_unresolved(&self, job: u64, summary: RecoveryUnresolvedSummary) {
+        let entry = LogEntry::new(
+            LogSource::editor(),
+            LogSeverity::Error,
+            format!(
+                "autosave recovery job {job} leaves {} unresolved document(s): {} safe to retry, {} requiring operator action",
+                summary.total, summary.retryable, summary.operator_required
+            ),
+            UNKNOWN_RECOVERY_EXECUTION_FRAME,
+            None,
+        );
         if let Ok(entry) = entry {
             let _ = self.context().logs().emit(entry);
         }

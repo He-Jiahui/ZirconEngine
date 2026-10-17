@@ -11,8 +11,13 @@ fn project_document_load_uses_only_the_activated_settings_authority_in_productio
     assert!(!production_source.contains(&retired_loader_signature));
     assert!(!production_source.contains("SettingsAuthority::with_defaults()"));
     assert!(production_source.contains("pub(crate) fn load_from_activated_project("));
-    assert!(production_source.contains("world: if allows_scene_restore"));
-    assert!(production_source.contains("Scene::load_scene_from_uri"));
+    assert!(
+        production_source.contains("let (world, scene_source_revision) = if allows_scene_restore")
+    );
+    assert!(production_source.contains(
+        "Scene::load_scene_document(project, &project.manifest().default_scene)?.into_parts()"
+    ));
+    assert!(production_source.contains("(world, Some(revision))"));
     assert!(production_source.contains("Scene::new()"));
 
     let test_helper_source = &document_source[test_helper_gate..];

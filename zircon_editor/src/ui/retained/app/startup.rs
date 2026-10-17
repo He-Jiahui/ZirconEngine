@@ -48,6 +48,7 @@ pub(crate) fn build_startup_state(
             editor_manager.apply_project_workspace(document.editor_workspace)?;
             let project_root = document.root_path.clone();
             let default_scene = document.manifest.default_scene.clone();
+            let source_revision = document.scene_source_revision.clone();
             let authoring_world = editor_manager.prepare_authoring_world(document.world)?;
             let mut state = EditorState::project_with_context(
                 authoring_world,
@@ -55,8 +56,11 @@ pub(crate) fn build_startup_state(
                 project_root.to_string_lossy().into_owned(),
                 editor_manager.context().clone(),
             );
-            let scene_document =
-                editor_manager.activate_startup_scene_document(&project_root, &default_scene)?;
+            let scene_document = editor_manager.activate_startup_scene_document(
+                &project_root,
+                &default_scene,
+                source_revision,
+            )?;
             state.bind_scene_document(scene_document);
             // The retained Workbench owns UI instance IDs while the viewport session
             // registry is keyed by the core editor-event nominal type. Convert once at

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
+use zircon_runtime::asset::{runtime_asset_path_with_dev_asset_root, AssetRelativePath};
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime::ui::v2::{UiV2DocumentCompiler, UiV2SourceFileReceipt, UiV2SurfaceBuilder};
 use zircon_runtime_interface::ui::{
@@ -46,14 +46,13 @@ impl EditorUiHostRuntime {
             return Err(invalid("workspace URI contains an invalid path segment".into()).into());
         }
         let asset_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
-        let module_path = runtime_asset_path_with_dev_asset_root(
-            &format!("/assets/ui/editor/components/workbench/modules/{relative}"),
-            &asset_root,
-        );
-        let theme_path = runtime_asset_path_with_dev_asset_root(
-            "/assets/ui/theme/editor_workbench_strict.zui",
-            &asset_root,
-        );
+        let module_relative = format!("ui/editor/components/workbench/modules/{relative}");
+        let module_relative = AssetRelativePath::parse(&module_relative)
+            .map_err(|error| invalid(format!("invalid workspace asset path: {error}")))?;
+        let module_path = runtime_asset_path_with_dev_asset_root(&module_relative, &asset_root);
+        let theme_relative = AssetRelativePath::parse("ui/theme/editor_workbench_strict.zui")
+            .map_err(|error| invalid(format!("invalid workspace theme path: {error}")))?;
+        let theme_path = runtime_asset_path_with_dev_asset_root(&theme_relative, &asset_root);
         let outcome = v2_template_file_cache()
             .lock()
             .expect("v2 template file cache mutex should not be poisoned")

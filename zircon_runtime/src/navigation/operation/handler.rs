@@ -24,6 +24,7 @@ pub(super) enum NavigationOperationKind {
 
 pub(super) struct NavigationOperationHandler {
     kind: NavigationOperationKind,
+    history_v1: bool,
 }
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
@@ -33,6 +34,7 @@ struct NavigationSnapshotChange {
 }
 
 struct NavigationSnapshotOwnerState {
+    history_budget: Option<crate::core::framework::navigation::NavigationHistoryBudgetV1>,
     source: WorldPublicationSource,
     runtime: SceneNavigationRuntimeHandle,
     before: NavigationGeneratedBakeSnapshot,
@@ -41,6 +43,7 @@ struct NavigationSnapshotOwnerState {
 }
 
 struct NavigationBakeOwnerState {
+    history_budget: Option<crate::core::framework::navigation::NavigationHistoryBudgetV1>,
     source: WorldPublicationSource,
     runtime: SceneNavigationRuntimeHandle,
     before: NavigationGeneratedBakeSnapshot,
@@ -48,6 +51,7 @@ struct NavigationBakeOwnerState {
 }
 
 struct NavigationBakePreparedState {
+    history_budget: Option<crate::core::framework::navigation::NavigationHistoryBudgetV1>,
     source: WorldPublicationSource,
     runtime: SceneNavigationRuntimeHandle,
     before: NavigationGeneratedBakeSnapshot,
@@ -56,9 +60,18 @@ struct NavigationBakePreparedState {
 
 impl NavigationOperationHandler {
     pub(super) fn new(kind: NavigationOperationKind) -> Self {
-        Self { kind }
+        Self {
+            kind,
+            history_v1: false,
+        }
     }
 
+    pub(super) fn new_history_v1(kind: NavigationOperationKind) -> Self {
+        Self {
+            kind,
+            history_v1: true,
+        }
+    }
     fn resolve_runtime(
         context: &RuntimeOperationContext<'_>,
     ) -> Result<SceneNavigationRuntimeHandle, RuntimeOperationHandlerError> {
@@ -160,6 +173,7 @@ impl NavigationOperationHandler {
         context: &RuntimeOperationContext<'_>,
         request: NavigationClearBakeRequest,
         restore: Option<NavigationGeneratedBakeSnapshot>,
+        history_budget: Option<crate::core::framework::navigation::NavigationHistoryBudgetV1>,
     ) -> Result<RuntimeOperationSnapshot, RuntimeOperationHandlerError> {
         if let Some(snapshot) = restore.as_ref() {
             Self::reject_null_restore_target(snapshot.surface_entity)?;
@@ -191,6 +205,7 @@ impl NavigationOperationHandler {
         Ok(RuntimeOperationSnapshot::with_owner_state(
             payload,
             Box::new(NavigationSnapshotOwnerState {
+                history_budget,
                 source,
                 runtime,
                 before,
@@ -204,10 +219,26 @@ impl NavigationOperationHandler {
     fn prepare_snapshot_owner(
         owner: NavigationSnapshotOwnerState,
     ) -> Result<RuntimeOperationPrepared, RuntimeOperationHandlerError> {
-        let (command, result) = encode_prepared_snapshot_values(NavigationSnapshotChange {
+        if let Some(refused) = super::registration::history_retention::preflight_snapshots(
+            owner.history_budget,
+            &owner.before,
+            &owner.after,
+            None,
+        )? {
+            return Ok(refused);
+        }
+        let (command, mut result) = encode_prepared_snapshot_values(NavigationSnapshotChange {
             before: owner.before.clone(),
             after: owner.after.clone(),
         })?;
+        if let Some(refused) = super::registration::history_retention::certify_result(
+            &mut result,
+            owner.history_budget,
+            &owner.before,
+            &owner.after,
+        )? {
+            return Ok(refused);
+        }
         let owner_bytes = source_retained_bytes(&owner.source)
             .saturating_add(estimate_snapshot_bytes(&owner.before))
             .saturating_add(estimate_snapshot_bytes(&owner.after));
@@ -232,6 +263,7 @@ impl NavigationOperationHandler {
         owner: NavigationSnapshotOwnerState,
     ) -> Result<(), RuntimeOperationHandlerError> {
         let NavigationSnapshotOwnerState {
+            history_budget: _,
             source,
             runtime,
             before,
@@ -302,6 +334,13 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
         context: RuntimeOperationContext<'_>,
         payload: serde_json::Value,
     ) -> Result<RuntimeOperationSnapshot, RuntimeOperationHandlerError> {
+        let (history_budget, payload) = if self.history_v1 {
+            let (budget, payload) =
+                super::registration::history_retention::unwrap_request(payload)?;
+            (Some(budget), payload)
+        } else {
+            (None, payload)
+        };
         match self.kind {
             NavigationOperationKind::BakeScene | NavigationOperationKind::BakeSurface => {
                 let request = self.operation_request(payload)?;
@@ -314,6 +353,7 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
                 Ok(RuntimeOperationSnapshot::with_owner_state(
                     encode_payload(request, "navigation bake")?,
                     Box::new(NavigationBakeOwnerState {
+                        history_budget,
                         source,
                         runtime,
                         before,
@@ -326,11 +366,13 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
                 &context,
                 decode_payload(payload, "navigation surface clear")?,
                 None,
+                history_budget,
             ),
             NavigationOperationKind::RestoreSnapshot => Self::snapshot_change_owner(
                 &context,
                 NavigationClearBakeRequest::default(),
                 Some(decode_payload(payload, "navigation bake snapshot restore")?),
+                history_budget,
             ),
         }
     }
@@ -371,6 +413,7 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
                     )
                 })?;
                 let NavigationBakeOwnerState {
+                    history_budget,
                     source,
                     runtime,
                     before,
@@ -379,11 +422,19 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
                 let (backend_prepared, report, after, owner_bytes) = Self::enter_runtime(&runtime)?
                     .prepare_bake_operation(backend_snapshot)
                     .map_err(|error| RuntimeOperationHandlerError::new(error.to_string()))?;
+                if let Some(refused) = super::registration::history_retention::preflight_snapshots(
+                    history_budget,
+                    &before,
+                    &after,
+                    Some(&report),
+                )? {
+                    return Ok(refused);
+                }
                 let (command, _) = encode_prepared_snapshot_values(NavigationSnapshotChange {
                     before: before.clone(),
                     after: after.clone(),
                 })?;
-                let result = encode_payload(
+                let mut result = encode_payload(
                     NavigationGeneratedBakeChange {
                         before: before.clone(),
                         after: after.clone(),
@@ -391,6 +442,14 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
                     },
                     "navigation bake result",
                 )?;
+                if let Some(refused) = super::registration::history_retention::certify_result(
+                    &mut result,
+                    history_budget,
+                    &before,
+                    &after,
+                )? {
+                    return Ok(refused);
+                }
                 let owner_bytes = owner_bytes
                     .saturating_add(source_retained_bytes(&source))
                     .saturating_add(estimate_snapshot_bytes(&before))
@@ -399,6 +458,7 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
                     command,
                     result,
                     Box::new(NavigationBakePreparedState {
+                        history_budget,
                         source,
                         runtime,
                         before,
@@ -448,6 +508,10 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
         let owner = owner.ok_or_else(|| {
             RuntimeOperationHandlerError::new("navigation operation lost its prepared owner state")
         })?;
+        if self.history_v1 && owner.is::<super::registration::history_retention::HistoryRefusalV1>()
+        {
+            return Ok(());
+        }
         match self.kind {
             NavigationOperationKind::BakeScene | NavigationOperationKind::BakeSurface => {
                 let owner = owner
@@ -458,6 +522,7 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
                         )
                     })?;
                 let NavigationBakePreparedState {
+                    history_budget: _,
                     source,
                     runtime,
                     before,

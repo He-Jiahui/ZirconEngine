@@ -4,8 +4,7 @@ use super::*;
 
 #[test]
 fn material_component_lab_typography_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path =
-        editor_asset("assets/ui/editor/data_display/material_typography.zui");
+    let path = editor_asset("assets/ui/editor/data_display/material_typography.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -40,8 +39,7 @@ fn material_component_lab_typography_sample_uses_runtime_descriptor_and_theme_se
 
 #[test]
 fn material_component_lab_timeline_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path =
-        editor_asset("assets/ui/editor/data_display/material_timeline.zui");
+    let path = editor_asset("assets/ui/editor/data_display/material_timeline.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -123,8 +121,7 @@ fn material_component_lab_timeline_sample_uses_runtime_descriptor_and_theme_sele
 
 #[test]
 fn material_component_lab_transfer_list_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path =
-        editor_asset("assets/ui/editor/navigation/material_transfer_list.zui");
+    let path = editor_asset("assets/ui/editor/navigation/material_transfer_list.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -210,8 +207,7 @@ fn material_component_lab_transfer_list_sample_uses_runtime_descriptor_and_theme
 
 #[test]
 fn material_component_lab_autocomplete_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path =
-        editor_asset("assets/ui/editor/inputs/material_autocomplete.zui");
+    let path = editor_asset("assets/ui/editor/inputs/material_autocomplete.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)

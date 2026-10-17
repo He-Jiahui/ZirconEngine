@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, Weak};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::core::framework::events::{
     EngineEventDelivery, EngineEventDeliveryPolicy, EngineEventReceiveError,

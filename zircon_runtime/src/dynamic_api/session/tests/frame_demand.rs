@@ -145,5 +145,43 @@ fn session_with_active_sequence() -> (RuntimeDynamicSession, EntityId) {
             .unwrap();
         entity
     });
+    // CoreOnly has no AnimationRuntimePlugin evaluator. This executable provider
+    // tests the consumer/whole-tick publication protocol; physics_tick covers
+    // the actual plugin with ready assets.
+    let mut registry = crate::plugin::RuntimeExtensionRegistry::default();
+    let owner = registry
+        .intern_plugin_module("test.frame-demand-provider")
+        .unwrap();
+    registry
+        .register_runtime_scene_system(
+            owner,
+            "test.frame-demand-provider",
+            SystemStage::PostUpdate,
+            move || {
+                move |context: crate::scene::ecs::RuntimeSceneSystemContext<'_>| {
+                    let (epoch, frame) = context
+                        .level
+                        .capture_animation_evaluation_frame()
+                        .expect("provider runs inside the public level tick");
+                    let playing = context.level.with_world(|world| {
+                        world
+                            .animation_sequence_player(entity)
+                            .is_some_and(|player| player.playing)
+                    });
+                    assert!(context
+                        .level
+                        .stage_animation_evaluation_frame(epoch, frame, playing));
+                    Ok(())
+                }
+            },
+        )
+        .with_order(0)
+        .register()
+        .unwrap();
+    let plan = registry.world_runtime_extension_plan().unwrap();
+    session
+        .level
+        .with_world_mut(|world| plan.apply_to_world(world))
+        .unwrap();
     (session, entity)
 }

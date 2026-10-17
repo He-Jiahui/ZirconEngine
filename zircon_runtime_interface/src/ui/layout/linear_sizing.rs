@@ -17,6 +17,8 @@ pub struct UiLinearSlotSizing {
     pub rule: UiLinearSlotSizeRule,
     #[serde(default = "default_linear_slot_value")]
     pub value: f32,
+    /// TODO: [CR-ZCA-R039-0002] 待确认 Stretch/StretchContent 的缩减权重是否应跨后端统一；Native 使用 value，Taffy 使用 shrink_value。
+    /// 现有契约未覆盖两值不同且主轴空间不足的跨后端对照；下一步以有限尺寸、零 padding 和明确 min/max 验证意图。
     #[serde(default = "default_linear_slot_value")]
     pub shrink_value: f32,
     #[serde(default)]

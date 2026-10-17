@@ -57,6 +57,13 @@ pub trait EditContext: Any + Send {
         })
     }
 
+    /// Borrows the concrete selection owner; this proof must not create a snapshot.
+    fn selection_retention_bound_v1(
+        &self,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<u64, EditCommandError>;
+
     fn selection_snapshot(&self) -> SelectionSnapshot;
 
     fn restore_selection(&mut self, snapshot: &SelectionSnapshot) -> Result<(), EditCommandError>;
@@ -148,7 +155,38 @@ impl CommandExecutionError {
     }
 }
 
-pub trait EditCommand: Any + Send {
+pub trait EditCommand:
+    Any + Send + zircon_runtime_interface::retained_memory::RetainedOwnerV1
+{
+    /// Read-only full-state and preparation peak proof, before inverse allocation or mutation.
+    fn retention_plan_v1(
+        &self,
+        context: &dyn EditContext,
+        phase: super::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<super::CommandRetentionPlanV1, EditCommandError>;
+    /// Uses the engine's measured residual record and preparation allowance.
+    /// Pure bounded producers can use the default; protocol receivers may
+    /// split their finite future payload and transport ceiling explicitly.
+    fn retention_plan_with_limits_v1(
+        &self,
+        context: &dyn EditContext,
+        phase: super::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limits: super::CommandRetentionLimitsV1,
+    ) -> Result<super::CommandRetentionPlanV1, EditCommandError> {
+        self.retention_plan_v1(context, phase, model, limits.retained_bytes)
+    }
+
+    /// Materializes only under the engine's one-use permit. Direct apply has no history-budget claim.
+    fn prepare_retention_v1(
+        &mut self,
+        context: &mut dyn EditContext,
+        phase: super::RetentionPhaseV1,
+        permit: &mut super::RetentionMaterializationV1,
+    ) -> Result<(), CommandExecutionError>;
+
     fn label(&self) -> &str;
 
     fn is_significant(&self) -> bool {
@@ -176,6 +214,16 @@ pub type CommandBox = Box<dyn EditCommand>;
 
 #[derive(Debug, Error)]
 pub enum EditCommandError {
+    #[error(transparent)]
+    Retention(#[from] zircon_runtime_interface::retained_memory::RetentionContractError),
+    #[error("history admission refused before publication: {reason}")]
+    RetentionAdmissionRefused { reason: &'static str },
+    #[error("retained failure report: {category}; interrupted={interrupted}; recovery_failed={recovery_failed}")]
+    RetainedFailureReport {
+        category: &'static str,
+        interrupted: bool,
+        recovery_failed: bool,
+    },
     #[error("edit target is missing: {target}")]
     TargetMissing { target: String },
     #[error("edit invariant was violated: {invariant}")]
@@ -304,13 +352,61 @@ pub enum EditCommandError {
 
 impl EditCommandError {
     pub fn is_interrupted(&self) -> bool {
-        match self {
-            Self::LifecycleInterrupted { .. } => true,
-            Self::RollbackFailed {
-                command_error,
-                rollback_error,
-            } => command_error.is_interrupted() || rollback_error.is_interrupted(),
-            _ => false,
+        // Public error trees may be hand-built. Never recursively traverse an untrusted depth.
+        let mut pending = [None; 64];
+        pending[0] = Some(self);
+        let mut len = 1usize;
+        let mut work = 0usize;
+        while len != 0 {
+            len -= 1;
+            let error = pending[len].take().expect("occupied error slot");
+            work += 1;
+            if work > 4096 {
+                return true;
+            }
+            match error {
+                Self::LifecycleInterrupted { .. } => return true,
+                Self::RetainedFailureReport { interrupted, .. } if *interrupted => return true,
+                Self::RollbackFailed {
+                    command_error,
+                    rollback_error,
+                } => {
+                    if len + 2 > pending.len() {
+                        return true;
+                    }
+                    pending[len] = Some(command_error.as_ref());
+                    pending[len + 1] = Some(rollback_error.as_ref());
+                    len += 2;
+                }
+                _ => {}
+            }
+        }
+        false
+    }
+
+    pub(crate) fn bounded_failure_report_v1(&self) -> Self {
+        let category = match self {
+            Self::RetainedFailureReport { category, .. } => *category,
+            Self::Retention(_) | Self::RetentionAdmissionRefused { .. } => "retention",
+            Self::TargetMissing { .. } => "target",
+            Self::ReflectError { .. } => "reflection",
+            Self::ExternalEffect { .. } => "external",
+            Self::SceneMutation { .. } => "scene",
+            Self::RollbackFailed { .. } => "rollback",
+            Self::LifecycleInterrupted { .. } => "lifecycle",
+            _ => "engine",
+        };
+        Self::RetainedFailureReport {
+            category,
+            interrupted: self.is_interrupted(),
+            recovery_failed: matches!(self, Self::RollbackFailed { .. })
+                || matches!(
+                    self,
+                    Self::RetainedFailureReport {
+                        recovery_failed: true,
+                        ..
+                    }
+                ),
         }
     }
 }

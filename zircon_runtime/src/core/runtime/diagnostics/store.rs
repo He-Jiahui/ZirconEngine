@@ -57,6 +57,26 @@ pub struct DiagnosticStoreSnapshot {
     pub series: Vec<DiagnosticSeriesSnapshot>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DiagnosticIdentityMeasurement {
+    pub frame_index: u64,
+    pub value: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DiagnosticIdentitySeriesSnapshot {
+    pub path: DiagnosticPath,
+    pub unit: Option<String>,
+    pub subsystem_tags: Vec<String>,
+    pub current: Option<u64>,
+    pub history: Vec<DiagnosticIdentityMeasurement>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct DiagnosticIdentityStoreSnapshot {
+    pub series: Vec<DiagnosticIdentitySeriesSnapshot>,
+}
+
 impl DiagnosticStoreSnapshot {
     pub fn is_empty(&self) -> bool {
         self.series.is_empty()
@@ -94,6 +114,7 @@ impl DiagnosticStoreCurrentSnapshot {
 pub struct DiagnosticStore {
     history_limit: usize,
     series: BTreeMap<DiagnosticPath, DiagnosticSeries>,
+    identities: BTreeMap<DiagnosticPath, DiagnosticIdentitySeries>,
 }
 
 impl DiagnosticStore {
@@ -101,6 +122,7 @@ impl DiagnosticStore {
         Self {
             history_limit: history_limit.max(1),
             series: BTreeMap::new(),
+            identities: BTreeMap::new(),
         }
     }
 
@@ -145,6 +167,31 @@ impl DiagnosticStore {
         self.series.insert(DiagnosticPath::new(path), series);
     }
 
+    pub(crate) fn record_identity_u64_static(
+        &mut self,
+        path: &'static str,
+        frame_index: u64,
+        value: u64,
+        unit: Option<&str>,
+        subsystem_tags: &[&str],
+    ) {
+        let series = self
+            .identities
+            .entry(DiagnosticPath::new(path))
+            .or_insert_with(|| DiagnosticIdentitySeries::new(self.history_limit));
+        series.record(frame_index, value, unit, subsystem_tags.iter().copied());
+    }
+
+    pub fn identity_snapshot(&self) -> DiagnosticIdentityStoreSnapshot {
+        DiagnosticIdentityStoreSnapshot {
+            series: self
+                .identities
+                .iter()
+                .map(|(path, series)| series.snapshot(path.clone()))
+                .collect(),
+        }
+    }
+
     pub fn snapshot(&self) -> DiagnosticStoreSnapshot {
         DiagnosticStoreSnapshot {
             series: self
@@ -163,6 +210,59 @@ impl DiagnosticStore {
                 .iter()
                 .filter_map(|(path, series)| series.current_snapshot(path.clone()))
                 .collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct DiagnosticIdentitySeries {
+    history_limit: usize,
+    unit: Option<String>,
+    subsystem_tags: Vec<String>,
+    current: Option<u64>,
+    history: VecDeque<DiagnosticIdentityMeasurement>,
+}
+
+impl DiagnosticIdentitySeries {
+    fn new(history_limit: usize) -> Self {
+        Self {
+            history_limit,
+            unit: None,
+            subsystem_tags: Vec::new(),
+            current: None,
+            history: VecDeque::new(),
+        }
+    }
+
+    fn record<U, T>(
+        &mut self,
+        frame_index: u64,
+        value: u64,
+        unit: Option<U>,
+        subsystem_tags: impl IntoIterator<Item = T>,
+    ) where
+        U: Into<String>,
+        T: Into<String>,
+    {
+        if let Some(unit) = unit {
+            self.unit = Some(unit.into());
+        }
+        push_unique_tags(&mut self.subsystem_tags, subsystem_tags);
+        self.current = Some(value);
+        if self.history.len() == self.history_limit {
+            self.history.pop_front();
+        }
+        self.history
+            .push_back(DiagnosticIdentityMeasurement { frame_index, value });
+    }
+
+    fn snapshot(&self, path: DiagnosticPath) -> DiagnosticIdentitySeriesSnapshot {
+        DiagnosticIdentitySeriesSnapshot {
+            path,
+            unit: self.unit.clone(),
+            subsystem_tags: self.subsystem_tags.clone(),
+            current: self.current,
+            history: self.history.iter().cloned().collect(),
         }
     }
 }

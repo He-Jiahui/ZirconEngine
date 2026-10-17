@@ -10,9 +10,9 @@ fn blend_space_preview_timeline_uses_shared_typed_canvas_and_preserves_actions()
              workbench_extension_blend_space_workspace.zui",
     ))
     .expect("Blend Space workspace asset should be readable");
-    let primitive = std::fs::read_to_string(manifest.join(
-        "assets/ui/editor/workbench/primitives/data/timeline_strip.zui",
-    ))
+    let primitive = std::fs::read_to_string(
+        manifest.join("assets/ui/editor/workbench/primitives/data/timeline_strip.zui"),
+    )
     .expect("timeline strip primitive should be readable");
     let details = std::fs::read_to_string(manifest.join(
         "assets/ui/editor/components/workbench/composites/animation/\

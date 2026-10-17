@@ -714,6 +714,9 @@ fn native_live_host_registration_replay_plugin_with_schema(
 }
 
 fn native_live_host_dist_system_bridge_method(call: NativeBridgeCall) -> ZrStatus {
+    // SAFETY: The registered native system invokes this callback synchronously
+    // with a null, zero-length payload. checked_slice returns an empty slice
+    // without dereferencing that pointer, and the slice does not escape this call.
     let payload = match unsafe {
         call.payload
             .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
@@ -730,6 +733,9 @@ fn native_live_host_dist_system_bridge_method(call: NativeBridgeCall) -> ZrStatu
 }
 
 fn native_registration_replay_reloaded_bridge_method(call: NativeBridgeCall) -> ZrStatus {
+    // SAFETY: The registered native system invokes this callback synchronously
+    // with a null, zero-length payload. checked_slice returns an empty slice
+    // without dereferencing that pointer, and the slice does not escape this call.
     let payload = match unsafe {
         call.payload
             .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
@@ -746,6 +752,9 @@ fn native_registration_replay_reloaded_bridge_method(call: NativeBridgeCall) -> 
 }
 
 fn native_registration_replay_old_generation_bridge_method(call: NativeBridgeCall) -> ZrStatus {
+    // SAFETY: The registered native system invokes this callback synchronously
+    // with a null, zero-length payload. checked_slice returns an empty slice
+    // without dereferencing that pointer, and the slice does not escape this call.
     let payload = match unsafe {
         call.payload
             .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
@@ -762,6 +771,9 @@ fn native_registration_replay_old_generation_bridge_method(call: NativeBridgeCal
 }
 
 fn native_registration_replay_interleaved_old_bridge_method(call: NativeBridgeCall) -> ZrStatus {
+    // SAFETY: The registered native system invokes this callback synchronously
+    // with a null, zero-length payload. checked_slice returns an empty slice
+    // without dereferencing that pointer, and the slice does not escape this call.
     let payload = match unsafe {
         call.payload
             .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
@@ -780,6 +792,9 @@ fn native_registration_replay_interleaved_old_bridge_method(call: NativeBridgeCa
 fn native_registration_replay_interleaved_reloaded_bridge_method(
     call: NativeBridgeCall,
 ) -> ZrStatus {
+    // SAFETY: The registered native system invokes this callback synchronously
+    // with a null, zero-length payload. checked_slice returns an empty slice
+    // without dereferencing that pointer, and the slice does not escape this call.
     let payload = match unsafe {
         call.payload
             .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)

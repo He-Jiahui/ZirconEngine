@@ -12,7 +12,10 @@ use zr_rhi_wgpu::{
     WGPU_BINDLESS_MATERIAL_REQUIRED_FEATURES,
 };
 
+#[cfg(not(target_arch = "wasm32"))]
 const REQUIRED_RENDER_BIND_GROUP_LIMIT: u32 = 5;
+#[cfg(target_arch = "wasm32")]
+const REQUIRED_RENDER_BIND_GROUP_LIMIT: u32 = 4;
 const BINDLESS_MATERIAL_MIN_SLOT_COUNT: u32 = 2;
 // Sampler-array limits are the narrower WGPU binding-array limit. Cap the initial material slab
 // so the negotiated table remains portable when the renderer switches away from per-material
@@ -69,10 +72,15 @@ fn required_render_features(
     Ok(wgpu_device_request(adapter_features, policy)?.requested_features())
 }
 
-fn required_render_limits(
+pub(super) fn required_render_limits(
     adapter_limits: &wgpu::Limits,
     requested_features: wgpu::Features,
 ) -> wgpu::Limits {
+    if cfg!(target_arch = "wasm32") {
+        // PortableScene omits desktop post effects, probe atlases and GPU culling.
+        // Keep the baseline WebGPU limits instead of requiring optional adapter headroom.
+        return wgpu::Limits::default();
+    }
     let mut limits = wgpu::Limits {
         max_bind_groups: REQUIRED_RENDER_BIND_GROUP_LIMIT,
         max_sampled_textures_per_shader_stage:

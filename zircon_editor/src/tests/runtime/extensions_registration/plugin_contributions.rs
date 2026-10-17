@@ -56,7 +56,8 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
         .unwrap();
     let selected_node = runtime
         .runtime
-        .editor_snapshot().unwrap()
+        .editor_snapshot()
+        .unwrap()
         .inspector
         .as_ref()
         .expect("default selection")
@@ -110,7 +111,8 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
 
     assert!(runtime
         .runtime
-        .descriptors().unwrap()
+        .descriptors()
+        .unwrap()
         .iter()
         .all(|descriptor| descriptor.descriptor_id.0 != "plugin.weather.cloud_layers"));
     let disabled_menu = runtime
@@ -177,7 +179,8 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
 
     let descriptor = runtime
         .runtime
-        .descriptors().unwrap()
+        .descriptors()
+        .unwrap()
         .into_iter()
         .find(|descriptor| descriptor.descriptor_id.0 == "plugin.weather.cloud_layers")
         .expect("enabled plugin view descriptor registered");
@@ -295,8 +298,10 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
         })
         .expect("register plugin template descriptor");
 
-    let (registered_generation, disabled_capabilities, disabled_templates) =
-        runtime.runtime.enabled_plugin_template_descriptors().unwrap();
+    let (registered_generation, disabled_capabilities, disabled_templates) = runtime
+        .runtime
+        .enabled_plugin_template_descriptors()
+        .unwrap();
     let (disabled_revision, disabled_revision_capabilities) =
         runtime.runtime.extension_projection_revision().unwrap();
     assert!(registered_generation > 0);
@@ -313,8 +318,10 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
         .set_editor_capabilities_enabled(&[capability.clone()], true)
         .expect("enable plugin template capability");
 
-    let (enabled_generation, enabled_capabilities, enabled_templates) =
-        runtime.runtime.enabled_plugin_template_descriptors().unwrap();
+    let (enabled_generation, enabled_capabilities, enabled_templates) = runtime
+        .runtime
+        .enabled_plugin_template_descriptors()
+        .unwrap();
     let (enabled_revision, enabled_revision_capabilities) =
         runtime.runtime.extension_projection_revision().unwrap();
     assert_eq!(enabled_generation, registered_generation);
@@ -380,8 +387,10 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
     };
     assert_eq!(asset_cache_counts, (1, 1));
 
-    let (reloaded_generation, _, reloaded_templates) =
-        runtime.runtime.enabled_plugin_template_descriptors().unwrap();
+    let (reloaded_generation, _, reloaded_templates) = runtime
+        .runtime
+        .enabled_plugin_template_descriptors()
+        .unwrap();
     assert!(reloaded_generation > enabled_generation);
     assert_eq!(
         reloaded_templates
@@ -396,7 +405,8 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
         .expect("disable plugin template capability after reload");
     assert!(!runtime
         .runtime
-        .enabled_plugin_template_descriptors().unwrap()
+        .enabled_plugin_template_descriptors()
+        .unwrap()
         .2
         .contains_key("weather"));
 
@@ -406,7 +416,8 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
     assert_eq!(
         runtime
             .runtime
-            .enabled_plugin_template_descriptors().unwrap()
+            .enabled_plugin_template_descriptors()
+            .unwrap()
             .2
             .get("weather")
             .and_then(|templates| templates.first())
@@ -455,7 +466,8 @@ fn editor_runtime_exposes_plugin_inspector_customization_surface_for_inspector_l
 
     let customization = runtime
         .runtime
-        .inspector_customization("weather.Component.CloudLayer").unwrap()
+        .inspector_customization("weather.Component.CloudLayer")
+        .unwrap()
         .expect("inspector customization registered");
     let surface = customization.surface().expect("customization UI surface");
     assert_eq!(
@@ -475,7 +487,8 @@ fn editor_runtime_exposes_plugin_inspector_customization_surface_for_inspector_l
 
     let template = runtime
         .runtime
-        .ui_template_descriptor("weather.cloud_layer.inspector").unwrap()
+        .ui_template_descriptor("weather.cloud_layer.inspector")
+        .unwrap()
         .expect("ui template registered");
     assert_eq!(
         template.ui_document(),
@@ -495,7 +508,8 @@ fn editor_snapshot_resolves_enabled_inspector_customization_for_selected_dynamic
     let component_type = "weather.Component.CloudLayer";
     let selected_node = runtime
         .runtime
-        .editor_snapshot().unwrap()
+        .editor_snapshot()
+        .unwrap()
         .inspector
         .as_ref()
         .expect("default selection")
@@ -590,7 +604,8 @@ fn editor_snapshot_resolves_plugin_field_editors_from_active_contributions() {
     let component_type = "plugin.weather.CloudLayer";
     let selected_node = runtime
         .runtime
-        .editor_snapshot().unwrap()
+        .editor_snapshot()
+        .unwrap()
         .inspector
         .as_ref()
         .expect("default selection")
@@ -697,7 +712,8 @@ fn editor_snapshot_hides_inspector_customization_when_extension_capability_is_di
     let component_type = "weather.Component.CloudLayer";
     let selected_node = runtime
         .runtime
-        .editor_snapshot().unwrap()
+        .editor_snapshot()
+        .unwrap()
         .inspector
         .as_ref()
         .expect("default selection")

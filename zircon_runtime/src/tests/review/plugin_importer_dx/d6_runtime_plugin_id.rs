@@ -1,12 +1,8 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_d6_runtime_plugin_id_accepts_external_string_keys() {
-    let plugin_id_source = include_str!(
-        "../../../builtin/runtime_modules/ids/plugin_id.rs"
-    );
-    let loader_source = include_str!(
-        "../../../builtin/runtime_modules/plugin_modules/loader.rs"
-    );
+    let plugin_id_source = include_str!("../../../builtin/runtime_modules/ids/plugin_id.rs");
+    let loader_source = include_str!("../../../builtin/runtime_modules/plugin_modules/loader.rs");
     let review_findings = concat!(
         include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md")

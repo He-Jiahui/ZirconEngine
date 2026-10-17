@@ -1,0 +1,2471 @@
+{
+  "schema_version": 1,
+  "batch": "R095",
+  "owner": "runtime_pointer_luna",
+  "status": "fixed-pending-root",
+  "formal_acceptance": false,
+  "grant": {
+    "canonical_sha256": "8c0489642034f61ba2f52af2806e0c7e6d798ec9bc33a676a776fc8880bf6de8",
+    "authority": "Exact2 comments only and sole child; central/main/post root-owned",
+    "root_writer": "be1242 exit0/PID39272",
+    "root_independent": "14c70b exit0/PID38600"
+  },
+  "standard": {
+    "path": "docs/plans/source-comments/01-standard.md",
+    "sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3",
+    "reused_skills": [
+      "artifact-lifecycle",
+      "zircon-dev",
+      "zircon-engineering"
+    ]
+  },
+  "object_columns": [
+    "id",
+    "file",
+    "kind",
+    "name",
+    "span",
+    "contract",
+    "refs"
+  ],
+  "objects": [
+    [
+      "O01",
+      "F1",
+      "imports",
+      "DefaultHasher/Hash/Hasher",
+      "S001",
+      "导入具体散列状态及泛型写入/完成所需trait；无运行期注册。",
+      [
+        "K_INTERNAL"
+      ]
+    ],
+    [
+      "O02",
+      "F1",
+      "type",
+      "EphemeralCacheHash",
+      "S002",
+      "透明u64候选身份；Clone/Copy/Default/Eq/Ord/Hash派生作用于载荷，不承诺无碰撞或持久化格式。",
+      [
+        "K_SHAPE",
+        "T01"
+      ]
+    ],
+    [
+      "M01",
+      "F1",
+      "tuple_member",
+      "EphemeralCacheHash.0",
+      "S003",
+      "私有u64载荷；仅包装/hasher内部生成，未暴露字节导出。",
+      [
+        "O02",
+        "F01",
+        "F02",
+        "F05"
+      ]
+    ],
+    [
+      "G01",
+      "F1",
+      "impl",
+      "EphemeralCacheHash",
+      "S004",
+      "拥有式候选值的两种构造入口；不保留输入借用。",
+      [
+        "F01",
+        "F02"
+      ]
+    ],
+    [
+      "F01",
+      "F1",
+      "function",
+      "from_hashable<T>",
+      "S005",
+      "借用T:Hash+?Sized，创建状态→调用Hash实现→消费完成，返回独立候选值；不保存原文。",
+      [
+        "K_INTERNAL",
+        "K_SHAPE",
+        "T01"
+      ]
+    ],
+    [
+      "F02",
+      "F1",
+      "function",
+      "from_process_hash",
+      "S006",
+      "按原样包装调用方u64；无散列、校验或持久性证明。外部rich_cache仅有检索调用行，不作其完整生命周期背书。",
+      [
+        "O02"
+      ]
+    ],
+    [
+      "O03",
+      "F1",
+      "type",
+      "EphemeralCacheHasher",
+      "S007",
+      "拥有一个DefaultHasher状态；每次write更新同一状态，finish消耗此包装值。",
+      [
+        "K_SHAPE",
+        "F03",
+        "F04",
+        "F05"
+      ]
+    ],
+    [
+      "M02",
+      "F1",
+      "tuple_member",
+      "EphemeralCacheHasher.0",
+      "S007",
+      "私有具体DefaultHasher，不是dyn Hasher；本层不公开算法/随机性/跨版本结果约定。",
+      [
+        "O03"
+      ]
+    ],
+    [
+      "G02",
+      "F1",
+      "impl",
+      "EphemeralCacheHasher",
+      "S008",
+      "单次增量候选计算的初始化、写入及完成边界。",
+      [
+        "F03",
+        "F04",
+        "F05"
+      ]
+    ],
+    [
+      "F03",
+      "F1",
+      "function",
+      "new",
+      "S009",
+      "创建新的DefaultHasher并拥有其状态；尚未经过本包装write。",
+      [
+        "F01",
+        "K_SHAPE"
+      ]
+    ],
+    [
+      "F04",
+      "F1",
+      "function",
+      "write<T>",
+      "S010",
+      "借用T:Hash+?Sized，经value.hash更新内部状态；不持有value引用，不等同固定字节串编码。",
+      [
+        "K_INTERNAL",
+        "K_SHAPE"
+      ]
+    ],
+    [
+      "F05",
+      "F1",
+      "function",
+      "finish",
+      "S011",
+      "消费self，调用内部Hasher::finish并包装u64；不验证碰撞。",
+      [
+        "K_INTERNAL",
+        "K_SHAPE"
+      ]
+    ],
+    [
+      "O04",
+      "F1",
+      "type",
+      "StableContentDigest",
+      "S012",
+      "透明32字节身份；派生Default是零数组。类型不自行核验算法、内容来源或密码摘要有效性。",
+      [
+        "K_SDF",
+        "K_BYTES",
+        "T02"
+      ]
+    ],
+    [
+      "M03",
+      "F1",
+      "tuple_member",
+      "StableContentDigest.0",
+      "S013",
+      "私有[u8;32]；构造可来自BLAKE3计算或任意调用方给定字节。",
+      [
+        "O04",
+        "F06",
+        "F07"
+      ]
+    ],
+    [
+      "G03",
+      "F1",
+      "impl",
+      "StableContentDigest",
+      "S014",
+      "明确区分计算摘要、原样构造、借用视图和拥有式取出。",
+      [
+        "F06",
+        "F07",
+        "F08",
+        "F09"
+      ]
+    ],
+    [
+      "F06",
+      "F1",
+      "function",
+      "blake3",
+      "S015",
+      "借用原始bytes调用blake3::hash，再复制其32字节结果；无文本规范化，返回拥有式值。",
+      [
+        "K_SDF",
+        "T02"
+      ]
+    ],
+    [
+      "F07",
+      "F1",
+      "function",
+      "from_bytes",
+      "S016",
+      "拥有式接收32字节并原样包装；不重算或验证来源。",
+      [
+        "K_SDF",
+        "F10",
+        "T02"
+      ]
+    ],
+    [
+      "F08",
+      "F1",
+      "function",
+      "as_bytes",
+      "S017",
+      "返回对内部数组的共享借用，有效期与self借用关联；不复制输出数组。",
+      [
+        "K_BYTES",
+        "T02"
+      ]
+    ],
+    [
+      "F09",
+      "F1",
+      "function",
+      "into_bytes",
+      "S018",
+      "按值接收包装并返回拥有的原始数组；不改变顺序，不承诺其他Copy副本失效。",
+      [
+        "F11",
+        "T02"
+      ]
+    ],
+    [
+      "G04",
+      "F1",
+      "trait_impl",
+      "From<[u8;32]> for StableContentDigest",
+      "S019",
+      "转换委托原样包装入口，无附加验证；没有证据声称外部通用转换被调用。",
+      [
+        "F10"
+      ]
+    ],
+    [
+      "F10",
+      "F1",
+      "function",
+      "From<[u8;32]>::from",
+      "S020",
+      "输入数组按值传递给from_bytes，返回同一字节身份。",
+      [
+        "F07",
+        "G04"
+      ]
+    ],
+    [
+      "G05",
+      "F1",
+      "trait_impl",
+      "From<StableContentDigest> for [u8;32]",
+      "S021",
+      "反向转换委托拥有式取出，不编码新格式。",
+      [
+        "F11"
+      ]
+    ],
+    [
+      "F11",
+      "F1",
+      "function",
+      "From<StableContentDigest>::from",
+      "S022",
+      "接收包装值并调用into_bytes返回数组。",
+      [
+        "F09",
+        "G05"
+      ]
+    ],
+    [
+      "X01",
+      "F1",
+      "mount",
+      "cfg(test) path tests/identity.rs",
+      "S023",
+      "只在测试配置挂载子模块；不是动态/FFI注册。",
+      [
+        "K_MOUNT",
+        "T01",
+        "T02",
+        "T03"
+      ]
+    ],
+    [
+      "O05",
+      "F2",
+      "imports",
+      "super identity types",
+      "S024",
+      "通过直接父模块读取两种身份类型，非测试脚本原文读取。",
+      [
+        "K_MOUNT"
+      ]
+    ],
+    [
+      "T01",
+      "F2",
+      "test",
+      "ephemeral_cache_hash_reuses_equal_runtime_inputs",
+      "S025",
+      "固定相同/不同文本夹具分别assert_eq/assert_ne；不证明不同输入普遍无碰撞。",
+      [
+        "F01",
+        "A01",
+        "A02"
+      ]
+    ],
+    [
+      "T02",
+      "F2",
+      "test",
+      "stable_content_digest_preserves_blake3_artifact_bytes",
+      "S026",
+      "同一BLAKE3库计算期望值，核对借用字节和构造/取出往返；不是独立黄金向量或安全性验证。",
+      [
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "A03",
+        "A04"
+      ]
+    ],
+    [
+      "T03",
+      "F2",
+      "test",
+      "identity_newtypes_add_no_storage_overhead",
+      "S027",
+      "比较两个repr(transparent)值本体size_of；不测量算法分配、容器容量或进程内存。",
+      [
+        "M01",
+        "M03",
+        "A05",
+        "A06"
+      ]
+    ]
+  ],
+  "block_columns": [
+    "id",
+    "file",
+    "span",
+    "intent"
+  ],
+  "blocks": [
+    [
+      "B01",
+      "F1",
+      "S028",
+      "具体hasher与trait导入。"
+    ],
+    [
+      "B02",
+      "F1",
+      "S029",
+      "候选身份及透明载荷约束。"
+    ],
+    [
+      "B03",
+      "F1",
+      "S030",
+      "一次借用输入的new/write/finish流水。"
+    ],
+    [
+      "B04",
+      "F1",
+      "S031",
+      "原始进程哈希包装并结束impl。"
+    ],
+    [
+      "B05",
+      "F1",
+      "S032",
+      "增量状态的拥有边界。"
+    ],
+    [
+      "B06",
+      "F1",
+      "S033",
+      "初始化新的具体状态。"
+    ],
+    [
+      "B07",
+      "F1",
+      "S034",
+      "经Hash写入，不留输入借用。"
+    ],
+    [
+      "B08",
+      "F1",
+      "S035",
+      "完成并交出候选值。"
+    ],
+    [
+      "B09",
+      "F1",
+      "S036",
+      "稳定字节包装及派生语义。"
+    ],
+    [
+      "B10",
+      "F1",
+      "S037",
+      "从原始字节计算BLAKE3结果。"
+    ],
+    [
+      "B11",
+      "F1",
+      "S038",
+      "原样接收已有数组。"
+    ],
+    [
+      "B12",
+      "F1",
+      "S039",
+      "借用内部数组。"
+    ],
+    [
+      "B13",
+      "F1",
+      "S040",
+      "按值交出数组并结束impl。"
+    ],
+    [
+      "B14",
+      "F1",
+      "S041",
+      "数组到包装的From桥接。"
+    ],
+    [
+      "B15",
+      "F1",
+      "S042",
+      "包装到数组的From桥接。"
+    ],
+    [
+      "B16",
+      "F1",
+      "S043",
+      "仅测试配置的直接挂载。"
+    ],
+    [
+      "B17",
+      "F2",
+      "S044",
+      "导入测试对象。"
+    ],
+    [
+      "B18",
+      "F2",
+      "S045",
+      "固定文本值相等与不等断言。"
+    ],
+    [
+      "B19",
+      "F2",
+      "S046",
+      "同库参考结果及字节往返。"
+    ],
+    [
+      "B20",
+      "F2",
+      "S047",
+      "两项值本体尺寸断言。"
+    ]
+  ],
+  "contexts": [
+    [
+      "C01",
+      "zircon_runtime/src/text/mod.rs",
+      "38aef7102fa2a7850d4b7b2b8d644400ef0bb9e01cb5222cefbd642694201157",
+      7193,
+      170,
+      [
+        [
+          1,
+          170
+        ]
+      ],
+      [
+        "05db98"
+      ]
+    ],
+    [
+      "C02",
+      "zircon_runtime/src/text/cache/shaped_cache.rs",
+      "77122726efaf3549a972cd00e04788dc819cc602f529405aeaaea4a5f65f18d0",
+      33580,
+      849,
+      [
+        [
+          115,
+          295
+        ],
+        [
+          420,
+          600
+        ],
+        [
+          817,
+          827
+        ]
+      ],
+      [
+        "7ae11c",
+        "464e8c",
+        "d29e3e"
+      ]
+    ],
+    [
+      "C03",
+      "zircon_runtime/src/text/sdf/offline/identity.rs",
+      "ecacfd366b46d36723fa32a490247244f1f8ee85d50e58c1bb1c1772f102a9e6",
+      3169,
+      78,
+      [
+        [
+          1,
+          78
+        ]
+      ],
+      [
+        "7ae11c"
+      ]
+    ],
+    [
+      "C04",
+      "zircon_runtime/src/text/sdf/generation_source.rs",
+      "69679ca632600ee38ae91f4d9669b6c1eee9f35c00c72df20949f774c1b566e5",
+      7026,
+      221,
+      [
+        [
+          90,
+          150
+        ]
+      ],
+      [
+        "7ae11c"
+      ]
+    ],
+    [
+      "C05",
+      "zircon_runtime/src/text/sdf/font_bake/source_context.rs",
+      "d99ee53cbf9223cb2b9c67a86c5c662a040b2ad145e4a41f0d7f4ccb751f4229",
+      7348,
+      200,
+      [
+        [
+          1,
+          75
+        ]
+      ],
+      [
+        "7ae11c"
+      ]
+    ],
+    [
+      "C06",
+      "zircon_runtime/src/text/sdf/offline/codec.rs",
+      "764ad4b6b5cbbd4b48507f572c045317dc33c122b36ba6969496cdfc661a64f8",
+      12285,
+      327,
+      [
+        [
+          40,
+          85
+        ]
+      ],
+      [
+        "d29e3e"
+      ]
+    ],
+    [
+      "C07",
+      "zircon_runtime/src/text/sdf/offline/path.rs",
+      "da2e224a7d169677a9f84e5ab9767050c145ddbd0e5ceee45e9fb13e37b085bf",
+      1347,
+      43,
+      [
+        [
+          1,
+          40
+        ]
+      ],
+      [
+        "d29e3e"
+      ]
+    ],
+    [
+      "C08",
+      "zircon_runtime/src/tests/contracts/naming_boundary.rs",
+      "365296f7f5ac5d0f9071af76bc7e258f9992c1c3a76620773de1d559e2c1e57d",
+      514,
+      13,
+      [
+        [
+          1,
+          13
+        ]
+      ],
+      [
+        "74504f"
+      ]
+    ],
+    [
+      "C09",
+      "zircon_runtime/src/tests/contracts/naming_boundary/lexical_scan.rs",
+      "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748",
+      3875,
+      115,
+      [
+        [
+          1,
+          115
+        ]
+      ],
+      [
+        "74504f"
+      ]
+    ],
+    [
+      "C10",
+      "zircon_runtime/src/tests/contracts/naming_boundary/top_level.rs",
+      "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450",
+      3501,
+      108,
+      [
+        [
+          1,
+          108
+        ]
+      ],
+      [
+        "74504f"
+      ]
+    ],
+    [
+      "C11",
+      "zircon_runtime/src/tests/contracts/naming_boundary/classifiers.rs",
+      "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651",
+      7987,
+      224,
+      [
+        [
+          1,
+          224
+        ]
+      ],
+      [
+        "74504f"
+      ]
+    ],
+    [
+      "C12",
+      "zircon_runtime/src/tests/contracts/lexical_scan/production_lines.rs",
+      "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b",
+      2095,
+      53,
+      [
+        [
+          1,
+          53
+        ]
+      ],
+      [
+        "74504f"
+      ]
+    ]
+  ],
+  "context_columns": [
+    "id",
+    "path",
+    "sha256_at_read",
+    "bytes",
+    "LF",
+    "read_ranges",
+    "receipts"
+  ],
+  "context_scope": "Historical selected reads only, formal=false; no current CAS or unread whole-file coverage claim.",
+  "callers": [
+    {
+      "id": "K_MOUNT",
+      "evidence": [
+        "C01:9-10/116",
+        "X01"
+      ],
+      "relation": "text父模块固定path挂载并crate内重导出；测试仅Rust cfg(test)下的标准#[test] harness，0执行。"
+    },
+    {
+      "id": "K_INTERNAL",
+      "evidence": [
+        "F01:19-21",
+        "F04:40",
+        "F05:44",
+        "F06:55",
+        "F10:73",
+        "F11:79"
+      ],
+      "relation": "实际直接调用链；Hash泛型分派、具体DefaultHasher及两个From桥接，无dyn/extern/注册表。"
+    },
+    {
+      "id": "K_SHAPE",
+      "evidence": [
+        "C02:141-161",
+        "C02:225-270",
+        "C02:492-547",
+        "C02:817-827"
+      ],
+      "relation": "文本/特征散列与组合指纹只选候选；精确键比较后仍按source_text==text核全文，不能用哈希值代替相等。"
+    },
+    {
+      "id": "K_SDF",
+      "evidence": [
+        "C03:61-78",
+        "C04:95-135",
+        "C05:16-25"
+      ],
+      "relation": "字体原字节调用blake3；变体排序编码后由调用方BLAKE3再from_bytes；上下文拥有/返回摘要，wrapper不校验来源。"
+    },
+    {
+      "id": "K_BYTES",
+      "evidence": [
+        "C06:60-61",
+        "C07:20",
+        "F08"
+      ],
+      "relation": "编码器原样追加借用的两摘要数组；路径只把variation数组转十六进制；不外推完整载入校验生命周期。"
+    }
+  ],
+  "raw_reader": {
+    "reader": "C09:17-77 recursively .rs/read_to_string, then C12:2-39 production_source_lines; normal comments retained",
+    "operators": "C09:81-107 ASCII alphanumeric-or-underscore token splitting, lower contains(editor/legacy); server substring with observer/observers exclusions",
+    "consumers": "C10:14-29/32-73/75-108 aggregates all runtime src; C11 classifiers apply afterward. Owned local0 is not global assertions pass or execution.",
+    "naming_mount": "C08:2-5/12-13; deeper test root mount not read in this batch",
+    "bounded_queries": "Exact identity paths/type names in tools + runtime contract/integration test trees returned rg1/no hits; not global consumer absence. Framework filename/registration rg discovery was not interpreted as selected source coverage.",
+    "raw_apis_in_owned": "include_str!, read_to_string, read_text, read_repo_file: each 0 before/current; direct tests call APIs, not raw source guards."
+  },
+  "receipts": [
+    {
+      "id": "72dee2",
+      "exit": 0,
+      "pid": 18912,
+      "role": "readonly files/definition/ledger discovery"
+    },
+    {
+      "id": "05db98",
+      "exit": 0,
+      "pid": 33752,
+      "role": "identity production85LF + parent/context read; test read completed8114bb"
+    },
+    {
+      "id": "8114bb",
+      "exit": 0,
+      "pid": 47880,
+      "role": "candidate exact2 pending/unowned recursiveclaims0 rawHEAD/stage/filter/emptyGit; test37LF full"
+    },
+    {
+      "id": "7ae11c",
+      "exit": 0,
+      "pid": 37616,
+      "role": "actual hash/digest call contexts"
+    },
+    {
+      "id": "464e8c",
+      "exit": 0,
+      "pid": 11832,
+      "role": "comparison/byte caller rg, exact2 pins and bounded raw query"
+    },
+    {
+      "id": "39d4ed",
+      "exit": 0,
+      "pid": 50664,
+      "role": "fresh formal canonical exact2 gate + whole122LF, standard samepin"
+    },
+    {
+      "id": "28c624",
+      "exit": 0,
+      "pid": 51620,
+      "role": "generic naming reader discovery; exact path/type raw rg1 empty"
+    },
+    {
+      "id": "74504f",
+      "exit": 0,
+      "pid": 52612,
+      "role": "naming five contexts513LF full"
+    },
+    {
+      "id": "source_apply_patch_outer9",
+      "result": {},
+      "native_exit": null,
+      "pid": null,
+      "role": "actual normal apply_patch terminal {},3141chars exact2, independently proven17blocks25LF; not inventing native exit"
+    },
+    {
+      "id": "23bc1b",
+      "session": 74162,
+      "pid": 33388,
+      "role": "independent checker running receipt, not completion"
+    },
+    {
+      "id": "c5643b",
+      "exit": 0,
+      "pid": 33388,
+      "role": "session74162 terminal, source inverse/6macros/6guards/fmt/diff/stage; native complete, first outer JSON render truncated, full stored proof reprojected in memory"
+    },
+    {
+      "id": "d29e3e",
+      "exit": 0,
+      "pid": 31592,
+      "role": "exact source text comparison and artifact byte boundary; bounded framework discovery only"
+    },
+    {
+      "id": "draft_command_length_gate",
+      "native_executed": false,
+      "role": "Pure-memory length check rejected >22000 before exec; no files/processes.",
+      "observed_lengths": [
+        23044,
+        22160
+      ]
+    },
+    {
+      "id": "outer19",
+      "native_executed": false,
+      "result": "CreateProcess Rejected: Failed to create unified exec process: wait for runner spawn_ready",
+      "pid": null,
+      "session": null,
+      "role": "Creation-before-body rejection; no writer executed, not replayed"
+    },
+    {
+      "id": "d665a0",
+      "exit": 0,
+      "pid": 50040,
+      "role": "Independent after-rejection own2 frozen pins unchanged; solechild absent"
+    },
+    {
+      "id": "d125c0",
+      "exit": 0,
+      "pid": 9516,
+      "role": "sole-child semantic draft created; cd2a4a19f87a91a1efc922b1a08b46d9db50d3a3e73fe0d7ccb432fdc1e15250/28227B, not fixed"
+    },
+    {
+      "id": "698342",
+      "exit": 0,
+      "pid": 45468,
+      "role": "independent complete semantic draft readback and own2 frozen pins unchanged"
+    },
+    {
+      "id": "08fb07",
+      "exit": 0,
+      "pid": 37680,
+      "role": "record-only CAS technical draft, 779add22c1a5f6bf20ab8e28f3a601bf754efdfa09dd0635eac5f8cbd1200b29/57907B"
+    },
+    {
+      "id": "207e7c",
+      "exit": 0,
+      "pid": 46144,
+      "role": "independent full technical draft:28objects/20blocks/53spans/6assertions/17insertions/6localguards, own2 inverse=grant/rawHEAD, stage/cached unchanged"
+    }
+  ],
+  "limits": {
+    "new_issues": [],
+    "reserved_unused": [
+      "CR-ZCA-R095-0001"
+    ],
+    "no_Cargo_build_bench_helpers_copies_cache_Git_mutation": true,
+    "index_lock_owner": "unknown; observations do not prove owner or process exit, no lock mutation",
+    "warnings": [
+      "Git global ignore permission denied",
+      "Git LF-to-CRLF warnings; actual files remained LF"
+    ],
+    "artifacts": {
+      "sole_child": "docs/plans/source-comments/reviews/R095.json",
+      "preregistered_by_root": true,
+      "temporary_files_created": 0,
+      "bytes_released": 0,
+      "retained": "sole registered review metadata; other owners preserved"
+    },
+    "index_lock_observations": [
+      [
+        "39d4ed",
+        true
+      ],
+      [
+        "c5643b",
+        true
+      ],
+      [
+        "207e7c",
+        false
+      ]
+    ]
+  },
+  "source_validation_commands": [
+    [
+      "G",
+      [
+        "show",
+        "HEAD:@F1"
+      ],
+      0,
+      2097,
+      "7fe5c7ff010a83f5dfd120a0b744b49cfed298341a47d111f2da9c03096dc3a9",
+      ""
+    ],
+    [
+      "G",
+      [
+        "ls-files",
+        "--stage",
+        "--",
+        "@F1"
+      ],
+      0,
+      86,
+      "eb463ba025bbe3b16df7b8131a9aa5b616d49c46b8bcf43cb4aa36856cb051b6",
+      ""
+    ],
+    [
+      "G",
+      [
+        "hash-object",
+        "--path=@F1",
+        "--stdin"
+      ],
+      0,
+      41,
+      "2f8e0f845087a5381be8a92e0bd189a5a100493572c508f13dfd71698a0da6dc",
+      ""
+    ],
+    [
+      "G",
+      [
+        "hash-object",
+        "--path=@F1",
+        "--stdin"
+      ],
+      0,
+      41,
+      "19e324d40e0e498e81781922725f28819d82eeb414c1bd2bee864eb51b877748",
+      ""
+    ],
+    [
+      "G",
+      [
+        "show",
+        "HEAD:@F2"
+      ],
+      0,
+      1044,
+      "644235f73c1eaf77aec66e188b003a262274d83403c744a03938ad5114fa2019",
+      ""
+    ],
+    [
+      "G",
+      [
+        "ls-files",
+        "--stage",
+        "--",
+        "@F2"
+      ],
+      0,
+      92,
+      "dcae5c6ab466b62f6439c504578ef963ce4e6a604181a8305121d9d3aa98986b",
+      ""
+    ],
+    [
+      "G",
+      [
+        "hash-object",
+        "--path=@F2",
+        "--stdin"
+      ],
+      0,
+      41,
+      "15788c480fa11dcdd7381df4748ae10952862679252138e100a2edd6bfebda5a",
+      ""
+    ],
+    [
+      "G",
+      [
+        "hash-object",
+        "--path=@F2",
+        "--stdin"
+      ],
+      0,
+      41,
+      "751e55d04bec7c9ee77e8394857942da4828f2e4b717e461ee8652319078fc77",
+      ""
+    ],
+    [
+      "F",
+      [
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "@F1",
+        "@F2"
+      ],
+      0,
+      0,
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      ""
+    ],
+    [
+      "G",
+      [
+        "diff",
+        "--check",
+        "--",
+        "@F1",
+        "@F2"
+      ],
+      0,
+      0,
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "W1"
+    ],
+    [
+      "G",
+      [
+        "diff",
+        "--no-ext-diff",
+        "--cached",
+        "--",
+        "@F1",
+        "@F2"
+      ],
+      0,
+      0,
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      ""
+    ],
+    [
+      "G",
+      [
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+        "--",
+        "@F1",
+        "@F2"
+      ],
+      0,
+      84,
+      "fe19755bb1ad5477f8441257c53e270b19deef002e90173f8642e2c911a22621",
+      "W2"
+    ],
+    [
+      "G",
+      [
+        "diff",
+        "--no-ext-diff",
+        "--numstat",
+        "--",
+        "@F1",
+        "@F2"
+      ],
+      0,
+      87,
+      "d35dec57402d9636668363f6c6d3998d449055d723639b5bd9c0f99a4c70e4c4",
+      "W1"
+    ],
+    [
+      "G",
+      [
+        "diff",
+        "--no-ext-diff",
+        "--",
+        "@F1",
+        "@F2"
+      ],
+      0,
+      5309,
+      "b9196072649e488c025553a87f402eed18f85639e5a7cd1cade2f7870b1518c9",
+      "W1"
+    ],
+    [
+      "G",
+      [
+        "rev-parse",
+        "HEAD"
+      ],
+      0,
+      41,
+      "c096fcebb5691399cff45d8e0033ad3575e3cc6199399be3a1150868831cc8ee",
+      ""
+    ],
+    [
+      "R",
+      [
+        "-n",
+        "rust_source_files|production_source_lines",
+        "zircon_runtime/src/tests/contracts"
+      ],
+      0,
+      6215,
+      "60a325f5279c2ed322b2499c464fc49e7a2c5452784338e76c2b0028cd03bbda",
+      ""
+    ]
+  ],
+  "command_columns": [
+    "prefix",
+    "argv_tail_with_file_refs",
+    "exit",
+    "stdout_bytes",
+    "stdout_sha256",
+    "stderr_ref"
+  ],
+  "command_ref_rule": "Prepend command_prefixes[prefix]; expand @F1/@F2 to file paths, including HEAD: and --path=; stderr_ref expands command_stderr. All are actual argv/exit/output summaries.",
+  "command_stderr": {
+    "W1": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/identity.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/tests/identity.rs.\nThe file will have its original line endings in your working directory\n",
+    "W2": "warning: unable to access 'C:\\Users\\HeJiahui/.config/git/ignore': Permission denied\n"
+  },
+  "raw_guard_values": [
+    [
+      "R01",
+      "F1",
+      "N1",
+      0,
+      0,
+      0,
+      0,
+      false
+    ],
+    [
+      "R02",
+      "F1",
+      "N2",
+      0,
+      0,
+      0,
+      0,
+      false
+    ],
+    [
+      "R03",
+      "F1",
+      "N3",
+      0,
+      0,
+      0,
+      0,
+      false
+    ],
+    [
+      "R04",
+      "F2",
+      "N1",
+      0,
+      0,
+      0,
+      0,
+      false
+    ],
+    [
+      "R05",
+      "F2",
+      "N2",
+      0,
+      0,
+      0,
+      0,
+      false
+    ],
+    [
+      "R06",
+      "F2",
+      "N3",
+      0,
+      0,
+      0,
+      0,
+      false
+    ]
+  ],
+  "files": [
+    {
+      "id": "F1",
+      "path": "zircon_runtime/src/text/identity.rs",
+      "before_sha256": "7fe5c7ff010a83f5dfd120a0b744b49cfed298341a47d111f2da9c03096dc3a9",
+      "sha256": "ece1aaefcec332125490165daef3603bb2de789fb9884f24bf6eebfdbf613115",
+      "bytes": 3854,
+      "LF": 107,
+      "EOL": "LF",
+      "BOM": false,
+      "finalLF": true,
+      "stage0_blob": "409d65232dd4267f1ed786ae969a70f1808baf32",
+      "clean_filter_current": "a6a4d00709ace1f7ba821825e62755ccdf0e73f3",
+      "before_bytes": 2097,
+      "before_LF": 85
+    },
+    {
+      "id": "F2",
+      "path": "zircon_runtime/src/text/tests/identity.rs",
+      "before_sha256": "644235f73c1eaf77aec66e188b003a262274d83403c744a03938ad5114fa2019",
+      "sha256": "b9fdf5e1abc15cc27c14d652a820adfe0cb40ba01c9a145d95bd875d55204a2f",
+      "bytes": 1340,
+      "LF": 40,
+      "EOL": "LF",
+      "BOM": false,
+      "finalLF": true,
+      "stage0_blob": "e470b01b07def4b8a178d5fbfbebf9c8f7e85fa1",
+      "clean_filter_current": "0deebbc7b3af92748aa38b444965d14786d26e74",
+      "before_bytes": 1044,
+      "before_LF": 37
+    }
+  ],
+  "raw_guard_columns": [
+    "id",
+    "file",
+    "operator",
+    "before",
+    "current",
+    "new_comments",
+    "expected_local_count",
+    "executed_test"
+  ],
+  "raw_guard_operator_definitions": {
+    "N1": "C09:81-83 production-line ASCII token lowercase contains(editor)",
+    "N2": "C09:81-83 production-line ASCII token lowercase contains(legacy)",
+    "N3": "C09:86-107 production-line server_tokens with observer exclusions"
+  },
+  "command_prefixes": {
+    "G": [
+      "git",
+      "--no-optional-locks"
+    ],
+    "F": [
+      "rustfmt"
+    ],
+    "R": [
+      "rg"
+    ]
+  },
+  "stage_rule": "Source-checker before clean-filter blob equals stage0_blob for each file.",
+  "assembly_stage": "complete frozen model; root acceptance remains open",
+  "insertions": [
+    {
+      "id": "I01",
+      "file": "F1",
+      "before_line": 10,
+      "current_range": [
+        10,
+        13
+      ],
+      "LF": 4,
+      "bytes": 204,
+      "sha256": "86cc420009ca62f383c79b42d4668f98875957e5018ffd221b5ff989c51cf650",
+      "text": "///\n/// # 使用约束\n/// 仅保存当前进程内的候选桶身份；持久化内容请使用 [`StableContentDigest`]。\n/// 相同哈希不替代缓存所有者对完整键及原文字节的比较。\n"
+    },
+    {
+      "id": "I02",
+      "file": "F1",
+      "before_line": 15,
+      "current_range": [
+        19,
+        20
+      ],
+      "LF": 2,
+      "bytes": 194,
+      "sha256": "e0f2e83a498cdb97684848938ac7324322aa068e5e64051d6253a460a5ad44a8",
+      "text": "    /// 借用 `value` 的 [`Hash`] 实现计算一次候选哈希，并返回独立的值。\n    /// 调用方须继续保留用于碰撞判定的完整键；参考 [`EphemeralCacheHasher`]。\n"
+    },
+    {
+      "id": "I03",
+      "file": "F1",
+      "before_line": 24,
+      "current_range": [
+        30,
+        30
+      ],
+      "LF": 1,
+      "bytes": 104,
+      "sha256": "9f36766cf33ed1d24e99945d1d75fa5b68bcc98aab2180397fcd592f5d7dd421",
+      "text": "    /// 接收调用方已计算的进程内哈希值；只包装 `value`，不重新散列或校验。\n"
+    },
+    {
+      "id": "I04",
+      "file": "F1",
+      "before_line": 29,
+      "current_range": [
+        36,
+        37
+      ],
+      "LF": 2,
+      "bytes": 192,
+      "sha256": "d714c8454ed17f1d14ac47251be737d085198644d4cad1739959539599875df4",
+      "text": "/// 按调用顺序汇集 [`Hash`] 输入；[`Self::finish`] 消费状态并返回候选哈希。\n/// 不提供持久化编码或跨版本哈希结果约定；参考 [`EphemeralCacheHash`]。\n"
+    },
+    {
+      "id": "I05",
+      "file": "F1",
+      "before_line": 32,
+      "current_range": [
+        41,
+        41
+      ],
+      "LF": 1,
+      "bytes": 81,
+      "sha256": "1f6069d082e51574c7d00da2124caf5d10f7828d38324b3ccd81cb1dfb0d706f",
+      "text": "    /// 创建尚未写入输入的状态，供一次候选哈希计算使用。\n"
+    },
+    {
+      "id": "I06",
+      "file": "F1",
+      "before_line": 36,
+      "current_range": [
+        46,
+        46
+      ],
+      "LF": 1,
+      "bytes": 100,
+      "sha256": "a4633021ebfa7ce9fe4a9a8e96ddf9830e707741b517b2a5087b12eb9b95ade9",
+      "text": "    /// 依 `value` 的 [`Hash`] 实现更新当前状态；借用仅在本次写入期间使用。\n"
+    },
+    {
+      "id": "I07",
+      "file": "F1",
+      "before_line": 43,
+      "current_range": [
+        54,
+        54
+      ],
+      "LF": 1,
+      "bytes": 105,
+      "sha256": "9537e8f9b95fe41e46fdb4e241510b10ec365bc71d48980c484791bd6c37993c",
+      "text": "    /// 消费当前状态，返回已写输入的候选身份；不验证输入间是否发生碰撞。\n"
+    },
+    {
+      "id": "I08",
+      "file": "F1",
+      "before_line": 49,
+      "current_range": [
+        61,
+        64
+      ],
+      "LF": 4,
+      "bytes": 201,
+      "sha256": "43628b719fe28901bb13417c27cecae656c35b8cb91fbbea3d4d05c6a6950294",
+      "text": "///\n/// # 字节边界\n/// 保存调用方约定的 32 字节身份；[`Self::from_bytes`] 不验证内容来源。\n/// [`Self::blake3`] 才会散列所给原始字节；默认值只是全零字节。\n"
+    },
+    {
+      "id": "I09",
+      "file": "F1",
+      "before_line": 54,
+      "current_range": [
+        70,
+        70
+      ],
+      "LF": 1,
+      "bytes": 103,
+      "sha256": "07af3b6b9718db8ab25c029ec7592b83f8aef9ef99e4815018b4ac060de1549b",
+      "text": "    /// 散列借用的原始 `bytes` 并返回拥有的 32 字节摘要；输入不会被规范化。\n"
+    },
+    {
+      "id": "I10",
+      "file": "F1",
+      "before_line": 58,
+      "current_range": [
+        75,
+        75
+      ],
+      "LF": 1,
+      "bytes": 95,
+      "sha256": "c896224efa4ab3845898d98d6d1332f4415c8f89a4872f48b4afe80c7eccbec5",
+      "text": "    /// 按原样接收拥有的 `bytes`；不重算摘要，也不验证其算法或来源。\n"
+    },
+    {
+      "id": "I11",
+      "file": "F1",
+      "before_line": 62,
+      "current_range": [
+        80,
+        80
+      ],
+      "LF": 1,
+      "bytes": 101,
+      "sha256": "98e2be86cce8251643a625395afaa805aa7fa79114870ff29552737a29bb75f3",
+      "text": "    /// 借用内部字节供边界编码使用；返回引用的有效期受 `self` 借用约束。\n"
+    },
+    {
+      "id": "I12",
+      "file": "F1",
+      "before_line": 66,
+      "current_range": [
+        85,
+        85
+      ],
+      "LF": 1,
+      "bytes": 96,
+      "sha256": "4d8d46fb3bf408da1c50f76cbdae1a3a12c9a111f7c242277b3bdb673b8237cb",
+      "text": "    /// 消费包装值并返回拥有的原始字节，供调用方按自己的协议编码。\n"
+    },
+    {
+      "id": "I13",
+      "file": "F1",
+      "before_line": 71,
+      "current_range": [
+        91,
+        91
+      ],
+      "LF": 1,
+      "bytes": 80,
+      "sha256": "371d1ed77a296839c51bd9ed4c309ae8d58c37b8ff64619b70968731f21919d7",
+      "text": "/// 复用原样包装转换；约束同 [`StableContentDigest::from_bytes`]。\n"
+    },
+    {
+      "id": "I14",
+      "file": "F1",
+      "before_line": 77,
+      "current_range": [
+        98,
+        98
+      ],
+      "LF": 1,
+      "bytes": 101,
+      "sha256": "fe9c50d26ca8a0aee0ef70865ac72752d1c076c6011bd8ce8fb1a14a9c46c4f7",
+      "text": "/// 复用字节取出转换；不更改字节顺序，参考 [`StableContentDigest::into_bytes`]。\n"
+    },
+    {
+      "id": "I15",
+      "file": "F2",
+      "before_line": 5,
+      "current_range": [
+        5,
+        5
+      ],
+      "LF": 1,
+      "bytes": 101,
+      "sha256": "6606c231fd02b339b4ad213fd5f85c79ffd5b21d62b18504a8402ecde01c9666",
+      "text": "    // 比较固定夹具在本实现内的结果；不据此证明所有不同输入均无碰撞。\n"
+    },
+    {
+      "id": "I16",
+      "file": "F2",
+      "before_line": 17,
+      "current_range": [
+        18,
+        18
+      ],
+      "LF": 1,
+      "bytes": 112,
+      "sha256": "f4adfab82c8621d6ba837175125f2c1245928c7f462c06ca298b2130d9948120",
+      "text": "    // 同一 BLAKE3 实现产生期望值；这里只核对包装及字节往返，不是独立摘要向量。\n"
+    },
+    {
+      "id": "I17",
+      "file": "F2",
+      "before_line": 29,
+      "current_range": [
+        31,
+        31
+      ],
+      "LF": 1,
+      "bytes": 83,
+      "sha256": "26ddb2229ba4b7b64d18c6fa783f5dd39e532011910b5b0fdf5de9d661abff8f",
+      "text": "    // 仅比较值本体尺寸；不测量计算期间的分配或容器容量。\n"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "A01",
+      "file": "F2",
+      "span": "S048",
+      "macro": "assert_eq",
+      "operator": "==",
+      "expected": "相同固定输入的候选值相等；无前置文件读取，未执行。",
+      "input": "assert_eq!(\n        EphemeralCacheHash::from_hashable(\"same text\"),\n        EphemeralCacheHash::from_hashable(\"same text\")\n    )",
+      "input_sha256_both": "9c7544961e10e0b0a159ab5e7d9a6833e0d3b90549c8d705d460eea4bc80fa4c",
+      "before_range": [
+        5,
+        8
+      ],
+      "current_range": [
+        6,
+        9
+      ],
+      "new_comments_contribution": 0,
+      "before_current_input_equal": true,
+      "actual_result": null,
+      "executed": false
+    },
+    {
+      "id": "A02",
+      "file": "F2",
+      "span": "S049",
+      "macro": "assert_ne",
+      "operator": "!=",
+      "expected": "两组固定文本夹具不同候选值；不归纳全部输入，无执行实值。",
+      "input": "assert_ne!(\n        EphemeralCacheHash::from_hashable(\"same text\"),\n        EphemeralCacheHash::from_hashable(\"different text\")\n    )",
+      "input_sha256_both": "1d913fae6eed6d0770a5e9fc33c43725ff390ca4090e328d59458a06394345ff",
+      "before_range": [
+        9,
+        12
+      ],
+      "current_range": [
+        10,
+        13
+      ],
+      "new_comments_contribution": 0,
+      "before_current_input_equal": true,
+      "actual_result": null,
+      "executed": false
+    },
+    {
+      "id": "A03",
+      "file": "F2",
+      "span": "S050",
+      "macro": "assert_eq",
+      "operator": "==",
+      "expected": "借用摘要数组与同库计算expected相等；不是独立测试向量。",
+      "input": "assert_eq!(digest.as_bytes(), &expected)",
+      "input_sha256_both": "654f75f09f16cac50fa66ae98c9c2c7505cf5a5216edea1ca297e3d89491b32b",
+      "before_range": [
+        20,
+        20
+      ],
+      "current_range": [
+        22,
+        22
+      ],
+      "new_comments_contribution": 0,
+      "before_current_input_equal": true,
+      "actual_result": null,
+      "executed": false
+    },
+    {
+      "id": "A04",
+      "file": "F2",
+      "span": "S051",
+      "macro": "assert_eq",
+      "operator": "==",
+      "expected": "from_bytes(expected).into_bytes与原数组相等；原样字节往返。",
+      "input": "assert_eq!(\n        StableContentDigest::from_bytes(expected).into_bytes(),\n        expected\n    )",
+      "input_sha256_both": "5554ab9ea307ab8293a49b9150242439af9dea413b7b16c62d9a300423b215c6",
+      "before_range": [
+        21,
+        24
+      ],
+      "current_range": [
+        23,
+        26
+      ],
+      "new_comments_contribution": 0,
+      "before_current_input_equal": true,
+      "actual_result": null,
+      "executed": false
+    },
+    {
+      "id": "A05",
+      "file": "F2",
+      "span": "S052",
+      "macro": "assert_eq",
+      "operator": "==",
+      "expected": "EphemeralCacheHash值本体尺寸与u64相等。",
+      "input": "assert_eq!(\n        std::mem::size_of::<EphemeralCacheHash>(),\n        std::mem::size_of::<u64>()\n    )",
+      "input_sha256_both": "df2706bb76d4a7cf5cdf4faae0b855d9a3d458873ff468c50b6c16739c1283e8",
+      "before_range": [
+        29,
+        32
+      ],
+      "current_range": [
+        32,
+        35
+      ],
+      "new_comments_contribution": 0,
+      "before_current_input_equal": true,
+      "actual_result": null,
+      "executed": false
+    },
+    {
+      "id": "A06",
+      "file": "F2",
+      "span": "S053",
+      "macro": "assert_eq",
+      "operator": "==",
+      "expected": "StableContentDigest值本体尺寸与[u8;32]相等。",
+      "input": "assert_eq!(\n        std::mem::size_of::<StableContentDigest>(),\n        std::mem::size_of::<[u8; 32]>()\n    )",
+      "input_sha256_both": "83da99869bf569be506d60c684f614a2adb7a3b45de079cbfd4f92d15b683f67",
+      "before_range": [
+        33,
+        36
+      ],
+      "current_range": [
+        36,
+        39
+      ],
+      "new_comments_contribution": 0,
+      "before_current_input_equal": true,
+      "actual_result": null,
+      "executed": false
+    }
+  ],
+  "spans": [
+    {
+      "id": "S001",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        1,
+        4
+      ],
+      "current": [
+        1,
+        4
+      ],
+      "before_sha256": "6d89080b2804c8dba8d1a1effd5124d8b4b0187e942ce6c8aea9648e0aaf2af8",
+      "current_sha256": "6d89080b2804c8dba8d1a1effd5124d8b4b0187e942ce6c8aea9648e0aaf2af8"
+    },
+    {
+      "id": "S002",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        6,
+        12
+      ],
+      "current": [
+        6,
+        16
+      ],
+      "before_sha256": "205799e7e1dd42d345e3a09cec9a1a301ebf5fa26d00b1f69aa3e0f9e58b87a9",
+      "current_sha256": "2a42d0458a5bce584912c10641e1848d8424109bf5f1ae440ca696d5189a50e4"
+    },
+    {
+      "id": "S003",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        12,
+        12
+      ],
+      "current": [
+        16,
+        16
+      ],
+      "before_sha256": "315af330d2c6b4cbe632a2bad3e809d06fee7fbc252f8f2a5fcb70b258f73392",
+      "current_sha256": "315af330d2c6b4cbe632a2bad3e809d06fee7fbc252f8f2a5fcb70b258f73392"
+    },
+    {
+      "id": "S004",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        14,
+        27
+      ],
+      "current": [
+        18,
+        34
+      ],
+      "before_sha256": "d0847cc87c7035494a3184aec0006687a1510a8120a1f4d543eddbdd44202687",
+      "current_sha256": "c11b0208495e135a4a47c120148e87cbf9fb26f41e21074b5e7dd7c3dbd696c8"
+    },
+    {
+      "id": "S005",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        15,
+        22
+      ],
+      "current": [
+        21,
+        28
+      ],
+      "before_sha256": "666165f18055ba4a111634288a5f9bd461dd10d5206ad7448b26d4dd85dae35e",
+      "current_sha256": "666165f18055ba4a111634288a5f9bd461dd10d5206ad7448b26d4dd85dae35e"
+    },
+    {
+      "id": "S006",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        24,
+        26
+      ],
+      "current": [
+        31,
+        33
+      ],
+      "before_sha256": "157ec8ce778884873c969bc5c5b1783b1b32ea017d295fbe8f4fb56b2e821e11",
+      "current_sha256": "157ec8ce778884873c969bc5c5b1783b1b32ea017d295fbe8f4fb56b2e821e11"
+    },
+    {
+      "id": "S007",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        29,
+        29
+      ],
+      "current": [
+        38,
+        38
+      ],
+      "before_sha256": "31c3bed09fa77dc85f07b6bcb935b9924fcdbaefb11e1c547bf7f7b9905b40c5",
+      "current_sha256": "31c3bed09fa77dc85f07b6bcb935b9924fcdbaefb11e1c547bf7f7b9905b40c5"
+    },
+    {
+      "id": "S008",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        31,
+        46
+      ],
+      "current": [
+        40,
+        58
+      ],
+      "before_sha256": "1c479ad6d9bdca1b626ba4076a06466e427fa25d18b6ac2555c286eee296f579",
+      "current_sha256": "2ff57f2f76304e2c024bcb728adfb8f2d412fd3075366ae7027c8fb51be703af"
+    },
+    {
+      "id": "S009",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        32,
+        34
+      ],
+      "current": [
+        42,
+        44
+      ],
+      "before_sha256": "be86093d59ea09b9f31fc9f084ee147b4364b89113e511a7f5ac4dcb78b4fb2a",
+      "current_sha256": "be86093d59ea09b9f31fc9f084ee147b4364b89113e511a7f5ac4dcb78b4fb2a"
+    },
+    {
+      "id": "S010",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        36,
+        41
+      ],
+      "current": [
+        47,
+        52
+      ],
+      "before_sha256": "ff141bc23d31ebc5220fbf9d57775f08e41ddf6c521e19414b912802812e8c16",
+      "current_sha256": "ff141bc23d31ebc5220fbf9d57775f08e41ddf6c521e19414b912802812e8c16"
+    },
+    {
+      "id": "S011",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        43,
+        45
+      ],
+      "current": [
+        55,
+        57
+      ],
+      "before_sha256": "9b2b9759be517ce720422d2e542af8717e2fede5091d605dbda31dbbe72c087d",
+      "current_sha256": "9b2b9759be517ce720422d2e542af8717e2fede5091d605dbda31dbbe72c087d"
+    },
+    {
+      "id": "S012",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        48,
+        51
+      ],
+      "current": [
+        60,
+        67
+      ],
+      "before_sha256": "254b090b03dec2f69701d19b589970cccb1979f783c56daa1c3689b7da9afc3b",
+      "current_sha256": "c33104099133ab3eba8bfecc39c7ea038c1ef39fad43b0dbd93788831945ebd5"
+    },
+    {
+      "id": "S013",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        51,
+        51
+      ],
+      "current": [
+        67,
+        67
+      ],
+      "before_sha256": "5e1f3af02bd8f64de00bff842991c2e80a1fd19257d34bd379682488361a8f9d",
+      "current_sha256": "5e1f3af02bd8f64de00bff842991c2e80a1fd19257d34bd379682488361a8f9d"
+    },
+    {
+      "id": "S014",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        53,
+        69
+      ],
+      "current": [
+        69,
+        89
+      ],
+      "before_sha256": "76999b891ddd23551100ab71e2640c2d2bfe80aae0cac5e4d24de32a50c9648b",
+      "current_sha256": "6efa783532ef90dbdce7d17abe5ea1a94ee21a8c95d2a71831d94dc0c3ae4c5b"
+    },
+    {
+      "id": "S015",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        54,
+        56
+      ],
+      "current": [
+        71,
+        73
+      ],
+      "before_sha256": "4e657a0a7089cc463169da65d3ca93c2ff610a3a9ed91b5961500cf5cda9beea",
+      "current_sha256": "4e657a0a7089cc463169da65d3ca93c2ff610a3a9ed91b5961500cf5cda9beea"
+    },
+    {
+      "id": "S016",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        58,
+        60
+      ],
+      "current": [
+        76,
+        78
+      ],
+      "before_sha256": "ca483d701f7dd16272ceed731ad0865414ea91183b4737c26cf413a8ba395644",
+      "current_sha256": "ca483d701f7dd16272ceed731ad0865414ea91183b4737c26cf413a8ba395644"
+    },
+    {
+      "id": "S017",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        62,
+        64
+      ],
+      "current": [
+        81,
+        83
+      ],
+      "before_sha256": "de461c613260fb4f951f7f1d5532d78a8e43fd405450e8f22eb7727c4ce47906",
+      "current_sha256": "de461c613260fb4f951f7f1d5532d78a8e43fd405450e8f22eb7727c4ce47906"
+    },
+    {
+      "id": "S018",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        66,
+        68
+      ],
+      "current": [
+        86,
+        88
+      ],
+      "before_sha256": "4a7c89c504fca0311c3eb13225248ee6f5eeb29326a0b0763fd745f667adb07a",
+      "current_sha256": "4a7c89c504fca0311c3eb13225248ee6f5eeb29326a0b0763fd745f667adb07a"
+    },
+    {
+      "id": "S019",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        71,
+        75
+      ],
+      "current": [
+        92,
+        96
+      ],
+      "before_sha256": "f979c08b498f793ea2ac776b0eb5fbeb9336ba138303610ccc367e48a2e65290",
+      "current_sha256": "f979c08b498f793ea2ac776b0eb5fbeb9336ba138303610ccc367e48a2e65290"
+    },
+    {
+      "id": "S020",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        72,
+        74
+      ],
+      "current": [
+        93,
+        95
+      ],
+      "before_sha256": "5ca5f826565167d65e6b8e3ea68484b8ec880819529c686d23fc42dc6750c1bf",
+      "current_sha256": "5ca5f826565167d65e6b8e3ea68484b8ec880819529c686d23fc42dc6750c1bf"
+    },
+    {
+      "id": "S021",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        77,
+        81
+      ],
+      "current": [
+        99,
+        103
+      ],
+      "before_sha256": "d3642c9a2740dc13c6c270978d4350f8f8e52663ece49fee84dbfdd6e23e28ec",
+      "current_sha256": "d3642c9a2740dc13c6c270978d4350f8f8e52663ece49fee84dbfdd6e23e28ec"
+    },
+    {
+      "id": "S022",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        78,
+        80
+      ],
+      "current": [
+        100,
+        102
+      ],
+      "before_sha256": "21265d7da3cb4d8e934d01565cf9450830f31632a90cdcf4881a7ba196387420",
+      "current_sha256": "21265d7da3cb4d8e934d01565cf9450830f31632a90cdcf4881a7ba196387420"
+    },
+    {
+      "id": "S023",
+      "file": "F1",
+      "mode": "exact",
+      "before": [
+        83,
+        85
+      ],
+      "current": [
+        105,
+        107
+      ],
+      "before_sha256": "49fa4d8a8a267fe4d2361a1f51824bc7210546a2130af74e439223291d87a7ca",
+      "current_sha256": "49fa4d8a8a267fe4d2361a1f51824bc7210546a2130af74e439223291d87a7ca"
+    },
+    {
+      "id": "S024",
+      "file": "F2",
+      "mode": "exact",
+      "before": [
+        1,
+        1
+      ],
+      "current": [
+        1,
+        1
+      ],
+      "before_sha256": "ae1d97e062d44c34f39bc779d6d49d934932f13775a2731fd44281e7b3c2a29d",
+      "current_sha256": "ae1d97e062d44c34f39bc779d6d49d934932f13775a2731fd44281e7b3c2a29d"
+    },
+    {
+      "id": "S025",
+      "file": "F2",
+      "mode": "exact",
+      "before": [
+        3,
+        13
+      ],
+      "current": [
+        3,
+        14
+      ],
+      "before_sha256": "5edbc2627934d85ee51f1ed6f8c5491ce525a668bfcc7e4dbbe9b4e170ac4e78",
+      "current_sha256": "a88aa4db95a6d1b19e8d28a27d57eec7be702817d55dd6a5e9543db4b5522aed"
+    },
+    {
+      "id": "S026",
+      "file": "F2",
+      "mode": "exact",
+      "before": [
+        15,
+        25
+      ],
+      "current": [
+        16,
+        27
+      ],
+      "before_sha256": "e746432d59c0386b709b1bda3869500f43a63e7ede3e33f578c5a3842e99d5b1",
+      "current_sha256": "38402044dd544dc760a857eb73e308338d7c0e158a263e601c2b566eb6ab0dd5"
+    },
+    {
+      "id": "S027",
+      "file": "F2",
+      "mode": "exact",
+      "before": [
+        27,
+        37
+      ],
+      "current": [
+        29,
+        40
+      ],
+      "before_sha256": "ea2317859bc8ed4d453fb0b5831a0aafa45b6b41543325604b08b424ab812056",
+      "current_sha256": "f37b7a9efeb3ff74a1a962d08d12b7a562c68b28ab65a753f104e59377cb31b0"
+    },
+    {
+      "id": "S028",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        1,
+        5
+      ],
+      "current": [
+        1,
+        5
+      ],
+      "before_sha256": "d0500cc6c1e094461ddca81a63b7bc555212b1a1c916531cd4b3818483a4bd3d",
+      "current_sha256": "d0500cc6c1e094461ddca81a63b7bc555212b1a1c916531cd4b3818483a4bd3d"
+    },
+    {
+      "id": "S029",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        6,
+        13
+      ],
+      "current": [
+        6,
+        17
+      ],
+      "before_sha256": "b435b21b223eedcd5b5c21264b52aa82d504d482225eaa6c18c497f672289f1a",
+      "current_sha256": "a9f6f9fca4196cee8417da9960e86a9c16776654fa04ad9df53be15489af8e4e"
+    },
+    {
+      "id": "S030",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        14,
+        23
+      ],
+      "current": [
+        18,
+        29
+      ],
+      "before_sha256": "0984f1e976eaf0f30b1cf90fdc68111943b80370aa2c39e2e1cd483c9102ccb9",
+      "current_sha256": "b15615a9166d3f4daeaa8507020cdef6119e838b416cd03a640ca14c2ab19434"
+    },
+    {
+      "id": "S031",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        24,
+        28
+      ],
+      "current": [
+        30,
+        35
+      ],
+      "before_sha256": "4b371dc66dc7974de7ba1fc267d309a8f4cc75a16f92bc653a04d82799673349",
+      "current_sha256": "6617a35615a0a8ac87a8c3e78bae6b55133b777f00e54a18eb85d3019f16ad07"
+    },
+    {
+      "id": "S032",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        29,
+        30
+      ],
+      "current": [
+        36,
+        39
+      ],
+      "before_sha256": "68e84e58a47e813d250e0e49569bb5854503ac1c4532bff4a716d79f20091122",
+      "current_sha256": "17506819f51bd144da547fc5c80eb4addfd01f297cd73e3c0fed5456dcde6b24"
+    },
+    {
+      "id": "S033",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        31,
+        35
+      ],
+      "current": [
+        40,
+        45
+      ],
+      "before_sha256": "c2cf3b8a4fd053ada44c47a56a1800b58af041815141184fb5216f822a05dc06",
+      "current_sha256": "f7063cb1c89fedd4c7414cf70598042b069ba9544feb1c9367738d84e808d584"
+    },
+    {
+      "id": "S034",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        36,
+        42
+      ],
+      "current": [
+        46,
+        53
+      ],
+      "before_sha256": "455441fc13219fc58e5d23f70b13cb9e2b0941e4142d5b539dca20c3cf73351b",
+      "current_sha256": "2d0b98871bf194469621e83d4dc6d301930bda7bd3e2dd8fda41e2010bf4a866"
+    },
+    {
+      "id": "S035",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        43,
+        47
+      ],
+      "current": [
+        54,
+        59
+      ],
+      "before_sha256": "da433d4790d9bf1fe275e6d950c1af06dd23bf6ae810d7821fdfb42f564045dd",
+      "current_sha256": "21f9d8433207e3cef36651e5247a6c699ee3ece1494526f1e272e8bc27c28c04"
+    },
+    {
+      "id": "S036",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        48,
+        52
+      ],
+      "current": [
+        60,
+        68
+      ],
+      "before_sha256": "f7de5902a18d45d91e56b2733efa2e22ee9ba1b40450e0f82c03f42a08dc7e16",
+      "current_sha256": "7dc2a817107d4f506efc209b2482560cfac135006d01a6662581a7d506394929"
+    },
+    {
+      "id": "S037",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        53,
+        57
+      ],
+      "current": [
+        69,
+        74
+      ],
+      "before_sha256": "93360f47d294a0cc194186af317c537183375344e6fdddffa766c22d04a6bd27",
+      "current_sha256": "6a540e376077d4119447b0f0161befc88230c335a6b342130dda4e78cb2354d2"
+    },
+    {
+      "id": "S038",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        58,
+        61
+      ],
+      "current": [
+        75,
+        79
+      ],
+      "before_sha256": "5032427a0cadb77ba50db873bf1a7145ee485f38074e5c0d75b3505179efb0f5",
+      "current_sha256": "b59f7016a6742637fa214912dba4d083c1dfc8e6e40efbc4542e5ab4593b071b"
+    },
+    {
+      "id": "S039",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        62,
+        65
+      ],
+      "current": [
+        80,
+        84
+      ],
+      "before_sha256": "e7f66a2796cd739bd1a51654105cbf4b4beb269aba2f9332ec5fa2c110cd7e2b",
+      "current_sha256": "1ca0ccc434a0a3e863cf3709ff60b217fef1cd5de5cfa2a9e576fa44a7a47a37"
+    },
+    {
+      "id": "S040",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        66,
+        70
+      ],
+      "current": [
+        85,
+        90
+      ],
+      "before_sha256": "e62b731d442268a65ca9ea8c884e4af5952331806a0a2c42794aaddf06b66c4e",
+      "current_sha256": "66ecf9075e5e4032b74686f7cfd569d59b2d62364e4a35fcf2e01f2b941fbe2a"
+    },
+    {
+      "id": "S041",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        71,
+        76
+      ],
+      "current": [
+        91,
+        97
+      ],
+      "before_sha256": "c489a32b605a23cb899be74ec04228f020e1613f872aa974c6d2323b62a14a56",
+      "current_sha256": "e8aa5ea9046db6aa712e6c70654688f3b4406839cf791ee39fbf8a50dc812715"
+    },
+    {
+      "id": "S042",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        77,
+        82
+      ],
+      "current": [
+        98,
+        104
+      ],
+      "before_sha256": "ee6cbb43932ec48d009a58af65b7229a418de7033184bc58ba70bfa21bf3a58d",
+      "current_sha256": "ed590fb1f52db603cc30b78ca385bf268ccfa808110a12b9474059b7bccbad33"
+    },
+    {
+      "id": "S043",
+      "file": "F1",
+      "mode": "partition",
+      "before": [
+        83,
+        85
+      ],
+      "current": [
+        105,
+        107
+      ],
+      "before_sha256": "49fa4d8a8a267fe4d2361a1f51824bc7210546a2130af74e439223291d87a7ca",
+      "current_sha256": "49fa4d8a8a267fe4d2361a1f51824bc7210546a2130af74e439223291d87a7ca"
+    },
+    {
+      "id": "S044",
+      "file": "F2",
+      "mode": "partition",
+      "before": [
+        1,
+        2
+      ],
+      "current": [
+        1,
+        2
+      ],
+      "before_sha256": "ad64e73c6a183f49d3304ee9bacd89d12812327851ac18e4d4a19209750d1763",
+      "current_sha256": "ad64e73c6a183f49d3304ee9bacd89d12812327851ac18e4d4a19209750d1763"
+    },
+    {
+      "id": "S045",
+      "file": "F2",
+      "mode": "partition",
+      "before": [
+        3,
+        14
+      ],
+      "current": [
+        3,
+        15
+      ],
+      "before_sha256": "c780c60be2ea3569f7e53078f2f9c7a5dee07bfa4714494aaf071d334ae84c67",
+      "current_sha256": "b68a0af15e47a58e85b592bf850f9befefc7c4c650784cb44d2fc9eb6730a731"
+    },
+    {
+      "id": "S046",
+      "file": "F2",
+      "mode": "partition",
+      "before": [
+        15,
+        26
+      ],
+      "current": [
+        16,
+        28
+      ],
+      "before_sha256": "69b18172a945e5b4cc6e4b11973a05086267e238e7d68f16d357abefe45e7a77",
+      "current_sha256": "1454348e08324176ea3e67f0519abc030ee5feb12a21020d70505ab79d312e95"
+    },
+    {
+      "id": "S047",
+      "file": "F2",
+      "mode": "partition",
+      "before": [
+        27,
+        37
+      ],
+      "current": [
+        29,
+        40
+      ],
+      "before_sha256": "ea2317859bc8ed4d453fb0b5831a0aafa45b6b41543325604b08b424ab812056",
+      "current_sha256": "f37b7a9efeb3ff74a1a962d08d12b7a562c68b28ab65a753f104e59377cb31b0"
+    },
+    {
+      "id": "S048",
+      "file": "F2",
+      "mode": "exact",
+      "before": [
+        5,
+        8
+      ],
+      "current": [
+        6,
+        9
+      ],
+      "before_sha256": "c2f9fdee7856ecaa13b7b0382e3105b26bc5359af35b8f570bdf46635a045c59",
+      "current_sha256": "c2f9fdee7856ecaa13b7b0382e3105b26bc5359af35b8f570bdf46635a045c59"
+    },
+    {
+      "id": "S049",
+      "file": "F2",
+      "mode": "exact",
+      "before": [
+        9,
+        12
+      ],
+      "current": [
+        10,
+        13
+      ],
+      "before_sha256": "2bec1b7c02e855b367ea6b40a51e6f0afbbe368e164d609b06a3333b0397a31a",
+      "current_sha256": "2bec1b7c02e855b367ea6b40a51e6f0afbbe368e164d609b06a3333b0397a31a"
+    },
+    {
+      "id": "S050",
+      "file": "F2",
+      "mode": "exact",
+      "before": [
+        20,
+        20
+      ],
+      "current": [
+        22,
+        22
+      ],
+      "before_sha256": "f060549c2b2bb60a91a268b4e812bcb062ff8bd825c1cb39b263b53ee15c6685",
+      "current_sha256": "f060549c2b2bb60a91a268b4e812bcb062ff8bd825c1cb39b263b53ee15c6685"
+    },
+    {
+      "id": "S051",
+      "file": "F2",
+      "mode": "exact",
+      "before": [
+        21,
+        24
+      ],
+      "current": [
+        23,
+        26
+      ],
+      "before_sha256": "77fe13e0a5e256c21531faca17edc16ad70f7f4277699fbb01a5fe649ff89a11",
+      "current_sha256": "77fe13e0a5e256c21531faca17edc16ad70f7f4277699fbb01a5fe649ff89a11"
+    },
+    {
+      "id": "S052",
+      "file": "F2",
+      "mode": "exact",
+      "before": [
+        29,
+        32
+      ],
+      "current": [
+        32,
+        35
+      ],
+      "before_sha256": "e4f3c539cd3dcc1347c20c63e25fb108dbe059d982d1f8a3a3ac858bb0b51d38",
+      "current_sha256": "e4f3c539cd3dcc1347c20c63e25fb108dbe059d982d1f8a3a3ac858bb0b51d38"
+    },
+    {
+      "id": "S053",
+      "file": "F2",
+      "mode": "exact",
+      "before": [
+        33,
+        36
+      ],
+      "current": [
+        36,
+        39
+      ],
+      "before_sha256": "d11921a9e941439324282050b6c665fd9b31080a443527c26ec4024cd057ca59",
+      "current_sha256": "d11921a9e941439324282050b6c665fd9b31080a443527c26ec4024cd057ca59"
+    }
+  ],
+  "range_algorithm": "SHA256 of raw UTF-8 bytes in inclusive physical LF line ranges, including original line endings. exact starts/ends at mapped original first/last lines; partition includes insertions on its opening boundary and covers each final file contiguously. Before/current hash domains are separate. Member ranges may share a declaration span.",
+  "assertion_input_algorithm": "Macro identifier first character through balanced closing delimiter inclusive; excludes indentation, trailing semicolon and final LF; retains internal whitespace, newline and literal bytes. Hash is UTF-8 SHA256, not full physical-line hash.",
+  "verification": {
+    "inverse_equals_grant_and_rawHEAD": true,
+    "all_original_bytes_preserved": true,
+    "six_macro_inputs_equal": true,
+    "source_check_receipt": "c5643b",
+    "fmt_diff_stage": "See actual commands table and c5643b terminal; no tests executed",
+    "final_independent_readback": "Fixed-digest readback required after this CAS and reported externally; no recursive self-hash embedded.",
+    "independent_model_readback": "207e7c exit0/PID46144"
+  },
+  "counts": {
+    "types": 3,
+    "tuple_members": 3,
+    "impls": 5,
+    "production_functions": 11,
+    "normal_tests": 3,
+    "ignored_tests": 0,
+    "executed_tests": 0,
+    "assertions": 6,
+    "objects": 28,
+    "blocks": 20,
+    "spans": 53,
+    "insertions": 17,
+    "added_LF": 25
+  },
+  "freeze": {
+    "sources": "Source pins frozen since c5643b; source writer only outer9",
+    "record": "This sole record-only CAS fixes the complete model; subsequent readback is external",
+    "prior_child_sha256": "779add22c1a5f6bf20ab8e28f3a601bf754efdfa09dd0635eac5f8cbd1200b29",
+    "formal_acceptance": false,
+    "global_main_post_owner": "root"
+  }
+}

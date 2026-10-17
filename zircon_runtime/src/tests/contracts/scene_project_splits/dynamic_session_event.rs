@@ -12,9 +12,8 @@ fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
     let runtime_index_output = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-index-output-records.md"
     );
-    let hotspot_doc = include_str!(
-        "../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
-    );
+    let hotspot_doc =
+        include_str!("../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md");
     let dynamic_session_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
 

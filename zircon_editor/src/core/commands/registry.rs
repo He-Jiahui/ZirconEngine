@@ -95,7 +95,22 @@ impl EditorCommandRegistry {
     }
 
     pub fn default_workbench() -> Self {
-        Self::new(default_workbench_commands()).expect("default editor command ids are unique")
+        let mut registry = Self::new(default_workbench_commands())
+            .expect("default editor command ids are unique");
+        let operation = EditorOperationPath::parse(
+            crate::core::editing::command::ADD_COMPONENT_OPERATION,
+        ).expect("builtin component creation operation is valid");
+        let registration = OperationCommandFactoryRegistration::new(
+            operation.clone(),
+            "Add component",
+            crate::core::editing::operation::EditOperationTarget::EditWorkspace,
+            Arc::new(crate::core::editing::command::AddDynamicComponentFactory),
+        );
+        // Self::new admitted the matching descriptor. This stateless factory
+        // captures no shell or context, so registration creates no owner cycle.
+        registry.operation_factories.insert(operation, registration);
+        registry.advance_generation();
+        registry
     }
 
     pub fn register(

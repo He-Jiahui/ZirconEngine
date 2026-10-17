@@ -339,7 +339,7 @@ fn equal_set_flush_waits_for_an_in_progress_publication() {
 
     const KEY: &str = "runtime.publication";
     let root = unique_temp_root("public_set_flush_barrier");
-    std::fs::create_dir_all(&root).unwrap();
+    std::fs::create_dir(&root).unwrap();
     let path = root.join("config.json");
     std::fs::write(&path, br#"{"runtime.publication":0}"#).unwrap();
     let runtime = CoreRuntime::new();
@@ -400,6 +400,7 @@ fn equal_set_flush_waits_for_an_in_progress_publication() {
     };
     let final_report = manager.persistence_report();
     drop(manager);
+    drop(runtime);
     std::fs::remove_dir_all(root).unwrap();
 
     // Release, join, and remove the fixture before asserting the interleaving.
@@ -598,7 +599,7 @@ fn identical_value_retries_a_failed_dirty_generation() {
 #[test]
 fn atomic_replace_failure_keeps_old_json_and_same_value_retry_commits_new_json() {
     let root = unique_temp_root("atomic_retry");
-    std::fs::create_dir_all(&root).unwrap();
+    std::fs::create_dir(&root).unwrap();
     let path = root.join("config.json");
     std::fs::write(&path, br#"{"version":1}"#).unwrap();
     let runtime = CoreRuntime::new();
@@ -625,6 +626,7 @@ fn atomic_replace_failure_keeps_old_json_and_same_value_retry_commits_new_json()
         json!({"version": 2})
     );
     drop(manager);
+    drop(runtime);
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -675,6 +677,7 @@ fn explicit_flush_returns_when_its_timeout_expires() {
 #[test]
 fn shutdown_timeout_still_joins_the_config_worker_before_drop() {
     let root = unique_temp_root("shutdown_timeout_join");
+    std::fs::create_dir(&root).unwrap();
     let path = root.join("config.json");
     let runtime = CoreRuntime::new();
     let writer = Arc::new(BlockingWriter::default());
@@ -697,6 +700,7 @@ fn shutdown_timeout_still_joins_the_config_worker_before_drop() {
     });
     drop(manager);
     releaser.join().unwrap();
+    drop(runtime);
 
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -704,6 +708,7 @@ fn shutdown_timeout_still_joins_the_config_worker_before_drop() {
 #[test]
 fn shutdown_waits_for_a_late_writer_before_returning() {
     let root = unique_temp_root("shutdown_fence");
+    std::fs::create_dir(&root).unwrap();
     let path = root.join("config.json");
 
     let old_runtime = CoreRuntime::new();
@@ -743,6 +748,7 @@ fn shutdown_waits_for_a_late_writer_before_returning() {
 
     let stale_write_was_rejected = !path.exists();
     let remaining_files = std::fs::read_dir(&root).unwrap().count();
+    drop(old_runtime);
     std::fs::remove_dir_all(root).unwrap();
 
     let writer_completed_at_shutdown_return = shutdown_result.unwrap();
@@ -765,6 +771,7 @@ fn shutdown_waits_for_a_late_writer_before_returning() {
 #[test]
 fn replacement_activation_fails_fast_while_an_admitted_commit_is_still_running() {
     let root = unique_temp_root("commit_in_progress");
+    std::fs::create_dir(&root).unwrap();
     let path = root.join("config.json");
     let old_runtime = CoreRuntime::new();
     let old_writer = Arc::new(CommitAdmittedBlockingWriter::default());
@@ -814,10 +821,13 @@ fn replacement_activation_fails_fast_while_an_admitted_commit_is_still_running()
         "shutdown returned while the admitted commit was held: {completion_while_held:?}"
     );
     assert!(activation_elapsed < Duration::from_millis(500));
-    assert!(activation
-        .unwrap_err()
-        .to_string()
-        .contains("still in progress"));
+    assert!(matches!(
+        activation.unwrap_err(),
+        crate::core::CoreError::ConfigOwnerConflict {
+            same_runtime: false,
+            ..
+        }
+    ));
     assert_eq!(
         serde_json::from_slice::<Value>(&std::fs::read(&path).unwrap()).unwrap(),
         json!({"owner": "stale"}),
@@ -839,6 +849,8 @@ fn replacement_activation_fails_fast_while_an_admitted_commit_is_still_running()
     );
 
     drop(new_manager);
+    drop(new_runtime);
+    drop(old_runtime);
     std::fs::remove_dir_all(root).unwrap();
     let writer_completed_at_shutdown_return = shutdown_result.unwrap();
     assert!(
@@ -851,7 +863,7 @@ fn replacement_activation_fails_fast_while_an_admitted_commit_is_still_running()
 #[test]
 fn startup_recovers_a_missing_config_from_its_single_atomic_backup() {
     let root = unique_temp_root("startup_backup_recovery");
-    std::fs::create_dir_all(&root).unwrap();
+    std::fs::create_dir(&root).unwrap();
     let path = root.join("config.json");
     let backup = root.join(format!(".config.json.zr-backup-{}-1", std::process::id()));
     std::fs::write(&backup, br#"{"owner":"recovered"}"#).unwrap();
@@ -870,6 +882,7 @@ fn startup_recovers_a_missing_config_from_its_single_atomic_backup() {
     assert!(path.is_file());
     assert!(!backup.exists());
     drop(manager);
+    drop(runtime);
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -877,7 +890,7 @@ fn startup_recovers_a_missing_config_from_its_single_atomic_backup() {
 #[test]
 fn startup_rejects_multiple_atomic_backups_for_a_missing_config() {
     let root = unique_temp_root("startup_backup_ambiguous");
-    std::fs::create_dir_all(&root).unwrap();
+    std::fs::create_dir(&root).unwrap();
     let path = root.join("config.json");
     for id in 1..=2 {
         std::fs::write(
@@ -902,13 +915,14 @@ fn startup_rejects_multiple_atomic_backups_for_a_missing_config() {
 
     assert!(error.to_string().contains("2 backup candidates"));
     assert!(!path.exists());
+    drop(runtime);
     std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
 fn malformed_startup_config_returns_an_actionable_error() {
     let root = unique_temp_root("malformed");
-    std::fs::create_dir_all(&root).unwrap();
+    std::fs::create_dir(&root).unwrap();
     let path = root.join("config.json");
     std::fs::write(&path, b"{not-json").unwrap();
     let runtime = CoreRuntime::new();
@@ -923,6 +937,7 @@ fn malformed_startup_config_returns_an_actionable_error() {
     .unwrap_err();
 
     assert!(error.to_string().contains(path.to_string_lossy().as_ref()));
+    drop(runtime);
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -942,9 +957,155 @@ fn test_manager(
 }
 
 fn unique_temp_root(name: &str) -> PathBuf {
-    std::env::temp_dir().join(format!(
-        "zircon_config_manager_{name}_{}_{}",
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    managed_test_binary_directory().join(format!(
+        "zircon_config_manager_{name}_{}_{nanos}_{}",
         std::process::id(),
         NEXT_TEST_PATH_ID.fetch_add(1, Ordering::Relaxed)
     ))
+}
+
+fn managed_test_binary_directory() -> std::path::PathBuf {
+    use crate::asset::ProjectPaths;
+    let approved = ProjectPaths::resolve_existing("E:/cargo-targets/zircon-local")
+        .expect("the managed E drive fixture root must already exist");
+    let display = ProjectPaths::display_path(approved.operation_path());
+    assert!(
+        display
+            .to_str()
+            .expect("managed root must be Unicode")
+            .replace('\\', "/")
+            .eq_ignore_ascii_case("E:/cargo-targets/zircon-local"),
+        "the approved root must resolve to the physical E drive root"
+    );
+    let approved = ProjectPaths::resolve_identity(approved.operation_path()).unwrap();
+    let executable = std::env::current_exe().unwrap();
+    let binary = ProjectPaths::resolve_identity(executable.parent().unwrap()).unwrap();
+    assert!(
+        binary.is_within(&approved),
+        "test binary must physically live under the managed E root"
+    );
+    binary.operation_path().to_path_buf()
+}
+
+#[test]
+fn same_runtime_config_managers_require_distinct_host_file_paths() {
+    let root = unique_temp_root("same-runtime-host-files");
+    std::fs::create_dir(&root).unwrap();
+    let runtime = CoreRuntime::new();
+    let path = root.join("first.json");
+    let manager =
+        DefaultConfigManager::new_with_file_path(&runtime.handle(), path.clone()).unwrap();
+    let retained = manager.clone();
+    assert!(matches!(
+        DefaultConfigManager::new_with_file_path(&runtime.handle(), path.clone()),
+        Err(crate::core::CoreError::ConfigOwnerConflict {
+            same_runtime: true,
+            ..
+        })
+    ));
+    let distinct =
+        DefaultConfigManager::new_with_file_path(&runtime.handle(), root.join("second.json"))
+            .unwrap();
+    manager.set_value("same.runtime", json!(true)).unwrap();
+    retained.flush(TEST_FLUSH_TIMEOUT).unwrap();
+    drop(manager);
+    assert!(matches!(
+        DefaultConfigManager::new_with_file_path(&runtime.handle(), path.clone()),
+        Err(crate::core::CoreError::ConfigOwnerConflict {
+            same_runtime: true,
+            ..
+        })
+    ));
+    drop(retained);
+    let reopened = DefaultConfigManager::new_with_file_path(&runtime.handle(), path).unwrap();
+    assert_eq!(reopened.get_value("same.runtime"), Some(json!(true)));
+    drop(reopened);
+    drop(distinct);
+    drop(runtime);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[derive(Default)]
+struct OperationPathWriter {
+    paths: Mutex<Vec<PathBuf>>,
+}
+
+impl ConfigFileWriterForTest for OperationPathWriter {
+    fn write(&self, path: &Path, bytes: &[u8], fence: &ConfigCommitFenceForTest) -> io::Result<()> {
+        self.paths.lock().unwrap().push(path.to_path_buf());
+        let pending = stage_atomic_write(path, bytes)?;
+        fence.commit(|| pending.commit())
+    }
+}
+
+#[test]
+fn physical_config_operation_path_is_shared_by_admission_and_persistence() {
+    use crate::asset::ProjectPaths;
+    let root = unique_temp_root("physical-operation-path");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::create_dir(root.join("parent")).unwrap();
+    let path = root.join("config.json");
+    std::fs::write(&path, br#"{"loaded":"physical target"}"#).unwrap();
+    let alias = root.join("parent").join("..").join("config.json");
+    let operation = ProjectPaths::resolve_identity(&path).unwrap();
+    let runtime = CoreRuntime::new();
+    let writer = Arc::new(OperationPathWriter::default());
+    let manager = DefaultConfigManager::new_with_options(
+        &runtime.handle(),
+        alias.clone(),
+        writer.clone(),
+        LONG_TEST_DEBOUNCE,
+        TEST_SHUTDOWN_TIMEOUT,
+    )
+    .unwrap();
+    assert_eq!(manager.get_value("loaded"), Some(json!("physical target")));
+    let other = CoreRuntime::new();
+    assert!(matches!(
+        DefaultConfigManager::new_with_file_path(&other.handle(), path.clone()),
+        Err(crate::core::CoreError::ConfigOwnerConflict {
+            same_runtime: false,
+            ..
+        })
+    ));
+    manager.set_value("published", json!(true)).unwrap();
+    manager.flush(TEST_FLUSH_TIMEOUT).unwrap();
+    assert_eq!(
+        *writer.paths.lock().unwrap(),
+        vec![operation.operation_path().to_path_buf()]
+    );
+    let disk: Value =
+        serde_json::from_slice(&std::fs::read(operation.operation_path()).unwrap()).unwrap();
+    assert_eq!(disk, json!({"loaded":"physical target","published":true}));
+    #[cfg(unix)]
+    {
+        let parent_alias = root.join("parent-link");
+        std::os::unix::fs::symlink(&root, &parent_alias).unwrap();
+        assert!(matches!(
+            DefaultConfigManager::new_with_file_path(
+                &other.handle(),
+                parent_alias.join("config.json")
+            ),
+            Err(crate::core::CoreError::ConfigOwnerConflict {
+                same_runtime: false,
+                ..
+            })
+        ));
+        let final_alias = root.join("final-link.json");
+        std::os::unix::fs::symlink(&path, &final_alias).unwrap();
+        let error =
+            DefaultConfigManager::new_with_file_path(&other.handle(), final_alias).unwrap_err();
+        assert!(error.to_string().contains("final symlink"));
+    }
+    drop(manager);
+    let reopened = DefaultConfigManager::new_with_file_path(&other.handle(), alias).unwrap();
+    assert_eq!(reopened.get_value("published"), Some(json!(true)));
+    drop(reopened);
+    drop(writer);
+    drop(other);
+    drop(runtime);
+    std::fs::remove_dir_all(root).unwrap();
 }

@@ -6,8 +6,8 @@ use super::super::super::style_selector::{
 };
 use super::super::super::template_node_labels::template_node_label;
 use super::super::super::template_status_control_geometry::{
-    frame_is_within, status_text_metrics_for_node, status_signal_icon_paint_rect,
-    status_signal_icon_rect, status_signal_text_rect,
+    frame_is_within, status_signal_icon_paint_rect, status_signal_icon_rect,
+    status_signal_text_rect, status_text_metrics_for_node,
 };
 use super::super::super::template_status_glyphs::push_status_signal_icon;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
@@ -41,17 +41,26 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
         return;
     }
     let (font_size, line_height) = status_text_metrics_for_node(node);
-    let text_style = UiTextRunPaintStyle { strong: node.font_weight >= 600, ..UiTextRunPaintStyle::default() };
-    let font_request = crate::ui::retained_host::host_contract::paint_text::authored_font_request_for_node(node, text_style);
-    commands.push(HostPaintCommand::text(
-        text_rect,
-        Some(clip.clone()),
-        order + 2,
-        label,
-        style.text,
-        font_size,
-        line_height,
-        text_style,
-        opacity,
-    ).with_text_font_request(font_request));
+    let text_style = UiTextRunPaintStyle {
+        strong: node.font_weight >= 600,
+        ..UiTextRunPaintStyle::default()
+    };
+    let font_request =
+        crate::ui::retained_host::host_contract::paint_text::authored_font_request_for_node(
+            node, text_style,
+        );
+    commands.push(
+        HostPaintCommand::text(
+            text_rect,
+            Some(clip.clone()),
+            order + 2,
+            label,
+            style.text,
+            font_size,
+            line_height,
+            text_style,
+            opacity,
+        )
+        .with_text_font_request(font_request),
+    );
 }

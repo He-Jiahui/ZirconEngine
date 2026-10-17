@@ -212,7 +212,9 @@ fn scene_viewport_surfaces(
             presentation,
             surface,
         );
-        let frame = viewport.as_ref().map_or(&surface.content_frame, |viewport| &viewport.frame);
+        let frame = viewport
+            .as_ref()
+            .map_or(&surface.content_frame, |viewport| &viewport.frame);
         insert_scene_surface(
             &mut surfaces,
             surface.surface_key.as_str(),

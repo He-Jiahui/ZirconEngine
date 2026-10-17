@@ -8,7 +8,9 @@ import { basename, dirname, extname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, request, type APIRequestContext, type BrowserContext, type Frame, type FrameLocator, type Page } from 'playwright';
 import { cloneZuiDocument, decodeZuiMetadata, normalizeZuiDocument, parseZuiDocument, type ZuiDocument } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-document.js';
-import { applyZuiExportFileToSourceRoot } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-export-apply-files';
+import { applyZuiExportFileToCanonicalSourceOwners } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-export-apply-files';
+import { applyZuiExportToSourceFiles } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-export-apply-sources';
+import { parseSourceExportManifest, validateSourcePath } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-export-apply-contract';
 import { clickAndWaitForDownload } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/tools/zui-layout-download';
 import { reviewHost } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-review-host';
 import { importedActualNormalReviewCase, reviewCaseFromSavedMetadata } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-review-case';
@@ -23,6 +25,7 @@ import { editWorkbenchSpacingInPenpot } from '../../../../../dev/penpot/plugins/
 import { observeRealSaveHttp, type ActualSaveHttp } from './zui-layout-real-save-observer';
 import { compareStoredZuiMetadata } from './zui-layout-real-metadata';
 import { observeActualExportClick } from './zui-layout-real-export-observer';
+import { verifyCurrentPluginUi } from './zui-layout-real-ui.mjs';
 
 type RecordValue = Record<string, unknown>;
 interface IdentifiedRecord { id: string }
@@ -391,6 +394,52 @@ async function selectActualAssetBoard(page: Page, boardId: string, receipt: Reco
     selectionMethod: 'official layer-row click' };
 }
 
+async function capturePreviewLayoutAudit(
+  frame: FrameLocator, expectedBoardId: string, output: string, receipt: RecordValue,
+): Promise<void> {
+  const requestId = randomUUID();
+  const response = record(await frame.locator('html').evaluate((_, id) =>
+    new Promise<Record<string, unknown>>((resolve, reject) => {
+      const cleanup = () => {
+        window.removeEventListener('message', onMessage);
+        window.clearTimeout(timer);
+      };
+      const onMessage = (event: MessageEvent) => {
+        const data: unknown = event.data;
+        if (event.source !== window.parent || !data || typeof data !== 'object' || Array.isArray(data)) return;
+        const payload = data as Record<string, unknown>;
+        if (payload['type'] !== 'preview-audit' || payload['requestId'] !== id) return;
+        cleanup();
+        resolve(payload);
+      };
+      const timer = window.setTimeout(() => {
+        cleanup();
+        reject(new Error('The saved Penpot board did not return its layout audit before the deadline'));
+      }, 30_000);
+      window.addEventListener('message', onMessage);
+      try {
+        window.parent.postMessage({ type: 'audit-preview-layout', requestId: id }, '*');
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
+    }), requestId, { timeout: 35_000 }));
+  assert.equal(response['type'], 'preview-audit');
+  assert.equal(response['requestId'], requestId);
+  assert.equal(response['previewBoardId'], expectedBoardId,
+    'The layout audit must describe the same saved and reopened asset board');
+  const layoutAudit = record(response['layoutAudit']);
+  const path = resolve(output, 'post-reopen-layout-audit.json');
+  await writeFile(path, `${JSON.stringify(response, null, 2)}\n`);
+  receipt['postReopenLayoutAudit'] = { path, sha256: sha256(await readFile(path)),
+    boardId: response['previewBoardId'], requestId, authority: 'actual-plugin-layout-audit-after-reopen',
+    settled: !Object.hasOwn(layoutAudit, 'refreshError') };
+  assert.ok(!Object.hasOwn(layoutAudit, 'refreshError'), 'The reopened board layout refresh failed; see the saved audit');
+  assert.ok(Array.isArray(layoutAudit['contentMeasurements']), 'Actual text measurements are missing from the reopened audit');
+  assert.ok(Array.isArray(layoutAudit['semanticNodes']), 'Actual semantic bounds are missing from the reopened audit');
+  record(layoutAudit['assetBounds']);
+}
+
 async function captureExportUi(frame: FrameLocator, page: Page): Promise<RecordValue> {
   const button = frame.getByRole('button', { name: 'Export selected' });
   await button.waitFor({ timeout: 30_000 });
@@ -558,7 +607,7 @@ export async function runRealPenpotPersistence(): Promise<void> {
   receipt['saveHttpResponses'] = saveHttpResponses;
   receipt['fontResponses'] = fontResponses;
   receipt['fontCanvasBufferRegistrationVerified'] = false;
-  const watchFonts = (target: BrowserContext): void => {
+  const watchFonts = (target: BrowserContext, captureContext: string): void => {
     target.on('response', (response) => {
       const url = response.url();
       const candidate = /\/internal\/gfonts\/(font|css)|\/assets\/by-id\/|fonts\.gstatic\.com|noto.*\.(woff2?|ttf|otf)/i.test(url)
@@ -573,10 +622,10 @@ export async function runRealPenpotPersistence(): Promise<void> {
           if (!font && /\/assets\/by-id\//.test(url)) return;
           const file = `font-http-response-${fontResponses.length + 1}-${randomUUID()}.bin`;
           await writeFile(resolve(output, file), bytes);
-          fontResponses.push({ url, httpStatus: response.status(), contentType: response.headers()['content-type'],
+          fontResponses.push({ captureContext, url, httpStatus: response.status(), contentType: response.headers()['content-type'],
             resourceType: response.request().resourceType(), byteLength: bytes.length, fontMagicDetected: font,
             sha256: sha256(bytes), responseFile: file });
-        } catch (fontError) { fontResponses.push({ url, error: String(fontError) }); }
+        } catch (fontError) { fontResponses.push({ captureContext, url, error: String(fontError) }); }
       })();
       fontPending.add(pending);
       void pending.finally(() => fontPending.delete(pending));
@@ -753,7 +802,7 @@ export async function runRealPenpotPersistence(): Promise<void> {
     const contextOptions = { acceptDownloads: true, serviceWorkers: 'block' as const,
       viewport: { width: 1920, height: 1200 }, locale: 'en-US' };
     context = await browser.newContext({ ...contextOptions, storageState: initialAuthentication });
-    watchFonts(context);
+    watchFonts(context, 'initial-context');
     const plugin = await pluginServer(dist, bundle);
     server = plugin.server;
     receipt['pluginHost'] = plugin.host;
@@ -762,6 +811,13 @@ export async function runRealPenpotPersistence(): Promise<void> {
     assert.equal(sha256(await probe.body()), sha256(await readFile(resolve(dist, 'index.html'))));
     receipt['pluginIndexHttpVerified'] = true;
     receipt['pluginIndexResponseHeaders'] = probe.headers();
+    const uiBuildReceiptPath = process.env['PENPOT_REAL_UI_BUILD_RECEIPT'];
+    if (uiBuildReceiptPath) {
+      receipt['pluginUiBuildEvidence'] = await verifyCurrentPluginUi({
+        buildReceiptPath: artifactFile(uiBuildReceiptPath), repositoryRoot: resolve(required('ZUI_LAYOUT_REPO_ROOT')), dist,
+        host: plugin.host, indexBytes: await probe.body(), get: (url) => context!.request.get(url),
+      });
+    }
     await checkpointReceipt('plugin-host-verified');
     if (previousReceipt && previousReceiptPath) {
       const originalRevision = record(previousReceipt['initialRevision']);
@@ -839,6 +895,8 @@ export async function runRealPenpotPersistence(): Promise<void> {
       await exportButton.waitFor({ timeout: 30_000 });
       receipt['actualExportUiBeforeClick'] = await captureExportUi(reopened.frame, reopened.page);
       await checkpointReceipt('actual-export-ui-ready');
+      await capturePreviewLayoutAudit(reopened.frame, restoredMetadata[0].boardId, output, receipt);
+      await checkpointReceipt('post-reopen-layout-audit-written');
       const download = await clickAndWaitForDownload(
         () => reopened.page.waitForEvent('download', { timeout: timeoutMs }), () => observeActualExportClick(reopened.page, exportButton, output, receipt));
       const exportPath = resolve(output, 'exported.zui');
@@ -1141,12 +1199,13 @@ export async function runRealPenpotPersistence(): Promise<void> {
     await checkpointReceipt('original-context-closed');
     context = await browser.newContext({ ...contextOptions, storageState: authentication });
     await checkpointReceipt('fresh-browser-context-created');
-    watchFonts(context);
+    let activeFontCaptureContext = 'fresh-reopened-context';
+    watchFonts(context, activeFontCaptureContext);
     const reopenedProfile = await rpc(context, identity.origin, 'get-profile', {}, decode);
     assert.equal(reopenedProfile.id, profile.id);
     receipt['newAuthenticatedContext'] = true;
     await checkpointReceipt('fresh-context-authenticated');
-    const reopened = await openWorkspace(context, workspaceUrl, plugin.host, manifest, bundleSha256, pageErrors, decode,
+    let reopened = await openWorkspace(context, workspaceUrl, plugin.host, manifest, bundleSha256, pageErrors, decode,
       (page) => selectActualAssetBoard(page, metadata[0].boardId, receipt));
     // No import or review rendering is performed in this new context.
     const reloadedFile = await rpc<BackendFile>(context, identity.origin, 'get-file', { id: identity.fileId }, decode);
@@ -1166,6 +1225,8 @@ export async function runRealPenpotPersistence(): Promise<void> {
     await exportButton.waitFor({ timeout: 30_000 });
     receipt['actualExportUiBeforeClick'] = await captureExportUi(reopened.frame, reopened.page);
     await checkpointReceipt('actual-export-ui-ready');
+    await capturePreviewLayoutAudit(reopened.frame, reloadedMetadata[0].boardId, output, receipt);
+    await checkpointReceipt('post-reopen-layout-audit-written');
     const download = await clickAndWaitForDownload(
       () => reopened.page.waitForEvent('download', { timeout: timeoutMs }), () => observeActualExportClick(reopened.page, exportButton, output, receipt));
     const exportPath = resolve(output, 'exported.zui');
@@ -1205,6 +1266,38 @@ export async function runRealPenpotPersistence(): Promise<void> {
     await reopened.page.screenshot({ path: resolve(output, 'reopened-penpot.png'), fullPage: true, timeout: 30_000 });
     if (process.argv.includes('--edit-workbench-gap')) {
       assert.ok(prepared, 'A real source-owned workbench edit requires --full-workbench');
+      const postEditOutput = resolve(output, 'post-edit');
+      await mkdir(postEditOutput);
+      const editSaves: SaveEvidence[] = [];
+      const editSaveHttpResponses: RecordValue[] = [];
+      const postEdit: RecordValue = { saveAcknowledged: false, closedEditedContext: false,
+        newAuthenticatedContext: false, reopenedSameFile: false, metadataMatched: false,
+        exportSemanticMatch: false, completePostEditChainVerified: false,
+        fileId: identity.fileId, pageId: identity.pageId, boardId: reloadedMetadata[0].boardId,
+        preEditRevision: { revn: reloadedFile.revn, vern: reloadedFile.vern },
+        saveResponses: editSaves, saveHttpResponses: editSaveHttpResponses };
+      receipt['postEditPersistence'] = postEdit;
+      let editSaveError: unknown;
+      postEdit['saveCaptureConfiguration'] = await observeRealSaveHttp(reopened.page, {
+        fileId: identity.fileId, output: postEditOutput, pending: savePending, diagnostics: editSaveHttpResponses,
+        onResponse: async (response: ActualSaveHttp): Promise<void> => {
+          const saveRequest = decode(response.requestBody.toString('utf8')) as SaveRequest;
+          assert.equal(saveRequest.id, identity.fileId, 'The edited save must identify the actual file');
+          assert.equal(new URL(response.url).searchParams.get('id'), saveRequest.id);
+          assert.ok(response.httpStatus >= 200 && response.httpStatus < 300,
+            `Actual edited update-file returned HTTP ${response.httpStatus}`);
+          assert.ok(response.contentType.includes('transit+json'));
+          const revision = verifySaveResponse(decode(response.responseBody.toString('utf8')),
+            identity, reloadedFile.revn, saveRequest);
+          editSaves.push({ httpStatus: response.httpStatus, url: response.url, requestId: response.requestId,
+            responseSha256: sha256(response.responseBody), requestSha256: sha256(response.requestBody),
+            requestFile: response.requestFile, responseFile: response.responseFile, revn: revision, observedAt: Date.now() });
+          postEdit['saveAcknowledged'] = true;
+          await checkpointReceipt('post-edit-save-acknowledged');
+        },
+        onError: (error) => { editSaveError = error; },
+      });
+      await checkpointReceipt('post-edit-save-observer-ready');
       const runtime = { page: reopened.page, pluginFrame: reopened.frame,
         fileInput: reopened.frame.locator('input[type="file"][accept*=".zui"]'), statusPanel: reopened.frame.locator('.status-panel'),
         exportButton } as unknown as Parameters<typeof editWorkbenchSpacingInPenpot>[0];
@@ -1214,18 +1307,6 @@ export async function runRealPenpotPersistence(): Promise<void> {
       assert.equal(edit.identity.controlId, 'UnrealLevelEditorContent');
       receipt['workbenchEdit'] = edit;
       await reopened.page.screenshot({ path: resolve(output, 'edited-gap-penpot.png'), fullPage: true, timeout: 30_000 });
-      const editedDownload = await clickAndWaitForDownload(
-        () => reopened.page.waitForEvent('download', { timeout: timeoutMs }), () => exportButton.click());
-      const editedPath = resolve(output, 'workbench-gap-edited.penpot-export.zui');
-      await editedDownload.saveAs(editedPath);
-      assert.equal(await editedDownload.failure(), null);
-      const appliedRoot = resolve(required('ZUI_LAYOUT_REPO_ROOT'));
-      assert.equal(await readFile(sourcePath, 'utf8'), source, 'Owning source changed before real Penpot apply');
-      const applied = await applyZuiExportFileToSourceRoot({ exportedPath: editedPath,
-        sourceRootPath: resolve(required('ZUI_LAYOUT_REPO_ROOT')), outputRootPath: appliedRoot,
-        expectedSources: prepared.sourceFingerprints, expectedRootSha256: sourceSha256 });
-      const owner = 'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
-      assert.deepEqual(applied.appliedPathsBySource[owner], ['nodes.editor_content.layout.container.gap']);
       const expected = cloneZuiDocument(original);
       const target = expected.nodes?.['editor_content'];
       assert.ok(target);
@@ -1236,14 +1317,266 @@ export async function runRealPenpotPersistence(): Promise<void> {
       assert.equal(changedGap, edit.before.rowGap + 1,
         'The actual inspector edit must change the scalar owning gap by one logical pixel');
       container['gap'] = changedGap;
+      const editedShapeState = (file: BackendFile): RecordValue => {
+        const shape = record(file.data['pages-index'][identity.pageId].objects[edit.shapeId]);
+        const gap = record(shape['layout-gap']);
+        assert.equal(gap['row-gap'], edit.after.rowGap, 'Saved row gap differs from the actual inspector edit');
+        assert.equal(gap['column-gap'], edit.after.columnGap, 'Saved column gap differs from the actual inspector edit');
+        const geometry = Object.fromEntries(['x', 'y', 'width', 'height'].map((key) => {
+          assert.ok(typeof shape[key] === 'number' && Number.isFinite(shape[key]), `Saved shape has invalid ${key}`);
+          return [key, shape[key]];
+        }));
+        return { shapeId: edit.shapeId, gap, geometry };
+      };
+      let savedAfterEdit: BackendFile | undefined;
+      let savedEditMetadata: ReturnType<typeof persistedZuiMetadata> = [];
+      const editSaveDeadline = Date.now() + timeoutMs;
+      while (Date.now() < editSaveDeadline) {
+        if (editSaveError) throw editSaveError;
+        if (editSaves.length && Date.now() - editSaves[editSaves.length - 1].observedAt >= 1_500) {
+          const file = await rpc<BackendFile>(context, identity.origin, 'get-file', { id: identity.fileId }, decode);
+          const stored = persistedZuiMetadata(file, identity.pageId);
+          const acknowledgedRevision = Math.max(...editSaves.map((save) => save.revn));
+          if (file.revn >= acknowledgedRevision) {
+            // Official PNG capture clears these transient values to empty strings.
+            // All other metadata remains exact, including every reversible source field.
+            const sourceMetadata = (entries: typeof stored) => entries.map((entry) => {
+              const metadata = { ...entry.metadata };
+              for (const key of ['review-scroll-captured-x', 'review-scroll-captured-y',
+                'review-scroll-captured-positions']) {
+                if (metadata[key] === '') delete metadata[key];
+              }
+              return { ...entry, metadata };
+            });
+            verifyReopenedFile(reloadedFile, file, identity, acknowledgedRevision,
+              sourceMetadata(reloadedMetadata), sourceMetadata(stored));
+            postEdit['savedShape'] = editedShapeState(file);
+            savedAfterEdit = file;
+            savedEditMetadata = stored;
+            break;
+          }
+        }
+        await reopened.page.waitForTimeout(500);
+      }
+      assert.ok(savedAfterEdit, 'No acknowledged backend revision containing the actual edited shape was observed');
+      await Promise.all(savePending);
+      if (editSaveError) throw editSaveError;
+      postEdit['savedRevision'] = { revn: savedAfterEdit.revn, vern: savedAfterEdit.vern };
+      await writeFile(resolve(postEditOutput, 'saved-zui-metadata.json'), `${JSON.stringify(savedEditMetadata, null, 2)}\n`);
+      await checkpointReceipt('post-edit-saved-shape-verified');
+      const editedAuthentication = await context.storageState();
+      await context.close();
+      postEdit['closedEditedContext'] = true;
+      await checkpointReceipt('post-edit-context-closed');
+      context = await browser.newContext({ ...contextOptions, storageState: editedAuthentication });
+      activeFontCaptureContext = 'post-edit-fresh-reopened-context';
+      watchFonts(context, activeFontCaptureContext);
+      const editedReopenedProfile = await rpc(context, identity.origin, 'get-profile', {}, decode);
+      assert.equal(editedReopenedProfile.id, profile.id);
+      postEdit['newAuthenticatedContext'] = true;
+      reopened = await openWorkspace(context, workspaceUrl, plugin.host, manifest, bundleSha256, pageErrors, decode,
+        (page) => selectActualAssetBoard(page, reloadedMetadata[0].boardId, postEdit));
+      const editedReopenedFile = await rpc<BackendFile>(context, identity.origin, 'get-file', { id: identity.fileId }, decode);
+      const editedReopenedMetadata = persistedZuiMetadata(editedReopenedFile, identity.pageId);
+      verifyReopenedFile(savedAfterEdit, editedReopenedFile, identity,
+        Math.max(...editSaves.map((save) => save.revn)), savedEditMetadata, editedReopenedMetadata);
+      assert.equal(editedReopenedMetadata[0].boardId, reloadedMetadata[0].boardId);
+      assert.deepEqual(editedShapeState(editedReopenedFile), postEdit['savedShape'],
+        'The fresh authenticated context must reopen the same persisted edited shape and geometry');
+      postEdit['reopenedSameFile'] = true;
+      postEdit['metadataMatched'] = true;
+      postEdit['reopenedRevision'] = { revn: editedReopenedFile.revn, vern: editedReopenedFile.vern };
+      await writeFile(resolve(postEditOutput, 'reopened-zui-metadata.json'), `${JSON.stringify(editedReopenedMetadata, null, 2)}\n`);
+      await capturePreviewLayoutAudit(reopened.frame, editedReopenedMetadata[0].boardId, postEditOutput, postEdit);
+      await checkpointReceipt('post-edit-fresh-reopened-shape-verified');
+      const postExportButton = reopened.frame.getByRole('button', { name: 'Export selected' });
+      await postExportButton.waitFor({ timeout: 30_000 });
+      const editedDownload = await clickAndWaitForDownload(
+        () => reopened.page.waitForEvent('download', { timeout: timeoutMs }),
+        () => observeActualExportClick(reopened.page, postExportButton, postEditOutput, postEdit));
+      const editedPath = resolve(output, 'workbench-gap-edited.penpot-export.zui');
+      await editedDownload.saveAs(editedPath);
+      assert.equal(await editedDownload.failure(), null);
+      const editedSource = await readFile(editedPath, 'utf8');
+      const owner = 'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
+      const appliedRoot = resolve(required('ZUI_LAYOUT_REPO_ROOT'));
+      assert.ok(prepared);
+      assert.equal(prepared.sourceFingerprints.length, 20, 'Validate the complete prepared owner closure');
+      assert.equal(new Set(prepared.sourceFingerprints.map((item) => item.sourcePath)).size, 20);
+      // Trust the prepared canonical closure, never source contents claimed by the downloaded envelope.
+      const canonicalSources: Record<string, string> = Object.fromEntries(await Promise.all(
+        prepared.sourceFingerprints.map(async (fingerprint) => {
+          const canonicalSource = await readFile(resolve(appliedRoot, ...validateSourcePath(fingerprint.sourcePath)), 'utf8');
+          assert.equal(sha256(canonicalSource), fingerprint.sha256, 'Canonical source changed before no-write owner validation');
+          return [fingerprint.sourcePath, canonicalSource] as const;
+        })));
+      assert.equal(canonicalSources[owner], source, 'Validate the original owning source');
+      const sourceExportManifest = parseSourceExportManifest(parseZuiDocument(editedSource).document['penpot_source_exports']);
+      assert.equal(sourceExportManifest.rootSourcePath, owner, 'The export must retain the original root owner');
+      const planned = applyZuiExportToSourceFiles(editedSource, canonicalSources, prepared.sourceFingerprints);
+      assert.deepEqual(planned.outputs.map((item) => item.sourcePath), [owner]);
+      assert.deepEqual(planned.appliedPathsBySource, { [owner]: ['nodes.editor_content.layout.container.gap'] });
+      const projectedSources = { ...canonicalSources,
+        ...Object.fromEntries(planned.outputs.map((item) => [item.sourcePath, item.source])) };
+      for (const fingerprint of prepared.sourceFingerprints) {
+        if (fingerprint.sourcePath !== owner) {
+          assert.equal(projectedSources[fingerprint.sourcePath], canonicalSources[fingerprint.sourcePath],
+            'Every other canonical owner must remain byte exact');
+          assert.deepEqual(normalizeZuiDocument(parseZuiDocument(projectedSources[fingerprint.sourcePath]).document),
+            normalizeZuiDocument(parseZuiDocument(canonicalSources[fingerprint.sourcePath]).document));
+        }
+        assert.equal(await readFile(resolve(appliedRoot, ...validateSourcePath(fingerprint.sourcePath)), 'utf8'),
+          canonicalSources[fingerprint.sourcePath], 'No-write owner validation must preserve all canonical sources');
+      }
+      assert.deepEqual(normalizeZuiDocument(parseZuiDocument(planned.outputs[0].source).document),
+        normalizeZuiDocument(expected), 'The fresh-reopened actual export must preserve exactly the owning gap edit');
+      postEdit['sourceOwnerExportValidation'] = { ownerCount: 20, unchangedOtherOwnerCount: 19,
+        appliedPathsBySource: planned.appliedPathsBySource, filesystemWrites: false,
+        plannedRootSha256: sha256(planned.outputs[0].source) };
+      postEdit['exportSemanticMatch'] = true;
+      postEdit['exportPath'] = editedPath;
+      postEdit['exportSha256'] = sha256(editedSource);
+      await downloadActualCanvasPng(reopened.page, reopened.frame, editedReopenedMetadata[0].boardId, postEditOutput, postEdit);
+      await reopened.page.screenshot({ path: resolve(postEditOutput, 'reopened-penpot.png'), fullPage: true, timeout: 30_000 });
+      await checkpointReceipt('post-edit-official-exports-verified');
+      assert.equal(await readFile(sourcePath, 'utf8'), source, 'Owning source changed before real Penpot apply');
+      assert.equal(sha256(await readFile(editedPath)), postEdit['exportSha256'], 'Validated export changed before real Penpot apply');
+      const applied = await applyZuiExportFileToCanonicalSourceOwners({ exportedPath: editedPath,
+        sourceRootPath: appliedRoot, writableSourcePaths: [owner],
+        expectedSources: prepared.sourceFingerprints, expectedRootSha256: sourceSha256 });
+      assert.deepEqual(applied.outputs.map((item) => item.outputPath), [resolve(appliedRoot, owner)]);
+      assert.deepEqual(applied.appliedPathsBySource[owner], ['nodes.editor_content.layout.container.gap']);
       const appliedSource = await readFile(resolve(appliedRoot, owner), 'utf8');
       assert.deepEqual(normalizeZuiDocument(parseZuiDocument(appliedSource).document), normalizeZuiDocument(expected),
         'Only the owning gap may change; stable IDs, references, events, bindings and other fields must remain exact');
       receipt['editedExportPath'] = editedPath;
       receipt['editedExportSha256'] = sha256(await readFile(editedPath));
       receipt['appliedSourceRoot'] = appliedRoot;
+      receipt['appliedSourcePath'] = resolve(appliedRoot, owner);
+      receipt['appliedSourceSha256'] = sha256(appliedSource);
+      receipt['engineVerificationAfterApply'] = 'pending-new-normal-window-capture';
       receipt['sourceOwnerApplyVerified'] = true;
       receipt['protectedFieldsPreserved'] = true;
+      postEdit['completePostEditChainVerified'] = true;
+      await checkpointReceipt('post-edit-persistence-and-owner-apply-verified');
+    }
+    if (process.env['PENPOT_VERIFY_WASM_FONT_REGISTRATION'] === '1') {
+      let manifestSha256: string | null = null;
+      let registrationReceiptSha256: string | null = null;
+      let observation: RecordValue = { observationContext: activeFontCaptureContext, bridgeState: 'manifest-unavailable',
+        manifestSha256, boardTextUsage: { state: 'not-evaluated' }, faces: [] };
+      await Promise.all([...fontPending]);
+      try {
+        assert.ok(fontResourcePath, 'WASM font observation requires the source font resource manifest');
+        const manifestBytes = await readFile(fontResourcePath);
+        manifestSha256 = sha256(manifestBytes);
+        const fontManifest = JSON.parse(manifestBytes.toString('utf8')) as RecordValue;
+        assert.equal(fontManifest['schema'], 'zircon.penpot.font-resources.v1');
+        assert.ok(Array.isArray(fontManifest['selections']));
+        const registrationPath = process.env['PENPOT_REAL_FONT_REGISTRATION_RECEIPT'];
+        assert.ok(registrationPath, 'WASM font observation requires the actual exact-font registration receipt');
+        const registrationBytes = await readFile(artifactFile(registrationPath));
+        registrationReceiptSha256 = sha256(registrationBytes);
+        const registration = JSON.parse(registrationBytes.toString('utf8')) as RecordValue;
+        assert.equal(registration['schema'], 'zircon.penpot.exact-font-registration.v1');
+        assert.equal(registration['status'], 'passed');
+        assert.ok(Array.isArray(registration['faces']));
+        const registeredFaces = registration['faces'] as RecordValue[];
+        const faces: RecordValue[] = [];
+        for (const rawSelection of fontManifest['selections']) {
+          assert.ok(rawSelection && typeof rawSelection === 'object');
+          const selection = rawSelection as RecordValue;
+          const source = selection['source'] as RecordValue;
+          const engine = selection['engine'] as RecordValue;
+          const penpot = selection['penpot'] as RecordValue;
+          const fontId = penpot?.['fontId'];
+          if (typeof fontId !== 'string' || !fontId.startsWith('custom-')) continue;
+          assert.equal(typeof penpot['variantId'], 'string');
+          assert.equal(typeof source?.['weight'], 'string');
+          assert.match(String(source['weight']), /^[1-9][0-9]{0,2}$|^1000$/);
+          assert.ok(source['style'] === 'normal' || source['style'] === 'italic');
+          assert.equal(String(penpot['sfntSha256']).toLowerCase(), String(engine?.['sfntSha256']).toLowerCase());
+          const registered = registeredFaces.filter((face) =>
+            face['pluginFontId'] === fontId && face['pluginVariantId'] === penpot['variantId']);
+          assert.equal(registered.length, 1, 'Each font tuple requires one exact registration receipt face');
+          const ttf = registered[0]['ttf'] as RecordValue;
+          assert.ok(ttf && typeof ttf['assetId'] === 'string');
+          assert.match(ttf['assetId'], /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+          assert.equal(String(ttf['sha256']).toLowerCase(), String(penpot['sfntSha256']).toLowerCase());
+          const expectedFontAssetPath = '/assets/by-id/' + ttf['assetId'];
+          faces.push({ fontId, variantId: penpot['variantId'], weight: Number(source['weight']),
+            style: source['style'] === 'normal' ? 0 : 1, sourceFamily: source['family'], sourceStyle: source['style'],
+            expectedEngineAssetPath: engine['assetPath'], expectedEngineAssetSha256: engine['assetSha256'],
+            expectedSfntSha256: penpot['sfntSha256'], expectedFontAssetId: ttf['assetId'],
+            expectedFontAssetPath, expectedFontAssetUrl: new URL(expectedFontAssetPath, identity.origin).href });
+        }
+        const bridge = await reopened.page.evaluate(async (inputFaces: RecordValue[]) => {
+          const emptyRows = (state: string, ready: boolean | null) =>
+            inputFaces.map((face) => ({ ...face, queryState: state, ready, uuidWords: null, rawResult: null, stored: null }));
+          try {
+            const registry = await import(new URL('/js/shared.js', location.href).href);
+            const app = (registry as unknown as { $APP: RecordValue }).$APP;
+            const readyFn = app['$app$common$render_wasm$wasm$ready_QMARK_$$'] as (() => boolean) | undefined;
+            const uuidFn = app['$cljs$core$uuid$$'] as ((value: string) => unknown) | undefined;
+            const wordsFn = app['$app$common$uuid$get_u32$$'] as ((value: unknown) => Uint32Array) | undefined;
+            if (!readyFn || !uuidFn || !wordsFn)
+              return { state: 'bridge-member-unavailable', ready: null, faces: emptyRows('bridge-member-unavailable', null) };
+            const ready = readyFn();
+            const wasm = app['$app$common$render_wasm$wasm$internal_module$$'] as RecordValue | undefined;
+            const predicate = wasm?.['_is_font_uploaded'] as
+              ((a: number, b: number, c: number, d: number, weight: number, style: number, emoji: boolean) => unknown) | undefined;
+            const faces = inputFaces.map((face) => {
+              const uuidMatch = /^custom-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
+                .exec(String(face['fontId']));
+              if (!uuidMatch) return { ...face, queryState: 'invalid-font-id', ready, uuidWords: null, rawResult: null, stored: null };
+              try {
+                const words = wordsFn(uuidFn(uuidMatch[1]));
+                if (!(words instanceof Uint32Array) || words.length !== 4)
+                  return { ...face, queryState: 'invalid-uuid-words', ready, uuidWords: null, rawResult: null, stored: null };
+                const uuidWords = Array.from(words);
+                if (!ready) return { ...face, queryState: 'wasm-not-ready', ready, uuidWords, rawResult: null, stored: null };
+                if (!predicate) return { ...face, queryState: 'predicate-unavailable', ready, uuidWords, rawResult: null, stored: null };
+                const rawResult = predicate(words[0], words[1], words[2], words[3],
+                  Number(face['weight']), Number(face['style']), false);
+                const stored = rawResult === 1 || rawResult === true ? true
+                  : rawResult === 0 || rawResult === false ? false : null;
+                const serializableRawResult = typeof rawResult === 'number' || typeof rawResult === 'boolean'
+                  ? rawResult : String(rawResult);
+                return { ...face, queryState: stored === null ? 'invalid-result' : 'queried', ready, uuidWords,
+                  rawResult: serializableRawResult, rawResultType: typeof rawResult, stored };
+              } catch (error) {
+                return { ...face, queryState: 'tuple-query-error', ready, uuidWords: null, rawResult: null,
+                  stored: null, error: String(error) };
+              }
+            });
+            return { state: ready ? (predicate ? 'queried' : 'predicate-unavailable') : 'wasm-not-ready', ready, faces };
+          } catch (error) {
+            return { state: 'probe-error', ready: null, error: String(error),
+              faces: emptyRows('probe-error', null) };
+          }
+        }, faces);
+        await Promise.all([...fontPending]);
+        const freshContextHttpResponses = fontResponses.filter((response) =>
+          response['captureContext'] === activeFontCaptureContext);
+        const probedFaces = Array.isArray(bridge['faces']) ? bridge['faces'] as RecordValue[] : [];
+        observation = { observationContext: activeFontCaptureContext, manifestSha256, registrationReceiptSha256, bridgeState: bridge['state'],
+          wasmReady: bridge['ready'], boardTextUsage: { state: 'not-evaluated' },
+          faces: probedFaces.map((face) => {
+            const matchingHttpResponses = freshContextHttpResponses.filter((response) => {
+              if (response['httpStatus'] !== 200 || response['fontMagicDetected'] !== true
+                || String(response['sha256']).toLowerCase() !== String(face['expectedSfntSha256']).toLowerCase()) return false;
+              try { return new URL(String(response['url'])).href === face['expectedFontAssetUrl']; }
+              catch { return false; }
+            });
+            return { ...face, responseObserved: matchingHttpResponses.length > 0, matchingHttpResponses };
+          }),
+          freshContextHttpResponses };
+      } catch (error) {
+        observation = { observationContext: activeFontCaptureContext, bridgeState: 'manifest-or-probe-error',
+          manifestSha256, registrationReceiptSha256, error: String(error), boardTextUsage: { state: 'not-evaluated' }, faces: [] };
+      }
+      receipt['wasmFontRegistrations'] = observation;
+      await checkpointReceipt('wasm-font-registration-observed');
     }
     receipt['domFontStates'] = await Promise.all((context?.pages() ?? []).map(captureDomFonts));
     if (actualCaseInput)

@@ -7,16 +7,16 @@ fn review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary() {
     let lifecycle = include_str!("../../../../../script/vm/gameplay_host/lifecycle.rs");
     let navigation = include_str!("../../../../../script/vm/gameplay_host/navigation.rs");
     let transform = include_str!("../../../../../script/vm/gameplay_host/transform.rs");
-    let review_findings =
+    let _review_findings =
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let host_doc = include_str!(
+    let _host_doc = include_str!(
         "../../../../../../../docs/crates/zircon_runtime/script/vm/host/function_ledger.md"
     );
 
@@ -68,19 +68,19 @@ fn review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary() {
 fn review_f5_script_scene_system_uses_typed_errors_before_core_boundary() {
     let scene_system = include_str!("../../../../../script/vm/scene_system.rs");
     let error_owner = include_str!("../../../../../script/vm/scene_system/error.rs");
-    let review_findings =
+    let _review_findings =
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let host_reflection = include_str!(
+    let _host_reflection = include_str!(
         "../../../../../../../docs/crates/zircon_runtime/script/vm/zr_vm_host_reflection.md"
     );
-    let module_doc = include_str!(
+    let _module_doc = include_str!(
         "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
     );
 

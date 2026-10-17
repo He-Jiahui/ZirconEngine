@@ -1,0 +1,513 @@
+{
+  "schema": "zircon.source-comments.root-independent-review.v1",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R063",
+  "owner": "root",
+  "status": "independently-reviewed-and-scoped-static-validated-awaiting-ledger-and-managed-phase",
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false,
+  "reviewed_at_utc": "2026-10-16T16:29:07.396229+00:00",
+  "standard": {
+    "path": "docs/plans/source-comments/01-standard.md",
+    "sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3"
+  },
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "summary": {
+    "files": 2,
+    "changed_files": 2,
+    "unchanged_files": 0,
+    "before_bytes": 26319,
+    "after_bytes": 35341,
+    "before_lines": 801,
+    "after_lines": 924,
+    "objects": 68,
+    "members": 21,
+    "semantic_blocks": 60,
+    "control_points": 99,
+    "range_pairs": 286,
+    "insertion_blocks": 52,
+    "inserted_lines": 123,
+    "root_corrected_task_added_doc_lines": 1,
+    "deleted_original_bytes": 0,
+    "normal_tests": 5,
+    "ignored_tests": 2,
+    "assertion_macro_sites": 31,
+    "new_BUG": 0,
+    "new_TODO": 0,
+    "executed_tests": 0
+  },
+  "fixed_child": {
+    "path": "docs/plans/source-comments/reviews/R063.json",
+    "sha256": "5d23ce83e7bd5d913cefb33f14adc3f9c7eb174525d5e974a29220ce24044af2",
+    "bytes": 246036
+  },
+  "root_amendment": {
+    "path": "docs/plans/source-comments/reviews/R063-root-amendments.json",
+    "sha256": "87af0e819e9362a72a2a62a66c3303ebe787f231d194cf00f929e13ba4b36dcf",
+    "bytes": 2816
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+      "before": {
+        "sha256": "9e2746e30710c279616b9a2ba7b162c2bda79ada4f3e14c0c99c9823cc081ae6",
+        "bytes": 14605,
+        "lines": 457
+      },
+      "after": {
+        "sha256": "37bb04981b0ad8166f22a9cffbd5fdb08740ff98f9fbb3517ce4945fb11721a8",
+        "bytes": 22940,
+        "lines": 572
+      },
+      "child_final_sha256": "37bb04981b0ad8166f22a9cffbd5fdb08740ff98f9fbb3517ce4945fb11721a8",
+      "raw_HEAD_sha256": "9e2746e30710c279616b9a2ba7b162c2bda79ada4f3e14c0c99c9823cc081ae6",
+      "inverse_equals_grant_and_raw_HEAD": true,
+      "original_lines_and_EOL_preserved": true,
+      "all_added_lines_comments_or_blank": true,
+      "insertion_groups": 47,
+      "inserted_lines": 115,
+      "gapfree_block_count": 46,
+      "all_model_ranges_pass": true,
+      "range_pairs": 185,
+      "objects": 51,
+      "members": 21,
+      "source_read_complete": true,
+      "root_model_review_complete": true,
+      "immutable_model_reference": "docs/plans/source-comments/reviews/R063.json#/files/0",
+      "root_decision": "All objects/members, entry/state/downstream blocks, controls and tests independently checked; narrow documented correction linked above."
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs",
+      "before": {
+        "sha256": "06d7bb471dbf5257cf88b302697c464de890fc1878c66a7dad2a952887af905f",
+        "bytes": 11714,
+        "lines": 344
+      },
+      "after": {
+        "sha256": "e9f6256ad356802073f30743a1c8de0372a03e39c609d37d8324338ca377051b",
+        "bytes": 12401,
+        "lines": 352
+      },
+      "child_final_sha256": "5673dfba564beb0a11ef03d050bb9d37e123cf8de0a70edeaf7201520abbaef8",
+      "raw_HEAD_sha256": "06d7bb471dbf5257cf88b302697c464de890fc1878c66a7dad2a952887af905f",
+      "inverse_equals_grant_and_raw_HEAD": true,
+      "original_lines_and_EOL_preserved": true,
+      "all_added_lines_comments_or_blank": true,
+      "insertion_groups": 5,
+      "inserted_lines": 8,
+      "gapfree_block_count": 14,
+      "all_model_ranges_pass": true,
+      "range_pairs": 101,
+      "objects": 17,
+      "members": 0,
+      "source_read_complete": true,
+      "root_model_review_complete": true,
+      "immutable_model_reference": "docs/plans/source-comments/reviews/R063.json#/files/1",
+      "root_decision": "All objects/members, entry/state/downstream blocks, controls and tests independently checked; narrow documented correction linked above."
+    }
+  ],
+  "root_decisions": [
+    {
+      "scope": "模块与六种状态类型、21字段",
+      "finding": "该状态只保存由调用者提供的同一单调微秒时间域，不拥有时钟、线程、Surface或节点生命周期。Default为空，Clone独立复制Map/String，NodeId仅数值身份。查询返回保存值或受self约束的借用，不自动清理。"
+    },
+    {
+      "scope": "可见工作等待与最近tick",
+      "finding": "等待值只合并四张节点Map与intro下一采样点，排除双击候选和last_tick。无工作None、过期或相等截止Duration零；record_tick只覆盖一个字段。16ms采样是计算候选，不保证帧率。"
+    },
+    {
+      "scope": "所有arm与单节点清理入口",
+      "finding": "毫秒先饱和乘1000，起点微秒再饱和加；零延迟为起点。Map按键覆盖，String自有；不验证节点/选项/提示当前存在。清理单种计时状态，不替消费者改变Surface。"
+    },
+    {
+      "scope": "tooltip intro",
+      "finding": "唯一100ms区间在消费者确认实际可见后启动；arm_tooltip_expiration自身不启动。查询裁剪0..1且不删除；expire在deadline<=now删除。起点u64MAX使饱和截止等于起点，零区间返回1分支可达。"
+    },
+    {
+      "scope": "双击候选与调用顺序",
+      "finding": "只有一个联合target/pointer/source/button身份候选。分类deadline>=now且只读、次数饱和加1；arm最少1、固定500ms。expire用deadline<=now。相等边界取决于先清理还是先分类，不能据此推定缺陷。相同SHA的manager完整证据复用R057，tick先清理，正常dispatch先准备分类、成功后续期；fresh2f068a复核真实prepare_double_click_pointer_release/arm_double_click_from_pointer_release方法、输入click_count.max和身份原样传递。"
+    },
+    {
+      "scope": "通知borrowed arm",
+      "finding": "Occupied总更新新deadline，只有ID不同时to_owned替换；Vacant复制。相同ID保留该String存储，对应指针相等样例，不扩张为全局零分配承诺。owned/ref共享截止计算。"
+    },
+    {
+      "scope": "四个到期drain",
+      "finding": "逐张Map的单次retain遍历以deadline<=now移除；返回BTreeMap节点键序，非截止时间或插入序。首个命中按原Map.len预留，完全无到期则Vec容量零。三种String用mem::take移出，方法内不clone；不派发事件或验证当前提示身份，消费者再判断。"
+    },
+    {
+      "scope": "五个普通测试与31断言点",
+      "finding": "顺序/未到期保留、同ID存储与新deadline、不同ID替换、容量下限/无到期等均为固定状态样例。31宏点含measure_ns共享2点，不能按其多次调用重复计数；7测试入口中2ignored，实际运行均0。未覆盖的饱和、等号、全部四类空容量和目标失效不伪称测试通过。"
+    },
+    {
+      "scope": "两个ignored基准",
+      "finding": "第一个测64轮独立Vec构造、填充与释放，不调用计时器drain；增长次数是0→4→倍增模型。第二个只测tooltip取出操作，旧/新各自从fixture独立clone，clone在调用前、两个断言和结果/状态析构在计时后。17对交替顺序为9旧先/8新先，nearest-rank95在17样本取最大值，阈值不构成实际性能证据。"
+    },
+    {
+      "scope": "私有helper与保留文档",
+      "finding": "nearest_rank当前非空17样本、50/95百分位满足索引前提，不改成通用验证API；join_samples只在计时后分配打印。用途清楚的常量、test入口、私有简单helper审查后保留既有说明。"
+    },
+    {
+      "scope": "独立文档修正",
+      "finding": "只将本任务新增tests249一行改为同一初始状态的独立副本，避免暗示两种操作共用一个已变状态。原801行逐字节/EOL不变；不可变child记录保留，差异由root amendment记录。"
+    },
+    {
+      "scope": "宏、trait、动态入口与FFI",
+      "finding": "本模块仅内建派生和inherent impl，无Serde实现/注册、动态handler注册或FFI/unsafe入口。NodeId外部宏已读实际当前版本，派生排序决定Map顺序，不能把数值身份当有效树节点证明。"
+    },
+    {
+      "scope": "跨语言原文消费者",
+      "finding": "四条Rust全文谓词、容量Python的四个正则完整匹配域与22源码谓词、两个常量tooltip谓词均保持原计数/选择域且新增注释贡献0。容量另3条常量模型断言静态真。tooltip方法首个旧物理路径在101行缺失，9次读取中第1次即阻断，其两条常量谓词仅独立观察为真，实际不可达；不使用替换路径冒充输入。"
+    }
+  ],
+  "issue_review": [],
+  "reserved_issue_unused": "CR-ZCA-R063-0001",
+  "context_pins": [
+    {
+      "path": "zircon_runtime/src/ui/dispatch/mod.rs",
+      "sha256": "e67edf6c955fa4b3e71840eda052b05c41d90223048f38e79fa681c79c0b8d04",
+      "bytes": 1190,
+      "lines": 28,
+      "root_full_read_reused_from": "docs/plans/source-comments/reviews/R057-main.json",
+      "record_sha256": "a8f11bdab70705a5009c5a5f84f1ecde708747f334ee6a2f28f58161ece467ad",
+      "fresh_pin_check": "7fa6fe exit0/PID36736",
+      "purpose": "Facade/manager lifecycle, tick and dispatch/click classification/renewal, borrowed toast queue and actual state tests."
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/mod.rs",
+      "sha256": "34e208ea2439c40f95e9da698d4c02ab4e32ed1ad283675386e49d5fbf8250f1",
+      "bytes": 1575,
+      "lines": 42,
+      "root_full_read_reused_from": "docs/plans/source-comments/reviews/R057-main.json",
+      "record_sha256": "a8f11bdab70705a5009c5a5f84f1ecde708747f334ee6a2f28f58161ece467ad",
+      "fresh_pin_check": "7fa6fe exit0/PID36736",
+      "purpose": "Facade/manager lifecycle, tick and dispatch/click classification/renewal, borrowed toast queue and actual state tests."
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "sha256": "53f765ce0479c1f1775cc62e853251ca65fd7c1d94e1527f3305a761b71332f3",
+      "bytes": 31169,
+      "lines": 796,
+      "root_full_read_reused_from": "docs/plans/source-comments/reviews/R057-main.json",
+      "record_sha256": "a8f11bdab70705a5009c5a5f84f1ecde708747f334ee6a2f28f58161ece467ad",
+      "fresh_pin_check": "7fa6fe exit0/PID36736",
+      "purpose": "Facade/manager lifecycle, tick and dispatch/click classification/renewal, borrowed toast queue and actual state tests."
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager/toast_timer_queue.rs",
+      "sha256": "6fd354151cde36e9be0f8158374b951a5dccb2643aaeafa443028127bc22220d",
+      "bytes": 3635,
+      "lines": 99,
+      "root_full_read_reused_from": "docs/plans/source-comments/reviews/R057-main.json",
+      "record_sha256": "a8f11bdab70705a5009c5a5f84f1ecde708747f334ee6a2f28f58161ece467ad",
+      "fresh_pin_check": "7fa6fe exit0/PID36736",
+      "purpose": "Facade/manager lifecycle, tick and dispatch/click classification/renewal, borrowed toast queue and actual state tests."
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/cases.rs",
+      "sha256": "ddd230fde5e32a88c854fa661157b97dd9cc44d70fcf75e1a65c0c57c5fca74c",
+      "bytes": 21114,
+      "lines": 621,
+      "root_full_read_reused_from": "docs/plans/source-comments/reviews/R057-main.json",
+      "record_sha256": "a8f11bdab70705a5009c5a5f84f1ecde708747f334ee6a2f28f58161ece467ad",
+      "fresh_pin_check": "7fa6fe exit0/PID36736",
+      "purpose": "Facade/manager lifecycle, tick and dispatch/click classification/renewal, borrowed toast queue and actual state tests."
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/toast_timer_queue.rs",
+      "sha256": "68efff9d862a7c906d87f543b61659fea64e7125044c0d2a2c1a4ed35a4106b7",
+      "bytes": 2264,
+      "lines": 60,
+      "root_full_read_reused_from": "docs/plans/source-comments/reviews/R057-main.json",
+      "record_sha256": "a8f11bdab70705a5009c5a5f84f1ecde708747f334ee6a2f28f58161ece467ad",
+      "fresh_pin_check": "7fa6fe exit0/PID36736",
+      "purpose": "Facade/manager lifecycle, tick and dispatch/click classification/renewal, borrowed toast queue and actual state tests."
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/dispatch/input/metadata.rs",
+      "sha256": "22a9068825dce3e6fe02af8df0801d7ae5a30a657f86f2c564e9e4edb5124d6c",
+      "bytes": 3869,
+      "lines": 135,
+      "root_read_spans": [
+        [
+          60,
+          108
+        ]
+      ],
+      "receipt": "136e64 exit0/PID6612",
+      "purpose": "Monotonic microsecond u64 DTO; no validation by constructor.",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/surface/default_interactions/timers.rs",
+      "sha256": "645fcbd910f42a5392de83f1ea2258baceead2b3953c2c0cd4b57286eaabed30",
+      "bytes": 5196,
+      "lines": 160,
+      "root_read_spans": [
+        [
+          1,
+          80
+        ]
+      ],
+      "receipt": "136e64 exit0/PID6612",
+      "purpose": "Default tooltip delay and live-node/config checks before arming; different raw-source domain from R063.",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/ui/retained/dispatch/templates/workbench/icon_tooltip.rs",
+      "sha256": "b8cec88c728db549410209b7285c177f3ee181c8477264ac949e8a5e9526c6d9",
+      "bytes": 20060,
+      "lines": 555,
+      "root_read_spans": [
+        [
+          111,
+          132
+        ],
+        [
+          198,
+          211
+        ],
+        [
+          225,
+          239
+        ]
+      ],
+      "receipt": "136e64 exit0/PID6612",
+      "purpose": "Editor forwards visible-frame delay and selects tooltip delay defaults.",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/event_ui/reflection.rs",
+      "sha256": "e91dfe9b80eabee8e63e0106b9ae983dc22052b46d82d375874d9a974ad80de7",
+      "bytes": 24164,
+      "lines": 673,
+      "root_read_spans": [
+        [
+          1,
+          85
+        ]
+      ],
+      "receipt": "136e64 exit0/PID6612",
+      "purpose": "Actual current UiNodeId macro/derives and raw numeric identity; child older context pin superseded by R064 task comments.",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_surface_default_interactions.rs",
+      "sha256": "a0ed5ecd0c674937c88286839fa8f1f07b34168a1474fa0f6d5847912c5cc9af",
+      "bytes": 5261,
+      "lines": 118,
+      "root_read_spans": [
+        [
+          1,
+          118
+        ]
+      ],
+      "receipt": "136e64 exit0/PID6612",
+      "purpose": "Locator false positive: reads surface-side timers, not either R063 source.",
+      "formal_coverage": false
+    },
+    {
+      "path": "tools/tests/test_runtime_input_timer_drain_capacity_performance_contract.py",
+      "sha256": "608945c7adc5b6027030a4c9c31fd682af3b708cec845e5d3ed1681633d2a1b6",
+      "bytes": 2139,
+      "lines": 54,
+      "root_read_spans": [
+        [
+          1,
+          54
+        ]
+      ],
+      "full_read_receipt": "fae250/native48310->32be1d exit0/PID4000",
+      "raw_predicate_receipt": "4ba183 exit0/PID36376",
+      "purpose": "Complete original source-string consumer; no unittest execution, no formal coverage claim.",
+      "formal_coverage": false
+    },
+    {
+      "path": "tools/tests/test_editor_zui_runtime_tooltip_contract.py",
+      "sha256": "52d057150d2598577aa3591ea10c1c29f979b56014a610af7de1aaf7d0b8a46a",
+      "bytes": 13568,
+      "lines": 285,
+      "root_read_spans": [
+        [
+          1,
+          285
+        ]
+      ],
+      "full_read_receipt": "fae250/native48310->32be1d exit0/PID4000",
+      "raw_predicate_receipt": "4ba183 exit0/PID36376",
+      "purpose": "Complete original source-string consumer; no unittest execution, no formal coverage claim.",
+      "formal_coverage": false
+    }
+  ],
+  "command_receipts": {
+    "source_full_root_reads": [
+      "3ac730/native81629->279214 exit0/PID7920 timer572L; stored native output was intact before outward view truncation",
+      "24d9d5 exit0/PID11416 tests352L"
+    ],
+    "models": [
+      "ae0864/native38318->1d01fc exit0/PID25524 full native output truncated;51primary objects+21members recovered from complete prefix only",
+      "750cff exit0/PID19248 complete46primary blocks67controls",
+      "a55f5a/native72540->af8329 exit0/PID36224 complete17test objects14blocks32controls7testcontracts31assertions and actual R057 sources schema"
+    ],
+    "doc_amendment": "821d48 exit0/PID30036",
+    "validation": "d0fe6c/native82152->73edc5 exit0/PID34960",
+    "bounded_range_summary": "fae250/native48310->32be1d exit0/PID4000",
+    "expanded_python_raw_guards": "4ba183 exit0/PID36376",
+    "fresh_context": "136e64 exit0/PID6612",
+    "prior_root_source_reuse_pin_check": "7fa6fe exit0/PID36736",
+    "actual_manager_click_helpers": "2f068a exit0/PID10144",
+    "advisor": {
+      "agent": "core_timer_sol",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "max",
+      "full_source_reads": [
+        "efe1ad",
+        "b1ab89",
+        "b78fa2"
+      ],
+      "context_consumers": [
+        "af7442",
+        "f27d4d",
+        "c2e8db",
+        "bc239d"
+      ],
+      "last_context": "1533b3 exit0",
+      "final_source_readback": "e3e94c exit0; PID not supplied",
+      "conclusion": "Only test249 new-doc ambiguity, corrected; no proved new BUG; no source or metadata writes."
+    }
+  },
+  "validation": {
+    "actual_receipt": "d0fe6c/native82152->73edc5 exit0/PID34960",
+    "all_original_bytes_and_EOL_comments_code_API_strings_assertions_macro_inputs_preserved": true,
+    "all286_model_ranges_original_bytes_preserved": true,
+    "all60_blocks_gapfree_original_source": true,
+    "format_affected_test": {
+      "argv": [
+        "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "format_timer_same_source_reuse": {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+      "sha256": "37bb04981b0ad8166f22a9cffbd5fdb08740ff98f9fbb3517ce4945fb11721a8",
+      "actual_prior": "d35f15/native51929->91b2e0 exit0/PID2468 exact2 fmt0",
+      "same_source_and_config": true
+    },
+    "patch": {
+      "sha256": "979c62e2f504169f282bd91c113a565787e86adc387a60a85a7fe33784fbcc5c",
+      "bytes": 19005,
+      "stderr_reused_from_command_index": 1
+    },
+    "change_guard": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "979c62e2f504169f282bd91c113a565787e86adc387a60a85a7fe33784fbcc5c",
+        "base": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+        "files": [
+          "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+          "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs"
+        ],
+        "declaredPaths": [
+          "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+          "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": []
+    },
+    "rust_raw4": {
+      "domain": "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+      "consumer": "zircon_runtime/src/ui/dispatch/input_manager/timers/tests/retain_drain_tests.rs",
+      "read": "Rust include_str complete UTF8 source; comments included",
+      "needles": [
+        ".retain(",
+        "for target in &expired",
+        "for (target, _) in &expired",
+        "std::mem::take("
+      ],
+      "before_counts": [
+        4,
+        0,
+        0,
+        3
+      ],
+      "after_counts": [
+        4,
+        0,
+        0,
+        3
+      ],
+      "complete_predicates": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "new_comment_contributions": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rust_test_execution": "not-run"
+    },
+    "executed_tests": 0
+  },
+  "external_python_summary": {
+    "capacity_static_true": 25,
+    "tooltip_independently_true_but_blocked": 2,
+    "new_comment_operand_contribution": 0,
+    "unittest_run": false
+  },
+  "limitations": [
+    "Tests and benchmarks not run; scoped static evidence is not formal acceptance.",
+    "Validation native73edc5 returned exit0 but its middle range list was truncated; complete suffix commands/guard were recovered, all286 ranges independently rechecked in bounded32be1d and reconstructed here with the exact same digests.",
+    "Readonly schema failure3cd661 exit1 used nonexistent R057 files key before final buffered print; no model read counted; actual R057 sources structure recovered.",
+    "Default rg exact-path locator in32be1d respected ignore rules and returned1; hidden/no-ignore locator4ba183 found the two actual Python consumers.",
+    "Core advisor first child/overwide filename output truncated and two guessed source-size paths returned2; not used as full coverage. Actual surface-side guard read by root is a separate input.",
+    "Git reports future LF->CRLF conversion; physical source LF and every original byte were checked unchanged.",
+    "Unknown foreign writers and existing index.lock preserved; no lock ownership, profile enforcement or managed acceptance inferred."
+  ],
+  "writer_lifecycle": {
+    "actual_source_writer_terminal_known": true,
+    "child_fixed_agent_processes_known_terminal": true,
+    "root_doc_writer_terminal_known": true,
+    "validation_actual_terminal_known": true,
+    "metadata_writer_pid": 33824,
+    "metadata_terminal_receipt": "To be reconciled from actual tool result after this write and independent fixed readback, before ledger.",
+    "formal_acceptance": false,
+    "phase_commit": false,
+    "wecom_notification": false
+  },
+  "cleanup": {
+    "temporary_helpers": 0,
+    "source_copies": 0,
+    "deleted_files": 0,
+    "released_bytes": 0,
+    "retained": "Fixed child/amendment/main/post, scoped source evidence and necessary failure/async receipt evidence."
+  }
+}

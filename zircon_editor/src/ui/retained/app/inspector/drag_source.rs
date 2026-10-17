@@ -48,7 +48,15 @@ impl RetainedEditorHost {
         self.active_asset_drag_payload = None;
         self.retire_hierarchy_drag();
         self.focus_callback_source_window();
-        self.active_object_drag_payload = (match self.object_drag_payload_from_selected_inspector() { Ok(value) => value, Err(error) => { self.active_object_drag_payload = None; self.set_status_line(error.to_string()); return; } });
+        self.active_object_drag_payload = (match self.object_drag_payload_from_selected_inspector()
+        {
+            Ok(value) => value,
+            Err(error) => {
+                self.active_object_drag_payload = None;
+                self.set_status_line(error.to_string());
+                return;
+            }
+        });
         if let Some(summary) = self
             .active_object_drag_payload
             .as_ref()
@@ -58,7 +66,9 @@ impl RetainedEditorHost {
         }
     }
 
-    fn object_drag_payload_from_selected_inspector(&self) -> Result<Option<UiDragPayload>, crate::ui::host::EditorError> {
+    fn object_drag_payload_from_selected_inspector(
+        &self,
+    ) -> Result<Option<UiDragPayload>, crate::ui::host::EditorError> {
         let Some(inspector) = self.runtime.editor_snapshot()?.inspector else {
             return Ok(None);
         };

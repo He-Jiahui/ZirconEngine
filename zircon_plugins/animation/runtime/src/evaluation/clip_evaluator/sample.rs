@@ -10,7 +10,7 @@ use zircon_runtime::core::framework::animation::{
 };
 use zircon_runtime::core::math::{Quat, Real, Transform, Vec3};
 
-use crate::{CompiledAnimationClip, PoseBuffer, PosePool, SkeletonTargetTable};
+use crate::{CompiledAnimationClip, PoseBuffer, PoseBufferError, PosePool, SkeletonTargetTable};
 
 use super::cache::{CachedClip, CachedSkeleton};
 use super::channel_sample::sample_channel;
@@ -229,7 +229,7 @@ fn sample_compiled_pose(
                 sampled_vec3(value, track_index, AnimationTransformChannel::Translation)?;
         }
         if let Some(value) = sample_channel(track.rotation(), sample_time) {
-            transform.rotation = sampled_rotation(value, track_index)?;
+            transform.rotation = sampled_rotation(value, track_index, bone_index)?;
         }
         if let Some(value) = sample_channel(track.scale(), sample_time) {
             transform.scale = sampled_vec3(value, track_index, AnimationTransformChannel::Scale)?;
@@ -278,6 +278,7 @@ fn sampled_vec3(
 fn sampled_rotation(
     value: AnimationChannelValueAsset,
     track_index: usize,
+    bone_index: usize,
 ) -> Result<Quat, AnimationEvaluationError> {
     let AnimationChannelValueAsset::Quaternion(value) = value else {
         return Err(AnimationEvaluationError::ValidatedChannelTypeMismatch {
@@ -286,9 +287,21 @@ fn sampled_rotation(
         });
     };
     let value = Quat::from_array(value);
-    debug_assert!(value.is_finite());
-    debug_assert!(value.length_squared() > Real::EPSILON);
-    Ok(value.normalize())
+    let length_squared = value.length_squared();
+    if !value.is_finite() || !length_squared.is_finite() {
+        return Err(PoseBufferError::NonFiniteTransform { index: bone_index }.into());
+    }
+    if length_squared <= Real::EPSILON {
+        return Err(PoseBufferError::ZeroLengthRotation { index: bone_index }.into());
+    }
+    let value = value.normalize();
+    if !value.is_finite() {
+        return Err(PoseBufferError::NonFiniteTransform { index: bone_index }.into());
+    }
+    if value.length_squared() <= Real::EPSILON {
+        return Err(PoseBufferError::ZeroLengthRotation { index: bone_index }.into());
+    }
+    Ok(value)
 }
 
 #[cfg(test)]

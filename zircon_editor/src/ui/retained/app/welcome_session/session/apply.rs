@@ -171,6 +171,7 @@ impl RetainedEditorHost {
                     .map_err(|error| error.to_string())?;
                 let project_root = document.root_path.clone();
                 let default_scene = document.manifest.default_scene.clone();
+                let source_revision = document.scene_source_revision.clone();
                 let authoring_world = self
                     .editor_manager
                     .enter()
@@ -185,7 +186,11 @@ impl RetainedEditorHost {
                     .enter()
                     .map_err(crate::ui::host::EditorError::from)
                     .and_then(|manager| {
-                        manager.activate_startup_scene_document(&project_root, &default_scene)
+                        manager.activate_startup_scene_document(
+                            &project_root,
+                            &default_scene,
+                            source_revision,
+                        )
                     })
                     .map_err(|error| error.to_string())?;
                 self.runtime.bind_scene_document(scene_document);
@@ -300,6 +305,7 @@ impl RetainedEditorHost {
                             manager.activate_startup_scene_document(
                                 identity.project_root(),
                                 &scene_uri,
+                                identity.source_revision().cloned(),
                             )
                         }) {
                         Ok(document) => self.runtime.bind_scene_document(document),

@@ -60,7 +60,7 @@ impl MeshPipelineCache {
     ) -> bool {
         let error = {
             crate::profile_scope!("render", "shader_pipeline", "wgpu_pipeline_error_scope_pop");
-            pollster::block_on(error_scope.pop()).map(|error| error.to_string())
+            crate::graphics::validation_scope::finish(&self.validation_device, error_scope)
         };
         let failed = error.is_some();
         if self.pending_pipeline_creation_diagnostics.len()

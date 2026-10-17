@@ -1,4 +1,6 @@
 //! Stable math projection and versioned schema DTOs for runtime products.
+//! 稳定数学投影与版本化 schema DTO，供运行时产品和编辑器共享同一数值解释。
+//! 具体算法由 `zr_math` 提供；本模块固定产品层 schema、重导出运算 API 与测试挂载。
 
 #[path = "math/schema.rs"]
 mod schema;

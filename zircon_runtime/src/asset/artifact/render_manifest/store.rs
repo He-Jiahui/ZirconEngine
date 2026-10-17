@@ -1,3 +1,4 @@
+#[cfg(not(target_arch = "wasm32"))]
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
@@ -8,6 +9,7 @@ use zircon_runtime_interface::serialization::{
     PositionalDecodeError, PositionalEncodeError, PositionalEncoding,
 };
 
+#[cfg(feature = "native-host")]
 use crate::core::resource::io::atomic_write_new;
 use crate::core::resource::UntypedResourceHandle;
 
@@ -23,9 +25,11 @@ const RENDER_ARTIFACT_BLOCK_EXTENSION: &str = "zr-render-block";
 const RENDER_ARTIFACT_MANIFEST_EXTENSION: &str = "zr-render-manifest";
 const RENDER_ARTIFACT_MANIFEST_MAGIC: &[u8] = b"ZRRMAN01";
 
+#[cfg(feature = "native-host")]
 #[path = "store/cook_publication.rs"]
 mod cook_publication;
 
+#[cfg(feature = "native-host")]
 pub use cook_publication::{
     publish_render_artifact_cook_output, RenderArtifactCookPublicationError,
     RenderArtifactCookPublicationReport,
@@ -101,10 +105,14 @@ pub enum RenderArtifactStoreError {
 
 #[derive(Clone, Debug)]
 pub struct RenderArtifactStore {
+    #[cfg(not(target_arch = "wasm32"))]
     root: Arc<PathBuf>,
+    #[cfg(target_arch = "wasm32")]
+    root: Arc<str>,
 }
 
 impl RenderArtifactStore {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new(root: PathBuf) -> Self {
         Self {
             root: Arc::new(root),
@@ -112,6 +120,7 @@ impl RenderArtifactStore {
     }
 
     /// 发布块前验证编码大小和内容哈希；同一 content id 已存在时重新读取并校验后报告 Reused，避免把错误字节当作可复用缓存。
+    #[cfg(feature = "native-host")]
     pub fn publish_block(
         &self,
         descriptor: &RenderArtifactBlockDescriptor,
@@ -147,6 +156,7 @@ impl RenderArtifactStore {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn read_block(
         &self,
         descriptor: &RenderArtifactBlockDescriptor,
@@ -174,11 +184,13 @@ impl RenderArtifactStore {
         Ok(bytes.into())
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn block_exists(&self, content_id: RenderArtifactContentId) -> bool {
         self.block_path(content_id).is_file()
     }
 
     /// 清单发布先验证自身和每个已声明块均可读，再通过原子写入固定 resource/revision/platform 路径；已有相同清单可复用，不同内容报告冲突。
+    #[cfg(feature = "native-host")]
     pub fn publish_manifest(
         &self,
         manifest: &RenderArtifactManifest,
@@ -202,6 +214,7 @@ impl RenderArtifactStore {
         self.publish_verified_manifest(manifest, limits)
     }
 
+    #[cfg(feature = "native-host")]
     fn publish_verified_manifest(
         &self,
         manifest: &RenderArtifactManifest,
@@ -234,6 +247,7 @@ impl RenderArtifactStore {
     }
 
     /// 读取清单时先检查 magic、bincode 限制和无尾随字节，再核对清单身份与请求 key，防止路径命中但载荷属于另一 revision 或平台。
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn read_manifest(
         &self,
         resource: UntypedResourceHandle,
@@ -259,6 +273,7 @@ impl RenderArtifactStore {
         Ok(manifest)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn block_path(&self, content_id: RenderArtifactContentId) -> PathBuf {
         let hash = content_id_hex(content_id);
         self.root
@@ -268,6 +283,7 @@ impl RenderArtifactStore {
             .join(format!("{hash}.{RENDER_ARTIFACT_BLOCK_EXTENSION}"))
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn manifest_path(
         &self,
         resource: UntypedResourceHandle,
@@ -290,6 +306,7 @@ impl RenderArtifactStore {
     }
 }
 
+#[cfg(feature = "native-host")]
 fn serialize_manifest(
     manifest: &RenderArtifactManifest,
     limits: RenderArtifactStoreLimits,
@@ -315,6 +332,7 @@ fn serialize_manifest(
     Ok(payload)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn read_bounded_file(
     path: &Path,
     limit: u64,
@@ -375,3 +393,7 @@ fn content_id_hex(content_id: RenderArtifactContentId) -> String {
 #[cfg(test)]
 #[path = "store/tests/cases.rs"]
 mod tests;
+
+#[cfg(target_arch = "wasm32")]
+#[path = "store/web.rs"]
+mod web;

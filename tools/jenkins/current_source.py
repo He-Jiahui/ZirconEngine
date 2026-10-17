@@ -6,6 +6,7 @@ neither operation applies, compensates, or claims files in the shared checkout.
 """
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 from typing import Mapping
@@ -19,7 +20,8 @@ from .source import (PathClaim, SealedManifest, _before_hash, _thaw,
 
 
 PRODUCT_TEMPLATES = frozenset({"editor_product_development", "editor_product_shipping"})
-SOURCE_ROOT_CAPABILITY = 'same-repository-worktree-v1'
+SOURCE_ROOT_CAPABILITY = 'managed-worktree-reference-v1'
+_WORKTREE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,159}\Z")
 
 
 def validate_coverage(value: Mapping) -> dict:
@@ -76,39 +78,119 @@ def _git_selection(root: Path, paths: list[str]) -> tuple[set[str], set[str]]:
         raise JenkinsError("current_source_git_unavailable", "Cannot verify selected tracked and untracked source files") from error
 
 
-def _source_root(root: Path, value) -> Path:
-    """Admit a same-repository worktree as the byte source for this intake.
-
-    Repository identity stays bound to the canonical checkout, so a worktree may
-    supply source bytes without ever becoming the repository it is registered
-    against.  Sharing the checkout's Git common directory is what makes it the
-    same repository; a merely similar path would silently re-point the intake at
-    foreign content.  Managed worktrees live inside the checkout, so containment
-    is not evidence either way and is not tested.
-    """
-    if value in (None, ""):
+def _source_root(root: Path, value, worktree_id=None) -> Path:
+    """A noncanonical byte source must name one physical managed worktree."""
+    if value in (None, "") and worktree_id is None:
         return root
-    source = Path(value).absolute()
-    if source == root or not source.is_dir() or source.is_symlink():
-        raise JenkinsError("current_source_root_invalid",
-                           "Current source root must be a separate physical directory",
-                           details={"sourceRoot": str(source)})
-    completed = subprocess.run(["git", "-C", str(source), "rev-parse",
-                                "--path-format=absolute", "--git-common-dir"],
-                               capture_output=True, text=True, check=False)
-    if completed.returncode:
-        raise JenkinsError("current_source_root_invalid",
-                           "Current source root is not a Git worktree",
-                           details={"sourceRoot": str(source)})
-    if Path(completed.stdout.strip()).absolute() != (root / ".git"):
-        raise JenkinsError("current_source_root_mismatch",
-                           "Current source root belongs to a different repository",
-                           details={"sourceRoot": str(source)})
+    # An explicit physical canonical checkout retains the historical intent.
+    # Only a separate managed byte source needs the paired worktree identity.
+    if (worktree_id is None and isinstance(value, str) and value
+            and Path(value).is_absolute() and Path(value).absolute() == root):
+        from .deployment.driver import _plain
+        _plain(Path(value))
+        if root.resolve() != root:
+            raise JenkinsError("current_source_repository_alias", "Use the physical canonical checkout")
+        return root
+    if (not isinstance(value, str) or not value or not isinstance(worktree_id, str)
+            or not _WORKTREE_ID.fullmatch(worktree_id) or worktree_id.endswith(".")):
+        raise JenkinsError("current_source_worktree_required", "Pair sourceRoot with an explicit managed worktreeId")
+    from .deployment.driver import _plain
+    source = Path(value)
+    if not source.is_absolute():
+        raise JenkinsError("current_source_root_invalid", "Managed sourceRoot must be an absolute physical directory")
+    source = source.absolute()
+    _plain(source)
+    _plain(source / ".git")
+    if (source != root / ".jenkins/worktrees" / worktree_id
+            or source.resolve() != source or not source.is_dir()):
+        raise JenkinsError("current_source_root_invalid", "Source must be the exact direct managed worktree child")
+    def git_path(flag):
+        completed = subprocess.run(["git", "-C", str(source), "rev-parse",
+                                    "--path-format=absolute", flag],
+                                   capture_output=True, text=True, check=False)
+        if completed.returncode:
+            raise JenkinsError("current_source_root_invalid", "Managed source is not a Git worktree")
+        path = Path(completed.stdout.strip()).absolute()
+        _plain(path)
+        return path
+    if git_path("--git-common-dir") != root / ".git" or git_path("--show-toplevel") != source:
+        raise JenkinsError("current_source_root_mismatch", "Managed source has a different physical Git identity")
     return source
 
 
+def _managed_worktree(state, root, intent, reader, *, connection=None):
+    """Bind a reader to the ready row, its completed creator and active writer."""
+    source = _source_root(root, intent.get("sourceRoot"), intent.get("worktreeId"))
+    identity, reference = intent["identity"], intent["worktreeId"]
+    row = state.get("management_worktree", reference, connection=connection)
+    value = row["payload"] if row else {}
+    def require(condition, message):
+        if not condition:
+            raise JenkinsError("current_source_worktree_unproven", message)
+    require(row is not None and value.get("status") == "ready"
+            and value.get("path") == str(source)
+            and value.get("repositoryId") == identity["repositoryId"]
+            and value.get("driverDigest") == identity["stageImplementationDigest"]
+            and isinstance(intent.get("runtimeOperationId"), str) and bool(intent["runtimeOperationId"])
+            and value.get("runtimeOperationId") == intent["runtimeOperationId"]
+            and value.get("baseHead") == intent["baseHead"] == _head(source),
+            "Managed source lacks its exact ready row, runtime or Git base")
+    owned = _paths(root, value.get("ownedPaths"), "writerOwnedPaths")
+    require(owned == intent["ownedPaths"] and bool(owned)
+            and isinstance(value.get("sessionId"), str)
+            and value["sessionId"] != identity["sessionId"],
+            "The validation reader must retain a separate narrow writer identity")
+    writer = state.check_authorization(identity["repositoryId"], value["sessionId"],
+                                       "implementation", owned, connection=connection)
+    validation = state.check_authorization(identity["repositoryId"], value["sessionId"],
+                                           "validation", owned, connection=connection)
+    from .source.external_inputs import authorization_paths
+    closure = sorted(list(intent["currentHashes"]) + authorization_paths(intent.get("externalInputs", [])))
+    require(writer["actions"] == ["implementation", "validation"]
+            and sorted(writer["paths"]) == owned
+            and writer["snapshotDigest"] == validation["snapshotDigest"] == value.get("writerAuthorizationSnapshot")
+            and writer["principal"] == value.get("writerPrincipal") == reader["principal"]
+            and reader["actions"] == ["validation"] and sorted(reader["paths"]) == closure,
+            "Managed source writer or explicit validation reader authorization changed")
+    names = ("repositoryId", "sessionId", "requestId", "operationId")
+    require(all(isinstance(value.get(name), str) and value[name] for name in names),
+            "Managed source has no complete creation identity")
+    key = digest({name: value[name] for name in names})
+    operation = state.get("management_operation", key, connection=connection)
+    created = operation["payload"] if operation else {}
+    original, result = created.get("payload", {}), created.get("result", {})
+    require(operation is not None and value.get("creationOperationKey") == key
+            and created.get("phase") == "complete" and created.get("action") == "create-worktree"
+            and all(created.get(name) == value[name] for name in names[1:])
+            and all(original.get(name) == value[name] for name in names)
+            and original.get("action") == "create-worktree"
+            and original.get("driverDigest") == value["driverDigest"]
+            and original.get("runtimeOperationId") == value["runtimeOperationId"]
+            and isinstance(original.get("name"), str)
+            and value["sessionId"] + "-" + original["name"] == reference
+            and original.get("baseHead") == value["baseHead"]
+            and _paths(root, original.get("ownedPaths"), "creatorOwnedPaths") == owned
+            and created.get("inputDigest") == digest({k: v for k, v in original.items() if k != "observationOnly"})
+            and result.get("status") == "complete" and result.get("worktreeId") == reference
+            and result.get("operationKey") == key
+            and all(result.get(name) == value.get(name) for name in
+                    (*names, "path", "baseHead", "branch", "ownedPaths", "driverDigest", "runtimeOperationId",
+                     "creationOperationKey", "writerPrincipal", "writerAuthorizationSnapshot")),
+            "Managed source has no exact completed creation operation")
+    from .managed_worktree import assert_no_writer
+    assert_no_writer(state, reference, connection=connection)
+    proof = {"worktreeId": reference, "recordVersion": row["version"], "recordDigest": digest(value),
+            "creationOperationKey": key, "creationOperationVersion": operation["version"],
+            "creationOperationDigest": digest(created), "writerSessionId": value["sessionId"],
+            "writerAuthorizationSnapshot": writer["snapshotDigest"], "writerPrincipal": writer["principal"]}
+    if intent.get("worktreePreparationRef"):
+        from .managed_worktree import reader_binding
+        proof["sourcePreparation"] = reader_binding(state, root, intent, reader, connection=connection)
+    return proof
+
+
 def _verify_current(root: Path, intent: Mapping) -> None:
-    source = _source_root(root, intent.get("sourceRoot"))
+    source = _source_root(root, intent.get("sourceRoot"), intent.get("worktreeId"))
     if _head(source) != intent["baseHead"]:
         raise JenkinsError("current_source_base_changed", "Current checkout HEAD differs from its registered base")
     expected = intent["currentHashes"]
@@ -118,9 +200,11 @@ def _verify_current(root: Path, intent: Mapping) -> None:
         raise JenkinsError("current_source_untracked_mismatch", "Explicit untracked files differ from Git's selected current closure")
     for path, checksum in expected.items():
         target = source.joinpath(*path.split("/"))
-        # Relative paths are validated against the identity root; both roots
-        # share the same repository layout, so one canonical check covers both.
+        from .deployment.driver import _plain
+        _plain(target)
         canonical_path(root, path)
+        if source != root:
+            canonical_path(source, path)
         if checksum is None:
             if path not in tracked or target.exists():
                 raise JenkinsError("current_source_deletion_invalid", "Null hashes may name only absent tracked files", details={"path": path})
@@ -130,11 +214,12 @@ def _verify_current(root: Path, intent: Mapping) -> None:
             raise JenkinsError("current_source_hash_mismatch", "Current source differs from its registered hash", details={"path": path})
 
 
-def _authorize(state, intent) -> dict:
+def _authorize(state, intent, *, connection=None) -> dict:
     identity = intent["identity"]
     from .source.external_inputs import authorization_paths
     return state.check_authorization(identity["repositoryId"], identity["sessionId"],
-                                     "validation", list(intent["currentHashes"]) + authorization_paths(intent.get("externalInputs", [])))
+                                     "validation", list(intent["currentHashes"]) + authorization_paths(intent.get("externalInputs", [])),
+                                     connection=connection)
 
 
 def register_current_source(state, repo_root: Path, payload: dict, *, trusted_driver_digest: str) -> dict:
@@ -149,34 +234,56 @@ def register_current_source(state, repo_root: Path, payload: dict, *, trusted_dr
     if identity["stageImplementationDigest"] != trusted_driver_digest:
         raise JenkinsError("driver_context_mismatch", "Current source intake must use its selected sealed driver")
     hashes = _hashes(root, payload.get("currentHashes"))
-    if any(path.split("/", 1)[0] in {".git", ".codex", ".jenkins", ".opencode", "target"} for path in hashes):
-        raise JenkinsError("current_source_control_forbidden", "Product inputs cannot include checkout control or compiler output files")
+    source = _source_root(root, payload.get("sourceRoot"), payload.get("worktreeId"))
     owned = _paths(root, payload.get("ownedPaths"), "ownedPaths")
+    from .product_inputs import compiler_controls, validate_hash_paths
+    controls = compiler_controls(payload.get("compilerControlInputs"), hashes, owned, managed=source != root)
+    validate_hash_paths(hashes, controls)
     untracked = _paths(root, payload.get("untrackedPaths"), "untrackedPaths")
     if not owned or not set(owned) <= set(hashes) or not set(untracked) <= set(hashes):
         raise JenkinsError("current_source_scope_invalid", "Owned and untracked paths must be explicit subsets of the current closure")
     base = payload.get("baseHead")
     if not isinstance(base, str) or len(base) not in {40, 64} or any(c not in "0123456789abcdef" for c in base):
         raise JenkinsError("current_source_base_missing", "Current source requires an immutable Git base revision")
-    source = _source_root(root, payload.get("sourceRoot"))
     from .source.external_inputs import normalize_current
+    prepared_ref = payload.get("worktreePreparationRef")
+    if prepared_ref is not None:
+        if source == root or controls is None:
+            raise JenkinsError("managed_source_preparation_mismatch", "Prepared product inputs require the managed source pair")
+        from .managed_worktree import preparation
+        prepared = preparation(state, prepared_ref, payload["worktreeId"])["payload"]
+        external = prepared["externalInputs"]
+        if (payload.get("externalInputs") != external
+                or prepared["objectRoot"] != str(canonical_build_root(_build_root(root, payload.get("buildRoot"))).namespace())):
+            raise JenkinsError("managed_source_preparation_mismatch", "Flow must retain the frozen external closure and object domain")
+    else:
+        external = normalize_current(root, payload.get("externalInputs", []))
     supplied = {"schemaVersion": 1, "kind": "current-source", "identity": identity,
                 "repositoryRoot": str(root), "baseHead": base, "currentHashes": hashes,
                 "ownedPaths": owned, "untrackedPaths": untracked,
                 "coverage": validate_coverage(payload.get("coverage")),
                 "buildRoot": _build_root(root, payload.get("buildRoot")),
                 "runtimeOperationId": _runtime_binding(root, identity, payload),
-                "externalInputs": normalize_current(root, payload.get("externalInputs", []))}
+                "externalInputs": external}
     # Recorded only when a worktree actually supplies the bytes: an ordinary
     # checkout keeps the exact intent shape it has always had, so historical
     # currentSourceRef digests stay verifiable.
     if source != root:
-        supplied["sourceRoot"] = str(source)
+        supplied.update(sourceRoot=str(source), worktreeId=payload["worktreeId"])
+        if controls is not None:
+            supplied["compilerControlInputs"] = controls
+        if prepared_ref is not None:
+            supplied.update(worktreePreparationRef=prepared_ref,
+                            patchOperationKeys=payload.get("patchOperationKeys", []))
     slot = digest([identity[key] for key in ("repositoryId", "sessionId", "requestId")])
     with _lock(root):
         authorization = _authorize(state, supplied)
+        if source != root:
+            supplied["managedWorktree"] = _managed_worktree(state, root, supplied, authorization)
         intent = {**supplied, "authorizationSnapshot": authorization["snapshotDigest"]}
         reference = digest(intent)
+        if source != root and state.get("managed_worktree_reader_retirement", reference):
+            raise JenkinsError("current_source_reader_retired", "Reuse the worktree with a fresh reader request")
         previous = state.get("current_source_request", slot)
         if previous:
             if previous["payload"].get("currentSourceRef") != reference:
@@ -187,9 +294,17 @@ def register_current_source(state, repo_root: Path, payload: dict, *, trusted_dr
         if state.get("patch_request", slot):
             raise JenkinsError("current_source_request_conflict", "An existing patch intake cannot be adopted by current-source intake")
         _verify_current(root, intent)
-        from .source.external_inputs import verify_current as verify_external
-        verify_external(intent["externalInputs"])
+        _verify_external(state, intent)
         with state.transaction() as connection:
+            actual = _authorize(state, intent, connection=connection)
+            if actual["snapshotDigest"] != intent["authorizationSnapshot"]:
+                raise JenkinsError("current_source_authorization_changed", "Reader authorization changed before intake commit")
+            if source != root and _managed_worktree(state, root, intent, actual, connection=connection) != intent["managedWorktree"]:
+                raise JenkinsError("current_source_worktree_changed", "Managed source changed before intake commit")
+            if (state.get("current_source_request", slot, connection=connection)
+                    or state.get_request(identity["repositoryId"], identity["sessionId"], identity["requestId"], connection=connection)
+                    or state.get("patch_request", slot, connection=connection)):
+                raise JenkinsError("current_source_request_conflict", "A competing request was admitted before intake commit")
             state.put("current_source_intent", reference, intent, expected_version=0, connection=connection)
             state.put("current_source_request", slot, {"currentSourceRef": reference}, expected_version=0, connection=connection)
         return response("registered", currentSourceRef=reference, reused=False)
@@ -201,20 +316,31 @@ def _load_intent(state, root: Path, payload: dict) -> tuple[str, dict]:
     if not record or digest(record["payload"]) != reference:
         raise JenkinsError("current_source_intent_missing", "Immutable current-source intake is missing or corrupt")
     intent = record["payload"]
+    if intent.get("worktreeId") and state.get("managed_worktree_reader_retirement", reference):
+        raise JenkinsError("current_source_reader_retired", "A retired source reference cannot start or resume work")
     if intent["identity"] != _identity(payload) or intent["repositoryRoot"] != str(root.absolute()):
         raise JenkinsError("current_source_identity_mismatch", "Current-source intake belongs to another request or checkout")
-    # Re-admit the registered byte source on every load: it must still be a
-    # live worktree of this same repository, not merely the path it named once.
-    if intent.get("sourceRoot") and _source_root(root, intent["sourceRoot"]) != Path(intent["sourceRoot"]).absolute():
-        raise JenkinsError("current_source_root_changed", "Registered current-source worktree moved or changed identity")
     if payload.get("buildRoot") and _build_root(root, payload["buildRoot"]) != intent["buildRoot"]:
         raise JenkinsError("current_source_build_root_mismatch", "Current-source preparation must retain its build root")
     runtime = _runtime_binding(root, intent["identity"], payload)
     if runtime != intent.get("runtimeOperationId"):
         raise JenkinsError("current_source_runtime_mismatch", "Current-source control must retain its registered runtime operation")
-    if _authorize(state, intent)["snapshotDigest"] != intent["authorizationSnapshot"]:
+    authorization = _authorize(state, intent)
+    if authorization["snapshotDigest"] != intent["authorizationSnapshot"]:
         raise JenkinsError("current_source_authorization_changed", "Current-source authorization differs from its registered scope")
+    if intent.get("sourceRoot") or intent.get("worktreeId") is not None:
+        if _managed_worktree(state, root, intent, authorization) != intent.get("managedWorktree"):
+            raise JenkinsError("current_source_worktree_changed", "Registered managed source binding changed")
     return reference, intent
+
+
+def _verify_external(state, intent):
+    if intent.get("worktreePreparationRef"):
+        from .managed_worktree import prepared_external
+        return prepared_external(state, intent)
+    from .source.external_inputs import verify_current
+    verify_current(intent["externalInputs"])
+    return None
 
 
 def _request(intent: dict, prepared: dict) -> dict:
@@ -267,8 +393,8 @@ def prepare_current_source(state, repo_root: Path, payload: dict, *, trusted_dri
         # A partial preparation may retry these reads and CAS writes; it never
         # compensates or modifies the canonical source files.
         _verify_current(root, intent)
-        from .source.external_inputs import verify_current as verify_external, seal as seal_external
-        verify_external(intent["externalInputs"])
+        from .source.external_inputs import seal as seal_external
+        frozen_external = _verify_external(state, intent)
         claims = [PathClaim(path, identity["attemptId"] if path in intent["ownedPaths"] else "dependency",
                             0, checksum, 0, identity["repositoryId"])
                   for path, checksum in intent["currentHashes"].items()]
@@ -279,10 +405,14 @@ def prepare_current_source(state, repo_root: Path, payload: dict, *, trusted_dri
                                   source_root=intent.get("sourceRoot"))
         plain = _thaw(manifest.payload)
         plain.update(preparationKind="current-source", validationCoverageDigest=digest(intent["coverage"]),
-                     external=seal_external(intent["externalInputs"], object_root))
+                     external=(frozen_external if frozen_external is not None else
+                               seal_external(intent["externalInputs"], object_root)))
+        if intent.get("worktreePreparationRef"):
+            plain.update(worktreePreparationRef=intent["worktreePreparationRef"],
+                         compilerControlInputs=intent["compilerControlInputs"])
         manifest = SealedManifest(plain, digest(plain))
         _verify_current(root, intent)
-        verify_external(intent["externalInputs"])
+        _verify_external(state, intent)
         coverage = {**intent["coverage"], "sourceDigest": manifest.source_digest}
         coverage["coverageDigest"] = digest(coverage)
         sealed = {"status": "sealed", "repositoryRoot": str(root), "repositoryId": identity["repositoryId"],
@@ -304,7 +434,7 @@ def prepare_current_source(state, repo_root: Path, payload: dict, *, trusted_dri
                                  manifest_digest=manifest.source_digest)
         _ensure_patch_metadata(state, root, intent, sealed, policy_root=root)
         _verify_current(root, intent)
-        verify_external(intent["externalInputs"])
+        _verify_external(state, intent)
         result = response("prepared", identity={**identity, "sourceInputDigest": manifest.source_digest,
                                                  "coverageDigest": coverage["coverageDigest"]},
                           sealedInputRef=manifest.source_digest, currentSourceRef=reference,

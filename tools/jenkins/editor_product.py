@@ -139,6 +139,10 @@ def template_closure(manifest: Mapping, objects: Path) -> dict[str, str]:
 
 def mandatory_inputs(manifest: Mapping, *, shipping: bool, objects: Path) -> None:
     present = _entries(manifest)
+    if manifest.get("worktreePreparationRef"):
+        from .product_inputs import require_product_inputs
+        require_product_inputs({path: entry.get("sha256") for path, entry in present.items()},
+                               manifest.get("compilerControlInputs"))
     required = {"cargo.toml", "cargo.lock", *[name + "/cargo.toml" for name in PACKAGES],
                 "zircon_runtime/assets/fonts/default.font.toml", "zircon_runtime/assets/fonts/editor-ui.font.toml",
                 "zircon_runtime_interface/src/runtime_build_set/interface_spec_v1.json",

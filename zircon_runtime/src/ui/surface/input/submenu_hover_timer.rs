@@ -1,3 +1,6 @@
+//! 将子菜单悬停到期通知转换为当前目标的就绪报告。
+//! 输入管理器拥有计时状态；本层核对目标可用性，并把选项标识随事件保留在回执中。
+
 use zircon_runtime_interface::ui::dispatch::{
     UiDispatchPhase, UiDispatchReply, UiInputDispatchResult, UiInputEvent,
     UiSubmenuHoverTimerInputEvent,
@@ -8,6 +11,14 @@ use super::{route_policy::annotate_route_policy, route_steps::annotate_result_ro
 
 /// 消费输入管理器已到期的菜单悬停通知，再核对目标仍支持菜单交互。
 /// 本入口只发出语义组件事件，菜单模型负责实际打开对应子菜单。
+///
+/// # 参数与返回
+/// `surface` 提供当前目标和绑定；`submenu_hover` 移交拥有的通知，回执继续拥有其中的选项标识。
+/// # 调用时机与约束
+/// 统一输入入口收到悬停到期通知时调用；空选项或失效目标返回未处理回执。
+/// 就绪报告按当前目标生成，绑定查询错误折叠为空报告。
+/// # 参考
+/// 到期队列由 [`UiInputManager::tick`](crate::ui::dispatch::UiInputManager::tick) 消费。
 pub(super) fn dispatch_submenu_hover_timer_input(
     surface: &mut UiSurface,
     submenu_hover: UiSubmenuHoverTimerInputEvent,
@@ -50,6 +61,7 @@ pub(super) fn dispatch_submenu_hover_timer_input(
     with_submenu_hover_route_policy(surface, result)
 }
 
+/// 先取出可复制的目标，再将整份通知移入事件，使选项字符串的原分配随事件转移。
 fn into_submenu_hover_timer_event(
     submenu_hover: UiSubmenuHoverTimerInputEvent,
 ) -> (
@@ -62,6 +74,7 @@ fn into_submenu_hover_timer_event(
     )
 }
 
+/// 按当前表面补齐默认动作策略和步骤投影，保留已有组件报告。
 fn with_submenu_hover_route_policy(
     surface: &UiSurface,
     mut result: UiInputDispatchResult,

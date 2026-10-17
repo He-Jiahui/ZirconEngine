@@ -1,8 +1,6 @@
 use std::collections::BTreeMap;
 
-use super::super::ui_asset_editor_session::{
-    UiAssetEditorSession, UiAssetEditorSessionError, UiAssetSourceSchema,
-};
+use super::super::ui_asset_editor_session::{UiAssetEditorSession, UiAssetEditorSessionError};
 use super::{
     reconcile_selected_palette_index, v2_projection::v2_document_to_legacy_projection_document,
 };
@@ -28,28 +26,6 @@ pub(super) fn build_v2(
     let descriptors = crate::ui::template_runtime::builtin::builtin_component_descriptors()?;
     Ok(UiAssetPaletteCatalog::build(document, &reference_imports)
         .with_builtin_primitives(descriptors))
-}
-
-pub(super) fn refresh_palette_catalog(
-    session: &mut UiAssetEditorSession,
-) -> Result<(), UiAssetEditorSessionError> {
-    let visible_start = session.palette_catalog.visible_start();
-    session.palette_catalog = match session.source_schema {
-        UiAssetSourceSchema::LayoutDocument => build_layout(
-            &session.last_valid_document,
-            &session.compiler_imports.widgets,
-        ),
-        UiAssetSourceSchema::V2 => build_v2(
-            &session.last_valid_document,
-            &session.v2_compiler_imports.widgets,
-        )?,
-    };
-    session.palette_catalog.set_visible_start(visible_start);
-    #[cfg(test)]
-    {
-        session.palette_catalog_build_count += 1;
-    }
-    Ok(())
 }
 
 fn v2_palette_reference_imports(

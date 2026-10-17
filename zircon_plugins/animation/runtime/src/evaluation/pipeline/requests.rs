@@ -10,6 +10,7 @@ use zircon_runtime::scene::{AnimationStateTransitionRuntime, EntityId};
 #[derive(Clone, Debug, Default)]
 pub(super) struct AnimationSceneScan {
     pub(super) sequences: Vec<PendingSequenceSample>,
+    pub(super) event_only_clip_requires_continuous_frame: bool,
     pub(super) clip_samples: Vec<PendingPoseSample>,
     pub(super) clip_event_samples: Vec<PendingClipEventSample>,
     pub(super) graph_samples: Vec<PendingGraphPoseSample>,
@@ -26,6 +27,8 @@ pub(super) struct PendingSequenceSample {
     pub(super) entity: EntityId,
     pub(super) sequence_id: AssetId,
     pub(super) asset_revision: Option<u64>,
+    pub(super) playing: bool,
+    pub(super) playback_speed: Real,
     pub(super) time_seconds: Real,
     pub(super) looping: bool,
 }
@@ -35,6 +38,8 @@ pub(super) struct PendingPoseSample {
     pub(super) entity: EntityId,
     pub(super) skeleton_id: AssetId,
     pub(super) clip_id: AssetId,
+    pub(super) playing: bool,
+    pub(super) playback_speed: Real,
     pub(super) time_seconds: Real,
     pub(super) looping: bool,
     pub(super) source: AnimationPoseSource,
@@ -55,6 +60,7 @@ pub(super) struct PendingGraphPoseSample {
     pub(super) entity: EntityId,
     pub(super) skeleton_id: AssetId,
     pub(super) graph_id: AssetId,
+    pub(super) playing: bool,
     pub(super) parameters: AnimationParameterSet,
     pub(super) from_time_seconds: Real,
     pub(super) to_time_seconds: Real,
@@ -65,6 +71,7 @@ pub(super) struct PendingStateMachinePoseSample {
     pub(super) entity: EntityId,
     pub(super) skeleton_id: AssetId,
     pub(super) state_machine_id: AssetId,
+    pub(super) playing: bool,
     pub(super) parameters: AnimationParameterSet,
     pub(super) active_state: Option<String>,
     pub(super) from_time_seconds: Real,
@@ -86,4 +93,25 @@ impl PendingStateMachinePoseSample {
 pub(super) struct StateMachineParameterProjection<'a> {
     pub(super) revision: AnimationParameterRevision,
     pub(super) values: &'a AnimationParameterSet,
+}
+
+/// Mirrors the existing clamped playback clock without advancing it again.
+pub(super) fn playback_requires_continuous_frame(
+    playing: bool,
+    playback_speed: Real,
+    time_seconds: Real,
+    duration_seconds: Real,
+    looping: bool,
+) -> bool {
+    playing
+        && playback_speed.is_finite()
+        && playback_speed != 0.0
+        && time_seconds.is_finite()
+        && duration_seconds.is_finite()
+        && duration_seconds > Real::EPSILON
+        && if playback_speed > 0.0 {
+            looping || time_seconds < duration_seconds
+        } else {
+            time_seconds > 0.0
+        }
 }

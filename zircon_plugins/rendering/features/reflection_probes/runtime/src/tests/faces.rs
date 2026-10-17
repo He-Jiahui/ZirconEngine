@@ -8,12 +8,8 @@ fn six_capture_views_transform_to_cmft_face_axes() {
         let raw_right = camera.transform.right().to_array();
         let raw_down = (-camera.transform.up()).to_array();
         let (stored_right, stored_down) = match view.storage_transform {
-            ReflectionProbeCaptureStorageTransform::FlipHorizontal => {
-                (negate(raw_right), raw_down)
-            }
-            ReflectionProbeCaptureStorageTransform::FlipVertical => {
-                (raw_right, negate(raw_down))
-            }
+            ReflectionProbeCaptureStorageTransform::FlipHorizontal => (negate(raw_right), raw_down),
+            ReflectionProbeCaptureStorageTransform::FlipVertical => (raw_right, negate(raw_down)),
         };
         let face = view.face.cubemap_face();
         let center = cubemap_direction_from_scaled_uv(face, [0.0, 0.0]);

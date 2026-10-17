@@ -8,7 +8,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) struct StartupMan
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) editor_manager:
         ServiceHandle<EditorManager>,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) asset_change_events:
-        ChannelReceiver<AssetChange>,
+        zircon_runtime::asset::watch::AssetChangeSubscription,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) editor_asset_change_events:
         EditorAssetChangeSubscription,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) resource_change_events:

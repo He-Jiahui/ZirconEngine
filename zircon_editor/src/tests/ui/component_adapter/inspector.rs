@@ -30,7 +30,8 @@ fn inspector_component_adapter_value_changed_updates_selected_name_draft() {
     assert_eq!(
         harness
             .runtime
-            .editor_snapshot().unwrap()
+            .editor_snapshot()
+            .unwrap()
             .inspector
             .as_ref()
             .map(|inspector| inspector.name.as_str()),
@@ -65,7 +66,8 @@ fn inspector_component_adapter_commit_updates_transform_draft() {
     assert_eq!(
         harness
             .runtime
-            .editor_snapshot().unwrap()
+            .editor_snapshot()
+            .unwrap()
             .inspector
             .as_ref()
             .map(|inspector| inspector.translation[0].as_str()),
@@ -91,7 +93,8 @@ fn reflection_component_adapter_updates_selected_entity_name_draft() {
     assert_eq!(
         harness
             .runtime
-            .editor_snapshot().unwrap()
+            .editor_snapshot()
+            .unwrap()
             .inspector
             .as_ref()
             .map(|inspector| inspector.name.as_str()),
@@ -149,7 +152,12 @@ fn inspector_customization_adapter_invokes_only_enabled_declared_operation_bindi
         .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("inspector customization extension should register");
 
-    let before = harness.runtime.editor_snapshot().unwrap().scene_entries.len();
+    let before = harness
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .scene_entries
+        .len();
     let result = harness
         .runtime
         .dispatch_ui_component_adapter_event(&component_drawer_press_envelope(
@@ -165,7 +173,12 @@ fn inspector_customization_adapter_invokes_only_enabled_declared_operation_bindi
         Some("component_drawer:scene.node.create_cube")
     );
     assert_eq!(
-        harness.runtime.editor_snapshot().unwrap().scene_entries.len(),
+        harness
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .scene_entries
+            .len(),
         before + 1
     );
 
@@ -210,7 +223,12 @@ fn inspector_customization_adapter_accepts_safe_action_events_beyond_press() {
         .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect("inspector customization extension should register");
 
-    let before = harness.runtime.editor_snapshot().unwrap().scene_entries.len();
+    let before = harness
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .scene_entries
+        .len();
     let result = harness
         .runtime
         .dispatch_ui_component_adapter_event(&component_drawer_action_envelope(
@@ -225,7 +243,12 @@ fn inspector_customization_adapter_accepts_safe_action_events_beyond_press() {
 
     assert!(result.changed);
     assert_eq!(
-        harness.runtime.editor_snapshot().unwrap().scene_entries.len(),
+        harness
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .scene_entries
+            .len(),
         before + 1
     );
 

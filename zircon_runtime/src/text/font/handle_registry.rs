@@ -3,7 +3,7 @@ use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::core::framework::text::{TextFontCollectionHandle, TextFontFaceHandle};
 use crate::text::{FontFaceId, InstancedFaceId};

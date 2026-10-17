@@ -12,6 +12,7 @@ use crate::{ParticleEmitterHandle, ParticleSimulationBackend, ParticleSystemAsse
 
 use super::backend::{
     ParticleGpuBackend, ParticleGpuBackendError, ParticleGpuBackendFrameCommit, ParticleGpuBuffers,
+    ParticleGpuFragmentMaterial,
 };
 use super::neutral_buffers::ParticleGpuNeutralBuffers;
 use super::planner::{ParticleGpuFrameParams, ParticleGpuFramePlanner, ParticleGpuPlannerCommit};
@@ -80,6 +81,8 @@ pub enum ParticleGpuRuntimeOwnerError {
     Simulation(crate::ParticleSimulationError),
     MissingExecutedBackend,
     PendingFrameTransaction,
+    FrameNotEncoded,
+    FrameAlreadyEncoded,
     Poisoned,
 }
 
@@ -91,6 +94,11 @@ impl fmt::Display for ParticleGpuRuntimeOwnerError {
             Self::MissingExecutedBackend => {
                 write!(f, "particle GPU runtime owner has no executed backend")
             }
+            Self::FrameNotEncoded => write!(f, "particle GPU simulation has not been encoded"),
+            Self::FrameAlreadyEncoded => write!(
+                f,
+                "particle GPU simulation was already encoded for this transaction"
+            ),
             Self::PendingFrameTransaction => {
                 write!(
                     f,
@@ -126,12 +134,14 @@ pub struct ParticleGpuRuntimeOwner {
     pending_frame: Option<ParticleGpuRuntimePendingFrame>,
     next_frame_transaction_id: u64,
     neutral_buffers: ParticleGpuNeutralBuffers,
+    fragment_material: Option<ParticleGpuFragmentMaterial>,
 }
 
 struct ParticleGpuRuntimePendingFrame {
     transaction_id: u64,
     backend_commit: ParticleGpuBackendFrameCommit,
     state_commits: Vec<ParticleGpuRuntimeStateCommit>,
+    encoded: bool,
 }
 
 struct ParticleGpuRuntimeStateCommit {
@@ -172,6 +182,20 @@ impl ParticleGpuRuntimeOwner {
         encoder: &mut wgpu::CommandEncoder,
         instances: &[ParticleGpuRuntimeInstance],
     ) -> Result<Option<ParticleGpuRuntimeFrame>, ParticleGpuRuntimeOwnerError> {
+        let frame = self.prepare_instances_for_graph(device, buffer_uploads, instances)?;
+        if frame.is_some() {
+            self.record_prepared_simulation(encoder)?;
+        }
+        Ok(frame)
+    }
+
+    /// Prepares real resources and planner state; only the graph executor records simulation.
+    pub fn prepare_instances_for_graph(
+        &mut self,
+        device: &wgpu::Device,
+        buffer_uploads: &mut dyn RenderPassBufferUploadSink,
+        instances: &[ParticleGpuRuntimeInstance],
+    ) -> Result<Option<ParticleGpuRuntimeFrame>, ParticleGpuRuntimeOwnerError> {
         if self.pending_frame.is_some() {
             return Err(ParticleGpuRuntimeOwnerError::PendingFrameTransaction);
         }
@@ -202,7 +226,9 @@ impl ParticleGpuRuntimeOwner {
             .as_ref()
             .map_or(true, |existing| existing != &aggregate_asset);
         if aggregate_changed {
-            self.aggregate_backend = Some(ParticleGpuBackend::new(device, &aggregate_asset)?);
+            let mut backend = ParticleGpuBackend::new(device, &aggregate_asset)?;
+            backend.set_fragment_material(self.fragment_material.as_ref());
+            self.aggregate_backend = Some(backend);
             self.aggregate_asset = Some(aggregate_asset);
             self.aggregate_executed = false;
         }
@@ -213,24 +239,63 @@ impl ParticleGpuRuntimeOwner {
             .aggregate_backend
             .as_mut()
             .ok_or(ParticleGpuRuntimeOwnerError::MissingExecutedBackend)?
-            .execute_frame(
-                buffer_uploads,
-                encoder,
-                &aggregate_frame,
-                ParticleGpuReadbackRequest::None,
-            )?;
+            .prepare_frame_uploads(buffer_uploads, &aggregate_frame)?;
         self.next_frame_transaction_id = self.next_frame_transaction_id.wrapping_add(1).max(1);
         let transaction_id = self.next_frame_transaction_id;
         self.pending_frame = Some(ParticleGpuRuntimePendingFrame {
             transaction_id,
             backend_commit,
             state_commits,
+            encoded: false,
         });
 
         Ok(Some(ParticleGpuRuntimeFrame {
             outputs: readback_outputs_from_frame(aggregate_frame.expected_frame_extract()),
             transaction_id,
         }))
+    }
+
+    /// Encodes exactly once into the caller's graph encoder. Failure leaves the transaction
+    /// uncommittable, so planner time and ping-pong ownership never advance on a failed frame.
+    pub fn record_prepared_simulation(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+    ) -> Result<bool, ParticleGpuRuntimeOwnerError> {
+        let Some(pending) = self.pending_frame.as_mut() else {
+            if self.states.is_empty() {
+                return Ok(false);
+            }
+            return Err(ParticleGpuRuntimeOwnerError::FrameNotEncoded);
+        };
+        if pending.encoded {
+            return Err(ParticleGpuRuntimeOwnerError::FrameAlreadyEncoded);
+        }
+        self.aggregate_backend
+            .as_ref()
+            .ok_or(ParticleGpuRuntimeOwnerError::MissingExecutedBackend)?
+            .record_prepared_frame(
+                encoder,
+                pending.backend_commit,
+                ParticleGpuReadbackRequest::None,
+            )?;
+        pending.encoded = true;
+        Ok(true)
+    }
+
+    pub fn set_fragment_material(
+        &mut self,
+        material: Option<ParticleGpuFragmentMaterial>,
+    ) -> Result<(), ParticleGpuRuntimeOwnerError> {
+        if self.pending_frame.is_some() {
+            return Err(ParticleGpuRuntimeOwnerError::PendingFrameTransaction);
+        }
+        if self.fragment_material != material {
+            self.fragment_material = material;
+            if let Some(backend) = self.aggregate_backend.as_mut() {
+                backend.set_fragment_material(self.fragment_material.as_ref());
+            }
+        }
+        Ok(())
     }
 
     pub fn active_bindings(
@@ -261,6 +326,13 @@ impl ParticleGpuRuntimeOwner {
         params: super::ParticleGpuTransparentRenderParams,
         render_region: zircon_runtime::graphics::ViewportRenderRegion,
     ) -> Result<bool, ParticleGpuRuntimeOwnerError> {
+        if self
+            .pending_frame
+            .as_ref()
+            .is_some_and(|pending| !pending.encoded)
+        {
+            return Err(ParticleGpuRuntimeOwnerError::FrameNotEncoded);
+        }
         let prepared_output_buffer_index = self
             .pending_frame
             .as_ref()
@@ -300,6 +372,10 @@ impl ParticleGpuRuntimeOwner {
             return;
         }
 
+        if !pending.encoded {
+            // Drop the unencoded transaction without applying planner or buffer commits.
+            return;
+        }
         for state_commit in pending.state_commits {
             let Some(state) = self.states.get_mut(&state_commit.handle) else {
                 debug_assert!(

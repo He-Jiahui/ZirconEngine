@@ -3,13 +3,13 @@ use super::*;
 #[test]
 fn runtime_15_core_handle_diagnostics_lock_poison_recovery_guard_covers_diagnostic_store() {
     let diagnostics_handle = read_runtime_src("core/runtime/handle/diagnostics.rs");
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let diagnostics_doc = read_repo("docs/zircon_runtime/core/diagnostics.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
+    let _diagnostics_doc = read_repo("docs/crates/zircon_runtime/core/diagnostics.md");
 
     assert_contains_all(
         "CoreHandle diagnostics poison recovery",
@@ -21,22 +21,27 @@ fn runtime_15_core_handle_diagnostics_lock_poison_recovery_guard_covers_diagnost
             "self.lock_diagnostics().clone()",
             "self.lock_diagnostics().snapshot()",
             "self.lock_diagnostics()",
-            "core_handle_diagnostic_accessors_recover_poisoned_store_lock",
         ],
     );
     assert_no_direct_lock_unwrap_in_production("core handle diagnostics", &diagnostics_handle);
+    let recovery_tests = read_runtime_src("core/runtime/handle/tests/diagnostics.rs");
+    assert_contains_all(
+        "mounted poison recovery regression",
+        &recovery_tests,
+        &["fn core_handle_diagnostic_accessors_recover_poisoned_store_lock("],
+    );
 }
 
 #[test]
 fn runtime_15_core_handle_time_lock_poison_recovery_guard_covers_outer_time_authority() {
     let time_handle = read_runtime_src("core/runtime/handle/time.rs");
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let diagnostics_doc = read_repo("docs/zircon_runtime/core/diagnostics.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
+    let _diagnostics_doc = read_repo("docs/crates/zircon_runtime/core/diagnostics.md");
 
     assert_contains_all(
         "CoreHandle outer-time poison recovery",
@@ -49,10 +54,15 @@ fn runtime_15_core_handle_time_lock_poison_recovery_guard_covers_outer_time_auth
             "let mut time = self.lock_time();",
             "self.lock_frame_clock().tick()",
             "record_time_diagnostics(self, snapshot)",
-            "core_handle_time_accessors_recover_poisoned_outer_time_locks",
         ],
     );
     assert_no_direct_lock_unwrap_in_production("core handle time", &time_handle);
+    let recovery_tests = read_runtime_src("core/runtime/handle/tests/time.rs");
+    assert_contains_all(
+        "mounted poison recovery regression",
+        &recovery_tests,
+        &["fn core_handle_time_accessors_recover_poisoned_outer_time_locks("],
+    );
 }
 
 // TODO: [CR-RUNTIME-TESTS-STRUCT-0021] 关卡固定步进接收外层时钟快照的旧入口签名未匹配；当前缺少时钟推进链证据，需沿世界与关卡的预算交接重新核对模拟时钟归属。
@@ -111,13 +121,13 @@ fn runtime_22_core_time_hard_cut_keeps_simulation_clocks_world_owned() {
 #[test]
 fn runtime_15_core_handle_states_lock_poison_recovery_guard_covers_state_registry() {
     let states_handle = read_runtime_src("core/runtime/handle/states.rs");
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let state_doc = read_repo("docs/zircon_runtime/core/state.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
+    let _state_doc = read_repo("docs/crates/zircon_runtime/core/state.md");
 
     assert_contains_all(
         "CoreHandle states poison recovery",
@@ -126,17 +136,23 @@ fn runtime_15_core_handle_states_lock_poison_recovery_guard_covers_state_registr
             "use std::sync::MutexGuard;",
             "fn lock_states(&self) -> MutexGuard<'_, StateRegistry>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
-            "self.lock_states().init_state::<T>(T::default())",
+            "let mut states = self.lock_states();",
+            "let dispatch = states.init_state::<T>(T::default());",
             "self.lock_states().insert_state(state)",
             "self.lock_states().state::<T>()",
             "self.lock_states().next_state::<T>()",
             "self.lock_states().set_next_state(state)",
             "self.lock_states().apply_state_transition::<T>()?",
             "self.lock_states().latest_transition::<T>()",
-            "core_handle_state_accessors_recover_poisoned_state_registry_lock",
         ],
     );
     assert_no_direct_lock_unwrap_in_production("core handle states", &states_handle);
+    let recovery_tests = read_runtime_src("core/runtime/handle/tests/states.rs");
+    assert_contains_all(
+        "mounted poison recovery regression",
+        &recovery_tests,
+        &["fn core_handle_state_accessors_recover_poisoned_state_registry_lock("],
+    );
 }
 
 #[test]
@@ -147,14 +163,14 @@ fn runtime_15_core_handle_registry_lock_poison_recovery_guard_covers_registry_ac
     let resolution = read_runtime_src("core/runtime/handle/resolution.rs");
     let runtime_extensions = read_runtime_src("core/runtime/handle/runtime_extensions.rs");
     let registration_structure =
-        read_runtime_src("core/runtime/tests/registration/structure/service_count_paths.rs");
-    let runtime_15_plan =
+        read_runtime_src("core/runtime/tests/structure/service_count_paths.rs");
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let lifecycle_doc = read_repo("docs/zircon_runtime/core/runtime/lifecycle.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
+    let _lifecycle_doc = read_repo("docs/crates/zircon_runtime/core/runtime/lifecycle.md");
 
     assert_contains_all(
         "CoreHandle registry poison recovery helpers",
@@ -167,7 +183,6 @@ fn runtime_15_core_handle_registry_lock_poison_recovery_guard_covers_registry_ac
             "pub(crate) fn lock_services(&self)",
             "pub fn replace_devtools_plugin_catalog_entries(",
             "pub(crate) fn lock_runtime_module_lifecycle_observer(",
-            "core_handle_registry_accessors_recover_poisoned_runtime_locks",
         ],
     );
     assert_contains_all(
@@ -229,4 +244,10 @@ fn runtime_15_core_handle_registry_lock_poison_recovery_guard_covers_registry_ac
             "{label} production code should recover poisoned locks instead of panicking"
         );
     }
+    let recovery_tests = read_runtime_src("core/runtime/handle/tests/core_handle.rs");
+    assert_contains_all(
+        "mounted poison recovery regression",
+        &recovery_tests,
+        &["fn core_handle_registry_accessors_recover_poisoned_runtime_locks("],
+    );
 }

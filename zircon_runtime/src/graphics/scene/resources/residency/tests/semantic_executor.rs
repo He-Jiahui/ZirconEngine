@@ -124,8 +124,7 @@ fn semantic_executor_capacity_is_atomic_and_cancel_drops_manifest_ticket() {
                 RenderSceneResourceReferenceDelta::acquire(first, 1),
                 RenderSceneResourceReferenceDelta::acquire(second, 1),
             ],
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             device_epoch(51, 1),
             demand_generation(1),
         )
@@ -183,10 +182,9 @@ fn semantic_executor_capacity_is_atomic_and_cancel_drops_manifest_ticket() {
         first_ticket.id(),
         first_ticket.resource(),
         first_ticket.asset_revision(),
-        replacement_resources
-            .readiness_generation()
-            .row_identity(first.id())
-            .expect("replacement row"),
+        super::super::contract::RenderAssetResidencySourceIdentity::CandidateReadiness(
+            replacement_resources.readiness_generation().row_identity(first.id()).expect("replacement row")
+        ),
         first_ticket.demand_generation(),
         first_ticket.device(),
         first_ticket.scope(),
@@ -213,8 +211,7 @@ fn semantic_executor_advances_to_a_neutral_upload_plan_without_submitting_rhi_wo
     let mutation = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(texture, 1)],
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             device_epoch(52, 1),
             demand_generation(2),
         )
@@ -302,8 +299,7 @@ fn semantic_executor_prepare_admission_failure_requeues_the_cpu_lease() {
     let mutation = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(texture, 1)],
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             device_epoch(53, 1),
             demand_generation(3),
         )
@@ -404,8 +400,7 @@ fn semantic_executor_close_is_idempotent_and_returns_every_owned_ticket() {
     let mutation = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(texture, 1)],
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             device_epoch(54, 1),
             demand_generation(4),
         )

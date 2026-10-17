@@ -6,12 +6,23 @@ use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
 use crate::resource::{ResourceLocator, ResourceLocatorError, ResourceScheme};
 
 /// Parser-approved engine-local destination carried unchanged to the UI host.
+///
+/// 目标只经过词法规范化与资源 scheme 白名单检查，不证明资源存在、物理路径包含关系或授权。
+/// 克隆共享 `Arc` 中的定位值，不保活实际资源；Serde 使用显示字符串，读取时重新解析。
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct UiRichLinkTarget {
     locator: Arc<ResourceLocator>,
 }
 
 impl UiRichLinkTarget {
+    /// 将文本解析为受支持的引擎资源目标，不执行资源访问。
+    ///
+    /// # 参数
+    /// `value` 会先去除首尾空白；省略 scheme 时按 `res` 处理，支持 `res/lib/package/builtin`。
+    /// 输入借用不被保留，路径与可选标签由返回值持有。
+    ///
+    /// # 返回
+    /// 规范化目标，或空文本、非法定位、非允许 scheme 的错误。
     pub fn parse(value: &str) -> Result<Self, UiRichLinkTargetError> {
         let value = value.trim();
         if value.is_empty() {
@@ -31,6 +42,8 @@ impl UiRichLinkTarget {
         Self::from_locator(locator)
     }
 
+    /// 接收已有定位值，仅检查 scheme 白名单后保存其分量。
+    /// 不承诺任意分字段结构都能经显示字符串无损往返；本函数不重新解析路径文本。
     pub fn from_locator(locator: ResourceLocator) -> Result<Self, UiRichLinkTargetError> {
         if !matches!(
             locator.scheme(),
@@ -46,6 +59,7 @@ impl UiRichLinkTarget {
         })
     }
 
+    /// 借用内部定位值；引用有效期受 `self` 约束，不代表实际资源的存续或访问权。
     pub fn locator(&self) -> &ResourceLocator {
         self.locator.as_ref()
     }
@@ -55,6 +69,7 @@ impl UiRichLinkTarget {
     }
 
     /// Heap bytes retained by the canonical locator components.
+    /// 返回路径与标签的 UTF-8 字节长度之和；不计容量、Arc 控制块或分配器开销。
     pub fn retained_heap_bytes(&self) -> usize {
         self.locator
             .path()

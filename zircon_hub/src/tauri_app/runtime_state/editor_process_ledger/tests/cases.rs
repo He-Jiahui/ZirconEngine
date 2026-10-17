@@ -16,26 +16,20 @@ fn terminal_before_launch_completion_is_reconciled_once() {
     assert_eq!(terminal.target, "Game");
     assert_eq!(terminal.receipt, receipt);
     assert!(ledger.observe_terminal(exited_receipt(41, 913)).is_none());
-    assert!(
-        ledger
-            .observe_launch(EditorLaunchAttempt::new(41, 913, "Game"))
-            .is_none()
-    );
+    assert!(ledger
+        .observe_launch(EditorLaunchAttempt::new(41, 913, "Game"))
+        .is_none());
 }
 
 #[test]
 fn terminal_after_launch_completion_keeps_attempt_identity() {
     let mut ledger = EditorProcessLedger::default();
-    assert!(
-        ledger
-            .observe_launch(EditorLaunchAttempt::new(41, 913, "Old Game"))
-            .is_none()
-    );
-    assert!(
-        ledger
-            .observe_launch(EditorLaunchAttempt::new(42, 914, "New Game"))
-            .is_none()
-    );
+    assert!(ledger
+        .observe_launch(EditorLaunchAttempt::new(41, 913, "Old Game"))
+        .is_none());
+    assert!(ledger
+        .observe_launch(EditorLaunchAttempt::new(42, 914, "New Game"))
+        .is_none());
 
     let terminal = ledger
         .observe_terminal(exited_receipt(41, 913))
@@ -49,11 +43,9 @@ fn terminal_after_launch_completion_keeps_attempt_identity() {
 #[test]
 fn receipt_for_another_process_cannot_complete_attempt() {
     let mut ledger = EditorProcessLedger::default();
-    assert!(
-        ledger
-            .observe_launch(EditorLaunchAttempt::new(41, 913, "Game"))
-            .is_none()
-    );
+    assert!(ledger
+        .observe_launch(EditorLaunchAttempt::new(41, 913, "Game"))
+        .is_none());
     assert!(ledger.observe_terminal(exited_receipt(41, 914)).is_none());
     let terminal = ledger
         .observe_terminal(exited_receipt(41, 913))

@@ -51,10 +51,9 @@ pub(crate) fn to_host_contract_generated_bottom_pane_from_host_pane_with_runtime
     };
     // The adapter carries this published holder's leased actions in routes. The shared
     // converter preserves those actions, typed identity and strict Source frame binding.
-    let nodes =
-        super::super::workbench_window_projection::to_host_contract_workbench_window_nodes(
-            Some(&published.projection),
-        );
+    let nodes = super::super::workbench_window_projection::to_host_contract_workbench_window_nodes(
+        Some(&published.projection),
+    );
     let source = published.projection.source_surface_frame;
     host_contract::GeneratedBottomPaneData {
         nodes,

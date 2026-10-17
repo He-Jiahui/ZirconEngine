@@ -17,6 +17,7 @@ use crate::ui::widget::UiWidgetEvent;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 输入结果诊断的采集级别；Full 才表示请求完整路由轨迹。
 pub enum UiInputDiagnosticsMode {
     #[default]
     Summary,
@@ -24,6 +25,7 @@ pub enum UiInputDiagnosticsMode {
 }
 
 impl UiInputDiagnosticsMode {
+    /// 仅 Full 返回 true。
     pub const fn captures_full_trace(self) -> bool {
         matches!(self, Self::Full)
     }
@@ -31,6 +33,7 @@ impl UiInputDiagnosticsMode {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 结果记录的路由类别标签；它描述本次选择，不负责执行路由。
 pub enum UiInputRoutePolicy {
     #[default]
     Unrouted,
@@ -58,6 +61,7 @@ impl UiInputRoutePolicy {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
+/// 结构化记录输入派发经过的候选节点、目标、焦点路径与弹出层栈。
 pub struct UiInputRouteTrace {
     pub preview_tunnel: Vec<UiNodeId>,
     pub direct_target: Option<UiNodeId>,
@@ -71,6 +75,7 @@ pub struct UiInputRouteTrace {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
+/// 诊断内容裁剪计数；string_bytes_dropped 以字节计。
 pub struct UiInputDiagnosticsTruncationReceipt {
     pub route_nodes_dropped: u64,
     pub route_steps_dropped: u64,
@@ -80,6 +85,7 @@ pub struct UiInputDiagnosticsTruncationReceipt {
 }
 
 impl UiInputDiagnosticsTruncationReceipt {
+    /// 当所有裁剪计数都为零时返回 true。
     pub const fn is_empty(&self) -> bool {
         self.route_nodes_dropped == 0
             && self.route_steps_dropped == 0
@@ -155,6 +161,7 @@ impl UiTextInputConstraintReceipt {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
+/// 随派发结果返回的路由摘要、可选诊断回执与裁剪说明。
 pub struct UiInputDispatchDiagnostics {
     pub routed: bool,
     pub handled_phase: Option<String>,
@@ -182,12 +189,14 @@ pub struct UiInputDispatchDiagnostics {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 一条已由 Runtime 接受并应用的 effect 及其原始列表索引。
 pub struct UiDispatchAppliedEffect {
     pub effect_index: usize,
     pub effect: UiDispatchEffect,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 一条未应用的 effect、其原始列表索引与拒绝原因。
 pub struct UiDispatchRejectedEffect {
     pub effect_index: usize,
     pub effect: UiDispatchEffect,
@@ -195,6 +204,7 @@ pub struct UiDispatchRejectedEffect {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 需要交给宿主处理的输入法、剪贴板、指针锁、弹出层或链接操作。
 pub enum UiDispatchHostRequestKind {
     InputMethod(UiInputMethodRequest),
     Clipboard(UiClipboardRequest),
@@ -231,6 +241,7 @@ pub enum UiDispatchHostRequestKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 从派发 effect 派生的宿主请求，保留来源 effect 索引和原因说明。
 pub struct UiDispatchHostRequest {
     pub effect_index: usize,
     pub request: UiDispatchHostRequestKind,
@@ -253,6 +264,7 @@ pub struct UiComponentEventReport {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// Runtime 处理一个 UiInputEvent 后汇总的回复、效果、宿主请求、事件和绑定回执。
 pub struct UiInputDispatchResult {
     pub event: UiInputEvent,
     pub reply: UiDispatchReply,
@@ -278,6 +290,7 @@ pub struct UiInputDispatchResult {
 }
 
 impl UiInputDispatchResult {
+    /// 以原事件和回复建立空结果，其余可选回执与事件集合保持默认。
     pub fn new(event: UiInputEvent, reply: UiDispatchReply) -> Self {
         Self {
             event,
@@ -294,6 +307,7 @@ impl UiInputDispatchResult {
         }
     }
 
+    /// 仅在报告含更新或非零计数时保留该绑定报告。
     pub fn record_binding_report(&mut self, report: UiBindingUpdateReport) {
         if !report.updates.is_empty()
             || report.applied_count > 0

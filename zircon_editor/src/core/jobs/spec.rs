@@ -14,6 +14,7 @@ pub struct EditorJobSpec {
     pub(super) label: Arc<str>,
     pub(super) category: JobCategory,
     pub(super) priority: JobPriority,
+    pub(super) primary_progress_visible: bool,
     pub(super) mutex_group: Option<MutexGroup>,
     pub(super) cancel: CancellationToken,
     pub(super) after: Vec<JobId>,
@@ -28,6 +29,7 @@ impl EditorJobSpec {
             label: Arc::from(label.into()),
             category,
             priority: JobPriority::Normal,
+            primary_progress_visible: true,
             mutex_group: None,
             cancel: CancellationToken::default(),
             after: Vec::new(),
@@ -35,6 +37,13 @@ impl EditorJobSpec {
             admission_key: None,
             max_pending_age: None,
         }
+    }
+
+    /// Controls only the retained primary progress display; lifecycle, detailed
+    /// progress, cancellation and admission continue to include this job.
+    pub fn with_primary_progress_visible(mut self, visible: bool) -> Self {
+        self.primary_progress_visible = visible;
+        self
     }
 
     pub fn with_priority(mut self, priority: JobPriority) -> Self {

@@ -132,11 +132,14 @@ impl EditorHostEventController {
         project_asset_manager: &ProjectAssetManager,
         generation: &ProjectAssetGenerationToken,
         identity: ActiveSceneDocumentIdentity,
+        source_revision: &zircon_runtime::scene::world::SceneSourceRevision,
         authoring_world: &mut Option<AuthoringWorldSeed>,
         dirty_policy: &PreparedActiveSceneReloadDirtyPolicy,
     ) -> Result<PreparedActiveSceneReloadOutcome, String> {
         let result = {
-            let manager = self.enter_editor_manager().map_err(|error| error.to_string())?;
+            let manager = self
+                .enter_editor_manager()
+                .map_err(|error| error.to_string())?;
             let mut shell = self.shell().lock();
             let mut reloader = EditorStateActiveSceneReloader {
                 state: &mut shell.state,
@@ -145,8 +148,11 @@ impl EditorHostEventController {
                 authoring_world,
                 dirty_policy,
             };
-            SceneDocumentReloadCoordinator::new(&manager.document_lifecycle)
-                .reload(&identity, &mut reloader)
+            SceneDocumentReloadCoordinator::new(&manager.document_lifecycle).reload(
+                &identity,
+                source_revision,
+                &mut reloader,
+            )
         };
         let outcome = match result {
             Ok(SceneDocumentReloadOutcome::Reloaded { .. }) => {
@@ -193,7 +199,9 @@ impl EditorHostEventController {
     ) -> Result<SceneDocumentRouteResult, String> {
         let project_path = ticket.project_root().to_string_lossy().into_owned();
         let result = {
-            let manager = self.enter_editor_manager().map_err(|error| error.to_string())?;
+            let manager = self
+                .enter_editor_manager()
+                .map_err(|error| error.to_string())?;
             let mut shell = self.shell().lock();
             let mut installer = EditorStateSceneInstaller {
                 manager: &manager,
@@ -215,7 +223,9 @@ impl EditorHostEventController {
     ) -> Result<SceneDocumentRouteResult, String> {
         let project_path = ticket.project_root().to_string_lossy().into_owned();
         let result = {
-            let manager = self.enter_editor_manager().map_err(|error| error.to_string())?;
+            let manager = self
+                .enter_editor_manager()
+                .map_err(|error| error.to_string())?;
             let mut shell = self.shell().lock();
             let mut installer = EditorStateSceneInstaller {
                 manager: &manager,
@@ -231,7 +241,9 @@ impl EditorHostEventController {
 
     /// Captures the active session before a UI picker is shown.
     pub fn begin_scene_picker(&self) -> Result<ScenePickerTicket, String> {
-        let manager = self.enter_editor_manager().map_err(|error| error.to_string())?;
+        let manager = self
+            .enter_editor_manager()
+            .map_err(|error| error.to_string())?;
         manager
             .scene_picker_ticket()
             .map_err(|error| error.to_string())

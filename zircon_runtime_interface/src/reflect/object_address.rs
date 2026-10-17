@@ -5,6 +5,10 @@ use super::{type_path::validate_type_path, ReflectError};
 /// 反射读写请求的组件或资源目标；构造器校验类型路径，是否已注册及实例是否存在仍由 World 反射入口检查。
 ///
 /// 公开枚举变体可直接构造，且派生反序列化不重跑便利构造器的路径校验；由 World 执行目录查询时仍会检查目标是否注册。
+///
+/// # serde 线格式
+///
+/// JSON 对象以 `kind` 标识 `Component` 或 `Resource`，并将对应变体字段放在同一对象中。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum ReflectObjectAddress {

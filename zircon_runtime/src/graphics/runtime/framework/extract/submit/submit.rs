@@ -1,6 +1,6 @@
 //! 场景提取入口串起相机规划、图上下文、provider 准备、原生提交及结果登记；失败即停止后续发布。
 use std::sync::{Arc, MutexGuard};
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::core::framework::render::{
     RenderFrameExtract, RenderFrameworkError, RenderViewportHandle, UiRenderSubmission,
@@ -111,7 +111,35 @@ fn submit_selected_camera_frame(
             }
         }
     };
+    #[cfg(feature = "test-support")]
+    if let Some(override_input) = framework.take_test_compiled_pipeline_override() {
+        if override_input.viewport != viewport
+            || override_input.viewport_generation != context.viewport_generation()
+        {
+            return Err(RenderFrameworkError::UnsupportedCapability {
+                capability: "compiled virtual geometry override viewport identity changed"
+                    .to_string(),
+            });
+        }
+        context.test_support_use_compiled_pipeline(override_input.pipeline);
+        context.test_support_use_virtual_geometry_inputs(override_input.inputs);
+    }
     let mut state = framework.lock_state();
+    let reserved_generation = state.renderer.next_frame_generation();
+    context.set_virtual_geometry_readback_scope(
+        (reserved_generation == context.predicted_generation())
+            .then(|| {
+                state.viewports.get(&viewport).and_then(|record| {
+                    record.virtual_geometry_readback_scope(
+                        framework.virtual_geometry_readback_budget(),
+                        viewport,
+                        reserved_generation,
+                    )
+                })
+            })
+            .flatten(),
+    );
+
     let active_capture =
         owns_shared_viewport_products && begin_graphics_debugger_capture(&mut state, viewport);
     let prepared = {
@@ -218,6 +246,22 @@ fn submit_selected_camera_frame(
         Some(frame_generation),
         None,
     );
+    {
+        let super::super::super::render_framework_state::RenderFrameworkState {
+            renderer,
+            viewports,
+            ..
+        } = &mut *state;
+        if let Some(record) = viewports.get_mut(&viewport) {
+            record.admit_virtual_geometry_readbacks(
+                renderer,
+                viewport,
+                context.virtual_geometry_readback_scope().as_ref(),
+                context.camera_history_key(),
+                frame_generation,
+            );
+        }
+    }
     let runtime_feedback = {
         crate::profile_scope!("runtime", "render_framework", "collect_runtime_feedback");
         collect_runtime_feedback(

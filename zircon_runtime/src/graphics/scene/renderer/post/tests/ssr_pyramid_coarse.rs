@@ -1,8 +1,6 @@
 #[test]
 fn coarse_pyramid_params_have_one_producer_outside_the_mip_loop() {
-    let source = include_str!(
-        "../../../context/gpu/post/screen_space_reflection.rs"
-    );
+    let source = include_str!("../../../context/gpu/post/screen_space_reflection.rs");
     let method = source
         .split("fn record_screen_space_reflection_reflection_pyramid_coarse_to_resource")
         .nth(1)

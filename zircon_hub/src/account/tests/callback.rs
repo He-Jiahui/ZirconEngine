@@ -37,10 +37,9 @@ async fn invalid_callback_does_not_consume_the_valid_attempt() {
         .unwrap();
     assert_eq!(valid.status(), StatusCode::OK);
     assert_eq!(task.await.unwrap().unwrap().secret(), "one");
-    assert!(
-        http.get(format!("http://{address}/callback?state=expected&code=one"))
-            .send()
-            .await
-            .is_err()
-    );
+    assert!(http
+        .get(format!("http://{address}/callback?state=expected&code=one"))
+        .send()
+        .await
+        .is_err());
 }

@@ -1,6 +1,6 @@
 use super::{RetainedEditorHost, UiAssetActionDispatch};
-use crate::ui::host::EditorError;
 use crate::ui::asset_editor::UiAssetPreviewPreset;
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -37,7 +37,9 @@ impl RetainedEditorHost {
             self.editor_manager
                 .enter()
                 .map_err(EditorError::from)
-                .and_then(|manager| manager.set_ui_asset_editor_preview_preset(instance_id, preset)),
+                .and_then(|manager| {
+                    manager.set_ui_asset_editor_preview_preset(instance_id, preset)
+                }),
         )
     }
 }

@@ -12,9 +12,10 @@
     "serve": "node ../../tools/scripts/assert-managed-workspace.mjs && ng serve zircon-zui-plugin",
     "init": "node ../../tools/scripts/assert-managed-workspace.mjs && concurrently --kill-others --names plugin,serve \"pnpm run watch\" \"pnpm run serve\"",
     "lint": "eslint .",
-    "test": "node ../../tools/scripts/assert-managed-workspace.mjs && vitest run && pnpm run test:host-contract",
+    "test": "node ../../tools/scripts/assert-managed-workspace.mjs && vitest run && pnpm run test:host-contract && pnpm run test:real-ui-contract",
     "test:browser-contract": "node ../../tools/scripts/assert-managed-workspace.mjs && tsx tools/penpot-browser-canvas-contract.ts",
     "test:layout-visual": "node ../../tools/scripts/assert-managed-workspace.mjs && tsx tools/zui-layout-visual-validation.ts",
+    "test:real-ui-contract": "node ../../tools/scripts/assert-managed-workspace.mjs && node --test tools/zui-layout-real-ui.test.mjs",
     "test:host-contract": "node ../../tools/scripts/assert-managed-workspace.mjs && tsx tools/penpot-runtime-host-contract.ts"
   },
   "dependencies": {

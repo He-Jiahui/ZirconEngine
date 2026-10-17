@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::*;
 use zircon_runtime::asset::VirtualGeometryHierarchyNodeAsset;
 
@@ -129,7 +131,7 @@ fn store_cluster_keeps_all_leafs_and_selects_only_resident_matching_mip() {
         false,
         false,
     ));
-    let resident_pages = [10_u32].into_iter().collect::<BTreeSet<_>>();
+    let resident_pages = [10_u32].into_iter().collect::<HashSet<_>>();
 
     store_cluster(
         &mut traversal,

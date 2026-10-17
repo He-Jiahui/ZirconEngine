@@ -13,9 +13,7 @@ const D5_EDITOR_AUTHORING_MACRO_CRATES: &[(&str, &str, &str)] = &[
     (
         "net",
         include_str!("../../../../../zircon_plugins/net/editor/src/plugin.rs"),
-        include_str!(
-            "../../../../../zircon_plugins/net/editor/src/tests/authoring_extensions.rs"
-        ),
+        include_str!("../../../../../zircon_plugins/net/editor/src/tests/authoring_extensions.rs"),
     ),
 ];
 

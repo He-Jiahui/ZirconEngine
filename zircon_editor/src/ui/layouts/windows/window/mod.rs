@@ -50,14 +50,18 @@ pub(crate) use host_data::{
     HostWindowLayoutData, HostWindowSceneData, HostWindowShellData, HostWindowSurfaceData,
     HostWindowSurfaceMetricsData, HostWindowSurfaceOrchestrationData, InspectorPaneViewData,
     InspectorPluginComponentPropertyViewData, InspectorPluginComponentViewData,
-    ModulePluginStatusViewData, ModulePluginsPaneViewData, PaneContentSize, PaneData,
-    PaneNativeBodyData, PerformanceTimelineCaptureControlViewData,
-    PerformanceTimelineFrameRowViewData, PerformanceTimelineHotspotRowViewData,
-    PerformanceTimelinePaneViewData, PerformanceTimelineSpanRowViewData, ProjectOverviewData,
-    ProjectOverviewPaneViewData, SceneNodeData, TabData,
+    ModulePluginDetailsViewData, ModulePluginFeatureRowViewData, ModulePluginStatusViewData,
+    ModulePluginsPaneViewData, PaneContentSize, PaneData, PaneNativeBodyData,
+    PerformanceTimelineCaptureControlViewData, PerformanceTimelineFrameRowViewData,
+    PerformanceTimelineHotspotRowViewData, PerformanceTimelinePaneViewData,
+    PerformanceTimelineSpanRowViewData, ProjectOverviewData, ProjectOverviewPaneViewData,
+    SceneNodeData, TabData,
 };
 #[cfg(test)]
-pub(crate) use pane_payload::PerformanceTimelineCaptureControlPayload;
+pub(crate) use pane_payload::{
+    ModulePluginDetailsPayload, ModulePluginFeatureRowPayload, ModulePluginsPanePayload,
+    PerformanceTimelineCaptureControlPayload,
+};
 pub(crate) use pane_payload::{PanePayload, RuntimeDiagnosticsPanePayload};
 pub(crate) use pane_presentation::{
     build_pane_body_presentation, PaneActionPresentation, PaneBodyPresentation,

@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
 
-use zircon_runtime_interface::hub_protocol::{HUB_PROTOCOL_VERSION_V1, HubSessionToken};
+use zircon_runtime_interface::hub_protocol::{HubSessionToken, HUB_PROTOCOL_VERSION_V1};
 use zircon_runtime_interface::project::{
     ProjectActivationOperationId, ProjectActivationOperationIdGenerator, ProjectLaunchInstanceId,
     ProjectLaunchIntent, ProjectLaunchProfile, ProjectLaunchSource,

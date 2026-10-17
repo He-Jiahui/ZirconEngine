@@ -82,7 +82,7 @@ fn built_in_font_manifest_path_uses_the_selected_runtime_asset_root() {
     let product_asset_root = Path::new("E:/portable-product/assets");
 
     let resolved = resolve_font_asset_path_with("res://fonts/default.font.toml", |relative| {
-        product_asset_root.join(relative)
+        product_asset_root.join(relative.as_path())
     });
 
     assert_eq!(
@@ -97,7 +97,9 @@ fn production_res_font_manifest_path_uses_the_runtime_asset_resolver() {
 
     assert_eq!(
         resolve_font_asset_path(asset_ref),
-        Some(crate::asset::runtime_asset_path("fonts/default.font.toml"))
+        Some(crate::asset::runtime_asset_path(
+            &AssetRelativePath::parse("fonts/default.font.toml").unwrap()
+        ))
     );
 }
 
@@ -342,4 +344,44 @@ impl Drop for TempFileGuard {
     fn drop(&mut self) {
         let _ = fs::remove_file(&self.path);
     }
+}
+
+#[test]
+fn res_font_manifest_rejects_invalid_paths_before_runtime_resolution() {
+    for reference in [
+        "res://../default.font.toml",
+        "res://fonts/../default.font.toml",
+        "res:///fonts/default.font.toml",
+        "res://C:/fonts/default.font.toml",
+        r"res://fonts\default.font.toml",
+        "res://fonts//default.font.toml",
+        "res://fonts/./default.font.toml",
+        "res://assets/../default.font.toml",
+    ] {
+        assert_eq!(
+            resolve_font_asset_path_with(reference, |_| panic!(
+                "invalid path reached root resolver"
+            )),
+            None,
+            "{reference}"
+        );
+        assert!(
+            matches!(
+                load_text_font_source(reference, None),
+                Err(FontLoadError::InvalidAssetReference)
+            ),
+            "{reference}"
+        );
+    }
+}
+
+#[test]
+fn res_font_manifest_does_not_implicitly_strip_an_assets_segment() {
+    let root = Path::new("product/assets");
+    assert_eq!(
+        resolve_font_asset_path_with("res://assets/fonts/default.font.toml", |relative| {
+            root.join(relative.as_path())
+        }),
+        Some(root.join("assets/fonts/default.font.toml"))
+    );
 }

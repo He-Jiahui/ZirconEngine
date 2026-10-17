@@ -306,7 +306,7 @@ fn concurrent_catalog_publications_preserve_every_slot() {
                     &type_path,
                     "value",
                     "value",
-                    "f64",
+                    "Scalar",
                     ReflectEditorHint::Scalar,
                 )],
             )]);
@@ -541,7 +541,13 @@ fn newer_generation_replaces_same_slot_vm_schema_in_existing_worlds() {
                     "gameplay.Component.Armor",
                     "Armor",
                     ReflectScriptVisibility::Public,
-                    vec![scalar_field("current")],
+                    vec![ReflectFieldInfo::from_stable_keys(
+                        "tests.vm-reflection-field.armor",
+                        "current",
+                        "current",
+                        "Scalar",
+                        ReflectEditorHint::Scalar,
+                    )],
                 ),
             ]),
         )

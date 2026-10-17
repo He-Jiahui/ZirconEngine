@@ -492,3 +492,9 @@ fn render_region_covers_target(render_region: ViewportRenderRegion, target_size:
 #[cfg(test)]
 #[path = "../../tests/render_pass_execution_context.rs"]
 mod tests;
+
+pub(in crate::graphics) use gpu::{
+    VirtualGeometryNativeReadbackPacket, VirtualGeometryReadbackBudget,
+    VirtualGeometryReadbackScope, VirtualGeometryReadyReadback, VirtualGeometryTicketedReadback,
+};
+pub use gpu::{VirtualGeometryReadbackDecoder, VirtualGeometryReadbackReservation};

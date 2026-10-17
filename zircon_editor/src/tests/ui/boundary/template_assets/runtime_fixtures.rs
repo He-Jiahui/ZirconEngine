@@ -38,8 +38,7 @@ fn runtime_ui_golden_is_hard_cut_to_zui_fixtures() {
 
 #[test]
 fn runtime_fixture_host_tests_are_hard_cut_to_zui_paths() {
-    let pane_body_documents_mod =
-        source("src/tests/host/runtime/pane_body_documents/mod.rs");
+    let pane_body_documents_mod = source("src/tests/host/runtime/pane_body_documents/mod.rs");
     let pane_body_documents = format!(
         "{}\n{}\n{}",
         source("src/tests/host/runtime/pane_body_documents/support.rs"),

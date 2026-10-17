@@ -10,8 +10,7 @@ fn review_f5_animation_asset_binary_uses_typed_errors() {
     let reference = include_str!("../../../../core/framework/animation/asset/reference.rs");
     let sequence = include_str!("../../../../core/framework/animation/asset/sequence.rs");
     let skeleton = include_str!("../../../../core/framework/animation/asset/skeleton.rs");
-    let state_machine =
-        include_str!("../../../../core/framework/animation/asset/state_machine.rs");
+    let state_machine = include_str!("../../../../core/framework/animation/asset/state_machine.rs");
     let importer_error = include_str!("../../../../asset/importer/error.rs");
     let import_animation_asset =
         include_str!("../../../../asset/importer/ingest/import_animation_asset.rs");

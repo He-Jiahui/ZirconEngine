@@ -149,6 +149,19 @@ pub(in crate::asset::migration) fn map_transaction_error(
     error: DurableTransactionError,
 ) -> AssetMigrationError {
     match error {
+        DurableTransactionError::SourceConflict {
+            path,
+            expected,
+            actual,
+        } => AssetMigrationError::Transaction {
+            phase: AssetMigrationTransactionPhase::Commit,
+            path: path.clone(),
+            source: io::Error::other(DurableTransactionError::SourceConflict {
+                path,
+                expected,
+                actual,
+            }),
+        },
         DurableTransactionError::ArtifactIdentityExhausted(source) => {
             AssetMigrationError::ArtifactIdentityExhausted(source)
         }

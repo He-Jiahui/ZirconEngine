@@ -1,3 +1,5 @@
+//! 触碰和摘链顺序的回归夹具，以及显式忽略的独立缓存对照计时。
+//! 计时输出的探针数是固定模型值，性能结论依赖显式运行所得的样本。
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -32,6 +34,7 @@ fn optimization_batch_20260829av_runtime322_middle_touch_preserves_lru_order() {
     assert_eq!(cache.pop_oldest().map(|entry| entry.key), Some(2));
 }
 
+// 只覆盖陈旧槽、未跟踪槽和指定后邻居缺失的人工状态。
 #[test]
 fn optimization_batch_20260829av_runtime322_touch_attaches_untracked_and_ignores_stale_slot() {
     let mut cache = IndexedTextCache::new();
@@ -53,12 +56,16 @@ fn optimization_batch_20260829av_runtime322_touch_attaches_untracked_and_ignores
     assert_eq!(cache.pop_oldest().map(|entry| entry.key), Some(12));
 }
 
+/// 在受管环境显式启用的计时对照；默认忽略，普通回归只检查索引结果。
+/// 每对样本使用内容相同的独立缓存，并交替两种实现的计时次序。
+/// 打印的探针常量不是运行时采样，最终断言比较本次样本的 p95。
 #[test]
 #[ignore = "managed Windows release performance evidence"]
 fn optimization_batch_20260829av_runtime322_single_lookup_text_cache_lru_detach_bench() {
     let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
     let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
     for pair in 0..SAMPLE_PAIRS {
+        // 建表与克隆发生在各自计时函数外，不计入样本。
         let (base, slots) = populated_cache();
         if pair % 2 == 0 {
             legacy_samples.push(measure(base.clone(), &slots, false));
@@ -85,6 +92,7 @@ optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
     assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
 }
 
+/// 为一对样本建立完整活槽列表，缓存随后分别克隆或移交给两次计时。
 fn populated_cache() -> (IndexedTextCache<u64, Entry>, Vec<TextCacheSlot>) {
     let mut cache = IndexedTextCache::new();
     let slots = (0..ENTRY_COUNT as u64)
@@ -93,6 +101,10 @@ fn populated_cache() -> (IndexedTextCache<u64, Entry>, Vec<TextCacheSlot>) {
     (cache, slots)
 }
 
+/// 消费独立缓存并返回耗时纳秒（最小一）；调用者保证槽列表非空且来自该缓存。
+/// `optimized` 仅选择摘链实现，两条路径均包含循环、槽选择及校验和的成本。
+/// 每份缓存完成 16 × 4096 次触碰，`black_box` 保留输入与结果的可观察使用。
+/// 样本间不共享最近性状态。
 fn measure(
     mut cache: IndexedTextCache<u64, Entry>,
     slots: &[TextCacheSlot],
@@ -115,6 +127,7 @@ fn measure(
     started.elapsed().as_nanos().max(1)
 }
 
+/// 仅供基准对照的旧版探针顺序，不是生产回退入口。
 fn legacy_touch(cache: &mut IndexedTextCache<u64, Entry>, slot: TextCacheSlot) {
     if !cache.entries.contains_key(&slot) {
         return;
@@ -125,6 +138,7 @@ fn legacy_touch(cache: &mut IndexedTextCache<u64, Entry>, slot: TextCacheSlot) {
     cache.attach_most_recent(slot);
 }
 
+/// 旧实现先分别筛选邻居再改链，仅由本文件旧触碰路径调用。
 fn legacy_detach_lru(cache: &mut IndexedTextCache<u64, Entry>, slot: TextCacheSlot) {
     let Some(links) = cache.lru_links.remove(&slot) else {
         return;
@@ -151,6 +165,8 @@ fn legacy_detach_lru(cache: &mut IndexedTextCache<u64, Entry>, slot: TextCacheSl
     }
 }
 
+/// 对非空样本复制排序，按向上取整的百分位秩返回原单位值。
+/// 本文件只传入 31 项以及 50、95，不承担空输入或任意百分位校验。
 fn percentile(samples: &[u128], percentile: usize) -> u128 {
     let mut sorted = samples.to_vec();
     sorted.sort_unstable();
@@ -158,6 +174,7 @@ fn percentile(samples: &[u128], percentile: usize) -> u128 {
     sorted[rank.saturating_sub(1)]
 }
 
+/// 保留采样次序输出逗号分隔值，便于回执核对原始样本。
 fn sample_csv(samples: &[u128]) -> String {
     samples
         .iter()

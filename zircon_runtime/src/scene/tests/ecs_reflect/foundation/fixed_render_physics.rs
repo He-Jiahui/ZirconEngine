@@ -373,21 +373,26 @@ fn registered_reflection_remove_preserves_lifecycle_cancellation_kind_and_target
             let observed = Arc::clone(&fresh_calls);
             world.observe_component_lifecycle::<RigidBodyComponent>(
                 LifecycleEventKind::Remove,
-                move |world, _| {
-                    if schedule_only {
-                        *world.schedule_mut() = Default::default();
-                    } else {
-                        let mut fresh = replacement.lock().unwrap().take().unwrap();
-                        if retain_schedule {
-                            *fresh.schedule_mut() = std::mem::take(world.schedule_mut());
-                            assert!(Arc::ptr_eq(&original, &fresh.schedule().stage_plan()));
+                // SAFETY: After World or schedule retirement, only fixed resources and counter-
+                // only commands change; no replacement history is adopted.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, _| {
+                        if schedule_only {
+                            *world.schedule_mut() = Default::default();
+                        } else {
+                            let mut fresh = replacement.lock().unwrap().take().unwrap();
+                            if retain_schedule {
+                                *fresh.schedule_mut() = std::mem::take(world.schedule_mut());
+                                assert!(Arc::ptr_eq(&original, &fresh.schedule().stage_plan()));
+                            }
+                            *world = fresh;
                         }
-                        *world = fresh;
-                    }
-                    let observed = Arc::clone(&observed);
-                    world.commands().queue_fn(move |_| {
-                        observed.fetch_add(1, Ordering::SeqCst);
-                    });
+                        let observed = Arc::clone(&observed);
+                        world.commands().queue_fn(move |_| {
+                            observed.fetch_add(1, Ordering::SeqCst);
+                        });
+                    })
                 },
             );
             assert_eq!(
@@ -462,7 +467,14 @@ fn registered_reflection_writes_forward_typed_lifecycle_cancellation_and_stop_cu
                 let (component, type_path, field, value) = if hierarchy_write {
                     world.observe_component_lifecycle::<Hierarchy>(
                         LifecycleEventKind::Replace,
-                        callback,
+                        // SAFETY: After World or schedule retirement, only fixed resources and
+                        // counter-only commands change; no replacement history is adopted.
+                        unsafe {
+                            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                                callback,
+                            )
+                        },
                     );
                     (
                         "Hierarchy",
@@ -472,7 +484,18 @@ fn registered_reflection_writes_forward_typed_lifecycle_cancellation_and_stop_cu
                     )
                 } else {
                     world
-                        .observe_component_lifecycle::<Name>(LifecycleEventKind::Replace, callback);
+                        .observe_component_lifecycle::<Name>(
+                            LifecycleEventKind::Replace,
+                            // SAFETY: After World or schedule retirement, only fixed resources
+                            // and counter-only commands change; no replacement history is
+                            // adopted.
+                            unsafe {
+                                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                                    callback,
+                                )
+                            },
+                        );
                     (
                         "Name",
                         "zircon_runtime::scene::components::Name",

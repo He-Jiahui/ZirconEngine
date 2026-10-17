@@ -110,7 +110,7 @@ impl UiSurfaceNavigationIndex {
         base_hit_grid: &UiHitTestGrid,
     ) {
         #[cfg(feature = "profiling")]
-        let rebuild_start = std::time::Instant::now();
+        let rebuild_start = web_time::Instant::now();
         self.clear_for_rebuild();
         self.build_generation = self.build_generation.saturating_add(1);
 

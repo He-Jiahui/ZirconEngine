@@ -13,7 +13,8 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "binding.payload.upsert" => self.editor_manager
+            "binding.payload.upsert" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
@@ -24,7 +25,8 @@ impl RetainedEditorHost {
                     )
                 })
                 .map(|_| ()),
-            "binding.payload.delete" => self.editor_manager
+            "binding.payload.delete" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {

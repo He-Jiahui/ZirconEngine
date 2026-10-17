@@ -10,10 +10,19 @@ use zircon_runtime_interface::RegistrationDiagnostic;
 use super::capability_report::EditorCapabilityReport;
 use super::descriptor::{EditorPlugin, EditorPluginDescriptor};
 use super::registration::EditorPluginRegistrationReport;
-use super::sdk::lifecycle::{EditorPluginLifecycleEvent, EditorPluginLifecycleReport};
+use super::sdk::lifecycle::{
+    EditorPluginLifecycleEvent, EditorPluginLifecycleReport, EditorPluginLifecycleStage,
+};
 
 /// A manager-owned plugin instance that remains valid through lifecycle dispatch.
 pub type EditorPluginHandle = Arc<dyn EditorPlugin + Send + Sync>;
+
+// 当前实例的退役进度独立于公开历史报告；每次 Enabled 尝试开始新的清理周期。
+#[derive(Clone, Copy, Debug, Default)]
+struct RetirementCleanupProgress {
+    disabled: bool,
+    unloaded: bool,
+}
 
 #[derive(Clone, Default)]
 pub(crate) struct EditorPluginCatalog {
@@ -23,6 +32,7 @@ pub(crate) struct EditorPluginCatalog {
     admission_duplicate_package_ids: BTreeSet<String>,
     registration_index: BTreeMap<String, usize>,
     lifecycle_plugins: BTreeMap<String, EditorPluginHandle>,
+    retirement_cleanup_progress: BTreeMap<String, RetirementCleanupProgress>,
 }
 
 impl fmt::Debug for EditorPluginCatalog {
@@ -38,6 +48,10 @@ impl fmt::Debug for EditorPluginCatalog {
             )
             .field("registration_index", &self.registration_index)
             .field("lifecycle_plugin_ids", &self.lifecycle_plugins.keys())
+            .field(
+                "retirement_cleanup_progress",
+                &self.retirement_cleanup_progress,
+            )
             .finish()
     }
 }
@@ -113,6 +127,7 @@ impl EditorPluginCatalog {
             .or_insert(registration_index);
         self.diagnostics.extend(report.diagnostics.iter().cloned());
         self.registrations.push(report);
+        self.retirement_cleanup_progress.remove(&package_id);
         self.lifecycle_plugins.insert(package_id, plugin);
         self.generation = self.generation.saturating_add(1);
     }
@@ -127,6 +142,8 @@ impl EditorPluginCatalog {
             !project_package_ids.contains(&registration.package_manifest.id)
         });
         self.lifecycle_plugins
+            .retain(|package_id, _| !project_package_ids.contains(package_id));
+        self.retirement_cleanup_progress
             .retain(|package_id, _| !project_package_ids.contains(package_id));
         self.registrations.extend(reports);
         self.rebuild_registration_index();
@@ -150,6 +167,9 @@ impl EditorPluginCatalog {
             self.diagnostics.push(diagnostic);
             return report;
         };
+        if event.stage() == &EditorPluginLifecycleStage::Enabled {
+            self.retirement_cleanup_progress.remove(package_id);
+        }
         let plugin = self.lifecycle_plugins.get(package_id).cloned();
         let registration = self
             .registrations
@@ -159,6 +179,77 @@ impl EditorPluginCatalog {
             registration.record_lifecycle_event(plugin.as_ref(), event)
         } else {
             registration.record_host_lifecycle_event(event)
+        }
+    }
+
+    // 只有真实退役调度的结果可以更新清理进度；普通 Unloaded 通知只进入历史报告。
+    pub(super) fn record_retirement_lifecycle_event(
+        &mut self,
+        package_id: &str,
+        event: EditorPluginLifecycleEvent,
+    ) -> EditorPluginLifecycleReport {
+        let stage = event.stage().clone();
+        let report = self.record_lifecycle_event(package_id, event);
+        if !matches!(
+            stage,
+            EditorPluginLifecycleStage::Disabled | EditorPluginLifecycleStage::Unloaded
+        ) || !self.registration_index.contains_key(package_id)
+        {
+            return report;
+        }
+        let progress = self
+            .retirement_cleanup_progress
+            .entry(package_id.to_string())
+            .or_default();
+        if stage == EditorPluginLifecycleStage::Disabled {
+            progress.disabled = report.is_success();
+        } else {
+            progress.unloaded = report.is_success();
+        }
+        report
+    }
+
+    pub(super) fn retirement_stage_succeeded(
+        &self,
+        package_id: &str,
+        stage: &EditorPluginLifecycleStage,
+    ) -> bool {
+        self.retirement_cleanup_progress
+            .get(package_id)
+            .is_some_and(|progress| match stage {
+                EditorPluginLifecycleStage::Disabled => progress.disabled,
+                EditorPluginLifecycleStage::Unloaded => progress.unloaded,
+                _ => false,
+            })
+    }
+
+    // 已验证为同一 Rust Arc 的目录刷新保留历史及本轮进度，候选元数据和贡献仍由候选目录拥有。
+    pub(super) fn inherit_lifecycle_state_from(&mut self, previous: &Self) {
+        for (package_id, index) in &self.registration_index {
+            if !self.has_same_lifecycle_plugin(previous, package_id) {
+                self.retirement_cleanup_progress.remove(package_id);
+                continue;
+            }
+            let Some(previous_registration) = previous.registration_for_package(package_id) else {
+                continue;
+            };
+            let registration = self
+                .registrations
+                .get_mut(*index)
+                .expect("registration index must reference the current catalog generation");
+            registration.lifecycle = previous_registration.lifecycle.clone();
+            registration
+                .successful_lifecycle_stages
+                .clone_from(&previous_registration.successful_lifecycle_stages);
+            registration
+                .failed_lifecycle_stages
+                .clone_from(&previous_registration.failed_lifecycle_stages);
+            if let Some(progress) = previous.retirement_cleanup_progress.get(package_id) {
+                self.retirement_cleanup_progress
+                    .insert(package_id.clone(), *progress);
+            } else {
+                self.retirement_cleanup_progress.remove(package_id);
+            }
         }
     }
 

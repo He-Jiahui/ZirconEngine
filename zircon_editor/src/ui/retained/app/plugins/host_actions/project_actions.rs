@@ -17,9 +17,9 @@ impl RetainedEditorHost {
         action: ModulePluginAction,
     ) -> Result<String, String> {
         match action {
-            ModulePluginAction::SetEnabled { plugin_id, enabled } => {
-                self.set_project_plugin_enabled(project_root, manifest, plugin_id, enabled)
-            }
+            ModulePluginAction::SetEnabled { plugin_id, enabled } => Err(format!(
+                "plugin {plugin_id} enabled={enabled} requires the durable project owner"
+            )),
             ModulePluginAction::CyclePackaging { plugin_id } => {
                 self.cycle_project_plugin_packaging(project_root, manifest, plugin_id)
             }

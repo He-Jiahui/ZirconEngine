@@ -277,11 +277,11 @@ fn render_text_atlas_bitmap_retry_frame_driver_applies_backpressure_and_commits_
     );
 }
 
-// BUG: [CR-TEXT-RASTER-0001] 6×6 AlphaMask 声明 64 字节，源校验先以长度不符拒绝，无法形成断言要求的阻塞队列；应先构造合法源再测试队列上限。
+// Valid 64-byte sources reach capacity blocking before the glyph-count limit rejects one.
 #[test]
 fn render_text_atlas_bitmap_retry_frame_driver_bounds_the_blocked_queue() {
-    let first_source = source(GlyphAtlasFormat::AlphaMask, UVec2::new(6, 6), 8.0, 64);
-    let second_source = source(GlyphAtlasFormat::AlphaMask, UVec2::new(6, 6), 24.0, 64);
+    let first_source = source(GlyphAtlasFormat::AlphaMask, UVec2::new(8, 8), 8.0, 64);
+    let second_source = source(GlyphAtlasFormat::AlphaMask, UVec2::new(8, 8), 24.0, 64);
     let mut state = GlyphAtlasBitmapRetryFrameState::new();
 
     let output = glyph_atlas_bitmap_retry_frame_driver_submit_with_config(
@@ -313,11 +313,11 @@ fn render_text_atlas_bitmap_retry_frame_driver_bounds_the_blocked_queue() {
     );
 }
 
-// BUG: [CR-TEXT-RASTER-0002] 6×6 AlphaMask 声明 48 字节而非 36，两个源均在容量判断前被拒绝，当前断言没有进入字节预算路径。
+// Valid 48-byte sources reach capacity blocking before the 64-byte queue budget rejects one.
 #[test]
 fn render_text_atlas_bitmap_retry_frame_driver_bounds_blocked_queue_source_bytes() {
-    let first_source = source(GlyphAtlasFormat::AlphaMask, UVec2::new(6, 6), 8.0, 48);
-    let second_source = source(GlyphAtlasFormat::AlphaMask, UVec2::new(6, 6), 24.0, 48);
+    let first_source = source(GlyphAtlasFormat::AlphaMask, UVec2::new(8, 6), 8.0, 48);
+    let second_source = source(GlyphAtlasFormat::AlphaMask, UVec2::new(8, 6), 24.0, 48);
     let mut state = GlyphAtlasBitmapRetryFrameState::new();
 
     let output = glyph_atlas_bitmap_retry_frame_driver_submit_with_config(

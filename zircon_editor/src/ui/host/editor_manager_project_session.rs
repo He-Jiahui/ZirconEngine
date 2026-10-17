@@ -140,7 +140,11 @@ impl EditorManager {
         match activation {
             Ok((completion, recovery)) => {
                 debug_assert!(recovery.is_none());
-                Ok(self.finalize_project_activation(completion))
+                Ok({
+                    let value = self.finalize_project_activation(completion);
+                    self.reconcile_pending_plugin_enablement_after_open();
+                    value
+                })
             }
             Err(activation_failure) => {
                 let activation_error = match activation_failure.into_error() {
@@ -293,7 +297,14 @@ impl EditorManager {
                 finish,
             )
             .map_err(ProjectActivationFailure::into_error)?;
-        Ok((self.finalize_project_activation(completion), recovery))
+        Ok((
+            {
+                let value = self.finalize_project_activation(completion);
+                self.reconcile_pending_plugin_enablement_after_open();
+                value
+            },
+            recovery,
+        ))
     }
 
     fn activate_project_from_preflight_with_disposition<T>(
@@ -806,3 +817,111 @@ fn session_effect_states(effects: &[ProjectSessionEffectRecoveryEntry]) -> Strin
 #[cfg(test)]
 #[path = "editor_manager_project_session/tests/cases.rs"]
 mod tests;
+
+pub(in crate::ui::host) struct PluginEnablementAdmissionFailure {
+    pub primary: String,
+    pub release: Option<String>,
+}
+impl EditorManager {
+    /// File-only recovery owns an exclusive session lease before authoritative manifest parse.
+    pub(in crate::ui::host) fn with_plugin_enablement_recovery_admission<T>(
+        &self,
+        root: &std::path::Path,
+        admission: &crate::core::recovery::SessionAdmissionRequest,
+        action: impl FnOnce(
+            &zircon_runtime::asset::project::ProjectPaths,
+        )
+            -> Result<T, zircon_runtime::asset::project::plugin_apply::PluginApplyError>,
+    ) -> Result<T, PluginEnablementAdmissionFailure> {
+        use self::PluginEnablementAdmissionFailure as Failure;
+        use crate::core::recovery::{
+            ProjectRecoveryAssessment, SessionGuard, SessionGuardAdmission,
+        };
+        use zircon_runtime::asset::project::ProjectPaths;
+        let fail = |primary: String| Failure {
+            primary,
+            release: None,
+        };
+        let _transition = self
+            .begin_project_session_transition()
+            .map_err(|e| fail(e.to_string()))?;
+        if self
+            .project_session_guard
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .is_some()
+        {
+            return Err(fail(
+                "close or repair the current project session before pre-open recovery".into(),
+            ));
+        }
+        let paths = ProjectPaths::from_root(root).map_err(|e| fail(e.to_string()))?;
+        let mut guard = match SessionGuard::claim(paths.root(), admission)
+            .map_err(|e| fail(e.to_string()))?
+        {
+            SessionGuardAdmission::Acquired(guard) => guard,
+            SessionGuardAdmission::Active { .. } => {
+                return Err(fail("another project session is active".into()))
+            }
+            SessionGuardAdmission::Residual(residual) => {
+                let assessment = ProjectRecoveryAssessment::inspect(paths.root())
+                    .map_err(|e| fail(e.to_string()))?;
+                if assessment.admission().residual_lock() != Some(residual.record())
+                    || !assessment.admission().allows_recovery_takeover()
+                {
+                    return Err(fail("the residual session requires operator reconciliation before file recovery".into()));
+                }
+                residual
+                    .take_over(admission)
+                    .map_err(|e| fail(e.to_string()))?
+            }
+        };
+        // File recovery fabricates no preflight-approved, Activating, or Ready transition.
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| action(&paths)));
+        let outcome = match outcome {
+            Ok(value) => value,
+            Err(_) => {
+                let release = self.retain_plugin_enablement_admission(guard);
+                return Err(Failure {
+                    primary: "plugin file recovery panicked; runtime was not applied".into(),
+                    release,
+                });
+            }
+        };
+        if let Err(error) = guard.release() {
+            let recovery = self.retain_plugin_enablement_admission(guard);
+            let primary = outcome
+                .err()
+                .map(|e| e.to_string())
+                .unwrap_or_else(|| "file operation completed but admission release failed".into());
+            return Err(Failure {
+                primary,
+                release: Some(format!("{error}; RecoveryRequired: {recovery:?}")),
+            });
+        }
+        outcome.map_err(|e| fail(e.to_string()))
+    }
+    fn retain_plugin_enablement_admission(
+        &self,
+        mut guard: crate::core::recovery::SessionGuard,
+    ) -> Option<String> {
+        let mut errors = Vec::new();
+        if let Err(error) = guard.mark_recovery_required() {
+            errors.push(error.to_string());
+        }
+        let mut slot = self
+            .project_session_guard
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        if slot.is_none() {
+            *slot = Some(guard);
+        } else {
+            // No foreign owner is replaced or dropped under this mutex.
+            drop(slot);
+            if let Err(error) = guard.release_ownership_for_recovery() {
+                errors.push(error.to_string());
+            }
+        }
+        (!errors.is_empty()).then(|| errors.join("; "))
+    }
+}

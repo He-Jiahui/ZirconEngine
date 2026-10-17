@@ -7,11 +7,13 @@ use crate::scene::{EntityId, World};
 #[derive(Debug, PartialEq, Eq)]
 struct DetachedHealth(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(DetachedHealth { 0 });
 impl Component for DetachedHealth {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct DetachedSparseMarker;
 
+zircon_runtime_interface::impl_retained_owner_v1!(DetachedSparseMarker {});
 impl Component for DetachedSparseMarker {
     const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }

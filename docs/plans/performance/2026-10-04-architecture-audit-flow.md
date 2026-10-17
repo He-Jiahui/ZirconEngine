@@ -892,3 +892,291 @@ registry15已预登记World/render/Gateway新文档与只读任务；三路Luna�
 World发布校epoch/generation，records可能commit后target-changed Err；prepared frame extract未见World clone，兼容入口仍clone，增量journal/projector恢复全量的频率与成本待采样。Gateway专用operation route固定origin，撤回初步产品P1定级，只留消费者合同待核。World重复entities到dense-row assert panic经Sol独立确认静态路径，但未动态复现、产品load可达性未读；EA46-WORLD-001保持P2待验收，先修最低F0 owner，不提前F3实施。
 
 Core当前ordinary b48路径把physical repo root交native helper并要求回执cwd一致，guard持读pin/monitors；helper、完整final reconcile和动态证明未读。它与canonical formal1dfff prepared-source拒checkout分开，原A1、scope、external/compiler输入seal与真实执行门槛仍pending。新架构文档6ab8fc1e切片经三路限定独立复核通过，之后仅更新复核状态句；本节816bf741切片经Luna45Archive限定复核通过，本次仅更新此行政状态，整个World/render/Gateway模块、MVP与产品/perf均未验收；无Rust实施/native/性能样本、Root释放0 B，goal和清理active。
+
+
+### 7.51 World/渲染/Gateway下游续审与原A1具体字段补交（2026-10-14，待动态）
+
+[当前限定架构文档](2026-10-14-world-render-gateway-current-audit.md)§10新增28生产叶6689行全文，World/ECS及项目桥12/3244、render6/537、Gateway/UI/foreign-output10/2908；累计65源码pin，其中59生产12962行（58全文、1部分），6测试353行仅阅读。新28叶正文前后pins/mtime稳定，Root复核所有65pin/去重；不继承旧95统计为全引擎覆盖，完整M0、模块验收仍未完成。
+
+World稳定u64 ID、crate-private slot generation、World/lifecycle revision的owner已分开。World恢复dense-row assert先于registry DuplicateStableId Result，公开World文件API与独立LevelManager load入口静态可达；Editor Open仅追到AssetManager/EditorProjectDocument，后续恢复桥未读，不能称产品已panic。保持EA46-WORLD-001静态P2；EA46-WORLD-002的postcommit错误与新增EA46-WORLD-003的precommit epoch/events条件边界待内部及动态证据。render共享Arc scene+九域COW、per-view派生已读，LOD/全量fallback/复制仍待真实producer与采样。固定origin pick UI cancel链已读，完整退出/线程和poll终态identity保护未闭合；ZCA-HST-001沿用既有BUG，malformed status无reject/fuse是静态条件，不作新重复问题或动态复现。
+
+原A1补交R7在用户指定records路径已创建，完整SHA941c619cc520edc1ad6088b6236d7e668d6c57ba67412119b229d40ad2cdbbfd /7530 B/72行；Root与Sol独立核7个externalGitlinks的HEAD/index/physical root，Sol独立review原66285956切片并认可两句准入/公开迁移说明，Root RAM精确还原。12:47:03Z只读cut仍task36/raw15edfdf8 waiting/formal_input_pending、R7 exact message/followup匹配为空，R7只算投递，不算受理/ACK/native。普通原payload inputDigest须一致，reconcile/resume不是新增字段/App hash/3scope的修改入口；provider与授权owner须提供合法公开迁移和原身份/连续读guard证据，保留compile/cleanup/session/receiver31全部历史。
+
+普通DriveInfo 12:35:36Z E盘115.952 GiB只是当时余量；Get-Volume管理查询拒绝访问exit1单列，不当准入成功。受管native仍需policy reserve+本次amount4GiB（reserve默认35GiB）及预算/工具/cwd/输入/EOF验收。Root本轮Rust/编译/测试/产品/性能0、源码副本0、物理释放0 B，供给/失败/共享/未知产物及原Root只读cell65丢失handle保留；goal/cleanup active。§10与本节/对应pending增量文档已通过三路限定独立复核；未知只读handle/EOF独立开放，不构成动态或清理关闭，已验收账本不增。
+
+### 7.52 R7真实受理归档，原A1继续开放（2026-10-14）
+
+[限定架构文档](2026-10-14-world-render-gateway-current-audit.md)§10.7记录13:50:39Z新cut：原taskv37/raw0e0a9573仍waiting、done=false、formal=false；R7 message354214…v1/raw31a99dc…及followupa6c927…v2/raw2460b…匹配，intake=true/attached-and-cleared，#42/queue1844。原inbox已移出，实际archive md SHA941c619c/7530 B/72行，actual response SHA98dae15c/24739 B/1行，13:55:24Z Root实际核pin/mtime及archive/canonical同字节；旧12:47无匹配cut保留，不重建原file。
+
+response actualFlowSubmitted/nativeValidationAccepted/formalAcceptance/newNativeRequest均false，named-chat/native-operator delivery receipts均null，正式注册/compile cleanup receipt也null。补充受理不改原A1payload/grant或完整compiler closure；public-entry drift、App旧hash/3scope合法迁移与driver/runtime/连续guard续接仍开放。Root只读followup State row列logical deletedBytes7530，actual response文件无cleanup字段；该数不是Root净释放，Root0 B；保留供给、失败、共享、未知证据，MVP00/F0与goal/cleanup继续active。本节与§10.7及对应pending新条目已通过限定独立文档复核。
+
+### 7.53 World失败假设排除与producer续审（2026-10-14，静态待动态）
+
+[当前限定文档](2026-10-14-world-render-gateway-current-audit.md)§11新增9生产pin/1816行（6全文、3部分），累计74源码pin：68生产14778行（64全文、4部分），6测试353行仅阅读。Sol核恢复/PreparedLevel/commit合同，Luna核producer/cache/dirty/derived，Root复读决定性函数；旧65pin在foreign HEAD f28ba39a5095f4964c046ecc702778627f80cfd5下仍一致，提交差异输出截断不算全提交审查，无Root Git写入。
+
+EA46-WORLD-003已静态撤销：连续World锁内同registry前验后，epoch与event清理不会改变第二次pure registry比较，不存在所假定的普通Err触发。001保持World恢复dense投影的P2静态风险，最小typed前检不需公开签名/v2变更；Editor SceneAsset桥尚未闭合。002的提交后target变化与消费者重试/发布失败责任仍开放。World兼容producer有clone、正式session cache失配经LevelSystem，但不能推定每帧World clone；dirty准备汇聚顺序已读，漏事件/多view/成本未证，实际session/锁调用链待补。
+
+原A1与R7受理/归档沿§7.52，当前public续接只读审查中，native未执行。未知EOF分别保留，Root实际释放0 B；新增文档段及补计5行的行政差异均已通过Luna50限定独立复核，完整M0、MVP00/F0、模块/动态/性能/cleanup仍开放，不增已验收账本。
+
+### 7.54 正式渲染抽取与Editor准备桥闭合入口（2026-10-14，静态）
+
+[限定架构文档](2026-10-14-world-render-gateway-current-audit.md)§12新增13生产pin1376行（7全文、6部分），累计87源码pin：81生产16154行（71全文、10部分），6测试353行仅阅读。Scene是World的类型别名；项目SceneAsset转换入口与原始World持久化入口可区分，converter体与EditorState实际安装owner未读，不能排除或证实Editor触发WORLD-001。module.prepare_level只准备，startup文档激活/journal绑定不证明当前slot发布或整体回滚。
+
+正式session main cache失配直接经LevelSystem持World锁运行prepared builder/动画读取，兼容World producer clone不能代表每帧正式主路径。UI cache fallback是独立旁路；snapshot/context/producer分开锁的交错仅条件合同，实际替换可达和成本尚未证，不新增故障/性能结论。
+
+当前public query先核新driver/runtime，旧A1静态不匹配；改payload受existing-record同digest约束是条件结论，实际A1记录/checkpoint尚未查。R8完整6529 B/39行、SHAdaea0b5a已独立复核，于16:35:36Z写records且byte-equal canonical，16:40:03Z仍可读；尚无R8 intake/chat/operator/native receipt。请求owner保留原身份合法reconcile/append-only contract迁移，原A1继续pending，不用新身份覆盖。当前native前reserve+amount/完整输入/连续guard仍须验；Root实际释放0 B，旧与新增unknown EOF保留。本增量已通过Luna50限定独立复核，goal/cleanup及MVP00/F0、模块、动态/性能保持开放。
+
+### 7.55 SceneAsset候选构造与Editor gateway消费owner（2026-10-14，静态）
+
+[限定架构文档](2026-10-14-world-render-gateway-current-audit.md)§13新增4pin及既有SceneAsset126–455扩读，898新正文；累计91pin，85生产17052行（72全文、13部分）和6测试353仅读行。converter构造局部候选World；旧World插入helper在commit前对最终record.id重复返回typed DuplicateEntity，已核直接插入/normalize(false)链不经WORLD-001批量持久恢复，但外部component-reference/serializer/helper合同未闭合，不排除完整Editor间接风险。component row唯一性不等entity ID唯一性，instantiate回调可改record，实际builtin/custom及项目内副作用待读；clone预检存在但未测成本。
+
+Editor PreparedLevel消费owner追到EditorAuthoringWorld::replace，其publish closure建立authoring LevelSystem/gateway绑定，不能称Runtime global current slot安装或整体回滚。EditorState后续settings/viewport仍可Err，reload take后seed已消费，loaded/expect、exclusive/history/gateway helper合同待续审；旧PreparedLevel registry/lease guard和WORLD003撤销证据复用，不退回全局unknown。新source任务numericexit0/EOF，旧及locator noidentity失败unknown保留，Root释放0 B。R8 17:19:51Z仍records readable，限定response/archive查无matching（exit1），仍无observed receipt/native。原A1/MVP00/F0、模块/产品/性能与goal/cleanup继续开放，本增量已通过三路限定独立复核。
+
+### 7.56 DTO与authoring完整合同，R8实际受理（2026-10-14，静态）
+
+[限定架构文档](2026-10-14-world-render-gateway-current-audit.md)§14增加DTO新pin158行与既有authoring全文净增294，合计452；累计92pin：86生产17504正文行（74全文、12部分）和6测试353仅读行。DTO逐entity核外部直接引用，不证明跨entity唯一性/重映射；正式项目读取与test helper准入不同。loaded/clear及共享gateway显式Err的边界已读：replace唯一显式Err在store前，local facade成功后才更新，但其他writer、后续settings/viewport和回调副作用不因此整体恢复。identity fence持旧lease继续dispatch；mutable callback结果及post_callback_error成对返回，实际消费者补偿和history/exclusive helper待核。
+
+R8真实archive与canonical byte-equal daea0b5a/6529 B/39行，response fb5b345f/13383 B/1行已读且独立复核：intake=true，formal/native/newNative=false。#49 FAILURE→metadataReceiverAttempt2/#51为records receiver lineage，未独立核#51 SUCCESS；named-chat/operator delivery字段未提供，不能补null。两原A1 operation/marker absence只是response报告，checkpoint/actualnative EOF proof均false。原owner历史query/合法合同迁移、完整compiler seal/guard和原compile→cleanup待验；原inbox不重建，旧时点证据不覆盖。§13三路文档复核通过，§14增量已通过三路限定复核；Root释放0 B，旧unknown保留，MVP00/F0及模块/动态/性能、goal/cleanup继续开放。
+
+### 7.57 Editor事务恢复边界与DTO直接引用owner（2026-10-14，静态）
+
+[限定架构文档](2026-10-14-world-render-gateway-current-audit.md)§15新增4pin、两旧部分升全文，1328新正文；累计96pin：90生产18832行（80全文、10部分），6测试353仅读行。history update失败恢复selection，history仅成功后清；Core clear_scene仅selection的局部风险已撤回，helper不提供任意外部状态的整体rollback。Editor world/history成功后settings或viewport访问的条件Err由EditorState协调owner负责；具体helper失败条件待读，未升级为复现。DTO generic-row validator不核ID/parent或全部typed引用；builtin render2d不改identity，custom与资产helper仍未闭合，旧最终record typed DuplicateEntity前检保持有效。
+
+facade replace成功后另取identity的API窗口维持条件风险；生产writer共享owner/线程串行待核，测试bind_scene不算生产writer。§14三路复核通过，本§15已通过三路限定复核；完成正文与旧unknown分开保留。R8实际受理/归档未提供原A1 native receipt，pilot精确active文件当前缺失不证明formal route停用，不新request/rebind或旁路构建。Root释放0 B，MVP00/F0与模块/动态/性能、goal/cleanup继续开放。
+
+### 7.58 Settings准入、取消前缀与引用槽位合同（2026-10-14，静态）
+
+[限定架构文档](2026-10-14-world-render-gateway-current-audit.md)§16新增10生产pin、1780正文，累计106pin：100生产20612行（87全文、13部分），6测试353仅读行，总20965行。Core play attachment锁只覆盖本对象attach/detach；EditorContext容器显式双注入不证明owner独立；新增Builder证明其产出的两域owner独立，Host另段将manager.context.play交controller，二者间实际manager安装链/actor仍待核。settings bind的显式Err收窄为busy/overflow，clear为busy；Invalid加载状态会安装不可写binding，不是该Result的I/O错误。phase普通Result路径有显式复位；产品busy可达性未证，EditorState发布后协调风险不升confirmed P2。
+
+cancel先take session、reset、sync，再传播reset错误；helper未读，不断言World rollback。SceneComponentAssetRecord校验JSON marker/引用槽位完整性，外部资产解析另走registry；projection guard差异不构成已证缺陷。§15三路限定复核与最终四处delta已闭合，本§16已通过三路限定复核。898f47完整消费R8 reply；6db34f支持实际#51/queue2002 SUCCESS只属intake，原A1 formal/native仍pending；worker logical移除6529B不计Root物理释放，exact pilot absence不等formal route停用。historical A1字段的报告时点absence不证明当前全局无活动/checkpoint不存在，跨任务batch13门槛未导入。旧unknown保留，Root释放0 B，原A1、MVP00/F0、模块/产品/性能与goal/cleanup开放。
+
+### 7.59 manager参数链、settings回调与导入准入（2026-10-15，静态）
+
+[限定文档](2026-10-14-world-render-gateway-current-audit.md)§17新增19全文叶/4758行，另generation旧148→当前179并保留历史；当前125pin/25754：118生产25284（105全文13部分）、7测试470（5全文2部分，未运行）。Manager/context与retained字段→resolver/open/Host已核，resources/Core lookup仍断；observer普通Err吸收，authority外层操作锁和Coordinator phase值分开，sink/adapter/ToastCenter真实合同开放。导入validator只核entry envelope，槽位有效、restore验证及候选隔离未证，不报数据损坏或性能收益。
+
+原A1三路径映射/R9对方消费有matching reply及限定route字段支持；新公开submit在input/marker前因process identity unavailable拒绝，无queue。原授权active，服务恢复与公开跨runtime准入待部署owner具体方案；原input/预算不变。#91/#92成功/消息归档只保留外部声明，Penpot不导入Engine验收，物理释放0 B。事实包RAM限定复核与Root文档检查分开；旧漂移失败/unknown保留，MVP00/F0、原A1、模块/产品/性能及goal/cleanup开放。
+
+### 7.60 Core 查询、Toast 准入与 durability（2026-10-15，静态）
+
+[限定文档](2026-10-14-world-render-gateway-current-audit.md)§18新增8生产叶/1062行（4全文4部分），累计133pin/26816：126生产26346（109全文17部分）、7测试470（5全文2部分，仅阅读）。同handle Core查询与弱引用失效Err已核，真实resolution/注册/activation仍断；Toast本地判重/容量/回收不回调settings，不证明UI重复。candidate发布/ensure顺序差异只核到RecoveryDeferred映射，Core提交点与补偿未读，不定一致性bug或先改顺序。
+
+M1 R10另读8个Python入口879行及绑定guard26行（9叶905行），不计Rust覆盖。R10已登记、写入并收到精确monitor回信；当前live进程与management入口绑定分开，公开capability因selected-driver mismatch拒绝，没有重启或重提A1。原owner维护准入、公开append-only lineage、完整seal及native/产品验收继续开放。三domain RAM事实复核与Root结构检查分开；所有旧unknown/失败/共享和外来证据保留，Root物理释放0B，goal/cleanup未关闭。
+
+## 7.61 S19：资源事务最低 owner 与公开 installer 预检
+
+续接[S19当前源码记录](2026-10-14-world-render-gateway-current-audit.md#19-s19事务核心续审与公开-installer-预检2026-10-15-utc)。新增六个资源事务核心叶全文1427行，补完 durable_transaction 301行与 scan_and_import 父模块 source-removal 183行；当前139 Rust pin/28727去重正文（生产132/28257、测试7/470，122全文/17部分）。targeted 方法的重复独立核对未新增覆盖。
+
+完整 frame 已写而 sync 未证明时，Core 返回 CommitRecoveryDeferred 并保留恢复证据；普通 Err 仅证明尝试回滚。EA60-ASSET-001 保留为 targeted 单方法的静态合同候选、产品级未定：ensure_durable 在发布候选内存前返回错误。整 runtime/src 精确符号12命中当前只见测试调用，但已核模块链无测试门控；尚不能证明完整可达性、无用代码或生产 P2。frame_codec/discovery 未读边界及真实 sync 故障验证仍开放。
+
+Root 一次公开 installer -CheckOnly 在第222行实际抛出 Unreviewed public entry change，捕获包装 exit2、非 Cargo/native 结果；六项 PRE/POST pin 稳定，没有安装、HTTP、提交或 State 修改。[R11a](../../../.jenkins/records/engine-audit-20261009-01a12097-m1-public-installer-checkonly-r11a-to-jenkins-01a0f6e1.md) 已本地交接具体门槛，原 owner 受审 client/capsule 迁移和 A1 历史准入分别待实证。R11 monitor 消费、foreign B005 早拒绝及 R10 后层历史结果分别归档，不互相代替。
+
+本轮只推进限定源码归因与工具预检，不更改实现；MVP 00/F0、M1/native/产品/性能/模块验收继续开放。实际释放0B，cleanup未关闭。
+
+## 7.62 S20：公开client pin源码修复与事务边界续审
+
+[S20当前源码记录](2026-10-14-world-render-gateway-current-audit.md)补读frame_codec与discovery全文235行，并将foreign更新的world_time模块从22行旧pin刷新为24行当前pin；批次核对141 Rust pin/28964行（生产134/28494、测试7/470，124全文/17部分）。先前旧pin核对失败已留证；只在刷新并核对后记录该并集。恢复调用链重复复核不增覆盖，完整EOF坏checksum仍属失败模型问题，真实恢复与截断序列化待验。
+
+M1交付新增ExpectedSubmitSourceSha256和统一纯校验函数，保留四种pin各自路径、首装/旧raw及entry兼容，provided错误值先拒绝。installer cfc dirty前像到c07后像仅3个owned hunks，Root与独立复核均在RAM重建精确前像，foreign与外层维护守卫保留。新测试fdd1959d…由六个unittest方法拟核37个gate场景与SHA向量，尚未执行。
+
+[R12最终本地交接](../../../.jenkins/records/engine-audit-20261009-01a12097-m1-installer-pin-patch-r12-to-jenkins-01a0f6e1.md)含两文件增量patch 8a299bff…/24785B、源码指纹、独立复核与明确Jenkins测试/公开迁移要求。语法、owned reverse/whitespace与change-guard通过，后者errors/warnings/suppressed全0；首个Parser空输出失败不计成功。源码写入窗口释放，owner消费、测试执行、修复后CheckOnly、安装与原A1历史准入分别pending。
+
+本轮存在工具源码修复，未进行native/产品/性能验收。MVP00/F0与全部未完成门槛继续开放；原A1输入不重绑、不重提，EA60-ASSET-001不升级为产品缺陷。实际释放0B，保留foreign/未知归属，cleanup未关闭。
+
+R12后续取证：monitor已消费最终5159B消息，但一次新工具正式followup dadb3e7e…在input/marker/State创建前以ordinary_entry_unproven / Pinned public entry source changed拒绝，聚焦测试执行0次，非A1重提。Root读取原始dispatch及deployment-operation选定字段，原generation start-1792034703256392600为stopped；该operation记录的agentTerminationProof、nativeTerminationProof两组字段均记录退出1及EOF/childrenGone；这里只按字段名归因，它们属于运行时生命周期，不能当作测试/native退出。原owner需处理实际运行代次和client/capsule迁移，原A1与所有动态验收仍pending；未维护服务或改State。详见主文§20.5。
+
+## 7.63 S21：时间与资源持久化 owner 续审
+
+[S21源码记录](2026-10-14-world-render-gateway-current-audit.md)新增30个全文Rust叶5780行：生产27/4671、测试3/1109。Root按Windows路径去重并核对171 pin/34744行（生产161/33165、测试10/1579，154全文/17部分），HEAD仍f28ba39a5095f4964c046ecc702778627f80cfd5。未将元数据核对、重复独立阅读或截断输出计作新正文；104个历史条目缺失mtime不等于字节漂移，原失败与未知reader均留证。
+
+WorldTime的Runtime真实时钟与每World虚拟/固定债务责任已分清；提交饱和后用减法重建上一端点存在条件性静态不一致，S21-WTIME-ENDPOINT等待Virtual和实际Level调用闭合。S21-WTIME-STEP-BUDGET为调试单步与正常预算的合同决策，未判硬预算违规。abort不会回滚World写入，实际guard/锁与系统失败路径待核。
+
+资源审查已读journal schema/intent、整组恢复校验/evidence与单文件atomic实现。跨journal路径冲突在摘要/replay前拒绝，EOF坏checksum继续合并既有失败模型问题。单文件发布与多文件journal职责不同，未证明重复实现可删除。配置管理器真实调用恢复、读取/解析、启动worker，writer暂存后通过fence发布；fence底层锁实现仍待核。
+
+S21-ATOMIC-RECOVERY-IDENTITY记录非UTF-8 basename共用fallback备份stem的静态误归属条件，并已独立复核；Windows可表达性、真实产品路径、备份状态及受管fixture未证。当前不修改接口/格式，不升产品缺陷。30叶中测试只读，执行0次；M1原owner工具迁移、原A1准入/编译、产品与性能验收仍pending，未发起新请求或维护服务。释放0B，cleanup未关闭，详见主文§21。
+
+## 7.64 S22：固定步退出与配置／资源 owner
+
+[S22源码记录](2026-10-14-world-render-gateway-current-audit.md)新增16个全文叶2707行（生产12/2119、测试4/588）；当前187 pin/37451行，170全文/17部分，HEAD仍f28ba39a5095f4964c046ecc702778627f80cfd5。Root逐pin核对；Level既有全文、Sol1126行复核和Root195行复核均新增0。
+
+WorldDriver的begin→固定阶段→代际检查→commit/abort已闭合。已读controller/Driver仅中止当前时间步，不提供通用World回滚；系统写入可能保留，runner/system自身是否补偿尚未读。普通失败路径保留前序成功时间步及外帧推进；Drop是尽力abort。Sol确认MAX缩放精确到上限，保留S21-WTIME-ENDPOINT，正式Runtime输入、完整调度与消费者仍待核；零预算单步保持合同待决，不在本轮改义。
+
+配置工厂与fence/registry、测试绑定已读。成功初始化才换epoch，失败/panic保留旧owner；cancel不撤回已准入写入。S22-CONFIG-PATH-KEY为Windows有损词法键可能取消无关manager的条件风险，与S21原子备份身份错配分别保留。资源暂存Err的清理责任已追到事务引擎，未将可留孤儿等同live数据损坏，PID复用边界也未升级为缺陷。
+
+测试只读、执行0；M1原Jenkins owner迁移/原A1、MVP00/F0、模块、M0、产品及性能仍开放。释放0B，cleanup未关闭；详见主文§22。
+
+### 7.65 S23：时间入口、宿主与阶段失败边界
+
+公开manual MAX→Runtime权威→快照的原样转发链已静态闭合；正式DynamicSession使用tick_time采样，当前没有产品MAX输入证据。保留S21端点条件问题及零预算预约合同，WorldTimeController仍是端点修复owner。
+
+新增9完整叶、identity完整叶及paths.rs部分31行并补全DynamicSession，新增2753正文行。八个既有源码版本刷新净+790行（生产269、测试521；包含本任务cases迁移−4及随后foreign追加）。按已读版本合计198 pins / 40994行。Runner仅清理仍持有的worker payload、归还系统，未提供通用World回滚；系统补偿和join/merge/apply最低owner待读，缺原子承诺不新定P1。ScheduleExecution绑定owner/plan，context路由不证明generation校验、pause或序列化。
+
+这与EA46-WORLD-002发布后目标替换分别保留。配置测试曾引用退场API，R13已迁移为physical identity并移除薄包装；本任务原断言保留，有界R13补丁与静态guard通过；当前foreign cases已扩为465行/9test，加入owner lease用例和E物理binary根前提。R13只是限定历史delta，不可覆盖当前foreign；编译/测试及原owner接纳待回执。panic测试仅静态阅读；测试、构建、产品与采样均0，MVP00/F0、M1、模块、M0和性能均开放。释放0B；续行丢失的reader终态保留unknown，cleanup未关闭；后续component registry与resource/io新foreign版本待补读，当前pin闭包未通过；40994为已读版本账本。详见主文§23。
+
+### 7.66 S24：延迟窗口与Windows身份限定
+
+生产与测试按已读版本累计209 pins / 43655正文行；新增2644行（生产2589、测试55），三个既有版本刷新净17行。三个Luna并行、Sol独立核心裁决，未修改Rust实现。CommandQueue→typed/boxed负载链已读；仅在清理/恢复完成时可重抛原panic payload，不增加无契约支持的catch。Windows writer保守冲突与严格containment分开，display规范化不等同physical I/O改指；两项不新定P2。
+
+component registry与I/O facade的后续版本已补读，配置path_key已刷新为35行物理身份入口；另15份foreign新版本待刷新，209为已读版本账本，当前闭包false。schedule.rs定位处为cfg(test)；不能以测试分发证明产品路径或失败策略，生产runner仍待核对。
+
+R14本地原owner交接记录专用Python进程归属恢复线索，普通读取已转通用解释器/PowerShell；不新增原生请求或清空inbox。原A1/R12/R13接纳、当前原生编译/测试与产品采样仍待原owner；Root本轮均0。未知reader和429失败保留，释放0B，cleanup未关闭；MVP00/F0、M1、模块、M0及性能均开放。详见主文§24。
+
+### 7.67. S25 当前版本与保存消费者续读（2026-10-15）
+
+三名 Luna 并行阅读、Sol 独立裁决后的所选账本为 213 pin / 46,202 行 / 201 full、12 partial：16 个旧版本的已读正文由 3,560 替换为 5,337 行，另新增 4 pin / 770 行。固定观察未发现所选 pin 字节偏移；这是限定版本核对，模块、M0 全引擎、原生与性能验收继续开放。详见 [当前审查 §25](2026-10-14-world-render-gateway-current-audit.md#25-2026-10-15-续读当前版本保存回执与生产屏障报告)。
+
+保存 receipt 的内容 durable、文档 source revision、投影完成及历史 clean checkpoint 已按实际消费者区分；投影失败错误标 clean 的条件 P1 撤回。自动屏障丢弃普通报告保留为政策/覆盖缺口；WORLD001/002 及恢复 helper 缺口未关闭。R13 差异回应来自监控会话，原 owner 接纳和既有 native 请求仍待核对；构建/测试/产品/性能运行 0，旧未知归属保留，释放 0 B。
+
+### 7.68. S26 启动与激活补偿边界（2026-10-15）
+
+所选已读版本增至 218 pin / 49,799 行 / 213 full、5 partial：7 个同版本部分叶净增 2,064 行，5 个新 pin 增加 1,533 行。M56 固定观察单列 level_system 的外部未读新版本，其余 pin 当次无偏移；不能据此关闭当前源码或模块验收。详见[审查 §26](2026-10-14-world-render-gateway-current-audit.md#26-2026-10-15-续读启动归属world-事务与激活补偿)。
+
+项目激活的补偿分类已由执行器及注册/ledger/guard 内部补证，发布后无条件丢弃 guard 的条件 P1 撤回；native 卸载、原子写内部、lease Drop 和取消仍开放。WORLD001/002 延续原问题；资产 staging/chunk 残件合并为静态 P3 候选。M1 原 owner 接纳与 35 GiB 磁盘门槛未满足，原生/产品/性能未验收；历史未知保留，释放 0 B。
+
+### 7.69. S27 所选正文与 World 收尾方案（2026-10-15）
+
+所选版本为 222 pin / 52,726 行 / 222 full、0 partial：5 个部分叶净增 2,671，level_system 外部版本刷新净增 5，4 个新 pin 增加 251；已全文 helper 357 行及 atomic_file 777 行独立复读不计新增。M58 单列 editing/engine/command.rs 的未读外部新版本，当前源码、模块与 M0 均未闭合。详见[当前审查](2026-10-14-world-render-gateway-current-audit.md)§27。
+
+WORLD002 最小方案为 LevelSystem 按逻辑 World owner 区分 Schedule 与 World，仅排除后者的收尾；已有限独立静态复核，未实现、未跑回归，也未证明产品触发。原子写六文件已有历史全文收据；旧“内部未读”措辞仅指当次执行器展开范围，本轮明确更正，消费者恢复仍开放。Gateway recorder 保留条件静态 P3，实际 runner 隔离待核查；Play retirement 仅作 helper 待补契约问题。
+
+M1 最新固定观察约 28.0 GiB，仍低于 35 GiB；driver 更换并未带来 cargo/runtime acceptance，原 owner 接纳仍待核对，原 native16 冻结。构建、测试、产品、性能运行均为 0，历史未知保留，cleanup=false、释放 0 B。
+
+### 7.70 S28：Play 生产恢复入口与命令失败报告字段（2026-10-15）
+
+S28 将所选 Rust 范围联合更新为 227 pins／53,722 行（225 全文、2 部分）：新增 Play helper／event consumer／shutdown 共 915 行；command.rs 换用当前 412 行，净增 22；另读生产 scope 尾部 34 行和测试 recovery 尾部 25 行。Cargo manifest 12 行独立计为配置证据，必要复读与 locator 不增加正文。精确来源与收据见 [当前审查 §28](2026-10-14-world-render-gateway-current-audit.md) 及 artifacts.json 的 s28_read_evidence／s28_source_rows。
+
+Play 的 project-close／runtime-shutdown 公开恢复入口已确认，因此撤回“无恢复入口”的条件前提；事件泵局部不重试与外层单次恢复入口并存，外层调用频率、回执门控和真实失败仍待验证。命令包装后的 recovery_failed=false 是静态组合结果，Sol67 将其保留为兼容性／观测性合同问号，真实 producer 和下游影响未证实；Gateway 单元测试装配已确认，实际 runner 线程与隔离仍未知。checkpoint 61 另检出 context.rs／exclusive_transition.rs 两处外来新版本，保留并记为未读；均未形成当前源码闭环、产品验收或性能结论。
+
+22:26 UTC E 可用约 21.5 GiB，仍低于构建／测试前 35 GiB 门槛；原 Jenkins R14 回执核对继续开放，native16 请求归属与参数未改。本轮 Rust/Cargo 修改、native／测试／产品／性能运行均为 0；未释放空间，历史未知归属保留，M0、模块和动态验收继续开放。
+
+### 7.71 S29：事务状态与关闭重入的实际边界（2026-10-16 UTC）
+
+本轮补齐事务状态与项目关闭两个全文，并刷新 context／exclusive transition；编辑命令在阅读中换版，按旧 pin 保留部分覆盖，拒绝拼接。所选联合为 230 pins／55,618 行，已观测的四处未读版本仍开放；精确范围和局部合同见 [当前审查 §29](2026-10-14-world-render-gateway-current-audit.md)。关闭回执会阻止提前提交，但重复 effect 合同未证明；命令报告仅补齐条件生产机制，未形成产品缺陷。S29-TX-UNWIND 的局部缺口经独立确认，实际 panic 合同与 containment 仍待 owner。原 Jenkins R14、35 GiB 磁盘门槛及当前 native 验收继续开放；本轮无 Rust/Cargo 修改、运行或性能结论，释放 0 B，未知归属保留。
+
+### 2026-10-16 S30：Play 与关闭持久化合同
+
+[当前源码审查 §30](2026-10-14-world-render-gateway-current-audit.md) 新增 19 pins／3,418 行，累计 249／59,036（245 全文、4 部分）。已核实正常 Closing store 的重复 prepare／commit 短路，并由 Sol 独立复核；外部动作幂等、Play receipt／关闭重试及 invoke_operation 后续 engine／containment 合同继续开放。E 盘约 4.9 GiB，driver 仍仅 selected-for-runtime-start，原 owner 与 native／产品／性能验收未完成。本轮没有源码修改或动态运行，释放 0 B，历史未知继续保留。
+
+### S31：receipt 提交、事务实例与关闭重入
+
+本轮新增 9 个所选源码 pins / 2,178 行，候选规范 union 为 258 pins / 61,214 行，250 full / 8 partial；详见 current audit §31。已闭合 factory 派发使用 context 持有事务引擎的绑定疑问，并证明模型导入完成触发一次关闭重入。receipt 成功缓存/批 cursor 顺序有源码与独立复核证据；测试未运行。TX-UNWIND 的 Initializing/Flushing 分支继续作为条件风险，panic 后继续使用合同、关闭最终重试和四个旧版本刷新仍开放。M1 观察 E 约 6.3 GiB、active 缺失、owner acceptance 未到；本轮不实施、不编译、不测性能，释放 0 B，cleanup=false，M0/模块/产品验收保持开放。
+
+### S32 事务与 tick 合同续读（2026-10-16）
+
+三个 Luna 并行与 Sol 独立复核新增 6 full pins、同版本 scope extension 1 项，并完整重读 foreign 当前 lifecycle 552 行，版本刷新净+1、合计 canonical 净增 1,611 行；累计 264 pins / 62,825 body / 257 full + 7 partial。实际底层事务没有取出 active/context 后自动归还的守卫，外层 panic containment、同实例复用及政策仍待证明，S29-TX-UNWIND 保持条件风险。tick 普通错误的提前返回和 helper Err 后继续已区分；三个文本测试存在静态合同漂移（未执行），行为回归设计见当前阅读报告§32。MVP00、原 A1/R12/R13/R14、八项原生回归和动态门槛继续开放；E 盘当前观察已通过容量门槛，195-file capsule 静态完整性通过，runtime/原请求正式接纳仍待 owner。Root 本轮仅文档与证据集成，释放 0 B，cleanup 未关闭。
+
+## S33 当前版本复审与原 A1 身份（2026-10-16）
+
+World/time三份与command当前四版本完整重读 raw2198，Sol独立重复1675，canonical净增620至264pins/63445行/258full/6partial；历史版本原样保留。ENDPOINT旧根因在当前实现中已移除，MAX/reset测试未跑；STEP-BUDGET与command后错误/复用合同仍为条件项，详见当前审查§33。
+原A1完整originalInput对象与buildRoot配置已恢复，但attempt/ref/native terminal/EOF未证；历史query因driverDigest拒绝与native未知分开保留。已向约定records写明原身份缺口；16项冻结native字段不变，MVP00/M1、R12/R13/R14、模块/产品/性能验收继续开放，Root释放0B。
+
+### S34：补全所选partial，保留当前版本差异
+
+六份正文raw2903/净增2477，canonical264/65922（production59018、test6904）且各登记版本full；Sol850行与Level172行只计重复。资产取消等待ticket可取再请求close、reload admission耗尽政策及projection/placement分阶段失败已区分；恢复测试只读未跑，真实producer与动态验收仍缺。
+
+独立metadata240同版/24 drift中的两份已全读替换，余22新版开放；mtime字符串分类已更正、缺历史mtime不补造。新回复报告automatic intake ready，原A1 attempt/native终态和跨runtime映射、当前compiler seal仍缺；无query/重放/新提交。MVP00/M1、R12/R13/R14、模块/产品/性能开放，Root释放0B。
+
+### S35：22当前版本与持久化消费者边界
+
+22新版全读raw7490，版本行数净差415，canonical264/66337（production59347、test6990）；Sol902及Level29行仅重复。12:17:22 UTC的264路径metadata匹配；12:23:10 UTC登记为263匹配/1 drift，dynamic_api/session/state.rs新版809行未读。这不等于全引擎阅读或compiler seal，历史缺mtime不补造。
+
+保存baseline与clean checkpoint分层、项目发布恢复、独占gate Drop、资源逐文件发布和durability/cleanup状态已按真实owner区分。early lease release、两锁scene rebind、unwind、外部writer/reader及atomic helper保持条件项，无已复现P2/性能结论。S34有限归档已复核；S35文档归档待复核。原A1/native、MVP00/M1及产品/性能继续开放，Root释放0B。
+
+### S36：租约所有权与资源读取边界
+
+9新叶子1367行与state809/project-session927两个完整版本准入；canonical273full/67774（prod60784/test6990），净1437不是源码diff。既有6atomic和guard已全读同pin，本轮重复不增覆盖。
+
+字段Drop确实释放OS lease；早退guard未保留是条件性重试/准入差异，activation effects尚未执行，无已证P2/补丁。SessionGuard发表后sync不确定为Ok，ResourceIo可能发布后Err；ChunkReader完整校验与缓存预算实现已读，未测性能。Root登记metadata drift12仍开放；S35有限归档已复核，S36归档待复核。原A1/M1、当前compiler seal及产品/性能未通过，释放0B。
+
+### S37 静态续读：版本刷新与实际捕获 owner
+
+- 12 个当前版本已完整重读，新增 8 个完整文件；选中覆盖 281／69523（生产 255／62143，测试 26／7380），部分文件 0。
+- 恢复评估的 Terminal 接管门槛、租约下重查与释放失败阻止激活已沿生产分支复核；没有确认新的 P2，外层关闭／提交收敛仍开放。
+- 磁盘 Scene 发布与上层 World／config 组合不是同一 owner；WGPU 同步 readback 等待只定位到静态成本，未测量。
+- S36 本地消息已获监控读取回执；原 A1 执行身份、终态与 EOF 映射仍未对齐，不能进入原生验收。
+- 详情见 [当前审查 §37](2026-10-14-world-render-gateway-current-audit.md#37-s37当前版本恢复评估与-wgpu-捕获续读)。所有动态门槛保持开放，释放 0 B；归档独立复核另记。
+
+### S38：原 A1 观察入口根因与关闭/捕获合同续读
+
+新增14全文/709行并刷新state.rs的809行版本，累计所选295全文/70232行，partial0；主读2804行含同版本重复1286。元数据观察291/295匹配、4漂移，窗口2026-10-16T16:41:56.275142+00:00–2026-10-16T16:41:56.608965+00:00，不作为编译输入封印。
+World同数异键假设撤回，EA46-WORLD-001原范围及WORLD-002发布后Err消费者保持开放；Editor关闭提交、guard释放和ledger清理分别取证；捕获start/stop配对保留未分级条件候选，实际入口/错误可达性待核实。详见[本轮局部架构与范围](2026-10-14-world-render-gateway-current-audit.md)。
+Sol/max定位当前Jenkins entry/runner以新执行绑定提前拒绝旧A1观察；按原身份恢复journal/attempt/native/EOF的具体请求留于本地records，尚无原owner ACK或终态证据。构建、测试、native、捕获、清理均0，释放0B；S38静态归档与M1/native/产品/性能验收分开，后者继续开放。
+
+### S39：共享执行器、UI真实消费者与原身份只读查询部署准备
+
+新增7全文/2750行并刷新4个Scene版本，累计所选302全文/73046行、partial0；有效主读3584行，另有未计覆盖历史可见partial571行。实际UI消费者已定位，普通capture提交配对已核实；scheduler/camera-loop/Drop及恢复controller继续开放，未新增已证P2。详见[续读证据与边界](2026-10-14-world-render-gateway-current-audit.md)。
+Jenkins只读历史query源码修复已观察，部署client pin仍阻断；原身份候选及具体部署交接留于本地records，未执行query或重投A1。源码修改、构建、测试执行、native、捕获和清理均0，释放0B；全部动态验收继续开放。
+
+### S40：I/O关闭与实际恢复、渲染owner
+
+新增14个生产全文/3052行，累计所选316全文/76098行、partial0。确认shutdown guard等待和实际Service+Host归属，排除render setter锁环假设；满预算fence风险未分级，真实保存关闭契约仍待复现，未新增已证P2。详见[本轮范围与证据](2026-10-14-world-render-gateway-current-audit.md#40-s40场景-io-关闭恢复服务与实际渲染队列)。
+当前Jenkins部署六client匹配；原身份查询返回operation_missing，原A1仍未知。当前源码编译请求先证明实际受管池、资源隔离与输入封印，不能由新target目录推断。Root未提交native或运行测试；释放0B，全部动态验收开放。
+
+### S41：保存关闭契约与管理池准入
+
+新增12个所选文件/1004行及一次90→91行版本刷新，累计328文件（324全文、4部分）/77103行。Core取消与guard等待符合已读契约；Editor持久化完成判定的内部owner仍待读，未证实保存丢失，未新增已证P2。详见[范围与证据](2026-10-14-world-render-gateway-current-audit.md#41-s41保存与关闭契约工具状态和-m1-准入缺项)。
+M1 monitor回复未准入、未启动，非目标owner ACK；优先核实受管池writer/cache及旧A1兼容关系和当前输入封存。WPR只读查询成功但未捕获，RenderDoc MCP disabled。引擎源码、构建与产品运行均未发生，释放0B，全部动态验收开放。
+
+### S42：完整输入捕获仍未通过
+
+当前 ordinary validate 路线及 native 前保护已获有限静态复核。两次 public entry 均因完整源码捕获不一致在 management POST 前退出，未进入本次资源准入或 native；没有当前编译结果。已在 .jenkins/records 请求 main/HEAD/完整 index/外部 zr_vm 的稳定写入窗口；owner ACK 和旧 A1 仍开放，不循环重试。
+
+### S43：任务终态与持久化成功的边界
+
+新增去重正文 3418 行，所选覆盖为 350 文件（336 全文、14 部分）/80521 行。JobHandle 终态、Durable/RecoveryDeferred receipt、Saved 发布与 SaveToken clean 的归属已交叉核对；条件性 profiling 漏报保留未评级，不实施低优先级补丁。详见当前审查文档 S42/S43；源码与测试只读，不构成模块或产品验收。释放 0 B，全部动态门槛继续开放。
+
+## S44：owner 归属与四行测试修复
+
+本轮完成 task_graph handle/scope/cancel/shutdown、pool 原生退出、Editor Lossless inbox／生产桥接和 DirtyRegistry／close lease 的限定范围阅读。三名 Luna 并行，Sol 负责核心决策与单测试修复，独立 Luna 完整复核补丁。账本按指纹与闭区间合并：388 个文件、88,408 行正文，较 S43 净增 7,887 行；359 全文、29 部分。事件控制器换版撤回旧全文覆盖，当前仅计新版本已读 21 行；其余旧记录不补 mtime。
+
+TaskScope 的活动 lease 是关闭等待权威，终态 observer 由 Graph 的 AsyncCompute dispatcher 调度。修正 observer 关闭测试两次查询 Compute 的错误及对应提示，共四行；业务 Compute 域与实际阻塞、释放、重试、join 检查保留。差异检查、change guard 和独立全文静态复核通过，编译／测试未执行。
+
+S44-LIFECYCLE-BACKPRESSURE 是新的 P2 候选：生产 publish_document_messages 忽略 Lossless 拒绝报告，bus 依契约不保留重试，生产 bridge 可能收不到文档事实。未证明默认阈值已触发或持久化数据受损。先明确发布者的有限重试、提交边界、事实顺序及 session 生命周期，再统一迁移；真实 helper＋bridge＋第二订阅者容量 1 的行为回归是验收入口。计数耗尽关闭与跨 registry snapshot 仍为未证实条件观察。
+
+M1 的两次 pre-POST 源码捕获失败继续保留。Root 已读 guard 比较 HEAD、完整 names、index entries 与 debug metadata digest；文件数和字节数相同不能证明索引稳定。既有 Jenkins 文件留言追加稳定窗口及有界字段诊断请求；监控回应不是目标 owner ACK，第三次捕获未启动，旧 A1 unknown 保持。全引擎 M0、M1、模块和动态验收均未关闭。
+
+### S45：补齐事件泵与文档通知提交链，恢复一次真实受管入口尝试
+
+正文选择集净增 2664 行与17 pins，现为405/370 full/35 partial/91072 unique body lines；精确范围与四项 pin 在 S45 证据中。真实窗口帧回调同步进入 tick；watch/heartbeat 错误可先返回，插件 manager try_lock 的竞争为 MutationInProgress。manager handle.enter 与插件 Arc handle 已区分；OS 主线程、合法回流重入和具体插件产品损坏均未证。文档 helper 生产调用已穷尽，背压候选继续归入 S44-LIFECYCLE-BACKPRESSURE，未重复立项。
+
+E 盘58.29 GiB已通过空间门槛。原 strict 请求第三次尝试仍在源码捕获 guard 拒绝，POST/编译0；前后原身份查询均 missing。完整 membership 曾变化，事后短观测不能覆盖失败，下一步须由 Jenkins owner 保留 strict guard 并定位实际变化字段/归属。人工稳定窗口 ACK 不构成新增审批门；旧 A1 未重放，native16与所有动态门槛保持原状态。详见本计划的 current audit S45 与构建盘 S45 报告。
+
+### S46 当前执行状态（2026-10-17T04:00:18.034966+00:00）
+
+MVP00：四处陈旧 tick 文本消费者已完成最小修复、独立静态复核和 scoped guard；当前原生基线尚未恢复。源码范围正文已合并至 424 pins / 94720 unique lines，不能据此晋级模块或 M0。
+
+插件 Loaded/Disabled 实例的 retirement 遗漏形成 S46-PLUGIN-RETIREMENT 静态 P2；最小实现与回归设计已明确，未证实直接 MVP00 阻塞，保持待修。原 strict 请求 query-only 仍 operation missing；沿用原身份做下一次当前源码严格捕获，日志已预登记。无提交、原生或性能通过记录。
+
+S46 当前受管尝试补记（2026-10-17T04:28:34.147540+00:00）：原 strict request 的第4次客户端在 2026-10-17 04:03:35–04:09:21 UTC 完成两轮捕获后，被 entry.source_digest:369 的前后不一致检查拒绝（exit2；ordinary_entry_unproven）。本次 management POST0、编译0；失败后原身份 query 仍是 original_operation_missing/resubmitted:false。主仓库外层 HEAD/成员/索引摘要相同，但两轮捕获总字节相差98，不能据此宣称源码稳定；外部 zr_vm HEAD 从030d8d3变为2e2c95d。具体内部差异和写者尚未归属；已补入 Jenkins 本地交接，先协调实际写者窗口并完善差异诊断，再继续原请求。没有第5次提交，M0/M1/native/product/performance 门槛全部保持开放。
+
+### S47 当前执行状态（2026-10-17T05:38:17.808383+00:00）
+
+MVP00 的当前源码编译仍未恢复；第四次 strict 客户端在第二次 capture equality 拒绝，management POST/compiler 均为 0。现已补入保持拒绝合同的 stderr 漂移诊断与三个回归，实际静态独立复核和 scoped guard 通过，尚无新受管测试或 native 通过收据。
+
+当前 union 为 462 pins / 100604 unique lines；旧 pin 正文明确排除，不转移覆盖。Jenkins records 已提供 after/patch 指纹、受管 reseal/test 顺序与原 strict 身份；源捕获守卫、旧 A1 unknown、native16 和动态门槛保持。
+
+### S48 当前验收范围（2026-10-17T06:53:27.872599+00:00）
+
+已独立核实 S47 三项诊断回归（原 foreign #54 ordinaryflow 50/50）与 R13 原生 fence 8 项通过（原 #72）；身份、源码及终态各自归档，不互相替代。未将缺失 JUnit、历史环境、ignored benchmark 或 inputsUnchanged=false 改写为通过。当前 entry seal 已匹配；下一步协调实际 main/external/Git 静默窗口后沿原请求继续 App strict 编译。M0 全树、MVP00/M1 产品与性能门槛仍 open。
+
+## S49 原生准备冲突与默认包验证范围
+
+S49 完成三路 Luna/max 只读范围及后续生命周期/schema/测量能力核查，由 Sol/max 复核 feature 与MVP00次序。原App strict捕获两次一致并提交queue3662/#82，实际终态preparation-conflict，compileStarted=false；原marker与receipt逐项比较仅external E:/Git/zr_vm 的filesDigest及派生digest变化，engine/cache/HEAD/index/gitlinks相等。具体文件和actor未证明，后续commit/lock漂移不追溯归因。原身份、摘要和native16/未知A1保留。
+
+本轮当前源码阅读并集 497 pins（429 full / 68 partial），107027 行；相对S48净增2422行。只按实际同pin正文ranges合并，locator保留partial；没有模块、全引擎、MVP00、产品或性能验收。统一代码问题24项未新增。
+
+原App dynamic-api,platform-winit不启用App/native-host；后续close_owner行为需追加该App feature、prefix entry::tests::product_composition::close_owner::、testThreads=1（3普通+1ignored，不include-ignored）。Runtime同名feature不反向启用App。受管checkout普通batch的首失败停止未获证明，因此下一合同先单Runtime默认check，成功后再Editor/App；最终argv/TEMP/物理产物路径由原生收据核验。具体 [MVP00合同](2026-10-17-engine-audit-mvp00-default-validation.md) 与独立新request留存；新请求尚未提交。
+
+当前WPR可定位且版本10.0.26100.9711，未启动；当前实际12个tools没有RenderDoc MCP。工具安装/历史查询不代表当前产品附着、捕获、GPU timestamp或ETL有效性。优化前后各5独立run、预热后30秒仍待产品就绪。原始性能证据目录E:/zircon-profiles尚无本轮采样。
+
+实际证据 E:\cargo-targets\zircon-local\reports\engine-audit-20261009-01a12097\s49-native-source-conflict-app-feature-validation.json；原生操作和external组件差异已通过用户指定 .jenkins/records 交接，peer monitor独立确认，完整稳定窗口尚未证明。Root本轮未改Rust/Python、未本地Cargo、未复制源码、未清缓存；删除0文件/释放0B。
+
+## S51–S52 当前状态
+
+三路 Luna/max 与 Sol/max 的入口、仪表化、迁移及 strict 捕获证据已并入[统一审查记录](2026-10-14-world-render-gateway-current-audit.md)。S50 首次客户端因单次 capture 的复合输入 guard 拒绝，同身份查询仍 missing；尚无 POST/编译。下一动态动作等待 Jenkins 实际全输入窗口或可核验 candidate 合同，保留原请求且不盲重试。MVP00、全树 M0、产品及性能继续开放；历史App#82和native16不变。
+
+
+### S56（2026-10-17）：入口 proof 实现完成，动态门槛继续开放
+
+CR-APP-ENTRY-0017 的 typed policy、生产 present 完成边界、显式 F2 CLI 与 Stage/Acceptance/F5 消费者已形成24文件完整审阅补丁；普通项目与严格 F2 的选择不再由 `project_root.is_some()` 混合决定。独立复核发现并修正非窗口 cfg 的类型归属，策略仅定义于共享 entry 层；既有 gamepad 四行差异保留归属。最终补丁 SHA-256 `71b0c5ab5c4e0127b5ec368db5d57b45bcbe3286d86f08e27cf6282fac306e4e`，实现报告 SHA-256 `0e96d54f3d54286aeda327e39b539a32928ff26b313f2a64eafc8f0d22f04b31`，详见[当前审查记录](2026-10-14-world-render-gateway-current-audit.md)。静态 guard/diff 与分范围独立复核通过；实际编译、行为回归和产品运行待 Jenkins，静态结论不作为里程碑验收。
+
+阅读 union 为572 pins、478 full、94 partial、125129行；14项版本刷新撤回旧范围。问题队列26项，CR0017 为已实现待原生验收；MVP fixture 的缺失 resolver/旧 lifecycle 入口为同一新增静态工具阻断，待确认实际受管 owner/namespace/cleanup 合同后集中迁移 helper。原 S50 失败身份、unknown/pending 消息和全部 native16 证据保持；M0、MVP00、模块、产品与性能门槛均开放。

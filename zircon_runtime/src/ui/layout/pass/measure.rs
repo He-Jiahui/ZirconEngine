@@ -1,3 +1,7 @@
+//! 布局测量阶段根据子节点和容器配置计算内容尺寸与期望尺寸，供后续安排阶段使用。
+//!
+//! 布局入口先处理响应式样式，再按完整或增量路径更新节点测量缓存；本阶段不生成最终帧坐标。
+
 use crate::ui::{
     surface::{
         measure_text_with_cache, measure_text_with_fixed_width_cache, metadata_has_inline_widget,
@@ -491,6 +495,7 @@ fn wrap_measure_width(tree: &UiTree, parent_id: UiNodeId) -> f32 {
     })
 }
 
+/// 按给定可用宽度重新分行已测量子项并返回内容尺寸；有限宽度下限裁为零，槽位内边距从索引读取，不改写节点缓存。
 pub(super) fn measure_wrap_content_size_for_width(
     tree: &UiTree,
     parent_id: UiNodeId,
@@ -567,12 +572,15 @@ fn grid_dimensions_for_desired(
     for (index, (child_id, _)) in child_desired.iter().copied().enumerate() {
         let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
         let placement = grid_placement_for_child(slot, index, columns);
+        // BUG: [CR-ZCA-R042-0001] 普通可见 Grid 父子且无 MUI metadata 时，匹配槽位的列或行起点若为 usize::MAX、跨度为 1，
+        // 启用 overflow-checks 的构建会在此测量加法溢出并 panic；测量发生在后端选择与扩展轨道分配之前。
         columns = columns.max(placement.column + placement.column_span.max(1));
         rows = rows.max(placement.row + placement.row_span.max(1));
     }
     (columns, rows)
 }
 
+/// 读取子项槽位的 Grid 放置并将跨度下限归一为 1；无明确放置时，按子项序号与当前列数计算默认位置。
 fn grid_placement_for_child(
     slot: Option<&zircon_runtime_interface::ui::layout::UiSlot>,
     index: usize,

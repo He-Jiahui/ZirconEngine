@@ -74,15 +74,16 @@ fn runtime_entry_app_config_can_request_a_first_frame_capture() {
 }
 
 #[test]
-fn runtime_entry_app_config_requires_persisted_scene_diagnostics_only_when_enabled() {
-    assert!(
-        !RuntimeEntryAppConfig::default().require_persisted_scene_diagnostics(),
-        "the F0 no-project startup path must not require F2 scene diagnostics"
+fn runtime_entry_app_config_keeps_product_proof_policy_explicit() {
+    assert_eq!(
+        RuntimeEntryAppConfig::default().product_proof_policy(),
+        RuntimeProductProofPolicy::Disabled,
     );
 
-    let config = RuntimeEntryAppConfig::default().with_persisted_scene_diagnostics(true);
-
-    assert!(config.require_persisted_scene_diagnostics());
+    for policy in [RuntimeProductProofPolicy::GeneralProject, RuntimeProductProofPolicy::F2LitMesh] {
+        let config = RuntimeEntryAppConfig::default().with_product_proof_policy(policy);
+        assert_eq!(config.product_proof_policy(), policy);
+    }
 }
 
 #[test]

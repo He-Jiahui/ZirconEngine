@@ -258,9 +258,7 @@ fn runtime_prepare_plumbing_does_not_expose_raw_queue_authority() {
         include_str!("../../../../../runtime_prepare_collector.rs"),
         include_str!("../../../../../core/core/resources/advanced_plugin_resources.rs"),
         include_str!("../../../../core/core/resources/runtime_prepare.rs"),
-        include_str!(
-            "../../../../../runtime_prepare/execute_runtime_prepare_passes.rs"
-        ),
+        include_str!("../../../../../runtime_prepare/execute_runtime_prepare_passes.rs"),
     ];
 
     for source in sources {

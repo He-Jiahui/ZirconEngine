@@ -1,0 +1,933 @@
+{
+  "batch": "R015",
+  "task": "zircon_runtime_interface 边界契约测试源码中文注释审查",
+  "owner": "reflection_luna",
+  "status": "comments_implemented_pending_parent_review",
+  "assignment": {
+    "initial_grant_sha256": "d1967fdcb39b1fcdbc2f9306bb7030c9da51cb824a21bd464e46b2e617c56326",
+    "current_ledger_sha256": "d1967fdcb39b1fcdbc2f9306bb7030c9da51cb824a21bd464e46b2e617c56326",
+    "entry": "metadata_tasks.R015",
+    "exact_paths_confirmed": true,
+    "state": "assigned-independent-clean-paths"
+  },
+  "scope": {
+    "formal_files": [
+      "zircon_runtime_interface/src/tests/boundary.rs"
+    ],
+    "metadata_file": "docs/plans/source-comments/reviews/R015.json",
+    "exclusions": [
+      "lib.rs、tests/mod.rs、contracts.rs 和 abi_safety_contracts.rs 只作为挂载或调用上下文，不计正式覆盖。",
+      "被扫描的生产源码只作为静态契约输入，不扩展本批源文件归属。"
+    ]
+  },
+  "files": {
+    "zircon_runtime_interface/src/tests/boundary.rs": {
+      "before_sha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+      "after_sha256": "7acb8b1622c66bc34670a217c350485f10c17bdab04a2423edcb82bc9b6f06b2",
+      "before_bytes": 44202,
+      "after_bytes": 44568,
+      "before_physical_lines": 1104,
+      "after_physical_lines": 1107,
+      "line_ending": "CRLF",
+      "status_before": "clean",
+      "status_after": "comment_additions_only",
+      "objects": [
+        {
+          "name": "模块文档与 imports",
+          "before_lines": [
+            1,
+            9
+          ],
+          "after_lines": [
+            1,
+            9
+          ],
+          "audit": "说明接口 crate 的边界检查范围及局部扫描不是完整 Rust 解析器；imports 提供集合、路径和扩展名比较。",
+          "documentation_decision": "模块说明充分。"
+        },
+        {
+          "name": "ALLOWED_DEPENDENCIES",
+          "before_lines": [
+            11,
+            25
+          ],
+          "after_lines": [
+            11,
+            25
+          ],
+          "audit": "固定允许的顶层生产依赖名称集合。",
+          "documentation_decision": "既有中文注释说明合同层依赖和逐项约束。"
+        },
+        {
+          "name": "ALLOWED_DEV_DEPENDENCIES",
+          "before_lines": [
+            27,
+            28
+          ],
+          "after_lines": [
+            27,
+            28
+          ],
+          "audit": "空切片表示当前不接受开发依赖。",
+          "documentation_decision": "既有注释说明新增测试依赖须审查。"
+        },
+        {
+          "name": "ALLOWED_BUILD_DEPENDENCIES",
+          "before_lines": [
+            29,
+            30
+          ],
+          "after_lines": [
+            29,
+            30
+          ],
+          "audit": "构建依赖只列 serde_json。",
+          "documentation_decision": "既有中文注释充分。"
+        },
+        {
+          "name": "FORBIDDEN_SOURCE_NEEDLES",
+          "before_lines": [
+            32,
+            50
+          ],
+          "after_lines": [
+            32,
+            50
+          ],
+          "audit": "生产扫描拒绝的 include、实现 crate、图形/异步和系统能力文本。",
+          "documentation_decision": "职责已说明；不重复列举标记。"
+        },
+        {
+          "name": "CANONICAL_TEXT_SPOOL_OS_NEEDLES / CANONICAL_TEXT_SPOOL_PATH",
+          "before_lines": [
+            52,
+            55
+          ],
+          "after_lines": [
+            52,
+            55
+          ],
+          "audit": "规范文本 spool 的能力集合与唯一路径。",
+          "documentation_decision": "两项均有准确中文说明。"
+        },
+        {
+          "name": "SHARED_RECENT_PROJECTS_STORE_OS_NEEDLES / SHARED_RECENT_PROJECTS_STORE_PATH",
+          "before_lines": [
+            57,
+            59
+          ],
+          "after_lines": [
+            57,
+            59
+          ],
+          "audit": "最近项目存储例外仅限准确路径上的 fs/thread。",
+          "documentation_decision": "既有说明明确能力范围。"
+        },
+        {
+          "name": "REVIEWED_COMPILE_TIME_INPUTS",
+          "before_lines": [
+            60,
+            65
+          ],
+          "after_lines": [
+            60,
+            65
+          ],
+          "audit": "编译期输入必须匹配路径和包含标记。",
+          "documentation_decision": "既有说明完整。"
+        },
+        {
+          "name": "REVIEWED_STD_SYNC_PATHS",
+          "before_lines": [
+            66,
+            79
+          ],
+          "after_lines": [
+            66,
+            79
+          ],
+          "audit": "同步导入路径清单，具体符号另由逐路径映射限制。",
+          "documentation_decision": "既有说明完整。"
+        },
+        {
+          "name": "EXPECTED_RUNTIME_API_DOMAINS / EXPECTED_RUNTIME_API_OWNER_PATHS",
+          "before_lines": [
+            80,
+            109
+          ],
+          "after_lines": [
+            80,
+            109
+          ],
+          "audit": "冻结五域及具体 owner 文件集合，供集合比较。",
+          "documentation_decision": "常量项已有说明。"
+        },
+        {
+          "name": "Runtime API 四项预算与 RUNTIME_API_DOMAIN_FACADE_PATHS",
+          "before_lines": [
+            110,
+            123
+          ],
+          "after_lines": [
+            110,
+            123
+          ],
+          "audit": "限定 facade/owner 行数、重导出数量及不允许 glob 的域 facade。",
+          "documentation_decision": "每项已有统计口径或路径说明。"
+        },
+        {
+          "name": "manifest_dependencies_stay_contract_only",
+          "before_lines": [
+            124,
+            166
+          ],
+          "after_lines": [
+            124,
+            166
+          ],
+          "audit": "读取 Cargo.toml 顶层 dependencies、build-dependencies、dev-dependencies 表，比较键集合并断言未许可项为空；后两表缺失时当空集合。",
+          "documentation_decision": "现有测试说明充分；不宣称检查 target-specific/workspace 依赖。"
+        },
+        {
+          "name": "production_source_does_not_include_or_import_implementation_crates",
+          "before_lines": [
+            168,
+            207
+          ],
+          "after_lines": [
+            168,
+            207
+          ],
+          "audit": "遍历生产源、剥离已识别测试项、检查模块路径和禁用 needle；例外逐路径/标记短路；runtime/editor 路径标记只查代码位置，其余 needle 用原始 contains；统一报告违规。",
+          "documentation_decision": "现有说明及模块级解析限制充分；不是完整 Rust 语义扫描。"
+        },
+        {
+          "name": "local_module_path_violations",
+          "before_lines": [
+            209,
+            273
+          ],
+          "after_lines": [
+            209,
+            274
+          ],
+          "audit": "以 source 为物理归属基准扫描 text 的代码态 path 属性；拒绝含 path 的 cfg_attr；普通字面路径须非空、相对、无非法分隔符，canonicalize 后落在 src 根内并为 .rs；返回诊断。调用者包括主扫描、自测和 contracts.rs。",
+          "documentation_decision": "原职责说明保留；新增 source/text/返回说明。"
+        },
+        {
+          "name": "module_paths_stay_within_the_physical_contract_source_owner",
+          "before_lines": [
+            275,
+            303
+          ],
+          "after_lines": [
+            276,
+            305
+          ],
+          "audit": "覆盖合法仓内相对路径、注释/字符串伪属性，拒绝仓外路径、绝对路径、缺失目标、concat!、cfg_attr；raw-string 伪属性不额外计为违规。",
+          "documentation_decision": "此前无函数文档；新增概述只陈述实际正反用例。"
+        },
+        {
+          "name": "reviewed_compile_time_input",
+          "before_lines": [
+            308,
+            315
+          ],
+          "after_lines": [
+            310,
+            317
+          ],
+          "audit": "路径相对 manifest 且 needle 与登记 pair 精确相同才接受。",
+          "documentation_decision": "既有说明充分。"
+        },
+        {
+          "name": "canonical_text_spool_os_access_is_reviewed",
+          "before_lines": [
+            317,
+            321
+          ],
+          "after_lines": [
+            319,
+            323
+          ],
+          "audit": "仅准确路径与三项能力 needle 同时命中时接受。",
+          "documentation_decision": "既有说明充分。"
+        },
+        {
+          "name": "without_cfg_test_items",
+          "before_lines": [
+            323,
+            365
+          ],
+          "after_lines": [
+            325,
+            367
+          ],
+          "audit": "仅识别两个精确 test 属性且要求位于代码态；按后续分号/括号猜测移除范围，无法界定时保留；保留其余生产文本。",
+          "documentation_decision": "已有返回、精确属性、范围和不完整解析限制说明。"
+        },
+        {
+          "name": "find_matching_brace",
+          "before_lines": [
+            367,
+            449
+          ],
+          "after_lines": [
+            369,
+            451
+          ],
+          "audit": "从 open 字节位置计数括号，跳过行/嵌套块注释、普通/raw 字符串和可识别字符字面量；下溢或不闭合返回 None。",
+          "documentation_decision": "已有参数、返回和失败行为说明充分。"
+        },
+        {
+          "name": "cfg_test_source_filter_preserves_production_boundary_guards",
+          "before_lines": [
+            451,
+            486
+          ],
+          "after_lines": [
+            453,
+            488
+          ],
+          "audit": "七组样例验证 test inline 项和 cfg(all(test,windows)) 剥离；raw 字符串中的 brace/path 不截断；raw-string/cfg(any)/注释中的伪属性保留；char literal 不阻断后续剥离。",
+          "documentation_decision": "既有中文测试说明覆盖行为。"
+        },
+        {
+          "name": "reviewed_boundary_exceptions_stay_path_scoped",
+          "before_lines": [
+            488,
+            511
+          ],
+          "after_lines": [
+            490,
+            513
+          ],
+          "audit": "验证 include_str pair 正例/错配反例；recent-project 精确路径接受 fs/thread、拒绝 process。",
+          "documentation_decision": "既有中文说明充分。"
+        },
+        {
+          "name": "shared_recent_projects_store_os_access_is_reviewed",
+          "before_lines": [
+            513,
+            517
+          ],
+          "after_lines": [
+            515,
+            519
+          ],
+          "audit": "路径和 needle 均精确命中才接受。",
+          "documentation_decision": "既有中文说明充分。"
+        },
+        {
+          "name": "std_sync_contract_primitive_is_reviewed",
+          "before_lines": [
+            519,
+            549
+          ],
+          "after_lines": [
+            521,
+            551
+          ],
+          "audit": "规范化路径分隔符，查逐文件 allowed_symbols；needle 必须为 std::sync；至少一个完整导入且所有导入均获准。",
+          "documentation_decision": "既有文档明确输入、返回条件与未知路径行为。"
+        },
+        {
+          "name": "reviewed_std_sync_use_statements",
+          "before_lines": [
+            551,
+            573
+          ],
+          "after_lines": [
+            553,
+            575
+          ],
+          "audit": "只收集行首代码态 use std::sync 候选；顶层分号确定范围；闭合失败停止；返回切片借用 text。",
+          "documentation_decision": "既有生命周期/停止行为说明充分。"
+        },
+        {
+          "name": "is_rust_code_position",
+          "before_lines": [
+            575,
+            639
+          ],
+          "after_lines": [
+            577,
+            641
+          ],
+          "audit": "扫描 target 前缀状态，识别注释、普通/raw 字符串和字符字面量；返回代码态；调用者须给输入内合法偏移。",
+          "documentation_decision": "已有局部词法分析范围说明充分。"
+        },
+        {
+          "name": "rust_raw_string_end",
+          "before_lines": [
+            641,
+            662
+          ],
+          "after_lines": [
+            643,
+            665
+          ],
+          "audit": "识别 r/br/cr 前缀、井号数和对应终止符，返回终止符后字节位置；未识别/未闭合返回 None。",
+          "documentation_decision": "原说明已覆盖前缀和引号；新增 start 字节偏移及 Option 返回契约。"
+        },
+        {
+          "name": "rust_char_literal_end",
+          "before_lines": [
+            664,
+            683
+          ],
+          "after_lines": [
+            667,
+            686
+          ],
+          "audit": "识别单字符和实现列出的转义形式，要求闭合单引号；无法识别时返回 None，使生命周期标记走普通路径。",
+          "documentation_decision": "既有参数/返回说明充分。"
+        },
+        {
+          "name": "find_use_statement_end",
+          "before_lines": [
+            685,
+            749
+          ],
+          "after_lines": [
+            688,
+            752
+          ],
+          "audit": "跟踪括号、注释和普通字符串，只在顶层分号结束；不匹配/无终止返回 None。",
+          "documentation_decision": "既有中文参数与返回说明充分。"
+        },
+        {
+          "name": "reviewed_std_sync_use_statement_is_allowed",
+          "before_lines": [
+            751,
+            785
+          ],
+          "after_lines": [
+            754,
+            788
+          ],
+          "audit": "先按标识符边界拒绝禁用类型，再解析 std::sync 直接符号或分组导入；分组闭合后逐项校验。",
+          "documentation_decision": "既有直接/分组格式和拒绝集合说明充分。"
+        },
+        {
+          "name": "grouped_imports_are_allowed",
+          "before_lines": [
+            787,
+            816
+          ],
+          "after_lines": [
+            790,
+            819
+          ],
+          "audit": "按顶层逗号拆分，跟踪嵌套花括号；拒绝空中间项、下溢、未闭合或未允许项，允许尾逗号。",
+          "documentation_decision": "既有中文说明充分。"
+        },
+        {
+          "name": "grouped_import_is_allowed",
+          "before_lines": [
+            818,
+            836
+          ],
+          "after_lines": [
+            821,
+            839
+          ],
+          "audit": "去空白后检查首个 ASCII 名称在白名单内；atomic 可嵌套分组，其余只接受裸名或 as 别名。",
+          "documentation_decision": "既有参数、拒绝和接受形式说明充分。"
+        },
+        {
+          "name": "rust_identifier_is_present",
+          "before_lines": [
+            838,
+            848
+          ],
+          "after_lines": [
+            841,
+            851
+          ],
+          "audit": "只按 ASCII 标识符边界识别名称，不区分注释/字面量。",
+          "documentation_decision": "既有中文限制说明充分。"
+        },
+        {
+          "name": "reviewed_std_sync_admission_uses_actual_sources_and_preserves_negative_guards",
+          "before_lines": [
+            850,
+            892
+          ],
+          "after_lines": [
+            853,
+            895
+          ],
+          "audit": "逐个读 11 个路径的真实源并检查 std::sync；Windows 分支检查反斜线路径；拒绝 Barrier、LazyLock、Weak 和 nested atomic::Barrier。",
+          "documentation_decision": "测试文档充分；这里只做静态断言覆盖记录。"
+        },
+        {
+          "name": "canonical_text_spool_os_exception_stays_exact",
+          "before_lines": [
+            894,
+            910
+          ],
+          "after_lines": [
+            897,
+            913
+          ],
+          "audit": "读取准确 spool 源并剥离测试项，按 needle 常量顺序收集命中，要求向量严格等于三项许可向量。",
+          "documentation_decision": "既有说明充分；是有序向量相等，不泛称集合。"
+        },
+        {
+          "name": "runtime_api_surface_stays_folder_backed_by_abi_owner",
+          "before_lines": [
+            912,
+            1009
+          ],
+          "after_lines": [
+            915,
+            1012
+          ],
+          "audit": "验证旧 runtime_api.rs 不存在；根 facade 非空行数、pub use 行数、ABI 声明词串、精确 owner 路径集合、五域声明/显式重导出、无 glob、各 owner 行数及域 facade 无 glob。",
+          "documentation_decision": "测试文档充分；只证明文件布局/文本契约。"
+        },
+        {
+          "name": "runtime_api_owner_sources",
+          "before_lines": [
+            1011,
+            1016
+          ],
+          "after_lines": [
+            1014,
+            1019
+          ],
+          "audit": "递归收集 module_root 相对路径并以 BTreeSet 去重、排序。",
+          "documentation_decision": "既有说明充分。"
+        },
+        {
+          "name": "collect_runtime_api_owner_sources",
+          "before_lines": [
+            1018,
+            1056
+          ],
+          "after_lines": [
+            1021,
+            1059
+          ],
+          "audit": "递归遍历，跳过 tests 目录、mod.rs、_tests 文件，只收集 .rs；目录/条目读取或路径去前缀失败会 panic；不解析模块声明。",
+          "documentation_decision": "现有注释说明过滤、输入约束、失败和解析边界。"
+        },
+        {
+          "name": "production_rust_sources",
+          "before_lines": [
+            1058,
+            1064
+          ],
+          "after_lines": [
+            1061,
+            1067
+          ],
+          "audit": "从 crate src 根调用收集器并返回生产 Rust 源路径。",
+          "documentation_decision": "已有用途、根入口保留说明充分。"
+        },
+        {
+          "name": "collect_rust_sources",
+          "before_lines": [
+            1066,
+            1092
+          ],
+          "after_lines": [
+            1069,
+            1095
+          ],
+          "audit": "递归收集 .rs，跳过 basename 为 tests 的目录及 _tests/_test 后缀；不按模块可达性筛选；读取失败中止。",
+          "documentation_decision": "已有中文参数、过滤、顺序和失败说明充分。"
+        },
+        {
+          "name": "manifest_dir",
+          "before_lines": [
+            1094,
+            1097
+          ],
+          "after_lines": [
+            1097,
+            1100
+          ],
+          "audit": "从编译时 CARGO_MANIFEST_DIR 构造 PathBuf。",
+          "documentation_decision": "已有说明充分。"
+        },
+        {
+          "name": "relative_to_manifest",
+          "before_lines": [
+            1099,
+            1104
+          ],
+          "after_lines": [
+            1102,
+            1107
+          ],
+          "audit": "去 crate 根前缀；strip_prefix 失败时保留原路径。",
+          "documentation_decision": "已有说明充分。"
+        }
+      ],
+      "block_audit": [
+        {
+          "lines": [
+            1,
+            123
+          ],
+          "audit": "模块文档/imports、依赖和禁用标记、精确能力例外、同步路径映射、Runtime API 域/owner 冻结清单及各项预算。每个常量单独登记在 objects。"
+        },
+        {
+          "lines": [
+            124,
+            207
+          ],
+          "audit": "依赖表比较与生产源扫描入口；检查 required/optional TOML 表、source walker、cfg 剥离、模块归属、needle 例外和统一违规断言。"
+        },
+        {
+          "lines": [
+            209,
+            303
+          ],
+          "audit": "path 属性筛选、cfg_attr 拒绝、字面路径 canonicalize/物理根判定、合法/非法/注释/普通字符串/raw string 样例。"
+        },
+        {
+          "lines": [
+            305,
+            451
+          ],
+          "audit": "exact cfg-test 属性识别、测试项范围推断、括号/注释/字符串状态机、未闭合和下溢分支。"
+        },
+        {
+          "lines": [
+            451,
+            575
+          ],
+          "audit": "cfg 过滤七组测试、compile-time 与 recent-project 例外、std::sync 路径映射及导入语句收集。"
+        },
+        {
+          "lines": [
+            575,
+            752
+          ],
+          "audit": "代码态扫描、raw-string/char-literal 边界、顶层分号检测；覆盖所用 lexical state 与 byte offset 返回。"
+        },
+        {
+          "lines": [
+            751,
+            895
+          ],
+          "audit": "直接/分组导入白名单、禁止标识符、括号深度/逗号拆分/别名处理及正负源测试。"
+        },
+        {
+          "lines": [
+            894,
+            1107
+          ],
+          "audit": "spool 命中向量相等、Runtime API facade/owner 文件树断言、递归过滤、manifest-relative 路径 helpers。"
+        }
+      ],
+      "insertions": [
+        {
+          "offset_before": 8956,
+          "offset_after": 8956,
+          "length_bytes": 102,
+          "sha256": "c921c9ecde15575d96334faad50a357d11a2b064136f67507948e16008f99a59",
+          "exact_text": "/// source 提供归属基准，text 是待扫描源码；返回发现的路径属性违规诊断。\r\n",
+          "location": "local_module_path_violations 文档块。",
+          "reason": "补全 source/text 参数和 Vec<String> 诊断返回契约。"
+        },
+        {
+          "offset_before": 11321,
+          "offset_after": 11423,
+          "length_bytes": 127,
+          "sha256": "317461cca6e80a36c3a1595b47e7fe160730f0f91242834042e25eecd1c9bca3",
+          "exact_text": "/// 覆盖归属内普通相对路径、注释/字面量伪属性，以及外部、绝对、动态或条件路径的拒绝。\r\n",
+          "location": "module_paths_stay_within_the_physical_contract_source_owner 测试的 #[test] 后。",
+          "reason": "补充缺失的测试职责文档，严格依据正反断言。"
+        },
+        {
+          "offset_before": 26330,
+          "offset_after": 26559,
+          "length_bytes": 137,
+          "sha256": "895bc90c9b449f97676267001112808192cdc66d21910a5bfbe0c728d452ba06",
+          "exact_text": "/// start 是候选前缀的字节偏移；匹配时返回闭合引号及井号后的偏移，无法识别或未闭合时返回 None。\r\n",
+          "location": "rust_raw_string_end 文档块。",
+          "reason": "补充 start 字节偏移与成功/失败 Option 返回边界。"
+        }
+      ],
+      "byte_reconstruction": {
+        "method": "按 offset_after 降序从当前文件删除各插入段。",
+        "reconstructed_before_sha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+        "exact_byte_match": true,
+        "all_original_bytes_preserved": true,
+        "line_endings_preserved": true
+      },
+      "source_scan_impact": [
+        {
+          "scanner": "formal production_rust_sources -> collect_rust_sources",
+          "evidence": "从 src 根递归并跳过 basename 为 tests 的目录；formal path 是 src/tests/boundary.rs。",
+          "result": "本文件不进入生产扫描输入；新增 doc comments 不改变 scanner 输入。"
+        },
+        {
+          "scanner": "abi_safety_contracts.rs 独立 source walker",
+          "evidence": "同样从 src 根遍历并跳过 tests 目录；上下文文件不直接 include boundary.rs。",
+          "result": "本文件不进入其生产扫描输入。"
+        },
+        {
+          "scanner": "runtime_api_surface_stays_folder_backed_by_abi_owner",
+          "evidence": "只读取 src/runtime_api 下的 facade 和 owner sources。",
+          "result": "本文件行数变化不参与其预算。"
+        },
+        {
+          "scanner": "contracts.rs::ui_mod_is_not_runtime_source_path_inclusion",
+          "evidence": "调用 local_module_path_violations 的输入为 src/ui/mod.rs，随后原断言检查 runtime path 文本。",
+          "result": "调用源、字面量和断言均未改变；测试未执行。"
+        },
+        {
+          "scanner": "self-reference search",
+          "evidence": "rg 未发现 include_str!/include_bytes! 读取本文件；正式 walker 排除其所在 tests 目录。",
+          "result": "未发现把新增注释纳入自身 needle 扫描的路径。"
+        }
+      ],
+      "preexisting_markers": [],
+      "issues": [],
+      "block_audit_line_basis": "block_audit.lines use original/before line numbers; objects contain before_lines and after_lines."
+    }
+  },
+  "context_files": [
+    {
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+      "lines": 251,
+      "evidence": "249-251 行以 cfg(test) 和 path=tests/mod.rs 挂载测试根。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "lines": 79,
+      "evidence": "13-14 行以 path=boundary.rs 挂载 boundary 模块。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+      "lines": 2992,
+      "evidence": "ui_mod_is_not_runtime_source_path_inclusion 读取 src/ui/mod.rs，1686 行直接调用 boundary::local_module_path_violations。",
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
+      "sha256": "727355154d092d305e004b83e52af7d23982469e9608a5004d6b3eff98b5a9d7",
+      "lines": 570,
+      "evidence": "独立 production scanner 的 collect_rust_sources 同样跳过名为 tests 的目录，不读取 boundary.rs。",
+      "formal_coverage": false
+    }
+  ],
+  "test_mounts": [
+    "lib.rs:249-251 cfg(test) + path tests/mod.rs -> tests。",
+    "tests/mod.rs:13-14 path boundary.rs -> boundary。"
+  ],
+  "callers_traits_registration_ffi": {
+    "direct_callers": [
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "symbol": "ui_mod_is_not_runtime_source_path_inclusion",
+        "lines": [
+          1682,
+          1687
+        ],
+        "evidence": "对 src/ui/mod.rs 调用 local_module_path_violations，并断言无违规且无 zircon_runtime/src/ui 文本。"
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/boundary.rs",
+        "symbol": "production_source_does_not_include_or_import_implementation_crates",
+        "lines": [
+          171,
+          207
+        ],
+        "evidence": "生产源主扫描入口调用本文件的 walker、cfg 过滤、path validator 和例外谓词。"
+      }
+    ],
+    "traits": [],
+    "macros": [
+      {
+        "name": "#[test]",
+        "role": "挂载八个 boundary 测试函数。"
+      },
+      {
+        "name": "#[cfg(windows)]",
+        "role": "仅在 Windows 分支验证反斜线路径形式。"
+      },
+      {
+        "name": "concat!",
+        "role": "构造分拆的 forbidden source needle。"
+      },
+      {
+        "name": "matches!",
+        "role": "为两个 runtime/editor 源路径 needle 选择代码态匹配。"
+      },
+      {
+        "name": "assert! / assert_eq!",
+        "role": "实现八项边界测试的正负断言。"
+      },
+      {
+        "name": "format!",
+        "role": "构造路径违规诊断、raw-string 结束分隔符及域重导出检查文本。"
+      },
+      {
+        "name": "env!",
+        "role": "在 manifest_dir 中读取编译期 CARGO_MANIFEST_DIR。"
+      }
+    ],
+    "registration": [],
+    "ffi": [],
+    "note": "本文件审查 manifest/source layout/static text guards；没有 trait、注册流程、宏展开或 FFI 执行证据。"
+  },
+  "helpers_call_graph": {
+    "chains": [
+      "production_source_does_not_include_or_import_implementation_crates -> production_rust_sources -> collect_rust_sources; per source -> without_cfg_test_items/find_matching_brace -> local_module_path_violations/is_rust_code_position and exception predicates.",
+      "std_sync_contract_primitive_is_reviewed -> reviewed_std_sync_use_statements -> is_rust_code_position/find_use_statement_end -> reviewed_std_sync_use_statement_is_allowed -> rust_identifier_is_present/grouped_imports_are_allowed/find_matching_brace -> grouped_import_is_allowed.",
+      "module_paths_stay_within_the_physical_contract_source_owner and contracts.rs caller -> local_module_path_violations.",
+      "reviewed_boundary_exceptions_stay_path_scoped -> reviewed_compile_time_input/shared_recent_projects_store_os_access_is_reviewed.",
+      "runtime_api_surface_stays_folder_backed_by_abi_owner -> runtime_api_owner_sources -> collect_runtime_api_owner_sources."
+    ],
+    "scope": "manifest_dir/relative_to_manifest 供辅助函数构造 crate 根路径和相对路径诊断。"
+  },
+  "evidence": {
+    "full_file_read": true,
+    "physical_lines_read": 1104,
+    "test_entrypoints": [
+      "manifest_dependencies_stay_contract_only",
+      "production_source_does_not_include_or_import_implementation_crates",
+      "module_paths_stay_within_the_physical_contract_source_owner",
+      "cfg_test_source_filter_preserves_production_boundary_guards",
+      "reviewed_boundary_exceptions_stay_path_scoped",
+      "reviewed_std_sync_admission_uses_actual_sources_and_preserves_negative_guards",
+      "canonical_text_spool_os_exception_stays_exact",
+      "runtime_api_surface_stays_folder_backed_by_abi_owner"
+    ],
+    "formal_non_test_functions": 22,
+    "formal_constants": 16,
+    "markers_found": [],
+    "source_path_mount_confirmed": true
+  },
+  "coverage_basis": {
+    "declarations": "objects 逐项覆盖模块区块、16 个常量、8 个测试和 22 个非测试函数。",
+    "statement_blocks": "block_audit 覆盖扫描循环、路径/属性分支、词法状态、导入解析、目录遍历及 facade/owner 断言。",
+    "tests": "8 个测试入口均列实际断言和证据边界；没有把源码断言当成运行结果。",
+    "context": "4 个上下文文件按 SHA 固定，但不计正式覆盖。"
+  },
+  "validation": {
+    "rustfmt_command": "rustfmt --check --edition 2021 --config skip_children=true zircon_runtime_interface/src/tests/boundary.rs",
+    "rustfmt_exit_code": 0,
+    "diff_check_command": "git diff --check -- zircon_runtime_interface/src/tests/boundary.rs",
+    "diff_check_exit_code": 0,
+    "diff_numstat": "3 additions, 0 deletions",
+    "cargo_or_tests_run": false,
+    "note": "没有执行 Cargo、测试二进制或生成器；测试行为描述只来自源码断言。"
+  },
+  "test_contracts": [
+    {
+      "name": "manifest_dependencies_stay_contract_only",
+      "lines": [
+        124,
+        166
+      ],
+      "checks": [
+        "顶层 dependencies 表必须存在，未许可键集为空。",
+        "build/dev 表缺失按空表处理，各自未许可键集为空。"
+      ],
+      "limits": "只读三个顶层 TOML 表，不证明 target-specific 或 workspace 依赖边界。"
+    },
+    {
+      "name": "production_source_does_not_include_or_import_implementation_crates",
+      "lines": [
+        168,
+        207
+      ],
+      "checks": [
+        "遍历生产源并剥离已识别 test 项。",
+        "运行本地模块 path 检查与逐 needle 精确例外。",
+        "runtime/editor 源路径 needle 只在代码位置搜索，其余 needle 用原始 text contains。",
+        "累计违规集合必须为空。"
+      ],
+      "limits": "静态源码说明守卫检查项与文本近似解析边界；未运行测试。"
+    },
+    {
+      "name": "module_paths_stay_within_the_physical_contract_source_owner",
+      "lines": [
+        275,
+        303
+      ],
+      "checks": [
+        "仓内相对模块路径及注释/普通字符串伪属性返回无违规。",
+        "外部、绝对、缺失、concat!、cfg_attr 路径样例各产生一个违规。",
+        "raw string 伪属性加真实外部路径的结果长度为一。"
+      ],
+      "limits": "覆盖列举的属性形态，不是完整 Rust attribute grammar。"
+    },
+    {
+      "name": "cfg_test_source_filter_preserves_production_boundary_guards",
+      "lines": [
+        451,
+        486
+      ],
+      "checks": [
+        "cfg(test) inline block 和 cfg(all(test,windows)) path module 被剥离。",
+        "raw string 内 brace/path 不截断；raw 字符串 cfg、cfg(any(...)) 和注释中的伪属性保留。",
+        "字符字面量引号不阻止后续测试 module 剥离。"
+      ],
+      "limits": "只验证两个精确识别属性及给出的词法样例，不求值任意 cfg 表达式。"
+    },
+    {
+      "name": "reviewed_boundary_exceptions_stay_path_scoped",
+      "lines": [
+        488,
+        511
+      ],
+      "checks": [
+        "一个 compile-time 路径/needle pair 接受，错配 needle 拒绝。",
+        "最近项目精确路径接受 std::fs/thread，拒绝 std::process。"
+      ],
+      "limits": "对列举的 predicate 做抽样断言，不覆盖每个表项。"
+    },
+    {
+      "name": "reviewed_std_sync_admission_uses_actual_sources_and_preserves_negative_guards",
+      "lines": [
+        850,
+        892
+      ],
+      "checks": [
+        "11 个登记路径逐一读取实际源码并要求 std::sync 守卫通过。",
+        "cfg(windows) 分支构造反斜线路径再检查。",
+        "四个负例分别拒绝 Barrier、LazyLock、Weak、嵌套 atomic::Barrier。"
+      ],
+      "limits": "断言覆盖这些具体导入形态，不证明其他未列语法形式。"
+    },
+    {
+      "name": "canonical_text_spool_os_exception_stays_exact",
+      "lines": [
+        894,
+        910
+      ],
+      "checks": [
+        "读取 spool 实际源码并剥离 cfg-test 项。",
+        "按 forbidden needle 顺序提取原始文本命中，向量须与许可三项严格相等。"
+      ],
+      "limits": "测试实际源码断言未执行。"
+    },
+    {
+      "name": "runtime_api_surface_stays_folder_backed_by_abi_owner",
+      "lines": [
+        912,
+        1009
+      ],
+      "checks": [
+        "拒绝恢复旧单文件 facade。",
+        "检查 facade 行数/re-export 数和 ABI 声明词串。",
+        "实际 owner 路径集合与冻结集合严格相等。",
+        "五域 mod 和 grouped pub use 存在，无 glob；owner/domain facade 行数与通配条件符合预算。"
+      ],
+      "limits": "仅验证 source layout/text，不证明 Runtime API 运行行为。"
+    }
+  ]
+}

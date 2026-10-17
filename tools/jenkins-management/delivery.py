@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import subprocess
 import sys
 import time
 import tomllib
@@ -110,6 +111,7 @@ def policy_for(repo):
     rules = policy.get("integration", {})
     if (rules.get("enabled") is not True or rules.get("sessions") != "any"
             or rules.get("targetBranch") != "main" or rules.get("validationRequired") is not True
+            or rules.get("requireCleanMain") is not True or rules.get("requirePullRequest") is not True
             or rules.get("executor") != "zircon-management"
             or any(rules.get(k) is not False for k in ("requireSeparateCommitApproval",
                 "requireSeparateMergeApproval", "requireWholeWorkspaceAcceptance"))):
@@ -246,6 +248,25 @@ def environment(output, runtime):
     return env
 
 
+def vsdev_command(command, destination):
+    """Import MSVC, then preserve the native argv through Windows quoting."""
+    invocation = destination / "vsdev-command.ps1"
+    def literal(value):
+        return "'" + value.replace("'", "''") + "'"
+    invocation.write_text(
+        "$ErrorActionPreference = 'Stop'\n$env:VSCMD_SKIP_SENDTELEMETRY = '1'\n"
+        ". 'D:/CodexData/.codex/skills/using-vsdevcmd/scripts/Import-VsDevCmdEnvironment.ps1' -Quiet\n"
+        "$taskNativeStart = New-Object System.Diagnostics.ProcessStartInfo\n"
+        "$taskNativeStart.FileName = " + literal(command[0]) + "\n"
+        "$taskNativeStart.Arguments = " + literal(subprocess.list2cmdline(command[1:])) + "\n"
+        "$taskNativeStart.UseShellExecute = $false\n"
+        "$taskNativeProcess = [System.Diagnostics.Process]::Start($taskNativeStart)\n"
+        "try { $taskNativeProcess.WaitForExit(); exit $taskNativeProcess.ExitCode }\n"
+        "finally { $taskNativeProcess.Dispose() }\n", encoding="utf-8-sig")
+    return ["C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-NonInteractive",
+            "-ExecutionPolicy", "Bypass", "-File", str(invocation)]
+
+
 def run_validation(root, payload, names, output, runtime):
     """Run actual commands in retained Windows Jobs and retain their EOF proof."""
     cargo = module("delivery_native_command", ROOT / "tools/dev/local_cargo.py")
@@ -307,9 +328,7 @@ def run_validation(root, payload, names, output, runtime):
                     (generation / name).mkdir(parents=True, exist_ok=True)
                 command = cargo.prepare_command(step["arguments"], generation / "target")
                 command[0] = toolchain["binaries"]["cargo"]["path"]
-                command = ["C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile", "-NonInteractive",
-                           "-ExecutionPolicy", "Bypass", "-File",
-                           "D:/CodexData/.codex/skills/using-vsdevcmd/scripts/Invoke-VsDevCommand.ps1", *command]
+                command = vsdev_command(command, destination)
             step_env = dict(env)
             if step["kind"] == "pytest":
                 # Fixture commands inherit this pytest process's retained Job;
@@ -352,6 +371,10 @@ def execute(repo, payload, *, policy=None, grants=None, validate=run_validation,
     policy = policy_for(repo) if policy is None else policy
     if grants is None:
         grants = tomllib.loads((repo / ".codex/config.toml").read_text("utf-8-sig"))["permissions"]["zircon-strict"]["filesystem"]
+    if policy.get("integration", {}).get("mode") == "branch-commit-then-scheduled-merge":
+        helper = module("delivery_branch_integration", Path(__file__).with_name("branch_integration.py"))
+        return helper.stage(sys.modules[__name__], repo, payload, policy=policy, grants=grants,
+                            runtime=runtime, check_runtime=check_runtime)
     paths, names = validate_request(repo, payload, policy, grants)
     journal = repo / ".jenkins/state/management/deliveries" / (payload["operationId"] + ".json")
     previous = commit.read_json(journal) if journal.exists() else None

@@ -2,10 +2,10 @@ use std::borrow::Cow;
 use std::ffi::OsStr;
 use std::path::{Component, Path, PathBuf};
 
-use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
+use zircon_runtime::asset::{runtime_asset_path_with_dev_asset_root, AssetRelativePath};
 
 pub(super) fn editor_asset_root() -> PathBuf {
-    runtime_asset_path_with_dev_asset_root(Path::new(""), editor_dev_asset_root())
+    runtime_asset_path_with_dev_asset_root(&AssetRelativePath::root(), editor_dev_asset_root())
 }
 
 pub(super) fn editor_dev_asset_root() -> PathBuf {

@@ -51,11 +51,7 @@ fn run_format_benchmark(marker: &str, block_x: u8, block_y: u8, block_z: u8) {
     for sample_index in 0..BENCHMARK_SAMPLE_PAIRS {
         if sample_index % 2 == 0 {
             legacy_samples.push(measure_format_creation(|| {
-                legacy_canonical_format(
-                    black_box(block_x),
-                    black_box(block_y),
-                    black_box(block_z),
-                )
+                legacy_canonical_format(black_box(block_x), black_box(block_y), black_box(block_z))
             }));
             optimized_samples.push(measure_format_creation(|| {
                 optimized_canonical_format(
@@ -73,11 +69,7 @@ fn run_format_benchmark(marker: &str, block_x: u8, block_y: u8, block_z: u8) {
                 )
             }));
             legacy_samples.push(measure_format_creation(|| {
-                legacy_canonical_format(
-                    black_box(block_x),
-                    black_box(block_y),
-                    black_box(block_z),
-                )
+                legacy_canonical_format(black_box(block_x), black_box(block_y), black_box(block_z))
             }));
         }
     }

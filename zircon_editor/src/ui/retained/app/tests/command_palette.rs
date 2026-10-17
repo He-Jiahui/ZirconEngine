@@ -169,7 +169,11 @@ fn native_ctrl_n_opens_scene_picker_and_commit_creates_an_empty_project_scene() 
             "popup_open"
         ));
         assert!(
-            host.runtime.chrome_snapshot().unwrap().scene_entries.is_empty(),
+            host.runtime
+                .chrome_snapshot()
+                .unwrap()
+                .scene_entries
+                .is_empty(),
             "created scene must have no authored nodes"
         );
     }

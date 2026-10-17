@@ -98,9 +98,10 @@ impl PartialEq for ChromeTabCompositionGeneration {
         self.tabs.shares_values_with(&other.tabs)
             && match (&self.header_source, &other.header_source) {
                 (None, None) => true,
-                (Some(left), Some(right)) =>
+                (Some(left), Some(right)) => {
                     std::sync::Arc::ptr_eq(&left.frame, &right.frame)
-                        && left.source_receipts == right.source_receipts,
+                        && left.source_receipts == right.source_receipts
+                }
                 _ => false,
             }
     }

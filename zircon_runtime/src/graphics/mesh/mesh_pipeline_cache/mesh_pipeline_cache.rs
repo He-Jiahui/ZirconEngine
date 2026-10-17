@@ -16,7 +16,9 @@ use crate::graphics::scene::scene_renderer::environment::{
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommand, MeshPassPipelineKind, MeshPipelineVariantId,
 };
-use crate::graphics::shader::{template::ShaderTemplateReflection, ShaderVariantCacheDisk};
+use crate::graphics::shader::template::ShaderTemplateReflection;
+#[cfg(feature = "native-host")]
+use crate::graphics::shader::ShaderVariantCacheDisk;
 use crate::rhi::{SubmissionStatus, SubmissionTicket};
 
 use super::material_pipeline_generation_admission::MaterialPipelineGenerationAdmissionLedger;
@@ -57,7 +59,7 @@ pub(super) struct PipelineFailure {
 
 pub(super) struct PipelineUnavailableState {
     pub(super) reason: PipelineAdmissionReason,
-    pub(super) since: std::time::Instant,
+    pub(super) since: web_time::Instant,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -83,6 +85,7 @@ impl PipelineAdmissionKey {
 
 /// 渲染器持有的网格管线状态；准入结果、着色器反向引用、材质代际与提交引用共同约束缓存的复用和释放。
 pub(crate) struct MeshPipelineCache {
+    pub(super) validation_device: wgpu::Device,
     pub(in crate::graphics::scene::scene_renderer::mesh) target_format: wgpu::TextureFormat,
     pub(in crate::graphics::scene::scene_renderer::mesh) mesh_pipeline_layout: wgpu::PipelineLayout,
     // The fixed EnvironmentOnly Base shader omits the generic forward receiver
@@ -93,7 +96,7 @@ pub(crate) struct MeshPipelineCache {
     pub(in crate::graphics::scene::scene_renderer::mesh) oit_fragment_store_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::mesh) oit_mesh_pipeline_layout:
-        wgpu::PipelineLayout,
+        Option<wgpu::PipelineLayout>,
     pub(super) mesh_shader_resource_contract: MeshShaderPipelineLayoutContract,
     pub(super) environment_only_mesh_shader_resource_contract:
         MeshShaderPipelineLayoutContract,
@@ -171,6 +174,7 @@ pub(crate) struct MeshPipelineCache {
         MeshPipelineVariantRegistry,
     pub(in crate::graphics::scene::scene_renderer::mesh) geometry_source_descriptors:
         HashMap<GeometrySourceId, GeometrySourceDescriptor>,
+    #[cfg(feature = "native-host")]
     pub(in crate::graphics::scene::scene_renderer::mesh) shader_variant_disk_cache:
         ShaderVariantCacheDisk,
     // WGPU error-scope futures are not `Send`. Resolve each scope at creation
@@ -502,7 +506,7 @@ impl MeshPipelineCache {
     pub(super) fn record_render_pipeline_creation(
         &self,
         target: PipelineCreationTarget,
-        elapsed: std::time::Duration,
+        elapsed: web_time::Duration,
     ) {
         self.pipeline_creation_metrics
             .record_render_pipeline_creation(target, elapsed);
@@ -511,7 +515,7 @@ impl MeshPipelineCache {
     pub(super) fn record_shader_module_creation(
         &self,
         target: PipelineCreationTarget,
-        elapsed: std::time::Duration,
+        elapsed: web_time::Duration,
     ) {
         self.pipeline_creation_metrics
             .record_shader_module_creation(target, elapsed);
@@ -599,6 +603,7 @@ impl MeshPipelineCache {
     }
 
     #[cfg(test)]
+    #[cfg(feature = "native-host")]
     pub(crate) fn replace_shader_variant_disk_cache_for_tests(
         &mut self,
         cache: ShaderVariantCacheDisk,
@@ -607,7 +612,7 @@ impl MeshPipelineCache {
     }
 }
 
-pub(super) fn duration_microseconds_saturating(duration: std::time::Duration) -> u64 {
+pub(super) fn duration_microseconds_saturating(duration: web_time::Duration) -> u64 {
     u64::try_from(duration.as_micros()).unwrap_or(u64::MAX)
 }
 

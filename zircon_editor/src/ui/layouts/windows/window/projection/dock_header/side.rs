@@ -294,7 +294,7 @@ fn side_dock_tab_preferred_width_from_measured(
             title: title.into(),
             icon_key: "".into(),
             active: false,
-            closeable: false
+            closeable: false,
         },
         title_width,
         chrome_dimensions::effective_scale(),

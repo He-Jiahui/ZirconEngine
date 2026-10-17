@@ -8,7 +8,10 @@ use super::super::super::super::paint_text::{
     measure_runtime_text_width, HostTextLayoutPolicy,
 };
 use super::super::super::super::paint_theme::current_host_metrics;
-use super::super::super::{first_non_empty, ACCENT, SEPARATOR};
+use super::super::super::first_non_empty;
+#[cfg(test)]
+use super::super::super::{ACCENT, SEPARATOR};
+#[cfg(test)]
 use super::super::style::{
     WELCOME_MUTED_TEXT, WELCOME_SUCCESS, WELCOME_SURFACE_INSET, WELCOME_TEXT,
 };
@@ -44,7 +47,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_hero(
         },
         title,
         Some(clip),
-        WELCOME_TEXT,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text,
         title_font_size,
         title_line_height,
         UiTextRunPaintStyle::default(),
@@ -62,7 +65,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_hero(
             "Recent projects and a renderable empty-project template",
         ]),
         Some(clip),
-        WELCOME_MUTED_TEXT,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text_muted,
         subtitle_font_size,
         subtitle_line_height,
         UiTextRunPaintStyle::default(),
@@ -78,7 +81,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_hero(
             height: metrics.border_width.min(accent_height),
         },
         Some(clip),
-        SEPARATOR,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().border,
     );
     draw_rect_clipped(
         frame,
@@ -90,7 +93,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_hero(
             height: accent_height,
         },
         Some(clip),
-        ACCENT,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().focus_ring,
     );
 }
 
@@ -105,8 +108,8 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_status(
         frame,
         status.clone(),
         Some(clip),
-        WELCOME_SURFACE_INSET,
-        SEPARATOR,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().surface_inset,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().border,
         metrics.border_width,
         metrics.radius_control,
     );
@@ -122,7 +125,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_status(
         frame,
         marker.clone(),
         Some(clip),
-        WELCOME_SUCCESS,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().success,
         marker_size * 0.5,
     );
 
@@ -140,7 +143,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_status(
         },
         first_non_empty(&[pane.welcome.status_message.as_str(), "Ready"]),
         Some(clip),
-        WELCOME_MUTED_TEXT,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text_muted,
         font_size,
         line_height,
         UiTextRunPaintStyle::default(),

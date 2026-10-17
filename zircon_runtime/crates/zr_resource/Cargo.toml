@@ -12,6 +12,7 @@ profiling = []
 test-support = []
 
 [dependencies]
+web-time = "1.1.0"
 blake3.workspace = true
 serde.workspace = true
 thiserror.workspace = true

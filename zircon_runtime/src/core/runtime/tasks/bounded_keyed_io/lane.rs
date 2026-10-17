@@ -1,7 +1,7 @@
 use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{Arc, Condvar, Mutex};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use super::{
     BoundedKeyedIoAdmission, BoundedKeyedIoAdmissionError, BoundedKeyedIoCancelAuthority,

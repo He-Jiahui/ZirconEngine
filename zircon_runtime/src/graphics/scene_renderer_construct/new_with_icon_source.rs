@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
-use std::time::Instant;
+use web_time::Instant;
 
 use zr_rhi::{RenderDeviceFeature, RenderDeviceRequestPolicy};
 
@@ -34,6 +34,31 @@ use super::super::scene_submission_completion_journal::SceneSubmissionCompletion
 use crate::graphics::scene::render_scene::RenderSceneRegistry;
 
 impl SceneRenderer {
+    pub(crate) fn new_with_plugin_render_extensions_and_shading_models_and_font_collection_and_device_request_policy(
+        asset_manager: ProjectAssetManagerAccess,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
+        plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
+        font_collection: Arc<FontCollectionService>,
+        device_request_policy: RenderDeviceRequestPolicy,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_icon_source_and_plugin_render_features_and_shading_models_and_font_collection_and_device_request_policy(
+            asset_manager,
+            Arc::new(EmptyViewportIconSource),
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            plugin_geometry_sources,
+            plugin_shading_models,
+            plugin_shader_module_sources,
+            font_collection,
+            device_request_policy,
+        )
+    }
+
     /// Standalone compatibility constructor for diagnostics that need the startup report.
     /// Core-owned Runtime products construct through the builtin Graphics module host.
     pub fn new_with_startup_report(
@@ -61,6 +86,7 @@ impl SceneRenderer {
             // Runtime201 standalone compatibility: Core-owned products inject TextRuntimeContext.
             shared_font_collection_service(),
             startup_options,
+            None,
         )
     }
 
@@ -142,6 +168,35 @@ impl SceneRenderer {
             plugin_shader_module_sources,
             font_collection,
             SceneRendererStartupOptions::default(),
+            None,
+        )
+        .map(|(renderer, _)| renderer)
+    }
+
+    pub(crate) fn new_with_icon_source_and_plugin_render_features_and_shading_models_and_font_collection_and_device_request_policy(
+        asset_manager: ProjectAssetManagerAccess,
+        icon_source: Arc<dyn ViewportIconSource>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
+        plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
+        font_collection: Arc<FontCollectionService>,
+        device_request_policy: RenderDeviceRequestPolicy,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_icon_source_and_plugin_render_features_and_shading_models_with_startup_report(
+            asset_manager,
+            icon_source,
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            plugin_geometry_sources,
+            plugin_shading_models,
+            plugin_shader_module_sources,
+            font_collection,
+            SceneRendererStartupOptions::default(),
+            Some(device_request_policy),
         )
         .map(|(renderer, _)| renderer)
     }
@@ -157,6 +212,7 @@ impl SceneRenderer {
         plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
         font_collection: Arc<FontCollectionService>,
         startup_options: SceneRendererStartupOptions,
+        device_request_policy_override: Option<RenderDeviceRequestPolicy>,
     ) -> Result<(Self, SceneRendererStartupReport), GraphicsError> {
         let render_features = render_features.into_iter().collect::<Vec<_>>();
         let render_pass_executors = render_pass_executors.into_iter().collect::<Vec<_>>();
@@ -166,11 +222,92 @@ impl SceneRenderer {
         let plugin_shader_module_sources =
             plugin_shader_module_sources.into_iter().collect::<Vec<_>>();
         let backend_started = Instant::now();
-        let device_request_policy = device_request_policy_for_startup_options(startup_options);
+        let device_request_policy = device_request_policy_override
+            .unwrap_or_else(|| device_request_policy_for_startup_options(startup_options));
+        let device_request_policy =
+            device_request_policy_for_executors(device_request_policy, &render_pass_executors);
         let backend = crate::graphics::backend::RenderBackend::new_offscreen_with_policy(
             &device_request_policy,
         )?;
         let backend_initialization = backend_started.elapsed();
+        Self::from_backend(
+            backend,
+            backend_initialization,
+            asset_manager,
+            icon_source,
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            plugin_geometry_sources,
+            plugin_shading_models,
+            plugin_shader_module_sources,
+            font_collection,
+            startup_options,
+        )
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) async fn new_canvas(
+        asset_manager: ProjectAssetManagerAccess,
+        canvas: web_sys::HtmlCanvasElement,
+        identity: u64,
+        font_collection: Arc<FontCollectionService>,
+    ) -> Result<Self, GraphicsError> {
+        let started = Instant::now();
+        let backend = crate::graphics::backend::RenderBackend::new_canvas(
+            canvas,
+            identity,
+            &RenderDeviceRequestPolicy::mvp_baseline(),
+        )
+        .await?;
+        let device = backend.device.clone();
+        let result = Self::from_backend(
+            backend,
+            started.elapsed(),
+            asset_manager,
+            Arc::new(EmptyViewportIconSource),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            font_collection,
+            SceneRendererStartupOptions::portable_scene(),
+        )
+        .map(|(renderer, _)| renderer);
+        let validation = crate::graphics::validation_scope::resolve(&device).await;
+        validation?;
+        result
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn web_validation_device(&self) -> wgpu::Device {
+        self.backend.device.clone()
+    }
+
+    /// Commit pose history only after the browser has accepted this frame's GPU work.
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn finish_browser_scene_history(&mut self, success: bool) {
+        if std::mem::take(&mut self.core.browser_scene_history_pending) && success {
+            self.core.commit_scene_history_after_validation();
+        }
+    }
+
+    fn from_backend(
+        backend: crate::graphics::backend::RenderBackend,
+        backend_initialization: std::time::Duration,
+        asset_manager: ProjectAssetManagerAccess,
+        icon_source: Arc<dyn ViewportIconSource>,
+        render_features: Vec<RenderFeatureDescriptor>,
+        render_pass_executors: Vec<RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: Vec<RuntimePrepareCollectorRegistration>,
+        plugin_geometry_sources: Vec<GeometrySourceDescriptor>,
+        plugin_shading_models: Vec<ShadingModelDescriptor>,
+        plugin_shader_module_sources: Vec<PluginShaderModuleSource>,
+        font_collection: Arc<FontCollectionService>,
+        startup_options: SceneRendererStartupOptions,
+    ) -> Result<(Self, SceneRendererStartupReport), GraphicsError> {
         let system_texture_started = Instant::now();
         let (system_textures, system_texture_startup) = backend.acquire_system_texture_lease()?;
         let system_texture_initialization = system_texture_started.elapsed();
@@ -286,6 +423,11 @@ impl SceneRenderer {
                 hzb_diagnostics_readback_enabled: false,
                 last_frame_timing_report: SceneRendererFrameTimingReport::default(),
                 advanced_plugin_outputs: SceneRendererAdvancedPluginOutputs::default(),
+                virtual_geometry_native_handoff: Vec::new(),
+                #[cfg(feature = "test-support")]
+                last_virtual_geometry_readback_for_test: None,
+                #[cfg(feature = "test-support")]
+                last_virtual_geometry_completion_for_test: None,
                 backend,
             },
             SceneRendererStartupReport {
@@ -326,6 +468,18 @@ fn device_request_policy_for_startup_options(
     device_request_policy
         .with_optional_feature(RenderDeviceFeature::GpuTimestamp)
         .with_optional_feature(RenderDeviceFeature::PipelineStatistics)
+}
+
+fn device_request_policy_for_executors(
+    mut policy: RenderDeviceRequestPolicy,
+    executors: &[RenderPassExecutorRegistration],
+) -> RenderDeviceRequestPolicy {
+    for executor in executors {
+        for &feature in executor.required_device_features() {
+            policy = policy.with_required_feature(feature);
+        }
+    }
+    policy
 }
 
 #[cfg(test)]

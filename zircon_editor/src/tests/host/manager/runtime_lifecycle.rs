@@ -20,7 +20,10 @@ fn registry_owned_editor_manager_does_not_retain_the_runtime_root() {
     let manager = runtime
         .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    assert_eq!(manager.enter().unwrap().runtime_diagnostics(), Default::default());
+    assert_eq!(
+        manager.enter().unwrap().runtime_diagnostics(),
+        Default::default()
+    );
 
     drop(runtime);
 
@@ -49,8 +52,15 @@ fn failed_project_open_does_not_make_the_editor_manager_retain_the_runtime_root(
         .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
 
-    assert!(manager.enter().unwrap().open_project(&missing_project).is_err());
-    assert_eq!(manager.enter().unwrap().runtime_diagnostics(), Default::default());
+    assert!(manager
+        .enter()
+        .unwrap()
+        .open_project(&missing_project)
+        .is_err());
+    assert_eq!(
+        manager.enter().unwrap().runtime_diagnostics(),
+        Default::default()
+    );
     drop(runtime);
 
     assert!(
@@ -85,7 +95,10 @@ fn project_open_panic_unwind_drops_temporary_editor_manager_owners() {
             .expect("missing project deliberately drives the unwind path");
     }));
     assert!(panic_result.is_err());
-    assert_eq!(manager.enter().unwrap().runtime_diagnostics(), Default::default());
+    assert_eq!(
+        manager.enter().unwrap().runtime_diagnostics(),
+        Default::default()
+    );
     drop(runtime);
 
     assert!(

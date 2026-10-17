@@ -527,7 +527,8 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_with_debug_keeps_extract
     .expect("cooked model should synthesize automatic extract");
 
     assert_eq!(
-        output.extract().debug, debug,
+        output.extract().debug,
+        debug,
         "expected the automatic extract helper to keep its public extract debug state aligned with the debug config that already drives CPU-reference and BVH synthesis"
     );
 }
@@ -682,7 +683,9 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_leaf_clusters_a
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0]
+            .selected_clusters
+            .is_empty(),
         "forced_mip=9 should reject the loaded mip-10 leafs, keeping the selected worklist empty so the loaded-leaf list proves its distinct residency-only semantics"
     );
     assert_eq!(
@@ -733,7 +736,9 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_clusters_
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0]
+            .selected_clusters
+            .is_empty(),
         "forced_mip=9 should still leave the selected worklist empty because the only mip-accepted cluster is not resident"
     );
     assert_eq!(
@@ -784,7 +789,9 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_page_clus
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0]
+            .selected_clusters
+            .is_empty(),
         "forced_mip=9 should still leave the selected worklist empty because the only mip-accepted cluster is not resident"
     );
     assert_eq!(
@@ -829,7 +836,9 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_page_cluster_ma
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0]
+            .selected_clusters
+            .is_empty(),
         "forced_mip=9 should keep the selected worklist empty so the loaded page map proves its residency-only semantics"
     );
     assert_eq!(
@@ -874,7 +883,9 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_mip_cluster_map
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0]
+            .selected_clusters
+            .is_empty(),
         "forced_mip=9 should keep the selected worklist empty so the loaded mip map proves its residency-only semantics"
     );
     assert_eq!(
@@ -960,7 +971,9 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_depth_cluster_m
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0]
+            .selected_clusters
+            .is_empty(),
         "forced_mip=9 should keep the selected worklist empty so the loaded depth map proves its residency-only semantics"
     );
     assert_eq!(
@@ -1005,7 +1018,9 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_depth_clu
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0]
+            .selected_clusters
+            .is_empty(),
         "forced_mip=9 should still leave the selected worklist empty because the only mip-accepted cluster is not resident"
     );
     assert_eq!(

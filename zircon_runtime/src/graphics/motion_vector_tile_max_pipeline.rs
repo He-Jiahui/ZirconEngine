@@ -2,8 +2,7 @@ use crate::graphics::shader::motion_vector_tile_max_pass_plan;
 
 const MOTION_VECTOR_TILE_MAX_FRAGMENT_SHADER: &str =
     include_str!("scene/post/shaders/motion_vector_tile_max.wgsl");
-const FULLSCREEN_TRIANGLE_SHADER: &str =
-    include_str!("shader/wgsl/zr_fullscreen_triangle.wgsl");
+const FULLSCREEN_TRIANGLE_SHADER: &str = include_str!("shader/wgsl/zr_fullscreen_triangle.wgsl");
 const MOTION_VECTOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 
 pub(super) fn motion_vector_tile_max_pipeline(

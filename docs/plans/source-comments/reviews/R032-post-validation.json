@@ -1,0 +1,1125 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R032",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T12:51:38.512745+00:00",
+  "status": "scoped-static-validation-passed",
+  "files": {
+    "zircon_runtime/src/core/runtime/config_store.rs": {
+      "before_sha256": "0ba1e999954fa1eb670cf0bd195cdae4a0564ba9360301a40a3e6dc40bb698f2",
+      "reviewed_sha256": "7c9317182a7e1248294d6c261326a14b81c5d633b0e3f9a01763636514f76075",
+      "bytes": 7044,
+      "lines": 180,
+      "full_source_review_spans": [
+        [
+          1,
+          180
+        ]
+      ],
+      "insertion_blocks": 8,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 180,
+      "object_groups": 16,
+      "named_entries": 31,
+      "consecutive_blocks": 9,
+      "branch_entries": 6
+    },
+    "zircon_runtime/src/core/runtime/config_store/tests/shared_load_tests.rs": {
+      "before_sha256": "3d842c845f1459df3840d04c4226896f3ec9c4d1e8b275a3a4a03417f4f4b9df",
+      "reviewed_sha256": "b7d7359dd819c0e537717a245e25aa7a8bae2dbd00259a234e93b12ba546cd6a",
+      "bytes": 4947,
+      "lines": 135,
+      "full_source_review_spans": [
+        [
+          1,
+          135
+        ]
+      ],
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 135,
+      "object_groups": 13,
+      "named_entries": 18,
+      "consecutive_blocks": 6,
+      "branch_entries": 2
+    },
+    "zircon_runtime/src/core/runtime/config_store/tests/shared_snapshot_tests.rs": {
+      "before_sha256": "52b21607a59091d716d307d68d080f3db2f53e86bafc13a9dbf293060c1d182e",
+      "reviewed_sha256": "ae50dd08de077c869146fe78210215aea103fb93de15a0e411a42eeba0647b55",
+      "bytes": 7353,
+      "lines": 204,
+      "full_source_review_spans": [
+        [
+          1,
+          204
+        ]
+      ],
+      "insertion_blocks": 2,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 204,
+      "object_groups": 14,
+      "named_entries": 24,
+      "consecutive_blocks": 8,
+      "branch_entries": 3
+    },
+    "zircon_runtime/src/core/runtime/contexts/mod.rs": {
+      "before_sha256": "ef3e33c5a35e1cbbbeaab032b4428e9c08f6ce14299152f1a5e22c3c07f91dc1",
+      "reviewed_sha256": "df8c557fac385f032b4344eabef2b7d9834cda689ce18fc34821fc12ca53a05a",
+      "bytes": 418,
+      "lines": 11,
+      "full_source_review_spans": [
+        [
+          1,
+          11
+        ]
+      ],
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 9,
+      "lone_lf_count": 2,
+      "object_groups": 1,
+      "named_entries": 6,
+      "consecutive_blocks": 1,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/contexts/module_cleanup_context.rs": {
+      "before_sha256": "16bb20ade7193d6ca633e7a33ee67760195b5a04ce2c9a8de59f524208eb5c74",
+      "reviewed_sha256": "c93722cf503617b5577ae3e1c11dee55bbdc397f1f78aa048c9c2d054d02d092",
+      "bytes": 7542,
+      "lines": 175,
+      "full_source_review_spans": [
+        [
+          1,
+          175
+        ]
+      ],
+      "insertion_blocks": 7,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 175,
+      "object_groups": 8,
+      "named_entries": 20,
+      "consecutive_blocks": 8,
+      "branch_entries": 5
+    },
+    "zircon_runtime/src/core/runtime/contexts/module_context.rs": {
+      "before_sha256": "0d5513ee0dc77d1037043b730e4ecbc260f2a7edc9b33d869e6f0cd9c73f0f37",
+      "reviewed_sha256": "5dbdf66c599776b1f5fbc4b211fb1afa3ff91b85aa5183abc11df54d0225be50",
+      "bytes": 573,
+      "lines": 12,
+      "full_source_review_spans": [
+        [
+          1,
+          12
+        ]
+      ],
+      "insertion_blocks": 2,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 12,
+      "lone_lf_count": 0,
+      "object_groups": 1,
+      "named_entries": 5,
+      "consecutive_blocks": 1,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/contexts/plugin_context.rs": {
+      "before_sha256": "cd4e5991024f36e5dc38145652adf0928a9d8d03715e86fbddcf6d83832e2277",
+      "reviewed_sha256": "742d7a243bc588869a584d11ee43ee522f0c9ab5e8940b8cc7c630eceaba8a04",
+      "bytes": 1014,
+      "lines": 21,
+      "full_source_review_spans": [
+        [
+          1,
+          21
+        ]
+      ],
+      "insertion_blocks": 5,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 21,
+      "object_groups": 4,
+      "named_entries": 9,
+      "consecutive_blocks": 1,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/descriptors/dependency_spec.rs": {
+      "before_sha256": "d72d33c34a010d1bf230ed0ab37826d14275d833782ebe9f16bfab136813324d",
+      "reviewed_sha256": "39fb758007a71c4c6e4fa77e5588be7dbfce9e74dfb6eee24b0a08319247f428",
+      "bytes": 699,
+      "lines": 19,
+      "full_source_review_spans": [
+        [
+          1,
+          19
+        ]
+      ],
+      "insertion_blocks": 2,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 19,
+      "lone_lf_count": 0,
+      "object_groups": 1,
+      "named_entries": 8,
+      "consecutive_blocks": 1,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/descriptors/driver_descriptor.rs": {
+      "before_sha256": "16c8dc0560df8bd19b918f61b6b7439a82b86fafff6ec5c947efbd653e96b473",
+      "reviewed_sha256": "daa43c90b82ac576af85bdc411a08d96b1c0151d495d8eae10addd94aca2ddcb",
+      "bytes": 1981,
+      "lines": 50,
+      "full_source_review_spans": [
+        [
+          1,
+          50
+        ]
+      ],
+      "insertion_blocks": 5,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 45,
+      "lone_lf_count": 5,
+      "object_groups": 4,
+      "named_entries": 16,
+      "consecutive_blocks": 3,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/descriptors/manager_descriptor.rs": {
+      "before_sha256": "0820009a980d7f14a78d60ebdbd2224649d5cccbe6cf033cfe985830b915490c",
+      "reviewed_sha256": "0e4dc15ab573881c792c86fcaa56614d45ff8649711884fcaaaaabf66693a8aa",
+      "bytes": 1977,
+      "lines": 50,
+      "full_source_review_spans": [
+        [
+          1,
+          50
+        ]
+      ],
+      "insertion_blocks": 5,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 45,
+      "lone_lf_count": 5,
+      "object_groups": 4,
+      "named_entries": 16,
+      "consecutive_blocks": 3,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/descriptors/mod.rs": {
+      "before_sha256": "f3cb94004fef45c5b9c4b245256ce472f27260528e5178e449824f0630ace633",
+      "reviewed_sha256": "3b1ba6899c7ce3986cc5dcb702254556828dcf95b2450c5034e864ee16ab2e72",
+      "bytes": 1236,
+      "lines": 36,
+      "full_source_review_spans": [
+        [
+          1,
+          36
+        ]
+      ],
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 36,
+      "object_groups": 2,
+      "named_entries": 23,
+      "consecutive_blocks": 2,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/descriptors/module_dependency_spec.rs": {
+      "before_sha256": "a8d68c2fb99749e9306acab2afb5e38c9fe36f676ff3876fbfabb552634fc410",
+      "reviewed_sha256": "418f18b623e55d73fcd4777dbd25cda8eef0987e719cfb65a83c21a486e2eece",
+      "bytes": 746,
+      "lines": 19,
+      "full_source_review_spans": [
+        [
+          1,
+          19
+        ]
+      ],
+      "insertion_blocks": 2,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 19,
+      "object_groups": 1,
+      "named_entries": 7,
+      "consecutive_blocks": 1,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs": {
+      "before_sha256": "806e8cc3e8067463cc90bdd8792597fc7203888d8bbc25a8078ef0081b5d384e",
+      "reviewed_sha256": "4e27782beb75c4a5df59ff927c04a0059778d9de506570cae5d79e1e595cf1f5",
+      "bytes": 4434,
+      "lines": 98,
+      "full_source_review_spans": [
+        [
+          1,
+          98
+        ]
+      ],
+      "insertion_blocks": 15,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 16,
+      "lone_lf_count": 82,
+      "object_groups": 8,
+      "named_entries": 29,
+      "consecutive_blocks": 5,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/descriptors/module_order.rs": {
+      "before_sha256": "e6a374f3d5d70213c3c6c05183f4fdea7cb65a86505e82ae3f5fafa88b32ef19",
+      "reviewed_sha256": "c77e5fb8fdccabd9799ce6a42d68ce129096e369a7cc4fc0220727dbb8e6dac0",
+      "bytes": 25896,
+      "lines": 673,
+      "full_source_review_spans": [
+        [
+          1,
+          673
+        ]
+      ],
+      "insertion_blocks": 14,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 673,
+      "object_groups": 26,
+      "named_entries": 64,
+      "consecutive_blocks": 22,
+      "branch_entries": 19
+    },
+    "zircon_runtime/src/core/runtime/descriptors/module_order/tests/perf.rs": {
+      "before_sha256": "73da97c0af1bb6ad8e2b405bbba7fefcc981b0477a7560e951376c49374a1e0f",
+      "reviewed_sha256": "459c2aeca508e1a71e26c29f1f59845801de07f9c5c83edc2501976f425ca466",
+      "bytes": 3545,
+      "lines": 99,
+      "full_source_review_spans": [
+        [
+          1,
+          99
+        ]
+      ],
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 99,
+      "object_groups": 8,
+      "named_entries": 12,
+      "consecutive_blocks": 5,
+      "branch_entries": 1
+    },
+    "zircon_runtime/src/core/runtime/descriptors/plugin_descriptor.rs": {
+      "before_sha256": "268a72c60fcbe3d11415e55e84e4cdb25f4b686ab062690f5e4245e81084c0a9",
+      "reviewed_sha256": "6f583b9d7bb8e87d61e36281d6525155e72fc0c9df9908010dead69042f9bb1c",
+      "bytes": 1970,
+      "lines": 50,
+      "full_source_review_spans": [
+        [
+          1,
+          50
+        ]
+      ],
+      "insertion_blocks": 5,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 23,
+      "lone_lf_count": 27,
+      "object_groups": 4,
+      "named_entries": 16,
+      "consecutive_blocks": 3,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/descriptors/plugin_factory.rs": {
+      "before_sha256": "c64743aa3b97f4c9c7afe2e774b0cf5dbf65e6a064c2b193415509927bc5fde2",
+      "reviewed_sha256": "88e67e7c05c5c0aa33be92df020bd896c65010128e8264c3812105ec233eb082",
+      "bytes": 790,
+      "lines": 15,
+      "full_source_review_spans": [
+        [
+          1,
+          15
+        ]
+      ],
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 15,
+      "object_groups": 1,
+      "named_entries": 5,
+      "consecutive_blocks": 1,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/descriptors/registry_name.rs": {
+      "before_sha256": "87fccf9c371cffdc18a82c131cc7bae0e956dde9175efc1afc7417c901231c9e",
+      "reviewed_sha256": "02b6bf5796c65fc1957739a2f9ee67e6fb649ddea21a6de950d719157a96442c",
+      "bytes": 6966,
+      "lines": 226,
+      "full_source_review_spans": [
+        [
+          1,
+          226
+        ]
+      ],
+      "insertion_blocks": 7,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 226,
+      "object_groups": 19,
+      "named_entries": 42,
+      "consecutive_blocks": 10,
+      "branch_entries": 7
+    },
+    "zircon_runtime/src/core/runtime/descriptors/service_factory.rs": {
+      "before_sha256": "445e7ab1228be31413c3961833ab1fb441a2c61d10d3a35faf6730354749e309",
+      "reviewed_sha256": "467112ee7da44e8501bd761994e19a03000b933e205686f4d8c2ec20b80ac32f",
+      "bytes": 793,
+      "lines": 14,
+      "full_source_review_spans": [
+        [
+          1,
+          14
+        ]
+      ],
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 14,
+      "object_groups": 1,
+      "named_entries": 5,
+      "consecutive_blocks": 1,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/descriptors/service_object.rs": {
+      "before_sha256": "5eb8f8d436602dbbeca3ac8ed7e7ff01c4ed73722e75989a09f01a39de7f07ce",
+      "reviewed_sha256": "ed76ea8a25f54de884f57193bfc2a298dec724e376ce7c587308f60b73b4573c",
+      "bytes": 463,
+      "lines": 10,
+      "full_source_review_spans": [
+        [
+          1,
+          10
+        ]
+      ],
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 10,
+      "object_groups": 1,
+      "named_entries": 4,
+      "consecutive_blocks": 1,
+      "branch_entries": 0
+    },
+    "zircon_runtime/src/core/runtime/descriptors/tests/module_order_tests.rs": {
+      "before_sha256": "7dbd389e7137e03f8bd0263cc678d07f72c4295bb191d2f61da7ae5e2d5e01ea",
+      "reviewed_sha256": "7dbd389e7137e03f8bd0263cc678d07f72c4295bb191d2f61da7ae5e2d5e01ea",
+      "bytes": 12721,
+      "lines": 345,
+      "full_source_review_spans": [
+        [
+          1,
+          345
+        ]
+      ],
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 345,
+      "object_groups": 15,
+      "named_entries": 25,
+      "consecutive_blocks": 13,
+      "branch_entries": 1
+    },
+    "zircon_runtime/src/core/runtime/descriptors/tests/registry_name.rs": {
+      "before_sha256": "b6ede992e7170cecfecb84184278f0b79033277992efe283164b655a5a4dbeea",
+      "reviewed_sha256": "9f9a62cc2402dbe13542fdc905ad4d0139e24a14c246453153dd39b38b4ae54f",
+      "bytes": 4386,
+      "lines": 115,
+      "full_source_review_spans": [
+        [
+          1,
+          115
+        ]
+      ],
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 115,
+      "object_groups": 6,
+      "named_entries": 13,
+      "consecutive_blocks": 6,
+      "branch_entries": 1
+    }
+  },
+  "root_actual_validation": {
+    "batch": "R032",
+    "child_sha256": "0dbacb63586f4a5dc38a763ee8a8a6691bfcb7fed2de0e4ba4db40069a26e03e",
+    "assignment_sha256_at_check": "88707155e9405d46864b2daa795a2c380df3a6a4e8f1e54597337f3df2a15dae",
+    "HEAD": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+    "stats": {
+      "branches": 45,
+      "sources": 22,
+      "before_lines": 2422,
+      "after_lines": 2557,
+      "insertion_blocks": 87,
+      "inserted_comment_lines": 135,
+      "inserted_bytes": 13133,
+      "object_groups": 158,
+      "named_entries": 398,
+      "blocks": 111,
+      "changed": 21
+    },
+    "exact_grant_and_pins_match": true,
+    "all_original_raw_bytes_and_EOL_preserved": true,
+    "normalized_HEAD_matches": true,
+    "source_context_pins_match": 32,
+    "reference_count": 781,
+    "declarations": 151,
+    "fields": 53,
+    "derives": 15,
+    "selected_views": 9,
+    "source_operand_predicates": 91,
+    "before_after_operands_identical": true,
+    "inserted_literal_occurrences": 0,
+    "legacy_unsatisfied_operand_assertions": [
+      "R032-SG086",
+      "R032-SG088",
+      "R032-SG090",
+      "R032-SG091"
+    ],
+    "count_predicates": [
+      {
+        "id": "R032-SG017",
+        "asserted_count": 2,
+        "before": 2,
+        "after": 2
+      },
+      {
+        "id": "R032-SG018",
+        "asserted_count": 2,
+        "before": 2,
+        "after": 2
+      }
+    ],
+    "new_issues": 0,
+    "builds_Rust_tests_executed": false,
+    "files": {
+      "zircon_runtime/src/core/runtime/config_store.rs": {
+        "before_sha256": "0ba1e999954fa1eb670cf0bd195cdae4a0564ba9360301a40a3e6dc40bb698f2",
+        "reviewed_sha256": "7c9317182a7e1248294d6c261326a14b81c5d633b0e3f9a01763636514f76075",
+        "bytes": 7044,
+        "lines": 180,
+        "full_source_review_spans": [
+          [
+            1,
+            180
+          ]
+        ],
+        "insertion_blocks": 8,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 180,
+        "object_groups": 16,
+        "named_entries": 31,
+        "consecutive_blocks": 9,
+        "branch_entries": 6
+      },
+      "zircon_runtime/src/core/runtime/config_store/tests/shared_load_tests.rs": {
+        "before_sha256": "3d842c845f1459df3840d04c4226896f3ec9c4d1e8b275a3a4a03417f4f4b9df",
+        "reviewed_sha256": "b7d7359dd819c0e537717a245e25aa7a8bae2dbd00259a234e93b12ba546cd6a",
+        "bytes": 4947,
+        "lines": 135,
+        "full_source_review_spans": [
+          [
+            1,
+            135
+          ]
+        ],
+        "insertion_blocks": 1,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 135,
+        "object_groups": 13,
+        "named_entries": 18,
+        "consecutive_blocks": 6,
+        "branch_entries": 2
+      },
+      "zircon_runtime/src/core/runtime/config_store/tests/shared_snapshot_tests.rs": {
+        "before_sha256": "52b21607a59091d716d307d68d080f3db2f53e86bafc13a9dbf293060c1d182e",
+        "reviewed_sha256": "ae50dd08de077c869146fe78210215aea103fb93de15a0e411a42eeba0647b55",
+        "bytes": 7353,
+        "lines": 204,
+        "full_source_review_spans": [
+          [
+            1,
+            204
+          ]
+        ],
+        "insertion_blocks": 2,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 204,
+        "object_groups": 14,
+        "named_entries": 24,
+        "consecutive_blocks": 8,
+        "branch_entries": 3
+      },
+      "zircon_runtime/src/core/runtime/contexts/mod.rs": {
+        "before_sha256": "ef3e33c5a35e1cbbbeaab032b4428e9c08f6ce14299152f1a5e22c3c07f91dc1",
+        "reviewed_sha256": "df8c557fac385f032b4344eabef2b7d9834cda689ce18fc34821fc12ca53a05a",
+        "bytes": 418,
+        "lines": 11,
+        "full_source_review_spans": [
+          [
+            1,
+            11
+          ]
+        ],
+        "insertion_blocks": 1,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 9,
+        "lone_lf_count": 2,
+        "object_groups": 1,
+        "named_entries": 6,
+        "consecutive_blocks": 1,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/contexts/module_cleanup_context.rs": {
+        "before_sha256": "16bb20ade7193d6ca633e7a33ee67760195b5a04ce2c9a8de59f524208eb5c74",
+        "reviewed_sha256": "c93722cf503617b5577ae3e1c11dee55bbdc397f1f78aa048c9c2d054d02d092",
+        "bytes": 7542,
+        "lines": 175,
+        "full_source_review_spans": [
+          [
+            1,
+            175
+          ]
+        ],
+        "insertion_blocks": 7,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 175,
+        "object_groups": 8,
+        "named_entries": 20,
+        "consecutive_blocks": 8,
+        "branch_entries": 5
+      },
+      "zircon_runtime/src/core/runtime/contexts/module_context.rs": {
+        "before_sha256": "0d5513ee0dc77d1037043b730e4ecbc260f2a7edc9b33d869e6f0cd9c73f0f37",
+        "reviewed_sha256": "5dbdf66c599776b1f5fbc4b211fb1afa3ff91b85aa5183abc11df54d0225be50",
+        "bytes": 573,
+        "lines": 12,
+        "full_source_review_spans": [
+          [
+            1,
+            12
+          ]
+        ],
+        "insertion_blocks": 2,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 12,
+        "lone_lf_count": 0,
+        "object_groups": 1,
+        "named_entries": 5,
+        "consecutive_blocks": 1,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/contexts/plugin_context.rs": {
+        "before_sha256": "cd4e5991024f36e5dc38145652adf0928a9d8d03715e86fbddcf6d83832e2277",
+        "reviewed_sha256": "742d7a243bc588869a584d11ee43ee522f0c9ab5e8940b8cc7c630eceaba8a04",
+        "bytes": 1014,
+        "lines": 21,
+        "full_source_review_spans": [
+          [
+            1,
+            21
+          ]
+        ],
+        "insertion_blocks": 5,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 21,
+        "object_groups": 4,
+        "named_entries": 9,
+        "consecutive_blocks": 1,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/descriptors/dependency_spec.rs": {
+        "before_sha256": "d72d33c34a010d1bf230ed0ab37826d14275d833782ebe9f16bfab136813324d",
+        "reviewed_sha256": "39fb758007a71c4c6e4fa77e5588be7dbfce9e74dfb6eee24b0a08319247f428",
+        "bytes": 699,
+        "lines": 19,
+        "full_source_review_spans": [
+          [
+            1,
+            19
+          ]
+        ],
+        "insertion_blocks": 2,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 19,
+        "lone_lf_count": 0,
+        "object_groups": 1,
+        "named_entries": 8,
+        "consecutive_blocks": 1,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/descriptors/driver_descriptor.rs": {
+        "before_sha256": "16c8dc0560df8bd19b918f61b6b7439a82b86fafff6ec5c947efbd653e96b473",
+        "reviewed_sha256": "daa43c90b82ac576af85bdc411a08d96b1c0151d495d8eae10addd94aca2ddcb",
+        "bytes": 1981,
+        "lines": 50,
+        "full_source_review_spans": [
+          [
+            1,
+            50
+          ]
+        ],
+        "insertion_blocks": 5,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 45,
+        "lone_lf_count": 5,
+        "object_groups": 4,
+        "named_entries": 16,
+        "consecutive_blocks": 3,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/descriptors/manager_descriptor.rs": {
+        "before_sha256": "0820009a980d7f14a78d60ebdbd2224649d5cccbe6cf033cfe985830b915490c",
+        "reviewed_sha256": "0e4dc15ab573881c792c86fcaa56614d45ff8649711884fcaaaaabf66693a8aa",
+        "bytes": 1977,
+        "lines": 50,
+        "full_source_review_spans": [
+          [
+            1,
+            50
+          ]
+        ],
+        "insertion_blocks": 5,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 45,
+        "lone_lf_count": 5,
+        "object_groups": 4,
+        "named_entries": 16,
+        "consecutive_blocks": 3,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/descriptors/mod.rs": {
+        "before_sha256": "f3cb94004fef45c5b9c4b245256ce472f27260528e5178e449824f0630ace633",
+        "reviewed_sha256": "3b1ba6899c7ce3986cc5dcb702254556828dcf95b2450c5034e864ee16ab2e72",
+        "bytes": 1236,
+        "lines": 36,
+        "full_source_review_spans": [
+          [
+            1,
+            36
+          ]
+        ],
+        "insertion_blocks": 1,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 36,
+        "object_groups": 2,
+        "named_entries": 23,
+        "consecutive_blocks": 2,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/descriptors/module_dependency_spec.rs": {
+        "before_sha256": "a8d68c2fb99749e9306acab2afb5e38c9fe36f676ff3876fbfabb552634fc410",
+        "reviewed_sha256": "418f18b623e55d73fcd4777dbd25cda8eef0987e719cfb65a83c21a486e2eece",
+        "bytes": 746,
+        "lines": 19,
+        "full_source_review_spans": [
+          [
+            1,
+            19
+          ]
+        ],
+        "insertion_blocks": 2,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 19,
+        "object_groups": 1,
+        "named_entries": 7,
+        "consecutive_blocks": 1,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs": {
+        "before_sha256": "806e8cc3e8067463cc90bdd8792597fc7203888d8bbc25a8078ef0081b5d384e",
+        "reviewed_sha256": "4e27782beb75c4a5df59ff927c04a0059778d9de506570cae5d79e1e595cf1f5",
+        "bytes": 4434,
+        "lines": 98,
+        "full_source_review_spans": [
+          [
+            1,
+            98
+          ]
+        ],
+        "insertion_blocks": 15,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 16,
+        "lone_lf_count": 82,
+        "object_groups": 8,
+        "named_entries": 29,
+        "consecutive_blocks": 5,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/descriptors/module_order.rs": {
+        "before_sha256": "e6a374f3d5d70213c3c6c05183f4fdea7cb65a86505e82ae3f5fafa88b32ef19",
+        "reviewed_sha256": "c77e5fb8fdccabd9799ce6a42d68ce129096e369a7cc4fc0220727dbb8e6dac0",
+        "bytes": 25896,
+        "lines": 673,
+        "full_source_review_spans": [
+          [
+            1,
+            673
+          ]
+        ],
+        "insertion_blocks": 14,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 673,
+        "object_groups": 26,
+        "named_entries": 64,
+        "consecutive_blocks": 22,
+        "branch_entries": 19
+      },
+      "zircon_runtime/src/core/runtime/descriptors/module_order/tests/perf.rs": {
+        "before_sha256": "73da97c0af1bb6ad8e2b405bbba7fefcc981b0477a7560e951376c49374a1e0f",
+        "reviewed_sha256": "459c2aeca508e1a71e26c29f1f59845801de07f9c5c83edc2501976f425ca466",
+        "bytes": 3545,
+        "lines": 99,
+        "full_source_review_spans": [
+          [
+            1,
+            99
+          ]
+        ],
+        "insertion_blocks": 1,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 99,
+        "object_groups": 8,
+        "named_entries": 12,
+        "consecutive_blocks": 5,
+        "branch_entries": 1
+      },
+      "zircon_runtime/src/core/runtime/descriptors/plugin_descriptor.rs": {
+        "before_sha256": "268a72c60fcbe3d11415e55e84e4cdb25f4b686ab062690f5e4245e81084c0a9",
+        "reviewed_sha256": "6f583b9d7bb8e87d61e36281d6525155e72fc0c9df9908010dead69042f9bb1c",
+        "bytes": 1970,
+        "lines": 50,
+        "full_source_review_spans": [
+          [
+            1,
+            50
+          ]
+        ],
+        "insertion_blocks": 5,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 23,
+        "lone_lf_count": 27,
+        "object_groups": 4,
+        "named_entries": 16,
+        "consecutive_blocks": 3,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/descriptors/plugin_factory.rs": {
+        "before_sha256": "c64743aa3b97f4c9c7afe2e774b0cf5dbf65e6a064c2b193415509927bc5fde2",
+        "reviewed_sha256": "88e67e7c05c5c0aa33be92df020bd896c65010128e8264c3812105ec233eb082",
+        "bytes": 790,
+        "lines": 15,
+        "full_source_review_spans": [
+          [
+            1,
+            15
+          ]
+        ],
+        "insertion_blocks": 1,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 15,
+        "object_groups": 1,
+        "named_entries": 5,
+        "consecutive_blocks": 1,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/descriptors/registry_name.rs": {
+        "before_sha256": "87fccf9c371cffdc18a82c131cc7bae0e956dde9175efc1afc7417c901231c9e",
+        "reviewed_sha256": "02b6bf5796c65fc1957739a2f9ee67e6fb649ddea21a6de950d719157a96442c",
+        "bytes": 6966,
+        "lines": 226,
+        "full_source_review_spans": [
+          [
+            1,
+            226
+          ]
+        ],
+        "insertion_blocks": 7,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 226,
+        "object_groups": 19,
+        "named_entries": 42,
+        "consecutive_blocks": 10,
+        "branch_entries": 7
+      },
+      "zircon_runtime/src/core/runtime/descriptors/service_factory.rs": {
+        "before_sha256": "445e7ab1228be31413c3961833ab1fb441a2c61d10d3a35faf6730354749e309",
+        "reviewed_sha256": "467112ee7da44e8501bd761994e19a03000b933e205686f4d8c2ec20b80ac32f",
+        "bytes": 793,
+        "lines": 14,
+        "full_source_review_spans": [
+          [
+            1,
+            14
+          ]
+        ],
+        "insertion_blocks": 1,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 14,
+        "object_groups": 1,
+        "named_entries": 5,
+        "consecutive_blocks": 1,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/descriptors/service_object.rs": {
+        "before_sha256": "5eb8f8d436602dbbeca3ac8ed7e7ff01c4ed73722e75989a09f01a39de7f07ce",
+        "reviewed_sha256": "ed76ea8a25f54de884f57193bfc2a298dec724e376ce7c587308f60b73b4573c",
+        "bytes": 463,
+        "lines": 10,
+        "full_source_review_spans": [
+          [
+            1,
+            10
+          ]
+        ],
+        "insertion_blocks": 1,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 10,
+        "object_groups": 1,
+        "named_entries": 4,
+        "consecutive_blocks": 1,
+        "branch_entries": 0
+      },
+      "zircon_runtime/src/core/runtime/descriptors/tests/module_order_tests.rs": {
+        "before_sha256": "7dbd389e7137e03f8bd0263cc678d07f72c4295bb191d2f61da7ae5e2d5e01ea",
+        "reviewed_sha256": "7dbd389e7137e03f8bd0263cc678d07f72c4295bb191d2f61da7ae5e2d5e01ea",
+        "bytes": 12721,
+        "lines": 345,
+        "full_source_review_spans": [
+          [
+            1,
+            345
+          ]
+        ],
+        "insertion_blocks": 0,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 345,
+        "object_groups": 15,
+        "named_entries": 25,
+        "consecutive_blocks": 13,
+        "branch_entries": 1
+      },
+      "zircon_runtime/src/core/runtime/descriptors/tests/registry_name.rs": {
+        "before_sha256": "b6ede992e7170cecfecb84184278f0b79033277992efe283164b655a5a4dbeea",
+        "reviewed_sha256": "9f9a62cc2402dbe13542fdc905ad4d0139e24a14c246453153dd39b38b4ae54f",
+        "bytes": 4386,
+        "lines": 115,
+        "full_source_review_spans": [
+          [
+            1,
+            115
+          ]
+        ],
+        "insertion_blocks": 1,
+        "all_original_raw_bytes_reconstructed": true,
+        "crlf_count": 0,
+        "lone_lf_count": 115,
+        "object_groups": 6,
+        "named_entries": 13,
+        "consecutive_blocks": 6,
+        "branch_entries": 1
+      }
+    }
+  },
+  "root_actual_read_receipts": {
+    "canonical_source": {
+      "full_lines": 2557,
+      "source_count": 22,
+      "terminal_chunks": [
+        "1a1eaa",
+        "f5d253",
+        "31c2bf",
+        "77acdb",
+        "796369"
+      ],
+      "trimmed_display_gap_recovered": "31c2bf stored actual output module_order.rs210-287 recovered separately"
+    },
+    "context": {
+      "selected_lines": 4141,
+      "source_count": 32,
+      "terminal_chunks": [
+        "9cc511",
+        "d15dca",
+        "dc37bd",
+        "9b8207",
+        "a0f0c8",
+        "11a3f2",
+        "6247f7",
+        "21cd8e"
+      ],
+      "formal_coverage": false
+    },
+    "object_block_semantics": {
+      "groups": 158,
+      "named_entries": 398,
+      "blocks": 111,
+      "branches": 45,
+      "terminal_chunks": [
+        "a39275",
+        "5b9419",
+        "f5bcfa",
+        "e0d5e0"
+      ],
+      "truncated_first_metadata_display_recovered": "5b9419 re-read F02-F05; F01 and F06-F11 were fully visible in a39275."
+    },
+    "structural_checker": {
+      "launch_chunk": "bad5ae",
+      "native_session": 11162,
+      "terminal_chunk": "6ca13f",
+      "exit_code": 0
+    },
+    "scoped_diff_staged_patch": {
+      "chunk": "51c0ce",
+      "exit_code": 0
+    }
+  },
+  "change_guard": {
+    "launch_chunk": "65b741",
+    "native_session": 25659,
+    "terminal_chunk": "05dc9e",
+    "exit_code": 0,
+    "declared_paths": 22,
+    "changed_paths": 21,
+    "errors": 0,
+    "warnings": 0,
+    "patch_sha256": "719908960b9cad5740224886cb6273164a3e787ff5339880e4e43eba8f9be89d"
+  },
+  "source_text_operand_limit": "91 exact operand preservation checks, not Rust test execution. SG086/088/090/091 remain preexisting false operands.",
+  "child_evidence_amendments": [
+    {
+      "locations": [
+        "R032-F05.objects with_existing_registered_manager basis",
+        "R032-F05.call_chain trait/tests"
+      ],
+      "child_label": "RegisteredManagerService::service / service()",
+      "actual_symbol": "RegisteredManagerService::borrowed",
+      "evidence": [
+        "R032-E26:94-96",
+        "R032-F05 before96/current113"
+      ],
+      "effect": "Metadata symbol spelling only; current source calls borrowed(); child preserved unchanged."
+    },
+    {
+      "locations": [
+        "R032-F07.call_chain factory/VM"
+      ],
+      "child_label": "derive_plugin_package_root/source_root",
+      "actual_symbol": "derive_plugin_roots",
+      "evidence": [
+        "R032-E20:548-564"
+      ],
+      "effect": "Single helper derives all three optional paths; source docs and Option branch summary confirmed."
+    },
+    {
+      "locations": [
+        "R032-SG086..R032-SG091 actual_expression"
+      ],
+      "clarification": "Indexed assert_contains_all(...) entries are abstract operand labels rather than literal Rust expressions. The actual required[] strings are E16:19-24; E28:6-15 implements missing-anchor detection.",
+      "evidence": [
+        "R032-E16:15-26",
+        "R032-E28:6-15"
+      ],
+      "effect": "Root independently read actual helper and array; all six exact strings match pinned fixture lines. Four old absent anchors remain false; no Rust test passing claim."
+    },
+    {
+      "locations": [
+        "R032-E17 historical context",
+        "F01/F03 persistence call-chain references"
+      ],
+      "child_sha256": "621fbcc9f1d8f28e83f97d3a88ef56047be43397d2653b7bcc69096df436ebb8",
+      "actual_current": {
+        "id": "R032-E17-parent-current",
+        "path": "zircon_runtime/src/foundation/runtime/config_manager.rs",
+        "sha256": "a928ac3811a5ce9153292e4d145292f07fc7cded413143ecf1ad46583bcc3b77",
+        "line_count": 276,
+        "read_spans": [
+          [
+            1,
+            276
+          ]
+        ],
+        "read_receipt": "f88323 exit0",
+        "formal_coverage": false
+      },
+      "effect": "Foreign context changed from274 to276 lines during chief review; parent fully reread current source without editing it. Constructor now uses initialize_owned/operation_path. Relevant config_snapshot_source call145, Core merge155-157, CoreWeak159 and set_value202-206 still substantiate reviewed ConfigStore semantics. No formal coverage or ownership inference for this context. Original child pins remain historical.",
+      "source_text_guards": "The9selected source views and91operand predicates do not include E17; existing passing operand check remains applicable."
+    }
+  ],
+  "fresh_context_reconciliation": {
+    "unchanged_pins": 31,
+    "updated_context": {
+      "id": "R032-E17-parent-current",
+      "path": "zircon_runtime/src/foundation/runtime/config_manager.rs",
+      "sha256": "a928ac3811a5ce9153292e4d145292f07fc7cded413143ecf1ad46583bcc3b77",
+      "line_count": 276,
+      "read_spans": [
+        [
+          1,
+          276
+        ]
+      ],
+      "read_receipt": "f88323 exit0",
+      "formal_coverage": false
+    },
+    "owned_source_pins_unchanged": 22
+  },
+  "reused_validation": {
+    "name": "exact rustfmt22",
+    "receipt": {
+      "name": "exact rustfmt22",
+      "command": "rustfmt --check --edition 2021 --config skip_children=true <exact 22 scope paths>",
+      "chunk_id": "92d366",
+      "exit_code": 0,
+      "wall_time_seconds": 5.9802234,
+      "output": ""
+    },
+    "basis": "All exact source pins, relevant grant, HEAD and formatting options unchanged; repository policy permits reusing same-source verification."
+  },
+  "final_diff_evidence": {
+    "chunk": "51c0ce",
+    "exit_code": 0,
+    "patch_sha256": "719908960b9cad5740224886cb6273164a3e787ff5339880e4e43eba8f9be89d",
+    "patch_bytes": 35561,
+    "added_comment_lines": 135,
+    "removed_lines": 0,
+    "staged_paths22_empty": true,
+    "diff_check_exit_code": 0
+  },
+  "rejected_readonly_validator_attempts": [
+    {
+      "chunk": "43810c",
+      "exit_code": 1,
+      "cause": "Parent regex consumed preceding newline, yielding wrong declaration start; changed to horizontal indentation only. No source writes."
+    },
+    {
+      "terminal_chunk": "4f5a97",
+      "exit_code": 1,
+      "cause": "Parent demanded literal expression text for helper-array abstract labels; replaced with actual required[] string and pinned helper validation. No source writes."
+    }
+  ],
+  "Rust_tests_or_builds_run": false,
+  "managed_coordinator_validation": "pending",
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

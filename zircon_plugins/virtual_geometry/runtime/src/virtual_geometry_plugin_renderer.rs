@@ -54,23 +54,16 @@ pub(crate) fn runtime_prepare_renderer_outputs(
 fn register_prepared_virtual_geometry_feedback_buffer(
     context: &mut RuntimePrepareCollectorContext<'_>,
 ) {
-    // Copy only the compact request-id payload before borrowing the mutable GPU recording
-    // context. The full readback sideband stays owned by the frame; this avoids cloning it.
-    let page_request_ids = context
-        .prepared_virtual_geometry_readback_outputs()
-        .node_cluster_cull
-        .page_request_ids
-        .clone();
-    if page_request_ids.is_empty() {
-        return;
-    }
+    // GPU feedback always has a count-prefixed bounded destination, including frames whose
+    // CPU sideband contains no requests. The sideband retains its single-consumer ownership.
+    let words = vec![0_u32; (crate::VIRTUAL_GEOMETRY_GRAPH_ID_CAPACITY + 1) as usize];
 
     let buffer = {
         let gpu = context.gpu_recording_context();
         gpu.device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("zircon-vg-runtime-prepare-feedback-page-requests"),
-                contents: bytemuck::cast_slice(&page_request_ids),
+                contents: bytemuck::cast_slice(&words),
                 usage: wgpu::BufferUsages::COPY_SRC
                     | wgpu::BufferUsages::COPY_DST
                     | wgpu::BufferUsages::STORAGE,

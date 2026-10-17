@@ -23,6 +23,11 @@ impl MeshDraw {
             self.mesh_draw_args(),
         )
         .with_source_draw_index(source_draw_index)
+        .with_virtual_geometry_indexed_run(self.virtual_geometry_indexed_run.clone())
+        .with_virtual_geometry_execution_identity(
+            self.virtual_geometry_submission_detail
+                .and_then(|detail| detail.execution_identity()),
+        )
         .with_cache_identity(
             self.source_entity(),
             self.stable_instance_key(),

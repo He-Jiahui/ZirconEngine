@@ -13,7 +13,7 @@ use zircon_runtime::core::framework::net::{
 use crate::poison_recovery::{lock_or_error, lock_recover, NetSharedState};
 
 use super::egress::{AcceptedTcpConnection, NetEgress, TcpPollResult, WorkerReply};
-use super::ingress::{NetIngress, NetWorkerIngress, WORKER_INGRESS_CAPACITY};
+use super::ingress::{NetIngress, NetIngressPermit, NetWorkerIngress, WORKER_INGRESS_CAPACITY};
 use super::shutdown::NetWorkerShutdownReport;
 use super::transport_runtime::run_worker;
 
@@ -180,6 +180,22 @@ impl NetWorker {
 
     pub(crate) fn enqueue_event(&self, event: NetEvent) {
         let _ = self.ingress.push(NetIngress::Event(event));
+    }
+
+    fn try_reserve_event(&self) -> Result<NetIngressPermit, NetError> {
+        self.ingress.try_reserve().ok_or(NetError::EventQueueFull {
+            capacity: WORKER_INGRESS_CAPACITY,
+        })
+    }
+
+    pub(crate) fn try_admit_event(
+        &self,
+        build_event: impl FnOnce() -> Result<NetEvent, NetError>,
+    ) -> Result<(), NetError> {
+        let permit = self.try_reserve_event()?;
+        let event = build_event()?;
+        permit.commit(NetIngress::Event(event));
+        Ok(())
     }
 
     pub(crate) fn pending_ingress_count(&self) -> usize {

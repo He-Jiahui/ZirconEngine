@@ -185,8 +185,8 @@ impl UiHostWindow {
     pub(crate) fn exercise_builtin_ui_asset_preview_consumers_for_test(
     ) -> Vec<zircon_runtime::ui::v2::UiV2SourceFileReceipt> {
         let (h, id) = open_ui_asset();
-        let descriptors =
-            crate::ui::template_runtime::builtin::builtin_component_descriptors().expect("current approved catalog");
+        let descriptors = crate::ui::template_runtime::builtin::builtin_component_descriptors()
+            .expect("current approved catalog");
         let mut seen = std::collections::BTreeSet::new();
         let mut consumed_sources = Vec::new();
         let mut previous_source: Option<Arc<UiSurfaceFrame>> = None;

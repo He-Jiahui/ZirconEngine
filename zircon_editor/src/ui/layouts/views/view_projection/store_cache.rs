@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
+use zircon_runtime::asset::{runtime_asset_path_with_dev_asset_root, AssetRelativePath};
 use zircon_runtime::ui::v2::{UiV2PrototypeStoreFileCache, UiV2PrototypeStoreLoadOutcome};
 use zircon_runtime_interface::ui::v2::UiV2AssetError;
 
@@ -42,11 +42,12 @@ impl ViewV2StoreFileCache {
         style_imports: &[(&str, &str)],
     ) -> Result<UiV2PrototypeStoreLoadOutcome, UiV2AssetError> {
         let request = ViewV2StoreRequest::new(layout_asset_path, style_imports);
-        let paths = self
-            .source_paths
-            .entry(request)
-            .or_insert_with(|| v2_source_paths(layout_asset_path, style_imports))
-            .clone();
+        let paths = match self.source_paths.entry(request) {
+            std::collections::btree_map::Entry::Occupied(entry) => entry.get().clone(),
+            std::collections::btree_map::Entry::Vacant(entry) => entry
+                .insert(v2_source_paths(layout_asset_path, style_imports)?)
+                .clone(),
+        };
         let event_driven = self.invalidation.ensure_watched(&paths);
         if self.invalidation.take_changed() {
             self.source_cache.clear();
@@ -186,19 +187,30 @@ fn affects_v2_source(event: &Event) -> bool {
     })
 }
 
-fn v2_source_paths(layout_asset_path: &str, style_imports: &[(&str, &str)]) -> Vec<PathBuf> {
+fn v2_source_paths(
+    layout_asset_path: &str,
+    style_imports: &[(&str, &str)],
+) -> Result<Vec<PathBuf>, UiV2AssetError> {
     let mut paths = Vec::with_capacity(1 + style_imports.len());
-    paths.push(asset_path(layout_asset_path));
-    paths.extend(
-        style_imports
-            .iter()
-            .map(|(_, style_path)| asset_path(style_path)),
-    );
-    paths
+    paths.push(ui_source_asset_path(layout_asset_path)?);
+    for (_, style_path) in style_imports {
+        paths.push(ui_source_asset_path(style_path)?);
+    }
+    Ok(paths)
 }
 
-fn asset_path(relative: &str) -> PathBuf {
-    runtime_asset_path_with_dev_asset_root(relative, editor_dev_asset_root())
+fn ui_source_asset_path(source: &str) -> Result<PathBuf, UiV2AssetError> {
+    // UI source identities retain their exact /assets/ namespace at this domain boundary.
+    let relative = source.strip_prefix("/assets/").unwrap_or(source);
+    let relative =
+        AssetRelativePath::parse(relative).map_err(|error| UiV2AssetError::InvalidDocument {
+            asset_id: source.to_string(),
+            detail: format!("invalid UI source asset path: {error}"),
+        })?;
+    Ok(runtime_asset_path_with_dev_asset_root(
+        &relative,
+        editor_dev_asset_root(),
+    ))
 }
 
 fn editor_dev_asset_root() -> PathBuf {

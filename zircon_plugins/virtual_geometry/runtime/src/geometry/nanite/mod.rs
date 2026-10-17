@@ -17,6 +17,7 @@ pub(crate) use automatic_extract::{
 };
 #[allow(unused_imports)]
 pub(crate) use automatic_extract::{
+    build_virtual_geometry_automatic_extract_from_admitted_sources,
     build_virtual_geometry_automatic_extract_from_meshes_with_debug,
     VirtualGeometryAutomaticExtractOutput,
 };

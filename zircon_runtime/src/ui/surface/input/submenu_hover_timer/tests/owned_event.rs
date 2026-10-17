@@ -1,3 +1,6 @@
+//! 覆盖选项字符串在转换步骤中的分配身份，以及读取状态后再移交事件的顺序。
+//! 忽略基准使用固定大字符串夹具，计时范围包含转换及转换结果的释放。
+
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -7,6 +10,7 @@ use zircon_runtime_interface::ui::{dispatch::UiInputEventMetadata, event_ui::UiN
 const TARGET_P95_PERCENT: u128 = 70;
 
 #[test]
+/// 用分配地址验证转换步骤移交原选项字符串，并保留通知目标。
 fn optimization_batch_20260828ic_runtime_submenu_event_reuses_owned_option_id() {
     let submenu_hover = benchmark_submenu_hover(4 * 1024);
     let allocation = submenu_hover.option_id.as_ptr();
@@ -21,6 +25,7 @@ fn optimization_batch_20260828ic_runtime_submenu_event_reuses_owned_option_id() 
 }
 
 #[test]
+/// 原始源码分段同时约束读取与移交顺序、转换内容及派发段的克隆形状。
 fn optimization_batch_20260828ic_runtime_submenu_dispatch_moves_event_after_state_reads() {
     let source = include_str!("../../submenu_hover_timer.rs");
     let dispatch = source
@@ -47,6 +52,7 @@ fn optimization_batch_20260828ic_runtime_submenu_dispatch_moves_event_after_stat
 
 #[test]
 #[ignore = "release performance contract; run through the managed validation coordinator"]
+/// 输入在计时前构造，交替测量两种转换；样本的最近秩百分位仅描述本夹具。
 fn optimization_batch_20260828ic_runtime_owned_submenu_hover_event_benchmark() {
     const SAMPLES: usize = 11;
     const ITERATIONS: usize = 512;
@@ -109,6 +115,7 @@ fn legacy_submenu_hover_event(submenu_hover: UiSubmenuHoverTimerInputEvent) -> U
     UiInputEvent::SubmenuHoverTimer(submenu_hover.clone())
 }
 
+/// 消费预建输入，计时包含回调对每个转换结果的处理与释放。
 fn measure_submenu_events(
     events: Vec<UiSubmenuHoverTimerInputEvent>,
     mut convert: impl FnMut(UiSubmenuHoverTimerInputEvent),

@@ -55,21 +55,15 @@ const SKY: &str = concat!(
     include_str!("../src/graphics/scene/renderer/shaders/skybox_procedural.wgsl"),
 );
 const LIGHT_SCATTER: &str = concat!(
-    include_str!(
-        "../src/graphics/scene/froxel/shaders/zr_froxel_reconstruct.wgsl"
-    ),
+    include_str!("../src/graphics/scene/froxel/shaders/zr_froxel_reconstruct.wgsl"),
     "\n",
-    include_str!(
-        "../src/graphics/scene/renderer/froxel/shaders/types.wgsl"
-    ),
+    include_str!("../src/graphics/scene/renderer/froxel/shaders/types.wgsl"),
     "\n",
     include_str!("../src/graphics/scene/renderer/lighting/shaders/zr_light_grid.wgsl"),
     "\n",
     include_str!("../src/graphics/scene/renderer/shadow/shaders/zr_shadow.wgsl"),
     "\n",
-    include_str!(
-        "../src/graphics/scene/renderer/froxel/shaders/main.wgsl"
-    ),
+    include_str!("../src/graphics/scene/renderer/froxel/shaders/main.wgsl"),
 );
 
 #[test]

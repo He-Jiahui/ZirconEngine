@@ -1,3 +1,5 @@
+//! 阶段投影的顺序、容量约束及独立性能夹具。
+
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -7,6 +9,7 @@ use super::{route_stage_names_for_policy, UI_INPUT_ROUTE_ORDER};
 
 const PERF_MARKER: &str = "RUNTIME366_ROUTE_STAGE_NAMES_CAPACITY_BENCH_V1";
 
+/// 验证过滤策略后仍保持统一排序，捕获策略只留下自身阶段。
 #[test]
 fn optimization_batch_20260830bn_runtime_route_stage_names_preserves_policy_order() {
     assert_eq!(
@@ -24,6 +27,7 @@ fn optimization_batch_20260830bn_runtime_route_stage_names_preserves_policy_orde
     );
 }
 
+/// 原始文本约束只固定容量准备与投影循环，行为由上一用例验证。
 #[test]
 fn optimization_batch_20260830bn_runtime_route_stage_names_source_contract() {
     let source = include_str!("../../routing.rs");
@@ -31,6 +35,7 @@ fn optimization_batch_20260830bn_runtime_route_stage_names_source_contract() {
     assert!(source.contains("for stage in UI_INPUT_ROUTE_ORDER"));
 }
 
+/// 忽略用例交替测量两种容量策略；阈值只约束此处构造的循环样本。
 #[test]
 #[ignore = "release performance evidence"]
 fn optimization_batch_20260830bn_runtime_route_stage_names_p95() {

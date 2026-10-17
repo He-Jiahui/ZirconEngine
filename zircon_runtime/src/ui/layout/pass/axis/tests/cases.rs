@@ -177,6 +177,8 @@ fn resolve_linear_child_main_extents_legacy(
     Ok(())
 }
 
+// 两条计时路径轮流使用同一已预热缓冲；独立的旧版缓冲只在计时前用于结果对照。
+// 计时覆盖完整主轴适配与求解，比较单遍计数改动；不代表跨后端布局或整帧耗时。
 #[test]
 #[ignore = "release-only linear layout performance evidence"]
 fn linear_child_visibility_single_pass_release_p95() {

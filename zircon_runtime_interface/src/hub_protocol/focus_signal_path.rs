@@ -1,3 +1,5 @@
+//! 聚焦邮箱路径按项目目录和目标实例确定；辅助函数只拼接路径，不读写文件。
+//! Hub 与 Editor 必须使用相同规则定位请求和确认。
 use std::fmt;
 use std::path::{Path, PathBuf};
 
@@ -10,6 +12,7 @@ const FOCUS_REQUESTS_DIRECTORY: &str = "requests";
 const FOCUS_ACKS_DIRECTORY: &str = "acks";
 
 /// Returns the project-owned, instance-addressed Hub focus mailbox path.
+/// 返回目标实例对应的聚焦信号文件路径。
 pub fn hub_editor_focus_signal_path(
     project_root: impl AsRef<Path>,
     target_instance_id: &str,
@@ -23,6 +26,7 @@ pub fn hub_editor_focus_signal_path(
 }
 
 /// Returns the instance-owned request inbox directory for sequenced Hub focus work.
+/// 返回该实例接收顺序化请求的目录。
 pub fn hub_editor_focus_request_directory(
     project_root: impl AsRef<Path>,
     target_instance_id: &str,
@@ -34,6 +38,7 @@ pub fn hub_editor_focus_request_directory(
 }
 
 /// Returns the instance-owned acknowledgement directory for sequenced Hub focus work.
+/// 返回与请求序号对应的确认文件路径。
 pub fn hub_editor_focus_ack_path(
     project_root: impl AsRef<Path>,
     target_instance_id: &str,

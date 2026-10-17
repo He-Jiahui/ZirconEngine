@@ -166,19 +166,19 @@ fn runtime_15_diagnostics_guard_is_folder_backed() {
     let parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
     let child =
         read_runtime_src("tests/runtime_absorption/structure_convention/diagnostics_surface.rs");
-    let runtime_15_plan = read_repo(
+    let _runtime_15_plan = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo(
+    let _runtime_index = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let review_findings = read_repo(
+    let _review_findings = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
-    let structure_convention = read_repo(
+    let _structure_convention = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert_contains_all(
         "structure convention parent diagnostics mount",

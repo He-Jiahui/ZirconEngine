@@ -1,0 +1,6313 @@
+{
+  "schema_version": 1,
+  "batch": "R076",
+  "owner": "reflection_luna",
+  "model": "gpt-6-luna",
+  "reasoning_effort": "max",
+  "status": "child-review-fixed-awaiting-parent-independent-review",
+  "formal_acceptance": false,
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "scope": "Exact eleven sources in assignments.metadata_tasks.R076; all context files readonly and excluded from coverage.",
+  "authority": {
+    "grant_assignment_sha256": "dbec5ad2a554e65ff09293058923c0b7bb47a7cf00821d4a0193762478fc2684",
+    "assignment_sha256_at_source_write": "dbec5ad2a554e65ff09293058923c0b7bb47a7cf00821d4a0193762478fc2684",
+    "write_path": "docs/plans/source-comments/reviews/R076.json",
+    "standard": {
+      "path": "docs/plans/source-comments/01-standard.md",
+      "sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3"
+    },
+    "root_grant_receipts": [
+      "418/62d30f native89389→41b095 exit0/PID35036",
+      "420/f87335 exit0/PID34428 independent grant readback"
+    ],
+    "root_reported_pregrant_failure": "414/native90845→e6d913 exit1: root incorrectly required legacy issues empty before mutation; 417/98c232/PID34864 proved globals unchanged; corrected grant preserves old IDs. Reported by parent, not child execution."
+  },
+  "summary": {
+    "files": 11,
+    "before_lines": 1380,
+    "after_lines": 1434,
+    "before_bytes": 48957,
+    "after_bytes": 52833,
+    "changed_files": 5,
+    "unchanged_files": 6,
+    "inserted_blocks": 23,
+    "inserted_lines": 54,
+    "object_groups": 75,
+    "members_including_enum_variants_and_fields": 50,
+    "enum_variants": 14,
+    "data_fields": 36,
+    "semantic_blocks": 102,
+    "control_points": 74,
+    "normal_tests": 15,
+    "ignored_tests": 3,
+    "tests_executed": 0,
+    "new_issue_ids_used": 0
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/src/ui/component/data_binding/mod.rs",
+      "before_sha256": "b8b44d0739a6657a133cdc11c34bc0737868ee98ea8f4983751d59b89bf31465",
+      "after_sha256": "b8b44d0739a6657a133cdc11c34bc0737868ee98ea8f4983751d59b89bf31465",
+      "before_bytes": 105,
+      "after_bytes": 105,
+      "before_lines": 4,
+      "after_lines": 4,
+      "changed": false,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 4,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 4,
+        "bom": false
+      },
+      "inverse_sha256": "b8b44d0739a6657a133cdc11c34bc0737868ee98ea8f4983751d59b89bf31465",
+      "inverse_equal_checkout_grant": true,
+      "insertions": [],
+      "objects": [
+        {
+          "name": "data_source",
+          "before_lines": [
+            1,
+            2
+          ],
+          "lines": [
+            1,
+            2
+          ],
+          "audit": "私有 path 子模块承载静态字段目录工厂；此处无状态或运行期绑定执行。",
+          "documentation_decision": "4 行结构根，仅挂载与导出，子模块已有职责说明，无新增。",
+          "members": []
+        },
+        {
+          "name": "inspector_selected_entity_data_source",
+          "before_lines": [
+            4,
+            4
+          ],
+          "lines": [
+            4,
+            4
+          ],
+          "audit": "将工厂作为 Runtime component 公共路径导出；Editor registry 的直接调用沿此出口。",
+          "documentation_decision": "导出对象已有函数文档，不重复。",
+          "members": []
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "数据源工厂挂载与公共出口",
+          "before_lines": [
+            1,
+            4
+          ],
+          "lines": [
+            1,
+            4
+          ],
+          "audit": "显式 path 决定叶子来源，pub use 不包装或改变工厂行为。",
+          "control_points": []
+        }
+      ],
+      "documentation_decision": "不改：结构根短且职责由目标叶子文档说明。",
+      "coverage_basis": "人工逐声明/成员和进入-状态-后续语义审查；数字范围对应已完整读取的原始源，插入后范围由精确插入行数映射。词法名称检查仅用于防占位及范围校验，不冒称 AST 解析或运行证明。",
+      "evidence_context_ids": [
+        "component_mount",
+        "ui_prelude",
+        "editor_adapter",
+        "r062_data_binding_context"
+      ],
+      "internal_edges": []
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/data_binding/data_source.rs",
+      "before_sha256": "a6cc4a497291526034c1465247acec83f0ce8bb3a4ed6619065eb7f17d94aa54",
+      "after_sha256": "a6cc4a497291526034c1465247acec83f0ce8bb3a4ed6619065eb7f17d94aa54",
+      "before_bytes": 2032,
+      "after_bytes": 2032,
+      "before_lines": 55,
+      "after_lines": 55,
+      "changed": false,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 55,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 55,
+        "bom": false
+      },
+      "inverse_sha256": "a6cc4a497291526034c1465247acec83f0ce8bb3a4ed6619065eb7f17d94aa54",
+      "inverse_equal_checkout_grant": true,
+      "insertions": [],
+      "objects": [
+        {
+          "name": "inspector_selected_entity_data_source",
+          "before_lines": [
+            8,
+            55
+          ],
+          "lines": [
+            8,
+            55
+          ],
+          "audit": "无参数，构建并返回拥有的 UiComponentDataSourceDescriptor。subject 是 entity://selected；宿主解析当前实体，字段目录本身不读取场景、不写实体。name/parent 及三个 translation 标量携带可写、分组、引用类别和步长元数据。",
+          "documentation_decision": "现有模块与函数文档明确静态目录、subject 解析、读写与投影责任，已足够。",
+          "members": []
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "目录职责与 DTO 导入",
+          "before_lines": [
+            1,
+            7
+          ],
+          "lines": [
+            1,
+            7
+          ],
+          "audit": "模块限定交换目标元数据；导入的 builder 类型属于 Interface，只读构造，不实例化适配器。",
+          "control_points": []
+        },
+        {
+          "name": "检查器身份与普通实体字段",
+          "before_lines": [
+            8,
+            26
+          ],
+          "lines": [
+            8,
+            26
+          ],
+          "audit": "进入工厂后创建 inspector/subject 身份，声明 String/Int/Float，name 与 parent 为 Entity 组；parent 的 scene-entity 是引用元数据。",
+          "control_points": []
+        },
+        {
+          "name": "Transform 三轴数值元数据",
+          "before_lines": [
+            27,
+            55
+          ],
+          "lines": [
+            27,
+            55
+          ],
+          "audit": "逐轴生成 Float、可写、Transform 组、[-100000,100000] 与 0.1 步长，交付拥有目录；实际输入验证/写入在消费者。",
+          "control_points": []
+        }
+      ],
+      "documentation_decision": "不改：现有中文责任边界充分，数字 builder 清楚，不机械解释每个赋值。",
+      "coverage_basis": "人工逐声明/成员和进入-状态-后续语义审查；数字范围对应已完整读取的原始源，插入后范围由精确插入行数映射。词法名称检查仅用于防占位及范围校验，不冒称 AST 解析或运行证明。",
+      "evidence_context_ids": [
+        "editor_adapter",
+        "r062_data_binding_context"
+      ],
+      "internal_edges": []
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/descriptor/mod.rs",
+      "before_sha256": "e4429e04d726bca4445e16ebc5f2a348901c7221ea602bf5cfae68a66aaebd97",
+      "after_sha256": "e4429e04d726bca4445e16ebc5f2a348901c7221ea602bf5cfae68a66aaebd97",
+      "before_bytes": 124,
+      "after_bytes": 124,
+      "before_lines": 4,
+      "after_lines": 4,
+      "changed": false,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 4,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 4,
+        "bom": false
+      },
+      "inverse_sha256": "e4429e04d726bca4445e16ebc5f2a348901c7221ea602bf5cfae68a66aaebd97",
+      "inverse_equal_checkout_grant": true,
+      "insertions": [],
+      "objects": [
+        {
+          "name": "validation",
+          "before_lines": [
+            1,
+            2
+          ],
+          "lines": [
+            1,
+            2
+          ],
+          "audit": "将验证实现保持在私有叶子，无额外调度或注册。",
+          "documentation_decision": "结构清楚，无新增。",
+          "members": []
+        },
+        {
+          "name": "validate_component_descriptor / UiComponentDescriptorError",
+          "before_lines": [
+            4,
+            4
+          ],
+          "lines": [
+            4,
+            4
+          ],
+          "audit": "重导出唯一检查入口与错误类型，registry try_register 使用它们。",
+          "documentation_decision": "目标声明已有/本批补正文档，无重复。",
+          "members": []
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "验证叶子挂载与公共出口",
+          "before_lines": [
+            1,
+            4
+          ],
+          "lines": [
+            1,
+            4
+          ],
+          "audit": "显式 path 与 pub use 只决定可达性；无运行状态。",
+          "control_points": []
+        }
+      ],
+      "documentation_decision": "不改：4 行根保持结构用途。",
+      "coverage_basis": "人工逐声明/成员和进入-状态-后续语义审查；数字范围对应已完整读取的原始源，插入后范围由精确插入行数映射。词法名称检查仅用于防占位及范围校验，不冒称 AST 解析或运行证明。",
+      "evidence_context_ids": [
+        "component_mount",
+        "ui_prelude"
+      ],
+      "internal_edges": []
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+      "before_sha256": "e77e82a9cda52f4d89ba6ef2433b4273a91f11879411988f924526d1ede774df",
+      "after_sha256": "e187b999eba97c141f943bbcf8e5cb14dfe50ab6edcbe6170880ac516086221a",
+      "before_bytes": 11044,
+      "after_bytes": 12110,
+      "before_lines": 293,
+      "after_lines": 309,
+      "changed": true,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 293,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 309,
+        "bom": false
+      },
+      "inverse_sha256": "e77e82a9cda52f4d89ba6ef2433b4273a91f11879411988f924526d1ede774df",
+      "inverse_equal_checkout_grant": true,
+      "insertions": [
+        {
+          "before_line": 12,
+          "before_offset": 477,
+          "after_offset": 477,
+          "bytes": 110,
+          "lines": 1,
+          "sha256": "4e986754cf344e7d9fe5542f0a9df15184ef87d025514db3cc3ea58f046f502d",
+          "exact_text": "/// 组件、字段和槽位身份复制为拥有值；诊断可在本次声明借用结束后继续保存。\n"
+        },
+        {
+          "before_line": 20,
+          "before_offset": 877,
+          "after_offset": 987,
+          "bytes": 113,
+          "lines": 1,
+          "sha256": "38032599a0829d963f2bbe376ba911cbc1b556be1a5491dbc68ddb319aabeb06",
+          "exact_text": "    /// 属性/状态名为空或重复，或同一模式内选项 ID 重复；schema_kind 区分诊断类别。\n"
+        },
+        {
+          "before_line": 37,
+          "before_offset": 1677,
+          "after_offset": 1900,
+          "bytes": 78,
+          "lines": 1,
+          "sha256": "915890683e3d062be1c6fda69cfac864e6609466307c9e796716d3ea049f0b1d",
+          "exact_text": "    /// 同时提供上下界时，边界含非有限数或上下界倒置。\n"
+        },
+        {
+          "before_line": 41,
+          "before_offset": 1965,
+          "after_offset": 2266,
+          "bytes": 88,
+          "lines": 1,
+          "sha256": "30ead1ef353fdaccb61d7ead10082c78b722755c602efd8372e6b6e61127ff66",
+          "exact_text": "    /// 默认值的标量、向量或嵌套数组/映射中出现非有限浮点数。\n"
+        },
+        {
+          "before_line": 61,
+          "before_offset": 2981,
+          "after_offset": 3370,
+          "bytes": 468,
+          "lines": 10,
+          "sha256": "0f481c798e05311c66977bf3c2a10e3cb3768b1b21ee006e93fd74a68826a57b",
+          "exact_text": "///\n/// # 参数\n/// - `descriptor`：本次借用的完整声明；检查不修改它，也不保存对它的引用。\n///\n/// # 返回与错误\n/// 成功返回 `Ok(())`；失败按身份、属性/状态名称、槽位、模式默认值、默认属性、\n/// 调色板和能力的检查次序返回首个错误，不汇总所有诊断。\n///\n/// # 参考\n/// [`crate::ui::component::UiComponentDescriptorRegistry::try_register`] 在写入目录前调用本检查。\n"
+        },
+        {
+          "before_line": 189,
+          "before_offset": 7687,
+          "after_offset": 8544,
+          "bytes": 109,
+          "lines": 1,
+          "sha256": "69acb06198fcf0e19d9c96b9a20a5360d5bcb010e93de63eac0f163db301bdb7",
+          "exact_text": "// 嵌套值沿用所属模式或属性名，诊断定位声明字段而非数组下标或映射子路径。\n"
+        },
+        {
+          "before_line": 230,
+          "before_offset": 9053,
+          "after_offset": 10019,
+          "bytes": 100,
+          "lines": 1,
+          "sha256": "cf79808569169ccaa73e3fb18e5f4b16420f8372d1b618ee8362c49909ac9808",
+          "exact_text": "// 模板这里只检查其非空条件和显式槽名；不实例化节点或验证整棵布局。\n"
+        }
+      ],
+      "objects": [
+        {
+          "name": "UiComponentDescriptorError",
+          "before_lines": [
+            11,
+            58
+          ],
+          "lines": [
+            11,
+            62
+          ],
+          "audit": "拥有式错误枚举保存可定位身份；thiserror 为14分类派生 Display/Error，Clone/Debug/PartialEq 保持原参数。",
+          "documentation_decision": "补充诊断复制寿命及三个容易误解的变体；所有已有 error 字符串原样。",
+          "members": [
+            {
+              "name": "EmptyId",
+              "before_lines": [
+                14,
+                15
+              ],
+              "audit": "descriptor.id.trim 为空，任何后续校验尚未进入。",
+              "fields": [],
+              "documentation_decision": "既有 error attribute 明确身份和诊断，本批保留；类型文档补拥有诊断寿命。",
+              "lines": [
+                15,
+                16
+              ]
+            },
+            {
+              "name": "EmptyDisplayName",
+              "before_lines": [
+                16,
+                17
+              ],
+              "audit": "ID 合格后 display_name.trim 为空。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    17,
+                    17
+                  ],
+                  "audit": "复制原组件身份。",
+                  "lines": [
+                    18,
+                    18
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "既有 error attribute 明确身份和诊断，本批保留；类型文档补拥有诊断寿命。",
+              "lines": [
+                17,
+                18
+              ]
+            },
+            {
+              "name": "EmptyRole",
+              "before_lines": [
+                18,
+                19
+              ],
+              "audit": "ID 与展示名合格后 role.trim 为空。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    19,
+                    19
+                  ],
+                  "audit": "复制原组件身份。",
+                  "lines": [
+                    20,
+                    20
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "既有 error attribute 明确身份和诊断，本批保留；类型文档补拥有诊断寿命。",
+              "lines": [
+                19,
+                20
+              ]
+            },
+            {
+              "name": "DuplicateSchemaName",
+              "before_lines": [
+                20,
+                25
+              ],
+              "audit": "空/重复 prop 或 state 名及同一 schema 内重复 option ID 共用此分类，不表示只处理重复名称。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    22,
+                    22
+                  ],
+                  "audit": "复制组件身份。",
+                  "lines": [
+                    24,
+                    24
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                },
+                {
+                  "name": "schema_kind",
+                  "before_lines": [
+                    23,
+                    23
+                  ],
+                  "audit": "静态 prop/state/option 类别，非动态借用。",
+                  "lines": [
+                    25,
+                    25
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                },
+                {
+                  "name": "name",
+                  "before_lines": [
+                    24,
+                    24
+                  ],
+                  "audit": "复制发生冲突的原名称/选项 ID，不做修剪重写。",
+                  "lines": [
+                    26,
+                    26
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "补充易混淆的实际返回条件；原 error attribute 不变。",
+              "lines": [
+                21,
+                27
+              ]
+            },
+            {
+              "name": "DuplicateSlotName",
+              "before_lines": [
+                26,
+                27
+              ],
+              "audit": "空或重复 slot 名；遍历声明序列先遇到者先返回。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    27,
+                    27
+                  ],
+                  "audit": "复制组件身份。",
+                  "lines": [
+                    29,
+                    29
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                },
+                {
+                  "name": "name",
+                  "before_lines": [
+                    27,
+                    27
+                  ],
+                  "audit": "复制原槽名。",
+                  "lines": [
+                    29,
+                    29
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "既有 error attribute 明确身份和诊断，本批保留；类型文档补拥有诊断寿命。",
+              "lines": [
+                28,
+                29
+              ]
+            },
+            {
+              "name": "MissingDefaultPropSchema",
+              "before_lines": [
+                28,
+                29
+              ],
+              "audit": "default_props 键找不到对应 prop schema。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    29,
+                    29
+                  ],
+                  "audit": "复制组件身份。",
+                  "lines": [
+                    31,
+                    31
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                },
+                {
+                  "name": "name",
+                  "before_lines": [
+                    29,
+                    29
+                  ],
+                  "audit": "复制缺模式的默认属性键。",
+                  "lines": [
+                    31,
+                    31
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "既有 error attribute 明确身份和诊断，本批保留；类型文档补拥有诊断寿命。",
+              "lines": [
+                30,
+                31
+              ]
+            },
+            {
+              "name": "DefaultValueKindMismatch",
+              "before_lines": [
+                30,
+                36
+              ],
+              "audit": "expected 不是 Any 且与 actual 不同。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    32,
+                    32
+                  ],
+                  "audit": "复制组件身份。",
+                  "lines": [
+                    34,
+                    34
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                },
+                {
+                  "name": "name",
+                  "before_lines": [
+                    33,
+                    33
+                  ],
+                  "audit": "复制所属字段身份。",
+                  "lines": [
+                    35,
+                    35
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                },
+                {
+                  "name": "expected",
+                  "before_lines": [
+                    34,
+                    34
+                  ],
+                  "audit": "模式声明的复制枚举值。",
+                  "lines": [
+                    36,
+                    36
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                },
+                {
+                  "name": "actual",
+                  "before_lines": [
+                    35,
+                    35
+                  ],
+                  "audit": "默认 UiValue 的复制枚举值。",
+                  "lines": [
+                    37,
+                    37
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "既有 error attribute 明确身份和诊断，本批保留；类型文档补拥有诊断寿命。",
+              "lines": [
+                32,
+                38
+              ]
+            },
+            {
+              "name": "InvalidRange",
+              "before_lines": [
+                37,
+                38
+              ],
+              "audit": "仅在 min/max 同时 Some 时检查非有限或 min>max；既有单边界 BUG 保持。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    38,
+                    38
+                  ],
+                  "audit": "复制组件身份。",
+                  "lines": [
+                    41,
+                    41
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                },
+                {
+                  "name": "name",
+                  "before_lines": [
+                    38,
+                    38
+                  ],
+                  "audit": "复制模式名称。",
+                  "lines": [
+                    41,
+                    41
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "补充易混淆的实际返回条件；原 error attribute 不变。",
+              "lines": [
+                39,
+                41
+              ]
+            },
+            {
+              "name": "InvalidStep",
+              "before_lines": [
+                39,
+                40
+              ],
+              "audit": "Some step 非有限或 <=0。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    40,
+                    40
+                  ],
+                  "audit": "复制组件身份。",
+                  "lines": [
+                    43,
+                    43
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                },
+                {
+                  "name": "name",
+                  "before_lines": [
+                    40,
+                    40
+                  ],
+                  "audit": "复制模式名称。",
+                  "lines": [
+                    43,
+                    43
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "既有 error attribute 明确身份和诊断，本批保留；类型文档补拥有诊断寿命。",
+              "lines": [
+                42,
+                43
+              ]
+            },
+            {
+              "name": "NonFiniteNumber",
+              "before_lines": [
+                41,
+                42
+              ],
+              "audit": "被遍历默认值中的 Float/Vec/嵌套 Array/Map 成员非有限。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    42,
+                    42
+                  ],
+                  "audit": "复制组件身份。",
+                  "lines": [
+                    46,
+                    46
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                },
+                {
+                  "name": "name",
+                  "before_lines": [
+                    42,
+                    42
+                  ],
+                  "audit": "沿用外层模式/默认属性名，不携带嵌套索引路径。",
+                  "lines": [
+                    46,
+                    46
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "补充易混淆的实际返回条件；原 error attribute 不变。",
+              "lines": [
+                44,
+                46
+              ]
+            },
+            {
+              "name": "MissingPaletteDefaultNode",
+              "before_lines": [
+                43,
+                46
+              ],
+              "audit": "存在 palette，且其 default_node.is_empty()，即 widget/prefix 空条件。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    46,
+                    46
+                  ],
+                  "audit": "复制组件身份。",
+                  "lines": [
+                    50,
+                    50
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "既有 error attribute 明确身份和诊断，本批保留；类型文档补拥有诊断寿命。",
+              "lines": [
+                47,
+                50
+              ]
+            },
+            {
+              "name": "EmptyPaletteSortKey",
+              "before_lines": [
+                47,
+                48
+              ],
+              "audit": "存在 palette 且 sort_key.trim 为空。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    48,
+                    48
+                  ],
+                  "audit": "复制组件身份。",
+                  "lines": [
+                    52,
+                    52
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "既有 error attribute 明确身份和诊断，本批保留；类型文档补拥有诊断寿命。",
+              "lines": [
+                51,
+                52
+              ]
+            },
+            {
+              "name": "UnknownDefaultNodeSlot",
+              "before_lines": [
+                49,
+                55
+              ],
+              "audit": "palette 默认模板显式 slot_name 无匹配 slot schema。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    53,
+                    53
+                  ],
+                  "audit": "复制组件身份。",
+                  "lines": [
+                    57,
+                    57
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                },
+                {
+                  "name": "slot_name",
+                  "before_lines": [
+                    54,
+                    54
+                  ],
+                  "audit": "复制显式槽位名称。",
+                  "lines": [
+                    58,
+                    58
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "既有 error attribute 明确身份和诊断，本批保留；类型文档补拥有诊断寿命。",
+              "lines": [
+                53,
+                59
+              ]
+            },
+            {
+              "name": "MissingVirtualizedHostCapability",
+              "before_lines": [
+                56,
+                57
+              ],
+              "audit": "声明虚拟化渲染能力却未声明对应宿主能力。",
+              "fields": [
+                {
+                  "name": "component_id",
+                  "before_lines": [
+                    57,
+                    57
+                  ],
+                  "audit": "复制组件身份。",
+                  "lines": [
+                    61,
+                    61
+                  ],
+                  "fields": [],
+                  "documentation_decision": "所属变体/类型文档及字段类型已说明诊断身份和所有权，保留原字段字节。"
+                }
+              ],
+              "documentation_decision": "既有 error attribute 明确身份和诊断，本批保留；类型文档补拥有诊断寿命。",
+              "lines": [
+                60,
+                61
+              ]
+            }
+          ]
+        },
+        {
+          "name": "validate_component_descriptor",
+          "before_lines": [
+            60,
+            86
+          ],
+          "lines": [
+            64,
+            100
+          ],
+          "audit": "仅借用完整声明，依次检查 ID/display/role、prop/state 名称、槽位、模式默认值、default_props、palette、capability；? 返回首错，不修改声明，不积累诊断。",
+          "documentation_decision": "补参数、首次错误次序、返回值、借用不保留及 try_register 参考。",
+          "members": []
+        },
+        {
+          "name": "validate_schema_names",
+          "before_lines": [
+            88,
+            116
+          ],
+          "lines": [
+            102,
+            130
+          ],
+          "audit": "两个局部借用 HashSet：schema 名称空/重复与各 schema 内 option ID 重复；按输入序列返回身份，不依赖 HashSet 迭代序。",
+          "documentation_decision": "已有私有块注释准确解释确定性，保留。",
+          "members": []
+        },
+        {
+          "name": "validate_slot_names",
+          "before_lines": [
+            118,
+            131
+          ],
+          "lines": [
+            132,
+            145
+          ],
+          "audit": "局部借用成员集合检测空/重复 slot 名，成功只表示此检查通过。",
+          "documentation_decision": "逻辑与字段身份明确，无新增。",
+          "members": []
+        },
+        {
+          "name": "validate_schema_defaults",
+          "before_lines": [
+            133,
+            171
+          ],
+          "lines": [
+            147,
+            185
+          ],
+          "audit": "prop 后接 state；先检查可选默认值 kind/有限性，再同时存在的范围和可选正有限 step；保留 CR-UI-COMP-0004 的单边界缺口。",
+          "documentation_decision": "既有 BUG 文档已指向实际分支，不重复标号。",
+          "members": []
+        },
+        {
+          "name": "validate_default_props",
+          "before_lines": [
+            173,
+            187
+          ],
+          "lines": [
+            187,
+            201
+          ],
+          "audit": "按 default_props 迭代键查对应 prop；缺 schema 立即 Err，存在则 kind 与递归有限性检查。",
+          "documentation_decision": "简短实现与现有入口文档足够。",
+          "members": []
+        },
+        {
+          "name": "validate_finite_value",
+          "before_lines": [
+            189,
+            213
+          ],
+          "lines": [
+            203,
+            228
+          ],
+          "audit": "Float/Vec2/3/4 逐数检查，Array/Map 深入递归，其他 UiValue 变体成功；所有递归保留同一个外层 name。",
+          "documentation_decision": "补诊断为何不包含嵌套索引路径。",
+          "members": []
+        },
+        {
+          "name": "validate_finite_number",
+          "before_lines": [
+            215,
+            228
+          ],
+          "lines": [
+            230,
+            243
+          ],
+          "audit": "is_finite 为真 Ok，否则复制 component_id/name 构造 NonFiniteNumber；不做钳制。",
+          "documentation_decision": "局部分支直白，类型文档已说明分类，无新增。",
+          "members": []
+        },
+        {
+          "name": "validate_palette",
+          "before_lines": [
+            230,
+            253
+          ],
+          "lines": [
+            245,
+            269
+          ],
+          "audit": "无 palette 直接 Ok；有则按 sort_key、default_node.is_empty、可选 slot 存在性检查，不编译或实例化模板。",
+          "documentation_decision": "补只检查有限模板条件的职责边界。",
+          "members": []
+        },
+        {
+          "name": "validate_capabilities",
+          "before_lines": [
+            255,
+            272
+          ],
+          "lines": [
+            271,
+            288
+          ],
+          "audit": "只实施 VirtualizedLayout render⇒host 蕴含；不探测真实 backend。",
+          "documentation_decision": "公共入口原文已限定消费方另行支持校验，无新增。",
+          "members": []
+        },
+        {
+          "name": "validate_value_kind",
+          "before_lines": [
+            274,
+            289
+          ],
+          "lines": [
+            290,
+            305
+          ],
+          "audit": "Any 或同 kind 接受，否则返回拥有诊断；类型检查不转换值。",
+          "documentation_decision": "分支自明，无新增。",
+          "members": []
+        },
+        {
+          "name": "hash_membership_tests",
+          "before_lines": [
+            291,
+            293
+          ],
+          "lines": [
+            307,
+            309
+          ],
+          "audit": "cfg(test) 显式挂载直属三测试；普通构建不可达该测试模块。",
+          "documentation_decision": "挂载清楚，无新增。",
+          "members": []
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "模块边界与类型导入",
+          "before_lines": [
+            1,
+            10
+          ],
+          "lines": [
+            1,
+            10
+          ],
+          "audit": "准备借用成员集合、错误派生和 Interface DTO；没有注册副作用。",
+          "control_points": []
+        },
+        {
+          "name": "诊断枚举及字段身份",
+          "before_lines": [
+            11,
+            58
+          ],
+          "lines": [
+            11,
+            62
+          ],
+          "audit": "14 错误分类均带原 error attribute；字符串身份按触发分支复制，静态 schema_kind 不依赖调用者寿命。",
+          "control_points": []
+        },
+        {
+          "name": "入口身份检查与顺序传播",
+          "before_lines": [
+            59,
+            86
+          ],
+          "lines": [
+            63,
+            100
+          ],
+          "audit": "入口先拒绝空 ID/display/role，继而依次 ? 调用7类检查，任一失败终止后续校验；成功返回单一 Ok。",
+          "control_points": [
+            {
+              "before_lines": [
+                64,
+                66
+              ],
+              "lines": [
+                78,
+                80
+              ],
+              "condition": "id.trim().is_empty()",
+              "effect": "空 ID 立即 Err，后续检查未进入。"
+            },
+            {
+              "before_lines": [
+                67,
+                71
+              ],
+              "lines": [
+                81,
+                85
+              ],
+              "condition": "display_name.trim().is_empty()",
+              "effect": "复制组件 ID 后返回展示名错误。"
+            },
+            {
+              "before_lines": [
+                72,
+                76
+              ],
+              "lines": [
+                86,
+                90
+              ],
+              "condition": "role.trim().is_empty()",
+              "effect": "角色为空立即返回。"
+            },
+            {
+              "before_lines": [
+                78,
+                84
+              ],
+              "lines": [
+                92,
+                98
+              ],
+              "condition": "顺序 ? 调用",
+              "effect": "prop→state→slot→schema defaults→default_props→palette→capability，任何 Err 停止后项。"
+            }
+          ]
+        },
+        {
+          "name": "属性/状态及选项成员检查",
+          "before_lines": [
+            87,
+            116
+          ],
+          "lines": [
+            101,
+            130
+          ],
+          "audit": "每次创建借用成员集合，按声明顺序 insert；空/冲突立即复制错误身份，不按集合次序决定先错。",
+          "control_points": [
+            {
+              "before_lines": [
+                95,
+                102
+              ],
+              "lines": [
+                109,
+                116
+              ],
+              "condition": "schema loop / trim-empty or insert-false",
+              "effect": "先遇到的空/重复 schema 名返回。"
+            },
+            {
+              "before_lines": [
+                104,
+                113
+              ],
+              "lines": [
+                118,
+                127
+              ],
+              "condition": "option loop / insert-false",
+              "effect": "每个schema独立选项集合，重复ID返回option诊断。"
+            }
+          ]
+        },
+        {
+          "name": "槽位成员检查",
+          "before_lines": [
+            117,
+            131
+          ],
+          "lines": [
+            131,
+            145
+          ],
+          "audit": "单次输入槽序列检查空和重复，首错停止。",
+          "control_points": [
+            {
+              "before_lines": [
+                122,
+                129
+              ],
+              "lines": [
+                136,
+                143
+              ],
+              "condition": "slot loop / trim-empty or insert-false",
+              "effect": "首个空/重复槽位返回。"
+            }
+          ]
+        },
+        {
+          "name": "模式默认值、双边范围与步长",
+          "before_lines": [
+            132,
+            171
+          ],
+          "lines": [
+            146,
+            185
+          ],
+          "audit": "prop/state 链逐项：默认 kind→递归有限→同时 Some 边界→step；既有单边界缺口未修。",
+          "control_points": [
+            {
+              "before_lines": [
+                136,
+                149
+              ],
+              "lines": [
+                150,
+                163
+              ],
+              "condition": "prop.chain(state) / Some(default_value)",
+              "effect": "逐声明先kind再递归finite。"
+            },
+            {
+              "before_lines": [
+                152,
+                159
+              ],
+              "lines": [
+                166,
+                173
+              ],
+              "condition": "both min/max Some",
+              "effect": "仅双边界检查有限性及顺序，原单边界问题保持。"
+            },
+            {
+              "before_lines": [
+                160,
+                168
+              ],
+              "lines": [
+                174,
+                182
+              ],
+              "condition": "Some step nonfinite or <=0",
+              "effect": "步长不合法立即 Err。"
+            }
+          ]
+        },
+        {
+          "name": "默认属性与模式对应",
+          "before_lines": [
+            172,
+            187
+          ],
+          "lines": [
+            186,
+            201
+          ],
+          "audit": "缺 prop schema 的 let-else Err 阻止 kind/finite 检查；匹配项先 kind 后递归 finite。",
+          "control_points": [
+            {
+              "before_lines": [
+                176,
+                184
+              ],
+              "lines": [
+                190,
+                198
+              ],
+              "condition": "default_props loop / missing-schema let-else",
+              "effect": "缺模式先错；存在时kind和finite短路。"
+            }
+          ]
+        },
+        {
+          "name": "递归默认值有限性",
+          "before_lines": [
+            188,
+            213
+          ],
+          "lines": [
+            202,
+            228
+          ],
+          "audit": "match 覆盖浮点和向量/数组/映射，try_for_each 首 Err 短路；非数值值保持 Ok，name 沿递归不改。",
+          "control_points": [
+            {
+              "before_lines": [
+                194,
+                211
+              ],
+              "lines": [
+                209,
+                226
+              ],
+              "condition": "UiValue match",
+              "effect": "Float/Vec逐数、Array/Map递归；其他变体Ok，名称保持外层字段。"
+            }
+          ]
+        },
+        {
+          "name": "标量有限性诊断",
+          "before_lines": [
+            214,
+            228
+          ],
+          "lines": [
+            229,
+            243
+          ],
+          "audit": "is_finite 两分支，不变更数值；失败创建自有身份字符串。",
+          "control_points": [
+            {
+              "before_lines": [
+                220,
+                227
+              ],
+              "lines": [
+                235,
+                242
+              ],
+              "condition": "value.is_finite()",
+              "effect": "真Ok；假复制身份返回NonFiniteNumber。"
+            }
+          ]
+        },
+        {
+          "name": "可选调色板声明检查",
+          "before_lines": [
+            229,
+            253
+          ],
+          "lines": [
+            244,
+            269
+          ],
+          "audit": "None 提前返回；Some 按排序键/模板非空/显式槽名检查；无节点创建。",
+          "control_points": [
+            {
+              "before_lines": [
+                231,
+                233
+              ],
+              "lines": [
+                247,
+                249
+              ],
+              "condition": "palette None let-else",
+              "effect": "无palette提前Ok。"
+            },
+            {
+              "before_lines": [
+                234,
+                243
+              ],
+              "lines": [
+                250,
+                259
+              ],
+              "condition": "sort key / template empty",
+              "effect": "依次拒绝空排序键和空模板。"
+            },
+            {
+              "before_lines": [
+                244,
+                251
+              ],
+              "lines": [
+                260,
+                267
+              ],
+              "condition": "explicit slot Some / missing schema",
+              "effect": "仅显式槽名要求在声明中存在。"
+            }
+          ]
+        },
+        {
+          "name": "声明能力蕴含",
+          "before_lines": [
+            254,
+            272
+          ],
+          "lines": [
+            270,
+            288
+          ],
+          "audit": "只在渲染要求虚拟化且宿主声明缺失时返回专门错误。",
+          "control_points": [
+            {
+              "before_lines": [
+                258,
+                270
+              ],
+              "lines": [
+                274,
+                286
+              ],
+              "condition": "VirtualizedLayout render && missing host",
+              "effect": "返回MissingVirtualizedHostCapability。"
+            }
+          ]
+        },
+        {
+          "name": "值类别通配与不匹配",
+          "before_lines": [
+            273,
+            289
+          ],
+          "lines": [
+            289,
+            305
+          ],
+          "audit": "Any/相同种类提前成功，其余构造 expected/actual 诊断，不尝试转换。",
+          "control_points": [
+            {
+              "before_lines": [
+                280,
+                288
+              ],
+              "lines": [
+                296,
+                304
+              ],
+              "condition": "expected Any or same kind",
+              "effect": "通配/相等Ok，其他构造expected/actual错误。"
+            }
+          ]
+        },
+        {
+          "name": "直属测试条件挂载",
+          "before_lines": [
+            290,
+            293
+          ],
+          "lines": [
+            306,
+            309
+          ],
+          "audit": "cfg(test)+path 挂载 hash_membership，原分隔字面量是源码守卫截取边界。",
+          "control_points": []
+        }
+      ],
+      "documentation_decision": "只补有证据的拥有诊断、入口返回顺序和两个私有职责边界，保留已有充分说明与 BUG。",
+      "coverage_basis": "人工逐声明/成员和进入-状态-后续语义审查；数字范围对应已完整读取的原始源，插入后范围由精确插入行数映射。词法名称检查仅用于防占位及范围校验，不冒称 AST 解析或运行证明。",
+      "evidence_context_ids": [
+        "component_descriptor_contract",
+        "prop_schema_contract",
+        "descriptor_lookups",
+        "value_kind_contract",
+        "default_node_contract"
+      ],
+      "internal_edges": [
+        {
+          "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+          "sha256": "e187b999eba97c141f943bbcf8e5cb14dfe50ab6edcbe6170880ac516086221a",
+          "before_lines": [
+            78,
+            84
+          ],
+          "lines": [
+            92,
+            98
+          ],
+          "caller": "validate_component_descriptor",
+          "callee": "schema_names(prop/state)→slot_names→schema_defaults→default_props→palette→capabilities"
+        },
+        {
+          "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+          "sha256": "e187b999eba97c141f943bbcf8e5cb14dfe50ab6edcbe6170880ac516086221a",
+          "before_lines": [
+            141,
+            148
+          ],
+          "lines": [
+            155,
+            162
+          ],
+          "caller": "validate_schema_defaults",
+          "callee": "validate_value_kind / validate_finite_value"
+        },
+        {
+          "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+          "sha256": "e187b999eba97c141f943bbcf8e5cb14dfe50ab6edcbe6170880ac516086221a",
+          "before_lines": [
+            176,
+            184
+          ],
+          "lines": [
+            190,
+            198
+          ],
+          "caller": "validate_default_props",
+          "callee": "Descriptor::prop / validate_value_kind / validate_finite_value"
+        },
+        {
+          "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+          "sha256": "e187b999eba97c141f943bbcf8e5cb14dfe50ab6edcbe6170880ac516086221a",
+          "before_lines": [
+            194,
+            211
+          ],
+          "lines": [
+            209,
+            226
+          ],
+          "caller": "validate_finite_value",
+          "callee": "validate_finite_number / recursive validate_finite_value"
+        },
+        {
+          "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+          "sha256": "e187b999eba97c141f943bbcf8e5cb14dfe50ab6edcbe6170880ac516086221a",
+          "before_lines": [
+            239,
+            245
+          ],
+          "lines": [
+            255,
+            261
+          ],
+          "caller": "validate_palette",
+          "callee": "DefaultNodeTemplate::is_empty / Descriptor::slot_schema"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/descriptor/validation/tests/hash_membership.rs",
+      "before_sha256": "dcfb764e19ca7ca7a75dc5c3914d8e18ec92abc4a19b829079dc3c05e3ba8b42",
+      "after_sha256": "dcfb764e19ca7ca7a75dc5c3914d8e18ec92abc4a19b829079dc3c05e3ba8b42",
+      "before_bytes": 6002,
+      "after_bytes": 6002,
+      "before_lines": 170,
+      "after_lines": 170,
+      "changed": false,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 170,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 170,
+        "bom": false
+      },
+      "inverse_sha256": "dcfb764e19ca7ca7a75dc5c3914d8e18ec92abc4a19b829079dc3c05e3ba8b42",
+      "inverse_equal_checkout_grant": true,
+      "insertions": [],
+      "objects": [
+        {
+          "name": "SCHEMA_COUNT",
+          "before_lines": [
+            14,
+            14
+          ],
+          "lines": [
+            14,
+            14
+          ],
+          "audit": "固定65536条 schema，只有忽略性能路径调用生成器使用。",
+          "documentation_decision": "现有常量名/值及模块基准边界清楚。",
+          "members": []
+        },
+        {
+          "name": "SAMPLE_COUNT",
+          "before_lines": [
+            15,
+            15
+          ],
+          "lines": [
+            15,
+            15
+          ],
+          "audit": "17对交替时序样本，防止把一个时序直接当耗时合同。",
+          "documentation_decision": "基准代码清楚，未执行。",
+          "members": []
+        },
+        {
+          "name": "descriptor",
+          "before_lines": [
+            17,
+            24
+          ],
+          "lines": [
+            17,
+            24
+          ],
+          "audit": "创建合法的 Visual/fixture 描述符基础，供错误身份测试和性能检查上下文。",
+          "documentation_decision": "夹具短小，无新增。",
+          "members": []
+        },
+        {
+          "name": "percentile_95",
+          "before_lines": [
+            26,
+            29
+          ],
+          "lines": [
+            26,
+            29
+          ],
+          "audit": "原地不稳定排序非空样本，取(len-1)*95/100位置；唯一调用使用17样本。",
+          "documentation_decision": "调用者固定非空前提明确，无新增。",
+          "members": []
+        },
+        {
+          "name": "schemas",
+          "before_lines": [
+            31,
+            40
+          ],
+          "lines": [
+            31,
+            40
+          ],
+          "audit": "生成唯一且有长身份的字符串 prop 模式，成本不进入两实现的计时段。",
+          "documentation_decision": "模块文档已说固定输入复用，无新增。",
+          "members": []
+        },
+        {
+          "name": "ordered_schema_names_are_valid",
+          "before_lines": [
+            42,
+            58
+          ],
+          "lines": [
+            42,
+            58
+          ],
+          "audit": "BTreeSet 对照模型按序检查 schema 空/重复及 option 重复，只返回bool，不生成生产错误。",
+          "documentation_decision": "已有模块说明基准只比较成员成本，保留。",
+          "members": []
+        },
+        {
+          "name": "optimization_batch_20260826ag_runtime75_hash_validation_preserves_first_duplicate_errors",
+          "before_lines": [
+            60,
+            102
+          ],
+          "lines": [
+            60,
+            102
+          ],
+          "audit": "三组 fixture 分别断言 prop、option、slot 首次重复身份；不验证全部错误优先级排列。",
+          "documentation_decision": "现有名字与具体断言足够。",
+          "members": []
+        },
+        {
+          "name": "optimization_batch_20260826ag_runtime75_descriptor_validation_uses_borrowed_hash_membership",
+          "before_lines": [
+            104,
+            115
+          ],
+          "lines": [
+            104,
+            115
+          ],
+          "audit": "include_str 读取 validation，首 cfg(test) 截断后6项原文算子；只证明实现形状。",
+          "documentation_decision": "现有模块文档和源码算子清楚，不塞入查找字面量。",
+          "members": []
+        },
+        {
+          "name": "optimization_batch_20260826ag_runtime75_descriptor_hash_validation_performance_evidence",
+          "before_lines": [
+            117,
+            170
+          ],
+          "lines": [
+            117,
+            170
+          ],
+          "audit": "ignored release evidence先验证两模型接受固定输入，17轮交替时序，输出p95并要求hash≤旧模型60%；未执行。",
+          "documentation_decision": "保留 ignore 和基准说明，不宣称性能已通过。",
+          "members": []
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "测试作用域与规模常量",
+          "before_lines": [
+            1,
+            16
+          ],
+          "lines": [
+            1,
+            16
+          ],
+          "audit": "从父验证模块借用私有检查，BTreeSet只用于对照；两个常量只约束此夹具规模。",
+          "control_points": []
+        },
+        {
+          "name": "最小合法描述符夹具",
+          "before_lines": [
+            17,
+            25
+          ],
+          "lines": [
+            17,
+            25
+          ],
+          "audit": "返回新拥有描述符，后续各用例独立添加字段/槽位。",
+          "control_points": []
+        },
+        {
+          "name": "非空样本百分位",
+          "before_lines": [
+            26,
+            30
+          ],
+          "lines": [
+            26,
+            30
+          ],
+          "audit": "对传入Duration切片排序并选固定p95索引；17样本调用保证非空。",
+          "control_points": []
+        },
+        {
+          "name": "唯一模式数据生成",
+          "before_lines": [
+            31,
+            41
+          ],
+          "lines": [
+            31,
+            41
+          ],
+          "audit": "按索引创建唯一长身份，生成完成后才开始比较计时。",
+          "control_points": []
+        },
+        {
+          "name": "树集合对照模型",
+          "before_lines": [
+            42,
+            59
+          ],
+          "lines": [
+            42,
+            59
+          ],
+          "audit": "按输入序检查空/重复schema和option，任一冲突返回false，其余true；不调用目录注册。",
+          "control_points": [
+            {
+              "before_lines": [
+                44,
+                56
+              ],
+              "lines": [
+                44,
+                56
+              ],
+              "condition": "BTreeSet baseline loops",
+              "effect": "空/重复schema或option返回false。"
+            }
+          ]
+        },
+        {
+          "name": "prop首重复诊断",
+          "before_lines": [
+            60,
+            74
+          ],
+          "lines": [
+            60,
+            74
+          ],
+          "audit": "构造first/later/first并精确比对组件、类别prop与first身份。",
+          "control_points": [
+            {
+              "before_lines": [
+                66,
+                73
+              ],
+              "lines": [
+                66,
+                73
+              ],
+              "condition": "duplicate prop assert_eq",
+              "effect": "组件身份、prop类别和first名称精确比较。"
+            }
+          ]
+        },
+        {
+          "name": "option首重复诊断",
+          "before_lines": [
+            75,
+            90
+          ],
+          "lines": [
+            75,
+            90
+          ],
+          "audit": "同一choice模式内first/later/first选项，精确比对option分类。",
+          "control_points": [
+            {
+              "before_lines": [
+                82,
+                89
+              ],
+              "lines": [
+                82,
+                89
+              ],
+              "condition": "duplicate option assert_eq",
+              "effect": "组件身份、option类别和first名称精确比较。"
+            }
+          ]
+        },
+        {
+          "name": "slot首重复诊断",
+          "before_lines": [
+            91,
+            103
+          ],
+          "lines": [
+            91,
+            103
+          ],
+          "audit": "header/content/header断言DuplicateSlotName及header。",
+          "control_points": [
+            {
+              "before_lines": [
+                95,
+                101
+              ],
+              "lines": [
+                95,
+                101
+              ],
+              "condition": "duplicate slot assert_eq",
+              "effect": "组件身份和header槽名精确比较。"
+            }
+          ]
+        },
+        {
+          "name": "原文成员集合守卫",
+          "before_lines": [
+            104,
+            116
+          ],
+          "lines": [
+            104,
+            116
+          ],
+          "audit": "原始include文本按首测试分隔截取，contains/matches/否定contains六项不剥注释；无验证函数执行。",
+          "control_points": [
+            {
+              "before_lines": [
+                106,
+                114
+              ],
+              "lines": [
+                106,
+                114
+              ],
+              "condition": "raw include/split and6operators",
+              "effect": "原文本含注释；计数/包含式不执行验证路径。"
+            }
+          ]
+        },
+        {
+          "name": "忽略基准的合法输入前置",
+          "before_lines": [
+            117,
+            124
+          ],
+          "lines": [
+            117,
+            124
+          ],
+          "audit": "ignore显式标记，先断言对照及生产成员检查均接受65536唯一模式。",
+          "control_points": [
+            {
+              "before_lines": [
+                120,
+                123
+              ],
+              "lines": [
+                120,
+                123
+              ],
+              "condition": "benchmark input acceptance",
+              "effect": "两个模型接受固定唯一模式后才计时。"
+            }
+          ]
+        },
+        {
+          "name": "交替基准采样",
+          "before_lines": [
+            125,
+            153
+          ],
+          "lines": [
+            125,
+            153
+          ],
+          "audit": "预留两组17样本；偶数先树后hash，奇数先hash后树，black_box保留结果；样本拥有Duration。",
+          "control_points": [
+            {
+              "before_lines": [
+                127,
+                152
+              ],
+              "lines": [
+                127,
+                152
+              ],
+              "condition": "sample parity branch",
+              "effect": "17对样本交替先后顺序。"
+            }
+          ]
+        },
+        {
+          "name": "基准诊断与阈值",
+          "before_lines": [
+            154,
+            170
+          ],
+          "lines": [
+            154,
+            170
+          ],
+          "audit": "排序样本算p95、打印标记及纳秒，再要求hash不超过树60%；该阈值未在本任务执行。",
+          "control_points": [
+            {
+              "before_lines": [
+                164,
+                169
+              ],
+              "lines": [
+                164,
+                169
+              ],
+              "condition": "p95 <=60% assertion",
+              "effect": "忽略性能门槛，未执行。"
+            }
+          ]
+        }
+      ],
+      "documentation_decision": "原中文模块说明已区分确定诊断与成员成本基准；所有声明保留。",
+      "coverage_basis": "人工逐声明/成员及有语义的进入-状态-后续分区；全源连续范围与逐插入行数映射机械复核，不将词法检查称作 AST 或执行证据。",
+      "evidence_context_ids": [],
+      "internal_edges": []
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+      "before_sha256": "b9bd6858bcb53f5f3f92f14bbe74690b20c5f022ceba407ccf17536e15279716",
+      "after_sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+      "before_bytes": 6379,
+      "after_bytes": 8112,
+      "before_lines": 173,
+      "after_lines": 197,
+      "changed": true,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 173,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 197,
+        "bom": false
+      },
+      "inverse_sha256": "b9bd6858bcb53f5f3f92f14bbe74690b20c5f022ceba407ccf17536e15279716",
+      "inverse_equal_checkout_grant": true,
+      "insertions": [
+        {
+          "before_line": 28,
+          "before_offset": 1076,
+          "after_offset": 1076,
+          "bytes": 107,
+          "lines": 1,
+          "sha256": "6a7b4d79133eeb89012e1089b2610e22064ef02efbaf6528470e5d74a4e5d522",
+          "exact_text": "/// 目录拥有传入的声明；查询引用受目录借用约束，克隆后的目录可独立修改。\n"
+        },
+        {
+          "before_line": 41,
+          "before_offset": 1454,
+          "after_offset": 1561,
+          "bytes": 521,
+          "lines": 11,
+          "sha256": "8daf77e92ee2f27e6817dc06fe0d86a05dab3379876aaa62376486dcad422c0f",
+          "exact_text": "    /// 接管声明，并在结构校验通过后新增或替换同 ID 项。\n    ///\n    /// # 参数\n    /// - `descriptor`：调用方交付的完整声明；方法取得其所有权。\n    ///\n    /// # 返回与错误\n    /// `Ok(true)` 表示已写入变化，`Ok(false)` 表示与已有声明完全相同。\n    /// 校验错误直接返回，原目录及修订号保持不变。\n    ///\n    /// # 参考\n    /// [`Self::try_register`] 使用同一实现；[`validate_component_descriptor`] 定义准入检查。\n"
+        },
+        {
+          "before_line": 63,
+          "before_offset": 2298,
+          "after_offset": 2926,
+          "bytes": 111,
+          "lines": 1,
+          "sha256": "0703ec48a7bc7742874457be3e741578cc68e3d7988727cf811573fffa5fa044",
+          "exact_text": "    /// 从零开始饱和增加；达到 `u64::MAX` 后，后续变更仍写入目录但不再改变此值。\n"
+        },
+        {
+          "before_line": 68,
+          "before_offset": 2414,
+          "after_offset": 3153,
+          "bytes": 107,
+          "lines": 1,
+          "sha256": "67b4096e7863d95af7b440e717dd1dbba86f347a3f3718b3256cc9e342576576",
+          "exact_text": "    /// `component_id` 按原字符串精确查找；未知 ID 返回 `None`，引用借用当前目录。\n"
+        },
+        {
+          "before_line": 88,
+          "before_offset": 3098,
+          "after_offset": 3944,
+          "bytes": 114,
+          "lines": 1,
+          "sha256": "7faf021165f34344780ca49d741d395dc04c4551db0393d18da848e8ce227866",
+          "exact_text": "    /// 顺序由字符串键决定；迭代项借用目录，不能跨越对目录的可变借用继续使用。\n"
+        },
+        {
+          "before_line": 93,
+          "before_offset": 3288,
+          "after_offset": 4248,
+          "bytes": 108,
+          "lines": 1,
+          "sha256": "189ebee887e89309dd1a24d4963918803297bc94c78108f928e562b515e280c4",
+          "exact_text": "    /// 每类至多出现一次，遵循固定类别次序；结果拥有类别值，不借用描述符。\n"
+        },
+        {
+          "before_line": 102,
+          "before_offset": 3592,
+          "after_offset": 4660,
+          "bytes": 90,
+          "lines": 1,
+          "sha256": "5265fe7e04580ab266069e9db03dbf99404513c79f3b9a335251319fab80a60b",
+          "exact_text": "    /// 迭代项借用目录；消费方可按需克隆描述符，形成独立快照。\n"
+        },
+        {
+          "before_line": 107,
+          "before_offset": 3790,
+          "after_offset": 4948,
+          "bytes": 94,
+          "lines": 1,
+          "sha256": "00c48e3572fae6064190888601881110c88997d881160f462c598760de5cca27",
+          "exact_text": "    /// 过滤后仍保留组件 ID 次序；结果引用的有效期受目录借用约束。\n"
+        },
+        {
+          "before_line": 117,
+          "before_offset": 4196,
+          "after_offset": 5448,
+          "bytes": 268,
+          "lines": 4,
+          "sha256": "5ea7fe8920dafdf7d1aca1a961d5bb5b3d66091beeff20a23ab1bf4caa383e7a",
+          "exact_text": "    ///\n    /// # 参数与返回\n    /// `host_capabilities` 是本次查询使用的能力集合；返回集合由调用方持有，条目仍借用目录。\n    /// 结果保持组件 ID 次序，不匹配的项直接省略；空结果不表示目录本身为空。\n"
+        },
+        {
+          "before_line": 129,
+          "before_offset": 4733,
+          "after_offset": 6253,
+          "bytes": 213,
+          "lines": 2,
+          "sha256": "2b3d8807797dd7081321e8256d80f6ee48e70aff13fcfcc414d13968d71036c6",
+          "exact_text": "    /// 返回快照独立拥有字符串与模板，之后修改目录不会回写已有条目。\n    /// 排序依次比较类别、排序键、展示名与组件 ID；此入口不检查实际渲染端支持。\n"
+        }
+      ],
+      "objects": [
+        {
+          "name": "COMPONENT_CATEGORIES",
+          "before_lines": [
+            13,
+            22
+          ],
+          "lines": [
+            13,
+            22
+          ],
+          "audit": "8类别的固定枚举合同次序，不跟BTreeMap键次序变化。",
+          "documentation_decision": "既有辅助块说明及穷尽match充分。",
+          "members": []
+        },
+        {
+          "name": "UiComponentCategoryIter",
+          "before_lines": [
+            24,
+            25
+          ],
+          "lines": [
+            24,
+            25
+          ],
+          "audit": "拥有8个Option槽的flatten迭代器，无描述符引用或堆向量。",
+          "documentation_decision": "类型实现直观，categories补返回所有权。",
+          "members": []
+        },
+        {
+          "name": "UiComponentDescriptorRegistry",
+          "before_lines": [
+            27,
+            32
+          ],
+          "lines": [
+            27,
+            33
+          ],
+          "audit": "目录拥有BTreeMap键与描述符，revision私有u64。派生Default产生空目录/零修订，Clone复制数据，PartialEq包含目录与revision。",
+          "documentation_decision": "补目录拥有和查询借用/克隆边界。",
+          "members": [
+            {
+              "name": "descriptors",
+              "before_lines": [
+                30,
+                30
+              ],
+              "audit": "以声明ID复制为BTreeMap键，值拥有完整描述符；无实例交互状态。",
+              "documentation_decision": "类型说明集中覆盖，无逐字段重复。",
+              "lines": [
+                31,
+                31
+              ],
+              "fields": []
+            },
+            {
+              "name": "revision",
+              "before_lines": [
+                31,
+                31
+              ],
+              "audit": "仅实际插入/替换后饱和加一；不是无限增长序列。",
+              "documentation_decision": "revision getter补饱和边界。",
+              "lines": [
+                32,
+                32
+              ],
+              "fields": []
+            }
+          ]
+        },
+        {
+          "name": "impl UiComponentDescriptorRegistry",
+          "before_lines": [
+            34,
+            145
+          ],
+          "lines": [
+            35,
+            169
+          ],
+          "audit": "普通固有方法，无trait注册或动态回调；每个方法下列独立审查。",
+          "documentation_decision": "方法按实际责任补充。",
+          "members": []
+        },
+        {
+          "name": "new",
+          "before_lines": [
+            35,
+            38
+          ],
+          "lines": [
+            36,
+            39
+          ],
+          "audit": "Default空目录，revision为0；不注册展示组件。",
+          "documentation_decision": "英文摘要及返回实现足够，避免机械翻译。",
+          "members": []
+        },
+        {
+          "name": "register",
+          "before_lines": [
+            40,
+            46
+          ],
+          "lines": [
+            41,
+            58
+          ],
+          "audit": "取得descriptor所有权后原样委派try_register；返回变化标记或校验错误。",
+          "documentation_decision": "补Markdown参数/返回/错误和引用。",
+          "members": []
+        },
+        {
+          "name": "try_register",
+          "before_lines": [
+            48,
+            60
+          ],
+          "lines": [
+            60,
+            72
+          ],
+          "audit": "先完整结构检查，失败无状态写入；完全相等返回false，否则用ID键替换并饱和revision再true。",
+          "documentation_decision": "既有中文说明足够，register/revision补关联合同。",
+          "members": []
+        },
+        {
+          "name": "revision",
+          "before_lines": [
+            62,
+            65
+          ],
+          "lines": [
+            74,
+            78
+          ],
+          "audit": "复制当前u64，不借用内部状态；cache_key消费者据此作为失效输入之一。",
+          "documentation_decision": "补从零开始、MAX后变更不再区分。",
+          "members": []
+        },
+        {
+          "name": "descriptor",
+          "before_lines": [
+            67,
+            70
+          ],
+          "lines": [
+            80,
+            84
+          ],
+          "audit": "字符串精确BTreeMap get；Option区分未知，返回受self寿命约束的借用。",
+          "documentation_decision": "补匹配与返回寿命。",
+          "members": []
+        },
+        {
+          "name": "contains",
+          "before_lines": [
+            72,
+            75
+          ],
+          "lines": [
+            86,
+            89
+          ],
+          "audit": "仅精确键存在性，不作能力过滤或验证。",
+          "documentation_decision": "英文摘要与单行实现足够。",
+          "members": []
+        },
+        {
+          "name": "len",
+          "before_lines": [
+            77,
+            80
+          ],
+          "lines": [
+            91,
+            94
+          ],
+          "audit": "返回目录项数，不是当前宿主可用项数。",
+          "documentation_decision": "现有摘要直明无需新增。",
+          "members": []
+        },
+        {
+          "name": "is_empty",
+          "before_lines": [
+            82,
+            85
+          ],
+          "lines": [
+            96,
+            99
+          ],
+          "audit": "判断BTreeMap是否空，无副作用。",
+          "documentation_decision": "直白对象无新增。",
+          "members": []
+        },
+        {
+          "name": "component_ids",
+          "before_lines": [
+            87,
+            90
+          ],
+          "lines": [
+            101,
+            105
+          ],
+          "audit": "迭代BTreeMap字符串键映射&str，稳定键序且借用目录。",
+          "documentation_decision": "补排序基础与借用限制。",
+          "members": []
+        },
+        {
+          "name": "categories",
+          "before_lines": [
+            92,
+            99
+          ],
+          "lines": [
+            107,
+            115
+          ],
+          "audit": "从所有描述符category生成去重的拥有式类别迭代，不保留self引用。",
+          "documentation_decision": "补固定次序/独立值。",
+          "members": []
+        },
+        {
+          "name": "descriptors",
+          "before_lines": [
+            101,
+            104
+          ],
+          "lines": [
+            117,
+            121
+          ],
+          "audit": "BTreeMap values按ID键序，条目借用目录，非快照。",
+          "documentation_decision": "补克隆形成自有快照的使用边界。",
+          "members": []
+        },
+        {
+          "name": "descriptors_in_category",
+          "before_lines": [
+            106,
+            114
+          ],
+          "lines": [
+            123,
+            132
+          ],
+          "audit": "值迭代按精确category过滤，保留原ID序与self借用。",
+          "documentation_decision": "补过滤后次序与寿命。",
+          "members": []
+        },
+        {
+          "name": "descriptors_for_host",
+          "before_lines": [
+            116,
+            126
+          ],
+          "lines": [
+            134,
+            148
+          ],
+          "audit": "按宿主集合包含所有required_host过滤；预留目录len上界后收集借用引用，不检查rendercapability。",
+          "documentation_decision": "补参数/返回集合与借用项分工、顺序与空结果语义。",
+          "members": []
+        },
+        {
+          "name": "palette_entries_for_host",
+          "before_lines": [
+            128,
+            134
+          ],
+          "lines": [
+            150,
+            158
+          ],
+          "audit": "委派私有投影器，返回拥有的字段/模板；只有host匹配和palette存在者入选。",
+          "documentation_decision": "补快照寿命和四键排序/渲染边界。",
+          "members": []
+        },
+        {
+          "name": "missing_capabilities",
+          "before_lines": [
+            136,
+            144
+          ],
+          "lines": [
+            160,
+            168
+          ],
+          "audit": "unknown None，known Some(missing set)；空set表示所列要求均满足，集合自有。",
+          "documentation_decision": "既有中文清楚区分None/空集，保留。",
+          "members": []
+        },
+        {
+          "name": "unique_component_categories",
+          "before_lines": [
+            148,
+            156
+          ],
+          "lines": [
+            172,
+            180
+          ],
+          "audit": "8个Option槽按穷尽类别索引覆盖相同值，再flatten，去重且枚举序固定。",
+          "documentation_decision": "已有不变量说明充分。",
+          "members": []
+        },
+        {
+          "name": "component_category_index",
+          "before_lines": [
+            158,
+            169
+          ],
+          "lines": [
+            182,
+            193
+          ],
+          "audit": "穷尽8变体映射0..7，与固定数组长度匹配；无默认分支。",
+          "documentation_decision": "代码与固定类别常量充分。",
+          "members": []
+        },
+        {
+          "name": "tests",
+          "before_lines": [
+            171,
+            173
+          ],
+          "lines": [
+            195,
+            197
+          ],
+          "audit": "cfg(test)明确挂载目录查询私有模型测试。",
+          "documentation_decision": "结构清楚，无新增。",
+          "members": []
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "目录职责和依赖",
+          "before_lines": [
+            1,
+            12
+          ],
+          "lines": [
+            1,
+            12
+          ],
+          "audit": "保存声明而非实例状态；导入验证入口和投影类型，不创建宿主服务。",
+          "control_points": []
+        },
+        {
+          "name": "类别顺序与拥有式迭代表示",
+          "before_lines": [
+            13,
+            26
+          ],
+          "lines": [
+            13,
+            26
+          ],
+          "audit": "8个固定类别定义去重槽位次序，flatten移出Option值，无目录借用。",
+          "control_points": []
+        },
+        {
+          "name": "目录存储与派生",
+          "before_lines": [
+            27,
+            33
+          ],
+          "lines": [
+            27,
+            34
+          ],
+          "audit": "BTreeMap拥有声明，u64 revision跟随目录变更；Clone/Default/PartialEq由派生生成。",
+          "control_points": []
+        },
+        {
+          "name": "空目录构造",
+          "before_lines": [
+            34,
+            39
+          ],
+          "lines": [
+            35,
+            40
+          ],
+          "audit": "impl进入new仅Default，不加载内置目录。",
+          "control_points": []
+        },
+        {
+          "name": "公共注册委派",
+          "before_lines": [
+            40,
+            47
+          ],
+          "lines": [
+            41,
+            59
+          ],
+          "audit": "移交descriptor给唯一try_register路径，返回其Result。",
+          "control_points": []
+        },
+        {
+          "name": "验证后条件变更",
+          "before_lines": [
+            48,
+            60
+          ],
+          "lines": [
+            60,
+            72
+          ],
+          "audit": "验证失败?短路；已有完全相等返回false；insert后saturating_add再true，避免无变化修订。",
+          "control_points": [
+            {
+              "before_lines": [
+                53,
+                56
+              ],
+              "lines": [
+                65,
+                68
+              ],
+              "condition": "validate ? then equality",
+              "effect": "校验错误无写入；相等Ok(false)。"
+            },
+            {
+              "before_lines": [
+                57,
+                59
+              ],
+              "lines": [
+                69,
+                71
+              ],
+              "condition": "insert then saturating_add",
+              "effect": "写入变化后推进饱和修订，Ok(true)。"
+            }
+          ]
+        },
+        {
+          "name": "读取饱和修订",
+          "before_lines": [
+            61,
+            66
+          ],
+          "lines": [
+            73,
+            79
+          ],
+          "audit": "无状态改变，复制u64；到MAX以后不再增长。",
+          "control_points": []
+        },
+        {
+          "name": "精确身份查询",
+          "before_lines": [
+            67,
+            71
+          ],
+          "lines": [
+            80,
+            85
+          ],
+          "audit": "BTreeMap get返回目录借用，未知None。",
+          "control_points": []
+        },
+        {
+          "name": "精确键存在性",
+          "before_lines": [
+            72,
+            76
+          ],
+          "lines": [
+            86,
+            90
+          ],
+          "audit": "contains_key不受host能力影响。",
+          "control_points": []
+        },
+        {
+          "name": "目录项数",
+          "before_lines": [
+            77,
+            81
+          ],
+          "lines": [
+            91,
+            95
+          ],
+          "audit": "len只反映全部注册项。",
+          "control_points": []
+        },
+        {
+          "name": "空目录判断",
+          "before_lines": [
+            82,
+            86
+          ],
+          "lines": [
+            96,
+            100
+          ],
+          "audit": "is_empty直接查询目录。",
+          "control_points": []
+        },
+        {
+          "name": "借用ID迭代",
+          "before_lines": [
+            87,
+            91
+          ],
+          "lines": [
+            101,
+            106
+          ],
+          "audit": "键序稳定，String转&str，不复制键。",
+          "control_points": []
+        },
+        {
+          "name": "类别投影",
+          "before_lines": [
+            92,
+            100
+          ],
+          "lines": [
+            107,
+            116
+          ],
+          "audit": "值序列只用于提取类别，返回固定类别序的独立值迭代。",
+          "control_points": [
+            {
+              "before_lines": [
+                93,
+                99
+              ],
+              "lines": [
+                108,
+                115
+              ],
+              "condition": "categories projection",
+              "effect": "遍历描述符值仅提取类别，移出独立类别迭代。"
+            }
+          ]
+        },
+        {
+          "name": "借用描述符迭代",
+          "before_lines": [
+            101,
+            105
+          ],
+          "lines": [
+            117,
+            122
+          ],
+          "audit": "values维持ID顺序，借用结果不离开self有效期。",
+          "control_points": []
+        },
+        {
+          "name": "类别过滤",
+          "before_lines": [
+            106,
+            115
+          ],
+          "lines": [
+            123,
+            133
+          ],
+          "audit": "closure捕获复制category，筛选仍按ID序；未克隆描述符。",
+          "control_points": [
+            {
+              "before_lines": [
+                111,
+                114
+              ],
+              "lines": [
+                129,
+                132
+              ],
+              "condition": "category filter",
+              "effect": "保留匹配类别及原ID序。"
+            }
+          ]
+        },
+        {
+          "name": "宿主能力过滤",
+          "before_lines": [
+            116,
+            127
+          ],
+          "lines": [
+            134,
+            149
+          ],
+          "audit": "容量预留len上界，contains_all检查要求集合，extend仅存&descriptor。",
+          "control_points": [
+            {
+              "before_lines": [
+                121,
+                126
+              ],
+              "lines": [
+                143,
+                148
+              ],
+              "condition": "preallocate and host contains_all filter",
+              "effect": "预留目录上界，收集借用项。"
+            }
+          ]
+        },
+        {
+          "name": "拥有式调色板委派",
+          "before_lines": [
+            128,
+            135
+          ],
+          "lines": [
+            150,
+            159
+          ],
+          "audit": "不保留host借用，由投影器复制字段并排序。",
+          "control_points": []
+        },
+        {
+          "name": "缺失能力诊断",
+          "before_lines": [
+            136,
+            146
+          ],
+          "lines": [
+            160,
+            170
+          ],
+          "audit": "先Option身份查找，再返回独立缺失集合；impl在此结束。",
+          "control_points": [
+            {
+              "before_lines": [
+                142,
+                144
+              ],
+              "lines": [
+                166,
+                168
+              ],
+              "condition": "Option map missing",
+              "effect": "未知None；已知返回自有缺失集合。"
+            }
+          ]
+        },
+        {
+          "name": "固定槽类别去重",
+          "before_lines": [
+            147,
+            157
+          ],
+          "lines": [
+            171,
+            181
+          ],
+          "audit": "每类映射一个槽，重复覆盖相同值，flatten移出拥有值。",
+          "control_points": [
+            {
+              "before_lines": [
+                151,
+                155
+              ],
+              "lines": [
+                175,
+                179
+              ],
+              "condition": "fixed Option slots loop",
+              "effect": "重复类别覆盖同槽，flatten保持固定序。"
+            }
+          ]
+        },
+        {
+          "name": "穷尽类别到槽索引",
+          "before_lines": [
+            158,
+            170
+          ],
+          "lines": [
+            182,
+            194
+          ],
+          "audit": "8分支均在数组0..7范围，没有运行期分配。",
+          "control_points": [
+            {
+              "before_lines": [
+                159,
+                168
+              ],
+              "lines": [
+                183,
+                192
+              ],
+              "condition": "exhaustive category match",
+              "effect": "8变体映射0..7，未使用通配分支。"
+            }
+          ]
+        },
+        {
+          "name": "直属测试挂载",
+          "before_lines": [
+            171,
+            173
+          ],
+          "lines": [
+            195,
+            197
+          ],
+          "audit": "cfg(test)/path保持原样，是原文guard的生产前缀边界。",
+          "control_points": []
+        }
+      ],
+      "documentation_decision": "公共注册与借用/拥有式查询的用途和边界补缺；len/contains等直白对象和充分旧说明不加。",
+      "coverage_basis": "人工逐声明/成员及有语义的进入-状态-后续分区；全源连续范围与逐插入行数映射机械复核，不将词法检查称作 AST 或执行证据。",
+      "evidence_context_ids": [
+        "showcase_registration",
+        "editor_retained_registry",
+        "template_compiler",
+        "cache_revision_consumer",
+        "v2_event_lookup",
+        "v2_role_lookup",
+        "editor_palette",
+        "host_set_contract",
+        "test_fixture"
+      ],
+      "internal_edges": [
+        {
+          "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+          "sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+          "before_lines": [
+            45,
+            45
+          ],
+          "lines": [
+            57,
+            57
+          ],
+          "caller": "register",
+          "callee": "try_register"
+        },
+        {
+          "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+          "sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+          "before_lines": [
+            53,
+            53
+          ],
+          "lines": [
+            65,
+            65
+          ],
+          "caller": "try_register",
+          "callee": "validate_component_descriptor"
+        },
+        {
+          "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+          "sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+          "before_lines": [
+            93,
+            99
+          ],
+          "lines": [
+            108,
+            115
+          ],
+          "caller": "categories",
+          "callee": "unique_component_categories"
+        },
+        {
+          "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+          "sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+          "before_lines": [
+            133,
+            133
+          ],
+          "lines": [
+            157,
+            157
+          ],
+          "caller": "palette_entries_for_host",
+          "callee": "palette_view::palette_entries_for_host"
+        },
+        {
+          "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+          "sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+          "before_lines": [
+            142,
+            144
+          ],
+          "lines": [
+            166,
+            168
+          ],
+          "caller": "missing_capabilities",
+          "callee": "descriptor / UiHostCapabilitySet::missing"
+        },
+        {
+          "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+          "sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+          "before_lines": [
+            152,
+            154
+          ],
+          "lines": [
+            176,
+            178
+          ],
+          "caller": "unique_component_categories",
+          "callee": "component_category_index"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/tests/registry.rs",
+      "before_sha256": "9732c3f2f3a18c41622f84939583e7c60cc33d99ee2644f2dbb005e6f8b88e1c",
+      "after_sha256": "0582ecceadc35a6f585d7181644b344393ef0d00e44b20069cb11008aae9107b",
+      "before_bytes": 3091,
+      "after_bytes": 3327,
+      "before_lines": 105,
+      "after_lines": 108,
+      "changed": true,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 105,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 108,
+        "bom": false
+      },
+      "inverse_sha256": "9732c3f2f3a18c41622f84939583e7c60cc33d99ee2644f2dbb005e6f8b88e1c",
+      "inverse_equal_checkout_grant": true,
+      "insertions": [
+        {
+          "before_line": 1,
+          "before_offset": 0,
+          "after_offset": 0,
+          "bytes": 236,
+          "lines": 3,
+          "sha256": "b974b85c0180759ec41047b2b0bf7f216b8b6fa8bf17a9f9d7df960484208d4d",
+          "exact_text": "//! 分类用例检查固定枚举次序、去重和空输入；源码守卫仅约束预留容量的实现形状。\n//! 忽略的容量证据使用独立向量模型统计扩容，不执行真实目录查询或证明端到端耗时。\n\n"
+        }
+      ],
+      "objects": [
+        {
+          "name": "allocation_free_categories_preserve_enum_order",
+          "before_lines": [
+            3,
+            20
+          ],
+          "lines": [
+            6,
+            23
+          ],
+          "audit": "乱序Feedback/Numeric/Visual输入，精确断言Visual/Numeric/Feedback固定类别序。",
+          "documentation_decision": "模块补测试职责，函数名和断言清楚。",
+          "members": []
+        },
+        {
+          "name": "allocation_free_categories_deduplicate_repeated_values",
+          "before_lines": [
+            22,
+            36
+          ],
+          "lines": [
+            25,
+            39
+          ],
+          "audit": "重复Input混Selection，断言每类只出现一次且类别序固定。",
+          "documentation_decision": "无需逐行注释。",
+          "members": []
+        },
+        {
+          "name": "allocation_free_categories_handle_empty_input",
+          "before_lines": [
+            38,
+            41
+          ],
+          "lines": [
+            41,
+            44
+          ],
+          "audit": "空输入next为None，不证明所有类别。",
+          "documentation_decision": "用例短小无需新增。",
+          "members": []
+        },
+        {
+          "name": "optimization_batch_20260830cy_host_descriptors_reserve_registry_bound",
+          "before_lines": [
+            43,
+            52
+          ],
+          "lines": [
+            46,
+            55
+          ],
+          "audit": "读取registry原文生产前缀，单contains只约束容量表达式存在。",
+          "documentation_decision": "模块说明静态形状边界，不注入needle。",
+          "members": []
+        },
+        {
+          "name": "optimization_batch_20260830cy_host_descriptor_capacity_evidence",
+          "before_lines": [
+            54,
+            83
+          ],
+          "lines": [
+            57,
+            86
+          ],
+          "audit": "ignored容量证据比较独立Vec模型是否预留，要求旧扩容>0/新0，非真实registry执行或时序。",
+          "documentation_decision": "新增模块说明准确限定模型。",
+          "members": []
+        },
+        {
+          "name": "BATCH_COUNT / DESCRIPTOR_COUNT / MATCHED_DESCRIPTOR_COUNT / MARKER",
+          "before_lines": [
+            57,
+            60
+          ],
+          "lines": [
+            60,
+            63
+          ],
+          "audit": "32768批、32容量上界、24入选和输出标记；仅本忽略模型使用。",
+          "documentation_decision": "固定夹具清楚，无新增。",
+          "members": []
+        },
+        {
+          "name": "descriptor_growth_events",
+          "before_lines": [
+            85,
+            105
+          ],
+          "lines": [
+            88,
+            108
+          ],
+          "audit": "每批新Vec；reserve选择初始容量，对每push前后capacity差计数。参数数值来自固定夹具；返回汇总usize。",
+          "documentation_decision": "新增模块说明模型边界，局部逻辑清楚。",
+          "members": []
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "私有类别工具导入",
+          "before_lines": [
+            1,
+            2
+          ],
+          "lines": [
+            1,
+            5
+          ],
+          "audit": "只导入父模块私有helper与类别枚举。",
+          "control_points": []
+        },
+        {
+          "name": "类别顺序断言",
+          "before_lines": [
+            3,
+            21
+          ],
+          "lines": [
+            6,
+            24
+          ],
+          "audit": "乱序输入经helper后与固定数组完全相等。",
+          "control_points": [
+            {
+              "before_lines": [
+                5,
+                19
+              ],
+              "lines": [
+                8,
+                22
+              ],
+              "condition": "enum order assertion",
+              "effect": "乱序三个类别被排序为固定枚举顺序。"
+            }
+          ]
+        },
+        {
+          "name": "重复类别消除",
+          "before_lines": [
+            22,
+            37
+          ],
+          "lines": [
+            25,
+            40
+          ],
+          "audit": "重复Input只留一项，与Selection按类别序排列。",
+          "control_points": [
+            {
+              "before_lines": [
+                24,
+                35
+              ],
+              "lines": [
+                27,
+                38
+              ],
+              "condition": "dedup assertion",
+              "effect": "重复Input仅一项。"
+            }
+          ]
+        },
+        {
+          "name": "空输入边界",
+          "before_lines": [
+            38,
+            42
+          ],
+          "lines": [
+            41,
+            45
+          ],
+          "audit": "直接断言迭代为空。",
+          "control_points": [
+            {
+              "before_lines": [
+                40,
+                40
+              ],
+              "lines": [
+                43,
+                43
+              ],
+              "condition": "empty next assertion",
+              "effect": "空输入迭代None。"
+            }
+          ]
+        },
+        {
+          "name": "原文容量守卫",
+          "before_lines": [
+            43,
+            53
+          ],
+          "lines": [
+            46,
+            56
+          ],
+          "audit": "读取registry相对路径，首测试分隔前contains容量表达式；静态匹配不执行目录查询。",
+          "control_points": [
+            {
+              "before_lines": [
+                45,
+                51
+              ],
+              "lines": [
+                48,
+                54
+              ],
+              "condition": "raw include/split/contains",
+              "effect": "只证明生产前缀出现容量表达式。"
+            }
+          ]
+        },
+        {
+          "name": "忽略证据参数",
+          "before_lines": [
+            54,
+            61
+          ],
+          "lines": [
+            57,
+            64
+          ],
+          "audit": "ignore和四常量限定独立模型的批次、上界、入选数和标记。",
+          "control_points": []
+        },
+        {
+          "name": "两模型比较与输出",
+          "before_lines": [
+            62,
+            84
+          ],
+          "lines": [
+            65,
+            87
+          ],
+          "audit": "分别reserve=false/true，检查扩容次数，输出计算结果；没有时间测量。",
+          "control_points": [
+            {
+              "before_lines": [
+                62,
+                76
+              ],
+              "lines": [
+                65,
+                79
+              ],
+              "condition": "reserve false/true models and assertions",
+              "effect": "独立模型旧扩容>0、新扩容0。"
+            }
+          ]
+        },
+        {
+          "name": "向量扩容计数模型",
+          "before_lines": [
+            85,
+            105
+          ],
+          "lines": [
+            88,
+            108
+          ],
+          "audit": "批次循环每次重建Vec；reserve两分支；逐push比较capacity，累计并返回增长次数。",
+          "control_points": [
+            {
+              "before_lines": [
+                92,
+                103
+              ],
+              "lines": [
+                95,
+                106
+              ],
+              "condition": "batch/reserve/push loops",
+              "effect": "每批重建Vec，计每次capacity变化。"
+            }
+          ]
+        }
+      ],
+      "documentation_decision": "新增模块说明，避免把独立Vec模型误称真实查询/端到端性能证明。",
+      "coverage_basis": "人工逐声明/成员及有语义的进入-状态-后续分区；全源连续范围与逐插入行数映射机械复核，不将词法检查称作 AST 或执行证据。",
+      "evidence_context_ids": [
+        "catalog_mount"
+      ],
+      "internal_edges": []
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/palette_view.rs",
+      "before_sha256": "986c6eb604ff446b23d716d6a96fd7fa2d666a216ade79f6cc1de1bf038e1d3e",
+      "after_sha256": "fe31763c86ded7218a2170d129c4ade478e949b4520d4026b0a20a6ab62b5bf4",
+      "before_bytes": 2284,
+      "after_bytes": 2910,
+      "before_lines": 58,
+      "after_lines": 66,
+      "changed": true,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 58,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 66,
+        "bom": false
+      },
+      "inverse_sha256": "986c6eb604ff446b23d716d6a96fd7fa2d666a216ade79f6cc1de1bf038e1d3e",
+      "inverse_equal_checkout_grant": true,
+      "insertions": [
+        {
+          "before_line": 11,
+          "before_offset": 493,
+          "after_offset": 493,
+          "bytes": 107,
+          "lines": 1,
+          "sha256": "d1bd057858c13d2811021c8e6d72c1acd9fb6a88fb23d76bfdfcf4619899d25f",
+          "exact_text": "/// 各字段及模板独立拥有；Serde 只读写记录形状，不调用组件目录的准入校验。\n"
+        },
+        {
+          "before_line": 18,
+          "before_offset": 740,
+          "after_offset": 847,
+          "bytes": 84,
+          "lines": 1,
+          "sha256": "fb79ad240bbdbc5dc8d63843a4c1f829b7a6e1592452acc0e79812b9124ba094",
+          "exact_text": "    /// 同类条目的编写排序键；排序还会比较展示名和组件 ID。\n"
+        },
+        {
+          "before_line": 19,
+          "before_offset": 766,
+          "after_offset": 957,
+          "bytes": 90,
+          "lines": 1,
+          "sha256": "b4d7e7d74dc12287fe720da7c7cb86171a38ab6d991dd179f0878fe064539839",
+          "exact_text": "    /// 可复用的创建模板；本记录不持有已创建节点或其交互状态。\n"
+        },
+        {
+          "before_line": 22,
+          "before_offset": 814,
+          "after_offset": 1095,
+          "bytes": 345,
+          "lines": 5,
+          "sha256": "7098813436bc5ba1f063f9e93bbc196103080bad9ac33249efc3047542b895f9",
+          "exact_text": "/// 按本次宿主能力筛选声明，再复制其调色板字段形成拥有式快照。\n///\n/// # 参数与返回\n/// `registry` 提供已注册声明，`host_capabilities` 仅用于本次过滤；两者都不被结果借用。\n/// 返回值只含具有调色板元数据的匹配项，不创建节点，也不确认实际渲染端支持。\n"
+        }
+      ],
+      "objects": [
+        {
+          "name": "UiComponentPaletteEntry",
+          "before_lines": [
+            10,
+            20
+          ],
+          "lines": [
+            10,
+            23
+          ],
+          "audit": "拥有的编写交换记录，6字段来自descriptor与palette元数据副本。Serde标准派生只反序列化字段与icon默认，不调用本模块验证器或registry注册。",
+          "documentation_decision": "补拥有寿命及Serde边界。",
+          "members": [
+            {
+              "name": "component_id",
+              "before_lines": [
+                13,
+                13
+              ],
+              "audit": "克隆descriptor.id，连接原声明身份；不存指针。",
+              "documentation_decision": "现有类型说明已经覆盖。",
+              "lines": [
+                14,
+                14
+              ],
+              "fields": []
+            },
+            {
+              "name": "display_name",
+              "before_lines": [
+                14,
+                14
+              ],
+              "audit": "克隆palette展示名，排序第三键；不从descriptor.display_name取值。",
+              "documentation_decision": "名字清楚，投影代码与排序说明足够。",
+              "lines": [
+                15,
+                15
+              ],
+              "fields": []
+            },
+            {
+              "name": "category",
+              "before_lines": [
+                15,
+                15
+              ],
+              "audit": "复制palette类别，排序第一键；类型由Interface导入。",
+              "documentation_decision": "与排序说明集中解释。",
+              "lines": [
+                16,
+                16
+              ],
+              "fields": []
+            },
+            {
+              "name": "icon",
+              "before_lines": [
+                16,
+                17
+              ],
+              "audit": "可选拥有字符串；serde(default)使缺字段为None，投影clone元数据值。",
+              "documentation_decision": "Option/default显式，不补机械说明。",
+              "lines": [
+                17,
+                18
+              ],
+              "fields": []
+            },
+            {
+              "name": "sort_key",
+              "before_lines": [
+                18,
+                18
+              ],
+              "audit": "复制palette编写排序键，为同类别内第二键，之后仍比较展示名与ID。",
+              "documentation_decision": "补字段排序边界。",
+              "lines": [
+                19,
+                20
+              ],
+              "fields": []
+            },
+            {
+              "name": "default_node",
+              "before_lines": [
+                19,
+                19
+              ],
+              "audit": "深克隆UiDefaultNodeTemplate数据；不包含已实例化节点或状态引用。",
+              "documentation_decision": "补模板与活实例分工。",
+              "lines": [
+                21,
+                22
+              ],
+              "fields": []
+            }
+          ]
+        },
+        {
+          "name": "palette_entries_for_host",
+          "before_lines": [
+            22,
+            54
+          ],
+          "lines": [
+            25,
+            62
+          ],
+          "audit": "借用目录和宿主集合，筛host全部要求、只取Some palette，克隆6字段，按category/sortkey/displayname/id排序，返回不借用两参数的Vec。",
+          "documentation_decision": "补参数与拥有返回、仅宿主过滤/不执行节点或渲染。",
+          "members": []
+        },
+        {
+          "name": "tests",
+          "before_lines": [
+            56,
+            58
+          ],
+          "lines": [
+            64,
+            66
+          ],
+          "audit": "cfg(test)直接挂载4用例含1ignored。",
+          "documentation_decision": "结构清楚，无新增。",
+          "members": []
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "投影边界与Serde/DTO依赖",
+          "before_lines": [
+            1,
+            9
+          ],
+          "lines": [
+            1,
+            9
+          ],
+          "audit": "只导入目录引用和拥有模板类型，无宿主服务或节点实例存储。",
+          "control_points": []
+        },
+        {
+          "name": "拥有交换记录及Serde默认",
+          "before_lines": [
+            10,
+            21
+          ],
+          "lines": [
+            10,
+            24
+          ],
+          "audit": "6字段均拥有/复制；icon唯一外层serde(default)，Deserialize不调用注册校验。",
+          "control_points": []
+        },
+        {
+          "name": "宿主筛选和字段复制",
+          "before_lines": [
+            22,
+            44
+          ],
+          "lines": [
+            25,
+            52
+          ],
+          "audit": "先预留registry.len上界，再按host包含声明要求过滤；filter_map跳过无palette，复制声明ID及palette5字段。",
+          "control_points": [
+            {
+              "before_lines": [
+                26,
+                32
+              ],
+              "lines": [
+                34,
+                40
+              ],
+              "condition": "reserve and host filter",
+              "effect": "目录len为容量上界，只按宿主要求筛选。"
+            },
+            {
+              "before_lines": [
+                33,
+                43
+              ],
+              "lines": [
+                41,
+                51
+              ],
+              "condition": "palette filter_map",
+              "effect": "无元数据跳过，存在时克隆字段和默认模板。"
+            }
+          ]
+        },
+        {
+          "name": "完整四键排序与返回",
+          "before_lines": [
+            45,
+            55
+          ],
+          "lines": [
+            53,
+            63
+          ],
+          "audit": "先category后sort_key/display_name/id；注册目录唯一ID使末键区分条目，unstable不依赖原同键顺序。",
+          "control_points": [
+            {
+              "before_lines": [
+                46,
+                52
+              ],
+              "lines": [
+                54,
+                60
+              ],
+              "condition": "four-key unstable comparator",
+              "effect": "category→sort_key→display_name→component_id。"
+            }
+          ]
+        },
+        {
+          "name": "直属测试挂载",
+          "before_lines": [
+            56,
+            58
+          ],
+          "lines": [
+            64,
+            66
+          ],
+          "audit": "cfg(test)/path是此实现原文守卫截断点。",
+          "control_points": []
+        }
+      ],
+      "documentation_decision": "补拥有式快照、字段模板与Serde边界，保留既有排序理由。",
+      "coverage_basis": "人工逐声明/成员及有语义的进入-状态-后续分区；全源连续范围与逐插入行数映射机械复核，不将词法检查称作 AST 或执行证据。",
+      "evidence_context_ids": [
+        "editor_palette",
+        "palette_metadata_contract",
+        "default_node_contract",
+        "host_set_contract"
+      ],
+      "internal_edges": [
+        {
+          "path": "zircon_runtime/src/ui/component/catalog/palette_view.rs",
+          "sha256": "fe31763c86ded7218a2170d129c4ade478e949b4520d4026b0a20a6ab62b5bf4",
+          "before_lines": [
+            26,
+            43
+          ],
+          "lines": [
+            34,
+            51
+          ],
+          "caller": "palette_entries_for_host",
+          "callee": "Registry::len/descriptors / HostSet::contains_all / clone metadata"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/tests/palette_view.rs",
+      "before_sha256": "25c5a12653ba5d36be95f093f9d258e94309ffe2a302f644473a531459d335e6",
+      "after_sha256": "74b1ceb28b34b2e45a6f3cb912472cc91251bf27d47fe6435dd176ac06397661",
+      "before_bytes": 5544,
+      "after_bytes": 5759,
+      "before_lines": 153,
+      "after_lines": 156,
+      "changed": true,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 153,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 156,
+        "bom": false
+      },
+      "inverse_sha256": "25c5a12653ba5d36be95f093f9d258e94309ffe2a302f644473a531459d335e6",
+      "inverse_equal_checkout_grant": true,
+      "insertions": [
+        {
+          "before_line": 1,
+          "before_offset": 0,
+          "after_offset": 0,
+          "bytes": 215,
+          "lines": 3,
+          "sha256": "0475fddc0a96e5959f869f8a1be1b1afa062b70c5c7d741a12b654fbf8712be5",
+          "exact_text": "//! 投影用例检查目录上界容量与完整四键排序，源码守卫另行约束排序实现形状。\n//! 忽略的基准显式比较固定行数据的两种排序，不覆盖节点创建或渲染成本。\n\n"
+        }
+      ],
+      "objects": [
+        {
+          "name": "PaletteSortRow",
+          "before_lines": [
+            6,
+            12
+          ],
+          "lines": [
+            9,
+            15
+          ],
+          "audit": "仅忽略排序基准使用的拥有行模型，不是生产palette DTO；Clone为各样本复制输入。",
+          "documentation_decision": "新增模块说明模型成本边界。",
+          "members": [
+            {
+              "name": "category",
+              "before_lines": [
+                8,
+                8
+              ],
+              "audit": "生成0..7的u8类别键。",
+              "documentation_decision": "模型字段清楚。",
+              "lines": [
+                11,
+                11
+              ],
+              "fields": []
+            },
+            {
+              "name": "sort_key",
+              "before_lines": [
+                9,
+                9
+              ],
+              "audit": "拥有长排序字符串，模拟对比成本。",
+              "documentation_decision": "fixture构造清楚。",
+              "lines": [
+                12,
+                12
+              ],
+              "fields": []
+            },
+            {
+              "name": "display_name",
+              "before_lines": [
+                10,
+                10
+              ],
+              "audit": "排序第三字符串键。",
+              "documentation_decision": "比较器显式清楚。",
+              "lines": [
+                13,
+                13
+              ],
+              "fields": []
+            },
+            {
+              "name": "component_id",
+              "before_lines": [
+                11,
+                11
+              ],
+              "audit": "生成唯一ID作第四键。",
+              "documentation_decision": "基准输出明确唯一ID，无新增。",
+              "lines": [
+                14,
+                14
+              ],
+              "fields": []
+            }
+          ]
+        },
+        {
+          "name": "preallocated_palette_projection_reserves_registry_upper_bound",
+          "before_lines": [
+            14,
+            22
+          ],
+          "lines": [
+            17,
+            25
+          ],
+          "audit": "实际调用投影函数，断言非空、len<=目录len、capacity==目录len；该断言只约束当前目录夹具。",
+          "documentation_decision": "模块补作用，断言清楚。",
+          "members": []
+        },
+        {
+          "name": "preallocated_palette_projection_preserves_sort_order",
+          "before_lines": [
+            24,
+            42
+          ],
+          "lines": [
+            27,
+            45
+          ],
+          "audit": "实际投影后windows2比较完整四元组，不测试所有可能元数据组合。",
+          "documentation_decision": "具体四键断言足够。",
+          "members": []
+        },
+        {
+          "name": "optimization_batch_ej_palette_projection_uses_total_key_unstable_sort",
+          "before_lines": [
+            44,
+            55
+          ],
+          "lines": [
+            47,
+            58
+          ],
+          "audit": "原文生产前缀三个contains/否定contains，约束unstable及最终键表达式；非执行排序证据。",
+          "documentation_decision": "模块补源码守卫边界，未复制needle进注释。",
+          "members": []
+        },
+        {
+          "name": "optimization_batch_ej_unstable_palette_sort_release_benchmark_evidence",
+          "before_lines": [
+            57,
+            153
+          ],
+          "lines": [
+            60,
+            156
+          ],
+          "audit": "ignored显式release基准用固定4096拥有行、17对×8次排序对比p95；未调用真实UI节点/渲染，未执行。",
+          "documentation_decision": "新增模块说明固定行模型，不改阈值。",
+          "members": []
+        },
+        {
+          "name": "SAMPLE_PAIRS / ROWS / SORTS_PER_SAMPLE",
+          "before_lines": [
+            60,
+            62
+          ],
+          "lines": [
+            63,
+            65
+          ],
+          "audit": "17样本对、4096行、每次8排序；仅忽略基准常量。",
+          "documentation_decision": "固定规模清楚。",
+          "members": []
+        },
+        {
+          "name": "compare",
+          "before_lines": [
+            64,
+            70
+          ],
+          "lines": [
+            67,
+            73
+          ],
+          "audit": "嵌套比较器使用与生产相同四键顺序，返回Ordering。",
+          "documentation_decision": "直接链清楚，无新增。",
+          "members": []
+        },
+        {
+          "name": "measure_legacy",
+          "before_lines": [
+            72,
+            82
+          ],
+          "lines": [
+            75,
+            85
+          ],
+          "audit": "先复制8组行，再计时stable sort；black_box后返回至少1ns的u128。",
+          "documentation_decision": "复制在计时段外，从原代码记录，不增注释。",
+          "members": []
+        },
+        {
+          "name": "measure_optimized",
+          "before_lines": [
+            84,
+            94
+          ],
+          "lines": [
+            87,
+            97
+          ],
+          "audit": "相同复制/计时结构，改为unstable sort作受限比较。",
+          "documentation_decision": "与对照的唯一区别显式，无新增。",
+          "members": []
+        },
+        {
+          "name": "percentile",
+          "before_lines": [
+            96,
+            101
+          ],
+          "lines": [
+            99,
+            104
+          ],
+          "audit": "复制并排序非空u128样本，以ceil百分秩取值；调用仅17项与50/95。",
+          "documentation_decision": "当前调用前提确定，无新增。",
+          "members": []
+        },
+        {
+          "name": "raw",
+          "before_lines": [
+            103,
+            109
+          ],
+          "lines": [
+            106,
+            112
+          ],
+          "audit": "将样本纳秒转换逗号串用于标记输出，不影响比较。",
+          "documentation_decision": "短辅助明显，无新增。",
+          "members": []
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "导入与基准行结构",
+          "before_lines": [
+            1,
+            13
+          ],
+          "lines": [
+            1,
+            16
+          ],
+          "audit": "行模型持有四键，Clone生成独立组；只供忽略基准使用。",
+          "control_points": []
+        },
+        {
+          "name": "目录上界容量断言",
+          "before_lines": [
+            14,
+            23
+          ],
+          "lines": [
+            17,
+            26
+          ],
+          "audit": "真实投影结果非空/len上界/capacity等于目录len，不检查内部分配历史。",
+          "control_points": [
+            {
+              "before_lines": [
+                16,
+                21
+              ],
+              "lines": [
+                19,
+                24
+              ],
+              "condition": "real projection capacity assertions",
+              "effect": "只检查当前展示目录结果容量/非空/上界。"
+            }
+          ]
+        },
+        {
+          "name": "完整四键行为断言",
+          "before_lines": [
+            24,
+            43
+          ],
+          "lines": [
+            27,
+            46
+          ],
+          "audit": "相邻窗口按category/sortkey/displayname/id非降序比较。",
+          "control_points": [
+            {
+              "before_lines": [
+                29,
+                41
+              ],
+              "lines": [
+                32,
+                44
+              ],
+              "condition": "windows(2) four-key compare",
+              "effect": "完整四键非降序。"
+            }
+          ]
+        },
+        {
+          "name": "原文排序实现守卫",
+          "before_lines": [
+            44,
+            56
+          ],
+          "lines": [
+            47,
+            59
+          ],
+          "audit": "include_str首cfg(test)前 raw文本3谓词，不剥注释、不执行排序。",
+          "control_points": [
+            {
+              "before_lines": [
+                46,
+                54
+              ],
+              "lines": [
+                49,
+                57
+              ],
+              "condition": "raw include/split/threeoperators",
+              "effect": "只约束排序实现原文形状。"
+            }
+          ]
+        },
+        {
+          "name": "忽略基准规模",
+          "before_lines": [
+            57,
+            63
+          ],
+          "lines": [
+            60,
+            66
+          ],
+          "audit": "release-only ignore和17/4096/8固定规模。",
+          "control_points": []
+        },
+        {
+          "name": "基准四键比较器",
+          "before_lines": [
+            64,
+            71
+          ],
+          "lines": [
+            67,
+            74
+          ],
+          "audit": "链式Ordering与生产键序一致，不访问目录。",
+          "control_points": []
+        },
+        {
+          "name": "stable对照测量",
+          "before_lines": [
+            72,
+            83
+          ],
+          "lines": [
+            75,
+            86
+          ],
+          "audit": "预先克隆8组，在计时内stable排序并black_box，结果最少1ns。",
+          "control_points": [
+            {
+              "before_lines": [
+                77,
+                81
+              ],
+              "lines": [
+                80,
+                84
+              ],
+              "condition": "legacy measured loop",
+              "effect": "stable排序8组后black_box并取至少1ns。"
+            }
+          ]
+        },
+        {
+          "name": "unstable测量",
+          "before_lines": [
+            84,
+            95
+          ],
+          "lines": [
+            87,
+            98
+          ],
+          "audit": "同构输入分配与计时，仅排序方法不同。",
+          "control_points": [
+            {
+              "before_lines": [
+                89,
+                93
+              ],
+              "lines": [
+                92,
+                96
+              ],
+              "condition": "optimized measured loop",
+              "effect": "unstable排序相同模型。"
+            }
+          ]
+        },
+        {
+          "name": "百分位辅助",
+          "before_lines": [
+            96,
+            102
+          ],
+          "lines": [
+            99,
+            105
+          ],
+          "audit": "复制排序样本，ceil秩并饱和减1；唯一使用输入非空。",
+          "control_points": [
+            {
+              "before_lines": [
+                97,
+                100
+              ],
+              "lines": [
+                100,
+                103
+              ],
+              "condition": "nonempty percentile selection",
+              "effect": "复制排序并选ceil秩，调用仅17样本。"
+            }
+          ]
+        },
+        {
+          "name": "样本输出序列化",
+          "before_lines": [
+            103,
+            110
+          ],
+          "lines": [
+            106,
+            113
+          ],
+          "audit": "u128转字符串join逗号，不用于持久化UI数据。",
+          "control_points": []
+        },
+        {
+          "name": "确定性长键输入",
+          "before_lines": [
+            111,
+            121
+          ],
+          "lines": [
+            114,
+            124
+          ],
+          "audit": "模数生成4096行，类别8值、长字符串与唯一component ID。",
+          "control_points": []
+        },
+        {
+          "name": "交替采样循环",
+          "before_lines": [
+            122,
+            133
+          ],
+          "lines": [
+            125,
+            136
+          ],
+          "audit": "预留17对样本，偶数legacy先、奇数optimized先。",
+          "control_points": [
+            {
+              "before_lines": [
+                124,
+                132
+              ],
+              "lines": [
+                127,
+                135
+              ],
+              "condition": "sample parity branch",
+              "effect": "交替两实现先后。"
+            }
+          ]
+        },
+        {
+          "name": "p50/p95诊断与门槛",
+          "before_lines": [
+            134,
+            153
+          ],
+          "lines": [
+            137,
+            156
+          ],
+          "audit": "输出两组原样本与分位；阈值optimized p95≤legacy90%，本任务不执行该门槛。",
+          "control_points": [
+            {
+              "before_lines": [
+                149,
+                152
+              ],
+              "lines": [
+                152,
+                155
+              ],
+              "condition": "p95 <=90% assertion",
+              "effect": "未执行的release基准门槛。"
+            }
+          ]
+        }
+      ],
+      "documentation_decision": "补模块说明投影测试与固定行排序基准边界，其余对象保持原文。",
+      "coverage_basis": "人工逐声明/成员及有语义的进入-状态-后续分区；全源连续范围与逐插入行数映射机械复核，不将词法检查称作 AST 或执行证据。",
+      "evidence_context_ids": [
+        "catalog_mount",
+        "showcase_registration"
+      ],
+      "internal_edges": []
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/component_catalog/descriptor_contracts.rs",
+      "before_sha256": "b1ce584997b24ef230c03794cfc89de27abdb59d4bc0d5d1d9ccb219e84d0cda",
+      "after_sha256": "b1ce584997b24ef230c03794cfc89de27abdb59d4bc0d5d1d9ccb219e84d0cda",
+      "before_bytes": 6779,
+      "after_bytes": 6779,
+      "before_lines": 211,
+      "after_lines": 211,
+      "changed": false,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 211,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 211,
+        "bom": false
+      },
+      "inverse_sha256": "b1ce584997b24ef230c03794cfc89de27abdb59d4bc0d5d1d9ccb219e84d0cda",
+      "inverse_equal_checkout_grant": true,
+      "insertions": [],
+      "objects": [
+        {
+          "name": "runtime_component_catalog_marks_v2_model_tiers_and_layout_roles",
+          "before_lines": [
+            5,
+            69
+          ],
+          "lines": [
+            5,
+            69
+          ],
+          "audit": "遍历展示夹具：10布局组件kind、4明确layoutrole、6editor-only及InspectorSection复合kind；未调用布局solver。",
+          "documentation_decision": "已有中文模块职责与明确断言足够。",
+          "members": []
+        },
+        {
+          "name": "runtime_component_descriptors_validate_palette_and_schema_contracts",
+          "before_lines": [
+            71,
+            129
+          ],
+          "lines": [
+            71,
+            129
+          ],
+          "audit": "4案例：合法descriptor、重复prop、default_prop缺schema、Float NaN模式默认值；不覆盖所有error变体或单边界BUG。",
+          "documentation_decision": "断言本身清楚，不添加泛称全面校验的说明。",
+          "members": []
+        },
+        {
+          "name": "runtime_component_catalog_schemas_are_normalized_and_type_consistent",
+          "before_lines": [
+            131,
+            211
+          ],
+          "lines": [
+            131,
+            211
+          ],
+          "audit": "展示目录逐descriptor调用父helper唯一schema/slot/event；lookup可达、默认值kind、双边min<=max和step>0；不等同所有输入的完整validate语义。",
+          "documentation_decision": "原模块说明和父helper事实清楚，无新增。",
+          "members": []
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "契约范围与父fixture导入",
+          "before_lines": [
+            1,
+            4
+          ],
+          "lines": [
+            1,
+            4
+          ],
+          "audit": "super::*来自明确挂载的component_catalog.rs共享导入/断言helper，不是宏生成测试。",
+          "control_points": []
+        },
+        {
+          "name": "布局组件kind集合",
+          "before_lines": [
+            5,
+            28
+          ],
+          "lines": [
+            5,
+            28
+          ],
+          "audit": "创建展示目录，10个ID逐一要求Layout kind。",
+          "control_points": [
+            {
+              "before_lines": [
+                9,
+                27
+              ],
+              "lines": [
+                9,
+                27
+              ],
+              "condition": "layout ID loop",
+              "effect": "10项只验证descriptor kind。"
+            }
+          ]
+        },
+        {
+          "name": "四种布局角色",
+          "before_lines": [
+            29,
+            45
+          ],
+          "lines": [
+            29,
+            45
+          ],
+          "audit": "分别断言Overlay/Grid/Canvas/VirtualList角色，不执行布局计算。",
+          "control_points": [
+            {
+              "before_lines": [
+                29,
+                44
+              ],
+              "lines": [
+                29,
+                44
+              ],
+              "condition": "explicit role assertions",
+              "effect": "4项布局角色元数据。"
+            }
+          ]
+        },
+        {
+          "name": "编辑器专属kind集合",
+          "before_lines": [
+            46,
+            61
+          ],
+          "lines": [
+            46,
+            61
+          ],
+          "audit": "6个ID逐一要求EditorOnly kind；不测试运行时拒绝行为。",
+          "control_points": [
+            {
+              "before_lines": [
+                46,
+                60
+              ],
+              "lines": [
+                46,
+                60
+              ],
+              "condition": "editor-only loop",
+              "effect": "6项EditorOnly kind。"
+            }
+          ]
+        },
+        {
+          "name": "复合组件kind",
+          "before_lines": [
+            62,
+            70
+          ],
+          "lines": [
+            62,
+            70
+          ],
+          "audit": "InspectorSection要求Composite。",
+          "control_points": [
+            {
+              "before_lines": [
+                62,
+                68
+              ],
+              "lines": [
+                62,
+                68
+              ],
+              "condition": "composite assertion",
+              "effect": "InspectorSection为Composite。"
+            }
+          ]
+        },
+        {
+          "name": "可接受声明夹具",
+          "before_lines": [
+            71,
+            95
+          ],
+          "lines": [
+            71,
+            95
+          ],
+          "audit": "构造text/default/host/render/template/palette/fallback组合，实际调用validate并is_ok。",
+          "control_points": [
+            {
+              "before_lines": [
+                94,
+                94
+              ],
+              "lines": [
+                94,
+                94
+              ],
+              "condition": "valid admission assertion",
+              "effect": "合法组合validate成功。"
+            }
+          ]
+        },
+        {
+          "name": "重复prop诊断",
+          "before_lines": [
+            96,
+            103
+          ],
+          "lines": [
+            96,
+            103
+          ],
+          "audit": "clone后添加同名text，matches DuplicateSchemaName且name为text。",
+          "control_points": [
+            {
+              "before_lines": [
+                99,
+                102
+              ],
+              "lines": [
+                99,
+                102
+              ],
+              "condition": "duplicate prop matches",
+              "effect": "只验证text重复诊断。"
+            }
+          ]
+        },
+        {
+          "name": "缺schema默认属性诊断",
+          "before_lines": [
+            104,
+            115
+          ],
+          "lines": [
+            104,
+            115
+          ],
+          "audit": "声明无prop却有missing默认值，matches MissingDefaultPropSchema且键身份准确。",
+          "control_points": [
+            {
+              "before_lines": [
+                111,
+                114
+              ],
+              "lines": [
+                111,
+                114
+              ],
+              "condition": "missing schema matches",
+              "effect": "只验证missing默认属性。"
+            }
+          ]
+        },
+        {
+          "name": "模式默认值NaN诊断",
+          "before_lines": [
+            116,
+            130
+          ],
+          "lines": [
+            116,
+            130
+          ],
+          "audit": "Float默认值NaN，matches NonFiniteNumber(value)；不是单min/max边界测试。",
+          "control_points": [
+            {
+              "before_lines": [
+                125,
+                128
+              ],
+              "lines": [
+                125,
+                128
+              ],
+              "condition": "NaN default matches",
+              "effect": "模式默认Float NaN返回NonFiniteNumber。"
+            }
+          ]
+        },
+        {
+          "name": "展示目录唯一性约束",
+          "before_lines": [
+            131,
+            140
+          ],
+          "lines": [
+            131,
+            140
+          ],
+          "audit": "遍历所有展示descriptor，调用父helper约束prop/state/slot/event重复。",
+          "control_points": [
+            {
+              "before_lines": [
+                135,
+                139
+              ],
+              "lines": [
+                135,
+                139
+              ],
+              "condition": "showcase descriptor loop",
+              "effect": "共享helpers逐项唯一性。"
+            }
+          ]
+        },
+        {
+          "name": "prop/state查找可达",
+          "before_lines": [
+            141,
+            158
+          ],
+          "lines": [
+            141,
+            158
+          ],
+          "audit": "逐模式按原名lookup为Some；不比较查回对象全字段。",
+          "control_points": [
+            {
+              "before_lines": [
+                141,
+                157
+              ],
+              "lines": [
+                141,
+                157
+              ],
+              "condition": "prop/state lookup loops",
+              "effect": "各自名字查找可达。"
+            }
+          ]
+        },
+        {
+          "name": "slot查找可达",
+          "before_lines": [
+            159,
+            167
+          ],
+          "lines": [
+            159,
+            167
+          ],
+          "audit": "逐槽名lookup为Some。",
+          "control_points": [
+            {
+              "before_lines": [
+                159,
+                166
+              ],
+              "lines": [
+                159,
+                166
+              ],
+              "condition": "slot lookup loop",
+              "effect": "槽名查找可达。"
+            }
+          ]
+        },
+        {
+          "name": "默认属性匹配模式种类",
+          "before_lines": [
+            168,
+            177
+          ],
+          "lines": [
+            168,
+            177
+          ],
+          "audit": "缺模式panic带身份，存在则父helper只比kind(Any例外)。",
+          "control_points": [
+            {
+              "before_lines": [
+                168,
+                176
+              ],
+              "lines": [
+                168,
+                176
+              ],
+              "condition": "default props loop",
+              "effect": "缺schema panic，kind交共享helper。"
+            }
+          ]
+        },
+        {
+          "name": "模式默认值种类",
+          "before_lines": [
+            178,
+            191
+          ],
+          "lines": [
+            178,
+            191
+          ],
+          "audit": "prop/state链中Some default_value交父helper；这里不递归检查有限性。",
+          "control_points": [
+            {
+              "before_lines": [
+                183,
+                190
+              ],
+              "lines": [
+                183,
+                190
+              ],
+              "condition": "Some schema default",
+              "effect": "仅种类匹配，非有限性全覆盖。"
+            }
+          ]
+        },
+        {
+          "name": "双边范围与步长夹具约束",
+          "before_lines": [
+            192,
+            211
+          ],
+          "lines": [
+            192,
+            211
+          ],
+          "audit": "同时Some边界仅要求min<=max，Some step仅>0；不测试无穷/单边界准入。",
+          "control_points": [
+            {
+              "before_lines": [
+                192,
+                208
+              ],
+              "lines": [
+                192,
+                208
+              ],
+              "condition": "optional range/step assertions",
+              "effect": "双边界有序、Some step>0；未覆盖单边界或无穷。"
+            }
+          ]
+        }
+      ],
+      "documentation_decision": "无新增：已有模块说明充分；记录测试真实断言边界，避免泛称覆盖全部校验。",
+      "coverage_basis": "人工逐声明/成员及有语义的进入-状态-后续分区；全源连续范围与逐插入行数映射机械复核，不将词法检查称作 AST 或执行证据。",
+      "evidence_context_ids": [
+        "test_fixture",
+        "ui_tests_mount",
+        "showcase_registration"
+      ],
+      "internal_edges": []
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs",
+      "before_sha256": "35c41d3628f99eb3eb770cf2d717f94bb4b9ee8a58377b1588b758740b6fb0fb",
+      "after_sha256": "35c41d3628f99eb3eb770cf2d717f94bb4b9ee8a58377b1588b758740b6fb0fb",
+      "before_bytes": 5573,
+      "after_bytes": 5573,
+      "before_lines": 154,
+      "after_lines": 154,
+      "changed": false,
+      "before_eol": {
+        "crlf": 0,
+        "lf_only": 154,
+        "bom": false
+      },
+      "after_eol": {
+        "crlf": 0,
+        "lf_only": 154,
+        "bom": false
+      },
+      "inverse_sha256": "35c41d3628f99eb3eb770cf2d717f94bb4b9ee8a58377b1588b758740b6fb0fb",
+      "inverse_equal_checkout_grant": true,
+      "insertions": [],
+      "objects": [
+        {
+          "name": "runtime_component_registry_filters_by_host_capabilities_and_reports_missing",
+          "before_lines": [
+            5,
+            43
+          ],
+          "lines": [
+            5,
+            43
+          ],
+          "audit": "展示目录按runtime_basic过滤，均满足要求、排TextField/WorldSpace、含Button；缺TextInput/WorldSpaceUi集合；runtime_world_space含WorldSpaceSurface。",
+          "documentation_decision": "现有模块职责与断言清楚，无新增。",
+          "members": []
+        },
+        {
+          "name": "runtime_component_registry_builds_descriptor_palette_views",
+          "before_lines": [
+            45,
+            113
+          ],
+          "lines": [
+            45,
+            113
+          ],
+          "audit": "authoring palette三键旧断言、Button默认text、VirtualList能力/fallback、Container模板布局/槽及Space无content；保留CR-W12-UI-CATALOG-0005四键缺口。",
+          "documentation_decision": "既有TODO准确指出不完整排序断言，不重复编号。",
+          "members": []
+        },
+        {
+          "name": "runtime_component_registry_revision_changes_only_for_descriptor_set_changes",
+          "before_lines": [
+            115,
+            154
+          ],
+          "lines": [
+            115,
+            154
+          ],
+          "audit": "空目录revision0，新登记true并>0，相同false且revision不动，展示名变化true且revision大于首值；不覆盖MAX饱和或失败注册状态。",
+          "documentation_decision": "已有名字和断言足够，生产revision文档补上界。",
+          "members": []
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "查询契约范围及共享导入",
+          "before_lines": [
+            1,
+            4
+          ],
+          "lines": [
+            1,
+            4
+          ],
+          "audit": "模块只用父fixture导入；作用是元数据查询，不运行UI host。",
+          "control_points": []
+        },
+        {
+          "name": "基本宿主过滤",
+          "before_lines": [
+            5,
+            27
+          ],
+          "lines": [
+            5,
+            27
+          ],
+          "audit": "要求所有结果能力包含、排两个特定ID、保留Button。",
+          "control_points": [
+            {
+              "before_lines": [
+                10,
+                26
+              ],
+              "lines": [
+                10,
+                26
+              ],
+              "condition": "runtime_basic result assertions",
+              "effect": "所有入选满足要求，排TextField/WorldSpace，含Button。"
+            }
+          ]
+        },
+        {
+          "name": "缺失能力和扩展宿主",
+          "before_lines": [
+            28,
+            43
+          ],
+          "lines": [
+            28,
+            43
+          ],
+          "audit": "known ID的缺失集合包含目标能力，world-space宿主允许对应组件。",
+          "control_points": [
+            {
+              "before_lines": [
+                28,
+                42
+              ],
+              "lines": [
+                28,
+                42
+              ],
+              "condition": "missing sets and world host",
+              "effect": "已知ID缺失集合和扩展宿主入选。"
+            }
+          ]
+        },
+        {
+          "name": "保留旧TODO及三键排序断言",
+          "before_lines": [
+            44,
+            62
+          ],
+          "lines": [
+            44,
+            62
+          ],
+          "audit": "authoring投影后只比category/sortkey/id；原TODO指出漏展示名，不能据此声称完整四键回归。",
+          "control_points": [
+            {
+              "before_lines": [
+                52,
+                62
+              ],
+              "lines": [
+                52,
+                62
+              ],
+              "condition": "legacy three-key ordering",
+              "effect": "漏展示名的原TODO保持。"
+            }
+          ]
+        },
+        {
+          "name": "Button编写模板投影",
+          "before_lines": [
+            63,
+            78
+          ],
+          "lines": [
+            63,
+            78
+          ],
+          "audit": "找到Button并检查展示名、类别、widget_type及默认text TOML值。",
+          "control_points": [
+            {
+              "before_lines": [
+                63,
+                77
+              ],
+              "lines": [
+                63,
+                77
+              ],
+              "condition": "Button projection assertions",
+              "effect": "身份、类别、widget_type、text模板值。"
+            }
+          ]
+        },
+        {
+          "name": "虚拟化声明与fallback",
+          "before_lines": [
+            79,
+            87
+          ],
+          "lines": [
+            79,
+            87
+          ],
+          "audit": "只读描述符渲染能力/RejectNode元数据，不执行fallback。",
+          "control_points": [
+            {
+              "before_lines": [
+                79,
+                86
+              ],
+              "lines": [
+                79,
+                86
+              ],
+              "condition": "VirtualList metadata",
+              "effect": "只检查render要求与RejectNode声明。"
+            }
+          ]
+        },
+        {
+          "name": "Container模板布局",
+          "before_lines": [
+            88,
+            104
+          ],
+          "lines": [
+            88,
+            104
+          ],
+          "audit": "palette项default_node layout中的container.kind为Container。",
+          "control_points": [
+            {
+              "before_lines": [
+                88,
+                104
+              ],
+              "lines": [
+                88,
+                104
+              ],
+              "condition": "Container layout metadata",
+              "effect": "默认模板容器kind。"
+            }
+          ]
+        },
+        {
+          "name": "声明槽位存在性",
+          "before_lines": [
+            105,
+            114
+          ],
+          "lines": [
+            105,
+            114
+          ],
+          "audit": "Container有content，Space无content；不是实例挂载测试。",
+          "control_points": [
+            {
+              "before_lines": [
+                105,
+                112
+              ],
+              "lines": [
+                105,
+                112
+              ],
+              "condition": "slot presence",
+              "effect": "Container有content，Space没有。"
+            }
+          ]
+        },
+        {
+          "name": "登记与相等幂等修订",
+          "before_lines": [
+            115,
+            138
+          ],
+          "lines": [
+            115,
+            138
+          ],
+          "audit": "0→首次true/正修订→完全相等false/同修订，目录拥有传入clone。",
+          "control_points": [
+            {
+              "before_lines": [
+                132,
+                137
+              ],
+              "lines": [
+                132,
+                137
+              ],
+              "condition": "new/idempotent registration",
+              "effect": "0→首次true/positive→相同false/相同revision。"
+            }
+          ]
+        },
+        {
+          "name": "描述符变化修订",
+          "before_lines": [
+            139,
+            154
+          ],
+          "lines": [
+            139,
+            154
+          ],
+          "audit": "相同ID不同展示名及palette条目替换true/修订变大；未测试饱和与失败分支。",
+          "control_points": [
+            {
+              "before_lines": [
+                152,
+                153
+              ],
+              "lines": [
+                152,
+                153
+              ],
+              "condition": "changed registration",
+              "effect": "变化true/greater，无饱和边界测试。"
+            }
+          ]
+        }
+      ],
+      "documentation_decision": "无新增：旧模块及TODO已充分限定；保留全部断言和原编号。",
+      "coverage_basis": "人工逐声明/成员及有语义的进入-状态-后续分区；全源连续范围与逐插入行数映射机械复核，不将词法检查称作 AST 或执行证据。",
+      "evidence_context_ids": [
+        "test_fixture",
+        "ui_tests_mount",
+        "showcase_registration"
+      ],
+      "internal_edges": []
+    }
+  ],
+  "context_files": [
+    {
+      "id": "component_mount",
+      "path": "zircon_runtime/src/ui/component/mod.rs",
+      "sha256": "cb9e9ae704e379b1912046dc12d178e967bed2fc325e406cf087f7cd40ce8512",
+      "spans": [
+        [
+          1,
+          17
+        ]
+      ],
+      "use": "component层挂载data_binding/descriptor/catalog并导出API。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "catalog_mount",
+      "path": "zircon_runtime/src/ui/component/catalog/mod.rs",
+      "sha256": "218af6fb7865a89aebc9fe41faaf3010afa7b7c8a17495558b001becc4b517f8",
+      "spans": [
+        [
+          1,
+          11
+        ]
+      ],
+      "use": "catalog层挂载registry/palette，工厂保持外部context。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "test_fixture",
+      "path": "zircon_runtime/src/ui/tests/component_catalog.rs",
+      "sha256": "e71d5c59bf482a8372f33eaf2573c610d05b89e6e961043ef0f72719f70076d3",
+      "spans": [
+        [
+          1,
+          145
+        ]
+      ],
+      "use": "契约测试真实挂载、共享imports、唯一性与kind helpers。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "editor_adapter",
+      "path": "zircon_editor/src/ui/runtime/component_adapter/registry.rs",
+      "sha256": "b0ee9ae8931d40c89068d9a3dd7712392d83282610bfd0ad3cb472f9b623c8f4",
+      "spans": [
+        [
+          1,
+          339
+        ]
+      ],
+      "use": "data_sources14–28实际调用工厂；apply_envelope31–46另行执行适配，证明目录与执行分离。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "ui_prelude",
+      "path": "zircon_runtime/src/ui/prelude.rs",
+      "sha256": "8fd074a1db2cc34a331e269ea075612645cb021fa376d2e60ec213b846b2a707",
+      "spans": [
+        [
+          1,
+          35
+        ]
+      ],
+      "use": "component公共API再导出。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "template_compiler",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/ui_document_compiler.rs",
+      "sha256": "8ef1c33c51334583830be8ca1c4a4918bba5f0c9c0c377b7de84eeec5164f8b8",
+      "spans": [
+        [
+          39,
+          110
+        ]
+      ],
+      "use": "Cow拥有或static借用目录，读取descriptor/revision并向binding消费者暴露同目录。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "v2_event_lookup",
+      "path": "zircon_runtime/src/ui/v2/compiler.rs",
+      "sha256": "da1a8e640961045bf7f6ba6bb884ace05f9e5ece10c7d5066de5f108e010752e",
+      "spans": [
+        [
+          144,
+          170
+        ]
+      ],
+      "use": "自定义目录或内置目录descriptor lookup，再读supports_event。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "v2_role_lookup",
+      "path": "zircon_runtime/src/ui/v2/compiler.rs",
+      "sha256": "da1a8e640961045bf7f6ba6bb884ace05f9e5ece10c7d5066de5f108e010752e",
+      "spans": [
+        [
+          335,
+          361
+        ]
+      ],
+      "use": "目录descriptor lookup并复制role。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "editor_palette",
+      "path": "zircon_editor/src/ui/asset_editor/palette/catalog.rs",
+      "sha256": "35256b915f5c49d55474d75d19a5ac76a8ceafc5f28b4b734e02ea6218ca9e45",
+      "spans": [
+        [
+          1,
+          169
+        ]
+      ],
+      "use": "构建native palette时消费owned projection，移动ID与template至编辑器条目。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "editor_retained_registry",
+      "path": "zircon_editor/src/ui/component_registry/registry.rs",
+      "sha256": "a68dfc4c03a518201c0609b9ed2d442be38cf3a3306f578df4631989d21cd72b",
+      "spans": [
+        [
+          1,
+          20
+        ]
+      ],
+      "use": "OnceLock中先clone material目录，再contains检查和register展示声明。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "ui_root",
+      "path": "zircon_runtime/src/ui/mod.rs",
+      "sha256": "c2428bd042db5c94d637bfcaf9565872b468b6b81199a4607e33440a367f1b09",
+      "spans": [
+        [
+          27,
+          35
+        ]
+      ],
+      "use": "#[path]公开component模块。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "ui_tests_mount",
+      "path": "zircon_runtime/src/ui/tests/mod.rs",
+      "sha256": "4b1e97d1aad576402e7b5d9c5a1c95c9b0fce94f4ae9ac1736a22e437424733b",
+      "spans": [
+        [
+          78,
+          87
+        ]
+      ],
+      "use": "真实挂载component_catalog.rs。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "default_node_contract",
+      "path": "zircon_runtime_interface/src/ui/component/descriptor/default_node_template.rs",
+      "sha256": "617d67131edc9a86f0d5c11e689711d6ae53b6c4b2ad045ee43071a8e4949905",
+      "spans": [
+        [
+          1,
+          75
+        ]
+      ],
+      "use": "模板is_empty仅检查widget_type与node_id_prefix，instantiate为独立后续行为。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "palette_metadata_contract",
+      "path": "zircon_runtime_interface/src/ui/component/descriptor/palette_metadata.rs",
+      "sha256": "dde0fcc11cd8929eba0cca86cf5cd953940a41183193492e23e3ae60040b2b49",
+      "spans": [
+        [
+          1,
+          39
+        ]
+      ],
+      "use": "DTO拥有display/category/icon/sort/default template；字段非目录执行器。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "host_set_contract",
+      "path": "zircon_runtime_interface/src/ui/component/descriptor/host_capability.rs",
+      "sha256": "aef48f2142dcf75911556ec69dd34d0e5820f94f26c7da08a6a270f6d99bbc53",
+      "spans": [
+        [
+          1,
+          85
+        ]
+      ],
+      "use": "contains_all/missing以BTreeSet要求集合实现；不探测真实后端。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "cache_revision_consumer",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs",
+      "sha256": "1c044ac317077f8a6c2cbb6ee20ace916a7ecb6802c136a3ce09e29c203aaf38",
+      "spans": [
+        [
+          1,
+          32
+        ]
+      ],
+      "use": "compile_cache_key_from_compiler把descriptor registry revision放入缓存key。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "component_descriptor_contract",
+      "path": "zircon_runtime_interface/src/ui/component/descriptor/component_descriptor.rs",
+      "sha256": "b3d52fc123f2c4c771122f14e250858d8893fe508642b20fb9223ad54d68e854",
+      "spans": [
+        [
+          1,
+          105
+        ]
+      ],
+      "use": "描述符为拥有字段和Serde DTO，default_props为Vec，prop/state/slot为Vec。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "prop_schema_contract",
+      "path": "zircon_runtime_interface/src/ui/component/descriptor/prop_schema.rs",
+      "sha256": "0fedc0e6ec994bbcfa092f81c2ac43f8aadb3d98fa8b66a22c50abfe358836e9",
+      "spans": [
+        [
+          1,
+          67
+        ]
+      ],
+      "use": "可选min/max/step由builder存值，不在DTO方法校验。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "showcase_registration",
+      "path": "zircon_runtime/src/ui/component/catalog/editor_showcase.rs",
+      "sha256": "b60e5be94f11c36b7453097410aa06e6b02606b9184c1643b3dd71a34ad9853f",
+      "spans": [
+        [
+          1,
+          40
+        ]
+      ],
+      "use": "进程OnceLock构建时逐descriptor调用register，shared借用和owned clone分开。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "descriptor_lookups",
+      "path": "zircon_runtime_interface/src/ui/component/descriptor/component_descriptor.rs",
+      "sha256": "b3d52fc123f2c4c771122f14e250858d8893fe508642b20fb9223ad54d68e854",
+      "spans": [
+        [
+          181,
+          205
+        ]
+      ],
+      "use": "prop/state/slot按原字符串iter.find，supports_event只做声明成员查询。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "value_kind_contract",
+      "path": "zircon_runtime_interface/src/ui/component/value.rs",
+      "sha256": "2ff118a8133ecc566b55ad427e8e375ef1a52f1bf9c99a399259ffe688eaeb98",
+      "spans": [
+        [
+          1,
+          76
+        ]
+      ],
+      "use": "UiValue拥有标量/字符串/向量/Array/Map，kind为精确match，Any是期望类别通配而非实际值。",
+      "read_basis": "实际读取给定连续片段；context-only，不计正式源覆盖。",
+      "formal_coverage": false
+    },
+    {
+      "id": "r062_data_binding_context",
+      "path": "zircon_runtime/src/ui/tests/component_catalog/data_binding.rs",
+      "sha256": "b55efd4123f742e3aad9cff6ab3707377f3f0d80c346a1a2113673c036def196",
+      "spans": [
+        [
+          6,
+          6
+        ],
+        [
+          120,
+          120
+        ]
+      ],
+      "use": "R062所有权外部测试，导入并调用工厂；排除正式覆盖。",
+      "read_basis": "本轮候选预检取得完整pin/归属；调用证据仅rg行6/120，未冒称此测试整篇审查。",
+      "formal_coverage": false
+    }
+  ],
+  "direct_call_evidence": [
+    {
+      "context_id": "showcase_registration",
+      "path": "zircon_runtime/src/ui/component/catalog/editor_showcase.rs",
+      "sha256": "b60e5be94f11c36b7453097410aa06e6b02606b9184c1643b3dd71a34ad9853f",
+      "lines": [
+        28,
+        35
+      ],
+      "target": "UiComponentDescriptorRegistry::register",
+      "purpose": "builtin registry validates each descriptor before OnceLock publication"
+    },
+    {
+      "context_id": "editor_retained_registry",
+      "path": "zircon_editor/src/ui/component_registry/registry.rs",
+      "sha256": "a68dfc4c03a518201c0609b9ed2d442be38cf3a3306f578df4631989d21cd72b",
+      "lines": [
+        5,
+        19
+      ],
+      "target": "new/contains/descriptors/register",
+      "purpose": "retained merge clones base and skips same ID before validated registration"
+    },
+    {
+      "context_id": "template_compiler",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/ui_document_compiler.rs",
+      "sha256": "8ef1c33c51334583830be8ca1c4a4918bba5f0c9c0c377b7de84eeec5164f8b8",
+      "lines": [
+        79,
+        87
+      ],
+      "target": "descriptor/revision",
+      "purpose": "compiler borrowed queries use registry identity and revision"
+    },
+    {
+      "context_id": "cache_revision_consumer",
+      "path": "zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs",
+      "sha256": "1c044ac317077f8a6c2cbb6ee20ace916a7ecb6802c136a3ce09e29c203aaf38",
+      "lines": [
+        15,
+        22
+      ],
+      "target": "UiDocumentCompiler::component_registry_revision→Registry::revision",
+      "purpose": "revision is one cache key component; saturation is implementation boundary"
+    },
+    {
+      "context_id": "v2_event_lookup",
+      "path": "zircon_runtime/src/ui/v2/compiler.rs",
+      "sha256": "da1a8e640961045bf7f6ba6bb884ace05f9e5ece10c7d5066de5f108e010752e",
+      "lines": [
+        152,
+        165
+      ],
+      "target": "Registry::descriptor→Descriptor::supports_event",
+      "purpose": "metadata event admissibility lookup"
+    },
+    {
+      "context_id": "v2_role_lookup",
+      "path": "zircon_runtime/src/ui/v2/compiler.rs",
+      "sha256": "da1a8e640961045bf7f6ba6bb884ace05f9e5ece10c7d5066de5f108e010752e",
+      "lines": [
+        344,
+        356
+      ],
+      "target": "Registry::descriptor",
+      "purpose": "metadata role snapshot"
+    },
+    {
+      "context_id": "editor_palette",
+      "path": "zircon_editor/src/ui/asset_editor/palette/catalog.rs",
+      "sha256": "35256b915f5c49d55474d75d19a5ac76a8ceafc5f28b4b734e02ea6218ca9e45",
+      "lines": [
+        19,
+        35
+      ],
+      "target": "Registry::palette_entries_for_host",
+      "purpose": "owned entry strings/template moved into native editor palette"
+    },
+    {
+      "context_id": "editor_adapter",
+      "path": "zircon_editor/src/ui/runtime/component_adapter/registry.rs",
+      "sha256": "b0ee9ae8931d40c89068d9a3dd7712392d83282610bfd0ad3cb472f9b623c8f4",
+      "lines": [
+        14,
+        28
+      ],
+      "target": "inspector_selected_entity_data_source",
+      "purpose": "returns metadata among data source choices; execution separate apply_envelope"
+    },
+    {
+      "context_id": "r062_data_binding_context",
+      "path": "zircon_runtime/src/ui/tests/component_catalog/data_binding.rs",
+      "sha256": "b55efd4123f742e3aad9cff6ab3707377f3f0d80c346a1a2113673c036def196",
+      "lines": [
+        120,
+        120
+      ],
+      "target": "inspector_selected_entity_data_source",
+      "purpose": "external R062 test only; no claim its full assertions reviewed"
+    },
+    {
+      "context_id": "test_fixture",
+      "path": "zircon_runtime/src/ui/tests/component_catalog.rs",
+      "sha256": "e71d5c59bf482a8372f33eaf2573c610d05b89e6e961043ef0f72719f70076d3",
+      "lines": [
+        72,
+        85
+      ],
+      "target": "Registry::descriptors_in_category",
+      "purpose": "helper compares category ID set; this exact helper range read in full parent"
+    },
+    {
+      "context_id": "host_set_contract",
+      "path": "zircon_runtime_interface/src/ui/component/descriptor/host_capability.rs",
+      "sha256": "aef48f2142dcf75911556ec69dd34d0e5820f94f26c7da08a6a270f6d99bbc53",
+      "lines": [
+        72,
+        84
+      ],
+      "target": "UiHostCapabilitySet::contains_all/missing",
+      "purpose": "set membership and set difference; registry filters do not validate backend"
+    },
+    {
+      "context_id": "default_node_contract",
+      "path": "zircon_runtime_interface/src/ui/component/descriptor/default_node_template.rs",
+      "sha256": "617d67131edc9a86f0d5c11e689711d6ae53b6c4b2ad045ee43071a8e4949905",
+      "lines": [
+        63,
+        65
+      ],
+      "target": "UiDefaultNodeTemplate::is_empty",
+      "purpose": "palette validation only finite template emptiness predicate"
+    }
+  ],
+  "internal_call_evidence": [
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+      "sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+      "before_lines": [
+        45,
+        45
+      ],
+      "lines": [
+        57,
+        57
+      ],
+      "caller": "register",
+      "callee": "try_register"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+      "sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+      "before_lines": [
+        53,
+        53
+      ],
+      "lines": [
+        65,
+        65
+      ],
+      "caller": "try_register",
+      "callee": "validate_component_descriptor"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+      "sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+      "before_lines": [
+        93,
+        99
+      ],
+      "lines": [
+        108,
+        115
+      ],
+      "caller": "categories",
+      "callee": "unique_component_categories"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+      "sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+      "before_lines": [
+        133,
+        133
+      ],
+      "lines": [
+        157,
+        157
+      ],
+      "caller": "palette_entries_for_host",
+      "callee": "palette_view::palette_entries_for_host"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+      "sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+      "before_lines": [
+        142,
+        144
+      ],
+      "lines": [
+        166,
+        168
+      ],
+      "caller": "missing_capabilities",
+      "callee": "descriptor / UiHostCapabilitySet::missing"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+      "sha256": "6a42e51f45a908a6939022a8e6be4c446a916c31fbc5049bba97a6b9d6d050b8",
+      "before_lines": [
+        152,
+        154
+      ],
+      "lines": [
+        176,
+        178
+      ],
+      "caller": "unique_component_categories",
+      "callee": "component_category_index"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+      "sha256": "e187b999eba97c141f943bbcf8e5cb14dfe50ab6edcbe6170880ac516086221a",
+      "before_lines": [
+        78,
+        84
+      ],
+      "lines": [
+        92,
+        98
+      ],
+      "caller": "validate_component_descriptor",
+      "callee": "schema_names(prop/state)→slot_names→schema_defaults→default_props→palette→capabilities"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+      "sha256": "e187b999eba97c141f943bbcf8e5cb14dfe50ab6edcbe6170880ac516086221a",
+      "before_lines": [
+        141,
+        148
+      ],
+      "lines": [
+        155,
+        162
+      ],
+      "caller": "validate_schema_defaults",
+      "callee": "validate_value_kind / validate_finite_value"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+      "sha256": "e187b999eba97c141f943bbcf8e5cb14dfe50ab6edcbe6170880ac516086221a",
+      "before_lines": [
+        176,
+        184
+      ],
+      "lines": [
+        190,
+        198
+      ],
+      "caller": "validate_default_props",
+      "callee": "Descriptor::prop / validate_value_kind / validate_finite_value"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+      "sha256": "e187b999eba97c141f943bbcf8e5cb14dfe50ab6edcbe6170880ac516086221a",
+      "before_lines": [
+        194,
+        211
+      ],
+      "lines": [
+        209,
+        226
+      ],
+      "caller": "validate_finite_value",
+      "callee": "validate_finite_number / recursive validate_finite_value"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+      "sha256": "e187b999eba97c141f943bbcf8e5cb14dfe50ab6edcbe6170880ac516086221a",
+      "before_lines": [
+        239,
+        245
+      ],
+      "lines": [
+        255,
+        261
+      ],
+      "caller": "validate_palette",
+      "callee": "DefaultNodeTemplate::is_empty / Descriptor::slot_schema"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/palette_view.rs",
+      "sha256": "fe31763c86ded7218a2170d129c4ade478e949b4520d4026b0a20a6ab62b5bf4",
+      "before_lines": [
+        26,
+        43
+      ],
+      "lines": [
+        34,
+        51
+      ],
+      "caller": "palette_entries_for_host",
+      "callee": "Registry::len/descriptors / HostSet::contains_all / clone metadata"
+    }
+  ],
+  "test_contracts": [
+    {
+      "path": "zircon_runtime/src/ui/component/descriptor/validation/tests/hash_membership.rs",
+      "sha256": "dcfb764e19ca7ca7a75dc5c3914d8e18ec92abc4a19b829079dc3c05e3ba8b42",
+      "name": "optimization_batch_20260826ag_runtime75_hash_validation_preserves_first_duplicate_errors",
+      "before_attribute_line": 60,
+      "attribute_line": 60,
+      "before_declaration_line": 61,
+      "declaration_line": 61,
+      "lines": [
+        60,
+        102
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "三组 fixture 分别断言 prop、option、slot 首次重复身份；不验证全部错误优先级排列。",
+      "proof_boundary": "仅给定fixture/断言的源码合同；未运行、不推广为所有输入覆盖。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/descriptor/validation/tests/hash_membership.rs",
+      "sha256": "dcfb764e19ca7ca7a75dc5c3914d8e18ec92abc4a19b829079dc3c05e3ba8b42",
+      "name": "optimization_batch_20260826ag_runtime75_descriptor_validation_uses_borrowed_hash_membership",
+      "before_attribute_line": 104,
+      "attribute_line": 104,
+      "before_declaration_line": 105,
+      "declaration_line": 105,
+      "lines": [
+        104,
+        115
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "include_str 读取 validation，首 cfg(test) 截断后6项原文算子；只证明实现形状。",
+      "proof_boundary": "仅源码原文形状契约；本任务用静态等值计算，不运行Rust测试。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/descriptor/validation/tests/hash_membership.rs",
+      "sha256": "dcfb764e19ca7ca7a75dc5c3914d8e18ec92abc4a19b829079dc3c05e3ba8b42",
+      "name": "optimization_batch_20260826ag_runtime75_descriptor_hash_validation_performance_evidence",
+      "before_attribute_line": 117,
+      "attribute_line": 117,
+      "before_declaration_line": 119,
+      "declaration_line": 119,
+      "lines": [
+        117,
+        170
+      ],
+      "ignored": true,
+      "executed": false,
+      "checks": "ignored release evidence先验证两模型接受固定输入，17轮交替时序，输出p95并要求hash≤旧模型60%；未执行。",
+      "proof_boundary": "仅审读忽略基准/模型代码及阈值；未运行、不构成性能通过。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/tests/registry.rs",
+      "sha256": "0582ecceadc35a6f585d7181644b344393ef0d00e44b20069cb11008aae9107b",
+      "name": "allocation_free_categories_preserve_enum_order",
+      "before_attribute_line": 3,
+      "attribute_line": 6,
+      "before_declaration_line": 4,
+      "declaration_line": 7,
+      "lines": [
+        6,
+        23
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "乱序Feedback/Numeric/Visual输入，精确断言Visual/Numeric/Feedback固定类别序。",
+      "proof_boundary": "仅给定fixture/断言的源码合同；未运行、不推广为所有输入覆盖。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/tests/registry.rs",
+      "sha256": "0582ecceadc35a6f585d7181644b344393ef0d00e44b20069cb11008aae9107b",
+      "name": "allocation_free_categories_deduplicate_repeated_values",
+      "before_attribute_line": 22,
+      "attribute_line": 25,
+      "before_declaration_line": 23,
+      "declaration_line": 26,
+      "lines": [
+        25,
+        39
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "重复Input混Selection，断言每类只出现一次且类别序固定。",
+      "proof_boundary": "仅给定fixture/断言的源码合同；未运行、不推广为所有输入覆盖。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/tests/registry.rs",
+      "sha256": "0582ecceadc35a6f585d7181644b344393ef0d00e44b20069cb11008aae9107b",
+      "name": "allocation_free_categories_handle_empty_input",
+      "before_attribute_line": 38,
+      "attribute_line": 41,
+      "before_declaration_line": 39,
+      "declaration_line": 42,
+      "lines": [
+        41,
+        44
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "空输入next为None，不证明所有类别。",
+      "proof_boundary": "仅给定fixture/断言的源码合同；未运行、不推广为所有输入覆盖。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/tests/registry.rs",
+      "sha256": "0582ecceadc35a6f585d7181644b344393ef0d00e44b20069cb11008aae9107b",
+      "name": "optimization_batch_20260830cy_host_descriptors_reserve_registry_bound",
+      "before_attribute_line": 43,
+      "attribute_line": 46,
+      "before_declaration_line": 44,
+      "declaration_line": 47,
+      "lines": [
+        46,
+        55
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "读取registry原文生产前缀，单contains只约束容量表达式存在。",
+      "proof_boundary": "仅源码原文形状契约；本任务用静态等值计算，不运行Rust测试。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/tests/registry.rs",
+      "sha256": "0582ecceadc35a6f585d7181644b344393ef0d00e44b20069cb11008aae9107b",
+      "name": "optimization_batch_20260830cy_host_descriptor_capacity_evidence",
+      "before_attribute_line": 54,
+      "attribute_line": 57,
+      "before_declaration_line": 56,
+      "declaration_line": 59,
+      "lines": [
+        57,
+        86
+      ],
+      "ignored": true,
+      "executed": false,
+      "checks": "ignored容量证据比较独立Vec模型是否预留，要求旧扩容>0/新0，非真实registry执行或时序。",
+      "proof_boundary": "仅审读忽略基准/模型代码及阈值；未运行、不构成性能通过。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/tests/palette_view.rs",
+      "sha256": "74b1ceb28b34b2e45a6f3cb912472cc91251bf27d47fe6435dd176ac06397661",
+      "name": "preallocated_palette_projection_reserves_registry_upper_bound",
+      "before_attribute_line": 14,
+      "attribute_line": 17,
+      "before_declaration_line": 15,
+      "declaration_line": 18,
+      "lines": [
+        17,
+        25
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "实际调用投影函数，断言非空、len<=目录len、capacity==目录len；该断言只约束当前目录夹具。",
+      "proof_boundary": "仅给定fixture/断言的源码合同；未运行、不推广为所有输入覆盖。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/tests/palette_view.rs",
+      "sha256": "74b1ceb28b34b2e45a6f3cb912472cc91251bf27d47fe6435dd176ac06397661",
+      "name": "preallocated_palette_projection_preserves_sort_order",
+      "before_attribute_line": 24,
+      "attribute_line": 27,
+      "before_declaration_line": 25,
+      "declaration_line": 28,
+      "lines": [
+        27,
+        45
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "实际投影后windows2比较完整四元组，不测试所有可能元数据组合。",
+      "proof_boundary": "仅给定fixture/断言的源码合同；未运行、不推广为所有输入覆盖。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/tests/palette_view.rs",
+      "sha256": "74b1ceb28b34b2e45a6f3cb912472cc91251bf27d47fe6435dd176ac06397661",
+      "name": "optimization_batch_ej_palette_projection_uses_total_key_unstable_sort",
+      "before_attribute_line": 44,
+      "attribute_line": 47,
+      "before_declaration_line": 45,
+      "declaration_line": 48,
+      "lines": [
+        47,
+        58
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "原文生产前缀三个contains/否定contains，约束unstable及最终键表达式；非执行排序证据。",
+      "proof_boundary": "仅源码原文形状契约；本任务用静态等值计算，不运行Rust测试。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/component/catalog/tests/palette_view.rs",
+      "sha256": "74b1ceb28b34b2e45a6f3cb912472cc91251bf27d47fe6435dd176ac06397661",
+      "name": "optimization_batch_ej_unstable_palette_sort_release_benchmark_evidence",
+      "before_attribute_line": 57,
+      "attribute_line": 60,
+      "before_declaration_line": 59,
+      "declaration_line": 62,
+      "lines": [
+        60,
+        156
+      ],
+      "ignored": true,
+      "executed": false,
+      "checks": "ignored显式release基准用固定4096拥有行、17对×8次排序对比p95；未调用真实UI节点/渲染，未执行。",
+      "proof_boundary": "仅审读忽略基准/模型代码及阈值；未运行、不构成性能通过。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/component_catalog/descriptor_contracts.rs",
+      "sha256": "b1ce584997b24ef230c03794cfc89de27abdb59d4bc0d5d1d9ccb219e84d0cda",
+      "name": "runtime_component_catalog_marks_v2_model_tiers_and_layout_roles",
+      "before_attribute_line": 5,
+      "attribute_line": 5,
+      "before_declaration_line": 6,
+      "declaration_line": 6,
+      "lines": [
+        5,
+        69
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "遍历展示夹具：10布局组件kind、4明确layoutrole、6editor-only及InspectorSection复合kind；未调用布局solver。",
+      "proof_boundary": "仅给定fixture/断言的源码合同；未运行、不推广为所有输入覆盖。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/component_catalog/descriptor_contracts.rs",
+      "sha256": "b1ce584997b24ef230c03794cfc89de27abdb59d4bc0d5d1d9ccb219e84d0cda",
+      "name": "runtime_component_descriptors_validate_palette_and_schema_contracts",
+      "before_attribute_line": 71,
+      "attribute_line": 71,
+      "before_declaration_line": 72,
+      "declaration_line": 72,
+      "lines": [
+        71,
+        129
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "4案例：合法descriptor、重复prop、default_prop缺schema、Float NaN模式默认值；不覆盖所有error变体或单边界BUG。",
+      "proof_boundary": "仅给定fixture/断言的源码合同；未运行、不推广为所有输入覆盖。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/component_catalog/descriptor_contracts.rs",
+      "sha256": "b1ce584997b24ef230c03794cfc89de27abdb59d4bc0d5d1d9ccb219e84d0cda",
+      "name": "runtime_component_catalog_schemas_are_normalized_and_type_consistent",
+      "before_attribute_line": 131,
+      "attribute_line": 131,
+      "before_declaration_line": 132,
+      "declaration_line": 132,
+      "lines": [
+        131,
+        211
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "展示目录逐descriptor调用父helper唯一schema/slot/event；lookup可达、默认值kind、双边min<=max和step>0；不等同所有输入的完整validate语义。",
+      "proof_boundary": "仅给定fixture/断言的源码合同；未运行、不推广为所有输入覆盖。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs",
+      "sha256": "35c41d3628f99eb3eb770cf2d717f94bb4b9ee8a58377b1588b758740b6fb0fb",
+      "name": "runtime_component_registry_filters_by_host_capabilities_and_reports_missing",
+      "before_attribute_line": 5,
+      "attribute_line": 5,
+      "before_declaration_line": 6,
+      "declaration_line": 6,
+      "lines": [
+        5,
+        43
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "展示目录按runtime_basic过滤，均满足要求、排TextField/WorldSpace、含Button；缺TextInput/WorldSpaceUi集合；runtime_world_space含WorldSpaceSurface。",
+      "proof_boundary": "仅给定fixture/断言的源码合同；未运行、不推广为所有输入覆盖。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs",
+      "sha256": "35c41d3628f99eb3eb770cf2d717f94bb4b9ee8a58377b1588b758740b6fb0fb",
+      "name": "runtime_component_registry_builds_descriptor_palette_views",
+      "before_attribute_line": 45,
+      "attribute_line": 45,
+      "before_declaration_line": 48,
+      "declaration_line": 48,
+      "lines": [
+        45,
+        113
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "authoring palette三键旧断言、Button默认text、VirtualList能力/fallback、Container模板布局/槽及Space无content；保留CR-W12-UI-CATALOG-0005四键缺口。",
+      "proof_boundary": "仅给定fixture/断言的源码合同；未运行、不推广为所有输入覆盖。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs",
+      "sha256": "35c41d3628f99eb3eb770cf2d717f94bb4b9ee8a58377b1588b758740b6fb0fb",
+      "name": "runtime_component_registry_revision_changes_only_for_descriptor_set_changes",
+      "before_attribute_line": 115,
+      "attribute_line": 115,
+      "before_declaration_line": 116,
+      "declaration_line": 116,
+      "lines": [
+        115,
+        154
+      ],
+      "ignored": false,
+      "executed": false,
+      "checks": "空目录revision0，新登记true并>0，相同false且revision不动，展示名变化true且revision大于首值；不覆盖MAX饱和或失败注册状态。",
+      "proof_boundary": "仅给定fixture/断言的源码合同；未运行、不推广为所有输入覆盖。"
+    }
+  ],
+  "native_receipts": [
+    {
+      "operation": "R076_preflight",
+      "outer_cell": 21,
+      "initial_chunk": "14a15b",
+      "native_session": 71780,
+      "pid": 30372,
+      "terminal_chunk": "11e1f5",
+      "exit_code": 0,
+      "state": "terminal-0",
+      "original_command_retained_in_session_store": true
+    },
+    {
+      "operation": "R076_context_locator",
+      "outer_cell": 27,
+      "initial_chunk": "abe48f",
+      "native_session": 67357,
+      "pid": 32248,
+      "terminal_chunk": "47bd6c",
+      "exit_code": 0,
+      "state": "terminal-0",
+      "original_command_retained_in_session_store": true
+    },
+    {
+      "operation": "R076_contract_context",
+      "outer_cell": 29,
+      "initial_chunk": "17d82a",
+      "native_session": null,
+      "pid": 34356,
+      "terminal_chunk": "17d82a",
+      "exit_code": 0,
+      "state": "terminal-0",
+      "original_command_retained_in_session_store": true
+    },
+    {
+      "operation": "R076_guidance",
+      "outer_cell": 31,
+      "initial_chunk": "517c9a",
+      "native_session": null,
+      "pid": null,
+      "terminal_chunk": "517c9a",
+      "exit_code": 0,
+      "state": "terminal-0",
+      "original_command_retained_in_session_store": true
+    },
+    {
+      "operation": "R076_artifact_guidance",
+      "outer_cell": 32,
+      "initial_chunk": "d865ba",
+      "native_session": null,
+      "pid": null,
+      "terminal_chunk": "d865ba",
+      "exit_code": 0,
+      "state": "terminal-0",
+      "original_command_retained_in_session_store": true
+    },
+    {
+      "operation": "R076_sourcewriter",
+      "outer_cell": 33,
+      "initial_chunk": "55e99e",
+      "native_session": 52640,
+      "pid": 30968,
+      "terminal_chunk": "2eab44",
+      "exit_code": 0,
+      "state": "terminal-0",
+      "original_command_retained_in_session_store": true
+    },
+    {
+      "operation": "R076_check",
+      "outer_cell": 35,
+      "initial_chunk": "efe297",
+      "native_session": 8975,
+      "pid": 34772,
+      "terminal_chunk": "5354e3",
+      "exit_code": 0,
+      "state": "terminal-0",
+      "original_command_retained_in_session_store": true
+    },
+    {
+      "operation": "R076_context_final",
+      "outer_cell": 41,
+      "initial_chunk": "79c3a2",
+      "native_session": null,
+      "pid": 10288,
+      "terminal_chunk": "79c3a2",
+      "exit_code": 0,
+      "state": "terminal-0",
+      "original_command_retained_in_session_store": true
+    },
+    {
+      "operation": "R076_command_identity",
+      "outer_cell": 45,
+      "initial_chunk": "c9e954",
+      "native_session": null,
+      "pid": 31916,
+      "terminal_chunk": "c9e954",
+      "exit_code": 0,
+      "state": "terminal-0",
+      "original_command_retained_in_session_store": true
+    }
+  ],
+  "trait_macro_registration_ffi": {
+    "traits": [
+      {
+        "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+        "before_lines": [
+          12,
+          12
+        ],
+        "generated": "Clone, Debug, thiserror::Error (Display/Error), PartialEq; original error attributes unchanged."
+      },
+      {
+        "path": "zircon_runtime/src/ui/component/catalog/registry.rs",
+        "before_lines": [
+          28,
+          28
+        ],
+        "generated": "Clone, Debug, Default, PartialEq; no handwritten trait impl in owned source."
+      },
+      {
+        "path": "zircon_runtime/src/ui/component/catalog/palette_view.rs",
+        "before_lines": [
+          11,
+          11
+        ],
+        "generated": "Clone, Debug, PartialEq, serde::Serialize/Deserialize; outer icon alone has serde(default)."
+      },
+      {
+        "path": "zircon_runtime/src/ui/component/catalog/tests/palette_view.rs",
+        "before_lines": [
+          6,
+          6
+        ],
+        "generated": "Clone for benchmark-only PaletteSortRow."
+      }
+    ],
+    "macros": "Uses standard test/assert/format/println and serde/thiserror derives. No locally defined proc-macro or macro_rules! in exact owned source; derive-generated behavior is not denied.",
+    "registration": "register/try_register mutate an ordinary owned Rust descriptor data catalog after validation. OnceLock factories and Editor retained merge are pinned context, not plugin/FFI or dynamic callback registration.",
+    "dynamic_and_ffi_boundary": "Exact11 source search and manual review found no unsafe/extern ABI, runtime class/VM registration or function-pointer dispatch. Public reexports make Rust contracts reachable. No claim that entire engine lacks such entrances.",
+    "caller_search_boundary": "rg UiComponentDescriptorRegistry in Runtime template/v2 and Editor source located73 lines; first65 displayed,8 omitted, not treated as complete call resolution. Actual selected callers subsequently read/pinned in context_files. For component_ids/is_empty and any unlisted getter no additional caller is asserted; lexical absence does not prove unused API.",
+    "receipts": [
+      "R076_context_locator",
+      "UI_next_candidate_context1",
+      "UI_next_candidate_context2"
+    ]
+  },
+  "source_guards": {
+    "method": "For these ASCII operands only, byte count over valid original UTF-8 LF bytes reproduces Rust raw str contains/matches nonoverlapping literal operations. Compare actual before/current production prefixes; no comment stripping or Rust test execution.",
+    "owners": [
+      {
+        "test_path": "zircon_runtime/src/ui/component/descriptor/validation/tests/hash_membership.rs",
+        "sha256": "dcfb764e19ca7ca7a75dc5c3914d8e18ec92abc4a19b829079dc3c05e3ba8b42",
+        "before_lines": [
+          104,
+          115
+        ],
+        "lines": [
+          104,
+          115
+        ],
+        "input": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+        "guards": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "pipeline": "include_str!(\"../../validation.rs\") → source.split(\"#[cfg(test)]\").next().unwrap() → contains/matches.count/!contains"
+      },
+      {
+        "test_path": "zircon_runtime/src/ui/component/catalog/tests/registry.rs",
+        "sha256": "0582ecceadc35a6f585d7181644b344393ef0d00e44b20069cb11008aae9107b",
+        "before_lines": [
+          43,
+          52
+        ],
+        "lines": [
+          46,
+          55
+        ],
+        "input": "zircon_runtime/src/ui/component/catalog/registry.rs",
+        "guards": [
+          6
+        ],
+        "pipeline": "include_str!(\"../registry.rs\") → split(\"#[cfg(test)]\").next().expect(...) → contains"
+      },
+      {
+        "test_path": "zircon_runtime/src/ui/component/catalog/tests/palette_view.rs",
+        "sha256": "74b1ceb28b34b2e45a6f3cb912472cc91251bf27d47fe6435dd176ac06397661",
+        "before_lines": [
+          44,
+          55
+        ],
+        "lines": [
+          47,
+          58
+        ],
+        "input": "zircon_runtime/src/ui/component/catalog/palette_view.rs",
+        "guards": [
+          7,
+          8,
+          9
+        ],
+        "pipeline": "include_str!(\"../palette_view.rs\") → split(\"#[cfg(test)]\").next().expect(...) → contains/!contains"
+      }
+    ],
+    "predicates": [
+      {
+        "input": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+        "operator": "contains",
+        "needle": "use std::collections::HashSet;",
+        "expected": true,
+        "before_count": 1,
+        "after_count": 1,
+        "before_result": true,
+        "after_result": true,
+        "new_comment_contribution": 0
+      },
+      {
+        "input": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+        "operator": "count",
+        "needle": "HashSet::with_capacity",
+        "expected": 3,
+        "before_count": 3,
+        "after_count": 3,
+        "before_result": 3,
+        "after_result": 3,
+        "new_comment_contribution": 0
+      },
+      {
+        "input": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+        "operator": "contains",
+        "needle": "names.insert(schema.name.as_str())",
+        "expected": true,
+        "before_count": 1,
+        "after_count": 1,
+        "before_result": true,
+        "after_result": true,
+        "new_comment_contribution": 0
+      },
+      {
+        "input": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+        "operator": "contains",
+        "needle": "option_ids.insert(option.id.as_str())",
+        "expected": true,
+        "before_count": 1,
+        "after_count": 1,
+        "before_result": true,
+        "after_result": true,
+        "new_comment_contribution": 0
+      },
+      {
+        "input": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+        "operator": "contains",
+        "needle": "names.insert(slot.name.as_str())",
+        "expected": true,
+        "before_count": 1,
+        "after_count": 1,
+        "before_result": true,
+        "after_result": true,
+        "new_comment_contribution": 0
+      },
+      {
+        "input": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+        "operator": "not_contains",
+        "needle": "BTreeSet",
+        "expected": true,
+        "before_count": 0,
+        "after_count": 0,
+        "before_result": true,
+        "after_result": true,
+        "new_comment_contribution": 0
+      },
+      {
+        "input": "zircon_runtime/src/ui/component/catalog/registry.rs",
+        "operator": "contains",
+        "needle": "Vec::with_capacity(self.descriptors.len())",
+        "expected": true,
+        "before_count": 1,
+        "after_count": 1,
+        "before_result": true,
+        "after_result": true,
+        "new_comment_contribution": 0
+      },
+      {
+        "input": "zircon_runtime/src/ui/component/catalog/palette_view.rs",
+        "operator": "contains",
+        "needle": "entries.sort_unstable_by(",
+        "expected": true,
+        "before_count": 1,
+        "after_count": 1,
+        "before_result": true,
+        "after_result": true,
+        "new_comment_contribution": 0
+      },
+      {
+        "input": "zircon_runtime/src/ui/component/catalog/palette_view.rs",
+        "operator": "not_contains",
+        "needle": "entries.sort_by(",
+        "expected": true,
+        "before_count": 0,
+        "after_count": 0,
+        "before_result": true,
+        "after_result": true,
+        "new_comment_contribution": 0
+      },
+      {
+        "input": "zircon_runtime/src/ui/component/catalog/palette_view.rs",
+        "operator": "contains",
+        "needle": "left.component_id.cmp(&right.component_id)",
+        "expected": true,
+        "before_count": 1,
+        "after_count": 1,
+        "before_result": true,
+        "after_result": true,
+        "new_comment_contribution": 0
+      }
+    ],
+    "all_new_comment_contributions_zero": true,
+    "full_pipeline": "Each include_str relative input is checked-in owned source. First raw cfg(test) split next is Some; unwrap/expect therefore yields the prefix, which includes comments. Branch/count predicates retain original operands unchanged."
+  },
+  "issues": [
+    {
+      "id": "CR-UI-COMP-0004",
+      "status": "preexisting",
+      "kind": "BUG",
+      "path": "zircon_runtime/src/ui/component/descriptor/validation.rs",
+      "before_lines": [
+        150,
+        151
+      ],
+      "lines": [
+        164,
+        165
+      ],
+      "source_label_preserved": true,
+      "evidence": "原BUG指出双Some分支未校验单min/max；本批仅复核实际分支152–159和DTO可选字段，不执行其下游panic或关闭既有问题。",
+      "next_step": "由原问题owner验证单边界回归与消费端路径；本批不修行为。"
+    },
+    {
+      "id": "CR-W12-UI-CATALOG-0005",
+      "status": "preexisting",
+      "kind": "TODO",
+      "path": "zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs",
+      "before_lines": [
+        46,
+        47
+      ],
+      "lines": [
+        46,
+        47
+      ],
+      "source_label_preserved": true,
+      "evidence": "原测试52–62比较category/sort_key/component_id三键；生产palette45–52比较四键，在ID前含display_name。直属palette测试24–42已比较四键，但本旧fixture缺少显示名与ID反序输入。",
+      "next_step": "按原TODO补同类别同排序键但展示名/ID反序fixture，核对完整次序；本批不改断言。"
+    }
+  ],
+  "reserved_unused_issue_ids": [
+    "CR-ZCA-R076-0001"
+  ],
+  "validation": {
+    "source_writer_command_identity": {
+      "sha256_utf8": "f98433d1f8b0f66065fca5bc234ad63a896154e0c79c4e4bb0fd915709ac90c9",
+      "characters": 8796,
+      "utf8_bytes": 10914
+    },
+    "source_check_results": [
+      {
+        "argv": [
+          "rustfmt",
+          "--check",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true",
+          "zircon_runtime/src/ui/component/data_binding/mod.rs",
+          "zircon_runtime/src/ui/component/data_binding/data_source.rs",
+          "zircon_runtime/src/ui/component/descriptor/mod.rs",
+          "zircon_runtime/src/ui/component/descriptor/validation.rs",
+          "zircon_runtime/src/ui/component/descriptor/validation/tests/hash_membership.rs",
+          "zircon_runtime/src/ui/component/catalog/registry.rs",
+          "zircon_runtime/src/ui/component/catalog/tests/registry.rs",
+          "zircon_runtime/src/ui/component/catalog/palette_view.rs",
+          "zircon_runtime/src/ui/component/catalog/tests/palette_view.rs",
+          "zircon_runtime/src/ui/tests/component_catalog/descriptor_contracts.rs",
+          "zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "diff",
+          "--check",
+          "--",
+          "zircon_runtime/src/ui/component/data_binding/mod.rs",
+          "zircon_runtime/src/ui/component/data_binding/data_source.rs",
+          "zircon_runtime/src/ui/component/descriptor/mod.rs",
+          "zircon_runtime/src/ui/component/descriptor/validation.rs",
+          "zircon_runtime/src/ui/component/descriptor/validation/tests/hash_membership.rs",
+          "zircon_runtime/src/ui/component/catalog/registry.rs",
+          "zircon_runtime/src/ui/component/catalog/tests/registry.rs",
+          "zircon_runtime/src/ui/component/catalog/palette_view.rs",
+          "zircon_runtime/src/ui/component/catalog/tests/palette_view.rs",
+          "zircon_runtime/src/ui/tests/component_catalog/descriptor_contracts.rs",
+          "zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/ui/component/catalog/palette_view.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/component/catalog/registry.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/component/catalog/tests/palette_view.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/component/catalog/tests/registry.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/component/descriptor/validation.rs.\nThe file will have its original line endings in your working directory\n"
+      },
+      {
+        "argv": [
+          "git",
+          "diff",
+          "--numstat",
+          "--",
+          "zircon_runtime/src/ui/component/data_binding/mod.rs",
+          "zircon_runtime/src/ui/component/data_binding/data_source.rs",
+          "zircon_runtime/src/ui/component/descriptor/mod.rs",
+          "zircon_runtime/src/ui/component/descriptor/validation.rs",
+          "zircon_runtime/src/ui/component/descriptor/validation/tests/hash_membership.rs",
+          "zircon_runtime/src/ui/component/catalog/registry.rs",
+          "zircon_runtime/src/ui/component/catalog/tests/registry.rs",
+          "zircon_runtime/src/ui/component/catalog/palette_view.rs",
+          "zircon_runtime/src/ui/component/catalog/tests/palette_view.rs",
+          "zircon_runtime/src/ui/tests/component_catalog/descriptor_contracts.rs",
+          "zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs"
+        ],
+        "exit": 0,
+        "stdout": "8\t0\tzircon_runtime/src/ui/component/catalog/palette_view.rs\n24\t0\tzircon_runtime/src/ui/component/catalog/registry.rs\n3\t0\tzircon_runtime/src/ui/component/catalog/tests/palette_view.rs\n3\t0\tzircon_runtime/src/ui/component/catalog/tests/registry.rs\n16\t0\tzircon_runtime/src/ui/component/descriptor/validation.rs\n",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/ui/component/catalog/palette_view.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/component/catalog/registry.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/component/catalog/tests/palette_view.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/component/catalog/tests/registry.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/component/descriptor/validation.rs.\nThe file will have its original line endings in your working directory\n"
+      },
+      {
+        "argv": [
+          "git",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "zircon_runtime/src/ui/component/data_binding/mod.rs",
+          "zircon_runtime/src/ui/component/data_binding/data_source.rs",
+          "zircon_runtime/src/ui/component/descriptor/mod.rs",
+          "zircon_runtime/src/ui/component/descriptor/validation.rs",
+          "zircon_runtime/src/ui/component/descriptor/validation/tests/hash_membership.rs",
+          "zircon_runtime/src/ui/component/catalog/registry.rs",
+          "zircon_runtime/src/ui/component/catalog/tests/registry.rs",
+          "zircon_runtime/src/ui/component/catalog/palette_view.rs",
+          "zircon_runtime/src/ui/component/catalog/tests/palette_view.rs",
+          "zircon_runtime/src/ui/tests/component_catalog/descriptor_contracts.rs",
+          "zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "raw_preservation": "23 inserted comment/blank blocks are listed with real LF exact_text, original/current byte offsets, byte lengths and SHA256. Reverse removal actually performed independently after writer; each inverse equals checkout grant and raw HEAD. No original byte, old comment, string, attribute/macro input or API token removed/replaced.",
+    "formatting": "Actual exact11 rustfmt --check --edition2021 --config skip_children=true exit0. No formatting rewrite.",
+    "diff": "Actual scoped git diff --check exit0, numstat+54/-0 in5files; staged empty. Actual source bytes remained LF despite Git future-EOL warnings preserved in results.",
+    "no_test_execution": true,
+    "no_Cargo_build_generation": true,
+    "index_lock": "Present at preflight, preserved readonly; no ownership inference or Git mutation.",
+    "self_processes_prior_to_child_creation": "All R076 native invocations below have observed terminal exit0. Child creation and final independent readback receipts delivered after those actual invocations; this file does not self-attest a future completion."
+  },
+  "limitations_and_failures": [
+    {
+      "kind": "candidate-truncated-read",
+      "receipt": "d35b1a exit0/PID32376",
+      "detail": "Original candidate output inserted truncation in validation source. Missing189–274 read again with e80308 exit0/PID31724; merged actual numbered source has every original line. Original truncated output not treated as full read."
+    },
+    {
+      "kind": "guidance-output-decoding",
+      "receipt": "517c9a exit0",
+      "detail": "PowerShell Get-Content yielded mojibake Chinese artifact skill despite exit0; not accepted as decoded reading. Re-read actual UTF-8 with general Python, d865ba exit0, usable text."
+    },
+    {
+      "outer_cell": null,
+      "status": "not-started-before-exec_command",
+      "reason": "Command identity preparation constructed 22768 characters; local <=22000 guard threw before tools.exec_command; no native/session/PID and no mutation.",
+      "receipt": "functions.exec Script error: Error: command length 22768"
+    },
+    {
+      "kind": "in-memory-construction-not-started",
+      "receipt": "functions.exec SyntaxError: missing ) after argument list",
+      "native_session": null,
+      "pid": null,
+      "mutation": false,
+      "detail": "V8 rejected the in-memory record assembly before any tool/file operation; corrected construction split into bounded memory stages."
+    },
+    {
+      "kind": "parent-unknown-writer-holds",
+      "detail": "Historical R033/R046 etc unknown writers remain unresolved external holds; no source or process adopted/replayed/terminated. This exact grant is disjoint."
+    }
+  ],
+  "artifact_lifecycle": {
+    "created_artifacts": [
+      "docs/plans/source-comments/reviews/R076.json"
+    ],
+    "preregistered_by_root": true,
+    "temporary_files_created": 0,
+    "source_copies_created": 0,
+    "cache_or_build_outputs_created": 0,
+    "deleted_bytes": 0,
+    "retained_reason": "Fixed child plus original tool receipts needed for parent review; no global registry edit by child.",
+    "child_creation": "New sole JSON via synchronous apply_patch; actual tool result and final independent JSON/source/readback identity supplied in final delivery after completion, without rewriting fixed record."
+  },
+  "gates": {
+    "parent_independent_review": "pending",
+    "Jenkins_formal_acceptance": "pending-not-run",
+    "commit": "not-authorized/not-performed",
+    "global_ledger": "root-only"
+  },
+  "record_validation_before_creation": {
+    "numeric_source_ranges": true,
+    "original_and_after_semantic_blocks_gapfree": true,
+    "all_object_names_anchored_in_their_actually_read_original_spans": true,
+    "verification_is_not_AST_resolution": true,
+    "no_placeholder_key_zipping": true,
+    "summary_recomputed_from_arrays": true
+  }
+}

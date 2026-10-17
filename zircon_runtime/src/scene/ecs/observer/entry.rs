@@ -73,7 +73,7 @@ impl LifecycleCallbackBucket {
             {
                 break;
             }
-            (observer.callback)(world, &event);
+            observer.callback.dispatch(world, &event);
         }
     }
 }
@@ -127,7 +127,20 @@ impl EntityEventCallbackBucket {
             {
                 break;
             }
-            (observer.callback)(world, entity, event);
+            observer.callback.dispatch(world, entity, event);
         }
     }
+}
+
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for EntityEventObserver {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        m.arc_payload(self.callback.as_ref())
+    }
+}
+unsafe impl zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1
+    for EntityEventObserver
+{
 }

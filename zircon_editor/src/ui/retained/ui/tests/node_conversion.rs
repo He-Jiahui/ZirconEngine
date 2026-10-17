@@ -166,16 +166,18 @@ fn owned_view_template_node_conversion_matches_the_borrowed_projection() {
 
 #[test]
 fn unreal_header_conversion_retains_consumed_source_frame_and_live_instance_input() {
-    use std::collections::BTreeMap;
     use crate::ui::layouts::views::{
-        build_view_template_node_projection_with_patches,
-        compose_view_template_node_model,
+        build_view_template_node_projection_with_patches, compose_view_template_node_model,
         ViewTemplateNodePatch,
     };
+    use std::collections::BTreeMap;
     use zircon_runtime_interface::ui::layout::UiSize;
 
     let captions = BTreeMap::from([
-        ("DockTab0".to_owned(), "A long authored document caption".to_owned()),
+        (
+            "DockTab0".to_owned(),
+            "A long authored document caption".to_owned(),
+        ),
         ("DockSubtitle".to_owned(), "Actual project".to_owned()),
     ]);
     let patch = ViewTemplateNodePatch {
@@ -195,17 +197,23 @@ fn unreal_header_conversion_retains_consumed_source_frame_and_live_instance_inpu
         UiSize::new(900.0, 31.0),
         &captions,
         &patches,
-    ).expect("the actual imported Unreal Header builds");
-    let source = projection.unreal_dock_header_source().expect("actual Header source context");
+    )
+    .expect("the actual imported Unreal Header builds");
+    let source = projection
+        .unreal_dock_header_source()
+        .expect("actual Header source context");
     let captured = Arc::clone(&source);
     let model = compose_view_template_node_model(
-        "test.unreal.header.consumed.model", projection, &1_u8,
+        "test.unreal.header.consumed.model",
+        projection,
+        &1_u8,
         move |_| Some(captured),
     );
     let converted = to_host_contract_template_nodes(&model);
     let carried = converted
         .metadata::<Option<Arc<crate::ui::layouts::views::UnrealDockHeaderSource>>>()
-        .and_then(Option::as_ref).expect("actual metadata survived the ordinary converter");
+        .and_then(Option::as_ref)
+        .expect("actual metadata survived the ordinary converter");
     assert!(Arc::ptr_eq(&carried.frame, &source.frame));
     assert!(!source.source_receipts.is_empty());
     assert_eq!(source.document.nodes["dock_tab_strip"].children.len(), 1);
@@ -215,10 +223,15 @@ fn unreal_header_conversion_retains_consumed_source_frame_and_live_instance_inpu
         Some("A long authored document caption"),
     );
     for node in converted.iter() {
-        let actual = node.source_surface_frame.as_ref().expect("real arranged Source node");
+        let actual = node
+            .source_surface_frame
+            .as_ref()
+            .expect("real arranged Source node");
         assert!(Arc::ptr_eq(actual, &source.frame));
-        assert_eq!(node.source_path.as_str(),
-            "zircon_editor/assets/ui/editor/unreal/components/dock_header.zui");
+        assert_eq!(
+            node.source_path.as_str(),
+            "zircon_editor/assets/ui/editor/unreal/components/dock_header.zui"
+        );
         assert!(!node.source_node_id.is_empty());
         assert_eq!(node.instance_path.as_str(), "[]");
         let id = node.surface_node_id.expect("actual Source node id");
@@ -228,7 +241,9 @@ fn unreal_header_conversion_retains_consumed_source_frame_and_live_instance_inpu
             assert!(actual.render_extract.command_by_ref(reference).is_some());
         }
     }
-    let first = converted.iter().find(|node| node.control_id.as_str() == "DockTab0")
+    let first = converted
+        .iter()
+        .find(|node| node.control_id.as_str() == "DockTab0")
         .expect("actual caption row");
     assert!(first.selected);
     assert_eq!(first.font_weight, 400);
@@ -237,7 +252,11 @@ fn unreal_header_conversion_retains_consumed_source_frame_and_live_instance_inpu
         row.surface_node_id = None;
         row
     });
-    assert!(to_host_contract_template_nodes(&invalid).row_data(0).unwrap().source_surface_frame.is_none());
+    assert!(to_host_contract_template_nodes(&invalid)
+        .row_data(0)
+        .unwrap()
+        .source_surface_frame
+        .is_none());
 
     let changed = BTreeMap::from([
         ("DockTab0".to_owned(), "Changed caption".to_owned()),
@@ -246,10 +265,19 @@ fn unreal_header_conversion_retains_consumed_source_frame_and_live_instance_inpu
     let next = build_view_template_node_projection_with_patches(
         "test.unreal.header.consumed",
         "/assets/ui/editor/unreal/components/dock_header.zui",
-        &[], UiSize::new(900.0, 31.0), &changed, &patches,
-    ).expect("ordinary retained caption mutation");
-    assert_eq!(next.unreal_dock_header_source().unwrap().document.nodes["dock_tab_0"]
-        .props["text"].as_str(), Some("Changed caption"));
-    assert_eq!(carried.document.nodes["dock_tab_0"].props["text"].as_str(),
-        Some("A long authored document caption"));
+        &[],
+        UiSize::new(900.0, 31.0),
+        &changed,
+        &patches,
+    )
+    .expect("ordinary retained caption mutation");
+    assert_eq!(
+        next.unreal_dock_header_source().unwrap().document.nodes["dock_tab_0"].props["text"]
+            .as_str(),
+        Some("Changed caption")
+    );
+    assert_eq!(
+        carried.document.nodes["dock_tab_0"].props["text"].as_str(),
+        Some("A long authored document caption")
+    );
 }

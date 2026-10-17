@@ -13,6 +13,8 @@ fn runtime_entry_maps_platform_event_loop_policy_to_winit_control_flow() {
         include_str!("../../runtime_entry_app/event_loop_policy/control_flow.rs");
     let frame_cadence_source =
         include_str!("../../runtime_entry_app/event_loop_policy/frame_cadence.rs");
+    let frame_cadence_tests_source =
+        include_str!("../../runtime_entry_app/event_loop_policy/tests/frame_cadence.rs");
     let event_loop_policy_source = format!(
         "{}\n{}",
         runtime_event_loop_policy_source(),
@@ -81,6 +83,13 @@ fn runtime_entry_maps_platform_event_loop_policy_to_winit_control_flow() {
         "frame_requests_accepted",
         "frame_requests_coalesced",
         "frame_requests_ignored",
+    ] {
+        assert!(
+            frame_cadence_source.contains(required),
+            "runtime frame-cadence owner should preserve `{required}`"
+        );
+    }
+    for required in [
         "reactive_cadence_coalesces_requests_and_suppresses_idle_frames",
         "foreground_game_and_explicit_continuous_cadence_never_suppress_frame_pumps",
         "game_cadence_throttles_unfocused_and_occluded_windows",
@@ -94,8 +103,8 @@ fn runtime_entry_maps_platform_event_loop_policy_to_winit_control_flow() {
         "continuous_cadence_does_not_schedule_extra_wakes_from_runtime_demand",
     ] {
         assert!(
-            frame_cadence_source.contains(required),
-            "runtime frame-cadence owner should preserve `{required}`"
+            frame_cadence_tests_source.contains(required),
+            "runtime frame-cadence tests should preserve `{required}`"
         );
     }
 }

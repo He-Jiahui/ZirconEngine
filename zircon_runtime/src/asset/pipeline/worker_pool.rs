@@ -189,8 +189,6 @@ impl AssetWorkerPool {
         entry.install_expiry_subscription(expiry_generation, expiry_subscription);
         state.in_flight.insert(request.clone(), Arc::clone(&entry));
         state.scheduled_jobs = state.scheduled_jobs.saturating_add(1);
-        drop(state);
-        self.record_request_admitted();
 
         let task_pool = self.task_pool.clone();
         let completions = Arc::clone(&self.completions);
@@ -200,7 +198,7 @@ impl AssetWorkerPool {
         let task_entry = Arc::clone(&entry);
         #[cfg(test)]
         let test_execution_gate = self.test_execution_gate.clone();
-        task_pool.spawn(move || {
+        if let Err(job) = task_pool.try_spawn(move || {
             let panic_request = request.clone();
             let queue_age = task_entry.mark_started(Instant::now());
             #[cfg(test)]
@@ -230,7 +228,30 @@ impl AssetWorkerPool {
                 task_entry,
                 payload,
             );
-        });
+        }) {
+            let removed = if state
+                .in_flight
+                .get(&entry.request)
+                .is_some_and(|current| Arc::ptr_eq(current, &entry))
+            {
+                state.in_flight.remove_entry(&entry.request)
+            } else {
+                None
+            };
+            state.scheduled_jobs = state.scheduled_jobs.saturating_sub(1);
+            // Timer cancellation and rejected captures can re-enter the registry.
+            drop(state);
+            entry.terminate(CompletionTerminal::Rejected);
+            drop(job);
+            drop(removed);
+            return Err(CoreError::ChannelSend(format!(
+                "asset request runtime IO task pool is closing admission: {:?}",
+                entry.request
+            )));
+        }
+        // Publication must observe the admitted charge before it can remove it.
+        self.record_request_admitted();
+        drop(state);
         Ok(self.completion_ticket(entry))
     }
 

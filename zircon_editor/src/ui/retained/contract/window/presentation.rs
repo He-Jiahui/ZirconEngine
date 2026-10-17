@@ -33,14 +33,16 @@ use crate::ui::retained_host::primitives::ModelRc;
 pub(in crate::ui::retained_host::host_contract) use self::snapshot::host_presentation_from_state;
 
 impl UiHostWindow {
-
     pub(crate) fn set_prepared_viewport_toolbar_publication(
         &self,
-        snapshot: Option<(Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,Arc<serde_json::Value>)>,
+        snapshot: Option<(
+            Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,
+            Arc<serde_json::Value>,
+        )>,
         mount: Option<zircon_runtime_interface::ui::layout::UiFrame>,
         scale: f32,
     ) {
-        viewport_toolbar::set_capture(&mut self.state.borrow_mut(),snapshot,mount,scale);
+        viewport_toolbar::set_capture(&mut self.state.borrow_mut(), snapshot, mount, scale);
     }
 
     pub(crate) fn set_normal_workbench_business_snapshot(
@@ -53,8 +55,10 @@ impl UiHostWindow {
             match snapshot.with_consumed_unreal_dock_headers(state.host_presentation.as_ref()) {
                 Ok(snapshot) => Some(snapshot),
                 Err(error) => {
-                    write_diagnostic_log("unreal_dock_header_publication",
-                        format!("actual Header Source publication unavailable: {error}"));
+                    write_diagnostic_log(
+                        "unreal_dock_header_publication",
+                        format!("actual Header Source publication unavailable: {error}"),
+                    );
                     None
                 }
             }

@@ -73,6 +73,8 @@ pub enum RuntimeExtensionRegistryError {
     DuplicatePluginInterfaceImport(String),
     #[error("plugin interface {0} is not enabled")]
     MissingPluginInterface(String),
+    #[error("plugin interface mismatch: slot expects {expected}, replacement declares {actual}")]
+    PluginInterfaceMismatch { expected: String, actual: String },
     #[error("plugin world registration failed: {0}")]
     WorldRegistration(String),
 }

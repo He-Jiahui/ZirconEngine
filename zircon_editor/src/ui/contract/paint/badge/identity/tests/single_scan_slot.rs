@@ -75,7 +75,8 @@ fn optimization_batch_20260829bj_editor282_single_scan_badge_slots_preserve_resu
 
 #[test]
 fn optimization_batch_20260829bj_editor282_badge_slot_uses_one_token_scan() {
-    let source = include_str!("../../../../../retained/contract/paint/primitives/badge/identity.rs");
+    let source =
+        include_str!("../../../../../retained/contract/paint/primitives/badge/identity.rs");
     let production = source.split_once("#[cfg(test)]").expect("test boundary").0;
     let slot = production
         .split_once("fn is_badge_slot_node")

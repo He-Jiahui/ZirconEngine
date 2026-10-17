@@ -18,7 +18,8 @@ use super::{ActivityAssetContentProjector, BrowserAssetContentProjector};
 #[test]
 // 此结构测试约束资产投影器读取代次元数据，不在绘制路径中扫描完整模型或重解析控件身份。
 fn projector_consumers_use_generation_metadata_without_model_scans_or_identity_parsing() {
-    let production = include_str!("../../../../../../../contract/docks/pane/nodes/asset_content/projector.rs");
+    let production =
+        include_str!("../../../../../../../contract/docks/pane/nodes/asset_content/projector.rs");
 
     assert!(!production.contains("row_data("));
     assert!(!production.contains("for row in 0..nodes.row_count()"));

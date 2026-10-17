@@ -1,3 +1,5 @@
+//! 直接约束共享索引的槽位、碰撞桶和 LRU 关系，不替 owner 验证完整文本或布局条件。
+//! 手工条目与局部损坏夹具只检验结果；名称中的工作量不代表这里执行了计时测量。
 use super::{IndexedTextCache, IndexedTextCacheEntry};
 
 #[derive(Debug, PartialEq)]
@@ -28,6 +30,7 @@ fn touch_moves_a_stable_slot_to_the_lru_tail() {
     assert!(cache.entry(second).is_none());
 }
 
+// 本用例只检查插入后可读回值，没有计时或哈希探针采样。
 #[test]
 fn text_cache_indexes_keep_hot_lookup_and_eviction_work_constant_after_insert() {
     let mut cache = IndexedTextCache::new();
@@ -65,6 +68,8 @@ fn text_cache_indexes_keep_hot_lookup_and_eviction_work_constant_when_upserting(
     assert_eq!(cache.len(), 1);
 }
 
+// 999 在新建索引中从未分配，验证的是缺失槽分支，不涵盖任意回绕后的旧句柄。
+// 随后查找与淘汰共同检查新条目已登记进桶和 LRU。
 #[test]
 fn stale_upsert_slot_recovers_through_the_lookup_and_lru_indexes() {
     let mut cache: IndexedTextCache<u8, Entry> = IndexedTextCache::new();
@@ -83,6 +88,7 @@ fn stale_upsert_slot_recovers_through_the_lookup_and_lru_indexes() {
     assert_eq!(cache.pop_oldest().map(|entry| entry.value), Some(70));
 }
 
+// 人为移除特定前邻居链接，只验证本夹具的触碰结果，不表示任意破坏均可恢复。
 #[test]
 fn lru_recovers_when_a_neighbor_link_is_missing() {
     let mut cache = IndexedTextCache::new();
@@ -95,6 +101,8 @@ fn lru_recovers_when_a_neighbor_link_is_missing() {
     assert_eq!(cache.pop_oldest().unwrap().value, 20);
 }
 
+// 读取生产文件的全部原文（包括注释），约束碰撞桶移除不退回线性位置查找。
+// 操作数保持由下方宏拼接，新增文档也属于它的输入域。
 #[test]
 fn collision_bucket_removal_does_not_scan_candidates() {
     let source = include_str!("../index.rs");
@@ -127,6 +135,7 @@ fn removing_a_middle_collision_candidate_keeps_remaining_slots_indexed() {
     assert!(cache.is_empty());
 }
 
+// 返回的是索引逻辑计量，不检查 HashMap 或 Vec 的物理移动。
 #[test]
 fn oldest_eviction_reports_one_direct_candidate_and_zero_entry_moves() {
     let mut cache = IndexedTextCache::new();

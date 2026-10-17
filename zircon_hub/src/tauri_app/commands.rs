@@ -7,13 +7,13 @@ use std::time::{Duration, Instant};
 use tauri::Emitter;
 
 use crate::error::HubError;
-use crate::process::EditorChildReaper;
 use crate::process::editor_child_receipt::EditorChildTerminalReceipt;
+use crate::process::EditorChildReaper;
 
 use super::action_id::HubActionId;
 use super::action_request::HubActionRequest;
+use super::runtime_state::action_tasks::{run_background_worker_loop, EditorLaunchOwner};
 use super::runtime_state::HubRuntimeSession;
-use super::runtime_state::action_tasks::{EditorLaunchOwner, run_background_worker_loop};
 use super::view_model::HubViewModel;
 
 #[path = "commands/focus_refresh_gate.rs"]

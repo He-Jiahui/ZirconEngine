@@ -1,0 +1,6180 @@
+{
+  "schema_version": 1,
+  "batch": "R039",
+  "task": "source-comments-20261014-01a13a81",
+  "owner": "reflection_luna",
+  "status": "reviewed-child-pending-parent-review",
+  "assignment": {
+    "owner": "reflection_luna",
+    "mode": "scoped-source-audit-and-necessary-comments-only-canonical-source",
+    "write_path": "docs/plans/source-comments/reviews/R039.json",
+    "assignment_sha256_at_preflight": "ef4ef13b57bda1d4069472e95f9dd5fd01978d4851371b9a6c2d4d540a1c8772",
+    "assignment_sha256_at_record": "df10c5371cb5f11301d7c3526bad56d7fa537a02634f0d59ad10b7aa66ed5715",
+    "head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+    "before_sha256": {
+      "zircon_runtime_interface/src/tests/layout_engine_contracts.rs": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+      "zircon_runtime_interface/src/tests/ui_layout.rs": "8011a0f87065d5e73b939bafe2b38aaa9bb52a9f8baead1a538ae687b5446159",
+      "zircon_runtime_interface/src/ui/layout/constraints.rs": "c3f8026f8e12d77eff2e58a5ea3d506305498de0169cccdbac24b2c4d58e58c8",
+      "zircon_runtime_interface/src/ui/layout/debug.rs": "9a744156779f7e98b5dd6e126aa57e02b644a0890789dcc7a4c2e641e55e3ca4",
+      "zircon_runtime_interface/src/ui/layout/engine.rs": "d84cf6d7784fa8ab9f616c971f1a14a330062746e3460f2953310a3a3d80c9d7",
+      "zircon_runtime_interface/src/ui/layout/geometry.rs": "759aba039f7a70f039b6d4f9e7caa32190e5d5cbc83f680936abcc642194687f",
+      "zircon_runtime_interface/src/ui/layout/linear_sizing.rs": "35a8bcfa03c175f96900d889943e1b65cf838804b94a814689995c002550b6b6",
+      "zircon_runtime_interface/src/ui/layout/metrics.rs": "17505d9eabc4709b6957d4236f788b6f99a491da03ed65423d74dafbd862818f",
+      "zircon_runtime_interface/src/ui/layout/mod.rs": "cb207ce0e766f6784290c3845eca73e8b86c053672d6c286de15ec308f2242b4",
+      "zircon_runtime_interface/src/ui/layout/scroll.rs": "7f96c35e186996dd64c9193553f02612bbf6ebef4accea1c47881d856bfe3ce6",
+      "zircon_runtime_interface/src/ui/layout/slot.rs": "54942ce3f95ed57e5858c8815f32cb48c9030a92e07e49a4658d7a8d1db39a73",
+      "zircon_runtime_interface/src/ui/layout/style.rs": "e1decf4d80200990183ca8f9727dbba428fa9c631426345d2164e0a5bd9d723b",
+      "zircon_runtime_interface/src/ui/layout/virtualization.rs": "a34cbf513ee279cecde0e7d2cdda76a78be24bea96c31feb9fe82d81ae4d7609"
+    },
+    "formal_acceptance": false
+  },
+  "scope": {
+    "source_files": [
+      "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+      "zircon_runtime_interface/src/tests/ui_layout.rs",
+      "zircon_runtime_interface/src/ui/layout/constraints.rs",
+      "zircon_runtime_interface/src/ui/layout/debug.rs",
+      "zircon_runtime_interface/src/ui/layout/engine.rs",
+      "zircon_runtime_interface/src/ui/layout/geometry.rs",
+      "zircon_runtime_interface/src/ui/layout/linear_sizing.rs",
+      "zircon_runtime_interface/src/ui/layout/metrics.rs",
+      "zircon_runtime_interface/src/ui/layout/mod.rs",
+      "zircon_runtime_interface/src/ui/layout/scroll.rs",
+      "zircon_runtime_interface/src/ui/layout/slot.rs",
+      "zircon_runtime_interface/src/ui/layout/style.rs",
+      "zircon_runtime_interface/src/ui/layout/virtualization.rs"
+    ],
+    "cross_file_context_is_read_only": true,
+    "before_physical_lines": 2726,
+    "after_physical_lines": 2743,
+    "objects": 261,
+    "statement_block_groups": 80
+  },
+  "files": {
+    "zircon_runtime_interface/src/tests/layout_engine_contracts.rs": {
+      "before_sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+      "after_sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+      "reconstructed_before_sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+      "before_bytes": 23275,
+      "after_bytes": 23275,
+      "before_physical_lines": 601,
+      "after_physical_lines": 601,
+      "line_endings": {
+        "kind": "LF",
+        "crlf_count": 0,
+        "bare_lf_count": 601,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "clean (no source change)",
+      "objects": [
+        {
+          "name": "round_trip",
+          "kind": "function",
+          "lines": [
+            9,
+            9
+          ],
+          "declaration": "fn round_trip<T>(value: &T) -> T",
+          "block_ref": "imports_and_round_trip_helper"
+        },
+        {
+          "name": "ui_layout_engine_capability_distinguishes_taffy_compatible_and_zircon_owned_families",
+          "kind": "function",
+          "lines": [
+            17,
+            17
+          ],
+          "declaration": "fn ui_layout_engine_capability_distinguishes_taffy_compatible_and_zircon_owned_families() {",
+          "block_ref": "capability_family_test"
+        },
+        {
+          "name": "ui_layout_engine_request_maps_current_container_contracts_to_engine_families",
+          "kind": "function",
+          "lines": [
+            62,
+            62
+          ],
+          "declaration": "fn ui_layout_engine_request_maps_current_container_contracts_to_engine_families() {",
+          "block_ref": "container_request_mapping_test"
+        },
+        {
+          "name": "ui_container_slot_defaults_and_engine_families_share_one_contract",
+          "kind": "function",
+          "lines": [
+            121,
+            121
+          ],
+          "declaration": "fn ui_container_slot_defaults_and_engine_families_share_one_contract() {",
+          "block_ref": "container_slot_family_matrix_test"
+        },
+        {
+          "name": "ui_layout_engine_block_is_explicit_block_box_not_generic_container",
+          "kind": "function",
+          "lines": [
+            213,
+            213
+          ],
+          "declaration": "fn ui_layout_engine_block_is_explicit_block_box_not_generic_container() {",
+          "block_ref": "block_box_family_test"
+        },
+        {
+          "name": "ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout",
+          "kind": "function",
+          "lines": [
+            247,
+            247
+          ],
+          "declaration": "fn ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout() {",
+          "block_ref": "selection_fallback_report_test"
+        },
+        {
+          "name": "ui_layout_engine_selection_report_tracks_taffy_tree_build_stats",
+          "kind": "function",
+          "lines": [
+            298,
+            298
+          ],
+          "declaration": "fn ui_layout_engine_selection_report_tracks_taffy_tree_build_stats() {",
+          "block_ref": "taffy_tree_stats_test"
+        },
+        {
+          "name": "ui_layout_engine_selection_report_replacement_matches_full_recompute",
+          "kind": "function",
+          "lines": [
+            322,
+            322
+          ],
+          "declaration": "fn ui_layout_engine_selection_report_replacement_matches_full_recompute() {",
+          "block_ref": "report_replacement_test"
+        },
+        {
+          "name": "ui_layout_engine_selection_report_clone_retains_the_previous_segmented_snapshot",
+          "kind": "function",
+          "lines": [
+            346,
+            346
+          ],
+          "declaration": "fn ui_layout_engine_selection_report_clone_retains_the_previous_segmented_snapshot() {",
+          "block_ref": "persistent_snapshot_clone_test"
+        },
+        {
+          "name": "ui_layout_engine_selection_report_counts_unsupported_routes_separately",
+          "kind": "function",
+          "lines": [
+            402,
+            402
+          ],
+          "declaration": "fn ui_layout_engine_selection_report_counts_unsupported_routes_separately() {",
+          "block_ref": "unsupported_routes_count_test"
+        },
+        {
+          "name": "ui_layout_engine_selection_requires_full_fallback_capability_admission",
+          "kind": "function",
+          "lines": [
+            441,
+            441
+          ],
+          "declaration": "fn ui_layout_engine_selection_requires_full_fallback_capability_admission() {",
+          "block_ref": "full_fallback_admission_test"
+        },
+        {
+          "name": "ui_layout_engine_selection_report_counts_missing_fallback_reasons",
+          "kind": "function",
+          "lines": [
+            500,
+            500
+          ],
+          "declaration": "fn ui_layout_engine_selection_report_counts_missing_fallback_reasons() {",
+          "block_ref": "missing_reason_count_test"
+        },
+        {
+          "name": "ui_layout_engine_selection_report_deserialization_recomputes_aggregate_counts",
+          "kind": "function",
+          "lines": [
+            521,
+            521
+          ],
+          "declaration": "fn ui_layout_engine_selection_report_deserialization_recomputes_aggregate_counts() {",
+          "block_ref": "deserialize_aggregate_test"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "imports_and_round_trip_helper",
+          "lines": [
+            1,
+            15
+          ],
+          "audit": "导入布局 DTO；round_trip 仅做 serde_json owned 往返。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "round_trip",
+              "kind": "function",
+              "line": 9
+            }
+          ]
+        },
+        {
+          "name": "capability_family_test",
+          "lines": [
+            16,
+            60
+          ],
+          "audit": "比较 Taffy 支持族与 Zircon-owned 族，不执行布局。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_engine_capability_distinguishes_taffy_compatible_and_zircon_owned_families",
+              "kind": "function",
+              "line": 17
+            }
+          ]
+        },
+        {
+          "name": "container_request_mapping_test",
+          "lines": [
+            61,
+            120
+          ],
+          "audit": "验证容器到 request family 的映射和 serde。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_engine_request_maps_current_container_contracts_to_engine_families",
+              "kind": "function",
+              "line": 62
+            }
+          ]
+        },
+        {
+          "name": "container_slot_family_matrix_test",
+          "lines": [
+            121,
+            211
+          ],
+          "audit": "矩阵检查 slot kind、engine family 与配置默认值。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_container_slot_defaults_and_engine_families_share_one_contract",
+              "kind": "function",
+              "line": 121
+            }
+          ]
+        },
+        {
+          "name": "block_box_family_test",
+          "lines": [
+            212,
+            245
+          ],
+          "audit": "区分 BlockBox 与 generic Container。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_engine_block_is_explicit_block_box_not_generic_container",
+              "kind": "function",
+              "line": 213
+            }
+          ]
+        },
+        {
+          "name": "selection_fallback_report_test",
+          "lines": [
+            246,
+            296
+          ],
+          "audit": "断言选择/fallback report；测试名明确不运行 layout。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout",
+              "kind": "function",
+              "line": 247
+            }
+          ]
+        },
+        {
+          "name": "taffy_tree_stats_test",
+          "lines": [
+            297,
+            320
+          ],
+          "audit": "检查 report 中的 Taffy tree node count。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_engine_selection_report_tracks_taffy_tree_build_stats",
+              "kind": "function",
+              "line": 298
+            }
+          ]
+        },
+        {
+          "name": "report_replacement_test",
+          "lines": [
+            321,
+            344
+          ],
+          "audit": "替换 selection 后与全量重算比较。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_engine_selection_report_replacement_matches_full_recompute",
+              "kind": "function",
+              "line": 322
+            }
+          ]
+        },
+        {
+          "name": "persistent_snapshot_clone_test",
+          "lines": [
+            345,
+            400
+          ],
+          "audit": "clone 保留旧 segmented snapshot。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_engine_selection_report_clone_retains_the_previous_segmented_snapshot",
+              "kind": "function",
+              "line": 346
+            }
+          ]
+        },
+        {
+          "name": "unsupported_routes_count_test",
+          "lines": [
+            401,
+            439
+          ],
+          "audit": "unsupported route 与 fallback reason 分开计数。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_engine_selection_report_counts_unsupported_routes_separately",
+              "kind": "function",
+              "line": 402
+            }
+          ]
+        },
+        {
+          "name": "full_fallback_admission_test",
+          "lines": [
+            440,
+            498
+          ],
+          "audit": "检查 capability admission 前置条件。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_engine_selection_requires_full_fallback_capability_admission",
+              "kind": "function",
+              "line": 441
+            }
+          ]
+        },
+        {
+          "name": "missing_reason_count_test",
+          "lines": [
+            499,
+            519
+          ],
+          "audit": "缺少 fallback reason 单独计数。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_engine_selection_report_counts_missing_fallback_reasons",
+              "kind": "function",
+              "line": 500
+            }
+          ]
+        },
+        {
+          "name": "deserialize_aggregate_test",
+          "lines": [
+            520,
+            601
+          ],
+          "audit": "反序列化后重建 report aggregate counts。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_engine_selection_report_deserialization_recomputes_aggregate_counts",
+              "kind": "function",
+              "line": 521
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          15
+        ],
+        [
+          16,
+          60
+        ],
+        [
+          61,
+          120
+        ],
+        [
+          121,
+          211
+        ],
+        [
+          212,
+          245
+        ],
+        [
+          246,
+          296
+        ],
+        [
+          297,
+          320
+        ],
+        [
+          321,
+          344
+        ],
+        [
+          345,
+          400
+        ],
+        [
+          401,
+          439
+        ],
+        [
+          440,
+          498
+        ],
+        [
+          499,
+          519
+        ],
+        [
+          520,
+          601
+        ]
+      ],
+      "insertions": [],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    },
+    "zircon_runtime_interface/src/tests/ui_layout.rs": {
+      "before_sha256": "8011a0f87065d5e73b939bafe2b38aaa9bb52a9f8baead1a538ae687b5446159",
+      "after_sha256": "8011a0f87065d5e73b939bafe2b38aaa9bb52a9f8baead1a538ae687b5446159",
+      "reconstructed_before_sha256": "8011a0f87065d5e73b939bafe2b38aaa9bb52a9f8baead1a538ae687b5446159",
+      "before_bytes": 9295,
+      "after_bytes": 9295,
+      "before_physical_lines": 229,
+      "after_physical_lines": 229,
+      "line_endings": {
+        "kind": "LF",
+        "crlf_count": 0,
+        "bare_lf_count": 229,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "clean (no source change)",
+      "objects": [
+        {
+          "name": "ui_layout_geometry_slot_and_metrics_contracts_construct",
+          "kind": "function",
+          "lines": [
+            14,
+            14
+          ],
+          "declaration": "fn ui_layout_geometry_slot_and_metrics_contracts_construct() {",
+          "block_ref": "geometry_slot_metrics_test"
+        },
+        {
+          "name": "ui_layout_style_and_debug_packet_contracts_round_trip_with_defaults",
+          "kind": "function",
+          "lines": [
+            132,
+            132
+          ],
+          "declaration": "fn ui_layout_style_and_debug_packet_contracts_round_trip_with_defaults() {",
+          "block_ref": "style_debug_round_trip_test"
+        },
+        {
+          "name": "ui_canvas_slot_placement_contract_round_trips_and_defaults",
+          "kind": "function",
+          "lines": [
+            169,
+            169
+          ],
+          "declaration": "fn ui_canvas_slot_placement_contract_round_trips_and_defaults() {",
+          "block_ref": "canvas_placement_test"
+        },
+        {
+          "name": "ui_tree_slot_contract_defaults_missing_slots_and_round_trips_slots",
+          "kind": "function",
+          "lines": [
+            209,
+            209
+          ],
+          "declaration": "fn ui_tree_slot_contract_defaults_missing_slots_and_round_trips_slots() {",
+          "block_ref": "legacy_tree_slots_test"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "imports",
+          "lines": [
+            1,
+            12
+          ],
+          "audit": "导入几何、slot、style、debug、UiTree DTO。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": []
+        },
+        {
+          "name": "geometry_slot_metrics_test",
+          "lines": [
+            13,
+            130
+          ],
+          "audit": "构造 geometry/metrics/slot，检查 layout frame/render bounds、defaults 和 serde。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_geometry_slot_and_metrics_contracts_construct",
+              "kind": "function",
+              "line": 14
+            }
+          ]
+        },
+        {
+          "name": "style_debug_round_trip_test",
+          "lines": [
+            131,
+            167
+          ],
+          "audit": "检查 sparse style defaults 和 debug serde。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_layout_style_and_debug_packet_contracts_round_trip_with_defaults",
+              "kind": "function",
+              "line": 132
+            }
+          ]
+        },
+        {
+          "name": "canvas_placement_test",
+          "lines": [
+            168,
+            207
+          ],
+          "audit": "覆盖 anchor fallback、pivot、position、offset、auto_size。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_canvas_slot_placement_contract_round_trips_and_defaults",
+              "kind": "function",
+              "line": 169
+            }
+          ]
+        },
+        {
+          "name": "legacy_tree_slots_test",
+          "lines": [
+            208,
+            229
+          ],
+          "audit": "legacy UiTree 缺 slots 默认为空并往返 slots。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ui_tree_slot_contract_defaults_missing_slots_and_round_trips_slots",
+              "kind": "function",
+              "line": 209
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          12
+        ],
+        [
+          13,
+          130
+        ],
+        [
+          131,
+          167
+        ],
+        [
+          168,
+          207
+        ],
+        [
+          208,
+          229
+        ]
+      ],
+      "insertions": [],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    },
+    "zircon_runtime_interface/src/ui/layout/constraints.rs": {
+      "before_sha256": "c3f8026f8e12d77eff2e58a5ea3d506305498de0169cccdbac24b2c4d58e58c8",
+      "after_sha256": "90ff6d697d513e4af43dc96d4d700f3128f63710b617a4764273310ff16335b8",
+      "reconstructed_before_sha256": "c3f8026f8e12d77eff2e58a5ea3d506305498de0169cccdbac24b2c4d58e58c8",
+      "before_bytes": 2781,
+      "after_bytes": 3201,
+      "before_physical_lines": 106,
+      "after_physical_lines": 107,
+      "line_endings": {
+        "kind": "LF",
+        "crlf_count": 0,
+        "bare_lf_count": 107,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "M zircon_runtime_interface/src/ui/layout/constraints.rs",
+      "objects": [
+        {
+          "name": "StretchMode",
+          "kind": "enum",
+          "lines": [
+            6,
+            6
+          ],
+          "declaration": "pub enum StretchMode {",
+          "block_ref": "module_and_stretch_mode"
+        },
+        {
+          "name": "AxisConstraint",
+          "kind": "struct",
+          "lines": [
+            14,
+            14
+          ],
+          "declaration": "pub struct AxisConstraint {",
+          "block_ref": "axis_constraint_resolution"
+        },
+        {
+          "name": "impl Default for AxisConstraint",
+          "kind": "impl",
+          "lines": [
+            23,
+            23
+          ],
+          "declaration": "impl Default for AxisConstraint {",
+          "block_ref": "axis_constraint_resolution"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            24,
+            24
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "axis_constraint_resolution"
+        },
+        {
+          "name": "impl AxisConstraint",
+          "kind": "impl",
+          "lines": [
+            36,
+            36
+          ],
+          "declaration": "impl AxisConstraint {",
+          "block_ref": "axis_constraint_resolution"
+        },
+        {
+          "name": "resolved",
+          "kind": "function",
+          "lines": [
+            38,
+            38
+          ],
+          "declaration": "pub fn resolved(self) -> ResolvedAxisConstraint {",
+          "block_ref": "axis_constraint_resolution"
+        },
+        {
+          "name": "ResolvedAxisConstraint",
+          "kind": "struct",
+          "lines": [
+            60,
+            60
+          ],
+          "declaration": "pub struct ResolvedAxisConstraint {",
+          "block_ref": "resolved_axis_value"
+        },
+        {
+          "name": "BoxConstraints",
+          "kind": "struct",
+          "lines": [
+            71,
+            71
+          ],
+          "declaration": "pub struct BoxConstraints {",
+          "block_ref": "box_constraints"
+        },
+        {
+          "name": "DesiredSize",
+          "kind": "struct",
+          "lines": [
+            79,
+            79
+          ],
+          "declaration": "pub struct DesiredSize {",
+          "block_ref": "desired_size"
+        },
+        {
+          "name": "impl DesiredSize",
+          "kind": "impl",
+          "lines": [
+            84,
+            84
+          ],
+          "declaration": "impl DesiredSize {",
+          "block_ref": "desired_size"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            85,
+            85
+          ],
+          "declaration": "pub const fn new(width: f32, height: f32) -> Self {",
+          "block_ref": "desired_size"
+        },
+        {
+          "name": "LayoutBoundary",
+          "kind": "enum",
+          "lines": [
+            91,
+            91
+          ],
+          "declaration": "pub enum LayoutBoundary {",
+          "block_ref": "layout_boundary"
+        },
+        {
+          "name": "impl LayoutBoundary",
+          "kind": "impl",
+          "lines": [
+            98,
+            98
+          ],
+          "declaration": "impl LayoutBoundary {",
+          "block_ref": "layout_boundary"
+        },
+        {
+          "name": "propagates_child_layout_invalidation",
+          "kind": "function",
+          "lines": [
+            99,
+            99
+          ],
+          "declaration": "pub const fn propagates_child_layout_invalidation(self) -> bool {",
+          "block_ref": "layout_boundary"
+        },
+        {
+          "name": "clamp_axis_value",
+          "kind": "function",
+          "lines": [
+            104,
+            104
+          ],
+          "declaration": "fn clamp_axis_value(value: f32, min: f32, max: Option<f32>) -> f32 {",
+          "block_ref": "axis_clamp_helper"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "module_and_stretch_mode",
+          "lines": [
+            1,
+            11
+          ],
+          "audit": "轴约束规整供 Runtime 求解；StretchMode 默认 Stretch。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "StretchMode",
+              "kind": "enum",
+              "line": 6
+            }
+          ]
+        },
+        {
+          "name": "axis_constraint_resolution",
+          "lines": [
+            12,
+            58
+          ],
+          "audit": "字段含 min/max/preferred/priority/weight/mode；resolved 将负 max 变 None 并夹 preferred；NaN weight 在无界 native growth 可造成不退出。",
+          "documentation_decision": "仅在 resolved 的 NaN weight 分支添加精确条件 BUG，保留原类型文档。",
+          "objects": [
+            {
+              "name": "AxisConstraint",
+              "kind": "struct",
+              "line": 14
+            },
+            {
+              "name": "impl Default for AxisConstraint",
+              "kind": "impl",
+              "line": 23
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 24
+            },
+            {
+              "name": "impl AxisConstraint",
+              "kind": "impl",
+              "line": 36
+            },
+            {
+              "name": "resolved",
+              "kind": "function",
+              "line": 38
+            }
+          ]
+        },
+        {
+          "name": "resolved_axis_value",
+          "lines": [
+            59,
+            69
+          ],
+          "audit": "解析后轴值含 Option max、weight、mode、resolved。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "ResolvedAxisConstraint",
+              "kind": "struct",
+              "line": 60
+            }
+          ]
+        },
+        {
+          "name": "box_constraints",
+          "lines": [
+            70,
+            77
+          ],
+          "audit": "宽高各自持有 AxisConstraint。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "BoxConstraints",
+              "kind": "struct",
+              "line": 71
+            }
+          ]
+        },
+        {
+          "name": "desired_size",
+          "lines": [
+            78,
+            89
+          ],
+          "audit": "宽高值对及 const constructor。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "DesiredSize",
+              "kind": "struct",
+              "line": 79
+            },
+            {
+              "name": "impl DesiredSize",
+              "kind": "impl",
+              "line": 84
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 85
+            }
+          ]
+        },
+        {
+          "name": "layout_boundary",
+          "lines": [
+            90,
+            103
+          ],
+          "audit": "ContentDriven 传播 child invalidation，其余模式不传播。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "LayoutBoundary",
+              "kind": "enum",
+              "line": 91
+            },
+            {
+              "name": "impl LayoutBoundary",
+              "kind": "impl",
+              "line": 98
+            },
+            {
+              "name": "propagates_child_layout_invalidation",
+              "kind": "function",
+              "line": 99
+            }
+          ]
+        },
+        {
+          "name": "axis_clamp_helper",
+          "lines": [
+            104,
+            107
+          ],
+          "audit": "有上界夹 min/max，无界只施加下界。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "clamp_axis_value",
+              "kind": "function",
+              "line": 104
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          11
+        ],
+        [
+          12,
+          58
+        ],
+        [
+          59,
+          69
+        ],
+        [
+          70,
+          77
+        ],
+        [
+          78,
+          89
+        ],
+        [
+          90,
+          103
+        ],
+        [
+          104,
+          107
+        ]
+      ],
+      "insertions": [
+        {
+          "offset_bytes": 1396,
+          "byte_length": 420,
+          "sha256": "7e28dd8e072015b908a7161a653b2411183628c6420d315df5f5b420ed10d8f3",
+          "exact_text": "            // BUG: [CR-ZCA-R039-0001] max < 0（无上界）、Stretch、min/preferred 为 0 且 weight 为 NaN 时，此分支保留 NaN；无 slot sizing 覆盖、主轴 slot padding 为 0 的 Linear 父容器中单个可见子节点在可用主轴空间 > 0.001（例如 100）时进入 Runtime native growth 循环，每轮分配量与无上界容量均为 NaN，退出比较不成立，布局线程无法退出。\n",
+          "line_count": 1,
+          "eol": "LF"
+        }
+      ],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    },
+    "zircon_runtime_interface/src/ui/layout/debug.rs": {
+      "before_sha256": "9a744156779f7e98b5dd6e126aa57e02b644a0890789dcc7a4c2e641e55e3ca4",
+      "after_sha256": "9a744156779f7e98b5dd6e126aa57e02b644a0890789dcc7a4c2e641e55e3ca4",
+      "reconstructed_before_sha256": "9a744156779f7e98b5dd6e126aa57e02b644a0890789dcc7a4c2e641e55e3ca4",
+      "before_bytes": 848,
+      "after_bytes": 848,
+      "before_physical_lines": 27,
+      "after_physical_lines": 27,
+      "line_endings": {
+        "kind": "LF",
+        "crlf_count": 0,
+        "bare_lf_count": 27,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "clean (no source change)",
+      "objects": [
+        {
+          "name": "UiLayoutDebugPacket",
+          "kind": "struct",
+          "lines": [
+            12,
+            12
+          ],
+          "declaration": "pub struct UiLayoutDebugPacket {",
+          "block_ref": "debug_packet"
+        },
+        {
+          "name": "UiLayoutDebugNode",
+          "kind": "struct",
+          "lines": [
+            20,
+            20
+          ],
+          "declaration": "pub struct UiLayoutDebugNode {",
+          "block_ref": "debug_node"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "imports",
+          "lines": [
+            1,
+            11
+          ],
+          "audit": "导入 serde、node ID 和布局 DTO。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": []
+        },
+        {
+          "name": "debug_packet",
+          "lines": [
+            12,
+            19
+          ],
+          "audit": "根 ID 与调试节点 packet DTO。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiLayoutDebugPacket",
+              "kind": "struct",
+              "line": 12
+            }
+          ]
+        },
+        {
+          "name": "debug_node",
+          "lines": [
+            20,
+            27
+          ],
+          "audit": "单节点 geometry/style/slot provenance 诊断载荷。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiLayoutDebugNode",
+              "kind": "struct",
+              "line": 20
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          11
+        ],
+        [
+          12,
+          19
+        ],
+        [
+          20,
+          27
+        ]
+      ],
+      "insertions": [],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    },
+    "zircon_runtime_interface/src/ui/layout/engine.rs": {
+      "before_sha256": "d84cf6d7784fa8ab9f616c971f1a14a330062746e3460f2953310a3a3d80c9d7",
+      "after_sha256": "fd4d3ba53c05416ee7be955f16545891366ed4e0f8d54f5cfac83fbd63277da9",
+      "reconstructed_before_sha256": "d84cf6d7784fa8ab9f616c971f1a14a330062746e3460f2953310a3a3d80c9d7",
+      "before_bytes": 17825,
+      "after_bytes": 17958,
+      "before_physical_lines": 511,
+      "after_physical_lines": 512,
+      "line_endings": {
+        "kind": "LF",
+        "crlf_count": 0,
+        "bare_lf_count": 512,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "M zircon_runtime_interface/src/ui/layout/engine.rs",
+      "objects": [
+        {
+          "name": "UiLayoutEngineBackend",
+          "kind": "enum",
+          "lines": [
+            12,
+            12
+          ],
+          "declaration": "pub enum UiLayoutEngineBackend {",
+          "block_ref": "imports_and_backend_family"
+        },
+        {
+          "name": "UiLayoutEngineFamily",
+          "kind": "enum",
+          "lines": [
+            19,
+            19
+          ],
+          "declaration": "pub enum UiLayoutEngineFamily {",
+          "block_ref": "imports_and_backend_family"
+        },
+        {
+          "name": "impl UiLayoutEngineFamily",
+          "kind": "impl",
+          "lines": [
+            33,
+            33
+          ],
+          "declaration": "impl UiLayoutEngineFamily {",
+          "block_ref": "imports_and_backend_family"
+        },
+        {
+          "name": "is_zircon_owned",
+          "kind": "function",
+          "lines": [
+            34,
+            34
+          ],
+          "declaration": "pub const fn is_zircon_owned(self) -> bool {",
+          "block_ref": "imports_and_backend_family"
+        },
+        {
+          "name": "is_taffy_owned",
+          "kind": "function",
+          "lines": [
+            47,
+            47
+          ],
+          "declaration": "pub const fn is_taffy_owned(self) -> bool {",
+          "block_ref": "imports_and_backend_family"
+        },
+        {
+          "name": "UiLayoutEngineCapability",
+          "kind": "struct",
+          "lines": [
+            54,
+            54
+          ],
+          "declaration": "pub struct UiLayoutEngineCapability {",
+          "block_ref": "capability_presets"
+        },
+        {
+          "name": "impl Default for UiLayoutEngineCapability",
+          "kind": "impl",
+          "lines": [
+            61,
+            61
+          ],
+          "declaration": "impl Default for UiLayoutEngineCapability {",
+          "block_ref": "capability_presets"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            62,
+            62
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "capability_presets"
+        },
+        {
+          "name": "impl UiLayoutEngineCapability",
+          "kind": "impl",
+          "lines": [
+            67,
+            67
+          ],
+          "declaration": "impl UiLayoutEngineCapability {",
+          "block_ref": "capability_presets"
+        },
+        {
+          "name": "zircon",
+          "kind": "function",
+          "lines": [
+            68,
+            68
+          ],
+          "declaration": "pub fn zircon() -> Self {",
+          "block_ref": "capability_presets"
+        },
+        {
+          "name": "taffy_flex_grid_wrap_block",
+          "kind": "function",
+          "lines": [
+            89,
+            89
+          ],
+          "declaration": "pub fn taffy_flex_grid_wrap_block() -> Self {",
+          "block_ref": "capability_presets"
+        },
+        {
+          "name": "supports_family",
+          "kind": "function",
+          "lines": [
+            103,
+            103
+          ],
+          "declaration": "pub fn supports_family(&self, family: UiLayoutEngineFamily) -> bool {",
+          "block_ref": "capability_presets"
+        },
+        {
+          "name": "UiLayoutEngineRequest",
+          "kind": "struct",
+          "lines": [
+            111,
+            111
+          ],
+          "declaration": "pub struct UiLayoutEngineRequest {",
+          "block_ref": "engine_request"
+        },
+        {
+          "name": "impl Default for UiLayoutEngineRequest",
+          "kind": "impl",
+          "lines": [
+            117,
+            117
+          ],
+          "declaration": "impl Default for UiLayoutEngineRequest {",
+          "block_ref": "engine_request"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            118,
+            118
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "engine_request"
+        },
+        {
+          "name": "impl UiLayoutEngineRequest",
+          "kind": "impl",
+          "lines": [
+            123,
+            123
+          ],
+          "declaration": "impl UiLayoutEngineRequest {",
+          "block_ref": "engine_request"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            124,
+            124
+          ],
+          "declaration": "pub const fn new(family: UiLayoutEngineFamily) -> Self {",
+          "block_ref": "engine_request"
+        },
+        {
+          "name": "requires_zircon_semantics",
+          "kind": "function",
+          "lines": [
+            132,
+            132
+          ],
+          "declaration": "pub const fn requires_zircon_semantics(&self) -> bool {",
+          "block_ref": "engine_request"
+        },
+        {
+          "name": "from_container_kind",
+          "kind": "function",
+          "lines": [
+            136,
+            136
+          ],
+          "declaration": "pub const fn from_container_kind(container: UiContainerKind) -> Self {",
+          "block_ref": "engine_request"
+        },
+        {
+          "name": "UiLayoutEngineSupport",
+          "kind": "enum",
+          "lines": [
+            143,
+            143
+          ],
+          "declaration": "pub enum UiLayoutEngineSupport {",
+          "block_ref": "support_fallback_enums"
+        },
+        {
+          "name": "UiLayoutEngineFallbackReason",
+          "kind": "enum",
+          "lines": [
+            151,
+            151
+          ],
+          "declaration": "pub enum UiLayoutEngineFallbackReason {",
+          "block_ref": "support_fallback_enums"
+        },
+        {
+          "name": "UiLayoutEngineFallbackReasonCount",
+          "kind": "struct",
+          "lines": [
+            169,
+            169
+          ],
+          "declaration": "pub struct UiLayoutEngineFallbackReasonCount {",
+          "block_ref": "reason_counts_tree_stats"
+        },
+        {
+          "name": "UiLayoutEngineTaffyTreeBuildStats",
+          "kind": "struct",
+          "lines": [
+            176,
+            176
+          ],
+          "declaration": "pub struct UiLayoutEngineTaffyTreeBuildStats {",
+          "block_ref": "reason_counts_tree_stats"
+        },
+        {
+          "name": "impl UiLayoutEngineTaffyTreeBuildStats",
+          "kind": "impl",
+          "lines": [
+            181,
+            181
+          ],
+          "declaration": "impl UiLayoutEngineTaffyTreeBuildStats {",
+          "block_ref": "reason_counts_tree_stats"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            182,
+            182
+          ],
+          "declaration": "pub const fn new(node_count: u64) -> Self {",
+          "block_ref": "reason_counts_tree_stats"
+        },
+        {
+          "name": "UiLayoutEngineSelection",
+          "kind": "struct",
+          "lines": [
+            192,
+            192
+          ],
+          "declaration": "pub struct UiLayoutEngineSelection {",
+          "block_ref": "engine_selection"
+        },
+        {
+          "name": "impl Default for UiLayoutEngineSelection",
+          "kind": "impl",
+          "lines": [
+            203,
+            203
+          ],
+          "declaration": "impl Default for UiLayoutEngineSelection {",
+          "block_ref": "engine_selection"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            204,
+            204
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "engine_selection"
+        },
+        {
+          "name": "impl UiLayoutEngineSelection",
+          "kind": "impl",
+          "lines": [
+            218,
+            218
+          ],
+          "declaration": "impl UiLayoutEngineSelection {",
+          "block_ref": "engine_selection"
+        },
+        {
+          "name": "select",
+          "kind": "function",
+          "lines": [
+            220,
+            220
+          ],
+          "declaration": "pub fn select(",
+          "block_ref": "engine_selection"
+        },
+        {
+          "name": "with_node_id",
+          "kind": "function",
+          "lines": [
+            252,
+            252
+          ],
+          "declaration": "pub fn with_node_id(mut self, node_id: UiNodeId) -> Self {",
+          "block_ref": "engine_selection"
+        },
+        {
+          "name": "with_taffy_tree_build",
+          "kind": "function",
+          "lines": [
+            257,
+            257
+          ],
+          "declaration": "pub fn with_taffy_tree_build(mut self, stats: UiLayoutEngineTaffyTreeBuildStats) -> Self {",
+          "block_ref": "engine_selection"
+        },
+        {
+          "name": "UiLayoutEngineSelectionReport",
+          "kind": "struct",
+          "lines": [
+            265,
+            265
+          ],
+          "declaration": "pub struct UiLayoutEngineSelectionReport {",
+          "block_ref": "report_wire_deserializer"
+        },
+        {
+          "name": "impl Eq for UiLayoutEngineSelectionReport",
+          "kind": "impl",
+          "lines": [
+            277,
+            277
+          ],
+          "declaration": "impl Eq for UiLayoutEngineSelectionReport {}",
+          "block_ref": "report_wire_deserializer"
+        },
+        {
+          "name": "impl<'de> Deserialize<'de> for UiLayoutEngineSelectionReport",
+          "kind": "impl",
+          "lines": [
+            279,
+            279
+          ],
+          "declaration": "impl<'de> Deserialize<'de> for UiLayoutEngineSelectionReport {",
+          "block_ref": "report_wire_deserializer"
+        },
+        {
+          "name": "deserialize",
+          "kind": "function",
+          "lines": [
+            280,
+            280
+          ],
+          "declaration": "fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>",
+          "block_ref": "report_wire_deserializer"
+        },
+        {
+          "name": "WireReport",
+          "kind": "struct",
+          "lines": [
+            286,
+            286
+          ],
+          "declaration": "struct WireReport {",
+          "block_ref": "report_wire_deserializer"
+        },
+        {
+          "name": "impl UiLayoutEngineSelectionReport",
+          "kind": "impl",
+          "lines": [
+            315,
+            315
+          ],
+          "declaration": "impl UiLayoutEngineSelectionReport {",
+          "block_ref": "report_aggregate_recompute"
+        },
+        {
+          "name": "from_selections",
+          "kind": "function",
+          "lines": [
+            316,
+            316
+          ],
+          "declaration": "pub fn from_selections(selections: Vec<UiLayoutEngineSelection>) -> Self {",
+          "block_ref": "report_aggregate_recompute"
+        },
+        {
+          "name": "recompute_counts",
+          "kind": "function",
+          "lines": [
+            325,
+            325
+          ],
+          "declaration": "pub fn recompute_counts(&mut self) {",
+          "block_ref": "report_aggregate_recompute"
+        },
+        {
+          "name": "increment_fallback_reason_count",
+          "kind": "function",
+          "lines": [
+            361,
+            361
+          ],
+          "declaration": "fn increment_fallback_reason_count(",
+          "block_ref": "report_aggregate_recompute"
+        },
+        {
+          "name": "replace_selection_at",
+          "kind": "function",
+          "lines": [
+            378,
+            378
+          ],
+          "declaration": "pub fn replace_selection_at(",
+          "block_ref": "selection_replacement_cow"
+        },
+        {
+          "name": "replace_selection_at_with_cow_stats",
+          "kind": "function",
+          "lines": [
+            391,
+            391
+          ],
+          "declaration": "pub fn replace_selection_at_with_cow_stats(",
+          "block_ref": "selection_replacement_cow"
+        },
+        {
+          "name": "unsupported_reason",
+          "kind": "function",
+          "lines": [
+            495,
+            495
+          ],
+          "declaration": "fn unsupported_reason(",
+          "block_ref": "unsupported_reason_mapping"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "imports_and_backend_family",
+          "lines": [
+            1,
+            53
+          ],
+          "audit": "Backend/family 标签；family helper 区分 Zircon-owned 和 Taffy-owned。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiLayoutEngineBackend",
+              "kind": "enum",
+              "line": 12
+            },
+            {
+              "name": "UiLayoutEngineFamily",
+              "kind": "enum",
+              "line": 19
+            },
+            {
+              "name": "impl UiLayoutEngineFamily",
+              "kind": "impl",
+              "line": 33
+            },
+            {
+              "name": "is_zircon_owned",
+              "kind": "function",
+              "line": 34
+            },
+            {
+              "name": "is_taffy_owned",
+              "kind": "function",
+              "line": 47
+            }
+          ]
+        },
+        {
+          "name": "capability_presets",
+          "lines": [
+            54,
+            110
+          ],
+          "audit": "声明支持 family 并提供查询，不运行后端。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiLayoutEngineCapability",
+              "kind": "struct",
+              "line": 54
+            },
+            {
+              "name": "impl Default for UiLayoutEngineCapability",
+              "kind": "impl",
+              "line": 61
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 62
+            },
+            {
+              "name": "impl UiLayoutEngineCapability",
+              "kind": "impl",
+              "line": 67
+            },
+            {
+              "name": "zircon",
+              "kind": "function",
+              "line": 68
+            },
+            {
+              "name": "taffy_flex_grid_wrap_block",
+              "kind": "function",
+              "line": 89
+            },
+            {
+              "name": "supports_family",
+              "kind": "function",
+              "line": 103
+            }
+          ]
+        },
+        {
+          "name": "engine_request",
+          "lines": [
+            111,
+            142
+          ],
+          "audit": "从容器派生 family 并携带测量/DPI 需求；选择记录不是布局结果。",
+          "documentation_decision": "补中文 request 文档，明确选择消费时机和不执行布局。",
+          "objects": [
+            {
+              "name": "UiLayoutEngineRequest",
+              "kind": "struct",
+              "line": 111
+            },
+            {
+              "name": "impl Default for UiLayoutEngineRequest",
+              "kind": "impl",
+              "line": 117
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 118
+            },
+            {
+              "name": "impl UiLayoutEngineRequest",
+              "kind": "impl",
+              "line": 123
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 124
+            },
+            {
+              "name": "requires_zircon_semantics",
+              "kind": "function",
+              "line": 132
+            },
+            {
+              "name": "from_container_kind",
+              "kind": "function",
+              "line": 136
+            }
+          ]
+        },
+        {
+          "name": "support_fallback_enums",
+          "lines": [
+            143,
+            168
+          ],
+          "audit": "区分支持状态与 fallback reason。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiLayoutEngineSupport",
+              "kind": "enum",
+              "line": 143
+            },
+            {
+              "name": "UiLayoutEngineFallbackReason",
+              "kind": "enum",
+              "line": 151
+            }
+          ]
+        },
+        {
+          "name": "reason_counts_tree_stats",
+          "lines": [
+            169,
+            191
+          ],
+          "audit": "fallback reason 和 Taffy tree stats 计数 DTO。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiLayoutEngineFallbackReasonCount",
+              "kind": "struct",
+              "line": 169
+            },
+            {
+              "name": "UiLayoutEngineTaffyTreeBuildStats",
+              "kind": "struct",
+              "line": 176
+            },
+            {
+              "name": "impl UiLayoutEngineTaffyTreeBuildStats",
+              "kind": "impl",
+              "line": 181
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 182
+            }
+          ]
+        },
+        {
+          "name": "engine_selection",
+          "lines": [
+            192,
+            264
+          ],
+          "audit": "选择记录 backend/support/fallback/node ID/stats。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiLayoutEngineSelection",
+              "kind": "struct",
+              "line": 192
+            },
+            {
+              "name": "impl Default for UiLayoutEngineSelection",
+              "kind": "impl",
+              "line": 203
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 204
+            },
+            {
+              "name": "impl UiLayoutEngineSelection",
+              "kind": "impl",
+              "line": 218
+            },
+            {
+              "name": "select",
+              "kind": "function",
+              "line": 220
+            },
+            {
+              "name": "with_node_id",
+              "kind": "function",
+              "line": 252
+            },
+            {
+              "name": "with_taffy_tree_build",
+              "kind": "function",
+              "line": 257
+            }
+          ]
+        },
+        {
+          "name": "report_wire_deserializer",
+          "lines": [
+            265,
+            314
+          ],
+          "audit": "手写 Deserialize 接 WireReport 后重算 aggregate。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiLayoutEngineSelectionReport",
+              "kind": "struct",
+              "line": 265
+            },
+            {
+              "name": "impl Eq for UiLayoutEngineSelectionReport",
+              "kind": "impl",
+              "line": 277
+            },
+            {
+              "name": "impl<'de> Deserialize<'de> for UiLayoutEngineSelectionReport",
+              "kind": "impl",
+              "line": 279
+            },
+            {
+              "name": "deserialize",
+              "kind": "function",
+              "line": 280
+            },
+            {
+              "name": "WireReport",
+              "kind": "struct",
+              "line": 286
+            }
+          ]
+        },
+        {
+          "name": "report_aggregate_recompute",
+          "lines": [
+            315,
+            372
+          ],
+          "audit": "从 selection 列表重建 fallback/unsupported 汇总。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "impl UiLayoutEngineSelectionReport",
+              "kind": "impl",
+              "line": 315
+            },
+            {
+              "name": "from_selections",
+              "kind": "function",
+              "line": 316
+            },
+            {
+              "name": "recompute_counts",
+              "kind": "function",
+              "line": 325
+            },
+            {
+              "name": "increment_fallback_reason_count",
+              "kind": "function",
+              "line": 361
+            }
+          ]
+        },
+        {
+          "name": "selection_replacement_cow",
+          "lines": [
+            373,
+            494
+          ],
+          "audit": "替换一项并更新 persistent report/COW 统计；测试保留旧 clone。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "replace_selection_at",
+              "kind": "function",
+              "line": 378
+            },
+            {
+              "name": "replace_selection_at_with_cow_stats",
+              "kind": "function",
+              "line": 391
+            }
+          ]
+        },
+        {
+          "name": "unsupported_reason_mapping",
+          "lines": [
+            495,
+            512
+          ],
+          "audit": "私有 helper 映射 unsupported 到 fallback reason。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "unsupported_reason",
+              "kind": "function",
+              "line": 495
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          53
+        ],
+        [
+          54,
+          110
+        ],
+        [
+          111,
+          142
+        ],
+        [
+          143,
+          168
+        ],
+        [
+          169,
+          191
+        ],
+        [
+          192,
+          264
+        ],
+        [
+          265,
+          314
+        ],
+        [
+          315,
+          372
+        ],
+        [
+          373,
+          494
+        ],
+        [
+          495,
+          512
+        ]
+      ],
+      "insertions": [
+        {
+          "offset_bytes": 3050,
+          "byte_length": 133,
+          "sha256": "2efe97a291d85a2f194d7ccc472739bde37248d704303bf27916673f3fd6594c",
+          "exact_text": "/// 交给后端选择逻辑的能力请求，描述布局族、内容测量与 DPI 需求；选择记录不代表布局已执行。\n",
+          "line_count": 1,
+          "eol": "LF"
+        }
+      ],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    },
+    "zircon_runtime_interface/src/ui/layout/geometry.rs": {
+      "before_sha256": "759aba039f7a70f039b6d4f9e7caa32190e5d5cbc83f680936abcc642194687f",
+      "after_sha256": "7c27f459366e953ddd69d9bb56659a22272d6e11ddfd957044ca27686f2949d0",
+      "reconstructed_before_sha256": "759aba039f7a70f039b6d4f9e7caa32190e5d5cbc83f680936abcc642194687f",
+      "before_bytes": 9247,
+      "after_bytes": 9505,
+      "before_physical_lines": 345,
+      "after_physical_lines": 347,
+      "line_endings": {
+        "kind": "LF",
+        "crlf_count": 0,
+        "bare_lf_count": 347,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "M zircon_runtime_interface/src/ui/layout/geometry.rs",
+      "objects": [
+        {
+          "name": "UiPoint",
+          "kind": "struct",
+          "lines": [
+            8,
+            8
+          ],
+          "declaration": "pub struct UiPoint {",
+          "block_ref": "point_size_values"
+        },
+        {
+          "name": "impl UiPoint",
+          "kind": "impl",
+          "lines": [
+            13,
+            13
+          ],
+          "declaration": "impl UiPoint {",
+          "block_ref": "point_size_values"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            14,
+            14
+          ],
+          "declaration": "pub const fn new(x: f32, y: f32) -> Self {",
+          "block_ref": "point_size_values"
+        },
+        {
+          "name": "UiSize",
+          "kind": "struct",
+          "lines": [
+            20,
+            20
+          ],
+          "declaration": "pub struct UiSize {",
+          "block_ref": "point_size_values"
+        },
+        {
+          "name": "impl UiSize",
+          "kind": "impl",
+          "lines": [
+            25,
+            25
+          ],
+          "declaration": "impl UiSize {",
+          "block_ref": "point_size_values"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            26,
+            26
+          ],
+          "declaration": "pub const fn new(width: f32, height: f32) -> Self {",
+          "block_ref": "point_size_values"
+        },
+        {
+          "name": "UiFrame",
+          "kind": "struct",
+          "lines": [
+            32,
+            32
+          ],
+          "declaration": "pub struct UiFrame {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "impl UiFrame",
+          "kind": "impl",
+          "lines": [
+            39,
+            39
+          ],
+          "declaration": "impl UiFrame {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            40,
+            40
+          ],
+          "declaration": "pub const fn new(x: f32, y: f32, width: f32, height: f32) -> Self {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "right",
+          "kind": "function",
+          "lines": [
+            49,
+            49
+          ],
+          "declaration": "pub fn right(self) -> f32 {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "bottom",
+          "kind": "function",
+          "lines": [
+            53,
+            53
+          ],
+          "declaration": "pub fn bottom(self) -> f32 {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "center",
+          "kind": "function",
+          "lines": [
+            57,
+            57
+          ],
+          "declaration": "pub fn center(self) -> UiPoint {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "contains_point",
+          "kind": "function",
+          "lines": [
+            62,
+            62
+          ],
+          "declaration": "pub fn contains_point(self, point: UiPoint) -> bool {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "intersection",
+          "kind": "function",
+          "lines": [
+            72,
+            72
+          ],
+          "declaration": "pub fn intersection(self, other: Self) -> Option<Self> {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "translated",
+          "kind": "function",
+          "lines": [
+            82,
+            82
+          ],
+          "declaration": "pub fn translated(self, translation: UiPoint) -> Self {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "scaled",
+          "kind": "function",
+          "lines": [
+            91,
+            91
+          ],
+          "declaration": "pub fn scaled(self, scale: UiPoint) -> Self {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "apply_layout_transform",
+          "kind": "function",
+          "lines": [
+            100,
+            100
+          ],
+          "declaration": "pub fn apply_layout_transform(self, transform: UiLayoutTransform) -> Self {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "apply_render_transform",
+          "kind": "function",
+          "lines": [
+            105,
+            105
+          ],
+          "declaration": "pub fn apply_render_transform(self, transform: UiRenderTransform) -> Self {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "pixel_snapped",
+          "kind": "function",
+          "lines": [
+            111,
+            111
+          ],
+          "declaration": "pub fn pixel_snapped(self, dpi_scale: f32) -> Self {",
+          "block_ref": "frame_geometry_operations"
+        },
+        {
+          "name": "UiPixelSnapping",
+          "kind": "enum",
+          "lines": [
+            126,
+            126
+          ],
+          "declaration": "pub enum UiPixelSnapping {",
+          "block_ref": "pixel_snapping_policy"
+        },
+        {
+          "name": "UiPixelSnappingPolicy",
+          "kind": "enum",
+          "lines": [
+            138,
+            138
+          ],
+          "declaration": "pub enum UiPixelSnappingPolicy {",
+          "block_ref": "pixel_snapping_policy"
+        },
+        {
+          "name": "impl UiPixelSnappingPolicy",
+          "kind": "impl",
+          "lines": [
+            145,
+            145
+          ],
+          "declaration": "impl UiPixelSnappingPolicy {",
+          "block_ref": "pixel_snapping_policy"
+        },
+        {
+          "name": "inherit_from",
+          "kind": "function",
+          "lines": [
+            146,
+            146
+          ],
+          "declaration": "pub const fn inherit_from(self, parent: Self) -> Self {",
+          "block_ref": "pixel_snapping_policy"
+        },
+        {
+          "name": "resolve",
+          "kind": "function",
+          "lines": [
+            153,
+            153
+          ],
+          "declaration": "pub const fn resolve(self, fallback: UiPixelSnapping) -> UiPixelSnapping {",
+          "block_ref": "pixel_snapping_policy"
+        },
+        {
+          "name": "UiLayoutTransform",
+          "kind": "struct",
+          "lines": [
+            163,
+            163
+          ],
+          "declaration": "pub struct UiLayoutTransform {",
+          "block_ref": "layout_render_transforms"
+        },
+        {
+          "name": "impl Default for UiLayoutTransform",
+          "kind": "impl",
+          "lines": [
+            170,
+            170
+          ],
+          "declaration": "impl Default for UiLayoutTransform {",
+          "block_ref": "layout_render_transforms"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            171,
+            171
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "layout_render_transforms"
+        },
+        {
+          "name": "impl UiLayoutTransform",
+          "kind": "impl",
+          "lines": [
+            176,
+            176
+          ],
+          "declaration": "impl UiLayoutTransform {",
+          "block_ref": "layout_render_transforms"
+        },
+        {
+          "name": "identity",
+          "kind": "function",
+          "lines": [
+            177,
+            177
+          ],
+          "declaration": "pub const fn identity() -> Self {",
+          "block_ref": "layout_render_transforms"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            184,
+            184
+          ],
+          "declaration": "pub const fn new(translation: UiPoint, scale: UiPoint) -> Self {",
+          "block_ref": "layout_render_transforms"
+        },
+        {
+          "name": "UiRenderTransform",
+          "kind": "struct",
+          "lines": [
+            190,
+            190
+          ],
+          "declaration": "pub struct UiRenderTransform {",
+          "block_ref": "layout_render_transforms"
+        },
+        {
+          "name": "impl Default for UiRenderTransform",
+          "kind": "impl",
+          "lines": [
+            197,
+            197
+          ],
+          "declaration": "impl Default for UiRenderTransform {",
+          "block_ref": "layout_render_transforms"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            198,
+            198
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "layout_render_transforms"
+        },
+        {
+          "name": "impl UiRenderTransform",
+          "kind": "impl",
+          "lines": [
+            203,
+            203
+          ],
+          "declaration": "impl UiRenderTransform {",
+          "block_ref": "layout_render_transforms"
+        },
+        {
+          "name": "identity",
+          "kind": "function",
+          "lines": [
+            204,
+            204
+          ],
+          "declaration": "pub const fn identity() -> Self {",
+          "block_ref": "layout_render_transforms"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            211,
+            211
+          ],
+          "declaration": "pub const fn new(translation: UiPoint, scale: UiPoint) -> Self {",
+          "block_ref": "layout_render_transforms"
+        },
+        {
+          "name": "default_transform_scale",
+          "kind": "function",
+          "lines": [
+            216,
+            216
+          ],
+          "declaration": "const fn default_transform_scale() -> UiPoint {",
+          "block_ref": "default_transform_scale"
+        },
+        {
+          "name": "UiGeometry",
+          "kind": "struct",
+          "lines": [
+            223,
+            223
+          ],
+          "declaration": "pub struct UiGeometry {",
+          "block_ref": "ui_geometry_metrics"
+        },
+        {
+          "name": "impl Default for UiGeometry",
+          "kind": "impl",
+          "lines": [
+            242,
+            242
+          ],
+          "declaration": "impl Default for UiGeometry {",
+          "block_ref": "ui_geometry_metrics"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            243,
+            243
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "ui_geometry_metrics"
+        },
+        {
+          "name": "impl UiGeometry",
+          "kind": "impl",
+          "lines": [
+            248,
+            248
+          ],
+          "declaration": "impl UiGeometry {",
+          "block_ref": "ui_geometry_metrics"
+        },
+        {
+          "name": "from_frame",
+          "kind": "function",
+          "lines": [
+            249,
+            249
+          ],
+          "declaration": "pub const fn from_frame(frame: UiFrame) -> Self {",
+          "block_ref": "ui_geometry_metrics"
+        },
+        {
+          "name": "from_frame_with_metrics",
+          "kind": "function",
+          "lines": [
+            263,
+            263
+          ],
+          "declaration": "pub fn from_frame_with_metrics(frame: UiFrame, metrics: UiLayoutMetrics) -> Self {",
+          "block_ref": "ui_geometry_metrics"
+        },
+        {
+          "name": "frame_is_finite",
+          "kind": "function",
+          "lines": [
+            290,
+            290
+          ],
+          "declaration": "fn frame_is_finite(frame: UiFrame) -> bool {",
+          "block_ref": "finite_and_snap_helpers"
+        },
+        {
+          "name": "sanitized_metric_scale",
+          "kind": "function",
+          "lines": [
+            297,
+            297
+          ],
+          "declaration": "fn sanitized_metric_scale(scale: f32) -> f32 {",
+          "block_ref": "finite_and_snap_helpers"
+        },
+        {
+          "name": "snap_floor",
+          "kind": "function",
+          "lines": [
+            305,
+            305
+          ],
+          "declaration": "fn snap_floor(value: f32, scale: f32) -> f32 {",
+          "block_ref": "finite_and_snap_helpers"
+        },
+        {
+          "name": "snap_ceil",
+          "kind": "function",
+          "lines": [
+            309,
+            309
+          ],
+          "declaration": "fn snap_ceil(value: f32, scale: f32) -> f32 {",
+          "block_ref": "finite_and_snap_helpers"
+        },
+        {
+          "name": "Pivot",
+          "kind": "struct",
+          "lines": [
+            314,
+            314
+          ],
+          "declaration": "pub struct Pivot {",
+          "block_ref": "pivot_anchor_position"
+        },
+        {
+          "name": "impl Pivot",
+          "kind": "impl",
+          "lines": [
+            319,
+            319
+          ],
+          "declaration": "impl Pivot {",
+          "block_ref": "pivot_anchor_position"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            320,
+            320
+          ],
+          "declaration": "pub const fn new(x: f32, y: f32) -> Self {",
+          "block_ref": "pivot_anchor_position"
+        },
+        {
+          "name": "Anchor",
+          "kind": "struct",
+          "lines": [
+            326,
+            326
+          ],
+          "declaration": "pub struct Anchor {",
+          "block_ref": "pivot_anchor_position"
+        },
+        {
+          "name": "impl Anchor",
+          "kind": "impl",
+          "lines": [
+            331,
+            331
+          ],
+          "declaration": "impl Anchor {",
+          "block_ref": "pivot_anchor_position"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            332,
+            332
+          ],
+          "declaration": "pub const fn new(x: f32, y: f32) -> Self {",
+          "block_ref": "pivot_anchor_position"
+        },
+        {
+          "name": "Position",
+          "kind": "struct",
+          "lines": [
+            338,
+            338
+          ],
+          "declaration": "pub struct Position {",
+          "block_ref": "pivot_anchor_position"
+        },
+        {
+          "name": "impl Position",
+          "kind": "impl",
+          "lines": [
+            343,
+            343
+          ],
+          "declaration": "impl Position {",
+          "block_ref": "pivot_anchor_position"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            344,
+            344
+          ],
+          "declaration": "pub const fn new(x: f32, y: f32) -> Self {",
+          "block_ref": "pivot_anchor_position"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "module_metrics_import",
+          "lines": [
+            1,
+            7
+          ],
+          "audit": "几何 DTO 引用共享 UiLayoutMetrics。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": []
+        },
+        {
+          "name": "point_size_values",
+          "lines": [
+            8,
+            31
+          ],
+          "audit": "UiPoint/UiSize 是二维坐标和尺寸值。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiPoint",
+              "kind": "struct",
+              "line": 8
+            },
+            {
+              "name": "impl UiPoint",
+              "kind": "impl",
+              "line": 13
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 14
+            },
+            {
+              "name": "UiSize",
+              "kind": "struct",
+              "line": 20
+            },
+            {
+              "name": "impl UiSize",
+              "kind": "impl",
+              "line": 25
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 26
+            }
+          ]
+        },
+        {
+          "name": "frame_geometry_operations",
+          "lines": [
+            32,
+            125
+          ],
+          "audit": "UiFrame 提供边界、相交、变换、contains 与像素对齐。",
+          "documentation_decision": "新增 pixel snap 文档说明无效比例和非有限帧回退。",
+          "objects": [
+            {
+              "name": "UiFrame",
+              "kind": "struct",
+              "line": 32
+            },
+            {
+              "name": "impl UiFrame",
+              "kind": "impl",
+              "line": 39
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 40
+            },
+            {
+              "name": "right",
+              "kind": "function",
+              "line": 49
+            },
+            {
+              "name": "bottom",
+              "kind": "function",
+              "line": 53
+            },
+            {
+              "name": "center",
+              "kind": "function",
+              "line": 57
+            },
+            {
+              "name": "contains_point",
+              "kind": "function",
+              "line": 62
+            },
+            {
+              "name": "intersection",
+              "kind": "function",
+              "line": 72
+            },
+            {
+              "name": "translated",
+              "kind": "function",
+              "line": 82
+            },
+            {
+              "name": "scaled",
+              "kind": "function",
+              "line": 91
+            },
+            {
+              "name": "apply_layout_transform",
+              "kind": "function",
+              "line": 100
+            },
+            {
+              "name": "apply_render_transform",
+              "kind": "function",
+              "line": 105
+            },
+            {
+              "name": "pixel_snapped",
+              "kind": "function",
+              "line": 111
+            }
+          ]
+        },
+        {
+          "name": "pixel_snapping_policy",
+          "lines": [
+            126,
+            162
+          ],
+          "audit": "启用状态及 inherit/resolve 策略。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiPixelSnapping",
+              "kind": "enum",
+              "line": 126
+            },
+            {
+              "name": "UiPixelSnappingPolicy",
+              "kind": "enum",
+              "line": 138
+            },
+            {
+              "name": "impl UiPixelSnappingPolicy",
+              "kind": "impl",
+              "line": 145
+            },
+            {
+              "name": "inherit_from",
+              "kind": "function",
+              "line": 146
+            },
+            {
+              "name": "resolve",
+              "kind": "function",
+              "line": 153
+            }
+          ]
+        },
+        {
+          "name": "layout_render_transforms",
+          "lines": [
+            163,
+            215
+          ],
+          "audit": "布局与绘制 transform 分别携带 translation/scale。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiLayoutTransform",
+              "kind": "struct",
+              "line": 163
+            },
+            {
+              "name": "impl Default for UiLayoutTransform",
+              "kind": "impl",
+              "line": 170
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 171
+            },
+            {
+              "name": "impl UiLayoutTransform",
+              "kind": "impl",
+              "line": 176
+            },
+            {
+              "name": "identity",
+              "kind": "function",
+              "line": 177
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 184
+            },
+            {
+              "name": "UiRenderTransform",
+              "kind": "struct",
+              "line": 190
+            },
+            {
+              "name": "impl Default for UiRenderTransform",
+              "kind": "impl",
+              "line": 197
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 198
+            },
+            {
+              "name": "impl UiRenderTransform",
+              "kind": "impl",
+              "line": 203
+            },
+            {
+              "name": "identity",
+              "kind": "function",
+              "line": 204
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 211
+            }
+          ]
+        },
+        {
+          "name": "default_transform_scale",
+          "lines": [
+            216,
+            222
+          ],
+          "audit": "私有单位缩放默认 helper。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "default_transform_scale",
+              "kind": "function",
+              "line": 216
+            }
+          ]
+        },
+        {
+          "name": "ui_geometry_metrics",
+          "lines": [
+            223,
+            289
+          ],
+          "audit": "UiGeometry 保存布局帧、绘制变换与 metrics；绘制 bounds 可单独像素对齐。",
+          "documentation_decision": "新增 from_frame_with_metrics 文档区分 layout frame 和绘制边界。",
+          "objects": [
+            {
+              "name": "UiGeometry",
+              "kind": "struct",
+              "line": 223
+            },
+            {
+              "name": "impl Default for UiGeometry",
+              "kind": "impl",
+              "line": 242
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 243
+            },
+            {
+              "name": "impl UiGeometry",
+              "kind": "impl",
+              "line": 248
+            },
+            {
+              "name": "from_frame",
+              "kind": "function",
+              "line": 249
+            },
+            {
+              "name": "from_frame_with_metrics",
+              "kind": "function",
+              "line": 263
+            }
+          ]
+        },
+        {
+          "name": "finite_and_snap_helpers",
+          "lines": [
+            290,
+            313
+          ],
+          "audit": "有限值检查、比例规整、floor/ceil 像素对齐。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "frame_is_finite",
+              "kind": "function",
+              "line": 290
+            },
+            {
+              "name": "sanitized_metric_scale",
+              "kind": "function",
+              "line": 297
+            },
+            {
+              "name": "snap_floor",
+              "kind": "function",
+              "line": 305
+            },
+            {
+              "name": "snap_ceil",
+              "kind": "function",
+              "line": 309
+            }
+          ]
+        },
+        {
+          "name": "pivot_anchor_position",
+          "lines": [
+            314,
+            347
+          ],
+          "audit": "Pivot/Anchor/Position 相对布局值对象。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "Pivot",
+              "kind": "struct",
+              "line": 314
+            },
+            {
+              "name": "impl Pivot",
+              "kind": "impl",
+              "line": 319
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 320
+            },
+            {
+              "name": "Anchor",
+              "kind": "struct",
+              "line": 326
+            },
+            {
+              "name": "impl Anchor",
+              "kind": "impl",
+              "line": 331
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 332
+            },
+            {
+              "name": "Position",
+              "kind": "struct",
+              "line": 338
+            },
+            {
+              "name": "impl Position",
+              "kind": "impl",
+              "line": 343
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 344
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          7
+        ],
+        [
+          8,
+          31
+        ],
+        [
+          32,
+          125
+        ],
+        [
+          126,
+          162
+        ],
+        [
+          163,
+          215
+        ],
+        [
+          216,
+          222
+        ],
+        [
+          223,
+          289
+        ],
+        [
+          290,
+          313
+        ],
+        [
+          314,
+          347
+        ]
+      ],
+      "insertions": [
+        {
+          "offset_bytes": 2884,
+          "byte_length": 135,
+          "sha256": "d7ea507265d23838b1412a2c31b537f853dc0427493c2cd7418f968ff9566baa",
+          "exact_text": "    /// 将有限帧的边界按设备比例向外对齐到像素；比例无效或非正时按 1 处理，非有限帧原样返回。\n",
+          "line_count": 1,
+          "eol": "LF"
+        },
+        {
+          "offset_bytes": 7217,
+          "byte_length": 123,
+          "sha256": "246cf6526211f42d999fbd514677a576c92349e85e41327125796f0ba11eb940",
+          "exact_text": "    /// 保留原布局帧并设置布局、绘制变换；仅在像素对齐启用时计算向外取整的绘制边界。\n",
+          "line_count": 1,
+          "eol": "LF"
+        }
+      ],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    },
+    "zircon_runtime_interface/src/ui/layout/linear_sizing.rs": {
+      "before_sha256": "35a8bcfa03c175f96900d889943e1b65cf838804b94a814689995c002550b6b6",
+      "after_sha256": "86264bc749ed8066756cd6853ef81a8c463c8fb24e6a9eac0990a1316fe298bd",
+      "reconstructed_before_sha256": "35a8bcfa03c175f96900d889943e1b65cf838804b94a814689995c002550b6b6",
+      "before_bytes": 1786,
+      "after_bytes": 2101,
+      "before_physical_lines": 72,
+      "after_physical_lines": 74,
+      "line_endings": {
+        "kind": "LF",
+        "crlf_count": 0,
+        "bare_lf_count": 74,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "M zircon_runtime_interface/src/ui/layout/linear_sizing.rs",
+      "objects": [
+        {
+          "name": "UiLinearSlotSizeRule",
+          "kind": "enum",
+          "lines": [
+            5,
+            5
+          ],
+          "declaration": "pub enum UiLinearSlotSizeRule {",
+          "block_ref": "size_rule_and_existing_doc"
+        },
+        {
+          "name": "UiLinearSlotSizing",
+          "kind": "struct",
+          "lines": [
+            15,
+            15
+          ],
+          "declaration": "pub struct UiLinearSlotSizing {",
+          "block_ref": "sizing_fields_and_intent_gap"
+        },
+        {
+          "name": "impl Default for UiLinearSlotSizing",
+          "kind": "impl",
+          "lines": [
+            30,
+            30
+          ],
+          "declaration": "impl Default for UiLinearSlotSizing {",
+          "block_ref": "default_and_builders"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            31,
+            31
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "default_and_builders"
+        },
+        {
+          "name": "impl UiLinearSlotSizing",
+          "kind": "impl",
+          "lines": [
+            36,
+            36
+          ],
+          "declaration": "impl UiLinearSlotSizing {",
+          "block_ref": "default_and_builders"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            37,
+            37
+          ],
+          "declaration": "pub fn new(rule: UiLinearSlotSizeRule) -> Self {",
+          "block_ref": "default_and_builders"
+        },
+        {
+          "name": "with_value",
+          "kind": "function",
+          "lines": [
+            47,
+            47
+          ],
+          "declaration": "pub fn with_value(mut self, value: f32) -> Self {",
+          "block_ref": "default_and_builders"
+        },
+        {
+          "name": "with_shrink_value",
+          "kind": "function",
+          "lines": [
+            52,
+            52
+          ],
+          "declaration": "pub fn with_shrink_value(mut self, shrink_value: f32) -> Self {",
+          "block_ref": "default_and_builders"
+        },
+        {
+          "name": "with_min",
+          "kind": "function",
+          "lines": [
+            57,
+            57
+          ],
+          "declaration": "pub fn with_min(mut self, min: f32) -> Self {",
+          "block_ref": "default_and_builders"
+        },
+        {
+          "name": "with_max",
+          "kind": "function",
+          "lines": [
+            62,
+            62
+          ],
+          "declaration": "pub fn with_max(mut self, max: f32) -> Self {",
+          "block_ref": "default_and_builders"
+        },
+        {
+          "name": "default_linear_slot_value",
+          "kind": "function",
+          "lines": [
+            68,
+            68
+          ],
+          "declaration": "const fn default_linear_slot_value() -> f32 {",
+          "block_ref": "default_helpers"
+        },
+        {
+          "name": "default_linear_slot_max",
+          "kind": "function",
+          "lines": [
+            72,
+            72
+          ],
+          "declaration": "const fn default_linear_slot_max() -> f32 {",
+          "block_ref": "default_helpers"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "size_rule_and_existing_doc",
+          "lines": [
+            1,
+            14
+          ],
+          "audit": "Auto/Stretch/StretchContent；保留父级策略的既有英文文档。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiLinearSlotSizeRule",
+              "kind": "enum",
+              "line": 5
+            }
+          ]
+        },
+        {
+          "name": "sizing_fields_and_intent_gap",
+          "lines": [
+            15,
+            28
+          ],
+          "audit": "rule/value/shrink_value/min/max 和 serde defaults。",
+          "documentation_decision": "TODO 只标明 Native/Taffy 缩减权重意图缺口，并给出有限对照下一步；不判定哪个后端错误。",
+          "objects": [
+            {
+              "name": "UiLinearSlotSizing",
+              "kind": "struct",
+              "line": 15
+            }
+          ]
+        },
+        {
+          "name": "default_and_builders",
+          "lines": [
+            29,
+            66
+          ],
+          "audit": "Default/new 与 builder 仅设置各自 sizing 字段。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "impl Default for UiLinearSlotSizing",
+              "kind": "impl",
+              "line": 30
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 31
+            },
+            {
+              "name": "impl UiLinearSlotSizing",
+              "kind": "impl",
+              "line": 36
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 37
+            },
+            {
+              "name": "with_value",
+              "kind": "function",
+              "line": 47
+            },
+            {
+              "name": "with_shrink_value",
+              "kind": "function",
+              "line": 52
+            },
+            {
+              "name": "with_min",
+              "kind": "function",
+              "line": 57
+            },
+            {
+              "name": "with_max",
+              "kind": "function",
+              "line": 62
+            }
+          ]
+        },
+        {
+          "name": "default_helpers",
+          "lines": [
+            67,
+            74
+          ],
+          "audit": "默认 value=1、无界 max=-1。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "default_linear_slot_value",
+              "kind": "function",
+              "line": 68
+            },
+            {
+              "name": "default_linear_slot_max",
+              "kind": "function",
+              "line": 72
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          14
+        ],
+        [
+          15,
+          28
+        ],
+        [
+          29,
+          66
+        ],
+        [
+          67,
+          74
+        ]
+      ],
+      "insertions": [
+        {
+          "offset_bytes": 641,
+          "byte_length": 315,
+          "sha256": "5ec0be45e8898f7bd81dbe2635fd70e628359692ecc1e80b2bddcd51695695df",
+          "exact_text": "    /// TODO: [CR-ZCA-R039-0002] 待确认 Stretch/StretchContent 的缩减权重是否应跨后端统一；Native 使用 value，Taffy 使用 shrink_value。\n    /// 现有契约未覆盖两值不同且主轴空间不足的跨后端对照；下一步以有限尺寸、零 padding 和明确 min/max 验证意图。\n",
+          "line_count": 2,
+          "eol": "LF"
+        }
+      ],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    },
+    "zircon_runtime_interface/src/ui/layout/metrics.rs": {
+      "before_sha256": "17505d9eabc4709b6957d4236f788b6f99a491da03ed65423d74dafbd862818f",
+      "after_sha256": "2cb49fda3440ccd4d51d7f6c85e7eb92fb037387b4ddb434ec719e55ded33c52",
+      "reconstructed_before_sha256": "17505d9eabc4709b6957d4236f788b6f99a491da03ed65423d74dafbd862818f",
+      "before_bytes": 1225,
+      "after_bytes": 1446,
+      "before_physical_lines": 47,
+      "after_physical_lines": 49,
+      "line_endings": {
+        "kind": "LF",
+        "crlf_count": 0,
+        "bare_lf_count": 49,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "M zircon_runtime_interface/src/ui/layout/metrics.rs",
+      "objects": [
+        {
+          "name": "UiFlowDirection",
+          "kind": "enum",
+          "lines": [
+            7,
+            7
+          ],
+          "declaration": "pub enum UiFlowDirection {",
+          "block_ref": "flow_direction"
+        },
+        {
+          "name": "UiLayoutMetrics",
+          "kind": "struct",
+          "lines": [
+            16,
+            16
+          ],
+          "declaration": "pub struct UiLayoutMetrics {",
+          "block_ref": "layout_metrics_payload"
+        },
+        {
+          "name": "impl Default for UiLayoutMetrics",
+          "kind": "impl",
+          "lines": [
+            33,
+            33
+          ],
+          "declaration": "impl Default for UiLayoutMetrics {",
+          "block_ref": "metrics_default"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            34,
+            34
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "metrics_default"
+        },
+        {
+          "name": "default_scale",
+          "kind": "function",
+          "lines": [
+            47,
+            47
+          ],
+          "declaration": "const fn default_scale() -> f32 {",
+          "block_ref": "metrics_default"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "flow_direction",
+          "lines": [
+            1,
+            12
+          ],
+          "audit": "LTR/RTL，默认 LTR。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiFlowDirection",
+              "kind": "enum",
+              "line": 7
+            }
+          ]
+        },
+        {
+          "name": "layout_metrics_payload",
+          "lines": [
+            13,
+            31
+          ],
+          "audit": "logical/physical size、dpi/font/layout scale、flow 与 snapping 共用 DTO。",
+          "documentation_decision": "新增中文说明共享消费、缺省比例和 DTO 不校验输入。",
+          "objects": [
+            {
+              "name": "UiLayoutMetrics",
+              "kind": "struct",
+              "line": 16
+            }
+          ]
+        },
+        {
+          "name": "metrics_default",
+          "lines": [
+            32,
+            49
+          ],
+          "audit": "Default 初始化空尺寸、scale=1、LTR 和 Enabled snapping。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "impl Default for UiLayoutMetrics",
+              "kind": "impl",
+              "line": 33
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 34
+            },
+            {
+              "name": "default_scale",
+              "kind": "function",
+              "line": 47
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          12
+        ],
+        [
+          13,
+          31
+        ],
+        [
+          32,
+          49
+        ]
+      ],
+      "insertions": [
+        {
+          "offset_bytes": 270,
+          "byte_length": 221,
+          "sha256": "b3a89a1e71519b35d6c1257a4372a1b52b303def89e5f98e1be02ca61e940c8c",
+          "exact_text": "/// 窗口事件、几何换算与绘制共享的度量值；逻辑尺寸和物理尺寸分开携带，比例字段缺省为 1。\n/// 此 DTO 不校验调用方给出的比例值，具体消费点按自身契约处理。\n",
+          "line_count": 2,
+          "eol": "LF"
+        }
+      ],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    },
+    "zircon_runtime_interface/src/ui/layout/mod.rs": {
+      "before_sha256": "cb207ce0e766f6784290c3845eca73e8b86c053672d6c286de15ec308f2242b4",
+      "after_sha256": "cb207ce0e766f6784290c3845eca73e8b86c053672d6c286de15ec308f2242b4",
+      "reconstructed_before_sha256": "cb207ce0e766f6784290c3845eca73e8b86c053672d6c286de15ec308f2242b4",
+      "before_bytes": 1846,
+      "after_bytes": 1846,
+      "before_physical_lines": 52,
+      "after_physical_lines": 52,
+      "line_endings": {
+        "kind": "LF",
+        "crlf_count": 0,
+        "bare_lf_count": 52,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "clean (no source change)",
+      "objects": [
+        {
+          "name": "constraints",
+          "kind": "mod",
+          "lines": [
+            2,
+            2
+          ],
+          "declaration": "mod constraints;",
+          "block_ref": "private_submodules"
+        },
+        {
+          "name": "debug",
+          "kind": "mod",
+          "lines": [
+            4,
+            4
+          ],
+          "declaration": "mod debug;",
+          "block_ref": "private_submodules"
+        },
+        {
+          "name": "engine",
+          "kind": "mod",
+          "lines": [
+            6,
+            6
+          ],
+          "declaration": "mod engine;",
+          "block_ref": "private_submodules"
+        },
+        {
+          "name": "geometry",
+          "kind": "mod",
+          "lines": [
+            8,
+            8
+          ],
+          "declaration": "mod geometry;",
+          "block_ref": "private_submodules"
+        },
+        {
+          "name": "linear_sizing",
+          "kind": "mod",
+          "lines": [
+            10,
+            10
+          ],
+          "declaration": "mod linear_sizing;",
+          "block_ref": "private_submodules"
+        },
+        {
+          "name": "metrics",
+          "kind": "mod",
+          "lines": [
+            12,
+            12
+          ],
+          "declaration": "mod metrics;",
+          "block_ref": "private_submodules"
+        },
+        {
+          "name": "scroll",
+          "kind": "mod",
+          "lines": [
+            14,
+            14
+          ],
+          "declaration": "mod scroll;",
+          "block_ref": "private_submodules"
+        },
+        {
+          "name": "slot",
+          "kind": "mod",
+          "lines": [
+            16,
+            16
+          ],
+          "declaration": "mod slot;",
+          "block_ref": "private_submodules"
+        },
+        {
+          "name": "style",
+          "kind": "mod",
+          "lines": [
+            18,
+            18
+          ],
+          "declaration": "mod style;",
+          "block_ref": "private_submodules"
+        },
+        {
+          "name": "virtualization",
+          "kind": "mod",
+          "lines": [
+            20,
+            20
+          ],
+          "declaration": "mod virtualization;",
+          "block_ref": "private_submodules"
+        },
+        {
+          "name": "constraints",
+          "kind": "public_reexport_group",
+          "lines": [
+            22,
+            22
+          ],
+          "declaration": "pub use constraints::{",
+          "block_ref": "private_submodules"
+        },
+        {
+          "name": "debug",
+          "kind": "public_reexport_group",
+          "lines": [
+            26,
+            26
+          ],
+          "declaration": "pub use debug::{UiLayoutDebugNode, UiLayoutDebugPacket};",
+          "block_ref": "public_reexports"
+        },
+        {
+          "name": "engine",
+          "kind": "public_reexport_group",
+          "lines": [
+            27,
+            27
+          ],
+          "declaration": "pub use engine::{",
+          "block_ref": "public_reexports"
+        },
+        {
+          "name": "geometry",
+          "kind": "public_reexport_group",
+          "lines": [
+            32,
+            32
+          ],
+          "declaration": "pub use geometry::{",
+          "block_ref": "public_reexports"
+        },
+        {
+          "name": "linear_sizing",
+          "kind": "public_reexport_group",
+          "lines": [
+            36,
+            36
+          ],
+          "declaration": "pub use linear_sizing::{UiLinearSlotSizeRule, UiLinearSlotSizing};",
+          "block_ref": "public_reexports"
+        },
+        {
+          "name": "metrics",
+          "kind": "public_reexport_group",
+          "lines": [
+            37,
+            37
+          ],
+          "declaration": "pub use metrics::{UiFlowDirection, UiLayoutMetrics};",
+          "block_ref": "public_reexports"
+        },
+        {
+          "name": "scroll",
+          "kind": "public_reexport_group",
+          "lines": [
+            38,
+            38
+          ],
+          "declaration": "pub use scroll::{",
+          "block_ref": "public_reexports"
+        },
+        {
+          "name": "slot",
+          "kind": "public_reexport_group",
+          "lines": [
+            43,
+            43
+          ],
+          "declaration": "pub use slot::{",
+          "block_ref": "public_reexports"
+        },
+        {
+          "name": "style",
+          "kind": "public_reexport_group",
+          "lines": [
+            47,
+            47
+          ],
+          "declaration": "pub use style::{",
+          "block_ref": "public_reexports"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "private_submodules",
+          "lines": [
+            1,
+            25
+          ],
+          "audit": "私有子模块拆分 layout 契约。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "constraints",
+              "kind": "mod",
+              "line": 2
+            },
+            {
+              "name": "debug",
+              "kind": "mod",
+              "line": 4
+            },
+            {
+              "name": "engine",
+              "kind": "mod",
+              "line": 6
+            },
+            {
+              "name": "geometry",
+              "kind": "mod",
+              "line": 8
+            },
+            {
+              "name": "linear_sizing",
+              "kind": "mod",
+              "line": 10
+            },
+            {
+              "name": "metrics",
+              "kind": "mod",
+              "line": 12
+            },
+            {
+              "name": "scroll",
+              "kind": "mod",
+              "line": 14
+            },
+            {
+              "name": "slot",
+              "kind": "mod",
+              "line": 16
+            },
+            {
+              "name": "style",
+              "kind": "mod",
+              "line": 18
+            },
+            {
+              "name": "virtualization",
+              "kind": "mod",
+              "line": 20
+            },
+            {
+              "name": "constraints",
+              "kind": "public_reexport_group",
+              "line": 22
+            }
+          ]
+        },
+        {
+          "name": "public_reexports",
+          "lines": [
+            26,
+            52
+          ],
+          "audit": "集中 re-export DTO、selection/report、style 与 window 类型。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "debug",
+              "kind": "public_reexport_group",
+              "line": 26
+            },
+            {
+              "name": "engine",
+              "kind": "public_reexport_group",
+              "line": 27
+            },
+            {
+              "name": "geometry",
+              "kind": "public_reexport_group",
+              "line": 32
+            },
+            {
+              "name": "linear_sizing",
+              "kind": "public_reexport_group",
+              "line": 36
+            },
+            {
+              "name": "metrics",
+              "kind": "public_reexport_group",
+              "line": 37
+            },
+            {
+              "name": "scroll",
+              "kind": "public_reexport_group",
+              "line": 38
+            },
+            {
+              "name": "slot",
+              "kind": "public_reexport_group",
+              "line": 43
+            },
+            {
+              "name": "style",
+              "kind": "public_reexport_group",
+              "line": 47
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          25
+        ],
+        [
+          26,
+          52
+        ]
+      ],
+      "insertions": [],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    },
+    "zircon_runtime_interface/src/ui/layout/scroll.rs": {
+      "before_sha256": "7f96c35e186996dd64c9193553f02612bbf6ebef4accea1c47881d856bfe3ce6",
+      "after_sha256": "3bcd657b498e8facdd1e9446037f78975379b136975e6bd3d70a514308e785c4",
+      "reconstructed_before_sha256": "7f96c35e186996dd64c9193553f02612bbf6ebef4accea1c47881d856bfe3ce6",
+      "before_bytes": 4872,
+      "after_bytes": 5452,
+      "before_physical_lines": 160,
+      "after_physical_lines": 167,
+      "line_endings": {
+        "kind": "CRLF",
+        "crlf_count": 167,
+        "bare_lf_count": 0,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "M zircon_runtime_interface/src/ui/layout/scroll.rs",
+      "objects": [
+        {
+          "name": "UiAxis",
+          "kind": "enum",
+          "lines": [
+            6,
+            6
+          ],
+          "declaration": "pub enum UiAxis {",
+          "block_ref": "axis_scrollbar_enums"
+        },
+        {
+          "name": "UiScrollbarVisibility",
+          "kind": "enum",
+          "lines": [
+            13,
+            13
+          ],
+          "declaration": "pub enum UiScrollbarVisibility {",
+          "block_ref": "axis_scrollbar_enums"
+        },
+        {
+          "name": "UiScrollState",
+          "kind": "struct",
+          "lines": [
+            22,
+            22
+          ],
+          "declaration": "pub struct UiScrollState {",
+          "block_ref": "scroll_state"
+        },
+        {
+          "name": "UiVirtualListConfig",
+          "kind": "struct",
+          "lines": [
+            33,
+            33
+          ],
+          "declaration": "pub struct UiVirtualListConfig {",
+          "block_ref": "virtual_list_config"
+        },
+        {
+          "name": "UiLinearBoxConfig",
+          "kind": "struct",
+          "lines": [
+            41,
+            41
+          ],
+          "declaration": "pub struct UiLinearBoxConfig {",
+          "block_ref": "linear_scroll_wrap_grid_configs"
+        },
+        {
+          "name": "UiScrollableBoxConfig",
+          "kind": "struct",
+          "lines": [
+            46,
+            46
+          ],
+          "declaration": "pub struct UiScrollableBoxConfig {",
+          "block_ref": "linear_scroll_wrap_grid_configs"
+        },
+        {
+          "name": "UiWrapBoxConfig",
+          "kind": "struct",
+          "lines": [
+            56,
+            56
+          ],
+          "declaration": "pub struct UiWrapBoxConfig {",
+          "block_ref": "linear_scroll_wrap_grid_configs"
+        },
+        {
+          "name": "UiGridBoxConfig",
+          "kind": "struct",
+          "lines": [
+            63,
+            63
+          ],
+          "declaration": "pub struct UiGridBoxConfig {",
+          "block_ref": "linear_scroll_wrap_grid_configs"
+        },
+        {
+          "name": "UiMasonryBoxConfig",
+          "kind": "struct",
+          "lines": [
+            72,
+            72
+          ],
+          "declaration": "pub struct UiMasonryBoxConfig {",
+          "block_ref": "masonry_config_default"
+        },
+        {
+          "name": "impl Default for UiMasonryBoxConfig",
+          "kind": "impl",
+          "lines": [
+            78,
+            78
+          ],
+          "declaration": "impl Default for UiMasonryBoxConfig {",
+          "block_ref": "masonry_config_default"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            79,
+            79
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "masonry_config_default"
+        },
+        {
+          "name": "UiSizeBoxConfig",
+          "kind": "struct",
+          "lines": [
+            89,
+            89
+          ],
+          "declaration": "pub struct UiSizeBoxConfig {",
+          "block_ref": "size_box_config"
+        },
+        {
+          "name": "UiContainerKind",
+          "kind": "enum",
+          "lines": [
+            94,
+            94
+          ],
+          "declaration": "pub enum UiContainerKind {",
+          "block_ref": "container_kind_variants"
+        },
+        {
+          "name": "impl UiContainerKind",
+          "kind": "impl",
+          "lines": [
+            111,
+            111
+          ],
+          "declaration": "impl UiContainerKind {",
+          "block_ref": "container_kind_classifiers"
+        },
+        {
+          "name": "child_slot_kind",
+          "kind": "function",
+          "lines": [
+            112,
+            112
+          ],
+          "declaration": "pub const fn child_slot_kind(self) -> Option<super::UiSlotKind> {",
+          "block_ref": "container_kind_classifiers"
+        },
+        {
+          "name": "layout_engine_family",
+          "kind": "function",
+          "lines": [
+            131,
+            131
+          ],
+          "declaration": "pub const fn layout_engine_family(self) -> UiLayoutEngineFamily {",
+          "block_ref": "container_kind_classifiers"
+        },
+        {
+          "name": "clips_to_bounds",
+          "kind": "function",
+          "lines": [
+            146,
+            146
+          ],
+          "declaration": "pub const fn clips_to_bounds(self) -> bool {",
+          "block_ref": "container_kind_classifiers"
+        },
+        {
+          "name": "is_scrollable",
+          "kind": "function",
+          "lines": [
+            150,
+            150
+          ],
+          "declaration": "pub const fn is_scrollable(self) -> bool {",
+          "block_ref": "container_kind_classifiers"
+        },
+        {
+          "name": "is_auto_layout_container",
+          "kind": "function",
+          "lines": [
+            154,
+            154
+          ],
+          "declaration": "pub const fn is_auto_layout_container(self) -> bool {",
+          "block_ref": "container_kind_classifiers"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "axis_scrollbar_enums",
+          "lines": [
+            1,
+            19
+          ],
+          "audit": "滚动方向与滚动条显示策略。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiAxis",
+              "kind": "enum",
+              "line": 6
+            },
+            {
+              "name": "UiScrollbarVisibility",
+              "kind": "enum",
+              "line": 13
+            }
+          ]
+        },
+        {
+          "name": "scroll_state",
+          "lines": [
+            20,
+            29
+          ],
+          "audit": "offset/viewport/content extent；Runtime update 钳制偏移，DTO 只保存数据。",
+          "documentation_decision": "补充类型/字段中文说明数据边界和钳制时机。",
+          "objects": [
+            {
+              "name": "UiScrollState",
+              "kind": "struct",
+              "line": 22
+            }
+          ]
+        },
+        {
+          "name": "virtual_list_config",
+          "lines": [
+            30,
+            38
+          ],
+          "audit": "固定 item_extent 与前后 overscan，Runtime 合并父 gap 计算步长。",
+          "documentation_decision": "新增配置和字段说明。",
+          "objects": [
+            {
+              "name": "UiVirtualListConfig",
+              "kind": "struct",
+              "line": 33
+            }
+          ]
+        },
+        {
+          "name": "linear_scroll_wrap_grid_configs",
+          "lines": [
+            39,
+            69
+          ],
+          "audit": "配置保存 gap、axis、scrollbar、wrap 尺寸、grid 行列值。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiLinearBoxConfig",
+              "kind": "struct",
+              "line": 41
+            },
+            {
+              "name": "UiScrollableBoxConfig",
+              "kind": "struct",
+              "line": 46
+            },
+            {
+              "name": "UiWrapBoxConfig",
+              "kind": "struct",
+              "line": 56
+            },
+            {
+              "name": "UiGridBoxConfig",
+              "kind": "struct",
+              "line": 63
+            }
+          ]
+        },
+        {
+          "name": "masonry_config_default",
+          "lines": [
+            70,
+            87
+          ],
+          "audit": "默认四列、零 gap、非 sequential。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiMasonryBoxConfig",
+              "kind": "struct",
+              "line": 72
+            },
+            {
+              "name": "impl Default for UiMasonryBoxConfig",
+              "kind": "impl",
+              "line": 78
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 79
+            }
+          ]
+        },
+        {
+          "name": "size_box_config",
+          "lines": [
+            88,
+            92
+          ],
+          "audit": "SizeBox 仅有 aspect_ratio。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiSizeBoxConfig",
+              "kind": "struct",
+              "line": 89
+            }
+          ]
+        },
+        {
+          "name": "container_kind_variants",
+          "lines": [
+            93,
+            110
+          ],
+          "audit": "UiContainerKind 组合各容器模式和配置载荷。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "UiContainerKind",
+              "kind": "enum",
+              "line": 94
+            }
+          ]
+        },
+        {
+          "name": "container_kind_classifiers",
+          "lines": [
+            111,
+            167
+          ],
+          "audit": "child slot 与 family 分类；特定 parent family 可覆盖 portable slot 默认。",
+          "documentation_decision": "已有说明或断言足够，无需新增。",
+          "objects": [
+            {
+              "name": "impl UiContainerKind",
+              "kind": "impl",
+              "line": 111
+            },
+            {
+              "name": "child_slot_kind",
+              "kind": "function",
+              "line": 112
+            },
+            {
+              "name": "layout_engine_family",
+              "kind": "function",
+              "line": 131
+            },
+            {
+              "name": "clips_to_bounds",
+              "kind": "function",
+              "line": 146
+            },
+            {
+              "name": "is_scrollable",
+              "kind": "function",
+              "line": 150
+            },
+            {
+              "name": "is_auto_layout_container",
+              "kind": "function",
+              "line": 154
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          19
+        ],
+        [
+          20,
+          29
+        ],
+        [
+          30,
+          38
+        ],
+        [
+          39,
+          69
+        ],
+        [
+          70,
+          87
+        ],
+        [
+          88,
+          92
+        ],
+        [
+          93,
+          110
+        ],
+        [
+          111,
+          167
+        ]
+      ],
+      "insertions": [
+        {
+          "offset_bytes": 397,
+          "byte_length": 143,
+          "sha256": "f66a8d58d269f378e5ed37e88bd8c429670354acce9573c55a76e7b3cd038a69",
+          "exact_text": "/// Runtime 布局更新使用的滚动几何值；更新计划会把偏移限制在内容可滚范围内，此类型本身只保存数据。\r\n",
+          "line_count": 1,
+          "eol": "CRLF"
+        },
+        {
+          "offset_bytes": 643,
+          "byte_length": 94,
+          "sha256": "bdeb43054b376aab27d6aa3709a7846bcccbf74e2565f9483eded208ca9a3ba1",
+          "exact_text": "    /// 沿配置滚动轴的当前内容起点；更新时按内容与视口范围钳制。\r\n",
+          "line_count": 1,
+          "eol": "CRLF"
+        },
+        {
+          "offset_bytes": 759,
+          "byte_length": 49,
+          "sha256": "33e52ae7f342e2924ca9e24e5e14a15871ddb8859a9b5761493c4124e9240028",
+          "exact_text": "    /// 视口沿滚动轴可显示的长度。\r\n",
+          "line_count": 1,
+          "eol": "CRLF"
+        },
+        {
+          "offset_bytes": 839,
+          "byte_length": 49,
+          "sha256": "62402ba24fb9eba3dd60f73dcf4184734e4b2574c3ef4b693187146ec137e5d9",
+          "exact_text": "    /// 滚动内容沿滚动轴的总长度。\r\n",
+          "line_count": 1,
+          "eol": "CRLF"
+        },
+        {
+          "offset_bytes": 923,
+          "byte_length": 129,
+          "sha256": "42d0fb66d9d8d9b7e8834df9c250602f0a893580d35b18b8ce4b121934103f27",
+          "exact_text": "/// 固定尺寸虚拟列表配置；Runtime 将 item_extent 与容器 gap 合成步长，并按 overscan 扩展逻辑窗口。\r\n",
+          "line_count": 1,
+          "eol": "CRLF"
+        },
+        {
+          "offset_bytes": 1161,
+          "byte_length": 55,
+          "sha256": "0e48e9e4e361987fc2354070303f0756dd09453b59e6ef5c0f158a8e4356e52c",
+          "exact_text": "    /// 每个逻辑项沿滚动轴的固定长度。\r\n",
+          "line_count": 1,
+          "eol": "CRLF"
+        },
+        {
+          "offset_bytes": 1243,
+          "byte_length": 61,
+          "sha256": "10aeac35c3b953baa2b4ac099e559c796ac7358086e8580144248bc6c0033ff7",
+          "exact_text": "    /// 可视窗口前后额外保留的逻辑项数量。\r\n",
+          "line_count": 1,
+          "eol": "CRLF"
+        }
+      ],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    },
+    "zircon_runtime_interface/src/ui/layout/slot.rs": {
+      "before_sha256": "54942ce3f95ed57e5858c8815f32cb48c9030a92e07e49a4658d7a8d1db39a73",
+      "after_sha256": "f1239400e9735c7939ef5dbdc1862f4183fb9ac2f24cae60f2febccfe37b64fb",
+      "reconstructed_before_sha256": "54942ce3f95ed57e5858c8815f32cb48c9030a92e07e49a4658d7a8d1db39a73",
+      "before_bytes": 7752,
+      "after_bytes": 7871,
+      "before_physical_lines": 289,
+      "after_physical_lines": 290,
+      "line_endings": {
+        "kind": "LF",
+        "crlf_count": 0,
+        "bare_lf_count": 290,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "M zircon_runtime_interface/src/ui/layout/slot.rs",
+      "objects": [
+        {
+          "name": "UiMargin",
+          "kind": "struct",
+          "lines": [
+            10,
+            10
+          ],
+          "declaration": "pub struct UiMargin {",
+          "block_ref": "module_imports_margin"
+        },
+        {
+          "name": "impl UiMargin",
+          "kind": "impl",
+          "lines": [
+            21,
+            21
+          ],
+          "declaration": "impl UiMargin {",
+          "block_ref": "module_imports_margin"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            22,
+            22
+          ],
+          "declaration": "pub const fn new(left: f32, top: f32, right: f32, bottom: f32) -> Self {",
+          "block_ref": "module_imports_margin"
+        },
+        {
+          "name": "horizontal",
+          "kind": "function",
+          "lines": [
+            31,
+            31
+          ],
+          "declaration": "pub fn horizontal(self) -> f32 {",
+          "block_ref": "module_imports_margin"
+        },
+        {
+          "name": "vertical",
+          "kind": "function",
+          "lines": [
+            35,
+            35
+          ],
+          "declaration": "pub fn vertical(self) -> f32 {",
+          "block_ref": "module_imports_margin"
+        },
+        {
+          "name": "UiAlignment",
+          "kind": "enum",
+          "lines": [
+            42,
+            42
+          ],
+          "declaration": "pub enum UiAlignment {",
+          "block_ref": "alignment_contract"
+        },
+        {
+          "name": "UiAlignment2D",
+          "kind": "struct",
+          "lines": [
+            51,
+            51
+          ],
+          "declaration": "pub struct UiAlignment2D {",
+          "block_ref": "alignment_contract"
+        },
+        {
+          "name": "impl Default for UiAlignment2D",
+          "kind": "impl",
+          "lines": [
+            58,
+            58
+          ],
+          "declaration": "impl Default for UiAlignment2D {",
+          "block_ref": "alignment_contract"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            59,
+            59
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "alignment_contract"
+        },
+        {
+          "name": "impl UiAlignment2D",
+          "kind": "impl",
+          "lines": [
+            67,
+            67
+          ],
+          "declaration": "impl UiAlignment2D {",
+          "block_ref": "alignment_contract"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            68,
+            68
+          ],
+          "declaration": "pub const fn new(horizontal: UiAlignment, vertical: UiAlignment) -> Self {",
+          "block_ref": "alignment_contract"
+        },
+        {
+          "name": "UiSlotKind",
+          "kind": "enum",
+          "lines": [
+            78,
+            78
+          ],
+          "declaration": "pub enum UiSlotKind {",
+          "block_ref": "slot_kind_engine_family"
+        },
+        {
+          "name": "impl UiSlotKind",
+          "kind": "impl",
+          "lines": [
+            92,
+            92
+          ],
+          "declaration": "impl UiSlotKind {",
+          "block_ref": "slot_kind_engine_family"
+        },
+        {
+          "name": "layout_engine_family",
+          "kind": "function",
+          "lines": [
+            97,
+            97
+          ],
+          "declaration": "pub const fn layout_engine_family(self) -> UiLayoutEngineFamily {",
+          "block_ref": "slot_kind_engine_family"
+        },
+        {
+          "name": "UiCanvasSlotPlacement",
+          "kind": "struct",
+          "lines": [
+            114,
+            114
+          ],
+          "declaration": "pub struct UiCanvasSlotPlacement {",
+          "block_ref": "canvas_placement"
+        },
+        {
+          "name": "impl UiCanvasSlotPlacement",
+          "kind": "impl",
+          "lines": [
+            129,
+            129
+          ],
+          "declaration": "impl UiCanvasSlotPlacement {",
+          "block_ref": "canvas_placement"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            130,
+            130
+          ],
+          "declaration": "pub const fn new(anchor: Anchor, pivot: Pivot, position: Position) -> Self {",
+          "block_ref": "canvas_placement"
+        },
+        {
+          "name": "with_anchor_max",
+          "kind": "function",
+          "lines": [
+            141,
+            141
+          ],
+          "declaration": "pub fn with_anchor_max(mut self, anchor_max: Anchor) -> Self {",
+          "block_ref": "canvas_placement"
+        },
+        {
+          "name": "resolved_anchor_max",
+          "kind": "function",
+          "lines": [
+            147,
+            147
+          ],
+          "declaration": "pub fn resolved_anchor_max(self) -> Anchor {",
+          "block_ref": "canvas_placement"
+        },
+        {
+          "name": "with_offset",
+          "kind": "function",
+          "lines": [
+            151,
+            151
+          ],
+          "declaration": "pub fn with_offset(mut self, offset: UiMargin) -> Self {",
+          "block_ref": "canvas_placement"
+        },
+        {
+          "name": "with_auto_size",
+          "kind": "function",
+          "lines": [
+            156,
+            156
+          ],
+          "declaration": "pub fn with_auto_size(mut self, auto_size: bool) -> Self {",
+          "block_ref": "canvas_placement"
+        },
+        {
+          "name": "UiGridSlotPlacement",
+          "kind": "struct",
+          "lines": [
+            165,
+            165
+          ],
+          "declaration": "pub struct UiGridSlotPlacement {",
+          "block_ref": "grid_placement"
+        },
+        {
+          "name": "impl Default for UiGridSlotPlacement",
+          "kind": "impl",
+          "lines": [
+            176,
+            176
+          ],
+          "declaration": "impl Default for UiGridSlotPlacement {",
+          "block_ref": "grid_placement"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            177,
+            177
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "grid_placement"
+        },
+        {
+          "name": "impl UiGridSlotPlacement",
+          "kind": "impl",
+          "lines": [
+            187,
+            187
+          ],
+          "declaration": "impl UiGridSlotPlacement {",
+          "block_ref": "grid_placement"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            188,
+            188
+          ],
+          "declaration": "pub const fn new(column: usize, row: usize) -> Self {",
+          "block_ref": "grid_placement"
+        },
+        {
+          "name": "with_span",
+          "kind": "function",
+          "lines": [
+            197,
+            197
+          ],
+          "declaration": "pub fn with_span(mut self, column_span: usize, row_span: usize) -> Self {",
+          "block_ref": "grid_placement"
+        },
+        {
+          "name": "UiSlot",
+          "kind": "struct",
+          "lines": [
+            207,
+            207
+          ],
+          "declaration": "pub struct UiSlot {",
+          "block_ref": "slot_identity_fields"
+        },
+        {
+          "name": "impl UiSlot",
+          "kind": "impl",
+          "lines": [
+            230,
+            230
+          ],
+          "declaration": "impl UiSlot {",
+          "block_ref": "slot_builders"
+        },
+        {
+          "name": "new",
+          "kind": "function",
+          "lines": [
+            231,
+            231
+          ],
+          "declaration": "pub fn new(parent_id: UiNodeId, child_id: UiNodeId, kind: UiSlotKind) -> Self {",
+          "block_ref": "slot_builders"
+        },
+        {
+          "name": "with_padding",
+          "kind": "function",
+          "lines": [
+            247,
+            247
+          ],
+          "declaration": "pub fn with_padding(mut self, padding: UiMargin) -> Self {",
+          "block_ref": "slot_builders"
+        },
+        {
+          "name": "with_alignment",
+          "kind": "function",
+          "lines": [
+            252,
+            252
+          ],
+          "declaration": "pub fn with_alignment(mut self, alignment: UiAlignment2D) -> Self {",
+          "block_ref": "slot_builders"
+        },
+        {
+          "name": "with_linear_sizing",
+          "kind": "function",
+          "lines": [
+            257,
+            257
+          ],
+          "declaration": "pub fn with_linear_sizing(mut self, linear_sizing: UiLinearSlotSizing) -> Self {",
+          "block_ref": "slot_builders"
+        },
+        {
+          "name": "with_canvas_placement",
+          "kind": "function",
+          "lines": [
+            262,
+            262
+          ],
+          "declaration": "pub fn with_canvas_placement(mut self, placement: UiCanvasSlotPlacement) -> Self {",
+          "block_ref": "slot_builders"
+        },
+        {
+          "name": "with_grid_placement",
+          "kind": "function",
+          "lines": [
+            267,
+            267
+          ],
+          "declaration": "pub fn with_grid_placement(mut self, placement: UiGridSlotPlacement) -> Self {",
+          "block_ref": "slot_builders"
+        },
+        {
+          "name": "with_order",
+          "kind": "function",
+          "lines": [
+            272,
+            272
+          ],
+          "declaration": "pub fn with_order(mut self, order: i32) -> Self {",
+          "block_ref": "slot_builders"
+        },
+        {
+          "name": "with_z_order",
+          "kind": "function",
+          "lines": [
+            277,
+            277
+          ],
+          "declaration": "pub fn with_z_order(mut self, z_order: i32) -> Self {",
+          "block_ref": "slot_builders"
+        },
+        {
+          "name": "with_dirty_revision",
+          "kind": "function",
+          "lines": [
+            282,
+            282
+          ],
+          "declaration": "pub fn with_dirty_revision(mut self, dirty_revision: u64) -> Self {",
+          "block_ref": "slot_builders"
+        },
+        {
+          "name": "default_grid_span",
+          "kind": "function",
+          "lines": [
+            288,
+            288
+          ],
+          "declaration": "const fn default_grid_span() -> usize {",
+          "block_ref": "grid_span_default_helper"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "module_imports_margin",
+          "lines": [
+            1,
+            38
+          ],
+          "audit": "UiMargin 汇总四边距；horizontal/vertical 分别相加左右/上下值。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "UiMargin",
+              "kind": "struct",
+              "line": 10
+            },
+            {
+              "name": "impl UiMargin",
+              "kind": "impl",
+              "line": 21
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 22
+            },
+            {
+              "name": "horizontal",
+              "kind": "function",
+              "line": 31
+            },
+            {
+              "name": "vertical",
+              "kind": "function",
+              "line": 35
+            }
+          ]
+        },
+        {
+          "name": "alignment_contract",
+          "lines": [
+            39,
+            74
+          ],
+          "audit": "UiAlignment 的四种对齐值与二维默认值；构造器只组合两个方向。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "UiAlignment",
+              "kind": "enum",
+              "line": 42
+            },
+            {
+              "name": "UiAlignment2D",
+              "kind": "struct",
+              "line": 51
+            },
+            {
+              "name": "impl Default for UiAlignment2D",
+              "kind": "impl",
+              "line": 58
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 59
+            },
+            {
+              "name": "impl UiAlignment2D",
+              "kind": "impl",
+              "line": 67
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 68
+            }
+          ]
+        },
+        {
+          "name": "slot_kind_engine_family",
+          "lines": [
+            75,
+            109
+          ],
+          "audit": "UiSlotKind 的 snake_case 序列化与布局族映射；Container/Scale、Linear/Splitter 共享族。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "UiSlotKind",
+              "kind": "enum",
+              "line": 78
+            },
+            {
+              "name": "impl UiSlotKind",
+              "kind": "impl",
+              "line": 92
+            },
+            {
+              "name": "layout_engine_family",
+              "kind": "function",
+              "line": 97
+            }
+          ]
+        },
+        {
+          "name": "canvas_placement",
+          "lines": [
+            110,
+            160
+          ],
+          "audit": "锚点、pivot、position、offset、auto_size 的 parent-owned 载荷；缺省 anchor_max 解析为 anchor。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "UiCanvasSlotPlacement",
+              "kind": "struct",
+              "line": 114
+            },
+            {
+              "name": "impl UiCanvasSlotPlacement",
+              "kind": "impl",
+              "line": 129
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 130
+            },
+            {
+              "name": "with_anchor_max",
+              "kind": "function",
+              "line": 141
+            },
+            {
+              "name": "resolved_anchor_max",
+              "kind": "function",
+              "line": 147
+            },
+            {
+              "name": "with_offset",
+              "kind": "function",
+              "line": 151
+            },
+            {
+              "name": "with_auto_size",
+              "kind": "function",
+              "line": 156
+            }
+          ]
+        },
+        {
+          "name": "grid_placement",
+          "lines": [
+            161,
+            202
+          ],
+          "audit": "行列起点和跨度的 DTO；span 默认 1，with_span 将 0 归一到 1，不验证起点加跨度的范围。",
+          "documentation_decision": "新增中文边界说明：不校验起点与跨度之和；只保留载荷约束，不声称执行布局。",
+          "objects": [
+            {
+              "name": "UiGridSlotPlacement",
+              "kind": "struct",
+              "line": 165
+            },
+            {
+              "name": "impl Default for UiGridSlotPlacement",
+              "kind": "impl",
+              "line": 176
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 177
+            },
+            {
+              "name": "impl UiGridSlotPlacement",
+              "kind": "impl",
+              "line": 187
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 188
+            },
+            {
+              "name": "with_span",
+              "kind": "function",
+              "line": 197
+            }
+          ]
+        },
+        {
+          "name": "slot_identity_fields",
+          "lines": [
+            203,
+            228
+          ],
+          "audit": "UiSlot 绑定 parent/child ID，并保存布局类型、padding、alignment、可选策略、排序和 revision。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "UiSlot",
+              "kind": "struct",
+              "line": 207
+            }
+          ]
+        },
+        {
+          "name": "slot_builders",
+          "lines": [
+            229,
+            286
+          ],
+          "audit": "new 与 builder 仅设置字段；不执行布局、校验或失效传播。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "impl UiSlot",
+              "kind": "impl",
+              "line": 230
+            },
+            {
+              "name": "new",
+              "kind": "function",
+              "line": 231
+            },
+            {
+              "name": "with_padding",
+              "kind": "function",
+              "line": 247
+            },
+            {
+              "name": "with_alignment",
+              "kind": "function",
+              "line": 252
+            },
+            {
+              "name": "with_linear_sizing",
+              "kind": "function",
+              "line": 257
+            },
+            {
+              "name": "with_canvas_placement",
+              "kind": "function",
+              "line": 262
+            },
+            {
+              "name": "with_grid_placement",
+              "kind": "function",
+              "line": 267
+            },
+            {
+              "name": "with_order",
+              "kind": "function",
+              "line": 272
+            },
+            {
+              "name": "with_z_order",
+              "kind": "function",
+              "line": 277
+            },
+            {
+              "name": "with_dirty_revision",
+              "kind": "function",
+              "line": 282
+            }
+          ]
+        },
+        {
+          "name": "grid_span_default_helper",
+          "lines": [
+            287,
+            290
+          ],
+          "audit": "serde 缺省跨度返回 1。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "default_grid_span",
+              "kind": "function",
+              "line": 288
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          38
+        ],
+        [
+          39,
+          74
+        ],
+        [
+          75,
+          109
+        ],
+        [
+          110,
+          160
+        ],
+        [
+          161,
+          202
+        ],
+        [
+          203,
+          228
+        ],
+        [
+          229,
+          286
+        ],
+        [
+          287,
+          290
+        ]
+      ],
+      "insertions": [
+        {
+          "offset_bytes": 4318,
+          "byte_length": 119,
+          "sha256": "26155877b43d73c83683e00b26320a41cce9b19da467acee468d87a0fabae917",
+          "exact_text": "/// 仅保存行列起点与跨度；with_span 将跨度下限归一为 1，本类型不校验起点与跨度之和。\n",
+          "line_count": 1,
+          "eol": "LF"
+        }
+      ],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    },
+    "zircon_runtime_interface/src/ui/layout/style.rs": {
+      "before_sha256": "e1decf4d80200990183ca8f9727dbba428fa9c631426345d2164e0a5bd9d723b",
+      "after_sha256": "e1decf4d80200990183ca8f9727dbba428fa9c631426345d2164e0a5bd9d723b",
+      "reconstructed_before_sha256": "e1decf4d80200990183ca8f9727dbba428fa9c631426345d2164e0a5bd9d723b",
+      "before_bytes": 6835,
+      "after_bytes": 6835,
+      "before_physical_lines": 280,
+      "after_physical_lines": 280,
+      "line_endings": {
+        "kind": "LF",
+        "crlf_count": 0,
+        "bare_lf_count": 280,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "clean (no source change)",
+      "objects": [
+        {
+          "name": "UiLayoutStyle",
+          "kind": "struct",
+          "lines": [
+            8,
+            8
+          ],
+          "declaration": "pub struct UiLayoutStyle {",
+          "block_ref": "style_dto_default"
+        },
+        {
+          "name": "impl Default for UiLayoutStyle",
+          "kind": "impl",
+          "lines": [
+            35,
+            35
+          ],
+          "declaration": "impl Default for UiLayoutStyle {",
+          "block_ref": "style_dto_default"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            36,
+            36
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "style_dto_default"
+        },
+        {
+          "name": "UiLayoutDisplay",
+          "kind": "enum",
+          "lines": [
+            68,
+            68
+          ],
+          "declaration": "pub enum UiLayoutDisplay {",
+          "block_ref": "display_flex_alignment_enums"
+        },
+        {
+          "name": "UiFlexDirection",
+          "kind": "enum",
+          "lines": [
+            82,
+            82
+          ],
+          "declaration": "pub enum UiFlexDirection {",
+          "block_ref": "display_flex_alignment_enums"
+        },
+        {
+          "name": "UiFlexWrap",
+          "kind": "enum",
+          "lines": [
+            92,
+            92
+          ],
+          "declaration": "pub enum UiFlexWrap {",
+          "block_ref": "display_flex_alignment_enums"
+        },
+        {
+          "name": "UiJustify",
+          "kind": "enum",
+          "lines": [
+            101,
+            101
+          ],
+          "declaration": "pub enum UiJustify {",
+          "block_ref": "display_flex_alignment_enums"
+        },
+        {
+          "name": "UiAlign",
+          "kind": "enum",
+          "lines": [
+            112,
+            112
+          ],
+          "declaration": "pub enum UiAlign {",
+          "block_ref": "display_flex_alignment_enums"
+        },
+        {
+          "name": "UiGap",
+          "kind": "struct",
+          "lines": [
+            121,
+            121
+          ],
+          "declaration": "pub struct UiGap {",
+          "block_ref": "gap_dimension_and_size"
+        },
+        {
+          "name": "impl Default for UiGap",
+          "kind": "impl",
+          "lines": [
+            128,
+            128
+          ],
+          "declaration": "impl Default for UiGap {",
+          "block_ref": "gap_dimension_and_size"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            129,
+            129
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "gap_dimension_and_size"
+        },
+        {
+          "name": "UiDimension",
+          "kind": "enum",
+          "lines": [
+            139,
+            139
+          ],
+          "declaration": "pub enum UiDimension {",
+          "block_ref": "gap_dimension_and_size"
+        },
+        {
+          "name": "UiLayoutSize",
+          "kind": "struct",
+          "lines": [
+            148,
+            148
+          ],
+          "declaration": "pub struct UiLayoutSize {",
+          "block_ref": "gap_dimension_and_size"
+        },
+        {
+          "name": "impl UiLayoutSize",
+          "kind": "impl",
+          "lines": [
+            155,
+            155
+          ],
+          "declaration": "impl UiLayoutSize {",
+          "block_ref": "gap_dimension_and_size"
+        },
+        {
+          "name": "auto",
+          "kind": "function",
+          "lines": [
+            156,
+            156
+          ],
+          "declaration": "pub const fn auto() -> Self {",
+          "block_ref": "gap_dimension_and_size"
+        },
+        {
+          "name": "impl Default for UiLayoutSize",
+          "kind": "impl",
+          "lines": [
+            164,
+            164
+          ],
+          "declaration": "impl Default for UiLayoutSize {",
+          "block_ref": "gap_dimension_and_size"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            165,
+            165
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "gap_dimension_and_size"
+        },
+        {
+          "name": "UiGridTrack",
+          "kind": "enum",
+          "lines": [
+            172,
+            172
+          ],
+          "declaration": "pub enum UiGridTrack {",
+          "block_ref": "grid_tracks_and_line_placement"
+        },
+        {
+          "name": "UiGridTrackBreadth",
+          "kind": "enum",
+          "lines": [
+            185,
+            185
+          ],
+          "declaration": "pub enum UiGridTrackBreadth {",
+          "block_ref": "grid_tracks_and_line_placement"
+        },
+        {
+          "name": "UiGridPlacement",
+          "kind": "struct",
+          "lines": [
+            193,
+            193
+          ],
+          "declaration": "pub struct UiGridPlacement {",
+          "block_ref": "grid_tracks_and_line_placement"
+        },
+        {
+          "name": "UiGridLine",
+          "kind": "enum",
+          "lines": [
+            200,
+            200
+          ],
+          "declaration": "pub enum UiGridLine {",
+          "block_ref": "grid_tracks_and_line_placement"
+        },
+        {
+          "name": "UiEdges",
+          "kind": "struct",
+          "lines": [
+            208,
+            208
+          ],
+          "declaration": "pub struct UiEdges {",
+          "block_ref": "edges"
+        },
+        {
+          "name": "impl UiEdges",
+          "kind": "impl",
+          "lines": [
+            219,
+            219
+          ],
+          "declaration": "impl UiEdges {",
+          "block_ref": "edges"
+        },
+        {
+          "name": "zero",
+          "kind": "function",
+          "lines": [
+            220,
+            220
+          ],
+          "declaration": "pub const fn zero() -> Self {",
+          "block_ref": "edges"
+        },
+        {
+          "name": "impl Default for UiEdges",
+          "kind": "impl",
+          "lines": [
+            230,
+            230
+          ],
+          "declaration": "impl Default for UiEdges {",
+          "block_ref": "edges"
+        },
+        {
+          "name": "default",
+          "kind": "function",
+          "lines": [
+            231,
+            231
+          ],
+          "declaration": "fn default() -> Self {",
+          "block_ref": "edges"
+        },
+        {
+          "name": "UiPositionMode",
+          "kind": "enum",
+          "lines": [
+            238,
+            238
+          ],
+          "declaration": "pub enum UiPositionMode {",
+          "block_ref": "position_overflow_and_zero_helper"
+        },
+        {
+          "name": "UiOverflow",
+          "kind": "enum",
+          "lines": [
+            246,
+            246
+          ],
+          "declaration": "pub enum UiOverflow {",
+          "block_ref": "position_overflow_and_zero_helper"
+        },
+        {
+          "name": "UiOverflowPair",
+          "kind": "struct",
+          "lines": [
+            254,
+            254
+          ],
+          "declaration": "pub struct UiOverflowPair {",
+          "block_ref": "position_overflow_and_zero_helper"
+        },
+        {
+          "name": "zero_dimension",
+          "kind": "function",
+          "lines": [
+            261,
+            261
+          ],
+          "declaration": "fn zero_dimension() -> UiDimension {",
+          "block_ref": "position_overflow_and_zero_helper"
+        },
+        {
+          "name": "UiLayoutStyleSourceRef",
+          "kind": "struct",
+          "lines": [
+            267,
+            267
+          ],
+          "declaration": "pub struct UiLayoutStyleSourceRef {",
+          "block_ref": "style_source_provenance"
+        },
+        {
+          "name": "UiLayoutStyleSourceKind",
+          "kind": "enum",
+          "lines": [
+            274,
+            274
+          ],
+          "declaration": "pub enum UiLayoutStyleSourceKind {",
+          "block_ref": "style_source_provenance"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "style_dto_default",
+          "lines": [
+            1,
+            64
+          ],
+          "audit": "UiLayoutStyle 是中立序列化输入；默认 Flex/Row/NoWrap、自动尺寸和零边距/padding，不代表执行或后端接受。",
+          "documentation_decision": "现有模块/类型文档和字段语义已覆盖；不重复列举每个枚举值或后端映射。",
+          "objects": [
+            {
+              "name": "UiLayoutStyle",
+              "kind": "struct",
+              "line": 8
+            },
+            {
+              "name": "impl Default for UiLayoutStyle",
+              "kind": "impl",
+              "line": 35
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 36
+            }
+          ]
+        },
+        {
+          "name": "display_flex_alignment_enums",
+          "lines": [
+            65,
+            118
+          ],
+          "audit": "显示、Flex 方向/换行、justify 与 align 枚举；snake_case wire 值。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "UiLayoutDisplay",
+              "kind": "enum",
+              "line": 68
+            },
+            {
+              "name": "UiFlexDirection",
+              "kind": "enum",
+              "line": 82
+            },
+            {
+              "name": "UiFlexWrap",
+              "kind": "enum",
+              "line": 92
+            },
+            {
+              "name": "UiJustify",
+              "kind": "enum",
+              "line": 101
+            },
+            {
+              "name": "UiAlign",
+              "kind": "enum",
+              "line": 112
+            }
+          ]
+        },
+        {
+          "name": "gap_dimension_and_size",
+          "lines": [
+            119,
+            168
+          ],
+          "audit": "gap、Auto/Px/Percent 尺寸值和尺寸对；Percent 文档约定归一比例，构造器不校验数值。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "UiGap",
+              "kind": "struct",
+              "line": 121
+            },
+            {
+              "name": "impl Default for UiGap",
+              "kind": "impl",
+              "line": 128
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 129
+            },
+            {
+              "name": "UiDimension",
+              "kind": "enum",
+              "line": 139
+            },
+            {
+              "name": "UiLayoutSize",
+              "kind": "struct",
+              "line": 148
+            },
+            {
+              "name": "impl UiLayoutSize",
+              "kind": "impl",
+              "line": 155
+            },
+            {
+              "name": "auto",
+              "kind": "function",
+              "line": 156
+            },
+            {
+              "name": "impl Default for UiLayoutSize",
+              "kind": "impl",
+              "line": 164
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 165
+            }
+          ]
+        },
+        {
+          "name": "grid_tracks_and_line_placement",
+          "lines": [
+            169,
+            206
+          ],
+          "audit": "Grid track breadth/track 与 start/end 行列 placement DTO。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "UiGridTrack",
+              "kind": "enum",
+              "line": 172
+            },
+            {
+              "name": "UiGridTrackBreadth",
+              "kind": "enum",
+              "line": 185
+            },
+            {
+              "name": "UiGridPlacement",
+              "kind": "struct",
+              "line": 193
+            },
+            {
+              "name": "UiGridLine",
+              "kind": "enum",
+              "line": 200
+            }
+          ]
+        },
+        {
+          "name": "edges",
+          "lines": [
+            207,
+            234
+          ],
+          "audit": "四边 UiDimension 与零边构造/默认实现。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "UiEdges",
+              "kind": "struct",
+              "line": 208
+            },
+            {
+              "name": "impl UiEdges",
+              "kind": "impl",
+              "line": 219
+            },
+            {
+              "name": "zero",
+              "kind": "function",
+              "line": 220
+            },
+            {
+              "name": "impl Default for UiEdges",
+              "kind": "impl",
+              "line": 230
+            },
+            {
+              "name": "default",
+              "kind": "function",
+              "line": 231
+            }
+          ]
+        },
+        {
+          "name": "position_overflow_and_zero_helper",
+          "lines": [
+            235,
+            263
+          ],
+          "audit": "position、溢出模式/双轴字段及 serde 零尺寸辅助函数。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "UiPositionMode",
+              "kind": "enum",
+              "line": 238
+            },
+            {
+              "name": "UiOverflow",
+              "kind": "enum",
+              "line": 246
+            },
+            {
+              "name": "UiOverflowPair",
+              "kind": "struct",
+              "line": 254
+            },
+            {
+              "name": "zero_dimension",
+              "kind": "function",
+              "line": 261
+            }
+          ]
+        },
+        {
+          "name": "style_source_provenance",
+          "lines": [
+            264,
+            280
+          ],
+          "audit": "样式来源种类和 source/id；仅来源元数据。",
+          "documentation_decision": "类型/字段名、构造逻辑及现有注释已足以表达；无证据需要重复性新增文档。",
+          "objects": [
+            {
+              "name": "UiLayoutStyleSourceRef",
+              "kind": "struct",
+              "line": 267
+            },
+            {
+              "name": "UiLayoutStyleSourceKind",
+              "kind": "enum",
+              "line": 274
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          64
+        ],
+        [
+          65,
+          118
+        ],
+        [
+          119,
+          168
+        ],
+        [
+          169,
+          206
+        ],
+        [
+          207,
+          234
+        ],
+        [
+          235,
+          263
+        ],
+        [
+          264,
+          280
+        ]
+      ],
+      "insertions": [],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    },
+    "zircon_runtime_interface/src/ui/layout/virtualization.rs": {
+      "before_sha256": "a34cbf513ee279cecde0e7d2cdda76a78be24bea96c31feb9fe82d81ae4d7609",
+      "after_sha256": "51d7bd8bff245d6218996f498863234cc8b960362bc4c204a7fef05aa5ac9828",
+      "reconstructed_before_sha256": "a34cbf513ee279cecde0e7d2cdda76a78be24bea96c31feb9fe82d81ae4d7609",
+      "before_bytes": 220,
+      "after_bytes": 319,
+      "before_physical_lines": 7,
+      "after_physical_lines": 8,
+      "line_endings": {
+        "kind": "LF",
+        "crlf_count": 0,
+        "bare_lf_count": 8,
+        "utf8_bom": false
+      },
+      "status_before": "clean at exact-grant preflight",
+      "status_after": "M zircon_runtime_interface/src/ui/layout/virtualization.rs",
+      "objects": [
+        {
+          "name": "UiVirtualListWindow",
+          "kind": "struct",
+          "lines": [
+            5,
+            5
+          ],
+          "declaration": "pub struct UiVirtualListWindow {",
+          "block_ref": "module_and_half_open_window"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "module_and_half_open_window",
+          "lines": [
+            1,
+            8
+          ],
+          "audit": "UiVirtualListWindow 以 first_visible 与 last_visible_exclusive 表示逻辑半开区间；文档明确包含 overscan 且不含右端点。",
+          "documentation_decision": "新增中文语义说明：窗口是含 overscan 的半开逻辑索引区间。",
+          "objects": [
+            {
+              "name": "UiVirtualListWindow",
+              "kind": "struct",
+              "line": 5
+            }
+          ]
+        }
+      ],
+      "gap_free_line_partition": [
+        [
+          1,
+          8
+        ]
+      ],
+      "insertions": [
+        {
+          "offset_bytes": 38,
+          "byte_length": 99,
+          "sha256": "16847348dcbd1cea39c5b0ab8b609b555d3d4ddf61d872e1e54be1be4f4176c6",
+          "exact_text": "/// 虚拟列表的逻辑索引半开窗口，包含 overscan 项；右端点不属于该窗口。\n",
+          "line_count": 1,
+          "eol": "LF"
+        }
+      ],
+      "original_bytes_reconstruct_exactly": true,
+      "non_comment_source_bytes_unchanged": true
+    }
+  },
+  "scope_summary": {
+    "source_files": 13,
+    "before_lines": 2726,
+    "after_lines": 2743,
+    "objects": 261,
+    "block_groups": 80,
+    "insertions": 15,
+    "inserted_lines": 17,
+    "inserted_bytes": 2145,
+    "modified_sources": 8,
+    "unchanged_sources": 5,
+    "coverage": "Gap-free physical-line blocks cover every file; real declaration/method anchors are tied to blocks; fields are included in their type block audits."
+  },
+  "test_contracts": {
+    "execution": "not run",
+    "helper": {
+      "name": "round_trip<T>",
+      "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+      "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+      "lines": [
+        9,
+        14
+      ],
+      "role": "serde round-trip helper"
+    },
+    "tests": [
+      {
+        "name": "ui_layout_engine_capability_distinguishes_taffy_compatible_and_zircon_owned_families",
+        "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+        "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+        "lines": [
+          16,
+          59
+        ],
+        "assertions": "Portable family/capability mapping; no backend layout execution.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_layout_engine_request_maps_current_container_contracts_to_engine_families",
+        "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+        "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+        "lines": [
+          61,
+          118
+        ],
+        "assertions": "Container-kind requests map to the current engine-family contract.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_container_slot_defaults_and_engine_families_share_one_contract",
+        "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+        "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+        "lines": [
+          120,
+          210
+        ],
+        "assertions": "Slot defaults and family mapping agree as interface values.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_layout_engine_block_is_explicit_block_box_not_generic_container",
+        "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+        "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+        "lines": [
+          212,
+          244
+        ],
+        "assertions": "BlockBox has an explicit engine-family representation.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout",
+        "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+        "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+        "lines": [
+          246,
+          295
+        ],
+        "assertions": "Selection fallback report data; does not execute layout.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_layout_engine_selection_report_tracks_taffy_tree_build_stats",
+        "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+        "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+        "lines": [
+          297,
+          319
+        ],
+        "assertions": "Selection report counts Taffy tree construction stats.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_layout_engine_selection_report_replacement_matches_full_recompute",
+        "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+        "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+        "lines": [
+          321,
+          343
+        ],
+        "assertions": "Replacement report matches aggregate recomputation.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_layout_engine_selection_report_clone_retains_the_previous_segmented_snapshot",
+        "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+        "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+        "lines": [
+          345,
+          399
+        ],
+        "assertions": "Clone retains prior segmented snapshot after mutation.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_layout_engine_selection_report_counts_unsupported_routes_separately",
+        "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+        "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+        "lines": [
+          401,
+          438
+        ],
+        "assertions": "Unsupported routes are counted separately.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_layout_engine_selection_requires_full_fallback_capability_admission",
+        "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+        "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+        "lines": [
+          440,
+          497
+        ],
+        "assertions": "Fallback requires complete declared capability admission.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_layout_engine_selection_report_counts_missing_fallback_reasons",
+        "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+        "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+        "lines": [
+          499,
+          518
+        ],
+        "assertions": "Missing fallback reasons are counted.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_layout_engine_selection_report_deserialization_recomputes_aggregate_counts",
+        "path": "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+        "sha256": "97fc47729b9818cccf17dbba6b207679e325c694a0dde1a89a974ec295fce211",
+        "lines": [
+          520,
+          601
+        ],
+        "assertions": "Deserialize recomputes aggregate counts from serialized segments.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_layout_geometry_slot_and_metrics_contracts_construct",
+        "path": "zircon_runtime_interface/src/tests/ui_layout.rs",
+        "sha256": "8011a0f87065d5e73b939bafe2b38aaa9bb52a9f8baead1a538ae687b5446159",
+        "lines": [
+          13,
+          129
+        ],
+        "assertions": "Constructs geometry, slot and metrics interface values.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_layout_style_and_debug_packet_contracts_round_trip_with_defaults",
+        "path": "zircon_runtime_interface/src/tests/ui_layout.rs",
+        "sha256": "8011a0f87065d5e73b939bafe2b38aaa9bb52a9f8baead1a538ae687b5446159",
+        "lines": [
+          131,
+          166
+        ],
+        "assertions": "Style/debug DTO serde round-trip and defaults.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_canvas_slot_placement_contract_round_trips_and_defaults",
+        "path": "zircon_runtime_interface/src/tests/ui_layout.rs",
+        "sha256": "8011a0f87065d5e73b939bafe2b38aaa9bb52a9f8baead1a538ae687b5446159",
+        "lines": [
+          168,
+          206
+        ],
+        "assertions": "Canvas placement serde fields and defaults.",
+        "execution": "not run"
+      },
+      {
+        "name": "ui_tree_slot_contract_defaults_missing_slots_and_round_trips_slots",
+        "path": "zircon_runtime_interface/src/tests/ui_layout.rs",
+        "sha256": "8011a0f87065d5e73b939bafe2b38aaa9bb52a9f8baead1a538ae687b5446159",
+        "lines": [
+          208,
+          229
+        ],
+        "assertions": "Missing-slot defaults and slot serde round-trip.",
+        "execution": "not run"
+      }
+    ],
+    "proof_boundary": "Tests establish DTO construction/defaults/serde, family/request mapping and selection-report counts only; they do not execute Runtime layout/arrangement or establish native/Taffy parity."
+  },
+  "mounts": [
+    {
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "sha256": "e851a09cf3b0946ce83a7723a48da45656746820bc0375b9285df9c740409078",
+      "lines": [
+        249,
+        249
+      ],
+      "evidence": "cfg(test) mount"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "lines": [
+        23,
+        24
+      ],
+      "evidence": "layout_engine_contracts"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "lines": [
+        59,
+        60
+      ],
+      "evidence": "ui_layout"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/mod.rs",
+      "sha256": "64dd52b52c04a8c56d5092b704fce6d83069424574bf8522a3d47a021acf2b69",
+      "lines": [
+        22,
+        22
+      ],
+      "evidence": "pub mod layout"
+    }
+  ],
+  "context_files": [
+    {
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "sha256": "e851a09cf3b0946ce83a7723a48da45656746820bc0375b9285df9c740409078",
+      "span": "249",
+      "evidence": "cfg(test) mount",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "span": "23-24;59-60",
+      "evidence": "test mounts",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/mod.rs",
+      "sha256": "64dd52b52c04a8c56d5092b704fce6d83069424574bf8522a3d47a021acf2b69",
+      "span": "22",
+      "evidence": "layout module export",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/tree/node/tree_node.rs",
+      "sha256": "9d9aacfa6fd7c6c187c4254b60fe56af55b8438495713a788f1f9c6db51ba354",
+      "span": "206",
+      "evidence": "with_constraints stores supplied value; no float validation",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/tree/node/ui_tree.rs",
+      "sha256": "c6d7a50c5b3dc2dcf8e1718ae5a4a115cc28116a77680d14831badc8bd8211f7",
+      "span": "71;111",
+      "evidence": "slot ownership and mutable node access",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/layout_tree.rs",
+      "sha256": "16497673e45c5fb519f557cc960858741ec7b4eceb5cf0b2aae5b868cb92d6b1",
+      "span": "18-44",
+      "evidence": "Runtime layout entry",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/engine.rs",
+      "sha256": "ca531c41d3664a8ddd03dd69f66b7d657595932328d08d5f37229a1f490e3393",
+      "span": "172-215;279-314",
+      "evidence": "selection request consumer; report manual Deserialize recomputes aggregate counters",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/axis.rs",
+      "sha256": "f5d1ca89e8d29608733051c08e61308025f7acaedbd65f561ddab7f5a148d37b",
+      "span": "180-218",
+      "evidence": "Native sizing and shrink-weight mapping",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/constraints.rs",
+      "sha256": "1647bea2002ee7d78fdabcdd8b99bf7fda708c988076ca56defcbdc3a8627c5d",
+      "span": "165-219;222-259",
+      "evidence": "Native growth/shrink loops; pinned context includes later comments",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/style_mapping.rs",
+      "sha256": "76389aa4035808d0927177985d0044bb2ccdc90caf89dd9f64421b0f4da9f245",
+      "span": "13-94",
+      "evidence": "neutral style validation/conversion",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/compute.rs",
+      "sha256": "9255b092ad084c81793c2a13ad002682bf5888646b7d608db2a38e530e04e28e",
+      "span": "495-551",
+      "evidence": "Taffy conversion; flex_shrink reads shrink_value",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/scroll.rs",
+      "sha256": "42f83285364a690da0a4b89de5eef75a9c7998f20ce79a35e921156775c1b1cb",
+      "span": "17-69",
+      "evidence": "Runtime scroll/range handling",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization.rs",
+      "sha256": "c4e39c1e16c149491d0e29f343e11741b558fb9fcbceea3560832e37dcfd9972",
+      "span": "12-65",
+      "evidence": "Runtime consumes half-open virtual window",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/arrange/virtual_list.rs",
+      "sha256": "85af9092570292771d21d9f7d5575019b3152481aaaa7b1208b9dc2f35b04f23",
+      "span": "19-107",
+      "evidence": "materializes and places selected list items",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs",
+      "sha256": "3b72d4b177dd7025beb392eec0f69e40084ebed1c34d8ea9e46497e43a4f68d2",
+      "span": "301-311",
+      "evidence": "window event metrics update",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/surface/render/command.rs",
+      "sha256": "bfbdff3c944219324ecb83201ac3d55268bcb11c353bc800ecfdee8ce8de1398",
+      "span": "231-245;606-608",
+      "evidence": "render geometry/bounds",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/scroll_virtualization.rs",
+      "sha256": "a3b5c71b8949dffe909c1a9ce9d1f0930041ffdcf2e604109212f9f4c698984b",
+      "span": "61;99;127",
+      "evidence": "context-only Runtime virtual window assertions",
+      "coverage": "context-only"
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/taffy_layout_pass/linear_slots.rs",
+      "sha256": "d3620eb3b40f8f7ebffd0b26735bd9a89cb879ecb81126c2e0a6d54e7d62c8ea",
+      "span": "1-338",
+      "evidence": "context-only; no differing weight cross-backend contract",
+      "coverage": "context-only"
+    }
+  ],
+  "traits_macros_registration_ffi": {
+    "serde": "DTOs derive Serialize/Deserialize and use serde defaults/skip attributes; these define wire behavior, not Runtime validation.",
+    "traits": "Clone/Copy/Debug/Default/PartialEq/Eq are derived as declared; UiLayoutEngineSelectionReport has manual Deserialize that recomputes aggregates.",
+    "macros": "Serde derives are used; no local macro_rules! or proc-macro definition in audited sources.",
+    "registration": "No dynamic inventory/typetag registration found; ordinary Rust module exports expose the API.",
+    "ffi": "No extern C, no_mangle, or link_name declarations in audited sources."
+  },
+  "issues": [
+    {
+      "id": "CR-ZCA-R039-0001",
+      "kind": "BUG",
+      "state": "static defect documented; behavior not fixed",
+      "location": {
+        "path": "zircon_runtime_interface/src/ui/layout/constraints.rs",
+        "sha256": "90ff6d697d513e4af43dc96d4d700f3128f63710b617a4764273310ff16335b8",
+        "line": 51
+      },
+      "conditions": "max < 0 (unbounded), Stretch, min/preferred 0, NaN weight, no slot sizing override, Linear parent slot padding 0, one visible child, available main-axis space > 0.001 (e.g. 100).",
+      "evidence": [
+        {
+          "path": "zircon_runtime_interface/src/ui/layout/constraints.rs",
+          "sha256": "90ff6d697d513e4af43dc96d4d700f3128f63710b617a4764273310ff16335b8",
+          "span": [
+            38,
+            60
+          ],
+          "fact": "resolved path retains NaN weight and interprets negative max as no upper bound."
+        },
+        {
+          "path": "zircon_runtime/src/ui/layout/pass/axis.rs",
+          "sha256": "f5d1ca89e8d29608733051c08e61308025f7acaedbd65f561ddab7f5a148d37b",
+          "span": [
+            121,
+            218
+          ],
+          "fact": "Native pass forms the unsized Stretch child constraint from slot inputs."
+        },
+        {
+          "path": "zircon_runtime/src/ui/layout/constraints.rs",
+          "sha256": "1647bea2002ee7d78fdabcdd8b99bf7fda708c988076ca56defcbdc3a8627c5d",
+          "span": [
+            165,
+            219
+          ],
+          "fact": "unbounded item stays active; NaN share/consumed/remaining comparisons do not exit."
+        }
+      ],
+      "boundary": "Static path only; no Rust repro/Cargo/test. Not generalized to finite max or a single-NaN min operation."
+    },
+    {
+      "id": "CR-ZCA-R039-0002",
+      "kind": "TODO",
+      "state": "open intent gap",
+      "location": {
+        "path": "zircon_runtime_interface/src/ui/layout/linear_sizing.rs",
+        "sha256": "86264bc749ed8066756cd6853ef81a8c463c8fb24e6a9eac0990a1316fe298bd",
+        "lines": [
+          20,
+          21
+        ]
+      },
+      "evidence": [
+        {
+          "path": "zircon_runtime/src/ui/layout/pass/axis.rs",
+          "sha256": "f5d1ca89e8d29608733051c08e61308025f7acaedbd65f561ddab7f5a148d37b",
+          "span": [
+            180,
+            218
+          ],
+          "fact": "Native Stretch/StretchContent use value in its shared weight; Auto uses shrink_value."
+        },
+        {
+          "path": "zircon_runtime/src/ui/layout/taffy_bridge/compute.rs",
+          "sha256": "9255b092ad084c81793c2a13ad002682bf5888646b7d608db2a38e530e04e28e",
+          "span": [
+            495,
+            551
+          ],
+          "fact": "Taffy flex_shrink uses shrink_value."
+        },
+        {
+          "path": "zircon_runtime/src/ui/tests/taffy_layout_pass/linear_slots.rs",
+          "sha256": "d3620eb3b40f8f7ebffd0b26735bd9a89cb879ecb81126c2e0a6d54e7d62c8ea",
+          "span": [
+            1,
+            338
+          ],
+          "fact": "reviewed tests do not define differing-weight behavior under insufficient space across backends."
+        }
+      ],
+      "next_step": "Compare finite dimensions, zero padding, explicit min/max and value != shrink_value under insufficient main-axis space; decide intended contract before behavior changes.",
+      "boundary": "No backend is declared incorrect or pixel parity guaranteed."
+    }
+  ],
+  "excluded_candidates": [
+    {
+      "topic": "Grid origin + span overflow",
+      "decision": "No R039 issue label; DTO documentation states it does not validate origin-plus-span. Arithmetic/measurement is in Runtime outside this exact source grant."
+    }
+  ],
+  "preexisting_markers_at_HEAD": [],
+  "source_guards": {
+    "files": [
+      "zircon_runtime_interface/src/tests/layout_engine_contracts.rs",
+      "zircon_runtime_interface/src/tests/ui_layout.rs"
+    ],
+    "include_str": 0,
+    "include_bytes": 0,
+    "result": "No source-text scanner/include macros in audited interface tests; assertions and strings are unchanged."
+  },
+  "validation": {
+    "rustfmt": {
+      "command": "rustfmt --check --edition 2021 --config skip_children=true <13 assigned paths>",
+      "exit_code": 0,
+      "chunk": "02921a"
+    },
+    "diff_check": {
+      "command": "git diff --check -- <13 assigned paths>",
+      "exit_code": 0,
+      "native_session": 36874,
+      "terminal_chunk": "a33ab8",
+      "output": "only LF-to-CRLF warnings"
+    },
+    "raw_reversal": {
+      "exit_code": 0,
+      "chunk": "f68cf0",
+      "files": 13,
+      "result": "all exact insertion bytes/hashes removed at recorded descending offsets; reconstructed SHA equals before pin"
+    },
+    "guard_scan": {
+      "exit_code": 0,
+      "chunk": "4f13b9",
+      "result": "both audited test files have zero include_str!/include_bytes!"
+    },
+    "staged_scope_empty": true,
+    "scoped_status": [
+      " M zircon_runtime_interface/src/ui/layout/constraints.rs",
+      " M zircon_runtime_interface/src/ui/layout/engine.rs",
+      " M zircon_runtime_interface/src/ui/layout/geometry.rs",
+      " M zircon_runtime_interface/src/ui/layout/linear_sizing.rs",
+      " M zircon_runtime_interface/src/ui/layout/metrics.rs",
+      " M zircon_runtime_interface/src/ui/layout/scroll.rs",
+      " M zircon_runtime_interface/src/ui/layout/slot.rs",
+      " M zircon_runtime_interface/src/ui/layout/virtualization.rs"
+    ],
+    "cargo_tests_builds_generators": "not run; comment-only audit",
+    "byte_preservation": "all original bytes reconstruct exactly; no existing comment/code/string/API/assertion replaced"
+  },
+  "writer_receipts": [
+    {
+      "group": "A",
+      "files": 5,
+      "objects": 78,
+      "native_session": 77584,
+      "terminal": "exit 0"
+    },
+    {
+      "group": "B",
+      "files": 5,
+      "objects": 111,
+      "native_session": 7576,
+      "terminal": "exit 0"
+    },
+    {
+      "group": "C",
+      "files": 3,
+      "outer_exec_cell": 170,
+      "terminal": "outer functions.exec cell completed; nested native session id and exit code were not captured. Later JSON read-back verified all group-C hashes. This does not claim a captured native exit code."
+    }
+  ],
+  "formal_gate": {
+    "parent_review": "pending",
+    "formal_acceptance": false,
+    "source_write_scope_closed": true,
+    "global_ledger_modified": false
+  }
+}

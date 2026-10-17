@@ -1,6 +1,6 @@
 use super::{RetainedEditorHost, UiAssetActionDispatch};
-use crate::ui::host::EditorError;
 use crate::ui::asset_editor::UiDesignerToolMode;
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {

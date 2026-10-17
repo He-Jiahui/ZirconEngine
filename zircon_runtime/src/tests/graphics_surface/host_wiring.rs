@@ -2,23 +2,20 @@
 #[test]
 fn graphics_runtime_host_no_longer_owns_legacy_preview_or_render_service_wiring() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let host_mod_source = std::fs::read_to_string(
-        runtime_root.join("src/graphics/graphics/host/mod.rs"),
-    )
-    .unwrap_or_default();
-    let module_host_mod_source = std::fs::read_to_string(
-        runtime_root.join("src/graphics/graphics/host/module_host/mod.rs"),
-    )
-    .unwrap_or_default();
+    let host_mod_source =
+        std::fs::read_to_string(runtime_root.join("src/graphics/graphics/host/mod.rs"))
+            .unwrap_or_default();
+    let module_host_mod_source =
+        std::fs::read_to_string(runtime_root.join("src/graphics/graphics/host/module_host/mod.rs"))
+            .unwrap_or_default();
     let create_mod_source = std::fs::read_to_string(
         runtime_root.join("src/graphics/graphics/host/module_host/create/mod.rs"),
     )
     .unwrap_or_default();
-    let rendering_manager_mod_source =
-        std::fs::read_to_string(runtime_root.join(
-            "src/graphics/graphics/host/module_host/rendering_manager/mod.rs",
-        ))
-        .unwrap_or_default();
+    let rendering_manager_mod_source = std::fs::read_to_string(
+        runtime_root.join("src/graphics/graphics/host/module_host/rendering_manager/mod.rs"),
+    )
+    .unwrap_or_default();
 
     for forbidden in [
         "create_render_service",

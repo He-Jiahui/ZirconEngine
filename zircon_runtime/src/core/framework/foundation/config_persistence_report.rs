@@ -17,14 +17,19 @@
 /// 参见 [super::ConfigManager::persistence_report]；需要磁盘确认时使用 [super::ConfigManager::flush]。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ConfigPersistenceReport {
+    /// 默认实现接收实际值变化时推进的请求代际；同值通知可重试未确认代际而不递增。
     pub dirty_generation: u64,
+    /// 默认实现成功完成写入后确认的目标代际；快照可能已包含更晚值，但本次只确认捕获的目标。
     pub persisted_generation: u64,
     /// 默认实现以 0/1 表示是否有待落盘代际；peak_pending_flushes 记录这个状态的峰值。
     pub pending_flushes: u64,
+    /// 当前 worker 生命周期内合并待落盘状态的峰值；默认实现为 0 或 1。
     pub peak_pending_flushes: u64,
     /// 后台已完成持久化尝试的累计次数，成功和失败均计入。
     pub flush_attempts: u64,
+    /// 默认实现已完成且 writer 返回成功的尝试数。
     pub successful_writes: u64,
+    /// 默认实现已统计的失败尝试数，包含序列化或文件发布返回错误的尝试。
     pub failed_writes: u64,
     /// 各次尝试成功生成的 JSON 字节数之和；写入失败时也累计该次字节数。
     pub serialized_bytes: u64,
@@ -33,5 +38,6 @@ pub struct ConfigPersistenceReport {
     pub flush_p95_ms: f64,
     /// 默认实现最近最多 64 次完成尝试的最大耗时（毫秒），包含失败尝试。
     pub max_flush_ms: f64,
+    /// 最近失败或 worker 异常的自有错误文本；默认实现成功完成写入后清空，初始值为 None。
     pub last_error: Option<String>,
 }

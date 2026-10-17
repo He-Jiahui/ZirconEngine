@@ -6,8 +6,8 @@ use zircon_runtime::core::framework::net::{
     ReliableDatagramReceiveStatus,
 };
 
-use super::NetReliableUdpRuntimeManager;
 use super::assembly::InboundFragmentAssembly;
+use super::NetReliableUdpRuntimeManager;
 
 impl NetReliableUdpRuntimeManager {
     pub(in crate::manager) fn receive_packet_impl(

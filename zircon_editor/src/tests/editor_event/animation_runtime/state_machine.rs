@@ -42,7 +42,8 @@ fn animation_state_machine_event_marks_open_graph_editor_dirty_and_updates_trans
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");
@@ -104,7 +105,8 @@ fn animation_state_machine_ignores_missing_entry_state_requests() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");
@@ -168,7 +170,8 @@ fn animation_state_machine_ignores_transition_requests_with_missing_states() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");
@@ -235,7 +238,8 @@ fn animation_state_machine_ignores_condition_requests_for_missing_transitions() 
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");
@@ -302,7 +306,8 @@ fn animation_state_machine_ignores_unknown_transition_condition_operator() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");

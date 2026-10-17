@@ -80,6 +80,7 @@ fn reusable_solver_growth_respects_priority_and_max_saturation() {
     assert_eq!(solve_reused(40.0, &constraints), vec![15.0, 25.0]);
 }
 
+// 零输入权重先规整为默认权重；本例验证等分结果，不直接覆盖极小正权重的均分回退。
 #[test]
 fn reusable_solver_growth_with_zero_weights_shares_evenly() {
     let constraints = [

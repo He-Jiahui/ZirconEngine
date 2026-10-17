@@ -1,6 +1,5 @@
 use std::any::Any;
-use std::sync::atomic::{AtomicI64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use super::super::*;
 use crate::core::editing::engine::{
@@ -21,6 +20,14 @@ impl EditContext for Context {
     fn retire_world_route(&mut self, _: WorldDomain) -> Result<(), EditCommandError> {
         Ok(())
     }
+    fn selection_retention_bound_v1(
+        &self,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<u64, EditCommandError> {
+        SelectionSnapshot::scalar_retention_bound_v1(model, limit)
+    }
+
     fn selection_snapshot(&self) -> SelectionSnapshot {
         SelectionSnapshot::default()
     }
@@ -35,18 +42,52 @@ impl EditContext for Context {
     }
 }
 
-struct Increment(Arc<AtomicI64>);
+struct Increment(Arc<Mutex<i64>>);
 
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for Increment {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        m.owned(&self.0)?;
+        Ok(())
+    }
+}
 impl EditCommand for Increment {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<
+        crate::core::editing::engine::CommandRetentionPlanV1,
+        crate::core::editing::engine::EditCommandError,
+    > {
+        crate::core::editing::engine::CommandRetentionPlanV1::for_owner(
+            self, context, phase, model, limit,
+        )
+    }
+    fn prepare_retention_v1(
+        &mut self,
+        _: &mut dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        permit: &mut crate::core::editing::engine::RetentionMaterializationV1,
+    ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+        permit
+            .consume(self, phase)
+            .map_err(crate::core::editing::engine::CommandExecutionError::unchanged)
+    }
+
     fn label(&self) -> &str {
         "increment"
     }
     fn apply(&mut self, _: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
-        self.0.fetch_add(1, Ordering::SeqCst);
+        *self.0.lock().unwrap() += 1;
         Ok(())
     }
     fn revert(&mut self, _: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
-        self.0.fetch_sub(1, Ordering::SeqCst);
+        *self.0.lock().unwrap() -= 1;
         Ok(())
     }
     fn as_any(&self) -> &dyn Any {
@@ -57,7 +98,7 @@ impl EditCommand for Increment {
 fn update(
     engine: &EditorTransactionEngine,
     history: HistoryContextId,
-    value: &Arc<AtomicI64>,
+    value: &Arc<Mutex<i64>>,
 ) -> TransactionId {
     engine
         .execute_operation(
@@ -75,7 +116,7 @@ fn update(
 fn ordinary_observers_preserve_pending_group_and_committed_history() {
     let engine = EditorTransactionEngine::new(Context);
     let history = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let baseline = engine.dirty_states_since(None).unwrap();
     let generation = engine.history_generation_snapshot(history).unwrap();
     let first = update(&engine, history, &value);
@@ -106,14 +147,14 @@ fn ordinary_observers_preserve_pending_group_and_committed_history() {
         assert_eq!(pending.states()[0].history_generation(), generation);
     }
     assert_eq!(update(&engine, history, &value), first);
-    assert_eq!(value.load(Ordering::SeqCst), 2);
+    assert_eq!(*value.lock().unwrap(), 2);
     assert_eq!(engine.flush_operation_group().unwrap(), Some(first));
     let committed = engine.history_status(history).unwrap();
     assert_eq!(committed.len, 1);
     assert_eq!(committed.top, Some(first));
     assert_eq!(committed.generation, generation + 1);
     assert!(engine.undo(history).unwrap());
-    assert_eq!(value.load(Ordering::SeqCst), 0);
+    assert_eq!(*value.lock().unwrap(), 0);
 }
 
 #[test]
@@ -121,7 +162,7 @@ fn dirty_cursor_observes_pending_only_history_then_cancelled_clean_state() {
     let engine = EditorTransactionEngine::new(Context);
     let history = HistoryContextId::Document(DocumentId::new(7101));
     let other = HistoryContextId::Document(DocumentId::new(7102));
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let baseline = engine.dirty_states_since(None).unwrap();
     let id = update(&engine, history, &value);
     let pending = engine.dirty_states_since(Some(baseline.cursor())).unwrap();
@@ -143,7 +184,7 @@ fn dirty_cursor_observes_pending_only_history_then_cancelled_clean_state() {
     );
     assert!(!engine.is_dirty(other).unwrap());
     engine.cancel(id).unwrap();
-    assert_eq!(value.load(Ordering::SeqCst), 0);
+    assert_eq!(*value.lock().unwrap(), 0);
     let cancelled = engine.dirty_states_since(Some(pending.cursor())).unwrap();
     assert_eq!(cancelled.kind(), HistoryDirtyBatchKind::Delta);
     assert_eq!(cancelled.states().len(), 1);
@@ -163,7 +204,7 @@ fn dirty_cursor_observes_pending_only_history_then_cancelled_clean_state() {
 #[test]
 fn pending_volatile_history_stays_clean_without_being_committed_by_queries() {
     let engine = EditorTransactionEngine::new(Context);
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let history = HistoryContextId::PlaySession(PlayInstanceId::for_test(63));
     let baseline = engine.dirty_states_since(None).unwrap();
     let id = update(&engine, history, &value);
@@ -180,13 +221,13 @@ fn pending_volatile_history_stays_clean_without_being_committed_by_queries() {
     );
     assert_eq!(update(&engine, history, &value), id);
     engine.cancel(id).unwrap();
-    assert_eq!(value.load(Ordering::SeqCst), 0);
+    assert_eq!(*value.lock().unwrap(), 0);
 }
 
 #[test]
 fn observers_preserve_busy_and_fault_errors_without_committing_group() {
     let engine = EditorTransactionEngine::new(Context);
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let history = HistoryContextId::Global;
     let id = update(&engine, history, &value);
     engine.lock_state().operation = Some("apply command");
@@ -235,14 +276,14 @@ fn observers_preserve_busy_and_fault_errors_without_committing_group() {
     engine.lock_state().faulted = false;
     assert_eq!(update(&engine, history, &value), id);
     engine.cancel(id).unwrap();
-    assert_eq!(value.load(Ordering::SeqCst), 0);
+    assert_eq!(*value.lock().unwrap(), 0);
 }
 
 #[test]
 fn empty_active_scope_is_clean_and_applied_scope_can_be_observed_then_cancelled() {
     let engine = EditorTransactionEngine::new(Context);
     let history = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let baseline = engine.dirty_states_since(None).unwrap();
     let mut scope = engine.begin("explicit scope", history).unwrap();
     assert!(!engine.is_dirty(history).unwrap());
@@ -262,14 +303,14 @@ fn empty_active_scope_is_clean_and_applied_scope_can_be_observed_then_cancelled(
     let cancelled = engine.dirty_states_since(Some(pending.cursor())).unwrap();
     assert_eq!(cancelled.kind(), HistoryDirtyBatchKind::Delta);
     assert!(!cancelled.states()[0].is_dirty());
-    assert_eq!(value.load(Ordering::SeqCst), 0);
+    assert_eq!(*value.lock().unwrap(), 0);
 }
 
 #[test]
 fn dirty_cursor_observes_commit_after_pending_without_duplication() {
     let engine = EditorTransactionEngine::new(Context);
     let history = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let id = update(&engine, history, &value);
     let pending = engine.dirty_states_since(None).unwrap();
     assert!(pending.states()[0].is_dirty());

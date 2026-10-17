@@ -413,9 +413,7 @@ fn compiled_output_target_writeback_precedes_query_resolve_and_main_submission()
     let render = compiled_scene_execution_source();
     let terminal = include_str!("../render/terminal_frame_packet.rs");
     let stages = include_str!("../../../../core/render/execute_compiled_scene_graph_stages.rs");
-    let output_target = include_str!(
-        "../../../renderer/context/gpu/output_target.rs"
-    );
+    let output_target = include_str!("../../../renderer/context/gpu/output_target.rs");
     let graph_execution = render
         .find("self.execute_compiled_scene_graph_stages(")
         .expect("compiled rendering must execute its authored graph");

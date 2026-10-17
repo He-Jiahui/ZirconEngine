@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::core::runtime::{EngineTaskGraph, TaskGraphScope};
 

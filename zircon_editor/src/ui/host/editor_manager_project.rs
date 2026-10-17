@@ -187,29 +187,10 @@ impl EditorManager {
         &self,
         path: impl AsRef<Path>,
         world: &zircon_runtime::scene::Scene,
-    ) -> Result<(), EditorError> {
-        let project_root = ProjectAuthority::default().resolve_existing_project_root(&path)?;
-        let active_scene = self
-            .document_lifecycle
-            .active_scene_identity(&project_root)
-            .ok_or_else(|| {
-                EditorError::Project(
-                    "cannot save without an active project scene document".to_string(),
-                )
-            })?;
-        let scene_uri = AssetUri::parse(active_scene.scene_uri()).map_err(|error| {
-            EditorError::Project(format!(
-                "active scene document {} has an invalid source URI: {error}",
-                active_scene.document().value()
-            ))
-        })?;
-        self.host
-            .save_active_scene(&project_root, &scene_uri, world)?;
-        self.publish_document_messages(
-            self.document_lifecycle
-                .save_scene_identity_if_active(&active_scene),
-        );
-        Ok(())
+    ) -> Result<crate::core::document::SceneSaveOutcome, EditorError> {
+        let workspace = self.project_workspace();
+        let outcome = self.save_active_scene_with_workspace(path, world, &workspace)?;
+        Ok(outcome)
     }
 
     /// Publishes the manifest-selected startup scene as the first document of an already-open
@@ -218,6 +199,7 @@ impl EditorManager {
         &self,
         project_root: &Path,
         scene_uri: &AssetUri,
+        source_revision: Option<zircon_runtime::scene::world::SceneSourceRevision>,
     ) -> Result<DocumentId, EditorError> {
         let project = self.host.current_project_snapshot()?.ok_or_else(|| {
             EditorError::Project(
@@ -250,6 +232,7 @@ impl EditorManager {
                 session,
                 project_root,
                 &scene_uri.to_string(),
+                source_revision,
                 |document| journal.bind_project_document(document, &source_path),
             )
             .map_err(|error| match error {

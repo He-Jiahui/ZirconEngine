@@ -5,6 +5,7 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 #[derive(Debug, PartialEq, Eq)]
 struct SparseValue(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(SparseValue { 0 });
 impl Component for SparseValue {
     const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }

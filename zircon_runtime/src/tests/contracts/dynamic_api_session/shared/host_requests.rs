@@ -125,7 +125,7 @@ pub(in super::super) const EXPECTED_RUNTIME_10_HOST_REQUEST_PAYLOAD_ANCHORS: &[(
     ),
     (
         "zircon_runtime/src/dynamic_api/session/state.rs",
-        ".map(ZrRuntimeHostRequestV1::gamepad_rumble)",
+        ".map(ZrRuntimeHostRequestV1::gamepad_rumble_v2)",
     ),
     (
         "zircon_runtime/src/dynamic_api/session/state.rs",

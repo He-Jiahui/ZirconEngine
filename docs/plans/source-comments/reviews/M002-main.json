@@ -1,0 +1,254 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "M002",
+  "reviewer": "main",
+  "at_utc": "2026-10-14T15:56:28.381950+00:00",
+  "status": "accepted-local-read-only-review",
+  "source_files_modified": false,
+  "review_record": {
+    "path": "docs/plans/source-comments/reviews/M002.json",
+    "sha256": "199259f990db4c7543f3bb6cf1cdea317cf1b922b2f1437609c1b74f15a2868a"
+  },
+  "validation_record": {
+    "path": "docs/plans/source-comments/reviews/M002-validation.json",
+    "sha256": "a62c9bc83ae743de3f54d37872e64b71182da91426af932177f19598fd0dc413"
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/crates/zr_math/Cargo.toml",
+      "sha256": "a2155c2ff792eb3605a5c55cc400641960380414ee7277e3a2d4f96882a8ec21",
+      "lines": 15,
+      "objects": [
+        "[package]: name zr_math, workspace version/edition/license, publish=false, low-dependency math description.",
+        "[dependencies]: glam, serde, thiserror inherited from workspace.",
+        "[dev-dependencies]: serde_json 1.0.149 for unit-test serialization cases."
+      ],
+      "function_names": [],
+      "all_declarations_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-names-and-explicit-assertions-adequate",
+      "test_assertion_contracts": [
+        "serde_json supports the Vec3-to-value and from_value rejection checks in tests/space.rs; other test modules need no extra dev dependency."
+      ],
+      "proof_limits": []
+    },
+    {
+      "path": "zircon_runtime/crates/zr_math/src/tests/mod.rs",
+      "sha256": "9064b6ec73a9b2a36879d860ab8aadc68600cab014e049c0b3c1537fb5bb8619",
+      "lines": 10,
+      "objects": [
+        "conventions, fallible, numeric_policy, render_conversion, and space submodules."
+      ],
+      "function_names": [],
+      "all_declarations_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-names-and-explicit-assertions-adequate",
+      "test_assertion_contracts": [
+        "All five test modules are included; each contains #[test] cases."
+      ],
+      "proof_limits": []
+    },
+    {
+      "path": "zircon_runtime/crates/zr_math/src/tests/conventions.rs",
+      "sha256": "385433cf82a3217e4908b0f491bd5455c37b527d90c1957b00ea9fac2317a1b1",
+      "lines": 17,
+      "objects": [
+        "coordinate_vocabulary_preserves_axis_and_space_semantics (line 4).",
+        "scalar_precision_reports_storage_width (line 14)."
+      ],
+      "function_names": [
+        "coordinate_vocabulary_preserves_axis_and_space_semantics",
+        "scalar_precision_reports_storage_width"
+      ],
+      "all_declarations_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-names-and-explicit-assertions-adequate",
+      "test_assertion_contracts": [
+        "ViewRelative belongs to render classification; World does not.",
+        "Precision metadata reports primitive storage width."
+      ],
+      "proof_limits": [
+        "Test-quality gap: assert_eq!(Positive(Y), Positive(Y)) compares an expression with itself and cannot detect incorrect AxisDirection equality/encoding; this is not evidence of a product bug.",
+        "Coverage gaps: no serde roundtrip; only two of seven SpaceKind variants exercised; precision values only report width."
+      ]
+    },
+    {
+      "path": "zircon_runtime/crates/zr_math/src/tests/fallible.rs",
+      "sha256": "453463f75d92cdf852d8271858e3672bdeaec4373159945ab5ee390cfebdcd3e",
+      "lines": 124,
+      "objects": [
+        "fallible_look_at_rejects_collinear_view_and_up_axes (7).",
+        "fallible_look_at_builds_a_finite_camera_transform (15).",
+        "infallible_look_at_uses_default_forward_when_eye_equals_target (24).",
+        "infallible_look_at_builds_an_orthonormal_basis_for_collinear_up (35).",
+        "fallible_perspective_rejects_invalid_field_of_view_and_near_plane (50).",
+        "fallible_perspective_builds_a_finite_projection_matrix (62).",
+        "validated_perspective_retains_a_near_to_far_projection_contract (70).",
+        "validated_perspective_rejects_degenerate_ranges_before_exposing_a_matrix (86).",
+        "fallible_affine_inverse_rejects_singular_matrix (94).",
+        "fallible_affine_inverse_rejects_perspective_matrix (104).",
+        "fallible_affine_inverse_round_trips_a_valid_transform_matrix (114)."
+      ],
+      "function_names": [
+        "fallible_look_at_rejects_collinear_view_and_up_axes",
+        "fallible_look_at_builds_a_finite_camera_transform",
+        "infallible_look_at_uses_default_forward_when_eye_equals_target",
+        "infallible_look_at_builds_an_orthonormal_basis_for_collinear_up",
+        "fallible_perspective_rejects_invalid_field_of_view_and_near_plane",
+        "fallible_perspective_builds_a_finite_projection_matrix",
+        "validated_perspective_retains_a_near_to_far_projection_contract",
+        "validated_perspective_rejects_degenerate_ranges_before_exposing_a_matrix",
+        "fallible_affine_inverse_rejects_singular_matrix",
+        "fallible_affine_inverse_rejects_perspective_matrix",
+        "fallible_affine_inverse_round_trips_a_valid_transform_matrix"
+      ],
+      "all_declarations_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-names-and-explicit-assertions-adequate",
+      "test_assertion_contracts": [
+        "Checked look_at rejects collinear axes and returns finite transform for an orthogonal case.",
+        "Convenience look_at recovers coincident eye/target and collinear up, retaining eye and producing an orthonormal orientation.",
+        "Checked perspective verifies one FOV boundary and one near-plane boundary, valid finite output, metadata retention, and equal near/far rejection.",
+        "Checked affine inverse rejects singular and projective matrices and round-trips a simple translation."
+      ],
+      "proof_limits": [
+        "Coverage gaps: no nonfinite eye/target/up cases; no aspect<=0, far<=near (other than equal), nonfinite inputs/results, or FOV endpoints; no perspective convenience clamp tests.",
+        "Coverage gaps: no affine nonfinite input/determinant/result, custom determinant threshold, or almost-but-not-exact affine row tests.",
+        "Tolerance rationale for 4*EPSILON is not stated; code alone does not establish why that bound was chosen, so no explanatory comment is proposed from inference."
+      ]
+    },
+    {
+      "path": "zircon_runtime/crates/zr_math/src/tests/numeric_policy.rs",
+      "sha256": "0c7b52ba29a258a7eb7e2dbd14d7b79f7e95436a24d51c65f71317d5d584ebf7",
+      "lines": 125,
+      "objects": [
+        "numeric_policy_rejects_non_finite_and_negative_minimums (8).",
+        "unit_direction_normalizes_finite_nonzero_input (42).",
+        "numeric_policy_enforces_configured_direction_floor (52).",
+        "unit_direction_rejects_zero_input (77).",
+        "unit_quaternion_normalizes_finite_nonzero_input (85).",
+        "unit_quaternion_rejects_non_finite_input (93).",
+        "validated_transform_normalizes_rotation_and_rejects_degenerate_scale (106)."
+      ],
+      "function_names": [
+        "numeric_policy_rejects_non_finite_and_negative_minimums",
+        "unit_direction_normalizes_finite_nonzero_input",
+        "numeric_policy_enforces_configured_direction_floor",
+        "unit_direction_rejects_zero_input",
+        "unit_quaternion_normalizes_finite_nonzero_input",
+        "unit_quaternion_rejects_non_finite_input",
+        "validated_transform_normalizes_rotation_and_rejects_degenerate_scale"
+      ],
+      "all_declarations_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-names-and-explicit-assertions-adequate",
+      "test_assertion_contracts": [
+        "try_new validation is covered for one nonfinite field and two negative fields, but not every field/value-class pairing.",
+        "Direction/quaternion constructors normalize valid nonunit inputs and reject selected zero/nonfinite inputs.",
+        "Configured threshold comparison uses squared norm and <= rejection.",
+        "ValidatedTransform normalizes quaternion and rejects zero scale under STRICT."
+      ],
+      "proof_limits": [
+        "Coverage gap tied to ZCA-M001-001: no test deserializes NumericPolicy with invalid finite/negative threshold or then passes it to ValidatedTransform::try_new.",
+        "Other gaps: no negative normalized-length threshold case, positive scale/determinant floor rejection test, zero quaternion, nonfinite translation/scale, or negative scale admission case."
+      ]
+    },
+    {
+      "path": "zircon_runtime/crates/zr_math/src/tests/render_conversion.rs",
+      "sha256": "21f7d0e49541c5bf0b6f24064d2d7895411071df9853ed101b7b99d6f4520234",
+      "lines": 19,
+      "objects": [
+        "checked_render_narrowing_preserves_current_f32_values_and_emits_a_receipt (4).",
+        "checked_render_narrowing_rejects_non_finite_source (14)."
+      ],
+      "function_names": [
+        "checked_render_narrowing_preserves_current_f32_values_and_emits_a_receipt",
+        "checked_render_narrowing_rejects_non_finite_source"
+      ],
+      "all_declarations_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-names-and-explicit-assertions-adequate",
+      "test_assertion_contracts": [
+        "Valid current f32 scalar produces an exact receipt.",
+        "Nonfinite source is rejected before conversion."
+      ],
+      "proof_limits": [
+        "Coverage gaps: no infinity, vector/matrix component propagation, viewport clamp, out-of-range, post-cast nonfinite, or receipt serde test.",
+        "Under current Real=f32 and RenderScalar=f32 aliases, every finite source is already representable in the destination type, so the test confirms an exact identity case rather than an actual precision narrowing; do not infer future f64 behavior."
+      ]
+    },
+    {
+      "path": "zircon_runtime/crates/zr_math/src/tests/space.rs",
+      "sha256": "11b93bd51f5f620ee1dd18815786dff64d11aaf05becbdaddf008080ec77257a",
+      "lines": 40,
+      "objects": [
+        "position_and_vector_operations_require_a_matching_space (6).",
+        "normal_rejects_zero_input_and_validated_types_reject_invalid_wire_values (28)."
+      ],
+      "function_names": [
+        "position_and_vector_operations_require_a_matching_space",
+        "normal_rejects_zero_input_and_validated_types_reject_invalid_wire_values"
+      ],
+      "all_declarations_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-names-and-explicit-assertions-adequate",
+      "test_assertion_contracts": [
+        "Same-space point/vector composition succeeds.",
+        "Different-space point subtraction returns exact mismatch payload.",
+        "Zero normals and selected invalid deserialized checked types are rejected."
+      ],
+      "proof_limits": [
+        "Coverage gaps: no Position3/Vector3/Normal3 serde roundtrip or invalid-wire check, vector+vector mismatch, point+vector mismatch, finite overflow, or valid nonzero Normal3 normalization assertion.",
+        "Serde rejection assertions establish only the selected UnitDirection3 and ValidatedTransform cases; they do not establish NumericPolicy Deserialize validation."
+      ]
+    }
+  ],
+  "independent_review": [
+    "Main read all seven files completely and checked all 24 tests, their inputs, expected variants, numeric comparisons and the static module mount.",
+    "Crate lib.rs cfg(test) and explicit tests/mod.rs paths include all five test modules; Cargo.toml has no hidden build script/extra targets.",
+    "M001 implementation definitions were independently read earlier at the relevant hashes; NumericPolicy derived Deserialize and ValidatedTransform custom STRICT Deserialize are distinct admission paths.",
+    "The Positive(Y) self comparison checks reflexive equality only. It cannot prove discrimination of axis/sign/encoding; no evidence establishes an additional product contract violation.",
+    "Tests establish only their written cases. Missing branch/serde cases and unexplained tolerance rationale do not justify invented annotations or product BUG labels.",
+    "Child record references expect! alongside assertion macros in several entries; actual code uses Result::expect method calls. Main review explicitly corrects that classification; there is no expect! macro in these files."
+  ],
+  "checks": {
+    "source_hashes_exact": true,
+    "rustfmt_check": {
+      "exit_code": 0,
+      "edition": "2021",
+      "skip_children": true,
+      "actual_receipt": "docs/plans/source-comments/reviews/M002-validation.json"
+    },
+    "toml_parse": {
+      "path": "zircon_runtime/crates/zr_math/Cargo.toml",
+      "sha256": "a2155c2ff792eb3605a5c55cc400641960380414ee7277e3a2d4f96882a8ec21",
+      "status": "parsed-with-tomllib"
+    },
+    "scoped_diff_check": {
+      "argv": [
+        "git",
+        "--literal-pathspecs",
+        "-C",
+        "E:\\Git\\ZirconEngine",
+        "diff",
+        "--check",
+        "HEAD",
+        "--",
+        "zircon_runtime/crates/zr_math/Cargo.toml",
+        "zircon_runtime/crates/zr_math/src/tests/mod.rs",
+        "zircon_runtime/crates/zr_math/src/tests/conventions.rs",
+        "zircon_runtime/crates/zr_math/src/tests/fallible.rs",
+        "zircon_runtime/crates/zr_math/src/tests/numeric_policy.rs",
+        "zircon_runtime/crates/zr_math/src/tests/render_conversion.rs",
+        "zircon_runtime/crates/zr_math/src/tests/space.rs"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "test_execution": "not-run",
+    "cargo_or_build": "not-run"
+  },
+  "issues": [],
+  "ownership": {
+    "mode": "read-only-no-source-write",
+    "source_write_release_claimed": false,
+    "any_future_source_edit_requires_ownership": true
+  },
+  "formal_acceptance": false,
+  "formal_gate": "Managed language-stage and stage commit receipts remain pending; this record is local source audit evidence only."
+}

@@ -551,3 +551,106 @@ fn transaction_event_adapter_reports_canonical_bus_backpressure() {
     );
     assert!(bus.drain_deliveries(subscriber).is_empty());
 }
+
+#[test]
+fn log_service_reports_not_configured_until_a_matching_log_subscriber_is_present() {
+    let context = EditorContextBuilder::new(
+        crate::core::jobs::test_job_scheduler(),
+        crate::core::jobs::test_job_scheduler(),
+    )
+    .build();
+    let before = context.logs().diagnostics();
+    let emit = |message: &'static str| {
+        context
+            .logs()
+            .emit(
+                LogEntry::new(LogSource::editor(), LogSeverity::Info, message, 7, None).unwrap(),
+            )
+            .unwrap()
+    };
+
+    let no_subscriber = emit("no matching subscriber");
+    assert_eq!(
+        no_subscriber.event_delivery(),
+        LogEventDelivery::NotConfigured
+    );
+    assert_eq!(
+        context
+            .logs()
+            .record(no_subscriber.record().sequence())
+            .unwrap()
+            .entry()
+            .message(),
+        "no matching subscriber"
+    );
+
+    let unrelated = context
+        .bus()
+        .register_subscriber([EditorTopic::i18n()])
+        .unwrap();
+    let unrelated_only = emit("only an unrelated subscriber");
+    assert_eq!(
+        unrelated_only.event_delivery(),
+        LogEventDelivery::NotConfigured
+    );
+    assert!(context.bus().drain_deliveries(unrelated).is_empty());
+    assert_eq!(
+        context
+            .logs()
+            .record(unrelated_only.record().sequence())
+            .unwrap()
+            .entry()
+            .message(),
+        "only an unrelated subscriber"
+    );
+    assert!(no_subscriber.record().sequence() < unrelated_only.record().sequence());
+
+    let logs = context
+        .bus()
+        .register_subscriber([EditorTopic::log()])
+        .unwrap();
+    let subscribed = emit("matching log subscriber");
+    assert_eq!(subscribed.event_delivery(), LogEventDelivery::Delivered);
+    let deliveries = context.bus().drain_deliveries(logs);
+    assert_eq!(deliveries.len(), 1);
+    assert!(matches!(
+        deliveries[0].message().payload(),
+        EditorMessagePayload::Custom { schema_id, payload }
+            if schema_id.as_str() == LOG_RECORD_EVENT_SCHEMA
+                && payload["sequence"] == serde_json::json!(subscribed.record().sequence())
+    ));
+    assert!(context.bus().drain_deliveries(unrelated).is_empty());
+    assert_eq!(
+        context
+            .logs()
+            .record(subscribed.record().sequence())
+            .unwrap()
+            .entry()
+            .message(),
+        "matching log subscriber"
+    );
+    assert!(unrelated_only.record().sequence() < subscribed.record().sequence());
+
+    assert!(context.bus().unregister_subscriber(logs));
+    let unsubscribed = emit("matching subscriber removed");
+    assert_eq!(
+        unsubscribed.event_delivery(),
+        LogEventDelivery::NotConfigured
+    );
+    assert!(context.bus().drain_deliveries(unrelated).is_empty());
+    assert_eq!(
+        context
+            .logs()
+            .record(unsubscribed.record().sequence())
+            .unwrap()
+            .entry()
+            .message(),
+        "matching subscriber removed"
+    );
+    assert!(subscribed.record().sequence() < unsubscribed.record().sequence());
+
+    let after = context.logs().diagnostics();
+    assert_eq!(after.resync_required_records, before.resync_required_records);
+    assert_eq!(after.event_resyncs, before.event_resyncs);
+    assert_eq!(after.failed_event_resyncs, before.failed_event_resyncs);
+}

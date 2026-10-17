@@ -103,7 +103,10 @@ fn held_service_reference_cannot_enter_after_module_deactivation() {
         .recv_timeout(Duration::from_secs(1))
         .unwrap()
         .unwrap();
-    deactivation.join().unwrap();
+    deactivation
+        .join()
+        .unwrap()
+        .expect("deactivation completion send");
 
     assert!(matches!(
         held_service.enter(),

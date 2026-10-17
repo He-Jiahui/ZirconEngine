@@ -16,7 +16,42 @@ struct ReentrantCommand {
     observed_busy: Arc<AtomicBool>,
 }
 
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for ReentrantCommand {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        m.owned(&self.engine)?;
+        m.owned(&self.observed_busy)?;
+        Ok(())
+    }
+}
 impl EditCommand for ReentrantCommand {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<
+        crate::core::editing::engine::CommandRetentionPlanV1,
+        crate::core::editing::engine::EditCommandError,
+    > {
+        crate::core::editing::engine::CommandRetentionPlanV1::for_owner(
+            self, context, phase, model, limit,
+        )
+    }
+    fn prepare_retention_v1(
+        &mut self,
+        _: &mut dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        permit: &mut crate::core::editing::engine::RetentionMaterializationV1,
+    ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+        permit
+            .consume(self, phase)
+            .map_err(crate::core::editing::engine::CommandExecutionError::unchanged)
+    }
+
     fn label(&self) -> &str {
         "reentrant"
     }

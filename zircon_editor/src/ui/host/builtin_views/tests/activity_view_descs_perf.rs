@@ -15,8 +15,7 @@ fn optimization_batch_dl_builtin_view_batches_collect_once_from_exact_arrays() {
     let panel_aggregate = include_str!("../activity_views/view_descs.rs");
     let panel_functional = include_str!("../../activity_views/functional_panel_view_descs.rs");
     let window_aggregate = include_str!("../../activity_windows/activity_window_descs.rs");
-    let window_functional =
-        include_str!("../../activity_windows/functional_window_view_descs.rs");
+    let window_functional = include_str!("../../activity_windows/functional_window_view_descs.rs");
     let panel_production = panel_aggregate
         .split("#[cfg(test)]")
         .next()

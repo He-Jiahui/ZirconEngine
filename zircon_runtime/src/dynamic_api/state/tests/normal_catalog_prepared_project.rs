@@ -263,8 +263,12 @@ fn linked_catalog_uses_runtime_prepared_project_before_pm_drop_and_revoke() {
         Some(&payload)
     );
     let scene_uri = AssetUri::parse(SCENE_URI).expect("scene URI");
+    let source_revision = World::load_scene_document(&project, &scene_uri)
+        .expect("fixture source")
+        .into_parts()
+        .1;
     world
-        .save_scene_to_project(&project, &scene_uri)
+        .save_scene_to_project(&project, &scene_uri, &source_revision)
         .expect("prepared scene save");
     project.scan_and_import().expect("prepared scene import");
     assert_eq!(

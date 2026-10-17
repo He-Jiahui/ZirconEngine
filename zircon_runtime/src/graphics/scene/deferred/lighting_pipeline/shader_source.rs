@@ -261,10 +261,12 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_li
                 STANDARD_PBR_LIGHT_VECTOR_DISPATCH,
                 STANDARD_PBR_PIXEL_DISPATCH,
             ),
-            SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview => (&[], "", ""),
+            SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+            | SceneRendererDeferredLightingProfile::PortableScene => (&[], "", ""),
         };
-    let mut roots = if request.deferred_lighting_profile
-        == SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+    let mut roots = if request
+        .deferred_lighting_profile
+        .uses_environment_only_lighting()
     {
         Vec::new()
     } else {
@@ -313,8 +315,9 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_li
         roots.push(include.token.clone());
     }
 
-    let template = if request.deferred_lighting_profile
-        == SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+    let template = if request
+        .deferred_lighting_profile
+        .uses_environment_only_lighting()
     {
         DEFERRED_ENVIRONMENT_ONLY_PBR_TEMPLATE.to_string()
     } else {
@@ -333,7 +336,8 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_li
     roots.push("deferred_lighting.wgsl".to_string());
     match request.deferred_lighting_profile {
         SceneRendererDeferredLightingProfile::FullScene
-        | SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview => {}
+        | SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+        | SceneRendererDeferredLightingProfile::PortableScene => {}
         SceneRendererDeferredLightingProfile::StandardPbrPreview => {
             // The preview dispatch has no generic environment API callers, but it
             // still needs the complete local probe and planar-reflection provider.

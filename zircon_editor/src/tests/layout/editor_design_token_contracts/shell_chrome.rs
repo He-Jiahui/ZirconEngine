@@ -6,16 +6,16 @@ use toml::Value;
 /// 嵌入本测试实际检查的壳资产，源码断言不代表已完成窗口交互验证。
 macro_rules! workbench_asset {
     ($path:literal) => {
-        include_str!(concat!(
-            "../../../../assets/ui/editor/workbench/",
-            $path
-        ))
+        include_str!(concat!("../../../../assets/ui/editor/workbench/", $path))
     };
 }
 
 macro_rules! unreal_asset {
     ($path:literal) => {
-        include_str!(concat!("../../../../assets/ui/editor/unreal/components/", $path))
+        include_str!(concat!(
+            "../../../../assets/ui/editor/unreal/components/",
+            $path
+        ))
     };
 }
 

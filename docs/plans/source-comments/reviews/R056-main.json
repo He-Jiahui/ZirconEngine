@@ -1,0 +1,328 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R056",
+  "owner": "root",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "status": "reviewed-local-pending-ledger-booking-and-actual-managed-gates",
+  "formal_acceptance": false,
+  "fixed_child_record": {
+    "path": "docs/plans/source-comments/reviews/R056.json",
+    "bytes": 76138,
+    "sha256": "056fa788a4d3f4d343b0108ebf7a15331aecd0d544bc9d19d2cc3394d3fbc191"
+  },
+  "source_pins": [
+    {
+      "path": "zircon_runtime/src/ui/dispatch/navigation/mod.rs",
+      "before_sha256": "d4ccd8fc14693ab7cb1cf68191dc58b4f2cfc974854d7e31da9639043ee1f3e9",
+      "after_sha256": "a02b965a19255c2b96d6a3f2d4b0b1b1050a125f3a7509443d84feff00773822",
+      "before_bytes": 87,
+      "after_bytes": 283,
+      "before_lines": 4,
+      "after_lines": 7,
+      "changed": true,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 7,
+        "bom": false
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/navigation/dispatcher.rs",
+      "before_sha256": "7ca2344ab74b00527d9754a68eec0938aebd0c3f4f2030347d590b896f63199f",
+      "after_sha256": "2fda28e310bc1f79878ddcdb7570ec109c65186bfb979b97d424e13be429f54a",
+      "before_bytes": 3880,
+      "after_bytes": 6524,
+      "before_lines": 106,
+      "after_lines": 143,
+      "changed": true,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 143,
+        "bom": false
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/navigation/tests/dispatcher_optimization_tests.rs",
+      "before_sha256": "82fcae54da65036395d773450581a7d364e874ab0cf0282549203cc893552e95",
+      "after_sha256": "be63cf62c06e79ba47cb746989a82ce16663b1c606dc404b3c37fda842b83398",
+      "before_bytes": 381,
+      "after_bytes": 542,
+      "before_lines": 10,
+      "after_lines": 13,
+      "changed": true,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 13,
+        "bom": false
+      }
+    }
+  ],
+  "scope": [
+    "zircon_runtime/src/ui/dispatch/navigation/mod.rs",
+    "zircon_runtime/src/ui/dispatch/navigation/dispatcher.rs",
+    "zircon_runtime/src/ui/dispatch/navigation/tests/dispatcher_optimization_tests.rs"
+  ],
+  "counts": {
+    "sources": 3,
+    "changed": 3,
+    "unchanged": 0,
+    "before_bytes": 4348,
+    "after_bytes": 7349,
+    "before_lines": 120,
+    "after_lines": 163,
+    "objects": 10,
+    "import_bindings_group": 12,
+    "functions": 3,
+    "members": 1,
+    "semantic_blocks": 25,
+    "dispatch_control_points": 11,
+    "insertions": 7,
+    "added_lines": 43,
+    "added_bytes": 3001,
+    "deleted_original_bytes": 0,
+    "tests": 1,
+    "ignored": 0,
+    "assertions": 1
+  },
+  "root_read_receipts": [
+    {
+      "receipt": "306d0c exit0",
+      "read": "All3 final sources163 physical lines fully visible; actual budgetguard/visited were context-only."
+    },
+    {
+      "receipt": "45e64b exit0 PID31976",
+      "read": "All10 declaration audits,1member,25gapfree semantic block audits,11controlpoints and14context/source-guard/trait/macro/registration facts fully read."
+    },
+    {
+      "receipt": "53eb98 native53932 -> 059126 exit0",
+      "read": "14context pins matched; actual spans except tail of Interface result visible. Broad rg output was elided and not counted as complete."
+    },
+    {
+      "receipt": "f7924f native92936 -> 5be4b4 exit0",
+      "read": "Recovery: complete45L Interface result and real rootguard input/setup148-166; Surface public export128-136; actual surface.rs1-45. Scoped no-test rg caller inventory recovered. Earlier rg guessed missing surface/surface/mod.rs exit2, no mutation; correct Surface export verified."
+    }
+  ],
+  "independent_review": [
+    "All3owned sources andall10declaration groups/1field/25semantic blocks independently reviewed. Standard imports formone12binding group; alias,struct,impl,2publicmethods,testmount/private mount,reexport andtestfn are separate. Full rawinverse confirms original comments,code,API,macros,strings,asserts,EOL unchanged.",
+    "Arc HRTB Fn+Send+Sync+static stores callback capture ownership,notroute ownership. Register uses exact node/kind key,push order,doesnotcallhandlerorchecknodeexistence. Default mapempty; directlookup doesnotdependonHashMapiteration.",
+    "Dispatch owns route andselects bubbled iff targetSome,else root_targets. Emptyselectedslice orglobalmap returns before tracking/vectorallocation. One route-local visitedset skipsduplicates BEFOREkeylookup;expectedlen isonlycapacityhint. Itdoesnotvalidate routeidentity orrebuild candidates.",
+    "One ephemeralcontext per matched candidate, Fn synchronously in vectororder. Unhandled not recorded; firstHandled orvalidFocus recordsone invocation andbreaks labelledouterroute. Focus onlychecksnodeexistence here. MissingFocus Errcanfollowexternal callbackeffects; no rollback claim. Success ownsroute and0/1invocations.",
+    "Surface event_routing477-521 includes range-default earlyreturn beforedispatcher. After dispatcher, focus_changed_toNone canstillrun next_navigation_target evenafterHandled; laterfocus_node_with_reason handlesmodal/admission/ownerandstatecommit. Chinese docs restrictstop tohandlerchain andpointtoSurface, matching existing CR-DISPATCH-0001 without duplicatingit.",
+    "Surface input/navigation19-81 projects alreadyapplied focus into UiDispatchReply andappliedeffect receipts,notsecondexecution. Interface results ownroute/emptyinitialrecords; CR-DISPATCH-0002 report-onlyfilterremainsunresolvedcontext,notnewR056producerproof.",
+    "Ownedtest is1rawinclude/split/containsassertion only; before/currenttrue andexact4operandcounts1,newcomments0. split.next isSome evenwithoutdelimiter;currentdelimiter1. No allocation,timing,behaviororprofilegate success inferred. Sharedtests118-174selectedcaller/assert evidence only,notwholefileorRustexecution.",
+    "Existing visitedhelper commentline7 overgeneralizes preview sharing; bothpointerR053 andnavigation actualcalls showper-instance range. Originalcommentpreserved here; R057ownerseparatelyauthorized. NoownednewBUG/TODO/unsafe/FFI/Serde/customDrop. Defaultderive andcfg/path/test/include/assert macros are local andunchanged."
+  ],
+  "traits_macros_ffi": {
+    "owned_derived": [
+      {
+        "symbol": "UiNavigationDispatcher",
+        "trait": "Default",
+        "before_span": [
+          20,
+          23
+        ],
+        "after_span": [
+          27,
+          30
+        ],
+        "effect": "HashMap default empty registry."
+      }
+    ],
+    "owned_explicit_trait_impls": [],
+    "callback_bounds": {
+      "symbol": "NavigationHandler / register<F>",
+      "before_spans": [
+        [
+          13,
+          18
+        ],
+        [
+          26,
+          31
+        ]
+      ],
+      "after_spans": [
+        [
+          15,
+          20
+        ],
+        [
+          44,
+          49
+        ]
+      ],
+      "contract": "for<'route> Fn(&UiNavigationDispatchContext<'route>) -> UiNavigationDispatchEffect + Send + Sync + static; Arc ownership; synchronous invocation at original70/current107."
+    },
+    "scope_limit": "Only owned source explicit impls/attributes and identified direct DTO/owner callers were checked; no global trait-implementation completeness claim.",
+    "macros": {
+      "owned": [
+        {
+          "kind": "built-in derive",
+          "name": "Default",
+          "before_span": [
+            20,
+            20
+          ],
+          "after_span": [
+            27,
+            27
+          ]
+        },
+        {
+          "kind": "conditional/path attributes",
+          "names": [
+            "cfg(test)",
+            "path"
+          ],
+          "before_span": [
+            104,
+            106
+          ],
+          "after_span": [
+            141,
+            143
+          ]
+        },
+        {
+          "kind": "test attribute",
+          "name": "test",
+          "path": "zircon_runtime/src/ui/dispatch/navigation/tests/dispatcher_optimization_tests.rs",
+          "before_span": [
+            1,
+            2
+          ],
+          "after_span": [
+            4,
+            5
+          ]
+        },
+        {
+          "kind": "compiler/test macros",
+          "names": [
+            "include_str!",
+            "assert!"
+          ],
+          "path": "zircon_runtime/src/ui/dispatch/navigation/tests/dispatcher_optimization_tests.rs",
+          "before_spans": [
+            [
+              3,
+              3
+            ],
+            [
+              9,
+              9
+            ]
+          ],
+          "after_spans": [
+            [
+              6,
+              6
+            ],
+            [
+              12,
+              12
+            ]
+          ]
+        }
+      ],
+      "local_proc_macro_definitions": false,
+      "local_macro_rules_definitions": false,
+      "serde": "No serde derive/impl in the three owned files. Identified Interface effect/invocation/result DTOs have serde derives; those do not serialize Runtime handler trait objects.",
+      "tokens_and_inputs_preserved": true
+    },
+    "registration": {
+      "kind": "local Rust callback registration",
+      "key": "(UiNodeId, UiNavigationEventKind)",
+      "storage": "HashMap key -> Vec<Arc<Fn>>",
+      "ordering": "Only per-key vector append order is used; HashMap iteration order is not used.",
+      "lifetime": "Registry owns Arc references; each dispatch borrows the current route through ephemeral contexts and returns owned effect/result values.",
+      "visibility": "Public register and dispatch methods; manager exposes the dispatcher by Rust references.",
+      "plugin_dynamic_registry": "No external plugin/type/reflect registry entry in owned files; this conclusion is limited to those sources and listed direct contexts."
+    },
+    "ffi": {
+      "owned_entrypoints": [],
+      "unsafe_blocks": [],
+      "raw_pointer_or_extern_abi": false,
+      "evidence": "Complete three-source inspection: generic Rust F callback is converted to Arc<dyn Fn>, with ordinary Rust method calls. No extern, no_mangle, unsafe or raw-pointer bridge declaration occurs here.",
+      "boundary": "DTO serde in context is not an FFI callback ownership/ABI proof."
+    }
+  },
+  "new_issues": [],
+  "existing_context_issues": [
+    {
+      "id": "CR-DISPATCH-0001",
+      "kind": "BUG",
+      "origin": "preexisting-context",
+      "context_id": "C-interface-effect",
+      "span": [
+        5,
+        6
+      ],
+      "evidence": "Surface checks only focus_changed_to before default navigation at event_routing507-511, so Handled does not promise suppression of subsequent default focus movement. New docs explicitly restrict termination to the dispatcher handler chain.",
+      "action": "No duplicate label, source edit or closure; existing issue remains outside owned scope."
+    },
+    {
+      "id": "CR-DISPATCH-0002",
+      "kind": "TODO",
+      "origin": "preexisting-context",
+      "context_id": "C-interface-result",
+      "span": [
+        33,
+        34
+      ],
+      "evidence": "Existing report-only metadata filtering contract remains open. Owned dispatcher initializes a result but does not call record_binding_report.",
+      "action": "Preserved ID/context; no escalation or invented producer proof."
+    }
+  ],
+  "context_limits": [
+    "Onlylistedcontextspansread,notformalcoverage.",
+    "Largecallerqueryelisionnotcountedasread;recoveryfocusedproductioninventorycomplete.",
+    "Sharedtestfileselectedtwoactualcaller/assertspansonly;no runtime tests executed.",
+    "Surfaceexport reference verified; guessedmissingmodule rg preservedasfailedread."
+  ],
+  "validation": {
+    "rawinverse_to_grant_and_rawHEAD": true,
+    "guard_exit": 0,
+    "guard_summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "samepin_fmt_reused": true,
+    "rawsource_operands": 4,
+    "new_contribution": 0,
+    "owned_predicate_before_after": true,
+    "tests_run": false
+  },
+  "acceptance": {
+    "formal_acceptance": false,
+    "phase_commit": false,
+    "attached_wecom_receipt": false,
+    "push": false,
+    "gates": [
+      "Exact source pinned designated Jenkins intake and applicable actual validation tickets.",
+      "First stage/commit requires real index-lock attribution; no bypass.",
+      "Root local checks do not grant wholeworkspace/milestone acceptance."
+    ]
+  },
+  "artifact_lifecycle": {
+    "registry": "E:\\cargo-targets\\zircon-local\\reports\\source-comments-20261014-01a13a81\\artifacts.json",
+    "registered_before_creation": true,
+    "source_copies": false,
+    "builds": false,
+    "temporary_helpers": false,
+    "deleted_files": 0,
+    "freed_bytes": 0,
+    "retained": "Canonical source docs and fixed child/main/post; original spawn_ready failure and pending actual Jenkins acceptance receipts. Foreign caches/artifacts/Git preserved."
+  },
+  "reviewed_at_utc": "2026-10-16T07:44:36.249509+00:00",
+  "record_writer": {
+    "pid": 28728,
+    "write_set": [
+      "docs/plans/source-comments/reviews/R056-main.json",
+      "docs/plans/source-comments/reviews/R056-post-validation.json"
+    ],
+    "terminal": "Actual native terminal,notrecordclaim,closeswriter."
+  }
+}

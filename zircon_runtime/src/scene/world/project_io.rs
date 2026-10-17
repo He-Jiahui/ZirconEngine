@@ -20,12 +20,15 @@ mod render2d;
 mod scene_asset;
 #[path = "project_io/script.rs"]
 mod script;
+#[path = "project_io/source_document.rs"]
+mod source_document;
 #[path = "project_io/transform.rs"]
 mod transform;
 
 pub use components::SceneComponentSerializer;
 pub(crate) use components::SceneComponentSerializerRegistry;
 pub use document::SceneProjectError;
+pub use source_document::{LoadedSceneDocument, ScenePublicationReceipt, SceneSourceRevision};
 
 const BUILTIN_CUBE: &str = "builtin://cube";
 const BUILTIN_DEFAULT_MATERIAL: &str = "builtin://material/default";

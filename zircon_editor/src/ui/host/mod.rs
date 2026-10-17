@@ -192,11 +192,13 @@ pub use editor_manager_plugins_export::{
     ExportWizardProgressState, ExportWizardStageArtifactPath, ExportWizardStageExecution,
     ExportWizardStageMissingInputs, ExportWizardStagePlannedArtifacts,
     ExportWizardStageProgressSnapshot, ExportWizardStageViewRow, ExportWizardStreamEvent,
-    ProcessCommandRunner, DESKTOP_EXPORT_ARTIFACT_PATHS_SLOT, DESKTOP_EXPORT_CANCEL_BINDING_ID,
-    DESKTOP_EXPORT_CANCEL_BUTTON, DESKTOP_EXPORT_GENERATE_PLAN_BINDING_ID,
-    DESKTOP_EXPORT_GENERATE_PLAN_BUTTON, DESKTOP_EXPORT_MISSING_INPUTS_SLOT,
-    DESKTOP_EXPORT_REPORT_BODY_SLOT, DESKTOP_EXPORT_STAGE_ROWS_SLOT,
-    DESKTOP_EXPORT_START_BINDING_ID, DESKTOP_EXPORT_START_BUTTON,
+    PluginEnablementApplied, PluginEnablementCause, PluginEnablementCauseKind,
+    PluginEnablementDurable, PluginEnablementOperationReport, PluginEnablementPhase,
+    PluginEnablementRecovery, ProcessCommandRunner, DESKTOP_EXPORT_ARTIFACT_PATHS_SLOT,
+    DESKTOP_EXPORT_CANCEL_BINDING_ID, DESKTOP_EXPORT_CANCEL_BUTTON,
+    DESKTOP_EXPORT_GENERATE_PLAN_BINDING_ID, DESKTOP_EXPORT_GENERATE_PLAN_BUTTON,
+    DESKTOP_EXPORT_MISSING_INPUTS_SLOT, DESKTOP_EXPORT_REPORT_BODY_SLOT,
+    DESKTOP_EXPORT_STAGE_ROWS_SLOT, DESKTOP_EXPORT_START_BINDING_ID, DESKTOP_EXPORT_START_BUTTON,
     DESKTOP_EXPORT_TERMINAL_OUTPUT_SLOT, EXPORT_WIZARD_BINDING_SYMBOL,
     EXPORT_WIZARD_TEMPLATE_DOCUMENT_ID, EXPORT_WIZARD_VIEW_ID,
 };
@@ -233,3 +235,5 @@ pub use window_host_manager::NativeWindowHostState;
 pub(crate) use editor_ui_host::save_completion_tests::{
     register_completion_toolkit, CompletionAction,
 };
+
+pub use editor_manager_plugins_export::{PluginEnablementAdmission, PluginEnablementRecoveryCommand};

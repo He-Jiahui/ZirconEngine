@@ -5,7 +5,8 @@ use std::sync::{
 };
 
 use crate::core::framework::platform::RuntimeTargetMode;
-use crate::core::framework::project::ProjectPluginManifest;
+use crate::core::framework::project::{ProjectPluginManifest, RuntimeProfileId};
+use crate::plugin::PluginMaturity;
 
 use super::super::PluginCatalogGeneration;
 use super::CompiledProjectPluginPlan;
@@ -29,16 +30,38 @@ pub(in super::super) struct ProjectPlanCache {
 impl ProjectPlanCache {
     pub(super) fn lookup(
         &mut self,
+        generation: PluginCatalogGeneration,
+        fingerprint: u64,
+        manifest: &ProjectPluginManifest,
+        target: RuntimeTargetMode,
+    ) -> Option<Arc<ProjectPlanCacheEntry>> {
+        self.lookup_with_admission(generation, fingerprint, manifest, target, None)
+    }
+
+    pub(super) fn find(
+        &mut self,
+        generation: PluginCatalogGeneration,
+        fingerprint: u64,
+        manifest: &ProjectPluginManifest,
+        target: RuntimeTargetMode,
+    ) -> Option<Arc<ProjectPlanCacheEntry>> {
+        self.find_with_admission(generation, fingerprint, manifest, target, None)
+    }
+
+    pub(super) fn lookup_with_admission(
+        &mut self,
         catalog_generation: PluginCatalogGeneration,
         source_fingerprint: u64,
         source_manifest: &ProjectPluginManifest,
         target: RuntimeTargetMode,
+        admission: Option<(RuntimeProfileId, PluginMaturity)>,
     ) -> Option<Arc<ProjectPlanCacheEntry>> {
-        let entry = self.find(
+        let entry = self.find_with_admission(
             catalog_generation,
             source_fingerprint,
             source_manifest,
             target,
+            admission,
         );
         if entry.is_some() {
             self.cache_hits = self.cache_hits.saturating_add(1);
@@ -48,16 +71,22 @@ impl ProjectPlanCache {
         entry
     }
 
-    pub(super) fn find(
+    pub(super) fn find_with_admission(
         &mut self,
         catalog_generation: PluginCatalogGeneration,
         source_fingerprint: u64,
         source_manifest: &ProjectPluginManifest,
         target: RuntimeTargetMode,
+        admission: Option<(RuntimeProfileId, PluginMaturity)>,
     ) -> Option<Arc<ProjectPlanCacheEntry>> {
         let plans = self.plans_for_target(target);
         if let Some(index) = plans.iter().position(|entry| {
-            entry.matches(catalog_generation, source_fingerprint, source_manifest)
+            entry.matches(
+                catalog_generation,
+                source_fingerprint,
+                source_manifest,
+                admission,
+            )
         }) {
             let entry = plans
                 .remove(index)
@@ -74,12 +103,23 @@ impl ProjectPlanCache {
         candidate: Arc<ProjectPlanCacheEntry>,
         target: RuntimeTargetMode,
     ) -> Arc<ProjectPlanCacheEntry> {
-        if let Some(entry) = self.find(
-            candidate.catalog_generation,
-            candidate.source_fingerprint,
-            &candidate.source_manifest,
-            target,
-        ) {
+        let existing = if candidate.admission.is_none() {
+            self.find(
+                candidate.catalog_generation,
+                candidate.source_fingerprint,
+                &candidate.source_manifest,
+                target,
+            )
+        } else {
+            self.find_with_admission(
+                candidate.catalog_generation,
+                candidate.source_fingerprint,
+                &candidate.source_manifest,
+                target,
+                candidate.admission,
+            )
+        };
+        if let Some(entry) = existing {
             return entry;
         }
 
@@ -181,20 +221,31 @@ pub(super) struct ProjectPlanCacheEntry {
     pub(super) catalog_generation: PluginCatalogGeneration,
     pub(super) source_fingerprint: u64,
     pub(super) source_manifest: ProjectPluginManifest,
+    admission: Option<(RuntimeProfileId, PluginMaturity)>,
     pub(super) plan: OnceLock<Arc<CompiledProjectPluginPlan>>,
     evictable: AtomicBool,
 }
 
 impl ProjectPlanCacheEntry {
     pub(super) fn new(
+        generation: PluginCatalogGeneration,
+        fingerprint: u64,
+        manifest: ProjectPluginManifest,
+    ) -> Self {
+        Self::new_with_admission(generation, fingerprint, manifest, None)
+    }
+
+    pub(super) fn new_with_admission(
         catalog_generation: PluginCatalogGeneration,
         source_fingerprint: u64,
         source_manifest: ProjectPluginManifest,
+        admission: Option<(RuntimeProfileId, PluginMaturity)>,
     ) -> Self {
         Self {
             catalog_generation,
             source_fingerprint,
             source_manifest,
+            admission,
             plan: OnceLock::new(),
             evictable: AtomicBool::new(false),
         }
@@ -205,10 +256,12 @@ impl ProjectPlanCacheEntry {
         catalog_generation: PluginCatalogGeneration,
         source_fingerprint: u64,
         source_manifest: &ProjectPluginManifest,
+        admission: Option<(RuntimeProfileId, PluginMaturity)>,
     ) -> bool {
         self.catalog_generation == catalog_generation
             && self.source_fingerprint == source_fingerprint
             && &self.source_manifest == source_manifest
+            && self.admission == admission
     }
 }
 

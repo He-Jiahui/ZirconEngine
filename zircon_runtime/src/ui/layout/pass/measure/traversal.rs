@@ -1,3 +1,8 @@
+//! 本模块把完整或增量测量请求展开为后序计划，并在子项就绪后更新 UiTree 的测量缓存。
+//!
+//! 工作区借自 UiLayoutSlotIndex，返回前清空暂存长度但保留容量；文本缓存由调用方传入并贯穿本次测量。
+//! 完整入口返回根节点期望尺寸；增量入口另返回探测计数；两者均不产生最终帧坐标。
+
 use std::{collections::BTreeSet, time::Instant};
 
 use zircon_runtime_interface::ui::{

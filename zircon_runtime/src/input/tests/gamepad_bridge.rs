@@ -28,6 +28,7 @@ fn gamepad_disconnect_clears_held_state_without_panic() {
     let input_button = InputButton::Gamepad { gamepad, button };
 
     input.submit_event(InputEvent::GamepadConnection(GamepadConnectionInfo {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         connected: true,
         name: Some("Runtime Pad".to_string()),
@@ -35,12 +36,14 @@ fn gamepad_disconnect_clears_held_state_without_panic() {
         product_id: Some(2),
     }));
     input.submit_event(InputEvent::GamepadButton {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         button,
         value: 1.0,
         pressed: true,
     });
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         axis: GamepadAxis::LeftStickX,
         value: 0.75,
@@ -54,6 +57,7 @@ fn gamepad_disconnect_clears_held_state_without_panic() {
     assert_eq!(connected.gamepad_button_values.len(), 1);
 
     input.submit_event(InputEvent::GamepadConnection(GamepadConnectionInfo {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         connected: false,
         name: None,
@@ -82,7 +86,7 @@ fn gamepad_disconnect_clears_held_state_without_panic() {
 /// # 使用时机
 /// 通过 include_str! 读取 App 事件/轮询和 Runtime 会话文件，以 contains 检查构造器、连接边沿、断连震动清理及输入事件 marker。
 ///
-/// 当前扫描范围漏读已拆分的 gamepad 子模块，三个输入变体断言会失败；具体证据见断言附近的 BUG 标签。
+/// 扫描包含实际 gamepad 与 state 子模块，三个输入变体断言保留；历史 BUG marker 仍待原定执行验证。
 ///
 /// # 返回与限制
 /// 测试返回 ()；通过只证明被读文本含 marker，不证明运行时分发、ABI 数值、模块加载或平台行为。路径变化会在编译期失败。
@@ -95,11 +99,15 @@ fn gamepad_host_bridge_uses_runtime_gamepad_abi_constructors() {
     let app_polling =
         include_str!("../../../../zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs");
     let session = include_str!("../../dynamic_api/session.rs");
-    let session_events = include_str!("../../dynamic_api/session/events.rs");
+    let session_events = concat!(
+        include_str!("../../dynamic_api/session/events.rs"),
+        include_str!("../../dynamic_api/session/events/gamepad.rs"),
+        include_str!("../../dynamic_api/session/state.rs"),
+    );
 
-    assert!(app_events.contains("ZrRuntimeEventV1::gamepad_connection_with_ids"));
-    assert!(app_events.contains("ZrRuntimeEventV1::gamepad_button"));
-    assert!(app_events.contains("ZrRuntimeEventV1::gamepad_axis"));
+    assert!(app_events.contains("ZrRuntimeEventV1::gamepad_connection_v2"));
+    assert!(app_events.contains("ZrRuntimeEventV1::gamepad_button_v2"));
+    assert!(app_events.contains("ZrRuntimeEventV1::gamepad_axis_v2"));
     assert!(app_polling.contains("EventType::Connected"));
     assert!(app_polling.contains("EventType::Disconnected"));
     assert!(app_polling.contains("clear_gamepad_rumble_effects_for_gamepad"));
@@ -114,8 +122,8 @@ fn gamepad_host_bridge_uses_runtime_gamepad_abi_constructors() {
     assert!(
         session.contains("handle_gamepad_axis") || session_events.contains("handle_gamepad_axis")
     );
-    // BUG: [CR-INPUT-BRIDGE-0001] 在当前模块拆分下运行本测试时，下面三个变体断言必然失败：
-    // session.rs 与 session/events.rs 均无这些 InputEvent 字符串；实际提交位于 session/events/gamepad.rs，而 include_str! 未读取该子文件。
+    // BUG: [CR-INPUT-BRIDGE-0001] 历史漏读 owner 的回归断言保留；本次 include_str! 已纳入
+    // session/events/gamepad.rs 和 state.rs，实际执行验证仍 OPEN，不能据词法接线关闭该验证门槛。
     assert!(
         session.contains("InputEvent::GamepadConnection")
             || session_events.contains("InputEvent::GamepadConnection")
@@ -128,4 +136,169 @@ fn gamepad_host_bridge_uses_runtime_gamepad_abi_constructors() {
         session.contains("InputEvent::GamepadAxis")
             || session_events.contains("InputEvent::GamepadAxis")
     );
+}
+
+fn gamepad_generation(value: u64) -> std::num::NonZeroU64 {
+    std::num::NonZeroU64::new(value).unwrap()
+}
+
+fn gamepad_lifecycle(gamepad: GamepadId, generation: u64, connected: bool) -> InputEvent {
+    InputEvent::GamepadConnection(GamepadConnectionInfo {
+        gamepad, generation: gamepad_generation(generation), connected,
+        name: None, vendor_id: None, product_id: None,
+    })
+}
+
+fn gamepad_axis_sample(gamepad: GamepadId, generation: u64, value: f32) -> InputEvent {
+    InputEvent::GamepadAxis {
+        gamepad, generation: gamepad_generation(generation),
+        axis: GamepadAxis::LeftStickX, value,
+    }
+}
+
+fn gamepad_button_sample(gamepad: GamepadId, generation: u64, pressed: bool) -> InputEvent {
+    InputEvent::GamepadButton {
+        gamepad, generation: gamepad_generation(generation),
+        button: GamepadButton::South, value: if pressed { 1.0 } else { 0.0 }, pressed,
+    }
+}
+
+#[test]
+fn gamepad_samples_require_an_open_matching_generation() {
+    use crate::core::framework::input::{GamepadInputRejection as Rejection, InputEventAdmission as Admission};
+    let input = DefaultInputManager::default();
+    let gamepad = GamepadId(101);
+    input.set_event_recording_config(crate::input::InputEventRecordingConfig::enabled(64));
+    for event in [gamepad_axis_sample(gamepad, 4, 0.75), gamepad_button_sample(gamepad, 4, true)] {
+        assert_eq!(input.submit_event_with_admission(event), Admission::Rejected(
+            Rejection::ConnectionNotObserved { gamepad, submitted: gamepad_generation(4) }
+        ));
+    }
+    assert!(input.frame_snapshot().gamepad_axes.is_empty());
+    assert!(input.frame_snapshot().buttons.pressed_inputs().is_empty());
+    assert!(input.drain_events().is_empty());
+    assert!(input.drain_event_records().is_empty());
+
+    assert_eq!(input.submit_event_with_admission(gamepad_lifecycle(gamepad, 4, true)), Admission::Accepted);
+    input.drain_events();
+    input.drain_event_records();
+    assert_eq!(input.submit_event_with_admission(gamepad_axis_sample(gamepad, 3, 1.0)), Admission::Rejected(
+        Rejection::StaleGeneration { gamepad, submitted: gamepad_generation(3), current: gamepad_generation(4) }
+    ));
+    assert_eq!(input.submit_event_with_admission(gamepad_button_sample(gamepad, 5, true)), Admission::Rejected(
+        Rejection::FutureGeneration { gamepad, submitted: gamepad_generation(5), current: gamepad_generation(4) }
+    ));
+    assert!(input.frame_snapshot().gamepad_axes.is_empty());
+    assert!(input.frame_snapshot().gamepad_button_values.is_empty());
+    assert!(input.drain_events().is_empty());
+    assert!(input.drain_event_records().is_empty());
+    assert_eq!(input.submit_event_with_admission(gamepad_axis_sample(gamepad, 4, 0.75)), Admission::Accepted);
+    assert_eq!(input.submit_event_with_admission(gamepad_button_sample(gamepad, 4, true)), Admission::Accepted);
+    assert_eq!(input.frame_snapshot().gamepad_axes[0].value,
+        crate::input::GamepadAxisSettings::default().scaled_value(0.75));
+    assert!(input.frame_snapshot().buttons.pressed(&InputButton::Gamepad {
+        gamepad, button: GamepadButton::South,
+    }));
+}
+
+#[test]
+fn gamepad_reconnect_rejects_stale_samples_and_stale_disconnect() {
+    use crate::core::framework::input::{GamepadInputRejection as Rejection, InputEventAdmission as Admission};
+    let input = DefaultInputManager::default();
+    let gamepad = GamepadId(102);
+    input.set_event_recording_config(crate::input::InputEventRecordingConfig::enabled(64));
+    for event in [
+        gamepad_lifecycle(gamepad, 1, true), gamepad_axis_sample(gamepad, 1, 0.5),
+        gamepad_lifecycle(gamepad, 1, false), gamepad_lifecycle(gamepad, 2, true),
+        gamepad_axis_sample(gamepad, 2, -0.75), gamepad_button_sample(gamepad, 2, true),
+    ] {
+        assert_eq!(input.submit_event_with_admission(event), Admission::Accepted);
+    }
+    input.begin_frame();
+    input.drain_events();
+    input.drain_event_records();
+    let before = input.frame_snapshot();
+    for event in [
+        gamepad_axis_sample(gamepad, 1, 1.0), gamepad_button_sample(gamepad, 1, false),
+        gamepad_lifecycle(gamepad, 1, false), gamepad_lifecycle(gamepad, 1, true),
+    ] {
+        assert_eq!(input.submit_event_with_admission(event), Admission::Rejected(
+            Rejection::StaleGeneration { gamepad, submitted: gamepad_generation(1), current: gamepad_generation(2) }
+        ));
+    }
+    let after = input.frame_snapshot();
+    assert_eq!(after.connected_gamepads, before.connected_gamepads);
+    assert_eq!(after.gamepad_axes, before.gamepad_axes);
+    assert_eq!(after.gamepad_button_values, before.gamepad_button_values);
+    assert_eq!(after.gamepad_axis_transitions, before.gamepad_axis_transitions);
+    assert_eq!(after.buttons.pressed_inputs(), before.buttons.pressed_inputs());
+    assert!(after.buttons.just_released_inputs().is_empty());
+    assert!(input.drain_events().is_empty());
+    assert!(input.drain_event_records().is_empty());
+}
+
+#[test]
+fn gamepad_closed_generation_cannot_reopen_and_future_disconnect_closes_once() {
+    use crate::core::framework::input::{GamepadInputRejection as Rejection, InputEventAdmission as Admission};
+    let input = DefaultInputManager::default();
+    let gamepad = GamepadId(103);
+    input.submit_event(gamepad_lifecycle(gamepad, 1, true));
+    input.submit_event(gamepad_axis_sample(gamepad, 1, 0.75));
+    input.submit_event(gamepad_button_sample(gamepad, 1, true));
+    input.begin_frame();
+    assert_eq!(input.submit_event_with_admission(gamepad_lifecycle(gamepad, 5, false)), Admission::Accepted);
+    let closed = input.frame_snapshot();
+    assert!(closed.connected_gamepads.is_empty());
+    assert!(closed.gamepad_axes.is_empty());
+    assert!(closed.buttons.just_released(&InputButton::Gamepad { gamepad, button: GamepadButton::South }));
+    assert_eq!(closed.gamepad_axis_transitions.len(), 1);
+    assert_eq!(closed.gamepad_axis_transitions[0].previous_value,
+        crate::input::GamepadAxisSettings::default().scaled_value(0.75));
+    assert_eq!(closed.gamepad_axis_transitions[0].value, 0.0);
+    input.begin_frame();
+    input.drain_events();
+    assert_eq!(input.submit_event_with_admission(gamepad_lifecycle(gamepad, 5, false)), Admission::Accepted);
+    assert!(input.frame_snapshot().buttons.just_released_inputs().is_empty());
+    assert!(input.frame_snapshot().gamepad_axis_transitions.is_empty());
+    for event in [gamepad_lifecycle(gamepad, 5, true), gamepad_axis_sample(gamepad, 5, 1.0)] {
+        assert_eq!(input.submit_event_with_admission(event), Admission::Rejected(
+            Rejection::ConnectionClosed { gamepad, submitted: gamepad_generation(5), current: gamepad_generation(5) }
+        ));
+    }
+    assert_eq!(input.submit_event_with_admission(gamepad_lifecycle(gamepad, 6, true)), Admission::Accepted);
+    assert_eq!(input.submit_event_with_admission(gamepad_axis_sample(gamepad, 6, -1.0)), Admission::Accepted);
+    assert_eq!(input.frame_snapshot().gamepad_axes[0].value, -1.0);
+
+    let unseen = GamepadId(104);
+    assert_eq!(input.submit_event_with_admission(gamepad_lifecycle(unseen, 9, false)), Admission::Accepted);
+    assert_eq!(input.submit_event_with_admission(gamepad_lifecycle(unseen, 9, true)), Admission::Rejected(
+        Rejection::ConnectionClosed { gamepad: unseen, submitted: gamepad_generation(9), current: gamepad_generation(9) }
+    ));
+}
+
+#[test]
+fn gamepad_generic_button_events_require_generation() {
+    use crate::core::framework::input::{GamepadInputRejection as Rejection, InputEventAdmission as Admission};
+    let input = DefaultInputManager::default();
+    let gamepad = GamepadId(105);
+    let button = InputButton::Gamepad { gamepad, button: GamepadButton::South };
+    input.set_event_recording_config(crate::input::InputEventRecordingConfig::enabled(64));
+    input.submit_event(gamepad_lifecycle(gamepad, 1, true));
+    input.submit_event(gamepad_button_sample(gamepad, 1, true));
+    input.begin_frame();
+    input.drain_events();
+    input.drain_event_records();
+    for event in [InputEvent::ButtonReleased(button.clone()), InputEvent::ButtonPressed(button.clone())] {
+        assert_eq!(input.submit_event_with_admission(event), Admission::Rejected(
+            Rejection::GenerationRequired { gamepad }
+        ));
+    }
+    // The compatibility unit entry must use the same gate, including its release path.
+    input.submit_event(InputEvent::ButtonReleased(button.clone()));
+    let frame = input.frame_snapshot();
+    assert!(frame.buttons.pressed(&button));
+    assert!(frame.buttons.just_pressed_inputs().is_empty());
+    assert!(frame.buttons.just_released_inputs().is_empty());
+    assert!(input.drain_events().is_empty());
+    assert!(input.drain_event_records().is_empty());
 }

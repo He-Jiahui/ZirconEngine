@@ -276,6 +276,8 @@ pub(crate) struct NeuralModelImportCommand {
     source_path: PathBuf,
     output_path: PathBuf,
     before_output: Option<Option<Vec<u8>>>,
+    prepared_output: Option<Vec<u8>>,
+    history_peak_v1: Option<u64>,
 }
 
 impl NeuralModelImportCommand {
@@ -284,6 +286,8 @@ impl NeuralModelImportCommand {
             source_path,
             output_path,
             before_output: None,
+            prepared_output: None,
+            history_peak_v1: None,
         }
     }
 
@@ -318,9 +322,12 @@ impl NeuralModelImportCommand {
     }
 
     pub(crate) fn apply_to_filesystem(&mut self) -> Result<(), CommandExecutionError> {
-        let converted = self
-            .convert()
-            .map_err(|error| Self::execution_error(error, false))?;
+        let converted = match self.prepared_output.take() {
+            Some(converted) => converted,
+            None => self
+                .convert()
+                .map_err(|error| Self::execution_error(error, false))?,
+        };
         if self.before_output.is_none() {
             self.before_output = Some(match fs::read(&self.output_path) {
                 Ok(bytes) => Some(bytes),
@@ -379,6 +386,156 @@ impl NeuralModelImportCommand {
 }
 
 impl EditCommand for NeuralModelImportCommand {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn EditContext,
+        phase: zircon_editor::core::editing::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<zircon_editor::core::editing::engine::CommandRetentionPlanV1, EditCommandError>
+    {
+        use zircon_editor::core::editing::engine::*;
+        let mut plan = CommandRetentionPlanV1::for_owner(self, context, phase, model, limit)?;
+        if self.before_output.is_none() {
+            let bytes = match fs::metadata(&self.output_path) {
+                Ok(meta) => meta.len(),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => 0,
+                Err(e) => return Err(Self::execution_error(e.to_string(), false).into_source()),
+            };
+            plan.add_retained(bytes)?;
+        }
+        if plan.retained_bytes > limit {
+            return Err(
+                zircon_runtime_interface::retained_memory::RetentionContractError::Budget {
+                    budget: "neural retained inverse",
+                    requested: plan.retained_bytes,
+                    limit,
+                }
+                .into(),
+            );
+        }
+        if !matches!(phase, RetentionPhaseV1::Undo | RetentionPhaseV1::Rollback) {
+            // A finite output-adoption ceiling, not a file-size estimate of the
+            // ONNX parser/backend working set. Redo converts the current source.
+            plan.peak_bytes = self.history_peak_v1.unwrap_or(limit);
+        }
+        Ok(plan)
+    }
+    fn retention_plan_with_limits_v1(
+        &self,
+        context: &dyn EditContext,
+        phase: zircon_editor::core::editing::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limits: zircon_editor::core::editing::engine::CommandRetentionLimitsV1,
+    ) -> Result<zircon_editor::core::editing::engine::CommandRetentionPlanV1, EditCommandError>
+    {
+        use zircon_editor::core::editing::engine::RetentionPhaseV1;
+        use zircon_runtime_interface::retained_memory::RetentionContractError;
+        let mut plan = self.retention_plan_v1(context, phase, model, limits.retained_bytes)?;
+        if !matches!(phase, RetentionPhaseV1::Undo | RetentionPhaseV1::Rollback) {
+            let fixed = plan
+                .retained_bytes
+                .checked_mul(2)
+                .ok_or(RetentionContractError::Overflow)?;
+            let remaining = limits.materialization_bytes.checked_sub(fixed).ok_or(
+                RetentionContractError::Budget {
+                    budget: "neural preparation remainder",
+                    requested: fixed,
+                    limit: limits.materialization_bytes,
+                },
+            )?;
+            plan.peak_bytes = remaining.min(limits.retained_bytes);
+            if plan.peak_bytes < plan.retained_bytes {
+                return Err(RetentionContractError::Budget {
+                    budget: "neural preparation owner",
+                    requested: plan.retained_bytes,
+                    limit: plan.peak_bytes,
+                }
+                .into());
+            }
+        }
+        Ok(plan)
+    }
+
+    fn prepare_retention_v1(
+        &mut self,
+        _context: &mut dyn EditContext,
+        phase: zircon_editor::core::editing::engine::RetentionPhaseV1,
+        permit: &mut zircon_editor::core::editing::engine::RetentionMaterializationV1,
+    ) -> Result<(), CommandExecutionError> {
+        use std::io::Read;
+        use zircon_editor::core::editing::engine::RetentionPhaseV1;
+        use zircon_runtime_interface::retained_memory::*;
+        permit
+            .consume(self, phase)
+            .map_err(CommandExecutionError::unchanged)?;
+        if matches!(phase, RetentionPhaseV1::Undo | RetentionPhaseV1::Rollback) {
+            return Ok(());
+        }
+        // Conversion remains a producer working set; only a validated finite
+        // output is adopted by this history command, before the first write.
+        let converted = self
+            .convert()
+            .map_err(|e| Self::execution_error(e, false))?;
+        let before = if self.before_output.is_none() {
+            match std::fs::File::open(&self.output_path) {
+                Ok(mut file) => {
+                    let len = file
+                        .metadata()
+                        .map_err(|e| Self::execution_error(e.to_string(), false))?
+                        .len();
+                    if len > permit.plan().retained_bytes {
+                        return Err(CommandExecutionError::unchanged(
+                            RetentionContractError::Budget {
+                                budget: "neural inverse read",
+                                requested: len,
+                                limit: permit.plan().retained_bytes,
+                            }
+                            .into(),
+                        ));
+                    }
+                    let len = usize::try_from(len).map_err(|_| {
+                        CommandExecutionError::unchanged(RetentionContractError::Overflow.into())
+                    })?;
+                    let mut bytes = vec![0; len];
+                    file.read_exact(&mut bytes)
+                        .map_err(|e| Self::execution_error(e.to_string(), false))?;
+                    let mut extra = [0u8; 1];
+                    if file
+                        .read(&mut extra)
+                        .map_err(|e| Self::execution_error(e.to_string(), false))?
+                        != 0
+                    {
+                        return Err(CommandExecutionError::unchanged(
+                            RetentionContractError::Stale.into(),
+                        ));
+                    }
+                    Some(Some(bytes))
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => Some(None),
+                Err(e) => return Err(Self::execution_error(e.to_string(), false)),
+            }
+        } else {
+            None
+        };
+        let mut m = RetainedBoundBuilderV1::with_limit(
+            permit.model(),
+            RetainedBytesV1::new(permit.plan().peak_bytes),
+        );
+        m.owned(self)
+            .map_err(|e| CommandExecutionError::unchanged(e.into()))?;
+        m.owned(&converted)
+            .map_err(|e| CommandExecutionError::unchanged(e.into()))?;
+        m.owned(&before)
+            .map_err(|e| CommandExecutionError::unchanged(e.into()))?;
+        if let Some(before) = before {
+            self.before_output = Some(before);
+        }
+        self.prepared_output = Some(converted);
+        self.history_peak_v1 = Some(permit.plan().peak_bytes);
+        Ok(())
+    }
+
     fn label(&self) -> &str {
         "Import ONNX Model"
     }
@@ -418,4 +575,17 @@ pub fn editor_capabilities() -> Vec<String> {
 
 pub fn plugin_registration() -> EditorPluginRegistrationReport {
     editor_plugin().registration_report()
+}
+
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for NeuralModelImportCommand {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        use zircon_runtime_interface::retained_memory::RetainedOwnerV1;
+        self.source_path.retained_bound_v1(m)?;
+        self.output_path.retained_bound_v1(m)?;
+        self.before_output.retained_bound_v1(m)?;
+        self.prepared_output.retained_bound_v1(m)
+    }
 }

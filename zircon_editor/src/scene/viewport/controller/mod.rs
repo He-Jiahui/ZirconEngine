@@ -10,8 +10,6 @@ mod scene_viewport_controller_apply_command;
 mod scene_viewport_controller_build_edit_mode_projection;
 #[path = "build_render_snapshot.rs"]
 mod scene_viewport_controller_build_render_snapshot;
-#[path = "build_runtime_overlay_ui.rs"]
-mod scene_viewport_controller_build_runtime_overlay_ui;
 #[path = "scene_viewport_controller_camera.rs"]
 mod scene_viewport_controller_camera;
 #[path = "construct.rs"]

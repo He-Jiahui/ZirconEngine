@@ -16,9 +16,7 @@ fn renderer_admission_uses_world_registry_and_authoritative_streamer_bridge() {
 fn renderer_gpu_scene_journal_is_staged_at_admission_and_committed_after_submission() {
     let admission = include_str!("../render_scene.rs");
     let direct = include_str!("../../../core/scene_renderer_render/render_frame.rs");
-    let compiled = include_str!(
-        "../../../core/pipeline/frame_submission_owner.rs"
-    );
+    let compiled = include_str!("../../../core/pipeline/frame_submission_owner.rs");
 
     assert!(admission.contains("projected_consumer.stage_owned(journal"));
     assert!(admission.contains("pending_gpu_scene_journals.push_back("));

@@ -9,7 +9,7 @@ use super::{
     rendering::{ArtifactCacheSceneCameraAsset, ArtifactCacheSceneMeshInstanceAsset},
     script::ArtifactCacheSceneScriptBindingAsset,
 };
-use crate::asset::AssetImportError;
+use crate::asset::AssetCodecError;
 
 // 将场景实体的渲染、物理和脚本组件保持在同一个库工件记录中，
 // 以便 ArtifactCacheSceneAsset 在读回时恢复完整实体，而不是逐组件独立加载。
@@ -102,7 +102,7 @@ impl From<&crate::asset::SceneEntityAsset> for ArtifactCacheSceneEntityAsset {
 }
 
 impl ArtifactCacheSceneEntityAsset {
-    pub(super) fn into_asset(self) -> Result<crate::asset::SceneEntityAsset, AssetImportError> {
+    pub(super) fn into_asset(self) -> Result<crate::asset::SceneEntityAsset, AssetCodecError> {
         Ok(crate::asset::SceneEntityAsset {
             entity: self.entity,
             name: self.name,

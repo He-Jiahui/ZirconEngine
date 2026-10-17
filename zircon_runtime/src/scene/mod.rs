@@ -35,12 +35,13 @@ pub use fixed_step_failure::{FixedStepFailurePhase, FixedStepFailureReceipt, Lev
 pub use level_system::{
     AnimationStateTransitionRuntime, LevelLifecycleState, LevelMetadata, LevelSystem,
 };
+#[cfg(feature = "native-host")]
+pub use module::load_level_asset;
 pub(crate) use module::resolve_default_level_manager;
 pub use module::{
-    create_default_level, create_level, install_world_runtime_extension_plan, load_level_asset,
-    module_descriptor, prepare_level, DefaultLevelManager, PreparedLevel,
-    PreparedLevelPublishError, SceneModule, WorldDriver, DEFAULT_LEVEL_MANAGER_NAME,
-    WORLD_DRIVER_NAME,
+    create_default_level, create_level, install_world_runtime_extension_plan, module_descriptor,
+    prepare_level, DefaultLevelManager, PreparedLevel, PreparedLevelPublishError, SceneModule,
+    WorldDriver, DEFAULT_LEVEL_MANAGER_NAME, WORLD_DRIVER_NAME,
 };
 pub use navigation::{
     SceneNavigationRuntime, SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
@@ -51,8 +52,12 @@ pub use runtime_extension::{
 pub use runtime_level_traits::{RuntimeObject, RuntimeSystem};
 pub use world_publication::{WorldPublicationError, WorldPublicationSource};
 pub use world_time::{
-    FixedInterpolationContext, FixedInterpolationState, SimulationTickId, WorldTimeAdvanceError,
-    WorldTimeControlError, WorldTimePolicyReceipt, WorldTimeState,
+    FixedInterpolationContext, FixedInterpolationState, SimulationTickId,
+    WorldReplacementCheckpoint, WorldReplacementCommit, WorldReplacementError,
+    WorldReplacementExpectation, WorldReplacementIdentity, WorldReplacementReason,
+    WorldReplacementReceipt, WorldReplacementRejected, WorldReplacementRequest,
+    WorldReplacementTimePolicy, WorldTimeAdvanceError, WorldTimeControlError,
+    WorldTimePolicyReceipt, WorldTimeState,
 };
 pub use zircon_runtime_interface::world_sync::LifecycleTargetChange;
 
@@ -83,13 +88,19 @@ pub mod reflect;
 mod render_extract;
 #[path = "semantics/mod.rs"]
 pub mod semantics;
+#[cfg(feature = "native-host")]
 #[path = "serializer/mod.rs"]
 pub mod serializer;
 #[path = "world/mod.rs"]
 pub mod world;
 
 pub use dynamic_scene::{
-    DynamicComponent, DynamicEntity, DynamicResource, DynamicScene,
+    DynamicComponent, DynamicEntity, DynamicResource, DynamicScene, DynamicSceneError, EntityRemap,
+    ScenePatch, ScenePatchPreviewComponentType, ScenePatchPreviewEntityRemap,
+    ScenePatchPreviewReport, ScenePatchPreviewResource,
+};
+#[cfg(feature = "native-host")]
+pub use dynamic_scene::{
     DynamicSceneAssetReloadAppliedScene, DynamicSceneAssetReloadApplyFailure,
     DynamicSceneAssetReloadApplyReport, DynamicSceneAssetReloadDiagnostics,
     DynamicSceneAssetReloadDrainReport, DynamicSceneAssetReloadFrameApplyReport,
@@ -97,10 +108,10 @@ pub use dynamic_scene::{
     DynamicSceneAssetReloadPendingTaskSnapshot, DynamicSceneAssetReloadQueue,
     DynamicSceneAssetReloadSkipReason, DynamicSceneAssetReloadSkippedEvent,
     DynamicSceneAssetReloadStaleResult, DynamicSceneAssetReloadSupersededTask,
-    DynamicSceneAssetReloadTask, DynamicSceneError, DynamicSceneSpawnTask, EntityRemap,
-    PreparedDynamicSceneSpawn, RuntimeSessionArchive, RuntimeSessionArchiveArtifact,
-    RuntimeSessionArchiveArtifactDiagnostics, RuntimeSessionArchiveCaptureRetentionReport,
-    RuntimeSessionArchiveError, RuntimeSessionArchiveManifest, RuntimeSessionArchiveMergePolicy,
+    DynamicSceneAssetReloadTask, DynamicSceneSpawnTask, PreparedDynamicSceneSpawn,
+    RuntimeSessionArchive, RuntimeSessionArchiveArtifact, RuntimeSessionArchiveArtifactDiagnostics,
+    RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
+    RuntimeSessionArchiveManifest, RuntimeSessionArchiveMergePolicy,
     RuntimeSessionArchiveMergeReport, RuntimeSessionArchivePathStatus,
     RuntimeSessionArchivePruneReport, RuntimeSessionArchiveReadArtifact,
     RuntimeSessionArchiveReadOutcome, RuntimeSessionArchiveReadSubmission,
@@ -114,9 +125,7 @@ pub use dynamic_scene::{
     RuntimeSessionSlotDiffReport, RuntimeSessionSlotExportPreviewReport,
     RuntimeSessionSlotImportPreviewReport, RuntimeSessionSlotMutationPreviewReport,
     RuntimeSessionSlotSelectionReport, RuntimeSessionSlotSelector, RuntimeSessionSlotSummary,
-    ScenePatch, ScenePatchPreviewComponentType, ScenePatchPreviewEntityRemap,
-    ScenePatchPreviewReport, ScenePatchPreviewResource, MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES,
-    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
+    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
 };
 pub use inspection::{
     WorldInspectionArtifact, WorldInspectionArtifactDiagnostics, WorldInspectionDelta,

@@ -3,9 +3,7 @@ use zircon_runtime::rhi::{UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceImage
 use super::super::{ChromeCommand, ChromeCommandKind};
 use super::geometry::{ui_image_uv_rect, ui_rect};
 use super::text_style::{ui_text_font_request, ui_text_style_for_request};
-use crate::ui::retained_host::host_contract::paint_text::{
-    HostRuntimeTextFaces,
-};
+use crate::ui::retained_host::host_contract::paint_text::HostRuntimeTextFaces;
 
 pub(super) fn ui_surface_command_from_chrome(
     command: &ChromeCommand,
@@ -41,7 +39,8 @@ pub(super) fn ui_surface_command_from_chrome(
                 style,
                 font_request,
             } => {
-                let (font_family, font_weight) = ui_text_font_request(*style, font_request.as_ref(), text_faces);
+                let (font_family, font_weight) =
+                    ui_text_font_request(*style, font_request.as_ref(), text_faces);
                 UiSurfaceCommandKind::Text {
                     text: text.clone(),
                     color: *color,
@@ -103,7 +102,8 @@ pub(super) fn ui_surface_command_from_owned_chrome(
                 style,
                 font_request,
             } => {
-                let (font_family, font_weight) = ui_text_font_request(style, font_request.as_ref(), text_faces);
+                let (font_family, font_weight) =
+                    ui_text_font_request(style, font_request.as_ref(), text_faces);
                 UiSurfaceCommandKind::Text {
                     text,
                     color,

@@ -1,3 +1,6 @@
+//! 固定步长列表的逻辑窗口、几何公式与有限物理槽映射。
+//! `UiVirtualListSlotMap` 只规划索引映射；实体节点的创建、绑定和布局投影发布由表面所有者执行。
+//! 物理容量预算先由调用方检查，再调用映射协调方法；请求容量不能代替该预算门。
 use zircon_runtime_interface::ui::layout::UiVirtualListWindow;
 
 #[path = "virtualization/materialization.rs"]
@@ -9,6 +12,15 @@ pub use materialization::{
 
 /// 返回包含 overscan 的半开逻辑索引区间；不创建节点，也不移动物理槽位。
 /// 生产调用方先钳制偏移并提供有限正步长；gap 应已计入 item_extent，不能再次单独叠加。
+///
+/// # 参数与约束
+/// `offset` 是沿滚动轴的偏移，`viewport_extent` 是视口长度；`item_extent` 是含间距的有限正步长。
+/// `item_count` 是逻辑总数，`overscan` 是两端额外项数。生产调用方应先把有限偏移限制到内容范围；
+/// 本函数只钳制负偏移，不统一拒绝所有非有限输入。
+///
+/// # 返回与参考
+/// 返回带 overscan 的半开区间，空列表或非正视口/步长返回默认空窗口。
+/// 本函数不物化节点；有限物理槽的协调见 `UiVirtualListSlotMap::reconcile`，容量请求见 `fixed_extent_slot_capacity`。
 pub fn compute_virtual_list_window(
     offset: f32,
     viewport_extent: f32,

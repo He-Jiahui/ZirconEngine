@@ -83,10 +83,7 @@ fn grouped_due_packets(
         .collect()
 }
 
-fn legacy_checksum(
-    outbound: &VecDeque<ReliableDatagramPacket>,
-    due_sequences: &[u64],
-) -> usize {
+fn legacy_checksum(outbound: &VecDeque<ReliableDatagramPacket>, due_sequences: &[u64]) -> usize {
     black_box(
         legacy_due_packets(black_box(outbound), black_box(due_sequences))
             .iter()
@@ -95,10 +92,7 @@ fn legacy_checksum(
     )
 }
 
-fn grouped_checksum(
-    outbound: &VecDeque<ReliableDatagramPacket>,
-    due_sequences: &[u64],
-) -> usize {
+fn grouped_checksum(outbound: &VecDeque<ReliableDatagramPacket>, due_sequences: &[u64]) -> usize {
     black_box(
         grouped_due_packets(black_box(outbound), black_box(due_sequences))
             .iter()

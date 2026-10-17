@@ -18,14 +18,11 @@ fn runtime_15_render_layer_schema_v1_mask_api_uses_current_names() {
         "render light buffer source should be readable",
     );
     let build_runtime_frame = read_text(
-        &manifest_root.join(
-            "src/graphics/runtime/extract/submit/build_runtime_frame.rs",
-        ),
+        &manifest_root.join("src/graphics/runtime/extract/submit/build_runtime_frame.rs"),
         "runtime frame submit source should be readable",
     );
     let camera_history_key = read_text(
-        &manifest_root
-            .join("src/graphics/runtime/viewport_record/camera_history_key.rs"),
+        &manifest_root.join("src/graphics/runtime/viewport_record/camera_history_key.rs"),
         "camera history key source should be readable",
     );
     let runtime_15_plan = read_repo_text(

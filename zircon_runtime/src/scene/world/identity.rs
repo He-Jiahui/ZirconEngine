@@ -306,7 +306,10 @@ impl World {
         self.stable_query_order.move_to(entity, location);
     }
 
-    fn archetype_location_for_entity(&self, entity: EntityId) -> Option<(ArchetypeId, usize)> {
+    pub(super) fn archetype_location_for_entity(
+        &self,
+        entity: EntityId,
+    ) -> Option<(ArchetypeId, usize)> {
         let location = self.entity_registry.location_for_stable(entity)?.location;
         let located_entity = self
             .archetype_index

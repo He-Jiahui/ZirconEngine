@@ -78,7 +78,8 @@ fn optimization_batch_20260829bn_editor286_badge_anchor_variants_preserve_result
 
 #[test]
 fn optimization_batch_20260829bn_editor286_badge_anchor_uses_one_scan() {
-    let source = include_str!("../../../../../retained/contract/paint/primitives/badge/geometry/anchor.rs");
+    let source =
+        include_str!("../../../../../retained/contract/paint/primitives/badge/geometry/anchor.rs");
     let production = source.split_once("#[cfg(test)]").expect("test boundary").0;
     assert!(production.contains("badge_anchor_variant(&node.component_variant)"));
     assert!(production.contains("for part in component_variant.split"));

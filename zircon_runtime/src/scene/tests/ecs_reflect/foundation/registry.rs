@@ -72,6 +72,7 @@ fn type_registry_rejects_invalid_field_metadata_atomically() {
         test_field("over_depth", "List", ReflectEditorHint::None).with_default_value(over_depth),
     ];
 
+    // 每项非法元数据分别在新目录中注册，核对拒绝原因和失败不发布类型。
     for field in cases {
         let field_name = field.name.clone();
         let registration = ReflectTypeRegistration::new(
@@ -143,6 +144,7 @@ fn type_registry_rejects_field_id_and_alias_collisions_atomically() {
 
 #[test]
 fn type_registry_rejects_cross_type_field_id_collisions_atomically() {
+    // 后续两个类型复用此 ID，构造跨类型归属冲突。
     let shared_id = ReflectFieldId::from_stable_keys("tests.shared-owner", "value");
     let registration = |type_path: &str, short_type_path: &str| {
         ReflectTypeRegistration::new(
@@ -208,6 +210,7 @@ fn type_registry_resolves_stable_field_ids_across_index_storage_boundary() {
             .register(RuntimeTypeRegistration::metadata(registration))
             .expect("bounded unique fields should build an ID-to-slot index");
 
+        // 只探测首/中/末槽位；去重小目录中的重复位置，并跳过空目录的无效索引。
         let mut probe_slots = vec![0_usize, field_count / 2, field_count.saturating_sub(1)];
         probe_slots.sort_unstable();
         probe_slots.dedup();
@@ -285,6 +288,7 @@ fn type_registry_short_path_lookup_reports_ambiguity() {
         )))
         .expect("second full type path should be accepted");
 
+    // 销毁查询字符串后仍检查解析结果，验证返回路径来自目录而非借用输入。
     let caller_owned_type_path = String::from("plugin_a::Short");
     let resolved = registry.resolve(caller_owned_type_path.as_str()).unwrap();
     drop(caller_owned_type_path);

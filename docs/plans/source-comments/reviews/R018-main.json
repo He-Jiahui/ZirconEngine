@@ -1,0 +1,363 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R018",
+  "reviewer": "root",
+  "reviewed_at_utc": "2026-10-15T05:21:50.046063+00:00",
+  "status": "independently-reviewed-and-scoped-static-validated",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R018.json",
+    "sha256": "b4616703db91c9fa82392b7760a552385beaba74d35b252e45aef40f9afbec16",
+    "immutable": true
+  },
+  "files": {
+    "zircon_runtime_interface/src/serialization/binary/decode.rs": {
+      "before_sha256": "af0792107858987a6827aff8828294c59aef2c8dfe972911c4943c8a787ef836",
+      "reviewed_sha256": "bc6c693a83dc74c64bf46452b8c321972c66e3dc6e63d9f75857162aec595b57",
+      "bytes": 2525,
+      "lines": 56,
+      "full_source_review_spans": [
+        [
+          1,
+          56
+        ]
+      ],
+      "child_object_entries_reviewed": 3,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/binary/encode.rs": {
+      "before_sha256": "0662f3f4ed25d9685812b08aa780fd74ce23ae7a2ef6ec899e0d7fce7dcf5f14",
+      "reviewed_sha256": "0662f3f4ed25d9685812b08aa780fd74ce23ae7a2ef6ec899e0d7fce7dcf5f14",
+      "bytes": 3000,
+      "lines": 70,
+      "full_source_review_spans": [
+        [
+          1,
+          70
+        ]
+      ],
+      "child_object_entries_reviewed": 2,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/binary/envelope.rs": {
+      "before_sha256": "973d29fab8511d420d7bcbc3f657a92608906e20b8f63c15c1395ecf10402397",
+      "reviewed_sha256": "68684cf55a01a482eb7d822e022e4124dd335e43184c607749f77f2e5c4ea42b",
+      "bytes": 1667,
+      "lines": 31,
+      "full_source_review_spans": [
+        [
+          1,
+          31
+        ]
+      ],
+      "child_object_entries_reviewed": 1,
+      "insertion_blocks": 4,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/binary/mod.rs": {
+      "before_sha256": "33446dce32f2a33cbce5232416464036f609e67361b44ed9b93f84a7ef2b4714",
+      "reviewed_sha256": "33446dce32f2a33cbce5232416464036f609e67361b44ed9b93f84a7ef2b4714",
+      "bytes": 1068,
+      "lines": 27,
+      "full_source_review_spans": [
+        [
+          1,
+          27
+        ]
+      ],
+      "child_object_entries_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/binary/wire.rs": {
+      "before_sha256": "e0d0511abad96c484697c6640709e0788b1b10a1fe4dfa12bbbcc1811c274928",
+      "reviewed_sha256": "eb8731a22c9d3b373ed603d7f610afc61af0604bf3565b1a20167ea550518fca",
+      "bytes": 4743,
+      "lines": 94,
+      "full_source_review_spans": [
+        [
+          1,
+          94
+        ]
+      ],
+      "child_object_entries_reviewed": 5,
+      "insertion_blocks": 11,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/binary/value/binary_value.rs": {
+      "before_sha256": "5120e43eddc6fd328b010e60a9be15aa7c26e979f6098b31f1b67abf93ebe26e",
+      "reviewed_sha256": "83b695066b65dbd8a2754374bcf894704bb51585cf76895da8314cbaba2e4146",
+      "bytes": 3305,
+      "lines": 85,
+      "full_source_review_spans": [
+        [
+          1,
+          85
+        ]
+      ],
+      "child_object_entries_reviewed": 4,
+      "insertion_blocks": 14,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/binary/value/error.rs": {
+      "before_sha256": "05d01f2eb65f8af811f197301ef7764476a45503b3fb67a5f6984674018359de",
+      "reviewed_sha256": "fdf45d14349dd2af75fed113852555c71b0e7d372b80a968b332bc191268389f",
+      "bytes": 1653,
+      "lines": 33,
+      "full_source_review_spans": [
+        [
+          1,
+          33
+        ]
+      ],
+      "child_object_entries_reviewed": 1,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/binary/value/from_json.rs": {
+      "before_sha256": "12734a7eb39b6b57ba02a7894581691eba4ba9728c5b3c1799ae2ba815285e1c",
+      "reviewed_sha256": "c4e81b236ca0ce083d1218a6308648dd7a6fd64b224e8fc0ccfbd14401a4c595",
+      "bytes": 4541,
+      "lines": 138,
+      "full_source_review_spans": [
+        [
+          1,
+          138
+        ]
+      ],
+      "child_object_entries_reviewed": 5,
+      "insertion_blocks": 3,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/binary/value/into_json.rs": {
+      "before_sha256": "ee2ecd46ccd4651852e97f204ae904bbba45e4f58b310f3dab7c17dfe2f10b50",
+      "reviewed_sha256": "e395ef9e585e3a55adfc6c6130ab4b807daca13c16ce6ea1fe6b2ac40fce3e5b",
+      "bytes": 6942,
+      "lines": 200,
+      "full_source_review_spans": [
+        [
+          1,
+          200
+        ]
+      ],
+      "child_object_entries_reviewed": 5,
+      "insertion_blocks": 4,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/binary/value/mod.rs": {
+      "before_sha256": "d444228755138d01a514e9cb39c8586508effd1f7e436a3b9eadecc73241ca7b",
+      "reviewed_sha256": "549f92fb787e5e1f5896f31205c461e84f22e9e79a6ba5d67339f7b064c7d3fd",
+      "bytes": 678,
+      "lines": 19,
+      "full_source_review_spans": [
+        [
+          1,
+          19
+        ]
+      ],
+      "child_object_entries_reviewed": 1,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/binary/value/tests/into_json_perf.rs": {
+      "before_sha256": "88d40e9c23b470288f17f56333de30f22168767cbf78a1ad6060159579c7dd35",
+      "reviewed_sha256": "88d40e9c23b470288f17f56333de30f22168767cbf78a1ad6060159579c7dd35",
+      "bytes": 3072,
+      "lines": 86,
+      "full_source_review_spans": [
+        [
+          1,
+          86
+        ]
+      ],
+      "child_object_entries_reviewed": 2,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/tests/binary_contract.rs": {
+      "before_sha256": "a54fa257552598bcbb9c5f02621056754644618484f2658286f1d753fa0363bd",
+      "reviewed_sha256": "a54fa257552598bcbb9c5f02621056754644618484f2658286f1d753fa0363bd",
+      "bytes": 11476,
+      "lines": 340,
+      "full_source_review_spans": [
+        [
+          1,
+          340
+        ]
+      ],
+      "child_object_entries_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/tests/binary_malformed_contract.rs": {
+      "before_sha256": "04c8cb2c773e95cf360c6248c43985fa86cfd04e3f8281cf541b8d924d8d667a",
+      "reviewed_sha256": "04c8cb2c773e95cf360c6248c43985fa86cfd04e3f8281cf541b8d924d8d667a",
+      "bytes": 6362,
+      "lines": 214,
+      "full_source_review_spans": [
+        [
+          1,
+          214
+        ]
+      ],
+      "child_object_entries_reviewed": 1,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    }
+  },
+  "all_objects_and_blocks_reviewed": true,
+  "child_named_object_entries_reviewed": 32,
+  "changed_source_count": 8,
+  "unchanged_source_count": 5,
+  "insertion_blocks": 39,
+  "added_source_lines": 50,
+  "comment_lines_added": 46,
+  "blank_separator_lines_added": 4,
+  "root_actual_read_receipts": [
+    {
+      "chunk_id": "28c942",
+      "exit_code": 0,
+      "scope": "Complete first eight assigned binary/wire/flat-value/error/from-json sources,534 current lines."
+    },
+    {
+      "chunk_id": "4454da",
+      "exit_code": 0,
+      "scope": "Complete JSON reconstruction and malformed binary contracts,414 current lines."
+    },
+    {
+      "chunk_id": "3ca2c3",
+      "exit_code": 0,
+      "scope": "Complete value module, ignored map microbenchmark and binary contracts,445 current lines."
+    },
+    {
+      "chunk_id": "502497",
+      "exit_code": 0,
+      "scope": "Complete positional and bounded decoder source/context, including prefix/full and stream budgets."
+    },
+    {
+      "chunk_id": "fbe27c",
+      "exit_code": 0,
+      "scope": "Current direct decoder1-430 as context: full structural/value validation precedes target construction."
+    }
+  ],
+  "context_review": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/write.rs",
+      "sha256": "82e8c35a6bc599ac23b8efaae33898a2507721c08fd84482b3ed445a0cb138cb",
+      "read_spans": [
+        "24-38",
+        "132-155"
+      ],
+      "formal_coverage": false,
+      "evidence": "Format::Binary 调 encode_binary_payload_value 后将 current_header 和 JSON 值传给 encode_binary_payload；finite-float guard 后 serde_json::to_value。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/load.rs",
+      "sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+      "read_spans": [
+        "173-193",
+        "233-249"
+      ],
+      "formal_coverage": false,
+      "evidence": "完整读取 binary header，依次校验 schema/source version；当前版本校验 migration chain 后调 decode_binary_current，旧版本调 decode_binary_payload 并进入 migrate_value。direct Invalid errors 映射为公开 InvalidBinaryPayload。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/value/direct_decode.rs",
+      "sha256_at_initial_read": "45dce349d0f100cf0b19862b7a6114641af1b02441952e8eef67ca1ccd44868c",
+      "initial_read_spans": [
+        "14-42",
+        "44-108"
+      ],
+      "sha256_at_later_readonly_recheck": "28bfbb8a5143dc1614bafff9b50c909036f9a0ca86dbe2c2d429ebc65fc47270",
+      "later_recheck_spans": [
+        "1-43"
+      ],
+      "formal_coverage": false,
+      "status_at_recheck": "modified_by_R019_owner",
+      "evidence": "唯一生产调用链从 decode_binary_current 到 decode_binary_value_direct；该函数先验证 stream 节点数量、唯一根、层级、容器、键唯一性、字符串和有限浮点，再用 DeserializeOwned 构造 T。R019 (reflection_luna) 外来注释改变了 SHA；只重读接口/调用跨度，未编辑或声称释放其归属。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/positional.rs",
+      "sha256": "7d5a42f1fa3ac1fa44ca0537014473ede9f314a03624522da5df8c02391e4105",
+      "read_spans": [
+        "25-39",
+        "75-159",
+        "161-245"
+      ],
+      "formal_coverage": false,
+      "evidence": "PositionalEncoding 固定 bincode 配置；VariableLittleEndian 使用 legacy().with_variable_int_encoding()。binary::wire::options 固定选择该变体；decode_prefix_bounded 返回消费偏移，decode/decode_bounded 拒绝尾随字节。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/canonical.rs",
+      "sha256": "2ddb186428ccab21622df4d9269f20b9151acb39b4888fc54d3fee9b8e6c31d8",
+      "read_spans": [
+        "3-30"
+      ],
+      "formal_coverage": false,
+      "evidence": "canonicalize_value 递归遍历数组/对象并在 writer 的 Binary 分支之前规范化嵌套 object keys。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/mod.rs",
+      "sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "read_spans": [
+        "1-49"
+      ],
+      "formal_coverage": false,
+      "evidence": "binary 子模块为私有；外层公开的是 VersionedSchema、load_versioned、write_versioned 等接口，二进制内部函数不构成 crate 外 FFI/API 入口。该源是 R013 上下文，不重计覆盖。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/mod.rs",
+      "sha256": "55ae7bab29bd22dc3c0e7f0422a3d1d7aca12445131fb0401cccf76a09f50ed9",
+      "read_spans": [
+        "1-9",
+        "30-44"
+      ],
+      "formal_coverage": false,
+      "evidence": "将两个授权测试模块挂载到共享 FixtureDocument 的 test harness；该文件是 R013 源且仅作为 R018 只读测试上下文。"
+    },
+    {
+      "path": "docs/plans/source-comments/01-standard.md",
+      "sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3",
+      "read_spans": [
+        "1-25"
+      ],
+      "formal_coverage": false,
+      "evidence": "按声明/语句块记录调用、trait、宏、注册、FFI、测试与契约；只新增有证据的中文说明，保留现有字节；scope 内 Rustfmt 和 diff-check。"
+    },
+    {
+      "path": ".codex/skills/zircon-dev/SKILL.md",
+      "sha256": "2d699cd12492709facc84079838a836356e4f7dd8b7bac475b65d10a804ed957",
+      "read_spans": [
+        "1-35"
+      ],
+      "formal_coverage": false,
+      "evidence": "Rust 修改遵循 checkout ownership，纯文档变更使用只读格式/结构检查；本批没有 Cargo/构建。"
+    }
+  ],
+  "context_files_formal_coverage": false,
+  "review_conclusions": [
+    "The fixed10-byte prefix identifies wire encoding; the bounded body contains the ordered header and flat payload. Domain schema version and wire version have distinct ownership.",
+    "Header decode lends the unparsed payload body after its prefix; loader schema/future-version checks occur before value interpretation, and full payload decoding rejects trailing bytes.",
+    "The current-schema route constructs DeserializeOwned targets through the direct validated node adapter; older schema payloads become an owned JSON value before migration.",
+    "The flat node stream uses preorder, explicit container cardinality and separate object-key nodes. Node capacity hints are capped; structural/domain checks remain explicit conversion responsibilities.",
+    "JSON flattening reverses LIFO tasks to preserve key/value traversal; JSON reconstruction tracks pending object keys, remaining immediate values and a single root, and uses Entry to reject duplicate keys.",
+    "Wire golden bytes lock header field order, positional options and all node discriminants. Existing malformed, migration, bool/enum/numeric-map and cross-format assertions were fully read and preserved.",
+    "The ignored map benchmark measures map construction including result drop; it does not execute complete binary decoding. No runtime/performance result is claimed."
+  ],
+  "issues": [],
+  "new_issue_markers": 0,
+  "all_original_bytes_and_comments_preserved": true,
+  "builds_or_Rust_tests_executed": false,
+  "metadata_wording_limits": [
+    "Immutable child validation.tests/excluded_actions describes its no-Cargo batch execution choice; the user did not globally forbid relevant Cargo/tests. None were needed or run for this comment-only batch.",
+    "The direct decoder is R019-owned read-only context. Initial and later read-time hashes remain distinct and are not R018 formal coverage."
+  ],
+  "validation_record": {
+    "path": "docs/plans/source-comments/reviews/R018-post-validation.json",
+    "sha256": "c6e8c2ecb209b3644472b5982eac5afa87f221c2829163cfa84b794f0a534ede"
+  },
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

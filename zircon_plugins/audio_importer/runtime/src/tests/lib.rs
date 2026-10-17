@@ -83,9 +83,9 @@ fn package_manifest_declares_audio_importer_dist_contract() {
         zircon_runtime::plugin::PluginModuleKind::Native
     );
     assert_eq!(dist_module.crate_name, AUDIO_IMPORTER_DIST_CRATE_NAME);
-    assert!(dist_module.target_modes.contains(
-        &zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime
-    ));
+    assert!(dist_module
+        .target_modes
+        .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime));
     assert!(dist_module
         .target_modes
         .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost));

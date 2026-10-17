@@ -4,11 +4,11 @@ use crate::core::extension::{
 };
 use crate::ui::workbench::state::EditorState;
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use zircon_runtime::scene::{default_render_layer_mask, NodeId, Scene};
 use zircon_runtime_interface::reflect::{
-    ReflectFieldValue, ReflectFieldsRequest, ReflectObjectAddress, ReflectTypeRegistration,
-    ReflectedValue,
+    ReflectFieldInfo, ReflectFieldValue, ReflectFieldsRequest, ReflectObjectAddress,
+    ReflectTypeRegistration, ReflectedValue,
 };
 
 use super::super::{
@@ -252,15 +252,32 @@ fn inspector_plugin_component_reflected_properties(
         .reflect_fields(ReflectFieldsRequest::new(address))
         .ok()?
         .fields;
-    let mut properties = schema
-        .type_info
-        .fields
+    Some(inspector_plugin_component_project_reflected_properties(
+        component_id,
+        &schema.type_info.fields,
+        &fields,
+        draft_fields,
+        field_editors,
+    ))
+}
+
+fn inspector_plugin_component_project_reflected_properties(
+    component_id: &str,
+    schema_fields: &[ReflectFieldInfo],
+    fields: &[ReflectFieldValue],
+    draft_fields: &BTreeMap<String, String>,
+    field_editors: &FieldEditorContainer,
+) -> Vec<InspectorPluginComponentPropertySnapshot> {
+    let mut fields_by_id = HashMap::with_capacity(fields.len());
+    for value in fields {
+        // Preserve the first returned value, as the original linear find did.
+        fields_by_id.entry(&value.field_id).or_insert(value);
+    }
+    let mut properties = schema_fields
         .iter()
         .filter(|field| field.editor_visible)
         .filter_map(|field| {
-            let value = fields
-                .iter()
-                .find(|candidate| candidate.field_id == field.id)?;
+            let value = fields_by_id.get(&field.id).copied()?;
             Some(inspector_plugin_component_property_from_reflected_field(
                 component_id,
                 value,
@@ -274,7 +291,7 @@ fn inspector_plugin_component_reflected_properties(
         })
         .collect::<Vec<_>>();
     properties.sort_by(|left, right| left.name.cmp(&right.name));
-    Some(properties)
+    properties
 }
 
 fn inspector_plugin_component_json_properties(
@@ -491,3 +508,7 @@ fn reflected_value_primitive_editable(value: &ReflectedValue) -> bool {
             | ReflectedValue::Entity(_)
     )
 }
+
+#[cfg(test)]
+#[path = "tests/reflected_field_join.rs"]
+mod reflected_field_join_tests;

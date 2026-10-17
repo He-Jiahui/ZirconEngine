@@ -1,3 +1,7 @@
+//! 通过 serde 回调写出排序、缩进的 JSON；数组直接输出，对象值先暂存再按键输出。
+//! 每次顶层调用共享一份输出/资源计费状态和暂存尝试，嵌套序列化只重借用这些状态。
+//! schema 封套由上层构造；本层不提供 sink 回滚或文件原子发布。
+
 use std::collections::BTreeMap;
 use std::fmt;
 use std::io::Write;
@@ -26,6 +30,7 @@ use super::canonical_map_key::{CanonicalMapKey, CanonicalMapKeySerializer};
 use super::canonical_spool::TempSpool;
 use super::wire::MAX_TEXT_DOCUMENT_BYTES;
 
+/// serde_json 原始 JSON 包装的私有类型标记；本序列化器与键转换器据此拒绝绕过规范化。
 pub(in crate::serialization) const SERDE_JSON_RAW_VALUE_TOKEN: &str =
     "$serde_json::private::RawValue";
 
@@ -34,6 +39,20 @@ pub(in crate::serialization) const SERDE_JSON_RAW_VALUE_TOKEN: &str =
 /// Arrays are emitted directly. Object values are spooled while their keys are
 /// collected, allowing lexical key ordering and duplicate-key replacement
 /// without retaining a second complete document in memory.
+///
+/// 借用输入写出规范文本，供版本化文档包装调用。
+///
+/// # 参数
+/// - `value`：本次通过 serde 遍历的值；本层不接管其所有权或添加封套。
+/// - `sink`：独占借用的字节接收端，缓冲与持久化策略由调用方决定。
+///
+/// # 返回与错误
+/// 成功返回包含末尾换行的字节数，并已请求 sink 刷新；使用版本化文本的固定输出上限。
+/// 编码、资源或 I/O 错误会中止遍历，sink 可能已有前缀，不回滚已写字节。
+///
+/// # 生命周期与参考
+/// 借用仅持续到本次调用返回；值暂存由本次尝试持有，清理语义见 `TempSpool`。
+/// 自定义输出上限见 [`write_canonical_text_with_budget`]。
 pub(in crate::serialization) fn write_canonical_text<T, W>(
     value: &T,
     sink: &mut W,
@@ -46,6 +65,14 @@ where
 }
 
 /// Streams canonical JSON under a caller-owned archive budget.
+///
+/// # 参数与返回
+/// `value` 和 `sink` 的借用规则同 [`write_canonical_text`]；`budget` 指定含换行的输出字节上限。
+/// 成功返回已写字节数，不额外套用版本化文本的固定字节上限。
+///
+/// # 约束
+/// 深度、单对象键数、暂存工作量及文件数仍有独立上限；此值不是总内存或总 I/O 预算。
+/// 失败可留下 sink 前缀；本层不校验领域 schema 或提供原子发布。
 pub(in crate::serialization) fn write_canonical_text_with_budget<T, W>(
     value: &T,
     sink: &mut W,
@@ -58,6 +85,8 @@ where
     write_canonical_text_with_limit(value, sink, budget.max_output_bytes())
 }
 
+/// 建立本次共享预算并从根深度 0 开始遍历；成功写完换行及刷新后才返回计费字节数。
+/// 错误直接向上传播，当前 sink 和计费状态不作事务撤销。
 fn write_canonical_text_with_limit<T, W>(
     value: &T,
     sink: &mut W,
@@ -84,6 +113,7 @@ where
 }
 
 #[cfg(test)]
+/// 测试使用任意输出字节上限复用真实 writer；不改变生产资源上限或错误传播。
 pub(in crate::serialization) fn write_canonical_text_with_limit_for_test<T, W>(
     value: &T,
     sink: &mut W,
@@ -96,14 +126,18 @@ where
     write_canonical_text_with_limit(value, sink, max_bytes)
 }
 
+/// 一层 serde 遍历上下文；嵌套值重借用同一输出器和预算，不延长 sink 的外部借用期。
 struct CanonicalTextSerializer<'output, 'sink, 'budget, W: Write + ?Sized> {
+    /// 当前层独占的输出器借用；其内部仍分别借用 sink 和本次预算。
     output: &'output mut CountingWriter<'sink, 'budget, W>,
+    /// 当前值的格式深度，根为 0；容器在进入子值时检查其目标深度。
     depth: usize,
 }
 
 impl<'output, 'sink, 'budget, W: Write + ?Sized>
     CanonicalTextSerializer<'output, 'sink, 'budget, W>
 {
+    /// 将目标深度转换为每层两个空格，并逐段计入输出预算。
     fn write_indent(&mut self, depth: usize) -> Result<(), CanonicalTextWriteError> {
         for _ in 0..depth {
             self.output.write_counted(b"  ")?;
@@ -111,10 +145,13 @@ impl<'output, 'sink, 'budget, W: Write + ?Sized>
         Ok(())
     }
 
+    /// 写入带引号及转义的字符串，实际输出字节由输出器计费。
     fn write_json_string(&mut self, value: &str) -> Result<(), CanonicalTextWriteError> {
         write_json_string(self.output, value)
     }
 
+    /// 为已分派的数值等标量取得 JSON 拼写，再交由输出器计费写入。
+    /// 浮点有限性与宽整数范围由调用此 helper 的 serde 分支先行检查。
     fn write_scalar<T>(&mut self, value: &T) -> Result<(), CanonicalTextWriteError>
     where
         T: ?Sized + Serialize,
@@ -128,14 +165,18 @@ impl<'output, 'sink, 'budget, W: Write + ?Sized>
     }
 }
 
+/// 数组/元组的流式状态；元素直接进入当前 sink，结束时消费状态并补齐右括号。
 struct CanonicalArray<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> {
+    /// 本数组存续期间独占其父层上下文，元素通过短期重借用递归。
     serializer: &'serializer mut CanonicalTextSerializer<'output, 'sink, 'budget, W>,
+    /// 尚未输出元素；控制首个换行与后续逗号分隔。
     first: bool,
 }
 
 impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     CanonicalArray<'serializer, 'output, 'sink, 'budget, W>
 {
+    /// 先检查子值深度，再写分隔/缩进并序列化借用值；失败可能已输出本元素前缀。
     fn serialize_element<T>(&mut self, value: &T) -> Result<(), CanonicalTextWriteError>
     where
         T: ?Sized + Serialize,
@@ -154,6 +195,7 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
         value.serialize(&mut nested)
     }
 
+    /// 消费数组状态，非空时补换行和父层缩进；最终刷新由顶层调用负责。
     fn finish(self) -> Result<(), CanonicalTextWriteError> {
         if !self.first {
             self.serializer.output.write_counted(b"\n")?;
@@ -163,19 +205,28 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     }
 }
 
+/// 对象的排序状态：拥有规范键和各值的暂存，不在收集字段时输出对象正文。
+/// 同键以后值覆盖前值；serde map 的键和值必须交替提交。
 struct CanonicalObject<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> {
+    /// 本对象存续期间独占父层上下文；所有值暂存共用其预算与尝试。
     serializer: &'serializer mut CanonicalTextSerializer<'output, 'sink, 'budget, W>,
+    /// 按规范键排序的已完成值；替换时释放旧值的输出计费。
     entries: BTreeMap<String, CanonicalObjectEntry>,
+    /// map 已提交且尚待值的键；struct 字段入口直接成对处理，不使用此状态。
     pending_key: Option<CanonicalMapKey>,
 }
 
+/// 一个已序列化对象值的拥有者；随 entry 释放其暂存资源。
 struct CanonicalObjectEntry {
+    /// 复制输出时复用已计费内容，避免把同一值再次计入最终输出字节。
     value: TempSpool,
 }
 
 impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     CanonicalObject<'serializer, 'output, 'sink, 'budget, W>
 {
+    /// 消费已准备的键并暂存借用值；`depth` 是子值深度。
+    /// 重复键先移除旧值再开始新值，失败会终止本次写入，不恢复旧 entry。
     fn serialize_value_for_key<T>(
         &mut self,
         key: CanonicalMapKey,
@@ -199,6 +250,7 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
         Ok(())
     }
 
+    /// 新键先检查本对象条目数，再预留带引号/转义的键字节；重复键保留原有键预算。
     fn prepare_key(
         &mut self,
         key: CanonicalMapKey,
@@ -213,6 +265,7 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
         Ok(key)
     }
 
+    /// 消费收集结果并按键输出；若 map 仍有未配值的键，先返回编码协议错误。
     fn finish(self) -> Result<(), CanonicalTextWriteError> {
         if self.pending_key.is_some() {
             return Err(CanonicalTextWriteError::PayloadEncode {
@@ -223,16 +276,22 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     }
 }
 
+/// 外部标记的元组变体；先在本次尝试内暂存数组，再作为变体名对应的对象值输出。
 struct CanonicalTupleVariant<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> {
+    /// 保留父层独占借用，暂存写入重借用同一预算。
     serializer: &'serializer mut CanonicalTextSerializer<'output, 'sink, 'budget, W>,
+    /// serde 提供的静态变体名，结束时复制为拥有的对象键。
     variant: &'static str,
+    /// 本变体数组的暂存；最终复制仍沿用已计费字节。
     spool: TempSpool,
+    /// 数组是否尚无元素，用于选择分隔和结束缩进。
     first: bool,
 }
 
 impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     CanonicalTupleVariant<'serializer, 'output, 'sink, 'budget, W>
 {
+    /// 在父深度加 2 的位置暂存字段：变体对象与内部数组各占一层；先校验深度。
     fn serialize_field<T>(&mut self, value: &T) -> Result<(), CanonicalTextWriteError>
     where
         T: ?Sized + Serialize,
@@ -259,6 +318,7 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
         Ok(())
     }
 
+    /// 消费变体，先完成暂存数组，再输出单键外部标记对象；错误直接向上传播。
     fn finish(mut self) -> Result<(), CanonicalTextWriteError> {
         {
             let mut output =
@@ -279,15 +339,20 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     }
 }
 
+/// 外部标记的结构体变体；内部字段排序后再暂存为变体名对应的对象值。
 struct CanonicalStructVariant<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> {
+    /// 保留父层独占上下文；内部字段和外部包装共享本次计费。
     serializer: &'serializer mut CanonicalTextSerializer<'output, 'sink, 'budget, W>,
+    /// 静态变体名，完成时转为外部对象拥有的键。
     variant: &'static str,
+    /// 内部结构体字段的排序表，各值暂存由 entry 拥有。
     entries: BTreeMap<String, CanonicalObjectEntry>,
 }
 
 impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     CanonicalStructVariant<'serializer, 'output, 'sink, 'budget, W>
 {
+    /// 预留唯一键并在父深度加 2 处暂存字段；同键只退还旧值的输出计费。
     fn serialize_field<T>(
         &mut self,
         key: &'static str,
@@ -317,6 +382,8 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
         Ok(())
     }
 
+    /// 先将已排序的内部对象写入共享尝试的暂存，再消费它输出变体包装。
+    /// 暂存间复制不重复计最终输出字节，但仍累计暂存工作量。
     fn finish(self) -> Result<(), CanonicalTextWriteError> {
         let mut inner = TempSpool::new(self.serializer.output.budget.spool_attempt());
         {
@@ -334,6 +401,8 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     }
 }
 
+/// 将 serde 值域映射到规范 JSON；容器状态均借用当前层，结束时消费各适配器。
+/// 非有限浮点、超出 64 位对应范围的宽整数和原始 JSON 私有包装在相应分支拒绝。
 impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> Serializer
     for &'serializer mut CanonicalTextSerializer<'output, 'sink, 'budget, W>
 {
@@ -417,6 +486,7 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> Serializer
         self.write_json_string(value)
     }
 
+    /// 字节切片按元素序列输出为 JSON 数组，不使用编码后的单个字符串。
     fn serialize_bytes(self, value: &[u8]) -> Result<Self::Ok, Self::Error> {
         let mut array = self.serialize_seq(Some(value.len()))?;
         for byte in value {
@@ -461,6 +531,7 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> Serializer
     where
         T: ?Sized + Serialize,
     {
+        // 此私有标记可能绕过正常节点遍历；其余 newtype 继续沿用当前深度序列化内部值。
         if name == SERDE_JSON_RAW_VALUE_TOKEN {
             return Err(CanonicalTextWriteError::PayloadValidation {
                 reason: "serde_json RawValue is outside the canonical versioned payload domain"
@@ -480,10 +551,12 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> Serializer
     where
         T: ?Sized + Serialize,
     {
+        // 外部标签增加一层；先暂存借用的内部值，再写拥有键的单字段对象。
         let spool = serialize_to_spool(self.output, self.depth + 1, value)?;
         write_single_object(self.output, self.depth, variant.to_string(), spool)
     }
 
+    /// 长度提示不用于预分配或准入，元素逐个检查深度并直接写入。
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         self.output.write_counted(b"[")?;
         Ok(CanonicalArray {
@@ -525,6 +598,7 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> Serializer
         })
     }
 
+    /// 忽略长度提示；唯一键的实际数量在逐键准备时检查。
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
         Ok(CanonicalObject {
             serializer: self,
@@ -565,6 +639,7 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> Serializer
         })
     }
 
+    /// 将 Display 片段直接转义写入；编码或预算错误立即向上传播，不聚合完整显示文本。
     fn collect_str<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + fmt::Display,
@@ -646,6 +721,7 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> SerializeMap
 {
     type Ok = ();
     type Error = CanonicalTextWriteError;
+    /// 只允许一个待配值键；规范化后预留键预算，存入 pending 状态。
     fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
     where
         T: ?Sized + Serialize,
@@ -661,6 +737,7 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> SerializeMap
         self.pending_key = Some(self.prepare_key(key)?);
         Ok(())
     }
+    /// 取走此前提交的键并暂存值；没有 pending 键时返回编码错误。
     fn serialize_value<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
         T: ?Sized + Serialize,
@@ -712,6 +789,15 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> SerializeStructVar
     }
 }
 
+/// 将借用值序列化为本次尝试拥有的暂存，子值深度在遍历前检查。
+///
+/// # 参数与返回
+/// `parent` 提供共享预算和尝试，`depth` 是该值深度，`value` 只在本次调用中借用。
+/// 成功返回已完成写入的暂存；其计费增量用于以后替换同键值时退还最终输出预算。
+///
+/// # 生命周期与错误
+/// 嵌套输出器先结束借用，再完成暂存写入；落盘暂存此时关闭写句柄，复制时重新读取。
+/// 失败不撤销共享计费，返回途中按暂存所有权析构；清理错误的处理见 `TempSpool::drop`。
 fn serialize_to_spool<T, W>(
     parent: &mut CountingWriter<'_, '_, W>,
     depth: usize,
@@ -738,6 +824,8 @@ where
     Ok(spool)
 }
 
+/// 消费一个已计费的暂存值，预留拥有键的编码字节并输出单字段外部标记对象。
+/// `depth` 表示外部对象深度；子值所在层仍须通过嵌套上限，复制值不再计最终输出字节。
 fn write_single_object<W>(
     output: &mut CountingWriter<'_, '_, W>,
     depth: usize,
@@ -758,6 +846,8 @@ where
     write_object(output, depth, entries)
 }
 
+/// 消费排序表并输出对象；键字节已在准备阶段计费，值内容已在序列化暂存时计费。
+/// 此处只新增标点/缩进计费，按排序表顺序复制各值；错误可留下对象前缀。
 fn write_object<W>(
     output: &mut CountingWriter<'_, '_, W>,
     depth: usize,
@@ -785,6 +875,7 @@ where
     output.write_counted(b"}")
 }
 
+/// 为指定深度写出每层两个空格；在暂存路径使用时也累计暂存工作量。
 fn write_indent<W>(
     output: &mut CountingWriter<'_, '_, W>,
     depth: usize,

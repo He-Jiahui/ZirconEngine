@@ -44,7 +44,7 @@ impl EventRegistration {
     // 回调被 move 进可克隆的镜像注册记录；Send/Sync 与 'static 约束不让它借用临时状态，但不保证动态库仍驻留。
     fn mirrored<E>(
         manifest: PluginEventManifest,
-        reader_count_callback: impl Fn(&mut World, u32, Option<std::time::Instant>) -> SceneResult<()>
+        reader_count_callback: impl Fn(&mut World, u32, Option<web_time::Instant>) -> SceneResult<()>
             + Send
             + Sync
             + 'static,

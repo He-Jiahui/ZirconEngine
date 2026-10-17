@@ -9,7 +9,7 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
     runtime_outputs: SceneRendererCompiledSceneOutputs,
 ) -> Result<(), GraphicsError> {
     let (
-        advanced_plugin_readbacks,
+        mut advanced_plugin_readbacks,
         render_graph_execution,
         prepared_mesh_queue_stats,
         prepared_sprite_queue_stats,
@@ -18,6 +18,7 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
     renderer.last_render_graph_execution = render_graph_execution;
     renderer.last_prepared_mesh_queue_stats = prepared_mesh_queue_stats;
     renderer.last_prepared_sprite_queue_stats = prepared_sprite_queue_stats;
+    renderer.virtual_geometry_native_handoff = advanced_plugin_readbacks.take_native_packets();
     advanced_plugin_readbacks.collect_into_outputs(&mut renderer.advanced_plugin_outputs)?;
     if let Some(report) = output_target_graph_import_report {
         renderer

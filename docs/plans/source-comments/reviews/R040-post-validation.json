@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R040",
+  "reviewer": "root",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "created_at_utc": "2026-10-15T18:25:40.019Z",
+  "formal_acceptance": false,
+  "kind": "scoped-post-validation",
+  "status": "local-checks-passed-pending-managed-gates",
+  "source_pins": [
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "sha256": "be9322b111bc32b26da5fae4fca62a5ec542fda2ba144ab92e76fecf9764aaa7",
+      "before_sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+      "bytes": 122746,
+      "lines": 3008
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "sha256": "09adf4660c353adbb9da6b8b5aecf1f80a1a68a9afc91a6e8714dc28a1427e1c",
+      "before_sha256": "09adf4660c353adbb9da6b8b5aecf1f80a1a68a9afc91a6e8714dc28a1427e1c",
+      "bytes": 2008,
+      "lines": 51
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "before_sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "bytes": 2666,
+      "lines": 79
+    }
+  ],
+  "raw_byte_preservation": {
+    "source_count": 3,
+    "two_layer_inverse": "最终源先去除4条root SAFETY再恢复固定child pin，然后去除child8块恢复exact grant；未改2源等于before；三源规范化后等于初始HEAD。",
+    "eol_and_bom": {
+      "zircon_runtime_interface/src/tests/contracts.rs": {
+        "CRLF": 3008,
+        "LF": 0,
+        "BOM": false
+      },
+      "zircon_runtime_interface/src/tests/contracts/selector.rs": {
+        "CRLF": 0,
+        "LF": 51,
+        "BOM": false
+      },
+      "zircon_runtime_interface/src/tests/mod.rs": {
+        "CRLF": 0,
+        "LF": 79,
+        "BOM": false
+      }
+    },
+    "source_writer_process": "ee3e40",
+    "inverse_and_guard_process": "de01a6",
+    "exit": 0
+  },
+  "format": {
+    "command": "rustfmt --check --edition 2021 --config skip_children=true <exact3 R040 Rust paths>",
+    "process": {
+      "chunk_id": "12c674",
+      "wall_time_seconds": 11.3573175,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    "passed": true,
+    "note": "在最终be9322…source pin上实际运行；不复用旧child source版本的结果。"
+  },
+  "git_checks": [
+    {
+      "command": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--check",
+        "f28ba39a5095f4964c046ecc702778627f80cfd5",
+        "--",
+        "zircon_runtime_interface/src/tests/contracts.rs",
+        "zircon_runtime_interface/src/tests/contracts/selector.rs",
+        "zircon_runtime_interface/src/tests/mod.rs"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--cached",
+        "--name-only",
+        "--",
+        "zircon_runtime_interface/src/tests/contracts.rs",
+        "zircon_runtime_interface/src/tests/contracts/selector.rs",
+        "zircon_runtime_interface/src/tests/mod.rs",
+        "docs/plans/source-comments/reviews/R040.json",
+        "docs/plans/source-comments/reviews/R040-comment-amendment.json"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "patch": {
+    "sha256": "55b05f386c7989ee1ae5080836615fecc1bcba9e8457fb8af9ddc4d301a927d7",
+    "bytes": 4673,
+    "added_physical_lines": 16,
+    "added_comment_lines": 15,
+    "added_blank_lines": 1,
+    "deleted_lines": 0,
+    "only_comments_and_blank_inserted": true,
+    "inserted_bytes": 1497,
+    "insertion_blocks": 12
+  },
+  "change_guard_process": {
+    "command": [
+      "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\python\\python.exe",
+      "-B",
+      "E:\\Git\\ZirconEngine\\.codex\\skills\\zircon-change-guard\\scripts\\change_guard.py",
+      "--json",
+      "patch",
+      "--git",
+      "--base",
+      "f28ba39a5095f4964c046ecc702778627f80cfd5",
+      "--path",
+      "zircon_runtime_interface/src/tests/contracts.rs",
+      "--path",
+      "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "--path",
+      "zircon_runtime_interface/src/tests/mod.rs"
+    ],
+    "exit": 0,
+    "stderr": ""
+  },
+  "change_guard": {
+    "tool": "zircon-change-guard",
+    "version": 2,
+    "mode": "patch",
+    "status": "passed",
+    "input": {
+      "patchDigest": "55b05f386c7989ee1ae5080836615fecc1bcba9e8457fb8af9ddc4d301a927d7",
+      "base": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+      "files": [
+        "zircon_runtime_interface/src/tests/contracts.rs"
+      ],
+      "declaredPaths": [
+        "zircon_runtime_interface/src/tests/contracts.rs",
+        "zircon_runtime_interface/src/tests/contracts/selector.rs",
+        "zircon_runtime_interface/src/tests/mod.rs"
+      ],
+      "writeGrantCheck": true,
+      "permissionRoot": "E:/Git/ZirconEngine",
+      "contributor": false
+    },
+    "summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "markers": {
+      "closed": [],
+      "opened": [],
+      "moved": []
+    },
+    "findings": [],
+    "suppressed": []
+  },
+  "root_declaration_counts": {
+    "module": 38,
+    "function": 3,
+    "test": 52
+  },
+  "continuous_partitions": 111,
+  "child_validation": "child旧版本历史证据保留；最终main采用实际12c674 rustfmt与de01a6 final inverse/diff/guard。",
+  "contexts": [
+    {
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "sha256": "e851a09cf3b0946ce83a7723a48da45656746820bc0375b9285df9c740409078",
+      "matches_child_read_pin": true
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/exports.rs",
+      "sha256": "fb6564729a8cc2457f7eb5b356bb4cfee3e359f39caad61d2f9fab1b3f5f23a8",
+      "matches_child_read_pin": true
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/tests/api_table.rs",
+      "sha256": "3593c71c25c1051cc9033dc868ae3159a817ea0b794109f790576a2f1d103d2e",
+      "matches_child_read_pin": true
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/ffi.rs",
+      "sha256": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+      "matches_child_read_pin": true
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/tests/foundation_render.rs",
+      "sha256": "6a3d5209346a02b9ce9a0ed6b6a71c9827a3d823f2984694f7224e8861a48b32",
+      "matches_child_read_pin": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "sha256": "aff4edd1b0d58e5d202ab5e04a7fda6c0074acadb08f8e652a09a6fc8ed72353",
+      "matches_child_read_pin": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+      "sha256": "d1c38e8165a88ea8a9fe9741e9dae09b0963ec6a3b5e1065c5c7543016d70ba7",
+      "matches_child_read_pin": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/plugin_api.rs",
+      "sha256": "c6b59a92f07ef0b6d48bcc162b28948519e24a836378b04a9548cf30e0997564",
+      "matches_child_read_pin": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/v2/style.rs",
+      "sha256": "d93c82402a7b503ea04d309c8d4646b733846d8291ec06e4c2aef2ef8a1609f6",
+      "matches_child_read_pin": true
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+      "sha256": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+      "matches_child_read_pin": true
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/runtime_session/owned_buffer.rs",
+      "sha256": "f9a53391f084f7f36466d7a8fe0ddbf4aabaa746e06351e6e4b238553568b8a9",
+      "matches_child_read_pin": true
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/runtime_session/tests/cases.rs",
+      "sha256": "71288868a5a8e7c0ba44f7d450b2b8b562aa0374a15092ad3d01a56af0b0c49f",
+      "matches_child_read_pin": true
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/tests/api_v8_layout.rs",
+      "sha256": "648c3175b8ab940580aa6a2f2c80cf40421d351e509cad97f15e53c089844ac3",
+      "matches_child_read_pin": true
+    }
+  ],
+  "Rust_tests_or_builds_run": false,
+  "managed_validation": {
+    "status": "pending",
+    "receipt": null
+  },
+  "index_and_native_lifecycle": {
+    "status": "pending actual original six Git/three Native birth/exit/EOF/join/release,byte-lock and true index owner receipts;root did not write Git"
+  },
+  "coordinator_commit": {
+    "status": "pending",
+    "commit": null
+  },
+  "attached_wecom": {
+    "status": "pending",
+    "receipt": null
+  },
+  "cleanup": {
+    "files_deleted": 0,
+    "bytes_released": 0,
+    "source_copies": 0,
+    "temporary_helpers": 0,
+    "build_products": 0
+  }
+}

@@ -6,22 +6,22 @@ fn runtime_15_native_plugin_loader_real_fixture_tests_are_folder_backed() {
     let parent = read_runtime_src("tests/plugin_extensions/native_plugin_loader.rs");
     let real_fixture =
         read_runtime_src("tests/plugin_extensions/native_plugin_loader/real_fixture.rs");
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo(
             "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
         );
-    let runtime_index = read_repo(
+    let _runtime_index = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let review_findings = read_repo(
+    let _review_findings = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
-    let structure_convention = read_repo(
+    let _structure_convention = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
-    let asset_importer_doc = read_repo("docs/zircon_runtime/asset/importer.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
+    let _asset_importer_doc = read_repo("docs/zircon_runtime/asset/importer.md");
 
     assert_contains_all(
         "native plugin loader parent mounts real fixture child owner",

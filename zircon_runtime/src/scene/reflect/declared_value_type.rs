@@ -97,7 +97,9 @@ impl DeclaredValueType {
             }
         }
 
-        if let Some(inner) = generic_inner(input, "List") {
+        if input.starts_with("List<") {
+            let inner = generic_inner(input, "List")
+                .ok_or_else(|| "List<T> generic type delimiters are malformed".to_string())?;
             if inner.is_empty() {
                 return Err("List<T> requires one declared item type".to_string());
             }
@@ -108,7 +110,9 @@ impl DeclaredValueType {
                 nested_depth,
             )?)));
         }
-        if let Some(inner) = generic_inner(input, "Map") {
+        if input.starts_with("Map<") {
+            let inner = generic_inner(input, "Map")
+                .ok_or_else(|| "Map<K, V> generic type delimiters are malformed".to_string())?;
             let (key, value) = split_map_arguments(inner)?;
             if key != "String" {
                 return Err("Map<K, V> requires the JSON key type String".to_string());

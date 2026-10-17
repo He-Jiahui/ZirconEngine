@@ -1,3 +1,6 @@
+//! 覆盖失效通知转换时的分配身份，以及失效分支保留原事件的源码形状。
+//! 忽略基准以固定大字符串夹具比较转换和事件释放成本。
+
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -6,6 +9,7 @@ use super::*;
 const TARGET_P95_PERCENT: u128 = 70;
 
 #[test]
+/// 转换后核对字符串仍使用原分配，同时保留到期种类和可选所有者。
 fn optimization_batch_20260828ig_runtime_stale_tooltip_moves_owned_event() {
     let tooltip_id = benchmark_tooltip_id(64 * 1024);
     let allocation = tooltip_id.as_ptr();
@@ -22,6 +26,7 @@ fn optimization_batch_20260828ig_runtime_stale_tooltip_moves_owned_event() {
 }
 
 #[test]
+/// 分段扫描失效分支与转换辅助函数；保留状态路径中的克隆位于扫描终点之后。
 fn optimization_batch_20260828ig_runtime_stale_branch_consumes_tooltip_event() {
     let source = include_str!("../../tooltip_timer.rs");
     let dispatch = source
@@ -50,6 +55,7 @@ fn optimization_batch_20260828ig_runtime_stale_branch_consumes_tooltip_event() {
 
 #[test]
 #[ignore = "release performance contract; run through the managed validation coordinator"]
+/// 输入在计时前构造，交替测量两种转换；百分位断言使用固定样本和阈值。
 fn optimization_batch_20260828ig_runtime_owned_stale_tooltip_event_benchmark() {
     const SAMPLES: usize = 11;
     const ITERATIONS: usize = 512;
@@ -111,6 +117,7 @@ fn legacy_stale_tooltip_event(tooltip: UiTooltipTimerInputEvent) -> UiInputEvent
     UiInputEvent::TooltipTimer(tooltip.clone())
 }
 
+/// 消费预建通知；转换输出在每轮计时循环内使用并释放。
 fn measure_events(
     events: Vec<UiTooltipTimerInputEvent>,
     mut convert: impl FnMut(UiTooltipTimerInputEvent) -> UiInputEvent,

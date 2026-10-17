@@ -130,9 +130,9 @@ impl ExportPreset {
 pub fn valid_export_profile_name(value: &str) -> bool {
     let upper = value.to_ascii_uppercase();
     let reserved_device = matches!(upper.as_str(), "CON" | "PRN" | "AUX" | "NUL")
-        || ["COM", "LPT"].iter().any(|prefix| {
-            (1..=9).any(|index| upper == format!("{prefix}{index}"))
-        });
+        || ["COM", "LPT"]
+            .iter()
+            .any(|prefix| (1..=9).any(|index| upper == format!("{prefix}{index}")));
     !value.is_empty()
         && !reserved_device
         && value

@@ -128,9 +128,13 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             assert!(bridge.binding_by_id(gateway_binding).is_some());
             for _ in 0..2 {
                 let parent = bridge.control_node_id("UnrealSceneViewViewport").unwrap();
-                let (_, incoming, _) = bridge.runtime.project_workbench_module_workspace(
-                    "res://ui/editor/rendering/extension_shader_editor_workspace.zui",
-                    "WorkbenchExtensionShaderEditorWorkspace").unwrap();
+                let (_, incoming, _) = bridge
+                    .runtime
+                    .project_workbench_module_workspace(
+                        "res://ui/editor/rendering/extension_shader_editor_workspace.zui",
+                        "WorkbenchExtensionShaderEditorWorkspace",
+                    )
+                    .unwrap();
                 let previous_root = bridge.control_node_id(root_control).unwrap();
                 let (mut staged, _, proof) = UiV2SurfaceBuilder::stage_child_surface(
                     bridge.surface(),

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::asset::AssetImportError;
+use crate::asset::AssetCodecError;
 use serde::{Deserialize, Serialize};
 
 type ArtifactCacheJsonObject = BTreeMap<String, ArtifactCacheJsonValue>;
@@ -49,7 +49,7 @@ impl ArtifactCacheJsonValue {
         }
     }
 
-    pub(super) fn into_json(self) -> Result<serde_json::Value, AssetImportError> {
+    pub(super) fn into_json(self) -> Result<serde_json::Value, AssetCodecError> {
         match self {
             Self::Null => Ok(serde_json::Value::Null),
             Self::Bool(value) => Ok(serde_json::Value::Bool(value)),
@@ -67,22 +67,22 @@ impl ArtifactCacheJsonValue {
 }
 
 impl ArtifactCacheJsonNumber {
-    fn into_json_number(self) -> Result<serde_json::Number, AssetImportError> {
+    fn into_json_number(self) -> Result<serde_json::Number, AssetCodecError> {
         match self {
             Self::I64(value) => Ok(serde_json::Number::from(value)),
             Self::U64(value) => Ok(serde_json::Number::from(value)),
             Self::F64(value) => serde_json::Number::from_f64(value).ok_or_else(|| {
-                AssetImportError::CachedJsonNonFiniteNumber {
+                AssetCodecError::CachedJsonNonFiniteNumber {
                     value: value.to_string(),
                 }
             }),
             Self::Decimal(value) => match serde_json::from_str::<serde_json::Value>(&value)
-                .map_err(|source| AssetImportError::CachedJsonNumberParse {
+                .map_err(|source| AssetCodecError::CachedJsonNumberParse {
                     value: value.clone(),
                     source,
                 })? {
                 serde_json::Value::Number(number) => Ok(number),
-                _ => Err(AssetImportError::CachedJsonNonFiniteNumber { value }),
+                _ => Err(AssetCodecError::CachedJsonNonFiniteNumber { value }),
             },
         }
     }
@@ -99,7 +99,7 @@ pub(super) fn json_table_to_cache(
 
 pub(super) fn cache_table_to_json(
     table: BTreeMap<String, ArtifactCacheJsonValue>,
-) -> Result<BTreeMap<String, serde_json::Value>, AssetImportError> {
+) -> Result<BTreeMap<String, serde_json::Value>, AssetCodecError> {
     table
         .into_iter()
         .map(|(key, value)| value.into_json().map(|value| (key, value)))
@@ -117,7 +117,7 @@ fn json_object_to_cache(
 
 fn cache_object_to_json(
     object: ArtifactCacheJsonObject,
-) -> Result<serde_json::Map<String, serde_json::Value>, AssetImportError> {
+) -> Result<serde_json::Map<String, serde_json::Value>, AssetCodecError> {
     let mut output = serde_json::Map::new();
     for (key, value) in object {
         output.insert(key, value.into_json()?);

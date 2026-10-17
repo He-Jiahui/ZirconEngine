@@ -434,12 +434,10 @@ async fn issued_invitation_listing_is_paginated_tenant_scoped_and_freshly_author
                     .status,
                 "revoked"
             );
-            assert!(
-                after_revoke
-                    .items
-                    .iter()
-                    .all(|invitation| invitation.policy_revision == "5")
-            );
+            assert!(after_revoke
+                .items
+                .iter()
+                .all(|invitation| invitation.policy_revision == "5"));
 
             mutate(
                 connection,

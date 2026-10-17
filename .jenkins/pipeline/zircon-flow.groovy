@@ -1,6 +1,6 @@
 // Fixed Scripted Pipeline entry. Each control call owns an agent briefly;
 // resource waits happen outside node and release the executor.
-def invokeControl(String domain, String action, Map payload) {
+def invokeControl(String domain, String action, Map payload, boolean preparedSubmission = false) {
     def result
     if (!params.RUNTIME_OPERATION_ID || !params.STAGE_IMPLEMENTATION_DIGEST) error('runtime identity parameters are required')
     if (!env.ZIRCON_AGENT_LABEL || params.RUNTIME_OPERATION_ID != env.ZIRCON_RUNTIME_OPERATION_ID || params.STAGE_IMPLEMENTATION_DIGEST != env.ZIRCON_DRIVER_DIGEST) error('runtime identity fence failed')
@@ -9,7 +9,9 @@ def invokeControl(String domain, String action, Map payload) {
     for (int attempt = 0; attempt < 12; attempt++) {
         node(env.ZIRCON_AGENT_LABEL) {
             if (!env.ZIRCON_SEALED_DRIVER || !env.ZIRCON_DRIVER_LAUNCHER || !env.ZIRCON_DRIVER_DIGEST) error('sealed driver environment is required')
-            result = load(env.ZIRCON_SEALED_DRIVER).control(domain, action, payload)
+            def driver = load(env.ZIRCON_SEALED_DRIVER)
+            if (preparedSubmission && !(domain == 'flow' && action == 'submit-execution')) error('prepared adapter is limited to execution submission')
+            result = preparedSubmission ? preparedExecutionResponse(driver, payload) : driver.control(domain, action, payload)
         }
         if (!(result.status in ['failed', 'blocked'] && result.reasonCode == 'execution_busy' && result.retryable == true)) return result
         if (attempt == 11) error("${domain}/${action} exceeded execution contention retry budget")
@@ -26,6 +28,61 @@ def waitControl(String domain, String action, Map payload, int polls = 120) {
     }
     error("${domain}/${action} exceeded polling budget")
 }
+// Only the prepared-WT dispatch mismatch is returned instead of thrown.
+// The selected sealed CLI and parser still own the authoritative response.
+def preparedExecutionResponse(def driver, Map payload) {
+    def bound = new LinkedHashMap(payload)
+    bound.runtimeOperationId = env.ZIRCON_RUNTIME_OPERATION_ID
+    bound.driverDigest = env.ZIRCON_DRIVER_DIGEST
+    def nonce = "control-${env.BUILD_TAG}-${UUID.randomUUID().toString()}"
+    def input = "${env.ZIRCON_REPO_ROOT}/.jenkins/state/controls/${nonce}.json"
+    def output = "${env.ZIRCON_REPO_ROOT}/.jenkins/state/responses/${nonce}.json"
+    writeFile(file: input, text: groovy.json.JsonOutput.toJson(bound))
+    def exitCode = bat(returnStatus: true, label: 'Jenkins control flow/submit-execution', script: """@echo off
+"%JENKINS_PYTHON%" -B "%ZIRCON_DRIVER_LAUNCHER%" --repository "%ZIRCON_REPO_ROOT%" flow submit-execution --input-file "${input}" --output-file "${output}"
+""")
+    def result = driver.parseControlResult(readFile(output))
+    if (!(result.status instanceof String) || !result.status) error('execution submission returned no valid status')
+    def mismatch = result.status in ['failed', 'blocked'] && result.reasonCode == 'submission_identity_mismatch'
+    def busy = result.status in ['failed', 'blocked'] && result.reasonCode == 'execution_busy' && result.retryable == true
+    if ((mismatch || busy) && exitCode in [0, 2]) return result
+    if (result.status in ['failed', 'blocked']) error("authoritative control operation submit-execution failed: ${result}")
+    if (exitCode != 0) error("authoritative control operation submit-execution exited ${exitCode}: ${result}")
+    return result
+}
+
+// The first call may dispatch once. All later polls query that same durable
+// management identity; no executor is retained between observations.
+def resumePreparedExecution(Map payload) {
+    if (!env.ZIRCON_REPO_ROOT || !env.JENKINS_PYTHON) error('public Flow bridge environment is required')
+    def nonce = "flow-execution-resume-${env.BUILD_TAG}-${UUID.randomUUID().toString()}"
+    def input = "${env.ZIRCON_REPO_ROOT}/.jenkins/state/controls/${nonce}.json"
+    def output = "${env.ZIRCON_REPO_ROOT}/.jenkins/state/controls/${nonce}.response.json"
+    for (int poll = 0; poll < 120; poll++) {
+        def result
+        node(env.ZIRCON_AGENT_LABEL) {
+            writeFile(file: input, text: groovy.json.JsonOutput.toJson(payload))
+            withEnv(["ZIRCON_JENKINS_SESSION_ID=${payload.identity.sessionId}",
+                     'INPUT_JSON=', "XDG_CONFIG_HOME=${env.ZIRCON_REPO_ROOT}/.jenkins"]) {
+                def query = poll == 0 ? '' : ' --query-only'
+                def exitCode = bat(returnStatus: true, label: 'Prepared Flow execution bridge', script: """@echo off
+"%JENKINS_PYTHON%" -B "%ZIRCON_REPO_ROOT%/tools/dev/resume_jenkins_flow.py" --repo-root "%ZIRCON_REPO_ROOT%" --input-file "${input}" --output-file "${output}" --expected-bridge-sha256 5ee746c400f49efb04483c6e4960169020c694f481759183d85f3a8a3d1b0879${query}
+""")
+                result = load(env.ZIRCON_SEALED_DRIVER).parseControlResult(readFile(output))
+                if (!(result.status in ['complete', 'pending', 'unknown', 'failed']) ||
+                        !(exitCode in [0, 2])) error('public Flow bridge returned an invalid response')
+            }
+        }
+        if (result.status == 'complete') {
+            if (!result.executionId || !result.recipeRef) error('public Flow bridge returned no original execution binding')
+            return result
+        }
+        if (result.status != 'pending') error("prepared execution delivery requires reconciliation: ${result}")
+        sleep(time: Math.min(30, 2 + poll.intdiv(4)), unit: 'SECONDS')
+    }
+    error('prepared execution dispatch remains pending after its polling budget')
+}
+
 def repositoryId = params.REPOSITORY_ID ?: env.ZIRCON_REPOSITORY_ID
 if (!repositoryId) error('REPOSITORY_ID/ZIRCON_REPOSITORY_ID is required')
 if (!params.SESSION_ID || !params.REQUEST_ID || !params.ATTEMPT_ID || !params.GENERATION) error('session/request/attempt/generation identity is required')
@@ -41,6 +98,7 @@ def patchRequestRef = params.PATCH_REQUEST_REF
 def currentSourceRef = params.CURRENT_SOURCE_REF
 def sourcePreparationRef = params.SOURCE_PREPARATION_REF
 def registeredFlow = false
+def dispatchUnresolved = false
 def executionId = null
 def recipeRef = null
 def workflowStages = []
@@ -170,12 +228,20 @@ try {
             def submitted = invokeControl('flow', 'submit-execution', [identity: identity, executionId: executionId,
                 patchOperationRef: patchOperationRef, sealedInputRef: sealedInputRef,
                 sourcePreparationRef: sourcePreparationRef,
-                template: env.WORKFLOW_TEMPLATE, buildRoot: params.BUILD_ROOT ?: env.ZIRCON_BUILD_ROOT])
+                template: env.WORKFLOW_TEMPLATE, buildRoot: params.BUILD_ROOT ?: env.ZIRCON_BUILD_ROOT],
+                currentSourceRef != null && currentSourceRef != '')
+            def resumed = false
+            if (currentSourceRef && submitted.reasonCode == 'submission_identity_mismatch') {
+                dispatchUnresolved = true
+                submitted = resumePreparedExecution([identity: identity, currentSourceRef: currentSourceRef])
+                dispatchUnresolved = false
+                resumed = true
+            }
             if (submitted.executionId) executionId = submitted.executionId
             if (submitted.recipeRef) recipeRef = submitted.recipeRef
             if (!executionId) error('submit-execution returned no authoritative executionId')
             if (!recipeRef) error('submit-execution returned no authoritative recipeRef')
-            invokeControl('flow', 'ensure-execution-job', [identity: identity,
+            if (!resumed) invokeControl('flow', 'ensure-execution-job', [identity: identity,
                 executionId: executionId, recipeRef: recipeRef,
                 buildRoot: params.BUILD_ROOT ?: env.ZIRCON_BUILD_ROOT])
         }
@@ -229,7 +295,9 @@ try {
 } catch (err) {
     def origin = err.toString()
     try {
-        if (!registeredFlow && currentSourceRef) {
+        if (dispatchUnresolved) {
+            echo 'prepared execution delivery remains unresolved; query the original management identity'
+        } else if (!registeredFlow && currentSourceRef) {
             invokeControl('current-source', 'query', [identity: identity, currentSourceRef: currentSourceRef,
                 runtimeOperationId: params.RUNTIME_OPERATION_ID,
                 buildRoot: params.BUILD_ROOT ?: env.ZIRCON_BUILD_ROOT])

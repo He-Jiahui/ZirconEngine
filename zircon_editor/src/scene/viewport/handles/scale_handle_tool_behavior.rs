@@ -59,7 +59,9 @@ impl HandleTool for ScaleHandleTool {
         axis: GizmoAxis,
     ) -> Option<HandleDragSession> {
         Some(HandleDragSession::Scale(begin_transform_session(
-            ctx, axis, crate::scene::viewport::TransformHandleKind::Scale,
+            ctx,
+            axis,
+            crate::scene::viewport::TransformHandleKind::Scale,
         )?))
     }
 

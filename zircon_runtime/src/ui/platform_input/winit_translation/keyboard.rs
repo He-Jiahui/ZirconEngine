@@ -11,6 +11,14 @@ use super::super::keyboard_map::{
 
 /// 宿主在修饰键通知后更新环境状态，再把结果放入后续事件上下文。
 /// winit 的此载荷不含锁定键状态，caps_lock/num_lock 的 false 不能视作对系统锁定状态的查询。
+///
+/// # 参数与返回
+/// `state` 是平台通知给出的按键快照，返回独立拥有的共享修饰键值。
+///
+/// # 使用与约束
+/// 此函数不写入宿主；调用方保存结果后，后续事件才会携带该快照。
+/// 不根据键盘文本推断额外状态，也不维护按下或释放历史。
+/// 参见 [`UiInputModifiers`] 与 [`UiWindowInputContext`]。
 pub fn translate_winit_modifiers(state: ModifiersState) -> UiInputModifiers {
     UiInputModifiers {
         shift: state.shift_key(),
@@ -23,6 +31,7 @@ pub fn translate_winit_modifiers(state: ModifiersState) -> UiInputModifiers {
 }
 
 // 同时保留物理键、逻辑键和文本：快捷键匹配与文字输入的身份来源不同，不能从 key_code 反推文本。
+// 合成位取本次键事件标记，不与旧环境合成位合并；键名和可选文本复制进返回载荷。
 pub(super) fn translate_keyboard_event(
     context: UiWindowInputContext,
     event: &KeyEvent,

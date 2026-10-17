@@ -3,6 +3,8 @@ use thiserror::Error;
 use super::ZrRuntimeTargetModelV1;
 
 /// Classifies a manifest rejection before a dynamic library is allowed to execute code.
+/// 分类动态库执行前的清单拒绝原因，供加载端格式化诊断。
+/// 跨 ABI 的状态或文本转换由调用入口完成。
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum ZrRuntimeArtifactManifestValidationError {
     #[error("runtime artifact manifest schema {actual} is unsupported; expected {expected}")]

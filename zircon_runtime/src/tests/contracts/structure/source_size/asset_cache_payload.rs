@@ -6,13 +6,13 @@ fn runtime_15_asset_artifact_cache_ui_documents_are_child_owner() {
     let parent = read_runtime_src("asset/artifact/cache_payload.rs");
     let ui = read_runtime_src("asset/artifact/cache_payload/ui.rs");
     let material_shader = read_runtime_src("asset/artifact/cache_payload/material_shader.rs");
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let artifact_doc = read_repo("docs/zircon_runtime/asset/artifact.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _artifact_doc = read_repo("docs/zircon_runtime/asset/artifact.md");
 
     assert_contains_all(
         "artifact cache parent keeps variant dispatch and imports the UI cache owner",

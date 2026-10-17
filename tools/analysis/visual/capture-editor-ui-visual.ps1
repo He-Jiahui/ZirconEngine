@@ -25,6 +25,7 @@ param(
     [string]$MonitorDeviceName,
     [string]$NormalFrameCaseBindings,
     [string]$NormalFrameCaseProducerConfiguration,
+    [string]$NormalFrameContractConfiguration,
     [string[]]$CaptureCaseIds,
     [switch]$SkipInteractions,
     [switch]$PreservePointerPosition,
@@ -109,11 +110,23 @@ function Assert-ZirconActualPreparedNormalCase {
 
 $normalCaseProducer = $null
 $normalCaseProducerConfigurationBinding = $null
-if (-not [string]::IsNullOrWhiteSpace($NormalFrameCaseProducerConfiguration)) {
-    if ($null -ne $normalFrameBindings) {
+$useLiveNormalCaseProducer = -not [string]::IsNullOrWhiteSpace($NormalFrameCaseProducerConfiguration)
+if ($useLiveNormalCaseProducer -and -not [string]::IsNullOrWhiteSpace($NormalFrameContractConfiguration)) {
+    throw 'Supply either NormalFrameCaseProducerConfiguration or NormalFrameContractConfiguration, not both.'
+}
+if (-not [string]::IsNullOrWhiteSpace($NormalFrameContractConfiguration) -and $null -eq $normalFrameBindings) {
+    throw 'NormalFrameContractConfiguration requires NormalFrameCaseBindings.'
+}
+$normalConfigurationInput = if ($useLiveNormalCaseProducer) {
+    $NormalFrameCaseProducerConfiguration
+} else {
+    $NormalFrameContractConfiguration
+}
+if (-not [string]::IsNullOrWhiteSpace($normalConfigurationInput)) {
+    if ($useLiveNormalCaseProducer -and $null -ne $normalFrameBindings) {
         throw 'Choose an existing immutable case map or the actual live business producer.'
     }
-    $producerConfigurationPath = (Resolve-Path -LiteralPath $NormalFrameCaseProducerConfiguration).Path
+    $producerConfigurationPath = (Resolve-Path -LiteralPath $normalConfigurationInput).Path
     $normalCaseProducer = Get-Content -LiteralPath $producerConfigurationPath -Raw | ConvertFrom-Json
     if ($normalCaseProducer.schema -ne 'dev.zircon.editor.normal-frame-case-producer' -or
         $normalCaseProducer.version -ne 1) {
@@ -136,6 +149,12 @@ if (-not [string]::IsNullOrWhiteSpace($NormalFrameCaseProducerConfiguration)) {
             [System.IO.Path]::GetDirectoryName($normalCaseProducer.contractInputs.path)) {
         throw 'The live producer requires the verified Node and its existing audited contract module.'
     }
+    if (-not $useLiveNormalCaseProducer) {
+        $normalCaseProducer = $null
+    }
+}
+if ($null -ne $normalFrameBindings -and $null -eq $normalCaseProducerConfigurationBinding) {
+    throw 'NormalFrameCaseBindings requires the audited NormalFrameContractConfiguration.'
 }
 
 function ConvertTo-ZirconEditorVisualCommandLineArgument {
@@ -611,7 +630,7 @@ function Wait-ZirconEditorVisualProfileGeometry {
     param(
         [Parameter(Mandatory = $true)][System.Diagnostics.Process]$Process,
         [Parameter(Mandatory = $true)][string]$Path,
-        [int]$TimeoutSeconds = 30
+        [int]$TimeoutSeconds = 60
     )
 
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
@@ -1106,26 +1125,43 @@ try {
             foreach ($dependency in @('node', 'producer', 'contract', 'contractInputs')) {
                 $producerFiles[$dependency] = Get-ZirconNormalCaseProducerFile -Binding $normalCaseProducer.$dependency
             }
-            $observedProfiles = @(
-                foreach ($presentDirectory in Get-ChildItem -LiteralPath $profileDirectory -Directory -Filter 'present-*') {
-                    $immutableProfile = Join-Path $presentDirectory.FullName 'ui_profile_geometry.json'
-                    if (-not [System.IO.File]::Exists($immutableProfile)) { continue }
-                    $observed = Get-Content -LiteralPath $immutableProfile -Raw | ConvertFrom-Json
-                    $normalProperty = $observed.PSObject.Properties['normal_window_evidence']
-                    if ($null -eq $normalProperty -or $null -eq $normalProperty.Value) { continue }
-                    $publicationProperty = $normalProperty.Value.PSObject.Properties['workbenchStatePublication']
-                    if ($null -eq $publicationProperty -or $null -eq $publicationProperty.Value) { continue }
-                    $publication = $publicationProperty.Value
-                    if ($publication.authority -ne 'normal-retained-workbench-projection' -or
-                        $publication.observed -ne $true -or $observed.presenter_backend -ne 'gpu') { continue }
-                    [pscustomobject]@{ path = $immutableProfile; captureSequence = $observed.capture_sequence }
-                }
-            )
-            $seed = $observedProfiles | Sort-Object captureSequence -Descending | Select-Object -First 1
+            $seed = $null
+            $seedDeadline = [DateTime]::UtcNow.AddSeconds(30)
+            do {
+                $observedProfiles = @(
+                    foreach ($presentDirectory in Get-ChildItem -LiteralPath $profileDirectory -Directory -Filter 'present-*') {
+                        $immutableProfile = Join-Path $presentDirectory.FullName 'ui_profile_geometry.json'
+                        if (-not [System.IO.File]::Exists($immutableProfile)) { continue }
+                        # Export jobs publish asynchronously; a directory can contain a partial JSON file.
+                        try {
+                            $observedHash = Get-ZirconProfileFileSha256 -Path $immutableProfile
+                            $observed = Get-Content -LiteralPath $immutableProfile -Raw | ConvertFrom-Json
+                            if ($observedHash -cne (Get-ZirconProfileFileSha256 -Path $immutableProfile)) { continue }
+                        } catch { continue }
+                        $normalProperty = $observed.PSObject.Properties['normal_window_evidence']
+                        if ($null -eq $normalProperty -or $null -eq $normalProperty.Value) { continue }
+                        $publicationProperty = $normalProperty.Value.PSObject.Properties['workbenchStatePublication']
+                        if ($null -eq $publicationProperty -or $null -eq $publicationProperty.Value) { continue }
+                        $publication = $publicationProperty.Value
+                        if ($observed.capture_sequence -le 0 -or
+                            $normalProperty.Value.captureSequence -ne $observed.capture_sequence -or
+                            $publication.authority -ne 'normal-retained-workbench-projection' -or
+                            $publication.observed -ne $true -or $observed.presenter_backend -ne 'gpu' -or
+                            $observed.window_client_size.width -ne $extent.Width -or
+                            $observed.window_client_size.height -ne $extent.Height -or
+                            [Math]::Abs([double]$observed.winit_scale_factor - [double]$extent.ExpectedWinitScaleFactor) -gt 0.0001) { continue }
+                        [pscustomobject]@{ path = $immutableProfile; captureSequence = $observed.capture_sequence; sha256 = $observedHash }
+                    }
+                )
+                $seed = $observedProfiles | Sort-Object captureSequence -Descending | Select-Object -First 1
+                if ($null -ne $seed) { break }
+                if ($process.HasExited) { throw 'Original Editor exited before publishing its normal business case seed.' }
+                Start-Sleep -Milliseconds 100
+            } while ([DateTime]::UtcNow -lt $seedDeadline)
             if ($null -eq $seed) {
-                throw 'Pending: no immutable actual successful normal GPU frame has published its real business DTO.'
+                throw 'Pending: no complete immutable actual successful normal GPU frame has published its real business DTO.'
             }
-            $seedSha256 = Get-ZirconProfileFileSha256 -Path $seed.path
+            $seedSha256 = $seed.sha256
             $businessCaseDirectory = Join-Path $profileDirectory 'normal-business-case'
             if ([System.IO.Directory]::Exists($businessCaseDirectory) -or
                 [System.IO.File]::Exists($businessCaseDirectory)) {
@@ -1140,6 +1176,9 @@ try {
             }) -join ' '
             $producerStdout = Join-Path $businessCaseDirectory 'producer.stdout.json'
             $producerStderr = Join-Path $businessCaseDirectory 'producer.stderr.log'
+            if ($seedSha256 -cne (Get-ZirconProfileFileSha256 -Path $seed.path)) {
+                throw 'The selected immutable normal GPU seed changed before case preparation.'
+            }
             $producerProcess = Start-Process -FilePath $producerFiles.node -ArgumentList $producerArgumentText `
                 -WorkingDirectory $repoRoot -WindowStyle Hidden -PassThru `
                 -RedirectStandardOutput $producerStdout -RedirectStandardError $producerStderr
@@ -1218,7 +1257,14 @@ try {
                 [System.IO.Directory]::CreateDirectory($normalPixelsDirectory) | Out-Null
                 $capturePython = Join-Path $repoRoot '.jenkins/runtime/python/python.exe'
                 $normalCapture = Join-Path $repoRoot 'tools/analysis/visual/capture-editor-normal-frame.py'
+                $normalCaptureContractArguments = @()
+                if ($null -ne $normalCaseProducerConfigurationBinding) {
+                    $normalCaptureContractArguments = @(
+                        '--contract-configuration', [string]$normalCaseProducerConfigurationBinding.path,
+                        '--contract-configuration-sha256', [string]$normalCaseProducerConfigurationBinding.sha256)
+                }
                 $normalCaptureOutput = & $capturePython -B -X utf8 $normalCapture `
+                    @normalCaptureContractArguments `
                     --profile-directory $profileDirectory --output-directory $normalPixelsDirectory `
                     --case-json $casePath --project-root $projectBindingBefore.project_root `
                     --pid $process.Id --hwnd $process.MainWindowHandle.ToInt64() `

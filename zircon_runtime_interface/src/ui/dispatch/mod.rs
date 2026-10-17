@@ -1,3 +1,4 @@
+//! 公共 UI 派发契约入口，汇集输入、导航与指针派发类型；实际事件处理由 Runtime 执行。
 #[path = "input/mod.rs"]
 pub mod input;
 #[path = "navigation/mod.rs"]

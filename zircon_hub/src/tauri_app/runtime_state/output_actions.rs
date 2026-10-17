@@ -7,7 +7,7 @@ use std::{
 use std::os::windows::ffi::OsStrExt;
 
 use crate::error::HubError;
-use crate::process::{OpenFolderCommand, open_folder};
+use crate::process::{open_folder, OpenFolderCommand};
 use crate::projects::project_paths_match;
 use crate::state::{
     DeliveryMessageId, HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId,

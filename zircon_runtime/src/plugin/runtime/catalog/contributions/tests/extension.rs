@@ -433,7 +433,13 @@ fn linked_catalog_codec_consumes_world_and_revoke_separates_source_and_target_ow
     );
 
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
-    world.save_scene_to_project(&project, &scene_uri).unwrap();
+    let source_revision = World::load_scene_document(&project, &scene_uri)
+        .unwrap()
+        .into_parts()
+        .1;
+    let receipt = world
+        .save_scene_to_project(&project, &scene_uri, &source_revision)
+        .unwrap();
     project.scan_and_import().unwrap();
     let source_path = project
         .existing_or_primary_project_source_path_for_uri(&scene_uri)
@@ -475,7 +481,9 @@ fn linked_catalog_codec_consumes_world_and_revoke_separates_source_and_target_ow
         before_types
     );
     assert!(merged.owner_revocation_failures().is_empty());
-    assert!(world.save_scene_to_project(&project, &scene_uri).is_err());
+    assert!(world
+        .save_scene_to_project(&project, &scene_uri, receipt.source_revision())
+        .is_err());
     assert_eq!(fs::read(&source_path).unwrap(), last_good_bytes);
     drop(project);
 

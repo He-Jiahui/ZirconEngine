@@ -1,7 +1,10 @@
+//! 直接检查软连字符决定与 UTF-8 字节区间，不经过整形后端或 UI 投影。
+
 use super::{break_suffix_at, push_chunks, DiscretionaryHyphenMarker, SOFT_HYPHEN};
 use crate::text::layout::line_break::LineBreakChunk;
 use crate::text::TextRange;
 
+// 不含隐藏标记时保留单个借用切片，不附加可见后缀。
 #[test]
 fn plain_chunk_stays_single_chunk_without_break_suffix() {
     let text = "prefix";
@@ -14,6 +17,7 @@ fn plain_chunk_stays_single_chunk_without_break_suffix() {
     assert!(chunks[0].break_suffix.is_none());
 }
 
+// 隐藏标记占两个源字节；可见后缀与被消耗源区间分别检查。
 #[test]
 fn soft_hyphen_is_removed_from_visual_text_and_exposed_as_break_suffix() {
     let text = "pre\u{00ad}fix";
@@ -46,6 +50,7 @@ fn soft_hyphen_is_removed_from_visual_text_and_exposed_as_break_suffix() {
     assert!(chunks[1].break_suffix.is_none());
 }
 
+// 两个标记分别挂在前方非空片段上，尾段不携带后缀。
 #[test]
 fn each_visible_soft_hyphen_prefix_receives_its_own_break_suffix() {
     let text = "a\u{00ad}b\u{00ad}c";
@@ -66,6 +71,7 @@ fn each_visible_soft_hyphen_prefix_receives_its_own_break_suffix() {
     assert!(chunks[2].break_suffix.is_none());
 }
 
+// 先按当前文本坐标查找，再仅通过数值偏移变换范围与锚点。
 #[test]
 fn suffix_lookup_recovers_visual_hyphen_and_hidden_source_range() {
     let text = "pre\u{00ad}fix";

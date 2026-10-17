@@ -205,7 +205,12 @@ fn operation_invocation_dispatches_to_the_same_event_and_marks_the_journal_recor
 
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_invoke");
-    let before = runtime.runtime.editor_snapshot().unwrap().scene_entries.len();
+    let before = runtime
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .scene_entries
+        .len();
 
     let record = runtime
         .runtime
@@ -236,7 +241,12 @@ fn operation_invocation_dispatches_to_the_same_event_and_marks_the_journal_recor
         Some("scene.node.create_cube")
     );
     assert_eq!(
-        runtime.runtime.editor_snapshot().unwrap().scene_entries.len(),
+        runtime
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .scene_entries
+            .len(),
         before + 1
     );
 }
@@ -245,7 +255,12 @@ fn operation_invocation_dispatches_to_the_same_event_and_marks_the_journal_recor
 fn editor_command_binding_invokes_the_shared_command_registry() {
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_editor_event_command_operation_dispatch");
-    let before = runtime.runtime.editor_snapshot().unwrap().scene_entries.len();
+    let before = runtime
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .scene_entries
+        .len();
     let binding = EditorUiBinding::new(
         "CommandPalette",
         "CreateCube",
@@ -267,7 +282,12 @@ fn editor_command_binding_invokes_the_shared_command_registry() {
         Some("scene.node.create_cube")
     );
     assert_eq!(
-        runtime.runtime.editor_snapshot().unwrap().scene_entries.len(),
+        runtime
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .scene_entries
+            .len(),
         before + 1
     );
 }
@@ -329,7 +349,12 @@ fn operation_invocation_dispatches_rect_light_creation() {
 
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_rect_light");
-    let before = runtime.runtime.editor_snapshot().unwrap().scene_entries.len();
+    let before = runtime
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .scene_entries
+        .len();
 
     let record = runtime
         .runtime
@@ -354,7 +379,12 @@ fn operation_invocation_dispatches_rect_light_creation() {
         Some("Create Rect Light")
     );
     assert_eq!(
-        runtime.runtime.editor_snapshot().unwrap().scene_entries.len(),
+        runtime
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .scene_entries
+            .len(),
         before + 1
     );
 }
@@ -740,7 +770,40 @@ fn operation_control_request_executes_registered_factory_through_transaction_eng
 
     struct Command;
 
+    impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for Command {
+        fn retained_bound_v1(
+            &self,
+            m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+        ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+            Ok(())
+        }
+    }
     impl EditCommand for Command {
+        fn retention_plan_v1(
+            &self,
+            context: &dyn crate::core::editing::engine::EditContext,
+            phase: crate::core::editing::engine::RetentionPhaseV1,
+            model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+            limit: u64,
+        ) -> Result<
+            crate::core::editing::engine::CommandRetentionPlanV1,
+            crate::core::editing::engine::EditCommandError,
+        > {
+            crate::core::editing::engine::CommandRetentionPlanV1::for_owner(
+                self, context, phase, model, limit,
+            )
+        }
+        fn prepare_retention_v1(
+            &mut self,
+            _: &mut dyn crate::core::editing::engine::EditContext,
+            phase: crate::core::editing::engine::RetentionPhaseV1,
+            permit: &mut crate::core::editing::engine::RetentionMaterializationV1,
+        ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+            permit
+                .consume(self, phase)
+                .map_err(crate::core::editing::engine::CommandExecutionError::unchanged)
+        }
+
         fn label(&self) -> &str {
             "Execute Factory"
         }
@@ -832,7 +895,40 @@ fn workspace_operation_is_queued_before_factory_capture_during_play() {
 
     struct Command;
 
+    impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for Command {
+        fn retained_bound_v1(
+            &self,
+            m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+        ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+            Ok(())
+        }
+    }
     impl EditCommand for Command {
+        fn retention_plan_v1(
+            &self,
+            context: &dyn crate::core::editing::engine::EditContext,
+            phase: crate::core::editing::engine::RetentionPhaseV1,
+            model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+            limit: u64,
+        ) -> Result<
+            crate::core::editing::engine::CommandRetentionPlanV1,
+            crate::core::editing::engine::EditCommandError,
+        > {
+            crate::core::editing::engine::CommandRetentionPlanV1::for_owner(
+                self, context, phase, model, limit,
+            )
+        }
+        fn prepare_retention_v1(
+            &mut self,
+            _: &mut dyn crate::core::editing::engine::EditContext,
+            phase: crate::core::editing::engine::RetentionPhaseV1,
+            permit: &mut crate::core::editing::engine::RetentionMaterializationV1,
+        ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+            permit
+                .consume(self, phase)
+                .map_err(crate::core::editing::engine::CommandExecutionError::unchanged)
+        }
+
         fn label(&self) -> &str {
             "Queued Workspace Operation"
         }

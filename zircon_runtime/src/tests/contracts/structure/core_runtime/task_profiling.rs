@@ -14,8 +14,8 @@ fn runtime_15_core_runtime_task_lock_poison_recovery_guard_covers_job_handles() 
     let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let _tasks_doc = read_repo("docs/zircon_runtime/core/tasks.md");
+    let _module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
+    let _tasks_doc = read_repo("docs/crates/zircon_runtime/core/tasks.md");
 
     assert_contains_all(
         "JobHandle poison recovery",
@@ -87,13 +87,13 @@ fn runtime_15_core_runtime_task_lock_poison_recovery_guard_covers_job_handles() 
 #[test]
 fn runtime_15_core_runtime_profiling_lock_poison_recovery_guard_covers_global_recorder() {
     let profiling = read_runtime_src("core/runtime/diagnostics/profiling/mod.rs");
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let diagnostics_doc = read_repo("docs/zircon_runtime/core/diagnostics.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
+    let _diagnostics_doc = read_repo("docs/crates/zircon_runtime/core/diagnostics.md");
 
     assert_contains_all(
         "runtime profiling recorder poison recovery",
@@ -102,17 +102,22 @@ fn runtime_15_core_runtime_profiling_lock_poison_recovery_guard_covers_global_re
             "use std::sync::{Mutex, MutexGuard, OnceLock};",
             "fn lock_recorder() -> MutexGuard<'static, ProfileRecorder>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
-            "lock_recorder().start_capture(config)",
-            "lock_recorder().stop_capture()",
-            "lock_recorder().reset()",
+            "let status = recorder.start_capture(config);",
+            "let status = recorder.stop_capture();",
+            "let status = recorder.reset();",
             "lock_recorder().snapshot()",
             "let mut recorder = lock_recorder();",
-            "profile_recorder_accessors_recover_poisoned_global_lock",
         ],
     );
     assert_no_direct_lock_unwrap_in_production("runtime profiling recorder", &profiling);
     assert!(
         !production_section(&profiling).contains("lock poisoned"),
         "runtime profiling recorder production code should recover poisoned locks instead of panicking"
+    );
+    let recovery_tests = read_runtime_src("core/runtime/diagnostics/profiling/tests/cases.rs");
+    assert_contains_all(
+        "mounted poison recovery regression",
+        &recovery_tests,
+        &["fn profile_recorder_accessors_recover_poisoned_global_lock("],
     );
 }

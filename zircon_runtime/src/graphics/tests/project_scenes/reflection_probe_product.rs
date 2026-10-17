@@ -61,8 +61,8 @@ fn render_product_probe_feature_off_falls_back_to_skybox() {
         enabled_stats
             .last_graph_executed_executor_ids
             .iter()
-            .any(|executor| executor == "lighting.reflection-probes"),
-        "the active probe frame should execute the production reflection-probe compositor; executors={:?}",
+            .any(|executor| executor == "mesh.opaque"),
+        "the active probe frame should shade through the production opaque PBR environment bindings; executors={:?}",
         enabled_stats.last_graph_executed_executor_ids
     );
     let disabled = fixture.capture_with_framework(&framework, viewport, false, true, 2);

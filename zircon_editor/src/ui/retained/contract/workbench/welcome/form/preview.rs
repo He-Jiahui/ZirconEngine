@@ -3,7 +3,10 @@ use super::super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::super::paint_primitives::draw_rounded_box_clipped;
 use super::super::super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::super::super::paint_theme::current_host_metrics;
-use super::super::super::super::{first_non_empty, SEPARATOR};
+use super::super::super::super::first_non_empty;
+#[cfg(test)]
+use super::super::super::super::SEPARATOR;
+#[cfg(test)]
 use super::super::super::style::{WELCOME_MUTED_TEXT, WELCOME_SURFACE, WELCOME_TEXT};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -20,8 +23,8 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_preview(
         frame,
         preview.clone(),
         Some(clip),
-        WELCOME_SURFACE,
-        SEPARATOR,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().surface,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().border,
         metrics.border_width,
         metrics.radius_control,
     );
@@ -51,7 +54,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_preview(
         },
         "Project path",
         Some(clip),
-        WELCOME_MUTED_TEXT,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text_muted,
         label_font_size,
         label_line_height,
         UiTextRunPaintStyle::default(),
@@ -70,9 +73,9 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_preview(
         ]),
         Some(clip),
         if pane.welcome.form.project_path_preview.is_empty() {
-            WELCOME_MUTED_TEXT
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text_muted
         } else {
-            WELCOME_TEXT
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text
         },
         path_font_size,
         path_line_height,

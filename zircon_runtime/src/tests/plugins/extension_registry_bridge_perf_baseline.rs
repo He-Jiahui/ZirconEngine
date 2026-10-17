@@ -204,8 +204,7 @@ fn bridge_owner_reload_borrows_registry_exports_without_cloning_the_replacement_
     assert!(!owned_exports.contains("interface_id.clone()"));
     assert!(!owned_exports.contains("export.clone()"));
 
-    let lifecycle =
-        include_str!("../../plugin/runtime/catalog/bridge_lifecycle.rs");
+    let lifecycle = include_str!("../../plugin/runtime/catalog/bridge_lifecycle.rs");
     let reload = source_between(
         lifecycle,
         "    pub fn reload_bridge_provider_at_frame_boundary(",

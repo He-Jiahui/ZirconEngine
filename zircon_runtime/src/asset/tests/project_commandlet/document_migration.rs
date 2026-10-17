@@ -6,8 +6,7 @@ fn migration_document_mutates_one_typed_artifact_without_full_value_clones() {
     const PROJECT_DOCUMENT_SOURCE: &str = include_str!("../../assets/project_document.rs");
     const PROJECT_DOCUMENT_CODEC_SOURCE: &str =
         include_str!("../../assets/project_document/codec.rs");
-    const MATERIAL_READER_SOURCE: &str =
-        include_str!("../../assets/project_document/material.rs");
+    const MATERIAL_READER_SOURCE: &str = include_str!("../../assets/project_document/material.rs");
     const MODEL_READER_SOURCE: &str = include_str!("../../assets/project_document/model.rs");
     const SCENE_READER_SOURCE: &str = include_str!("../../assets/project_document/scene.rs");
 

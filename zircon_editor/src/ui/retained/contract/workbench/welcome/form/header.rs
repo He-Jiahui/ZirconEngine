@@ -3,6 +3,7 @@ use super::super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::super::super::paint_theme::current_host_metrics;
 use super::super::super::super::first_non_empty;
+#[cfg(test)]
 use super::super::super::style::{WELCOME_MUTED_TEXT, WELCOME_TEXT};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -39,7 +40,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_new_project_head
         },
         "New Project",
         Some(clip),
-        WELCOME_TEXT,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text,
         title_font_size,
         title_line_height,
         UiTextRunPaintStyle::default(),
@@ -57,7 +58,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_new_project_head
             "Renderable Empty",
         ]),
         Some(clip),
-        WELCOME_MUTED_TEXT,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text_muted,
         template_font_size,
         template_line_height,
         UiTextRunPaintStyle::default(),

@@ -2,8 +2,7 @@
 #[test]
 fn review_f18_asset_manager_resolution_returns_registered_handle() {
     let handle = include_str!("../../../asset/pipeline/manager/asset_manager/handle.rs");
-    let contract =
-        include_str!("../../../asset/pipeline/manager/asset_manager/asset_manager.rs");
+    let contract = include_str!("../../../asset/pipeline/manager/asset_manager/asset_manager.rs");
     let service = include_str!("../../../core/manager/service.rs");
     let runtime = include_str!("../../../core/runtime/runtime.rs");
     let runtime_handle = include_str!("../../../core/runtime/handle/resolution.rs");
@@ -14,13 +13,11 @@ fn review_f18_asset_manager_resolution_returns_registered_handle() {
             "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
         )
     );
-    let convention =
-        include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
     let runtime_10 = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md"
     );
-    let runtime_index =
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let dynamic_session_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
     let asset_facade_doc =

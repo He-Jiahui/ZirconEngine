@@ -4,8 +4,7 @@ use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_status_control_geometry::{
-    frame_is_within, status_chip_text_rect, status_text_metrics_for_node,
-    workbench_status_metrics,
+    frame_is_within, status_chip_text_rect, status_text_metrics_for_node, workbench_status_metrics,
 };
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
@@ -29,7 +28,8 @@ pub(super) fn push_status_chip_text_for_node(
     let (_, line_height) = status_text_metrics_for_node(node);
     let base = FrameRect {
         y: rect.y + (rect.height - line_height).max(0.0) * 0.5,
-        height: line_height, ..base
+        height: line_height,
+        ..base
     };
     if !frame_is_within(rect, &base) || intersect(&base, clip).is_none() {
         return;
@@ -132,19 +132,28 @@ fn push_text(
         return;
     }
     let (font_size, line_height) = status_text_metrics_for_node(node);
-    let text_style = UiTextRunPaintStyle { strong: node.font_weight >= 600, ..UiTextRunPaintStyle::default() };
-    let font_request = crate::ui::retained_host::host_contract::paint_text::authored_font_request_for_node(node, text_style);
-    commands.push(HostPaintCommand::text(
-        rect,
-        Some(clip.clone()),
-        order,
-        text,
-        color,
-        font_size,
-        line_height,
-        text_style,
-        opacity,
-    ).with_text_font_request(font_request));
+    let text_style = UiTextRunPaintStyle {
+        strong: node.font_weight >= 600,
+        ..UiTextRunPaintStyle::default()
+    };
+    let font_request =
+        crate::ui::retained_host::host_contract::paint_text::authored_font_request_for_node(
+            node, text_style,
+        );
+    commands.push(
+        HostPaintCommand::text(
+            rect,
+            Some(clip.clone()),
+            order,
+            text,
+            color,
+            font_size,
+            line_height,
+            text_style,
+            opacity,
+        )
+        .with_text_font_request(font_request),
+    );
 }
 
 #[cfg(test)]
@@ -158,6 +167,15 @@ fn push_status_chip_text(
     value_color: [u8; 4],
     opacity: f32,
 ) {
-    push_status_chip_text_for_node(commands, &TemplatePaneNodeData::default(),
-        rect, clip, order, label, label_color, value_color, opacity);
+    push_status_chip_text_for_node(
+        commands,
+        &TemplatePaneNodeData::default(),
+        rect,
+        clip,
+        order,
+        label,
+        label_color,
+        value_color,
+        opacity,
+    );
 }

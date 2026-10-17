@@ -56,7 +56,13 @@ impl EntryConfig {
             }
         }
 
-        let runtime_descriptor = runtime_profile.map(RuntimeProfileDescriptor::for_id);
+        let runtime_descriptor = runtime_profile.map(|id| {
+            let mut descriptor = RuntimeProfileDescriptor::for_id(id);
+            if let Some(minimum) = self.runtime_plugin_minimum_maturity {
+                descriptor = descriptor.with_minimum_maturity(minimum);
+            }
+            descriptor
+        });
         if let Some(descriptor) = runtime_descriptor.as_ref() {
             ensure_target_mode(
                 self.role,
@@ -171,6 +177,7 @@ impl EntryConfig {
             role_descriptor,
             profile,
             runtime_profile,
+            runtime_plugin_minimum_maturity: self.runtime_plugin_minimum_maturity,
             target_mode: role_target,
             platform_target,
             project_plugins,

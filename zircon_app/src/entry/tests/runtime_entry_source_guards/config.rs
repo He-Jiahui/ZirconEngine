@@ -22,7 +22,7 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
     assert!(
         runtime_config_root_source.contains("mod app_config;")
             && runtime_config_root_source
-                .contains("pub(in crate::entry) use app_config::RuntimeEntryAppConfig;"),
+                .contains("use app_config::{RuntimeEntryAppConfig, RuntimeProductProofPolicy};"),
         "runtime config root should stay structural and expose the host config type"
     );
     assert!(
@@ -35,7 +35,7 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             && runtime_config_source.contains("WindowLifecyclePolicy")
             && runtime_config_source.contains("exit_after_presented_frames")
             && runtime_config_source.contains("exit_after_first_presented_frame")
-            && runtime_config_source.contains("require_persisted_scene_diagnostics")
+            && runtime_config_source.contains("product_proof_policy: RuntimeProductProofPolicy")
             && runtime_config_source.contains("reference_cpu_presenter"),
         "runtime entry app config should carry the neutral window descriptor, event-loop policy, lifecycle policy, first-frame exit validation policy, persisted-scene diagnostic policy, and explicit degraded presenter policy"
     );
@@ -47,11 +47,11 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             && runtime_config_source.contains("exit_after_presented_frames(&self)")
             && runtime_config_source.contains("with_exit_after_first_presented_frame")
             && runtime_config_source.contains("exit_after_first_presented_frame(&self)")
-            && runtime_config_source.contains("with_persisted_scene_diagnostics")
-            && runtime_config_source.contains("require_persisted_scene_diagnostics(&self)")
+            && runtime_config_source.contains("with_product_proof_policy")
+            && runtime_config_source.contains("product_proof_policy(&self)")
             && runtime_config_source.contains("with_reference_cpu_presenter")
             && runtime_config_source.contains("reference_cpu_presenter(&self)"),
-        "runtime entry app config should expose the Bevy-style close/exit host policy, explicit startup-smoke first-frame exit policy, project-scoped F2 diagnostics policy, and opt-in degraded presenter policy"
+        "runtime entry app config should expose close/exit, first-frame exit, explicit typed product-proof, and degraded-presenter policies"
     );
     assert_source_order(
         runtime_config_app_config_source,
@@ -61,19 +61,19 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             "event_loop_policy: EventLoopPolicy",
             "window_lifecycle_policy: WindowLifecyclePolicy",
             "exit_after_presented_frames: Option<NonZeroU64>",
-            "require_persisted_scene_diagnostics: bool",
+            "product_proof_policy: RuntimeProductProofPolicy",
             "reference_cpu_presenter: bool",
             "fn with_window_descriptor",
             "fn with_event_loop_policy",
             "fn with_window_lifecycle_policy",
             "fn with_exit_after_first_presented_frame",
             "fn with_exit_after_presented_frames",
-            "fn with_persisted_scene_diagnostics",
+            "fn with_product_proof_policy",
             "fn with_reference_cpu_presenter",
             "impl Default for RuntimeEntryAppConfig",
             "EventLoopPolicy::Game",
             "exit_after_presented_frames: None",
-            "require_persisted_scene_diagnostics: false",
+            "product_proof_policy: RuntimeProductProofPolicy::Disabled",
             "reference_cpu_presenter: false",
         ],
         "runtime app-config implementation should keep host policy fields, builder methods, and defaults source-visible",
@@ -84,7 +84,7 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             && runtime_construct_source.contains("config.event_loop_policy")
             && runtime_construct_source.contains("config.window_lifecycle_policy")
             && runtime_construct_source.contains("config.exit_after_presented_frames")
-            && runtime_construct_source.contains("config.require_persisted_scene_diagnostics")
+            && runtime_construct_source.contains("config.product_proof_policy")
             && runtime_construct_source.contains("config.reference_cpu_presenter"),
         "runtime entry construction should seed host state, persisted-scene diagnostic policy, and explicit degraded presenter policy from RuntimeEntryAppConfig"
     );
@@ -92,7 +92,7 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
         runtime_app_source.contains("window_lifecycle_policy: WindowLifecyclePolicy")
             && runtime_app_source.contains("exit_after_presented_frames: Option<NonZeroU64>")
             && runtime_app_source.contains("presented_frame_count: u64")
-            && runtime_app_source.contains("require_persisted_scene_diagnostics: bool")
+            && runtime_app_source.contains("product_proof_policy: RuntimeProductProofPolicy")
             && runtime_app_source.contains("reference_cpu_presenter_enabled: bool")
             && runtime_app_source.contains("failure_state: RuntimeEntryAppFailureState"),
         "runtime entry construction should retain close/exit, first-frame-exit, persisted-scene diagnostic, and terminal callback-failure policies"
@@ -156,10 +156,9 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             "runtime_presented_frame_exit_limit_from_env()",
             "RuntimeSession::create_with_profile_and_project",
             ".map(ResolvedProjectPath::operation_path)",
-            "runtime_entry_app_config_for_session_profile_with_presented_frame_exit_limit",
+            "runtime_entry_app_config_for_startup_args(",
+            "&runtime_session_args,",
             "presented_frame_exit_limit",
-            ".with_persisted_scene_diagnostics(project_root.is_some())",
-            ".with_reference_cpu_presenter(runtime_session_args.reference_cpu_presenter)",
             "RuntimeEntryAppFailureState::with_failure_ledger(product_failure_ledger.clone())",
             "RuntimeEntryApp::new(session, host_config, failure_state)",
             "event_loop.run_app(app)",
@@ -173,6 +172,21 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             "runtime_process_teardown_complete_diagnostic()",
         ],
         "runtime runner should derive the app host config from the parsed session profile and aggregate terminal failures after the event loop ends",
+    );
+    let config_projection = runtime_runner_source
+        .split("fn runtime_entry_app_config_for_startup_args(")
+        .nth(1)
+        .expect("runtime runner should retain its production startup-config projection");
+    assert_source_order(
+        config_projection,
+        &[
+            "runtime_entry_app_config_for_session_profile_with_presented_frame_exit_limit(",
+            "args.profile,",
+            ".with_product_proof_policy(args.product_proof_policy)",
+            ".with_reference_cpu_presenter(args.reference_cpu_presenter)",
+            ".with_first_frame_capture_path(first_frame_capture_path)",
+        ],
+        "the production config projection must carry the parsed proof without inferring F2 from a project",
     );
     assert!(
         runtime_runner_source.contains("ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME"),

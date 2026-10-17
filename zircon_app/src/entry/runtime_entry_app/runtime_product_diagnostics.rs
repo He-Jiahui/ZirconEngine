@@ -1,46 +1,37 @@
-//! 持久场景产品验收的首个成功呈现帧诊断。
-//! 以明确指标与资源身份确认验收条件；该 lit-mesh 门槛的适用产品由调用配置决定。
+//! 首个成功呈现帧的真实设备诊断，以及显式选择的 F2 场景验收。
+//! 普通项目保留通用诊断；lit-mesh 与资源门槛只属于 F2 proof。
 
-use zircon_runtime::diagnostic_log::write_log;
 use zircon_runtime_interface::{
     ProfileControlCommand, ProfileControlRequest, RuntimeDiagnosticsSnapshot,
     ZrRuntimeViewportSizeV1,
 };
 
-use super::mvp_input_probe::mvp_input_probe_enabled;
-use super::RuntimeEntryApp;
+use super::RuntimeProductProofPolicy;
+use crate::entry::runtime_library::RuntimeSession;
 
-impl RuntimeEntryApp {
-    /// 在成功呈现后读取并验证产品诊断；调用者负责一次性状态和失败退出。
-    pub(in crate::entry::runtime_entry_app) fn emit_first_frame_product_diagnostics(
-        &self,
-    ) -> Result<(), String> {
-        let request = ProfileControlRequest {
-            command: ProfileControlCommand::RuntimeDiagnosticsSnapshot,
-            config: None,
-        };
-        match self.session.profile_control(&request) {
-            Ok(Some(response)) => {
-                runtime_diagnostics_response_received(&response.status, &response.message)?;
-                let Some(snapshot) = response.runtime_diagnostics else {
-                    return Err(runtime_diagnostics_unavailable_error(
-                        &response.status,
-                        &response.message,
-                    ));
-                };
-                validate_first_frame_product_snapshot(&snapshot)?;
-                write_log(
-                    "runtime_surface_present",
-                    product_frame_diagnostic(&snapshot, self.viewport_size),
-                );
-                Ok(())
-            }
-            Ok(None) => Err(
-                "runtime_product_frame_diagnostics_unavailable reason=profile_control_not_supported"
-                    .to_owned(),
-            ),
-            Err(error) => Err(format!("runtime_product_frame_diagnostics_failed error={error}")),
+pub(super) fn request_runtime_product_snapshot(
+    session: &RuntimeSession,
+) -> Result<RuntimeDiagnosticsSnapshot, String> {
+    let request = ProfileControlRequest {
+        command: ProfileControlCommand::RuntimeDiagnosticsSnapshot,
+        config: None,
+    };
+    match session.profile_control(&request) {
+        Ok(Some(response)) => {
+            runtime_diagnostics_response_received(&response.status, &response.message)?;
+            let Some(snapshot) = response.runtime_diagnostics else {
+                return Err(runtime_diagnostics_unavailable_error(
+                    &response.status,
+                    &response.message,
+                ));
+            };
+            Ok(snapshot)
         }
+        Ok(None) => Err(
+            "runtime_product_frame_diagnostics_unavailable reason=profile_control_not_supported"
+                .to_owned(),
+        ),
+        Err(error) => Err(format!("runtime_product_frame_diagnostics_failed error={error}")),
     }
 }
 
@@ -56,13 +47,25 @@ fn runtime_diagnostics_response_received(status: &str, message: &str) -> Result<
     }
 }
 
-fn validate_first_frame_product_snapshot(
+// TODO: [CR-APP-ENTRY-0017] 显式 proof 策略已分离；普通项目与 F2 的原生启动回归仍待 Jenkins 收据，暂不关闭。
+pub(super) fn validate_product_snapshot_for_policy(
     snapshot: &RuntimeDiagnosticsSnapshot,
+    policy: RuntimeProductProofPolicy,
+    input_probe_enabled: bool,
 ) -> Result<(), String> {
-    validate_first_frame_product_snapshot_with_input_probe(snapshot, mvp_input_probe_enabled())
+    match policy {
+        RuntimeProductProofPolicy::Disabled => Ok(()),
+        RuntimeProductProofPolicy::GeneralProject => {
+            require_nonempty_field("render_backend", snapshot.render_backend_name.as_deref())?;
+            validate_render_device_diagnostics(snapshot)?;
+            validate_mvp_input_probe_evidence(snapshot, input_probe_enabled)
+        }
+        RuntimeProductProofPolicy::F2LitMesh => {
+            validate_first_frame_product_snapshot_with_input_probe(snapshot, input_probe_enabled)
+        }
+    }
 }
 
-// TODO: [CR-APP-ENTRY-0017] 确认通用持久项目是否都应满足 F2 的受光 mesh/resource 指标；当前入口按 project_root 启用本检查，需在其外来改动稳定后验证空场景、纯 UI 与无方向光项目的启动策略。
 fn validate_first_frame_product_snapshot_with_input_probe(
     snapshot: &RuntimeDiagnosticsSnapshot,
     input_probe_enabled: bool,
@@ -209,13 +212,14 @@ fn incomplete_field_error(field: &str, observed: &str) -> String {
 }
 
 // 输出字段供产品验收工具读取；缺失证据显式保留，不能用默认零伪造通过。
-fn product_frame_diagnostic(
+pub(super) fn product_frame_diagnostic(
     snapshot: &RuntimeDiagnosticsSnapshot,
     viewport: ZrRuntimeViewportSizeV1,
+    policy: RuntimeProductProofPolicy,
 ) -> String {
     let render_device = snapshot.render_device.as_ref();
     format!(
-        "runtime_product_frame_diagnostics frame_index={} viewport={}x{} project_identity={} scene_uri={} selected_model_resource_id={} selected_material_resource_id={} render_backend={} render_adapter={} render_adapter_type={} device_max_bind_groups={} device_max_texture_dimension_2d={} device_max_texture_array_layers={} device_max_sampled_textures_per_shader_stage={} device_max_storage_buffers_per_shader_stage={} device_max_storage_buffer_binding_size={} graph_executed_pass_count={} mesh_draw_count={} directional_light_count={} material_fallback_count={} material_validation_error_count={} input_viewport_resize_count={} input_pointer_move_count={} input_mouse_button_press_count={} input_mouse_button_release_count={} input_keyboard_press_count={} input_keyboard_release_count={}",
+        "runtime_product_frame_diagnostics frame_index={} viewport={}x{} project_identity={} scene_uri={} selected_model_resource_id={} selected_material_resource_id={} render_backend={} render_adapter={} render_adapter_type={} device_max_bind_groups={} device_max_texture_dimension_2d={} device_max_texture_array_layers={} device_max_sampled_textures_per_shader_stage={} device_max_storage_buffers_per_shader_stage={} device_max_storage_buffer_binding_size={} graph_executed_pass_count={} mesh_draw_count={} directional_light_count={} material_fallback_count={} material_validation_error_count={} input_viewport_resize_count={} input_pointer_move_count={} input_mouse_button_press_count={} input_mouse_button_release_count={} input_keyboard_press_count={} input_keyboard_release_count={} proof_policy={}",
         snapshot.frame_index,
         viewport.width,
         viewport.height,
@@ -247,6 +251,7 @@ fn product_frame_diagnostic(
         snapshot.input.mouse_button_release_count,
         snapshot.input.keyboard_press_count,
         snapshot.input.keyboard_release_count,
+        policy.as_str(),
     )
 }
 

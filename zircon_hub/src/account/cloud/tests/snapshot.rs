@@ -1,9 +1,10 @@
 use std::{fs, path::PathBuf, time::SystemTime};
 
 use zircon_runtime_interface::project::{
-    PROJECT_MANIFEST_FORMAT_VERSION, PROJECT_PACKAGE_LOCK_SCHEMA_VERSION_V1, ProjectManifestDigest,
-    ProjectPackageLock, ProjectPackageLockAuthority, ProjectPackageLockPlatform,
-    ProjectPackageLockProject, ProjectPackageLockRuntimeMode, ProjectPackageLockTarget,
+    ProjectManifestDigest, ProjectPackageLock, ProjectPackageLockAuthority,
+    ProjectPackageLockPlatform, ProjectPackageLockProject, ProjectPackageLockRuntimeMode,
+    ProjectPackageLockTarget, PROJECT_MANIFEST_FORMAT_VERSION,
+    PROJECT_PACKAGE_LOCK_SCHEMA_VERSION_V1,
 };
 
 use super::*;

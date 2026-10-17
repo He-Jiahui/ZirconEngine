@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::graphics::resource_identity::SampledTextureIdentity;
 use crate::rhi::{BufferDesc, SubmissionTicket, TextureDesc};
 
@@ -101,6 +103,30 @@ pub(in crate::graphics::scene::scene_renderer) struct TransientBufferAllocation 
     last_used_frame: u64,
     byte_size: u64,
     last_use_ticket: Option<SubmissionTicket>,
+    probe_owners: Arc<()>,
+}
+
+/// Keeps a physical buffer alive and excluded from pool reuse while it is inspected.
+#[derive(Clone, Debug)]
+pub(in crate::graphics::scene::scene_renderer) struct TransientBufferProbeLease {
+    native: wgpu::Buffer,
+    desc: BufferDesc,
+    epoch: RenderPassDeviceEpoch,
+    _owner: Arc<()>,
+}
+
+impl TransientBufferProbeLease {
+    pub(in crate::graphics::scene::scene_renderer) const fn native(&self) -> &wgpu::Buffer {
+        &self.native
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) const fn desc(&self) -> &BufferDesc {
+        &self.desc
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) const fn epoch(&self) -> RenderPassDeviceEpoch {
+        self.epoch
+    }
 }
 
 impl TransientBufferAllocation {
@@ -120,12 +146,29 @@ impl TransientBufferAllocation {
             last_used_frame,
             byte_size,
             last_use_ticket: None,
+            probe_owners: Arc::new(()),
         }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn probe_lease(
+        &self,
+    ) -> TransientBufferProbeLease {
+        TransientBufferProbeLease {
+            native: self.native.clone(),
+            desc: self.desc.clone(),
+            epoch: self.epoch,
+            _owner: Arc::clone(&self.probe_owners),
+        }
+    }
+
+    pub(super) fn has_probe_leases(&self) -> bool {
+        Arc::strong_count(&self.probe_owners) > 1
     }
 
     pub(super) fn rebind(&mut self, desc: BufferDesc, frame_index: u64) {
         debug_assert_eq!(self.key, TransientBufferKey::from(&desc));
         debug_assert!(self.last_use_ticket.is_none());
+        debug_assert!(!self.has_probe_leases());
         self.desc = desc;
         self.last_used_frame = frame_index;
     }

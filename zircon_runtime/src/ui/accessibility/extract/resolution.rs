@@ -1,3 +1,7 @@
+//! 在局部节点映射中解析名称/描述，并按已纳入映射整理可遍历子项。
+//! 文本来源只借用 Surface，结果写入快照拥有的字符串；预算失败可留下局部已处理节点。
+//! 名称与描述遍历复用键缓冲，避免持有映射借用时同时修改节点。
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime_interface::ui::{
@@ -17,6 +21,8 @@ use super::super::{
 };
 use super::{diagnostic, is_hidden, parse_node_id};
 
+/// 在复制节点路径与作者字符串前预检借用文本，不修改节点或提交累计字节。
+/// 返回预算/序列化错误时应中止本次构建；最终保留的输出仍需观察并完整校验。
 pub(super) fn preflight_node_text_sources(
     node: &UiTreeNode,
     budget: &AccessibilityBuildBudget,
@@ -48,6 +54,8 @@ pub(super) fn preflight_node_text_sources(
     Ok(())
 }
 
+/// 只填充没有名称的节点，依次尝试标签来源、语义正文、替代文本和 tooltip。
+/// `node_ids` 被清空后填入当前键并保留容量；成功观察替换字节后才写入对应名称。
 pub(super) fn resolve_names(
     surface: &UiSurface,
     nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
@@ -82,6 +90,8 @@ pub(super) fn resolve_names(
     Ok(())
 }
 
+/// 保留普通描述；将引用形式替换成目标文本，或清除无效引用并追加诊断。
+/// `nodes` 和 `diagnostics` 都属于局部输出；中途预算失败时调用方不发布部分修改。
 pub(super) fn resolve_descriptions(
     surface: &UiSurface,
     nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
@@ -147,6 +157,7 @@ pub(super) fn resolve_descriptions(
     Ok(())
 }
 
+/// 名称/描述解析后，移除解析不到文本来源的隐藏关系节点，并同步缩小目标集合。
 pub(super) fn prune_hidden_relation_targets(
     surface: &UiSurface,
     nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
@@ -161,6 +172,8 @@ pub(super) fn prune_hidden_relation_targets(
     });
 }
 
+/// 依据当前已纳入映射重建子项；可见但未纳入的中间节点允许提升其已纳入后代。
+/// 隐藏关系来源不作为遍历分支。新增子项逐项观察预算，错误可留下此前已重建的局部节点。
 pub(super) fn filter_children(
     surface: &UiSurface,
     nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,

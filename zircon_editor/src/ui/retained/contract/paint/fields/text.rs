@@ -48,22 +48,34 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     if label.trim().is_empty() && !(super::geometry::field_has_label_lane(node) && node.focused) {
         return;
     }
-    let text_style = UiTextRunPaintStyle { strong: node.font_weight >= 600, ..UiTextRunPaintStyle::default() };
-    let font_request = crate::ui::retained_host::host_contract::paint_text::authored_font_request_for_node(node, text_style);
-    let text_clip = if font_request.is_some() { rect.clone() } else { clip.clone() };
-    commands.push(HostPaintCommand::text(
-        text_rect,
-        Some(text_clip),
-        order,
-        label,
-        style.text,
-        metrics.font_size,
-        metrics.line_height,
-        text_style,
-        opacity,
-    ).with_text_font_request(font_request));
+    let text_style = UiTextRunPaintStyle {
+        strong: node.font_weight >= 600,
+        ..UiTextRunPaintStyle::default()
+    };
+    let font_request =
+        crate::ui::retained_host::host_contract::paint_text::authored_font_request_for_node(
+            node, text_style,
+        );
+    let text_clip = if font_request.is_some() {
+        rect.clone()
+    } else {
+        clip.clone()
+    };
+    commands.push(
+        HostPaintCommand::text(
+            text_rect,
+            Some(text_clip),
+            order,
+            label,
+            style.text,
+            metrics.font_size,
+            metrics.line_height,
+            text_style,
+            opacity,
+        )
+        .with_text_font_request(font_request),
+    );
 }
-
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_label(
     commands: &mut Vec<HostPaintCommand>,
@@ -78,28 +90,54 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
         return;
     }
     let value = super::geometry::field_value_paint_rect(node, row);
-    let lane = FrameRect { width: value.x - row.x, ..row.clone() };
+    let lane = FrameRect {
+        width: value.x - row.x,
+        ..row.clone()
+    };
     let metrics = workbench_field_metrics_for_node(node);
     let text_rect = FrameRect {
         x: lane.x + metrics.input_pad_left,
-        y: lane.y + metrics.input_pad_top
-            + (lane.height - metrics.input_pad_top - metrics.input_pad_bottom - metrics.line_height)
-                .max(0.0) * 0.5,
+        y: lane.y
+            + metrics.input_pad_top
+            + (lane.height
+                - metrics.input_pad_top
+                - metrics.input_pad_bottom
+                - metrics.line_height)
+                .max(0.0)
+                * 0.5,
         width: (lane.width - metrics.input_pad_left - metrics.input_pad_right).max(0.0),
         height: metrics.line_height,
     };
-    let label = if node.text.trim().is_empty() { node.label_text.to_string() } else { node.text.to_string() };
+    let label = if node.text.trim().is_empty() {
+        node.label_text.to_string()
+    } else {
+        node.text.to_string()
+    };
     if label.trim().is_empty() || !frame_is_within(&text_rect, &lane) {
         return;
     }
     let text_style = UiTextRunPaintStyle {
-        strong: node.font_weight >= 600, ..UiTextRunPaintStyle::default()
+        strong: node.font_weight >= 600,
+        ..UiTextRunPaintStyle::default()
     };
-    let font_request = crate::ui::retained_host::host_contract::paint_text::authored_font_request_for_node(node, text_style);
-    commands.push(HostPaintCommand::text(
-        text_rect, Some(lane), order, label, style.text,
-        metrics.font_size, metrics.line_height, text_style, opacity,
-    ).with_text_font_request(font_request));
+    let font_request =
+        crate::ui::retained_host::host_contract::paint_text::authored_font_request_for_node(
+            node, text_style,
+        );
+    commands.push(
+        HostPaintCommand::text(
+            text_rect,
+            Some(lane),
+            order,
+            label,
+            style.text,
+            metrics.font_size,
+            metrics.line_height,
+            text_style,
+            opacity,
+        )
+        .with_text_font_request(font_request),
+    );
 }
 
 fn field_label(node: &TemplatePaneNodeData) -> String {

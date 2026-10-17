@@ -164,16 +164,22 @@ def _regular_input_identity(native, handle, *, trusted_git=False):
     return native.identity_from_handle(handle)
 
 
+_checksum_read_buffers = threading.local()
+
+
 def _read_input_checksum(native, handle):
     api, _ntdll, _msvcrt = native._apis()
-    checksum, buffer = hashlib.sha256(), ctypes.create_string_buffer(1024 * 1024)
+    buffer = getattr(_checksum_read_buffers, "buffer", None)
+    if buffer is None:
+        buffer = _checksum_read_buffers.buffer = ctypes.create_string_buffer(1024 * 1024)
+    checksum = hashlib.sha256()
     while True:
         count = wintypes.DWORD()
         if not api.ReadFile(handle, buffer, len(buffer), ctypes.byref(count), None):
             raise ctypes.WinError(ctypes.get_last_error())
         if not count.value:
             return checksum.hexdigest()
-        checksum.update(buffer.raw[:count.value])
+        checksum.update(memoryview(buffer)[:count.value])
 
 
 def _verify_trusted_git_identity(native, handle, identity, expected, path):

@@ -164,9 +164,10 @@ impl EditorUiHost {
         path: impl AsRef<Path>,
         scene_uri: &AssetUri,
         world: &zircon_runtime::scene::Scene,
-    ) -> Result<PathBuf, EditorError> {
+        expected: &zircon_runtime::scene::world::SceneSourceRevision,
+    ) -> Result<crate::core::document::SceneSaveOutcome, EditorError> {
         let workspace = self.project_workspace();
-        self.save_active_scene_with_workspace(path, scene_uri, world, &workspace)
+        self.save_active_scene_with_workspace(path, scene_uri, world, expected, &workspace)
     }
 
     pub(super) fn save_active_scene_with_workspace(
@@ -174,8 +175,9 @@ impl EditorUiHost {
         path: impl AsRef<Path>,
         scene_uri: &AssetUri,
         world: &zircon_runtime::scene::Scene,
+        expected: &zircon_runtime::scene::world::SceneSourceRevision,
         workspace: &ProjectEditorWorkspace,
-    ) -> Result<PathBuf, EditorError> {
+    ) -> Result<crate::core::document::SceneSaveOutcome, EditorError> {
         let expected_root = ProjectAuthority::default().resolve_existing_project_root(&path)?;
         let asset_manager = self.asset_manager()?;
         let project = asset_manager.current_project_snapshot().ok_or_else(|| {
@@ -189,50 +191,72 @@ impl EditorUiHost {
             )));
         }
         let reference_diagnostics_sequence = project.reference_diagnostics().sequence();
-        if let Err(source) = EditorProjectDocument::save_scene_to_project(
+        let receipt = match EditorProjectDocument::save_scene_to_project(
             &project,
             scene_uri,
             world,
+            expected,
             Some(workspace),
         ) {
-            emit_reference_diagnostics_after(
-                self.logs.as_ref(),
-                &project,
-                reference_diagnostics_sequence,
-            );
-            return Err(source.into());
+            Ok(receipt) => receipt,
+            Err(source) => {
+                emit_reference_diagnostics_after(
+                    self.logs.as_ref(),
+                    &project,
+                    reference_diagnostics_sequence,
+                );
+                return Err(source.into());
+            }
+        };
+        use crate::core::document::SceneSaveOutcome;
+        if !receipt.is_durable() {
+            return Ok(SceneSaveOutcome::RecoveryDeferred { receipt });
         }
-        let project_root = project.paths().root().to_path_buf();
-        // The scene commit is now durable. Catalog and watcher refreshes must not turn that
-        // successful authoring save back into a dirty, apparently failed operation.
+        // Preserve the durable receipt through projection failures. The disk baseline advances,
+        // while dirty history and its clean checkpoint wait for a complete save.
         let active_scene = scene_uri.to_string();
         let Some(_) = post_persist_project_save_sync(
             self.logs.as_ref(),
             "reimport_active_scene",
             asset_manager.import_asset(&active_scene),
         ) else {
-            return Ok(project_root);
+            return Ok(SceneSaveOutcome::PersistedProjectionFailed {
+                receipt,
+                phase: "reimport_active_scene",
+            });
         };
         let Some(editor_asset_manager) = post_persist_project_save_sync(
             self.logs.as_ref(),
             "resolve_editor_assets",
             self.editor_asset_manager(),
         ) else {
-            return Ok(project_root);
+            return Ok(SceneSaveOutcome::PersistedProjectionFailed {
+                receipt,
+                phase: "resolve_editor_assets",
+            });
         };
         let Some(_) = post_persist_project_save_sync(
             self.logs.as_ref(),
             "refresh_editor_assets",
             editor_asset_manager.refresh_from_runtime_project(),
         ) else {
-            return Ok(project_root);
+            return Ok(SceneSaveOutcome::PersistedProjectionFailed {
+                receipt,
+                phase: "refresh_editor_assets",
+            });
         };
-        let _ = post_persist_project_save_sync(
+        let watcher = post_persist_project_save_sync(
             self.logs.as_ref(),
             "restart_ui_asset_workspace_watcher",
             self.restart_ui_asset_workspace_watcher(),
         );
-        Ok(project_root)
+        if watcher.is_none() {
+            return Ok(SceneSaveOutcome::PersistedProjectionFailed {
+                receipt,
+                phase: "restart_ui_asset_workspace_watcher",
+            });
+        }
+        Ok(SceneSaveOutcome::Persisted { receipt })
     }
 
     pub(super) fn prepare_authoring_world(
@@ -242,7 +266,9 @@ impl EditorUiHost {
         self.runtime_services.prepare_authoring_world(scene)
     }
 
-    pub(super) fn config_manager(&self) -> Result<ServiceCallGuard<dyn ConfigManager>, EditorError> {
+    pub(super) fn config_manager(
+        &self,
+    ) -> Result<ServiceCallGuard<dyn ConfigManager>, EditorError> {
         self.runtime_services.config_manager()
     }
 
@@ -250,7 +276,9 @@ impl EditorUiHost {
         self.runtime_services.asset_manager()
     }
 
-    pub(super) fn editor_asset_manager(&self) -> Result<ServiceCallGuard<dyn EditorAssetManager>, EditorError> {
+    pub(super) fn editor_asset_manager(
+        &self,
+    ) -> Result<ServiceCallGuard<dyn EditorAssetManager>, EditorError> {
         self.runtime_services.editor_asset_manager()
     }
 

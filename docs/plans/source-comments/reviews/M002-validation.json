@@ -1,0 +1,38 @@
+{
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "M002",
+  "at_utc": "2026-10-14T15:33:10.053279+00:00",
+  "argv": [
+    "C:\\Users\\HeJiahui\\.cargo\\bin\\rustfmt.exe",
+    "--check",
+    "--edition",
+    "2021",
+    "--config",
+    "skip_children=true",
+    "zircon_runtime/crates/zr_math/src/tests/mod.rs",
+    "zircon_runtime/crates/zr_math/src/tests/conventions.rs",
+    "zircon_runtime/crates/zr_math/src/tests/fallible.rs",
+    "zircon_runtime/crates/zr_math/src/tests/numeric_policy.rs",
+    "zircon_runtime/crates/zr_math/src/tests/render_conversion.rs",
+    "zircon_runtime/crates/zr_math/src/tests/space.rs"
+  ],
+  "source_hashes": {
+    "zircon_runtime/crates/zr_math/src/tests/mod.rs": "9064b6ec73a9b2a36879d860ab8aadc68600cab014e049c0b3c1537fb5bb8619",
+    "zircon_runtime/crates/zr_math/src/tests/conventions.rs": "385433cf82a3217e4908b0f491bd5455c37b527d90c1957b00ea9fac2317a1b1",
+    "zircon_runtime/crates/zr_math/src/tests/fallible.rs": "453463f75d92cdf852d8271858e3672bdeaec4373159945ab5ee390cfebdcd3e",
+    "zircon_runtime/crates/zr_math/src/tests/numeric_policy.rs": "0c7b52ba29a258a7eb7e2dbd14d7b79f7e95436a24d51c65f71317d5d584ebf7",
+    "zircon_runtime/crates/zr_math/src/tests/render_conversion.rs": "21f7d0e49541c5bf0b6f24064d2d7895411071df9853ed101b7b99d6f4520234",
+    "zircon_runtime/crates/zr_math/src/tests/space.rs": "11b93bd51f5f620ee1dd18815786dff64d11aaf05becbdaddf008080ec77257a"
+  },
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "",
+  "toml_parse": {
+    "path": "zircon_runtime/crates/zr_math/Cargo.toml",
+    "sha256": "a2155c2ff792eb3605a5c55cc400641960380414ee7277e3a2d4f96882a8ec21",
+    "status": "parsed-with-tomllib"
+  },
+  "source_modified": false,
+  "cargo_run": false,
+  "formal_acceptance": false
+}

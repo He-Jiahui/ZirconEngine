@@ -11,10 +11,16 @@ use crate::ui::layout::{UiSlot, UiSlotKind};
 
 use super::{UiDirtyFlags, UiTreeError, UiTreeNode};
 
+/// 保留式界面树的基础数据与增量修改入口；Runtime 扩展执行布局、命中和事件处理。
+/// 调用方须保持映射键、节点标识、根列表及父子边一致且无环；这些入口不做整图验证。
+/// 序列化保留作者数据和节点缓存；派生索引反序列化后重建，待处理集合不从序列化恢复。
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct UiTree {
+    /// 树标识数据；单独相等不证明来自同一运行会话或同一表面。
     pub tree_id: UiTreeId,
+    /// 有序根节点列表；直接修改节点映射时须同步维护。
     pub roots: Vec<UiNodeId>,
+    /// 跟踪可变入口的节点映射；低层插入、删除不自动修复根列表、父子边或槽。
     pub nodes: UiTreeNodes,
     /// Parent-owned placement records for each retained parent-child edge.
     /// Older serialized trees omit this field, so deserialization defaults it empty.
@@ -26,11 +32,13 @@ pub struct UiTree {
     /// Runtime-only generation for parent-child and slot-order topology.
     #[serde(skip)]
     pub(crate) layout_order_generation: u64,
+    /// 待消费的父级顺序变化；清理前须先交给相应增量消费者。
     #[serde(skip)]
     pub(crate) pending_layout_order_parent_ids: BTreeSet<UiNodeId>,
 }
 
 impl UiTree {
+    /// 用给定标识创建空树；索引按需建立，顺序代次从零开始。
     pub fn new(tree_id: UiTreeId) -> Self {
         Self {
             tree_id,
@@ -43,6 +51,8 @@ impl UiTree {
         }
     }
 
+    /// 插入根节点并分配绘制序号；标识已存在时直接返回，保留现有节点。
+    /// 本入口将父节点设为空并设置结构失效，不检查传入的子列表。
     pub fn insert_root(&mut self, mut node: UiTreeNode) {
         if self.nodes.contains_key(&node.node_id) {
             return;
@@ -53,6 +63,11 @@ impl UiTree {
         self.nodes.insert(node.node_id, node);
     }
 
+    /// 将节点挂到给定父节点末尾，并登记父级布局顺序和结构失效。
+    ///
+    /// # 参数与返回
+    /// `parent_id` 必须存在；新节点标识已存在时先返回重复错误，否则缺父节点返回缺父错误。
+    /// 两项检查在修改前完成；成功返回后父子关系及新节点序号已写入。
     pub fn insert_child(
         &mut self,
         parent_id: UiNodeId,
@@ -81,6 +96,8 @@ impl UiTree {
         self.nodes.get(&node_id)
     }
 
+    /// 此查询直接读取节点绘制序号，不是跨树或跨会话认证；公开修改该字段也会改变结果。
+    /// 极值导入后的换代复用限制见序号游标分配处的问题标记。
     /// Runtime identity for one live node allocation inside this tree instance.
     ///
     /// The value stays stable across property, layout, and sibling topology changes. Removing and
@@ -90,10 +107,12 @@ impl UiTree {
         self.nodes.get(&node_id).map(|node| node.paint_order)
     }
 
+    /// 获得存在节点的可变借用并登记修改候选；调用方仍须设置对应脏域并传播布局失效。
     pub fn node_mut(&mut self, node_id: UiNodeId) -> Option<&mut UiTreeNode> {
         self.nodes.get_mut(&node_id)
     }
 
+    /// 当前父子及槽顺序代次；变化时跳过零，回绕后不能用作永久唯一标识。
     pub fn layout_order_generation(&self) -> u64 {
         self.layout_order_generation
     }
@@ -102,14 +121,18 @@ impl UiTree {
         &self.pending_layout_order_parent_ids
     }
 
+    /// 借用当前扁平槽载荷；槽可重复记录同一条边，索引不承担数值或拓扑准入。
     pub fn layout_slots(&self) -> &[UiSlot] {
         &self.slots
     }
 
+    /// 按当前扁平位置借用槽；替换或保留过滤后，旧位置不再保证指向同一条边。
     pub fn layout_slot(&self, slot_index: usize) -> Option<&UiSlot> {
         self.slots.get(slot_index)
     }
 
+    /// 返回该父子边在扁平载荷中的首个位置；缺失返回空，不按槽内排序键重排优先级。
+    /// 首次查询可重建派生索引，后续由槽修改入口维护。
     pub fn first_layout_slot_index_for_edge(
         &self,
         parent_id: UiNodeId,
@@ -121,6 +144,7 @@ impl UiTree {
             .first_index(parent_id, child_id)
     }
 
+    /// 返回该边中种类匹配的首个扁平位置；缺边或缺该种类均返回空。
     pub fn layout_slot_index_for_edge_kind(
         &self,
         parent_id: UiNodeId,
@@ -133,6 +157,8 @@ impl UiTree {
             .index_for_kind(&self.slots, parent_id, child_id, kind)
     }
 
+    /// 追加槽并登记其父级顺序变化；仅在索引已初始化时增量加入端点记录。
+    /// 不检查端点是否存在，也不验证槽载荷的数值范围。
     pub fn push_layout_slot(&mut self, slot: UiSlot) {
         let parent_id = slot.parent_id;
         let slot_index = self.slots.len();
@@ -143,6 +169,8 @@ impl UiTree {
         self.mark_layout_order_changed(parent_id);
     }
 
+    /// 替换全部槽，立即重建端点索引，并登记新旧载荷涉及的全部父级。
+    /// 原位置不再稳定；重复边和载荷值按输入保留。
     pub fn replace_layout_slots(&mut self, slots: Vec<UiSlot>) {
         let parent_ids = self
             .slots
@@ -157,6 +185,7 @@ impl UiTree {
         }
     }
 
+    /// 原地保留满足谓词的槽；实际删除后才重建已初始化索引，并登记被删除槽的父级。
     pub fn retain_layout_slots(&mut self, mut retain: impl FnMut(&UiSlot) -> bool) {
         let mut removed_parent_ids = BTreeSet::new();
         let previous_slot_count = self.slots.len();
@@ -179,6 +208,8 @@ impl UiTree {
 
     /// 按需维护已初始化的端点索引；parent/child/kind/order 变化会增加父级布局顺序代次并标脏。
     /// placement、z_order 等槽载荷变化的布局或绘制失效仍由调用方按域显式传播。
+    /// `slot_index` 越界时返回空且不调用闭包；存在时调用一次并在正常返回后维护索引。
+    /// 闭包及槽数值不在此处校验；本入口不提供闭包 panic 时的回滚。
     pub fn mutate_layout_slot(
         &mut self,
         slot_index: usize,
@@ -212,20 +243,26 @@ impl UiTree {
         Some(())
     }
 
+    /// 推进顺序代次、登记父级并失效其测量缓存；父节点不存在时仍保留顺序变化记录。
+    /// 布局来源登记不等于直接设置布局脏位，后续 Runtime 再传播对应失效。
     pub fn mark_layout_order_changed(&mut self, parent_id: UiNodeId) {
         self.layout_order_generation = next_layout_order_generation(self.layout_order_generation);
         self.pending_layout_order_parent_ids.insert(parent_id);
         self.nodes.mark_layout_dirty_source(parent_id);
     }
 
+    /// 借用可能发生修改的节点标识集合；其中也可含已删除节点，不等于当前脏节点集合。
     pub fn pending_mutation_node_ids(&self) -> &BTreeSet<UiNodeId> {
         self.nodes.pending_mutation_node_ids()
     }
 
+    /// 借用待 Runtime 传播的布局来源集合。
     pub fn pending_layout_source_node_ids(&self) -> &BTreeSet<UiNodeId> {
         self.nodes.pending_layout_source_node_ids()
     }
 
+    /// 清除修改、布局来源和父级顺序的待处理记录，不清除节点脏位。
+    /// 调用前须同步控件索引等依赖候选集的消费者；表面重建按此顺序消费。
     pub fn clear_pending_mutation_node_ids(&mut self) {
         self.nodes.clear_pending_mutation_node_ids();
         self.pending_layout_order_parent_ids.clear();
@@ -247,6 +284,7 @@ impl UiTree {
     }
 }
 
+/// 扁平槽载荷的派生端点索引；每条边的位置列表始终按载荷下标递增。
 #[derive(Clone, Debug, Default)]
 struct UiLayoutSlotAuthority {
     initialized: bool,
@@ -329,6 +367,7 @@ impl UiLayoutSlotAuthority {
     }
 }
 
+// 这里只比较拓扑与顺序键；放置数据、绘制层级等变化仍由调用方选择失效域。
 fn layout_order_slot_changed(previous: &UiSlot, current: &UiSlot) -> bool {
     previous.parent_id != current.parent_id
         || previous.child_id != current.child_id
@@ -345,6 +384,9 @@ fn next_layout_order_generation(current: u64) -> u64 {
     }
 }
 
+/// 跟踪节点修改候选与布局来源，并按需维护七个失效域的汇总。
+/// 可变借用会保守登记候选；调用方显式设置的节点脏位决定最终汇总内容。
+/// 透明序列化只保存节点映射，派生集合和索引不随其写出。
 /// A serialized node map whose mutable entry points retain incremental-dirty ownership.
 ///
 /// Immutable access dereferences to `BTreeMap`; mutable access stays explicit so a caller
@@ -370,6 +412,7 @@ pub struct UiTreeNodes {
     paint_order_cursor_rebuild_node_visits: usize,
 }
 
+// 非空失效节点及各域计数；域顺序必须与标志汇总和增减计数三处一致。
 #[derive(Clone, Debug, Default)]
 struct UiTreeDirtyIndex {
     initialized: bool,
@@ -440,6 +483,8 @@ impl UiTreeDirtyIndex {
 }
 
 impl UiTreeNodes {
+    /// 存在时登记候选并使序号游标失效，再返回可变借用；不存在不登记。
+    /// 因调用方可能修改绘制序号，下次分配前会扫描当前节点并保留历史高水位。
     pub fn get_mut(&mut self, node_id: &UiNodeId) -> Option<&mut UiTreeNode> {
         if self.nodes.contains_key(node_id) {
             self.mark_mutation(*node_id);
@@ -448,6 +493,7 @@ impl UiTreeNodes {
         self.nodes.get_mut(node_id)
     }
 
+    /// 对存在节点登记布局来源并清除测量有效位；不直接设置该节点的布局脏位。
     pub fn mark_layout_dirty_source(&mut self, node_id: UiNodeId) {
         if self.nodes.contains_key(&node_id) {
             self.mark_mutation(node_id);
@@ -458,6 +504,8 @@ impl UiTreeNodes {
         }
     }
 
+    /// 分配新绘制序号后写入映射，返回被替换的旧节点；传入节点原序号会被覆盖。
+    /// 调用方须让键与节点标识一致，并另行维护树的拓扑和槽。
     pub fn insert(&mut self, node_id: UiNodeId, mut node: UiTreeNode) -> Option<UiTreeNode> {
         self.mark_mutation(node_id);
         // Keep allocation identity and paint order on the same monotonic insertion serial.
@@ -465,22 +513,26 @@ impl UiTreeNodes {
         self.nodes.insert(node_id, node)
     }
 
+    /// 删除键并登记候选供索引移除旧记录；缺失时也会登记，返回被删除节点或空。
     pub fn remove(&mut self, node_id: &UiNodeId) -> Option<UiTreeNode> {
         self.mark_mutation(*node_id);
         self.layout_source_node_ids.remove(node_id);
         self.nodes.remove(node_id)
     }
 
+    /// 在交出可变迭代器前登记全部当前节点并失效序号游标；返回借用受映射借用期约束。
     pub fn iter_mut(&mut self) -> btree_map::IterMut<'_, UiNodeId, UiTreeNode> {
         self.track_all_nodes();
         self.nodes.iter_mut()
     }
 
+    /// 与可变键值迭代相同，先保守登记全部节点，再交出可变值迭代器。
     pub fn values_mut(&mut self) -> btree_map::ValuesMut<'_, UiNodeId, UiTreeNode> {
         self.track_all_nodes();
         self.nodes.values_mut()
     }
 
+    /// 谓词可修改节点，故先登记全部当前节点；完成后仅为保留节点留下布局来源。
     pub fn retain<F>(&mut self, predicate: F)
     where
         F: FnMut(&UiNodeId, &mut UiTreeNode) -> bool,
@@ -489,6 +541,7 @@ impl UiTreeNodes {
         self.nodes.retain(predicate);
     }
 
+    /// 登记并清空当前映射及布局来源；保留退役序号高水位，根列表和槽由外层维护。
     pub fn clear(&mut self) {
         self.track_all_nodes();
         self.nodes.clear();
@@ -529,6 +582,7 @@ impl UiTreeNodes {
 
     /// Extends a caller-owned set with dirty node IDs without allocating an intermediate set.
     /// This is the hot-path form used when a surface already has a candidate collection ready.
+    /// 追加到调用方集合，不清空原有元素；集合按标识去重。
     pub fn extend_dirty_node_ids(&self, target: &mut BTreeSet<UiNodeId>) {
         self.refresh_dirty_index();
         target.extend(self.dirty_index.borrow().node_flags.keys().copied());
@@ -536,6 +590,7 @@ impl UiTreeNodes {
 
     /// Extends a caller-owned entry buffer directly from the dirty index, avoiding a temporary
     /// vector when a consumer already owns the destination used for its summary or delta.
+    /// 追加到调用方缓冲区，不清空或去重已有条目；追加条目是标识与失效位的值拷贝。
     pub fn extend_dirty_node_entries(&self, target: &mut Vec<(UiNodeId, UiDirtyFlags)>) {
         self.refresh_dirty_index();
         let index = self.dirty_index.borrow();
@@ -562,6 +617,7 @@ impl UiTreeNodes {
     }
 
     /// Returns one node's effective dirty domains without scanning unrelated nodes.
+    /// 节点不存在或没有有效脏域时都返回全空标志；查询不消费脏位。
     pub fn dirty_node_flags(&self, node_id: &UiNodeId) -> UiDirtyFlags {
         self.refresh_dirty_index();
         self.dirty_index
@@ -572,6 +628,8 @@ impl UiTreeNodes {
             .unwrap_or_default()
     }
 
+    /// 清理候选前先刷新已初始化汇总；未初始化时延后首次全量扫描。
+    /// 节点脏位保留，布局来源一并清除；其他候选集消费者须先完成同步。
     pub fn clear_pending_mutation_node_ids(&mut self) {
         // Reconcile mutable references before dropping their candidate IDs. This keeps the
         // aggregate correct for callers that mutate a node and clear bookkeeping directly. A
@@ -595,6 +653,7 @@ impl UiTreeNodes {
         self.paint_order_cursor.invalidate();
     }
 
+    // 父节点仅追加子边时使用此内部借用，避免把未改动的绘制序号当作游标失效来源。
     fn get_mut_preserving_paint_order(&mut self, node_id: &UiNodeId) -> Option<&mut UiTreeNode> {
         if self.nodes.contains_key(node_id) {
             self.mark_mutation(*node_id);
@@ -609,6 +668,7 @@ impl UiTreeNodes {
             .insert(node_id);
     }
 
+    // 首次查询全量建立索引；此后只刷新待处理标识，已删除节点以空标志移除旧计数。
     fn refresh_dirty_index(&self) {
         let pending = {
             let mut pending = self.dirty_index_pending_node_ids.borrow_mut();
@@ -648,6 +708,7 @@ impl UiTreeNodes {
         }
     }
 
+    // 游标失效时才重扫，包括反序列化初态与可变入口；重建仍保留已退役的历史高水位。
     fn allocate_paint_order(&mut self) -> u64 {
         if !self.paint_order_cursor.is_valid() {
             #[cfg(test)]
@@ -686,6 +747,7 @@ impl Default for UiTreeNodes {
     }
 }
 
+/// 只提供共享映射解引用；可变访问保留在显式入口，以便跟踪候选。
 impl Deref for UiTreeNodes {
     type Target = BTreeMap<UiNodeId, UiTreeNode>;
 
@@ -702,6 +764,7 @@ impl Index<&UiNodeId> for UiTreeNodes {
     }
 }
 
+/// 按键可变索引先登记候选并失效游标；键不存在时按映射索引惯例触发 panic。
 impl IndexMut<&UiNodeId> for UiTreeNodes {
     fn index_mut(&mut self, node_id: &UiNodeId) -> &mut Self::Output {
         self.mark_mutation(*node_id);
@@ -710,12 +773,15 @@ impl IndexMut<&UiNodeId> for UiTreeNodes {
     }
 }
 
+/// 相等性仅比较节点数据，不比较待处理集合、派生索引或序号游标。
 impl PartialEq for UiTreeNodes {
     fn eq(&self, other: &Self) -> bool {
         self.nodes == other.nodes
     }
 }
 
+/// 导入节点映射并保留原绘制序号，由已有最大值建立分配游标；不检查图或序号唯一性。
+/// 修改候选为空，脏域索引延后建立；导入不等于清除节点已携带的脏位。
 impl From<BTreeMap<UiNodeId, UiTreeNode>> for UiTreeNodes {
     fn from(nodes: BTreeMap<UiNodeId, UiTreeNode>) -> Self {
         let mut paint_order_cursor = PaintOrderCursor::new();
@@ -748,6 +814,7 @@ impl<'a> IntoIterator for &'a UiTreeNodes {
     }
 }
 
+/// 交出可变迭代器前登记全部节点；共享迭代则只借用数据。
 impl<'a> IntoIterator for &'a mut UiTreeNodes {
     type Item = (&'a UiNodeId, &'a mut UiTreeNode);
     type IntoIter = btree_map::IterMut<'a, UiNodeId, UiTreeNode>;
@@ -758,6 +825,7 @@ impl<'a> IntoIterator for &'a mut UiTreeNodes {
     }
 }
 
+// 绘制序号的历史高水位游标；失效后扫描现有节点补充观察值，不降低退役高水位。
 #[derive(Clone, Copy, Debug, Default)]
 struct PaintOrderCursor {
     next: u64,
@@ -779,6 +847,9 @@ impl PaintOrderCursor {
     fn allocate(&mut self) -> u64 {
         debug_assert!(self.valid, "paint-order cursor must be rebuilt before use");
         let next = self.next;
+        // BUG: [CR-ZCA-R041-0001] 导入绘制序号为 u64::MAX 的节点后，游标也饱和在该值；
+        // 移除并重插相同节点标识仍分配 MAX，导致实例标识无法区分这次换代。
+        // 可由公开节点映射导入路径触发，无需耗尽正常插入；应补极值导入与重插边界夹具。
         self.next = next.saturating_add(1);
         next
     }
@@ -797,6 +868,7 @@ impl PaintOrderCursor {
     }
 }
 
+/// 树相等性比较标识、根、节点与槽载荷；不比较顺序代次或待处理集合。
 impl PartialEq for UiTree {
     fn eq(&self, other: &Self) -> bool {
         self.tree_id == other.tree_id
@@ -813,6 +885,7 @@ fn mark_structure_dirty(node: &mut UiTreeNode) {
     node.dirty.input = true;
 }
 
+// 兼容旧总脏位仅补命中、绘制和输入域；布局、样式、文本及可见范围仍读显式域。
 fn effective_dirty_flags(node: &UiTreeNode) -> UiDirtyFlags {
     let mut dirty = node.dirty;
     if node.state_flags.dirty {

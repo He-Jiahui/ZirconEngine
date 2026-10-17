@@ -237,9 +237,15 @@ fn active_scene_save_routing_uses_lifecycle_identity_without_a_manifest_default_
         .map(|offset| save_start + offset)
         .expect("startup-scene boundary after active-scene save entry point");
     let save = &source[save_start..save_end];
-
-    assert!(save.contains(".active_scene_identity(&project_root)"));
-    assert!(save.contains(".save_active_scene(&project_root, &scene_uri, world)?"));
-    assert!(save.contains(".save_scene_identity_if_active(&active_scene)"));
-    assert!(!save.contains("manifest().default_scene"));
+    assert!(save.contains("self.save_active_scene_with_workspace(path, world, &workspace)?"));
+    let workspace = include_str!("../editor_manager_workspace.rs");
+    let authorized = workspace
+        .split_once("pub(crate) fn save_scene_with_workspace_authorized(")
+        .map(|(_, body)| body)
+        .expect("ordinary and overwrite save share the lifecycle publisher");
+    assert!(authorized.contains("self.document_lifecycle.save_active_scene("));
+    assert!(authorized.contains("|identity, expected|"));
+    assert!(authorized.contains("world, expected, workspace)"));
+    assert!(authorized.contains("self.publish_document_messages(saved)"));
+    assert!(!authorized.contains("manifest().default_scene"));
 }

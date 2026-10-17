@@ -7,6 +7,7 @@ use super::window::input_event;
 
 // 组合会话交给文本输入 owner；保留平台给出的 UTF-8 字节范围，避免按字符序号重解释光标。
 // Enabled 是宿主能力状态；Disabled 必须作为 Cancel 路由，以结束表面上尚未提交的组合。
+/// 返回拥有的组合载荷；能力开启通知没有共享输入结果，范围只饱和数值而不验证文本边界。
 pub(super) fn translate_ime_event(
     context: UiWindowInputContext,
     event: &Ime,
@@ -49,6 +50,7 @@ pub(super) fn translate_ime_event(
     }
 }
 
+// 平台索引用 usize，共享协议用 u32；这里饱和数值，不检查 UTF-8 边界。
 fn clamp_byte_index(value: usize) -> u32 {
     value.min(u32::MAX as usize) as u32
 }

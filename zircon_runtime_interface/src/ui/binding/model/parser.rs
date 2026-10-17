@@ -1,3 +1,10 @@
+//! 原生绑定文本的借用游标与拥有值构造器。
+//!
+//! 公共绑定入口先读取路由头，再解析可选动作与参数，最后拒绝尾随内容。
+//! 游标以字节计数；字符读取和字符串切片依赖 UTF-8 边界，成功结果不借用输入。
+//! 参数在构造后逐值准入，解析过程本身没有提前限制所有嵌套分配；相关预算待办位于值模块。
+//! 事件种类与值构造器使用静态分派，不在这里注册或执行 Runtime 处理器。
+
 use std::{collections::BTreeMap, str::FromStr};
 
 use super::{
@@ -7,17 +14,26 @@ use super::{
     UiModelSchemaId, UiModelSchemaKey, UiModelSchemaVersion,
 };
 
+/// 在一次文本解析期间独占推进的借用游标。
+///
+/// 输入在游标存活期间保持有效；正常字符消费须按字符字节长度推进，才能继续借用后缀。
 pub(super) struct BindingParser<'a> {
+    /// 解析期间只读借用的完整 UTF-8 文本。
     input: &'a str,
+    /// 当前字节偏移；字符后缀访问要求它位于输入的字符边界。
     index: usize,
 }
 
 impl<'a> BindingParser<'a> {
+    /// 借用输入并从字节零开始；不预先解析、分配路径或校验资源预算。
     pub(super) fn new(input: &'a str) -> Self {
         Self { input, index: 0 }
     }
 
     // 只有完整读完路径、可选动作和尾部空白后才构造结果，避免调用方接收部分匹配。
+    /// 消费整个游标，返回拥有内容的绑定或首个解析错误。
+    ///
+    /// 先解析头部，仅在存在外层动作括号时读取调用；尾部仅允许空白，不返回部分匹配。
     pub(super) fn parse_binding(mut self) -> Result<UiEventBinding, UiBindingParseError> {
         let (view_id, control_id, event_kind, has_action) = self.parse_header()?;
         let action = if has_action {
@@ -38,6 +54,9 @@ impl<'a> BindingParser<'a> {
         })
     }
 
+    /// 读取路径分隔、非空标识及静态事件名称，并记录是否消费了外层动作括号。
+    ///
+    /// 返回的两个标识拥有内容；路径分隔使用首次匹配，未在这里处理转义。
     fn parse_header(&mut self) -> Result<(String, String, UiEventKind, bool), UiBindingParseError> {
         let Some((path, event_and_payload)) = self.input.split_once(':') else {
             return Err(UiBindingParseError::MissingEventSeparator);
@@ -65,6 +84,9 @@ impl<'a> BindingParser<'a> {
         ))
     }
 
+    /// 在外层动作括号已打开后读取动作符号与内层参数表。
+    ///
+    /// 空参数表直接结束；否则逐值读取并要求逗号或右括号，错误不回滚当前游标。
     fn parse_call(&mut self) -> Result<UiBindingCall, UiBindingParseError> {
         self.skip_ws();
         let symbol = self.parse_symbol()?;
@@ -96,6 +118,9 @@ impl<'a> BindingParser<'a> {
         Ok(UiBindingCall { symbol, arguments })
     }
 
+    /// 按当前起始字符解析一个拥有值，随后校验该值的完整子树。
+    ///
+    /// 数组与构造器递归进入同一入口；校验针对当前参数，不累加兄弟参数的总预算。
     fn parse_value(&mut self) -> Result<UiBindingValue, UiBindingParseError> {
         self.skip_ws();
         let value = match self.peek_char() {
@@ -123,6 +148,7 @@ impl<'a> BindingParser<'a> {
     }
 
     // 各构造器在此统一分派；单个构造器负责校验参数数量、类型和领域对象不变量。
+    /// 读取构造器名和参数表，交给固定名称对应的领域构造逻辑；未知名称返回构造器错误。
     fn parse_constructed_value(&mut self) -> Result<UiBindingValue, UiBindingParseError> {
         let constructor = self.parse_symbol()?;
         self.skip_ws();
@@ -140,6 +166,7 @@ impl<'a> BindingParser<'a> {
         }
     }
 
+    /// 读取允许空表的逗号分隔值序列，消耗关闭括号并返回拥有的参数向量。
     fn parse_value_list(
         &mut self,
         closing: char,
@@ -170,6 +197,9 @@ impl<'a> BindingParser<'a> {
         Ok(values)
     }
 
+    /// 把偶数项参数按字符串字段名和值配对移动到有序字段表。
+    ///
+    /// 先检查数量，再拒绝错误键类型或重复字段，最后让值类型校验所得记录。
     fn construct_record(
         &self,
         constructor: &str,
@@ -198,6 +228,9 @@ impl<'a> BindingParser<'a> {
         UiBindingValue::record(fields).map_err(Into::into)
     }
 
+    /// 把偶数项参数移动为键值对；键只接受字符串、有符号或无符号整数。
+    ///
+    /// 领域映射负责后续键准入，值入口负责整个映射的资源与嵌套值校验。
     fn construct_map(
         &self,
         constructor: &str,
@@ -227,6 +260,7 @@ impl<'a> BindingParser<'a> {
         UiBindingValue::map(entries).map_err(Into::into)
     }
 
+    /// 仅测试保留的借用后复制版本，用作记录构造结果与错误的比较基准。
     #[cfg(test)]
     fn construct_record_cloning(
         &self,
@@ -252,6 +286,7 @@ impl<'a> BindingParser<'a> {
         UiBindingValue::record(fields).map_err(Into::into)
     }
 
+    /// 仅测试保留的借用后复制版本，用作映射构造结果与错误的比较基准。
     #[cfg(test)]
     fn construct_map_cloning(
         &self,
@@ -280,6 +315,7 @@ impl<'a> BindingParser<'a> {
         UiBindingValue::map(entries).map_err(Into::into)
     }
 
+    /// 接受类型名、变体名及可选载荷，按领域枚举构造器校验身份。
     fn construct_enum(
         &self,
         constructor: &str,
@@ -299,6 +335,7 @@ impl<'a> BindingParser<'a> {
         )?))
     }
 
+    /// 接受唯一字符串定位符，由资源引用构造器检查身份约束。
     fn construct_asset(
         &self,
         constructor: &str,
@@ -311,6 +348,7 @@ impl<'a> BindingParser<'a> {
         )?))
     }
 
+    /// 接受两个无符号参数并交给实体引用构造器检查代次约束。
     fn construct_entity(
         &self,
         constructor: &str,
@@ -324,6 +362,7 @@ impl<'a> BindingParser<'a> {
         )?))
     }
 
+    /// 接受零或一个拥有值，分别构造空可选值或装箱载荷；其他数量返回错误。
     fn construct_optional(
         &self,
         constructor: &str,
@@ -338,6 +377,9 @@ impl<'a> BindingParser<'a> {
         Ok(UiBindingValue::Optional(arguments.pop().map(Box::new)))
     }
 
+    /// 读取八项集合窗口参数，先按固定顺序检查数量、数值和字符串类型，再移动身份字符串。
+    ///
+    /// 两个身份键与窗口均须通过其领域构造器；错误检查顺序与测试中的历史实现保持一致。
     fn construct_collection_view(
         &self,
         constructor: &str,
@@ -394,6 +436,7 @@ impl<'a> BindingParser<'a> {
         ))
     }
 
+    /// 递归读取允许空表的方括号值序列；父值入口随后校验整个数组的预算。
     fn parse_array(&mut self) -> Result<UiBindingValue, UiBindingParseError> {
         self.expect('[')?;
         let mut values = Vec::new();
@@ -422,6 +465,10 @@ impl<'a> BindingParser<'a> {
         Ok(UiBindingValue::Array(values))
     }
 
+    /// 读取引号内文本并返回拥有字符串，关闭引号之后的内容留给外层解析。
+    ///
+    /// 无转义时一次复制借用片段；遇到转义后按片段追加，仅支持本分支列出的五种转义。
+    /// 缺少关闭引号或遇到不支持的转义时返回相应错误。
     fn parse_string(&mut self) -> Result<String, UiBindingParseError> {
         self.expect('"')?;
         let value_start = self.index;
@@ -469,6 +516,9 @@ impl<'a> BindingParser<'a> {
         }
     }
 
+    /// 扫描可选符号、十进制小数和指数，再按是否包含小数或指数选择数值类型。
+    ///
+    /// 指数必须含数字；转换失败返回数字错误，浮点有限性由外层值校验继续检查。
     fn parse_number(&mut self) -> Result<UiBindingValue, UiBindingParseError> {
         let start = self.index;
         if self.peek_char() == Some('-') {
@@ -518,6 +568,7 @@ impl<'a> BindingParser<'a> {
         }
     }
 
+    /// 读取连续的 ASCII 字母、数字、下划线和点作为拥有符号，空串返回错误。
     fn parse_symbol(&mut self) -> Result<String, UiBindingParseError> {
         let start = self.index;
         while matches!(
@@ -532,12 +583,16 @@ impl<'a> BindingParser<'a> {
         Ok(self.input[start..self.index].to_string())
     }
 
+    /// 跳过字符分类为空白的输入；每次循环均会再次读取当前字节后缀。
     fn skip_ws(&mut self) {
         while matches!(self.peek_char(), Some(ch) if ch.is_whitespace()) {
+            // BUG: [CR-ZCA-R067-0001] 事件外层括号后的 U+3000 空白到达这里时，单字节推进会落入字符内部；
+            // 下一次读取后缀时会 panic，无法返回解析错误。此为静态路径证明，未运行复现。
             self.index += 1;
         }
     }
 
+    /// 消费一个期望字符并按其字节长度推进；不匹配或已结束时返回结构化错误。
     fn expect(&mut self, expected: char) -> Result<(), UiBindingParseError> {
         match self.peek_char() {
             Some(found) if found == expected => {
@@ -549,14 +604,17 @@ impl<'a> BindingParser<'a> {
         }
     }
 
+    /// 借用当前后缀读取下一个字符；偏移必须是 UTF-8 边界，否则切片会 panic。
     fn peek_char(&self) -> Option<char> {
         self.input[self.index..].chars().next()
     }
 
+    /// 借用尚未消费的后缀；有效期受游标输入借用限制，并要求当前偏移是字符边界。
     fn remaining(&self) -> &str {
         &self.input[self.index..]
     }
 
+    /// 只比较偏移与字节总长，不替代字符边界检查。
     fn is_eof(&self) -> bool {
         self.index >= self.input.len()
     }
@@ -566,6 +624,7 @@ impl<'a> BindingParser<'a> {
 #[path = "parser/tests/string_perf.rs"]
 mod string_performance_tests;
 
+/// 检查精确参数数目，失败诊断同时拥有构造器名称、期望数与实际数。
 fn require_arity(
     constructor: &str,
     arguments: &[UiBindingValue],
@@ -584,6 +643,7 @@ fn require_arity(
     }
 }
 
+/// 检查键值对参数可整齐配对，失败时返回该构造器的数量诊断。
 fn require_even_arity(
     constructor: &str,
     arguments: &[UiBindingValue],
@@ -598,6 +658,7 @@ fn require_even_arity(
     }
 }
 
+/// 消费一个参数并取出字符串；类型不符时按原参数位置返回拥有诊断。
 fn take_string_argument(
     constructor: &str,
     argument: UiBindingValue,
@@ -612,6 +673,7 @@ fn take_string_argument(
     }
 }
 
+/// 按索引借用参数并复制无符号数；缺项或其他值种类返回同一位置的类型诊断。
 fn unsigned_argument(
     constructor: &str,
     arguments: &[UiBindingValue],
@@ -634,6 +696,7 @@ mod constructed_entry_performance_tests;
 #[path = "../../model/parser/tests/collection_view_perf.rs"]
 mod collection_view_performance_tests;
 
+/// 统一把借用的构造器名称与原因复制到拥有错误中。
 fn invalid_constructor(constructor: &str, reason: &str) -> UiBindingParseError {
     UiBindingParseError::InvalidValueConstructor {
         constructor: constructor.to_string(),

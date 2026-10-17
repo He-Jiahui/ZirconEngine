@@ -1,7 +1,12 @@
 use std::ffi::OsStr;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use crate::asset::project::ProjectPaths;
+
+#[path = "runtime_asset_path/relative.rs"]
+mod relative;
+
+pub use relative::{AssetRelativePath, AssetRelativePathError};
 
 #[cfg(feature = "diagnostic-log")]
 #[path = "runtime_asset_path/diagnostics_enabled.rs"]
@@ -12,16 +17,16 @@ mod diagnostics;
 
 const ZIRCON_ASSET_ROOT_ENV: &str = "ZIRCON_ASSET_ROOT";
 
-pub fn runtime_asset_path(relative: impl AsRef<Path>) -> PathBuf {
-    runtime_asset_path_from_roots(relative.as_ref(), std::iter::empty())
+pub fn runtime_asset_path(relative: &AssetRelativePath<'_>) -> PathBuf {
+    runtime_asset_path_from_roots(relative, std::iter::empty())
 }
 
 pub fn runtime_asset_path_with_dev_asset_root(
-    relative: impl AsRef<Path>,
+    relative: &AssetRelativePath<'_>,
     dev_asset_root: impl AsRef<Path>,
 ) -> PathBuf {
     runtime_asset_path_from_roots(
-        relative.as_ref(),
+        relative,
         std::iter::once(dev_asset_root.as_ref().to_path_buf()),
     )
 }
@@ -73,18 +78,18 @@ pub fn runtime_asset_root() -> PathBuf {
 }
 
 fn runtime_asset_path_from_roots(
-    path: &Path,
+    relative: &AssetRelativePath<'_>,
     dev_asset_roots: impl IntoIterator<Item = PathBuf>,
 ) -> PathBuf {
-    let relative = normalize_runtime_asset_relative_path(path);
     let candidates = runtime_asset_root_candidates_with_dev_roots(dev_asset_roots);
-    runtime_asset_path_from_candidates(&relative, candidates)
+    runtime_asset_path_from_candidates(relative, candidates)
 }
 
 fn runtime_asset_path_from_candidates(
-    relative: &Path,
+    relative: &AssetRelativePath<'_>,
     candidates: RuntimeAssetRootCandidates,
 ) -> PathBuf {
+    let relative = relative.as_path();
     if diagnostics::verbose_enabled() {
         diagnostics::write_verbose(format!(
             "resolve normalized={} authoritative={} candidates={}",
@@ -258,22 +263,6 @@ fn default_product_asset_root_from_executable(executable: &Path) -> Option<PathB
 
 fn crate_asset_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("assets")
-}
-
-fn normalize_runtime_asset_relative_path(path: &Path) -> PathBuf {
-    let mut normalized = PathBuf::new();
-    for component in path.components() {
-        match component {
-            Component::Prefix(_)
-            | Component::RootDir
-            | Component::CurDir
-            | Component::ParentDir => {}
-            Component::Normal(value)
-                if normalized.as_os_str().is_empty() && value == OsStr::new("assets") => {}
-            Component::Normal(value) => normalized.push(value),
-        }
-    }
-    normalized
 }
 
 #[cfg(test)]

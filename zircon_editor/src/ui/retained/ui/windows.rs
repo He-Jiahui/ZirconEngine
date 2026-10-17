@@ -505,6 +505,13 @@ fn to_host_contract_workbench_window_node_with_previous(
     let mut projected = host_contract::TemplatePaneNodeData {
         node_id: node.node_id.clone().into(),
         surface_node_id: node.surface_node_id,
+        toast_presentation: bool_property(&node.properties, "awaiting_first_presentation")
+            .then(|| {
+                let id = first_string_property(&node.properties, &["current_toast_id"])?;
+                let token = first_string_property(&node.properties, &["toast_delivery_token"])?
+                    .parse::<u64>().ok().filter(|token| *token != 0)?;
+                (!id.is_empty()).then(|| (id.into(), token))
+            }).flatten(),
         source_path: node.source_path.clone().unwrap_or_default().into(),
         source_node_id: node.source_node_id.clone().unwrap_or_default().into(),
         instance_path: node

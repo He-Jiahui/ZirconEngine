@@ -1,4 +1,8 @@
 //! 核对界面模块吸收后的根入口、模块注册与旧转发退役；源码读取只检查结构。
+//!
+//! 源码读取失败统一视为空串，其中的否定断言不单独证明被读文件存在。
+//! 根入口另有存在性和正向文本断言，旧独立入口则直接检查路径不存在。
+//! 本测试不调用模块描述构造或生命周期回调。
 #[test]
 fn ui_module_registration_is_absorbed_into_runtime_ui_surface() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

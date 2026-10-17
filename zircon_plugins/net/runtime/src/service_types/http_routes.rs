@@ -21,21 +21,27 @@ impl DefaultNetManager {
         route: NetHttpRouteDescriptor,
         handler: impl Fn(NetHttpRequestDescriptor) -> NetHttpResponseDescriptor + Send + Sync + 'static,
     ) -> Result<NetRouteId, NetError> {
-        let route_id = self.next_route_id();
-        lock_or_error(&self.state.http_routes, NetSharedState::HttpRoutes)?.insert(
-            route_id,
-            ManagedHttpRoute {
-                route: route.clone(),
-                response: NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, Vec::new()),
-                handler: Some(Arc::new(handler) as HttpRouteHandler),
-            },
-        );
-        self.state.push_event(NetEvent::HttpRouteRegistered {
-            route: route_id,
-            path: route.path,
-            methods: route.methods,
-        });
-        Ok(route_id)
+        let handler = Arc::new(handler) as HttpRouteHandler;
+        let mut registered_route = None;
+        self.admit_event(|| {
+            let mut routes = lock_or_error(&self.state.http_routes, NetSharedState::HttpRoutes)?;
+            let allocated_id = self.next_route_id();
+            routes.insert(
+                allocated_id,
+                ManagedHttpRoute {
+                    route: route.clone(),
+                    response: NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, Vec::new()),
+                    handler: Some(Arc::clone(&handler)),
+                },
+            );
+            registered_route = Some(allocated_id);
+            Ok(NetEvent::HttpRouteRegistered {
+                route: allocated_id,
+                path: route.path.clone(),
+                methods: route.methods.clone(),
+            })
+        })?;
+        Ok(registered_route.expect("admitted route must have an id"))
     }
 
     pub(in crate::service_types) fn http_backend(
@@ -53,36 +59,42 @@ impl DefaultNetManager {
         route: NetHttpRouteDescriptor,
         response: NetHttpResponseDescriptor,
     ) -> Result<NetRouteId, NetError> {
-        let route_id = self.next_route_id();
-        lock_or_error(&self.state.http_routes, NetSharedState::HttpRoutes)?.insert(
-            route_id,
-            ManagedHttpRoute {
-                response,
-                route: route.clone(),
-                handler: None,
-            },
-        );
-        self.state.push_event(NetEvent::HttpRouteRegistered {
-            route: route_id,
-            path: route.path,
-            methods: route.methods,
-        });
-        Ok(route_id)
+        let mut registered_route = None;
+        self.admit_event(|| {
+            let mut routes = lock_or_error(&self.state.http_routes, NetSharedState::HttpRoutes)?;
+            let route_id = self.next_route_id();
+            routes.insert(
+                route_id,
+                ManagedHttpRoute {
+                    response,
+                    route: route.clone(),
+                    handler: None,
+                },
+            );
+            registered_route = Some(route_id);
+            Ok(NetEvent::HttpRouteRegistered {
+                route: route_id,
+                path: route.path.clone(),
+                methods: route.methods.clone(),
+            })
+        })?;
+        Ok(registered_route.expect("admitted route must have an id"))
     }
 
     pub(in crate::service_types) fn unregister_http_route_impl(
         &self,
         route: NetRouteId,
     ) -> Result<(), NetError> {
-        let removed = {
+        let mut removed_route = None;
+        self.admit_event(|| {
             let mut routes = lock_or_error(&self.state.http_routes, NetSharedState::HttpRoutes)?;
-            routes.remove(&route)
-        }
-        .ok_or(NetError::UnknownRoute { route })?;
-        drop(removed);
-
-        self.state
-            .push_event(NetEvent::HttpRouteUnregistered { route });
+            let removed = routes
+                .remove(&route)
+                .ok_or(NetError::UnknownRoute { route })?;
+            removed_route = Some(removed);
+            Ok(NetEvent::HttpRouteUnregistered { route })
+        })?;
+        drop(removed_route);
         Ok(())
     }
 
@@ -163,10 +175,7 @@ fn is_unsecured_loopback_request(request: &NetHttpRequestDescriptor) -> bool {
     let Some(authority) = request.url.strip_prefix("http://") else {
         return false;
     };
-    let authority = authority
-        .split(['/', '?', '#'])
-        .next()
-        .unwrap_or_default();
+    let authority = authority.split(['/', '?', '#']).next().unwrap_or_default();
     if authority.contains('@') {
         return false;
     }
@@ -181,7 +190,10 @@ fn is_unsecured_loopback_request(request: &NetHttpRequestDescriptor) -> bool {
     } else {
         authority
     };
-    if !matches!(host.to_ascii_lowercase().as_str(), "localhost" | "127.0.0.1" | "::1") {
+    if !matches!(
+        host.to_ascii_lowercase().as_str(),
+        "localhost" | "127.0.0.1" | "::1"
+    ) {
         return false;
     }
     let security = &request.security;

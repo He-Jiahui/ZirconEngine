@@ -85,7 +85,9 @@ fn compiled_random_selector_weight_table_release_benchmark_evidence() {
     assert_eq!(table.weights().len(), CHILD_COUNT);
     assert_eq!(
         table.total(),
-        (0..CHILD_COUNT).map(|index| (index % 7 + 1) as f32).sum()
+        (0..CHILD_COUNT)
+            .map(|index| (index % 7 + 1) as f32)
+            .sum::<f32>()
     );
     println!(
         "PERF_RESULT RUNTIME799_RANDOM_SELECTOR_WEIGHT_TABLE_BENCH_V1 children={CHILD_COUNT} selections={SELECTIONS} runtime_weight_allocations_per_selection=0 parameter_scans_per_selection=0 compiled_weight_entries={}",

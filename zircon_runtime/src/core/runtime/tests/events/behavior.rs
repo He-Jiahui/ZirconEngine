@@ -28,7 +28,7 @@ fn event_bus_and_config_store_roundtrip() {
             },
         )
         .expect("bounded subscription");
-    runtime
+    let _ = runtime
         .try_publish_event("editor.selection", serde_json::json!({ "node": 7 }))
         .expect("event admission");
     let event = events.recv().unwrap();
@@ -63,19 +63,21 @@ fn event_bus_prunes_closed_subscribers_after_snapshot_publish() {
         .expect("bounded subscription");
     drop(closed_events);
 
-    bus.try_publish(EngineEvent {
-        topic: "runtime.tick".to_string(),
-        payload: serde_json::json!({ "frame": 1 }),
-    })
-    .expect("event admission");
+    let _ = bus
+        .try_publish(EngineEvent {
+            topic: "runtime.tick".to_string(),
+            payload: serde_json::json!({ "frame": 1 }),
+        })
+        .expect("event admission");
     let event = live_events.recv().unwrap();
     assert_eq!(event.decode_payload().unwrap()["frame"], 1);
 
-    bus.try_publish(EngineEvent {
-        topic: "runtime.tick".to_string(),
-        payload: serde_json::json!({ "frame": 2 }),
-    })
-    .expect("event admission");
+    let _ = bus
+        .try_publish(EngineEvent {
+            topic: "runtime.tick".to_string(),
+            payload: serde_json::json!({ "frame": 2 }),
+        })
+        .expect("event admission");
     let event = live_events.recv().unwrap();
     assert_eq!(event.decode_payload().unwrap()["frame"], 2);
 }
@@ -96,11 +98,12 @@ fn event_bus_bounded_drop_oldest_caps_paused_subscriber_and_reports_drop() {
         .expect("bounded subscription");
 
     for frame in 1..=3 {
-        bus.try_publish(EngineEvent {
-            topic: "runtime.tick".to_string(),
-            payload: serde_json::json!({ "frame": frame }),
-        })
-        .expect("event admission");
+        let _ = bus
+            .try_publish(EngineEvent {
+                topic: "runtime.tick".to_string(),
+                payload: serde_json::json!({ "frame": frame }),
+            })
+            .expect("event admission");
     }
 
     assert_eq!(events.recv().unwrap().decode_payload().unwrap()["frame"], 2);
@@ -130,11 +133,12 @@ fn event_bus_fanout_shares_one_payload_for_1_2_5_100_subscribers() {
             })
             .collect::<Vec<_>>();
 
-        bus.try_publish(EngineEvent {
-            topic: "runtime.snapshot".to_string(),
-            payload: serde_json::json!({ "nodes": [1, 2, 3, 4], "blob": "x".repeat(4096) }),
-        })
-        .expect("event admission");
+        let _ = bus
+            .try_publish(EngineEvent {
+                topic: "runtime.snapshot".to_string(),
+                payload: serde_json::json!({ "nodes": [1, 2, 3, 4], "blob": "x".repeat(4096) }),
+            })
+            .expect("event admission");
 
         let first = subscriptions[0].recv().unwrap();
         for subscription in subscriptions.iter().skip(1) {
@@ -158,11 +162,12 @@ fn event_bus_latest_policy_coalesces_to_the_newest_event() {
         .expect("bounded subscription");
 
     for sample in 1..=64 {
-        bus.try_publish(EngineEvent {
-            topic: "runtime.cursor".to_string(),
-            payload: serde_json::json!({ "sample": sample }),
-        })
-        .expect("event admission");
+        let _ = bus
+            .try_publish(EngineEvent {
+                topic: "runtime.cursor".to_string(),
+                payload: serde_json::json!({ "sample": sample }),
+            })
+            .expect("event admission");
     }
 
     assert_eq!(
@@ -239,11 +244,12 @@ fn event_bus_reliable_policy_preserves_same_topic_publish_order() {
         .expect("bounded subscription");
 
     for sequence in 0..256 {
-        bus.try_publish(EngineEvent {
-            topic: "runtime.sequence".to_string(),
-            payload: serde_json::json!({ "sequence": sequence }),
-        })
-        .expect("event admission");
+        let _ = bus
+            .try_publish(EngineEvent {
+                topic: "runtime.sequence".to_string(),
+                payload: serde_json::json!({ "sequence": sequence }),
+            })
+            .expect("event admission");
     }
 
     for expected in 0..256 {
@@ -266,11 +272,12 @@ fn event_bus_reports_queue_age_when_a_paused_consumer_resumes() {
             },
         )
         .expect("bounded subscription");
-    bus.try_publish(EngineEvent {
-        topic: "runtime.age".to_string(),
-        payload: Value::Null,
-    })
-    .expect("event admission");
+    let _ = bus
+        .try_publish(EngineEvent {
+            topic: "runtime.age".to_string(),
+            payload: Value::Null,
+        })
+        .expect("event admission");
 
     std::thread::sleep(Duration::from_millis(5));
     events.recv().unwrap();
@@ -296,11 +303,12 @@ fn event_bus_default_samples_routine_timings_but_keeps_exact_counters() {
         )
         .expect("bounded subscription");
     for sequence in 0..EVENT_COUNT {
-        bus.try_publish(EngineEvent {
-            topic: "runtime.sampled".to_string(),
-            payload: serde_json::json!({ "sequence": sequence }),
-        })
-        .expect("event admission");
+        let _ = bus
+            .try_publish(EngineEvent {
+                topic: "runtime.sampled".to_string(),
+                payload: serde_json::json!({ "sequence": sequence }),
+            })
+            .expect("event admission");
         events.recv().unwrap();
     }
 
@@ -331,11 +339,12 @@ fn event_bus_explicit_sampling_uses_independent_publish_and_queue_sequences() {
         )
         .expect("bounded subscription");
     for _ in 0..5 {
-        bus.try_publish(EngineEvent {
-            topic: "runtime.sampled".to_string(),
-            payload: Value::Null,
-        })
-        .expect("event admission");
+        let _ = bus
+            .try_publish(EngineEvent {
+                topic: "runtime.sampled".to_string(),
+                payload: Value::Null,
+            })
+            .expect("event admission");
         events.recv().unwrap();
     }
 
@@ -418,11 +427,12 @@ fn event_subscription_overflowing_timeout_waits_until_an_event_arrives() {
         std::thread::yield_now();
     }
 
-    bus.try_publish(EngineEvent {
-        topic: "runtime.long_wait".to_string(),
-        payload: serde_json::json!({ "arrived": true }),
-    })
-    .expect("event admission");
+    let _ = bus
+        .try_publish(EngineEvent {
+            topic: "runtime.long_wait".to_string(),
+            payload: serde_json::json!({ "arrived": true }),
+        })
+        .expect("event admission");
     assert_eq!(
         waiter
             .join()
@@ -445,7 +455,7 @@ fn core_runtime_exposes_its_live_event_bus_diagnostics() {
             },
         )
         .expect("bounded subscription");
-    runtime
+    let _ = runtime
         .try_publish_event("runtime.metrics", serde_json::json!({ "frame": 1 }))
         .expect("event admission");
 
@@ -471,11 +481,12 @@ fn event_bus_disabled_diagnostics_skip_timing_and_counter_collection() {
             },
         )
         .expect("bounded subscription");
-    bus.try_publish(EngineEvent {
-        topic: "runtime.silent".to_string(),
-        payload: Value::Null,
-    })
-    .expect("event admission");
+    let _ = bus
+        .try_publish(EngineEvent {
+            topic: "runtime.silent".to_string(),
+            payload: Value::Null,
+        })
+        .expect("event admission");
     events.recv().unwrap();
 
     let report = bus.diagnostic_report();
@@ -503,11 +514,12 @@ fn event_bus_uncontended_publish_does_not_report_delivery_lock_wait() {
         )
         .expect("bounded subscription");
 
-    bus.try_publish(EngineEvent {
-        topic: "runtime.uncontended".to_string(),
-        payload: Value::Null,
-    })
-    .expect("event admission");
+    let _ = bus
+        .try_publish(EngineEvent {
+            topic: "runtime.uncontended".to_string(),
+            payload: Value::Null,
+        })
+        .expect("event admission");
     events.recv().unwrap();
 
     let report = bus.diagnostic_report();
@@ -543,7 +555,7 @@ fn event_bus_reports_same_topic_publisher_delivery_lock_wait() {
 
     let publisher_bus = Arc::clone(&bus);
     let publisher = std::thread::spawn(move || {
-        publisher_bus
+        let _ = publisher_bus
             .try_publish(EngineEvent {
                 topic: "runtime.contended".to_string(),
                 payload: Value::Null,
@@ -602,14 +614,15 @@ fn event_bus_concurrent_same_topic_publishers_share_one_exact_fanout_interleavin
             std::thread::spawn(move || {
                 start.wait();
                 for sequence in 0..EVENTS_PER_PUBLISHER {
-                    bus.try_publish(EngineEvent {
-                        topic: "runtime.concurrent".to_string(),
-                        payload: serde_json::json!({
-                            "producer": producer,
-                            "sequence": sequence,
-                        }),
-                    })
-                    .expect("event admission");
+                    let _ = bus
+                        .try_publish(EngineEvent {
+                            topic: "runtime.concurrent".to_string(),
+                            payload: serde_json::json!({
+                                "producer": producer,
+                                "sequence": sequence,
+                            }),
+                        })
+                        .expect("event admission");
                 }
             })
         })
@@ -715,7 +728,7 @@ fn event_bus_allows_another_topic_to_progress_while_subscribe_waits_on_delivery(
     let (progress_sender, progress_receiver) = mpsc::channel();
     let free_bus = Arc::clone(&bus);
     let free_publisher = std::thread::spawn(move || {
-        free_bus
+        let _ = free_bus
             .try_publish(EngineEvent {
                 topic: "runtime.free".to_string(),
                 payload: serde_json::json!({ "progress": true }),
@@ -734,11 +747,12 @@ fn event_bus_allows_another_topic_to_progress_while_subscribe_waits_on_delivery(
         true
     );
 
-    bus.try_publish(EngineEvent {
-        topic: "runtime.blocked".to_string(),
-        payload: serde_json::json!({ "released": true }),
-    })
-    .expect("event admission");
+    let _ = bus
+        .try_publish(EngineEvent {
+            topic: "runtime.blocked".to_string(),
+            payload: serde_json::json!({ "released": true }),
+        })
+        .expect("event admission");
     assert_eq!(
         blocked_events.recv().unwrap().decode_payload().unwrap()["released"],
         true
@@ -788,11 +802,12 @@ fn event_bus_reservation_prevents_last_drop_from_orphaning_a_new_subscription() 
     continue_subscription.wait();
 
     let events = subscriber.join().unwrap();
-    bus.try_publish(EngineEvent {
-        topic: "runtime.race".to_string(),
-        payload: serde_json::json!({ "iteration": 1 }),
-    })
-    .expect("event admission");
+    let _ = bus
+        .try_publish(EngineEvent {
+            topic: "runtime.race".to_string(),
+            payload: serde_json::json!({ "iteration": 1 }),
+        })
+        .expect("event admission");
     assert_eq!(
         events
             .recv_timeout(Duration::from_secs(1))

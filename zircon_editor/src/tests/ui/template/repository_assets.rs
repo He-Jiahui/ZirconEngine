@@ -24,5 +24,8 @@ fn editor_repository_unreal_shell_template_file_loads_and_instantiates() {
     assert_eq!(projection.root.children.len(), 1);
     assert_eq!(projection.root.children[0].component, "DocumentHost");
     assert_eq!(projection.root.children[0].children.len(), 1);
-    assert_eq!(projection.root.children[0].children[0].component, "PaneSurface");
+    assert_eq!(
+        projection.root.children[0].children[0].component,
+        "PaneSurface"
+    );
 }

@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R019",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T05:45:29.001546+00:00",
+  "status": "scoped-static-validation-passed",
+  "files": {
+    "zircon_runtime_interface/src/serialization/positional.rs": {
+      "before_sha256": "7d5a42f1fa3ac1fa44ca0537014473ede9f314a03624522da5df8c02391e4105",
+      "reviewed_sha256": "7d5a42f1fa3ac1fa44ca0537014473ede9f314a03624522da5df8c02391e4105",
+      "bytes": 13162,
+      "lines": 318,
+      "full_source_review_spans": [
+        [
+          1,
+          318
+        ]
+      ],
+      "child_object_entries_reviewed": 13,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/positional/bounded_decode.rs": {
+      "before_sha256": "0c99f5bc2feec2cafed62d6096a8af1a4bc828f14a041d940d97fb17135e71c8",
+      "reviewed_sha256": "0c99f5bc2feec2cafed62d6096a8af1a4bc828f14a041d940d97fb17135e71c8",
+      "bytes": 8750,
+      "lines": 232,
+      "full_source_review_spans": [
+        [
+          1,
+          232
+        ]
+      ],
+      "child_object_entries_reviewed": 9,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/tests/positional.rs": {
+      "before_sha256": "aeea17c7c2b43500703b5fe88b33ff4d73d43b2d47c53de2e16c0a7d51719b2a",
+      "reviewed_sha256": "aeea17c7c2b43500703b5fe88b33ff4d73d43b2d47c53de2e16c0a7d51719b2a",
+      "bytes": 5389,
+      "lines": 145,
+      "full_source_review_spans": [
+        [
+          1,
+          145
+        ]
+      ],
+      "child_object_entries_reviewed": 7,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime_interface/src/serialization/binary/value/direct_decode.rs": {
+      "before_sha256": "45dce349d0f100cf0b19862b7a6114641af1b02441952e8eef67ca1ccd44868c",
+      "reviewed_sha256": "28bfbb8a5143dc1614bafff9b50c909036f9a0ca86dbe2c2d429ebc65fc47270",
+      "bytes": 28112,
+      "lines": 843,
+      "full_source_review_spans": [
+        [
+          1,
+          843
+        ]
+      ],
+      "child_object_entries_reviewed": 15,
+      "insertion_blocks": 51,
+      "all_original_raw_bytes_reconstructed": true
+    }
+  },
+  "actual_root_validation": {
+    "receipt": {
+      "chunk_id": "c972cb",
+      "exit_code": 0
+    },
+    "same_source_pins_reverified_at_booking": true,
+    "raw_reverse_insertion_sources": 4,
+    "raw_reverse_insertion_blocks": 51,
+    "all_original_bytes_restored": true,
+    "normalized_HEAD_match": true,
+    "checks": [
+      {
+        "name": "rustfmt4",
+        "exit_code": 0
+      },
+      {
+        "name": "diff4",
+        "exit_code": 0,
+        "notes": "Only Git LF-to-CRLF policy warnings; actual original LF bytes retained."
+      },
+      {
+        "name": "staged4-empty",
+        "exit_code": 0
+      },
+      {
+        "name": "change-guard4",
+        "exit_code": 0,
+        "errors": 0,
+        "warnings": 0,
+        "declared_paths": 4,
+        "changed_paths": 1
+      }
+    ],
+    "direct_source_guard_context": {
+      "producer_path": "zircon_runtime_interface/src/serialization/binary/value/direct_decode.rs",
+      "producer_sha256": "28bfbb8a5143dc1614bafff9b50c909036f9a0ca86dbe2c2d429ebc65fc47270",
+      "fixture_path": "zircon_runtime_interface/src/serialization/tests/binary_contract.rs",
+      "fixture_sha256": "a54fa257552598bcbb9c5f02621056754644618484f2658286f1d753fa0363bd",
+      "forbidden_exact_needle": "serde_json::Value",
+      "producer_contains": false,
+      "fixture_assertion_present": true,
+      "formal_coverage_of_producer": true,
+      "Rust_test_executed": false
+    },
+    "patch_sha256": "5678a77d3f089425eee9b6f519687576b69e20d840b1728afa6ce3a068429187",
+    "patch_bytes": 12953,
+    "builds_Rust_tests_Cargo_generators_run": false,
+    "limits": "Scoped static validation; managed format, native lifecycle/lock authorization and formal Jenkins receipts remain pending."
+  },
+  "all_original_bytes_and_comments_preserved": true,
+  "managed_coordinator_format": "pending",
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

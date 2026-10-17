@@ -1,7 +1,8 @@
 """Read-only, boot-bound interruption of an exact departed recovery runtime.
 
 An unknown public Stop still requires a real later Windows boot.  An idle
-committed runtime may be replaced in its exact same boot after native departure.
+committed runtime may be replaced after native departure in the same boot or
+a verified later Windows boot beyond every recorded native birth.
 Both paths preserve original outcomes and never issue termination or acceptance.
 """
 from __future__ import annotations
@@ -23,7 +24,7 @@ from .execution_activation import protected_holds
 from .lifecycle import check_port_available
 from .lost_owner import (_assert_request_unused, _departure, _document, _home_policy,
                          _lifecycle_fence, _raw, _resource_inventory, _REVIEWED_CONTAINMENT)
-from .startup_observations import observe_home_available, runtime_owner_inventory
+from .startup_observations import observe_home_available, observe_runtime_owner_inventory
 
 KIND = "formal-lost-recovery-runtime-interruption"
 VARIANT = "lost-recovery-runtime"
@@ -48,16 +49,20 @@ def _require(condition, message, code="lost_recovery_runtime_unproven"):
 class _RuntimeOwnerBusy(JenkinsError):
     """Only a positively observed native owner permits another read-only try."""
 
-    def __init__(self, owners):
+    def __init__(self, observation):
         super().__init__("lost_recovery_runtime_unproven", "A repository runtime still may own Jenkins Home",
-                         retryable=True, details={"runtimeOwnerInventory": owners})
+                         retryable=True, details={"runtimeOwnerInventory": observation["activeOwners"],
+                                                  "runtimeOwnerObservation": observation})
 
 
 def _clear_runtime_inventory(repository):
-    owners = runtime_owner_inventory(repository)
-    if owners:
-        raise _RuntimeOwnerBusy(owners)
-    return owners
+    observation = observe_runtime_owner_inventory(repository)
+    _require(isinstance(observation, dict) and isinstance(observation.get("activeOwners"), list)
+             and isinstance(observation.get("blockingOwners"), list),
+             "A complete current service owner observation is required")
+    if observation["blockingOwners"]:
+        raise _RuntimeOwnerBusy(observation)
+    return observation
 
 
 def _ref(path, raw=None):
@@ -210,9 +215,25 @@ def interrupted_request(state, reference, *, historical_configuration=None):
         marker = release.get("ownedUpgrade", {})
         _require(isinstance(marker, dict), "Interrupted request lineage lacks its exact owned transfer marker")
         variant = marker.get("variant")
-        _require(variant in {None, "external-native-stop"} and handoff.get("variant") == variant,
+        from .owned_upgrade import _transfer_keys, UNKNOWN_EXTERNAL_VARIANT
+        predecessor, _, _ = _transfer_keys(marker)
+        _require(handoff.get("variant") == variant,
                  "Interrupted request lineage has an unsupported owned transfer variant")
-        predecessor = "originalBlockedDescriptor" if variant == "external-native-stop" else "stoppedDescriptor"
+        if variant == UNKNOWN_EXTERNAL_VARIANT:
+            context = (_lineage_context(state, release) if historical_configuration is None else
+                       _lineage_context(state, release, historical_configuration=historical_configuration))
+            kwargs = {} if historical_configuration is None else {"historical_configuration": historical_configuration}
+            _owned_handoff_receipt(context, descriptor, release, **kwargs)
+            if lineage:
+                latest = lineage[0]
+                outer_context = (_lineage_context(state, latest) if historical_configuration is None else
+                                 _lineage_context(state, latest, historical_configuration=historical_configuration))
+                _owned_handoff_receipt(outer_context, owned_current, latest, **kwargs)
+            outcome = _reference(state, marker["unknownStopRecovery"])
+            if reference == outcome["originalRequest"]:
+                _require(_raw(state / _POINTERS["originalDescriptor"]) == current_raw,
+                         "Current native-recovery delivery lineage changed during observation")
+                return True
         if owned_current is None:
             owned_current = descriptor
         lineage.append(release)
@@ -463,6 +484,16 @@ def _execution_comparison(value):
 
 def _comparison(value):
     comparison = _document(canonical_json(value))
+    observation = comparison.pop("runtimeOwnerObservation", None)
+    if observation is not None:
+        _require(isinstance(observation, dict) and isinstance(observation.get("blockingOwners"), list)
+                 and observation["blockingOwners"] == []
+                 and observation.get("activeOwners") == comparison["runtimeOwnerInventory"],
+                 "Reviewed runtime inventory must retain its complete clear service owner observation")
+        # Raw helper inventory is retained evidence, not stable service ownership.
+        # The empty owner boundary also preserves reviewed plans from before
+        # ordinary Python processes were classified separately.
+        comparison["runtimeOwnerInventory"] = observation["blockingOwners"]
     comparison["departedIdentities"] = {key: _departure_binding(item)
                                        for key, item in comparison["departedIdentities"].items()}
     comparison["executionQuarantine"] = _execution_comparison(comparison["executionQuarantine"])
@@ -516,6 +547,31 @@ def _replacement(state, transition, recovery_digest):
     _artifact(state, transition["interruption"])
 
 
+def _retained_selector_binding(state, descriptor, release, selected, runtime_id):
+    """Verify provenance retained by an issued same-driver recovery start."""
+    if (selected.get("recoveryRelease") == descriptor.get("release")
+            and selected.get("preparation") == release.get("preparation", {}).get("path")):
+        return None
+    _require(release.get("kind") == "formal-lost-owner-recovery-release"
+             and isinstance(release.get("lostRecoveryRuntime"), dict),
+             "Retained selector requires its issued lost-runtime recovery release")
+    interruption = validate_interruption_receipt(state, descriptor, release)
+    preparation, _ = _artifact(state, release.get("preparation"))
+    archive_ref = interruption.get("originalArtifacts", {}).get("previousSelector", {}).get("archive")
+    archived, _ = _artifact(state, archive_ref)
+    previous_id = archived.get("runtimeOperationId")
+    _require(preparation.get("previousSelectedDriver") == archived
+             and preparation.get("previousSelectorSha256") == archive_ref["sha256"]
+             and release.get("expectedLifecycleFence", {}).get("deployment/driver.json") == archive_ref["sha256"]
+             and preparation.get("previousRecoveryRelease") == archived.get("recoveryRelease")
+             and previous_id == interruption.get("operationId") and previous_id != runtime_id
+             and selected == {**archived, "runtimeOperationId": runtime_id},
+             "Retained selector differs from the exact issued predecessor archive")
+    return {"mode": "issued-same-driver-retained-selector", "preparation": release["preparation"],
+            "previousSelector": archive_ref, "previousRuntimeOperationId": previous_id,
+            "runtimeOperationId": runtime_id}
+
+
 def _capture_once(manager, request_id, scope, command_ref=None, descriptor_ref=None, transition=None, recovery_digest=None):
     from .owned_upgrade import _historical_release
     repo, state, home = (manager.paths.repo.absolute(), manager.paths.state.absolute(), manager.paths.home.absolute())
@@ -555,7 +611,7 @@ def _capture_once(manager, request_id, scope, command_ref=None, descriptor_ref=N
              and operation.get("state") == "running" and host.get("status") == "running"
              and re.fullmatch("start-[1-9][0-9]*", str(runtime_id))
              and operation.get("generation") == host.get("generation") == host.get("operationId") == runtime_id
-             and selected.get("runtimeOperationId") == runtime_id and selected.get("recoveryRelease") == descriptor.get("release")
+             and selected.get("runtimeOperationId") == runtime_id
              and operation.get("component") == "lifecycle-host" and operation.get("homePath") == str(home)
              and operation.get("pid") == operation.get("hostPid") == host.get("hostPid")
              and operation.get("controlPlaneOnly") is False and host.get("controlPlaneOnly") is False
@@ -594,9 +650,9 @@ def _capture_once(manager, request_id, scope, command_ref=None, descriptor_ref=N
     receipt = _historical_runtime(manager, descriptor, old_release, old_target)
     _require(all(selected.get(key) == value for key, value in old_target.items())
              and old_release.get("actorCodeRoot") == old_target["root"]
-             and selected.get("supportRegression") == old_release.get("regression")
-             and selected.get("preparation") == old_release.get("preparation", {}).get("path"),
+             and selected.get("supportRegression") == old_release.get("regression"),
              "Original selector differs from its sealed passing owned successor")
+    source_selection = _retained_selector_binding(state, descriptor, old_release, selected, runtime_id)
     if committed:
         from .owned_upgrade import _committed_command, _external_delivery_inventory
         _committed_command(state, descriptor, receipt, command)
@@ -645,29 +701,34 @@ def _capture_once(manager, request_id, scope, command_ref=None, descriptor_ref=N
                  "deployment/formal-lifecycle-command.json"):
         _require(fence[name] == old_release["expectedLifecycleFence"][name], "Original formal anchors changed")
     boot = str(windows_boot_filetime())
-    if committed:
-        _require(boot == descriptor["bootFileTime"]
-                 and all(int(value["creationTime"]) >= int(boot) for value in identities.values()),
-                 "A committed idle recovery owner must remain in its exact original Windows boot")
-        containment = _same_boot_containment(repo, old_target)
+    same_boot = committed and boot == descriptor["bootFileTime"]
+    if same_boot:
+        _require(all(int(value["creationTime"]) >= int(boot) for value in identities.values()),
+                 "Same-boot committed ownership must retain its exact original native births")
     else:
         _require(boot.isascii() and boot.isdecimal() and int(boot) > int(descriptor["bootFileTime"])
                  and all(int(value["creationTime"]) < int(boot) for value in identities.values()),
                  "Only a genuine newer Windows boot beyond every original native birth permits interruption")
+    if committed:
+        containment = _same_boot_containment(repo, old_target)
     departed = {key: _departure(value) for key, value in identities.items()}
     inventory = _clear_runtime_inventory(repo)
     owner = {"operation": {key: operation[key] for key in
              ("operationId", "generation", "hostPid", "homePath", "component", "controlPlaneOnly")},
              **{key: identities[key] for key in ("supervisor", "controller", "agent")}}
-    execution = _execution_gate(manager, owner, selected, descriptor["protectedHolds"], boot, same_boot=committed)
+    execution = _execution_gate(manager, owner, selected, descriptor["protectedHolds"], boot, same_boot=same_boot)
     management = _management_quarantine(manager, owner, selected, execution["records"]) if committed else None
+    if committed and not same_boot:
+        _require(all(int(item["identity"]["creationTime"]) < int(boot)
+                     for item in management["nativeDepartures"]),
+                 "Management native proof identities must precede the actual new boot")
     policy, observation = _home_policy(home, scope), observe_home_available(home)
     endpoint = {"address": manager.spec.controller["listenAddress"], "port": int(manager.spec.controller["httpPort"])}
     check_port_available(endpoint["address"], endpoint["port"])
     _require(str(windows_boot_filetime()) == boot and _lifecycle_fence(manager) == fence,
              "Boot, execution quarantine, Home or lifecycle changed during review")
     _clear_runtime_inventory(repo)
-    latest_execution = _execution_gate(manager, owner, selected, descriptor["protectedHolds"], boot, same_boot=committed)
+    latest_execution = _execution_gate(manager, owner, selected, descriptor["protectedHolds"], boot, same_boot=same_boot)
     _require(canonical_json(_execution_comparison(latest_execution)) == canonical_json(_execution_comparison(execution))
              and _home_policy(home, scope) == policy, "Boot, execution quarantine, Home or lifecycle changed during review")
     execution = latest_execution
@@ -678,7 +739,7 @@ def _capture_once(manager, request_id, scope, command_ref=None, descriptor_ref=N
                  "Management quarantine or original recovery deliveries changed during review")
         management = latest_management
         departed = {key: _departure(value) for key, value in identities.items()}
-        _require(str(windows_boot_filetime()) == boot, "Same-boot native ownership changed before interruption")
+        _require(str(windows_boot_filetime()) == boot, "Committed native ownership changed before interruption")
         _clear_runtime_inventory(repo)
     for name, (reference, raw) in artifacts.items():
         if name == "originalCommand" and transition is not None:
@@ -690,20 +751,22 @@ def _capture_once(manager, request_id, scope, command_ref=None, descriptor_ref=N
             "scope": scope, "operationId": runtime_id, "homePath": str(home), "owner": owner,
             "departedKeeper": identities["keeper"], "originalRequestId": stop_id,
             "previousRecoveryRelease": descriptor["release"], "previousBootFileTime": descriptor["bootFileTime"],
-            "bootFileTime": boot, "departedIdentities": departed, "runtimeOwnerInventory": inventory,
+            "bootFileTime": boot, "departedIdentities": departed,
+            "runtimeOwnerInventory": inventory["activeOwners"], "runtimeOwnerObservation": inventory,
             "operationDigest": digest(operation), "hostRecordDigest": digest(host),
             "selectedDriverDigest": digest(selected), "lifecycleFence": fence,
             "originalCommandStatus": "committed" if committed else "unknown", "outcome": "interrupted", "controlPlaneOnly": False,
             "originalNativeStopIssued": False, "nativeStopInventory": commands,
             "executionQuarantine": execution, "homePolicy": policy, "homeObservation": observation,
             "endpointAvailable": endpoint, **{name: reference for name, (reference, _) in artifacts.items()},
+            **({"sourceSelection": source_selection} if source_selection is not None else {}),
             **({"containmentReview": containment, "managementQuarantine": management,
                 "recoveryDeliveryInventory": deliveries} if committed else {}),
             **{name: False for name in _FLAGS}}, artifacts
 
 
 def _capture(manager, request_id, scope, command_ref=None, descriptor_ref=None, transition=None, recovery_digest=None):
-    """Wait for transient users without replaying a command or excluding owners.
+    """Wait for transient service owners without replaying a command or excluding owners.
 
     Every retry starts the complete original review again. Unknown/inaccessible
     identities, changed evidence and occupied Home files never enter this wait.

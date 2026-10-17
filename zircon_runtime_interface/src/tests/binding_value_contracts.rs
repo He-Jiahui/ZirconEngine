@@ -1,3 +1,8 @@
+//! 绑定值的公共 wire、文本投影、预算与受控窗口契约测试。
+//!
+//! 测试从公共重导出类型构造固定拥有值，分别断言结构化往返、文本往返、拒绝原因及回调 JSON 形状。
+//! 最后一个字节比例用例比较固定已物化窗口与窗口描述，不读取百万行集合或测量 Runtime 后端。
+
 use std::collections::BTreeMap;
 
 use crate::ui::binding::{
@@ -9,6 +14,7 @@ use crate::ui::binding::{
     UI_BINDING_VALUE_MAX_STRING_BYTES,
 };
 
+/// 建立固定提供方身份与非零版本键，不注册真实提供方。
 fn provider_key() -> UiModelProviderKey {
     UiModelProviderKey {
         id: UiModelProviderId::try_new("editor.asset_rows").unwrap(),
@@ -16,6 +22,7 @@ fn provider_key() -> UiModelProviderKey {
     }
 }
 
+/// 建立固定条目模式身份与非零版本键，不注册或读取模式。
 fn item_schema_key() -> UiModelSchemaKey {
     UiModelSchemaKey {
         id: UiModelSchemaId::try_new("editor.asset_row").unwrap(),
@@ -23,6 +30,7 @@ fn item_schema_key() -> UiModelSchemaKey {
     }
 }
 
+/// 按给定总行数建立固定起点和窗口长度；调用点必须保证窗口可容纳，否则夹具会提前失败。
 fn collection_view(total_length: u64) -> UiBindingCollectionView {
     UiBindingCollectionView::try_new(
         provider_key(),
@@ -35,6 +43,7 @@ fn collection_view(total_length: u64) -> UiBindingCollectionView {
     .unwrap()
 }
 
+/// 构造供多个断言复用的拥有值树；所选字符串、身份、窗口与数值均通过当前标准构造检查。
 fn rich_binding_value() -> UiBindingValue {
     let mut record = BTreeMap::new();
     record.insert(
@@ -83,6 +92,7 @@ fn rich_binding_value() -> UiBindingValue {
 }
 
 #[test]
+/// 对固定丰富值断言 JSON、二进制与原生绑定文本往返；不扩展为任意值类别或运行时调用证明。
 fn binding_value_rich_contract_round_trips_serde_and_native_binding() {
     let value = rich_binding_value();
     value.validate().unwrap();
@@ -117,6 +127,7 @@ fn binding_value_rich_contract_round_trips_serde_and_native_binding() {
 }
 
 #[test]
+/// 逐项触发选定资源和身份边界，检查对应错误类别与两个解析入口的拒绝。
 fn binding_value_contract_rejects_every_owned_budget_and_identity_overflow() {
     let oversized_collection = UiBindingValue::Array(vec![
         UiBindingValue::Null;
@@ -185,6 +196,7 @@ fn binding_value_contract_rejects_every_owned_budget_and_identity_overflow() {
 }
 
 #[test]
+/// 断言固定值的回调 JSON 形状、扩展标签及空可选值折叠，不把该投影当作 wire 编码。
 fn binding_value_json_projection_preserves_existing_shapes_and_tags_typed_values() {
     assert_eq!(
         UiBindingValue::Array(vec![
@@ -210,6 +222,7 @@ fn binding_value_json_projection_preserves_existing_shapes_and_tags_typed_values
 }
 
 #[test]
+/// 比较固定物化窗口与描述的序列化字节比例；总行数仅为描述字段，不进行集合加载。
 fn controlled_collection_view_reduces_serialized_payload_by_at_least_ninety_five_percent() {
     const MATERIALIZED_ROWS: usize = UI_BINDING_COLLECTION_VIEW_MAX_LENGTH as usize;
     const TOTAL_ROWS: u64 = 1_000_000;

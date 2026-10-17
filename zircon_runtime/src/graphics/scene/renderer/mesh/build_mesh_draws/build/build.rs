@@ -381,7 +381,7 @@ pub(crate) fn build_mesh_draws(
                         PendingMeshSourceSelection::Prepared(mesh)
                         | PendingMeshSourceSelection::GpuMorphed { mesh } => (mesh, None, false),
                         PendingMeshSourceSelection::Dynamic { primitive, .. } => (
-                            Arc::new(GpuMeshResource::from_asset(device, primitive)),
+                            Arc::new(GpuMeshResource::from_asset(device, &primitive)),
                             None,
                             false,
                         ),
@@ -465,6 +465,8 @@ pub(crate) fn build_mesh_draws(
             )
             .collect()
     };
+    let draws = crate::graphics::scene::scene_renderer::mesh::mesh_draw::indexed_plan::expand_indexed_draws(device, frame, draws)
+        .map_err(crate::graphics::GraphicsError::Asset)?;
     record_material_binding_build_profile(
         residual_draw_count,
         override_uniform_buffer_creation_count,

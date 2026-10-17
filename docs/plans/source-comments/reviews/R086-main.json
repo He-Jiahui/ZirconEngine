@@ -1,0 +1,1970 @@
+{
+  "schema_version": "source-comments-root-main-v2",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R086",
+  "owner": "root",
+  "agent": "reflection_luna",
+  "agent_model": "gpt-6-luna",
+  "agent_reasoning_effort": "max",
+  "created_at_utc": "2026-10-17T04:47:46.992054+00:00",
+  "status": "root-reviewed-locally-validated-pending-coverage-book-and-designated-Jenkins",
+  "source_scope": "Boundary-bias/visual-span value DTOs and whole directly mounted cluster/line perf modules. Map algorithms/whole ordinary map tests belong R084, parentgeometry R089, actual Runtime caller and UiTextRange/reexports context only.",
+  "source_read_complete": true,
+  "source_files": [
+    {
+      "path": "zircon_runtime_interface/src/ui/surface/render/source_map/boundary_bias.rs",
+      "before_sha256": "148f7c3180b987be99649a015aabf90146bf8f3257b5a3e5bac994b85b71fb86",
+      "before_bytes": 223,
+      "before_lines": 6,
+      "sha256": "1643d4d734337d72396b07e16d5ffbd8865a9107c5e9c91f01d68f0664cbb582",
+      "bytes": 701,
+      "lines": 12,
+      "inserted_groups": 3,
+      "inserted_lines": 6,
+      "inserted_bytes": 478,
+      "removed_original_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF/noBOM/finalLF",
+      "stage0_blob": "6f5cb785d89a4b8723bec4c622800a5cfad6fdd5",
+      "clean_filter_blob": "b094e9ff4da8ec7aed4cc3eb44ba0154a450e95d",
+      "owner": "reflection_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 4
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/surface/render/source_map/visual_span.rs",
+      "before_sha256": "b3bed6cade08520fdc0c49b822b4a644ec72435756596afc8141bd4732ce7346",
+      "before_bytes": 255,
+      "before_lines": 7,
+      "sha256": "7a47acbe74ec34e7c6b33e103f9d480419cbc5e8aeda7be6a58914f30e3a6709",
+      "bytes": 799,
+      "lines": 16,
+      "inserted_groups": 2,
+      "inserted_lines": 9,
+      "inserted_bytes": 544,
+      "removed_original_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF/noBOM/finalLF",
+      "stage0_blob": "0fe94fcad94f2422eb1c991cff12cff019e1a87b",
+      "clean_filter_blob": "9a531bd80e847b776a660bef18e20038a4c386b7",
+      "owner": "reflection_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 3
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/surface/render/source_map/cluster/tests/perf.rs",
+      "before_sha256": "824f0f10a22be0b40bae8025d916f6ace202f4019ff7ade8ce95b730d4e8c35d",
+      "before_bytes": 3606,
+      "before_lines": 113,
+      "sha256": "8750399ea265d96c3dc26d418e2791a5292ef4c59e23923652a45de3e2595216",
+      "bytes": 4498,
+      "lines": 127,
+      "inserted_groups": 5,
+      "inserted_lines": 14,
+      "inserted_bytes": 892,
+      "removed_original_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF/noBOM/finalLF",
+      "stage0_blob": "202b1f03b96cce9901440c0b6d9256984ca23d7d",
+      "clean_filter_blob": "941d682fa3cf9faf5ecbcf6681406fc4179dc25e",
+      "owner": "reflection_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 13
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/surface/render/source_map/line/tests/perf.rs",
+      "before_sha256": "7dd73db0b2a78aaf5c34fac56f5e3f3dc155e6f2b5a89b87b6cf1a9a373fe2f4",
+      "before_bytes": 9575,
+      "before_lines": 285,
+      "sha256": "b290edfe7983b98a68ba4304400f3a600fef198b75bd9224b710fbffa9b82021",
+      "bytes": 10957,
+      "lines": 306,
+      "inserted_groups": 9,
+      "inserted_lines": 21,
+      "inserted_bytes": 1382,
+      "removed_original_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF/noBOM/finalLF",
+      "stage0_blob": "e849e3b55a917548d1f4fec5455e65dc584391f6",
+      "clean_filter_blob": "6865bb8fe6db7debab37305c76f4607bdca17287",
+      "owner": "reflection_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 28
+    }
+  ],
+  "counts": {
+    "files": 4,
+    "objects": 19,
+    "members": 3,
+    "gapfree_semantic_blocks": 15,
+    "assertions": 11,
+    "normal_tests": 4,
+    "ignored_tests": 4,
+    "inserted_groups": 19,
+    "inserted_lines": 50,
+    "inserted_bytes": 3296,
+    "range_hashes": 48,
+    "caller_edges": 13,
+    "context_files": 9
+  },
+  "canonical_ranges": 48,
+  "canonical_range_digest": "dbbdfe8e7c3eed567aa12c89aecdb3c42a8d979788f78af5be190c5fda0cf935",
+  "canonical_range_record": "docs/plans/source-comments/reviews/R086-post-validation.json",
+  "records": [
+    {
+      "path": "docs/plans/source-comments/reviews/R086.json",
+      "sha256": "d2cf6fb0c8984e9fb048f7eba0d533f8faf80878d26c5fcff2b4cbe9116e1053",
+      "bytes": 92041,
+      "lines": 2930
+    },
+    {
+      "path": "docs/plans/source-comments/reviews/R086-post-validation.json",
+      "sha256": "43e54782995d57e15c9000166fc62a62bcbc855c5ce770ea0d4d3461469474ac",
+      "bytes": 139860,
+      "lines": 4252
+    }
+  ],
+  "child_immutable": true,
+  "source_amendments": [],
+  "metadata_errata": [
+    {
+      "field": "call_edges C6 production-caller to",
+      "child_label": "UiTextLineSourceMap::caret_for_visual_grapheme_boundary",
+      "correct_actual_method": "UiTextLineSourceMap::caret_for_visual_boundary",
+      "actual_evidence": "zircon_runtime/src/ui/text/hit_test.rs122; current f831eae87b1a72cce0632da7776dd32e8a9b4a088d168fd5d947d69f0bc697a3; root776/a56f00 exit0/PID50788",
+      "effect": "Historical child call-target label typo only; actual new source docs point to existing caret_for_visual_boundary. Fixed child retained; no source issue label or API change."
+    }
+  ],
+  "root_review": {
+    "source": "root766/d07120 exit0/PID19728 full exact4 final461LF/16955B",
+    "models": "root769/65a033 exit0/PID36408 and root770/ea0049 exit0/PID48340 full child metadata/19objects3members15blocks/9contexts/13receipt histories; full raw guards root773/13b3cc exit0/PID3048",
+    "contexts": "R084 root749/226b92 line478LF;root747 mod16+cluster199;root750/df2728 tests688;root756/830014 native8441->a690b0 exit0/PID18832 current parent602LF and Runtime selecteds, omitted outer parent slice reemitted758;root759/0479b8 render109/surface84/boundary exact ranges. Same pins reused. root773/13b3cc text_layout1-38;root776/a56f00 exit0/PID50788 actual Runtime86-125/270-300.",
+    "legacy_readers": "root774/daed1c exit1/PID49908 full4reader149LF+allselectors actualpresence complete before erroneous root guessed C6 digest assertion; no reads claimed after failure. Root776 corrected exact child C6 locator/current hash and read actual caller; no writes/replays.",
+    "current_independent_verification": "This actual invocation independently verifies exact child/post records,4current pins and19comment inverses,48physical range hashes/digest,9current contexts/raw reader pins and28assertion states/config/guard/issues/scoped ownership before only main creation. No predicted native receipt."
+  },
+  "core_helper": {
+    "separate_owned_R086_core_review_claimed": false,
+    "context_assistance": "R084 core Sol max full map algorithms and contexts retained as same-pinned context evidence only; root fully independently read R086 owned461LF and models, no new core conclusion claimed for four DTO/benchmark leaves."
+  },
+  "semantic_contracts": [
+    "Boundary-bias variants choose current-leading/downstream versus previous-trailing/upstream in line map; Runtime caller derives visual cluster boundary and uses original caller source fallback only when real artifact/source result is absent. Fallback is unvalidated source byte value, not cluster index conversion.",
+    "VisualSpan owns half-open visual UTF8-byte offsets in resolved-line coordinates. Manual construction validates neither range ordering nor code-point boundaries, and does not retain line/document. UiTextRange Serde does not imply wrapper or bias derives serialization or ABI compatibility.",
+    "Fixed denseASCII fixtures use2048/65536 single-byte LTR equal-advance runs. Ordinary tests compare whole projections/caret/range outcomes with existing linear oracles; not all Unicode, bidi, actual shaping, allocator or end-to-end coverage.",
+    "Four ignored benchmarks require explicit selection; ignore does not enforce release configuration. Names and old assertion strings retained. Eleven sorted samples choose last, a maximum; new comments do not call that a percentile.",
+    "Fixture/map construction occurs outside clocks, repeated-source lazy cache prewarming occurs outside measured loops, four projection repeats and64query repeats retain original operators/order. Alternating fast/linear order mitigates fixed order only; no timing was executed. Returned Vec allocations and query effects are part of measured calls, not a pure search-instruction measurement.",
+    "Legacy Python selectors still name missing old cluster.rs/performance_tests.rs locations; no substitution to current filenames.13reachable assertIn predicates true,15assertions blocked before read; not unittest passing or new R086 source BUG. All25operand contributions from new owned comments are zero.",
+    "Child C6 target spelling corrected as metadata errata only, with actual call122 and source doc link verified; immutable child preserved."
+  ],
+  "call_relation_evidence": {
+    "historical_child_edges": [
+      {
+        "from": "C1",
+        "span_version": "semantic",
+        "lines": [
+          2,
+          9
+        ],
+        "kind": "module-path",
+        "to": "authority.audited_paths",
+        "fact": "Real #[path] entries mount physical source_map leaf files; cluster/line remain separate parent implementations."
+      },
+      {
+        "from": "C1",
+        "span_version": "semantic",
+        "lines": [
+          11,
+          13
+        ],
+        "kind": "reexport",
+        "to": [
+          "UiTextVisualBoundaryBias",
+          "UiTextLineSourceMap",
+          "UiTextVisualSpan"
+        ],
+        "fact": "Names reexport through text_geometry and public render/surface imports."
+      },
+      {
+        "from": "C2",
+        "span_version": "semantic",
+        "lines": [
+          15,
+          17
+        ],
+        "kind": "test-mount",
+        "to": "line/tests/perf.rs",
+        "fact": "cfg(test)+#[path] module grants child tests access to parent's private helpers/cache."
+      },
+      {
+        "from": "C3",
+        "span_version": "semantic",
+        "lines": [
+          5,
+          7
+        ],
+        "kind": "test-mount",
+        "to": "cluster/tests/perf.rs",
+        "fact": "cfg(test) direct mount; eight Rust tests total across the two owned perf leaves."
+      },
+      {
+        "from": "C2",
+        "span_version": "semantic",
+        "lines": [
+          197,
+          226
+        ],
+        "kind": "direct-consumer",
+        "to": "UiTextVisualBoundaryBias",
+        "fact": "LeadingCurrent uses current cluster+Downstream; TrailingPrevious uses checked previous cluster+Upstream; missing cluster uses caller fallback offset with the same chosen affinity."
+      },
+      {
+        "from": "C6",
+        "span_version": "semantic",
+        "lines": [
+          104,
+          125
+        ],
+        "kind": "production-caller",
+        "to": "UiTextLineSourceMap::caret_for_visual_grapheme_boundary",
+        "fact": "Runtime hit-test creates the source map as fallback when artifact/source caret did not provide the caret."
+      },
+      {
+        "from": "C6",
+        "span_version": "semantic",
+        "lines": [
+          190,
+          219
+        ],
+        "kind": "production-side-selection",
+        "to": "UiTextVisualBoundaryBias",
+        "fact": "x hit position and visual grapheme side select current/previous boundary; source-map resolves logical run edge."
+      },
+      {
+        "from": "C2",
+        "span_version": "semantic",
+        "lines": [
+          229,
+          249
+        ],
+        "kind": "producer",
+        "to": "UiTextVisualSpan",
+        "fact": "source range projection chooses optimized ordered ranges or linear path."
+      },
+      {
+        "from": "C2",
+        "span_version": "semantic",
+        "lines": [
+          387,
+          402
+        ],
+        "kind": "constructor-consumer",
+        "to": "UiTextVisualSpan.visual_range",
+        "fact": "Adjacent projected visual cluster ranges are merged; returned values own byte offsets."
+      },
+      {
+        "from": "C5",
+        "span_version": "semantic",
+        "lines": [
+          301,
+          310
+        ],
+        "kind": "production-consumer",
+        "to": "UiTextVisualSpan.visual_range",
+        "fact": "Decoration generation takes start/end to compute visual advances with the same line map."
+      },
+      {
+        "from": "C2",
+        "span_version": "semantic",
+        "lines": [
+          330,
+          384
+        ],
+        "kind": "private-oracle-cache",
+        "to": "line/tests/perf.rs",
+        "fact": "Lazy source-edge bounds threshold, index construction and linear oracle explain the repeat fixture and prewarmed benchmark."
+      },
+      {
+        "from": "C8",
+        "span_version": "current",
+        "lines": [
+          89,
+          89
+        ],
+        "kind": "public-reexport",
+        "to": [
+          "UiTextVisualBoundaryBias",
+          "UiTextVisualSpan"
+        ]
+      },
+      {
+        "from": "C9",
+        "span_version": "current",
+        "lines": [
+          77,
+          78
+        ],
+        "kind": "public-reexport",
+        "to": [
+          "UiTextVisualBoundaryBias",
+          "UiTextVisualSpan"
+        ]
+      }
+    ],
+    "metadata_errata": [
+      {
+        "field": "call_edges C6 production-caller to",
+        "child_label": "UiTextLineSourceMap::caret_for_visual_grapheme_boundary",
+        "correct_actual_method": "UiTextLineSourceMap::caret_for_visual_boundary",
+        "actual_evidence": "zircon_runtime/src/ui/text/hit_test.rs122; current f831eae87b1a72cce0632da7776dd32e8a9b4a088d168fd5d947d69f0bc697a3; root776/a56f00 exit0/PID50788",
+        "effect": "Historical child call-target label typo only; actual new source docs point to existing caret_for_visual_boundary. Fixed child retained; no source issue label or API change."
+      }
+    ],
+    "contexts": [
+      {
+        "id": "C1",
+        "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/mod.rs",
+        "semantic_sha256": "497456912602290f23d58c9cb348fa6ae12a1cd0c4496a6651eb1d77dde7dbaa",
+        "semantic_ranges": [
+          [
+            1,
+            13
+          ]
+        ],
+        "sha256": "401230b1bbf8ed9786184872b8af934f6282c7e7354dfd795c9a7e14644a8a59",
+        "bytes": 675,
+        "lines": 16,
+        "mapped_current_ranges": [
+          [
+            1,
+            16
+          ]
+        ],
+        "additional_comments_only": true,
+        "child_recorded_current_sha256": "401230b1bbf8ed9786184872b8af934f6282c7e7354dfd795c9a7e14644a8a59",
+        "formal_coverage": false,
+        "root_read_scope": "Full same-pinned current source already independently read in R084; reused only as R086 context."
+      },
+      {
+        "id": "C2",
+        "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+        "semantic_sha256": "8c0ead0c43fd5d7ab7bf299839841a1f8ebced86bbbb9f752fb65299f89141d0",
+        "semantic_ranges": [
+          [
+            1,
+            65
+          ],
+          [
+            150,
+            255
+          ],
+          [
+            310,
+            415
+          ]
+        ],
+        "sha256": "f6af8fdfc75e12572e95852178a814ed990073f1ad8f958b9efe4616b739be75",
+        "bytes": 18724,
+        "lines": 478,
+        "mapped_current_ranges": [
+          [
+            1,
+            80
+          ],
+          [
+            174,
+            299
+          ],
+          [
+            355,
+            463
+          ]
+        ],
+        "additional_comments_only": true,
+        "child_recorded_current_sha256": "f6af8fdfc75e12572e95852178a814ed990073f1ad8f958b9efe4616b739be75",
+        "formal_coverage": false,
+        "root_read_scope": "Full same-pinned current source already independently read in R084; reused only as R086 context."
+      },
+      {
+        "id": "C3",
+        "path": "zircon_runtime_interface/src/ui/surface/render/source_map/cluster.rs",
+        "semantic_sha256": "292d81a563f7ddc955e3782eaf13ba3cda7833759fc0215dbe4c432992c9f38a",
+        "semantic_ranges": [
+          [
+            1,
+            35
+          ],
+          [
+            120,
+            181
+          ]
+        ],
+        "sha256": "478bcd69fbf7bc256f23eabfef59f4fb8d25e0766913a1043d6d5054c8a23503",
+        "bytes": 7938,
+        "lines": 199,
+        "mapped_current_ranges": [
+          [
+            3,
+            46
+          ],
+          [
+            137,
+            199
+          ]
+        ],
+        "additional_comments_only": true,
+        "child_recorded_current_sha256": "478bcd69fbf7bc256f23eabfef59f4fb8d25e0766913a1043d6d5054c8a23503",
+        "formal_coverage": false,
+        "root_read_scope": "Full same-pinned current source already independently read in R084; reused only as R086 context."
+      },
+      {
+        "id": "C4",
+        "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/tests/source_map.rs",
+        "semantic_sha256": "a9caef847cc1dbb0c6e17a2bdd7c7d3c246639b62115655e612506e1a25ee9f4",
+        "semantic_ranges": [
+          [
+            420,
+            466
+          ],
+          [
+            515,
+            558
+          ],
+          [
+            605,
+            649
+          ]
+        ],
+        "sha256": "316a9be04673243b6dc8ddf9054b088a00727f774f1e8f4be3c2f6bdf3c4b8a4",
+        "bytes": 23027,
+        "lines": 688,
+        "mapped_current_ranges": [
+          [
+            430,
+            477
+          ],
+          [
+            527,
+            571
+          ],
+          [
+            620,
+            664
+          ]
+        ],
+        "additional_comments_only": true,
+        "child_recorded_current_sha256": "316a9be04673243b6dc8ddf9054b088a00727f774f1e8f4be3c2f6bdf3c4b8a4",
+        "formal_coverage": false,
+        "root_read_scope": "Full same-pinned current source already independently read in R084; reused only as R086 context."
+      },
+      {
+        "id": "C5",
+        "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs",
+        "semantic_sha256": "60dd13f07ba0b00d9ea4fa1e11b544a4f0baa7e3b8b934b3b6a81d8a3dd8e9e3",
+        "semantic_ranges": [
+          [
+            1,
+            24
+          ],
+          [
+            288,
+            318
+          ],
+          [
+            387,
+            414
+          ]
+        ],
+        "sha256": "ab8ca6dd787c71ae75f146dd46af819791c44ad50a189f73bf10f9f4dbd933eb",
+        "bytes": 23218,
+        "lines": 602,
+        "mapped_current_ranges": [
+          [
+            9,
+            32
+          ],
+          [
+            353,
+            388
+          ],
+          [
+            479,
+            515
+          ]
+        ],
+        "additional_comments_only": true,
+        "child_recorded_current_sha256": "60dd13f07ba0b00d9ea4fa1e11b544a4f0baa7e3b8b934b3b6a81d8a3dd8e9e3",
+        "formal_coverage": false,
+        "root_read_scope": "Full same-pinned current source already independently read in R084; reused only as R086 context."
+      },
+      {
+        "id": "C6",
+        "path": "zircon_runtime/src/ui/text/hit_test.rs",
+        "semantic_sha256": "f831eae87b1a72cce0632da7776dd32e8a9b4a088d168fd5d947d69f0bc697a3",
+        "semantic_ranges": [
+          [
+            86,
+            125
+          ],
+          [
+            190,
+            221
+          ],
+          [
+            270,
+            289
+          ]
+        ],
+        "sha256": "f831eae87b1a72cce0632da7776dd32e8a9b4a088d168fd5d947d69f0bc697a3",
+        "bytes": 10782,
+        "lines": 300,
+        "mapped_current_ranges": [
+          [
+            86,
+            125
+          ],
+          [
+            190,
+            221
+          ],
+          [
+            270,
+            289
+          ]
+        ],
+        "additional_comments_only": false,
+        "child_recorded_current_sha256": "f831eae87b1a72cce0632da7776dd32e8a9b4a088d168fd5d947d69f0bc697a3",
+        "formal_coverage": false,
+        "root_read_scope": "Actual selected Runtime86-125/190-221/270-300 read/reused, not full Runtime module."
+      },
+      {
+        "id": "C7",
+        "path": "zircon_runtime_interface/src/ui/surface/render/text_layout.rs",
+        "semantic_sha256": "4faf821e975512e0e26d9ac833723c7f53c354572282185f3bfb1c0a24c67441",
+        "semantic_ranges": [
+          [
+            13,
+            19
+          ],
+          [
+            14,
+            20
+          ],
+          [
+            15,
+            21
+          ]
+        ],
+        "sha256": "4faf821e975512e0e26d9ac833723c7f53c354572282185f3bfb1c0a24c67441",
+        "bytes": 6155,
+        "lines": 181,
+        "mapped_current_ranges": [
+          [
+            13,
+            19
+          ],
+          [
+            14,
+            20
+          ],
+          [
+            15,
+            21
+          ]
+        ],
+        "additional_comments_only": false,
+        "child_recorded_current_sha256": "4faf821e975512e0e26d9ac833723c7f53c354572282185f3bfb1c0a24c67441",
+        "formal_coverage": false,
+        "root_read_scope": "Actual1-38 read; UiTextRange values/derive, not whole text_layout closure."
+      },
+      {
+        "id": "C8",
+        "path": "zircon_runtime_interface/src/ui/surface/render/mod.rs",
+        "semantic_sha256": "80d851eb70b07492618e31764969f3efd2b69aefa27e48edcac0ad7bc6fdf75d",
+        "semantic_ranges": [
+          [
+            86,
+            92
+          ],
+          [
+            86,
+            92
+          ]
+        ],
+        "sha256": "80d851eb70b07492618e31764969f3efd2b69aefa27e48edcac0ad7bc6fdf75d",
+        "bytes": 4053,
+        "lines": 109,
+        "mapped_current_ranges": [
+          [
+            86,
+            92
+          ],
+          [
+            86,
+            92
+          ]
+        ],
+        "additional_comments_only": false,
+        "child_recorded_current_sha256": "80d851eb70b07492618e31764969f3efd2b69aefa27e48edcac0ad7bc6fdf75d",
+        "formal_coverage": false,
+        "root_read_scope": "Full same-pinned current source already independently read in R084; reused only as R086 context."
+      },
+      {
+        "id": "C9",
+        "path": "zircon_runtime_interface/src/ui/surface/mod.rs",
+        "semantic_sha256": "32e39cf76d3ca79cccd1eaf73121a315339d6aaa2f7ede90d208a742509e4ad6",
+        "semantic_ranges": [
+          [
+            74,
+            80
+          ],
+          [
+            75,
+            81
+          ]
+        ],
+        "sha256": "32e39cf76d3ca79cccd1eaf73121a315339d6aaa2f7ede90d208a742509e4ad6",
+        "bytes": 4649,
+        "lines": 84,
+        "mapped_current_ranges": [
+          [
+            74,
+            80
+          ],
+          [
+            75,
+            81
+          ]
+        ],
+        "additional_comments_only": false,
+        "child_recorded_current_sha256": "32e39cf76d3ca79cccd1eaf73121a315339d6aaa2f7ede90d208a742509e4ad6",
+        "formal_coverage": false,
+        "root_read_scope": "Full same-pinned current source already independently read in R084; reused only as R086 context."
+      }
+    ],
+    "traits_macros_dynamic_FFI": {
+      "traits": {
+        "declared_in_owned_files": [],
+        "inherited": [
+          "Clone",
+          "Copy",
+          "Debug",
+          "PartialEq",
+          "Eq"
+        ],
+        "evidence": "Two complete DTO leaves have builtin derive attributes. Test leaves declare no impl/trait. UiTextRange's own Serialize/Deserialize derives (C7:15-19) do not derive serde for UiTextVisualSpan."
+      },
+      "macros": {
+        "local_proc_macro_definitions": 0,
+        "owned_attributes": {
+          "derive": 2,
+          "test": 8,
+          "ignore": 4
+        },
+        "owned_macro_sites": {
+          "assert_eq": 6,
+          "assert": 5,
+          "vec": 2,
+          "eprintln": 4
+        },
+        "scope": "Complete four-file lexical/source review, not expansion output or a claim that derive generation is absent."
+      },
+      "registration": {
+        "dynamic_registration_in_owned_sources": false,
+        "evidence": "Only two plain DTO declarations and test fixtures/harness functions. Direct mounts C2/C3 are cfg(test) Rust modules, C1/C8/C9 are static module/reexport paths. No runtime registry operation is declared here."
+      },
+      "ffi": {
+        "owned_unsafe_or_extern_or_repr_C": false,
+        "evidence": "Complete source leaves contain no pointer/ABI boundary; downstream integration beyond the recorded Rust consumers is not claimed exhaustive."
+      },
+      "lifecycle": {
+        "dto": "Copy offsets/enum values retain no document reference and do not keep runtime text alive. Struct literals do not perform ordering or UTF-8 checks.",
+        "fixtures": "Fixtures own String/Vec data; local maps borrow their fixture during each test/benchmark. Construction is outside timed loops; this does not measure font loading or real shaping."
+      },
+      "tests": {
+        "formal_owned_count": 8,
+        "normal": 4,
+        "ignored": 4,
+        "assertion_macro_sites": 11,
+        "executed": false,
+        "benchmarks_executed": false,
+        "rustdoc_build": false,
+        "limits": "Fixed ASCII LTR fixtures and comparisons to parent linear oracles; not general Unicode/bidi/concurrent-cache coverage. No build mode is enforced by #[ignore] or test name. Eleven sorted samples use the last observed sample, not a promised statistical percentile."
+      },
+      "search_limits": "Candidate and caller searches covered interface/src, runtime/src and editor/src. Real consumed paths and parent helper bodies were read; lexical search is not AST resolution or proof of all indirect callers."
+    },
+    "context_version_limit": "Full same-pinned R084 maps/tests and R089 current602LF parent reused; Runtime only selected direct caller ranges and text_layout1-38 read. Child semantic old pins retained and only extra comments reconciled; whole indirect dependency closure not claimed."
+  },
+  "issue_ids": [],
+  "issues": [],
+  "reserved_unused": [
+    "CR-ZCA-R086-0001"
+  ],
+  "issue_ledger_registration_pending": false,
+  "verification": {
+    "post_writer_actual_terminal": "root791/bd80d2 native1165->root792/f8bbd5 exit0/PID48984",
+    "post_exact_commands": 24,
+    "all_command_exit_codes_zero": true,
+    "guard_summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "format_evidence_reused": {
+      "paths": [
+        "zircon_runtime_interface/src/ui/surface/render/source_map/boundary_bias.rs",
+        "zircon_runtime_interface/src/ui/surface/render/source_map/visual_span.rs",
+        "zircon_runtime_interface/src/ui/surface/render/source_map/cluster/tests/perf.rs",
+        "zircon_runtime_interface/src/ui/surface/render/source_map/line/tests/perf.rs"
+      ],
+      "argv_prefix": [
+        "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true"
+      ],
+      "receipt": "reflection_luna independent13/1c2587 exit0/PID27092; fixed child final S32/df2bb0 native46168->a55c5c exit0/PID35424",
+      "exact_current_pins_reused": true,
+      "exit_code": 0,
+      "repeated": false
+    },
+    "raw_consumers": {
+      "boundary": {
+        "reader": "zircon_runtime_interface/src/tests/boundary.rs",
+        "sha256": "7acb8b1622c66bc34670a217c350485f10c17bdab04a2423edcb82bc9b6f06b2",
+        "same_pinned_actual_reader_scope_reused": "R084 root759 exact boundary ranges1-90/170-274/329-369/525-644/691-874/1062-1097",
+        "operands": [
+          "include_str!(",
+          "include_bytes!(",
+          "zircon_runtime/src",
+          "zircon_editor/src",
+          "zircon_runtime::",
+          "zircon_editor::",
+          "wgpu::",
+          "winit::",
+          "slint::",
+          "libloading::",
+          "tokio::",
+          "std::fs",
+          "std::net",
+          "std::process",
+          "std::thread",
+          "std::sync"
+        ],
+        "domains": [
+          {
+            "path": "zircon_runtime_interface/src/ui/surface/render/source_map/boundary_bias.rs",
+            "collector_included": true,
+            "before_counts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "current_counts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "new_comment_counts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "path": "zircon_runtime_interface/src/ui/surface/render/source_map/visual_span.rs",
+            "collector_included": true,
+            "before_counts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "current_counts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "new_comment_counts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "path": "zircon_runtime_interface/src/ui/surface/render/source_map/cluster/tests/perf.rs",
+            "collector_included": false,
+            "before_counts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "current_counts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "new_comment_counts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "path": "zircon_runtime_interface/src/ui/surface/render/source_map/line/tests/perf.rs",
+            "collector_included": false,
+            "before_counts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "current_counts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "new_comment_counts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ],
+        "operator_semantics": "Physical collector excludes tests dirs; exact2DTO production files have no cfg(test). All16raw counts0 so code-position/contains truth same; whole aggregate not executed."
+      },
+      "legacy": {
+        "operands": [
+          "OnceLock<HashMap<(usize, usize), (usize, usize)>>",
+          "RUNTIME_INTERFACE03_BINARY_CARET_SOURCE_LOOKUP_BENCH_V1",
+          "RUNTIME_INTERFACE03_BINARY_SOURCE_SPAN_RANGE_BENCH_V1",
+          "RUNTIME_INTERFACE03_SOURCE_EDGE_CACHE_BENCH_V1",
+          "RUNTIME_INTERFACE03_VISUAL_CLUSTER_RUN_CURSOR_BENCH_V1",
+          "SOURCE_EDGE_LINEAR_QUERY_LIMIT",
+          "UiTextSourceEdgeCache",
+          "cluster_for_visual_grapheme_in_runs",
+          "let mut run_start = 0;",
+          "mod performance_tests;",
+          "partition_point",
+          "run_start += 1;",
+          "runs_are_visually_ordered",
+          "runtime_interface03_batch13_visual_cluster_cursor_preserves_projection",
+          "runtime_interface03_batch14_binary_caret_source_lookup_preserves_affinity",
+          "runtime_interface03_batch15_binary_source_span_range_preserves_projection",
+          "runtime_interface03_batch16_cached_source_edges_preserve_projection",
+          "source_clusters_for_range",
+          "source_edge_bounds_by_range",
+          "source_edge_visual_bounds_linear",
+          "source_ranges_are_disjoint_and_ordered",
+          "visual_offset_for_caret_linear",
+          "visual_offset_for_ordered_caret",
+          "visual_source_clusters_linear",
+          "visual_spans_for_source_range_linear"
+        ],
+        "owned_vectors": [
+          {
+            "path": "zircon_runtime_interface/src/ui/surface/render/source_map/boundary_bias.rs",
+            "before": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "current": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "new_comment_contribution": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "path": "zircon_runtime_interface/src/ui/surface/render/source_map/visual_span.rs",
+            "before": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "current": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "new_comment_contribution": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "path": "zircon_runtime_interface/src/ui/surface/render/source_map/cluster/tests/perf.rs",
+            "before": [
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              4,
+              0
+            ],
+            "current": [
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              4,
+              0
+            ],
+            "new_comment_contribution": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "path": "zircon_runtime_interface/src/ui/surface/render/source_map/line/tests/perf.rs",
+            "before": [
+              0,
+              1,
+              1,
+              1,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              1,
+              0,
+              0,
+              2,
+              0,
+              2,
+              0,
+              0,
+              2
+            ],
+            "current": [
+              0,
+              1,
+              1,
+              1,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              1,
+              0,
+              0,
+              2,
+              0,
+              2,
+              0,
+              0,
+              2
+            ],
+            "new_comment_contribution": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ],
+        "readers": [
+          {
+            "path": "tools/tests/test_runtime_interface03_visual_cluster_run_cursor_performance_contract.py",
+            "sha256": "8b8fe3204905fcad87adc6855370ab5190a8b479062959b6d5254269a5234d9e",
+            "bytes": 1405,
+            "lines": 40,
+            "selectors": {
+              "SOURCE": {
+                "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/cluster.rs",
+                "exists": false
+              },
+              "BENCHMARK_SOURCE": {
+                "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/cluster/tests/performance_tests.rs",
+                "exists": false
+              }
+            },
+            "assertions": [
+              {
+                "method": "test_ordered_visual_runs_use_monotonic_cursor",
+                "operator": "assertIn",
+                "line": 19,
+                "operand": "runs_are_visually_ordered",
+                "state": [
+                  19,
+                  12,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              },
+              {
+                "method": "test_ordered_visual_runs_use_monotonic_cursor",
+                "operator": "assertIn",
+                "line": 20,
+                "operand": "let mut run_start = 0;",
+                "state": [
+                  20,
+                  8,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              },
+              {
+                "method": "test_ordered_visual_runs_use_monotonic_cursor",
+                "operator": "assertIn",
+                "line": 21,
+                "operand": "run_start += 1;",
+                "state": [
+                  21,
+                  11,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              },
+              {
+                "method": "test_ordered_visual_runs_use_monotonic_cursor",
+                "operator": "assertIn",
+                "line": 22,
+                "operand": "cluster_for_visual_grapheme_in_runs",
+                "state": [
+                  22,
+                  7,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              },
+              {
+                "method": "test_ordered_visual_runs_use_monotonic_cursor",
+                "operator": "assertIn",
+                "line": 23,
+                "operand": "visual_source_clusters_linear",
+                "state": [
+                  23,
+                  23,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              },
+              {
+                "method": "test_release_benchmark_and_behavior_oracle_are_present",
+                "operator": "assertIn",
+                "line": 29,
+                "operand": "mod performance_tests;",
+                "state": [
+                  29,
+                  9,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              },
+              {
+                "method": "test_release_benchmark_and_behavior_oracle_are_present",
+                "operator": "assertIn",
+                "line": 30,
+                "operand": "runtime_interface03_batch13_visual_cluster_cursor_preserves_projection",
+                "state": [
+                  30,
+                  13,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              },
+              {
+                "method": "test_release_benchmark_and_behavior_oracle_are_present",
+                "operator": "assertIn",
+                "line": 34,
+                "operand": "RUNTIME_INTERFACE03_VISUAL_CLUSTER_RUN_CURSOR_BENCH_V1",
+                "state": [
+                  34,
+                  4,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              }
+            ],
+            "context_only": true,
+            "executed": false
+          },
+          {
+            "path": "tools/tests/test_runtime_interface03_source_edge_cache_performance_contract.py",
+            "sha256": "5318333cc5575d86a87b211bbe215b3fca0dc8a8a923566fe851f462750d21bf",
+            "bytes": 1291,
+            "lines": 35,
+            "selectors": {
+              "SOURCE": {
+                "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "exists": true
+              },
+              "BENCHMARK_SOURCE": {
+                "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line/tests/performance_tests.rs",
+                "exists": false
+              }
+            },
+            "assertions": [
+              {
+                "method": "test_repeated_nonisomorphic_edges_use_a_lazy_range_index",
+                "operator": "assertIn",
+                "line": 18,
+                "operand": "UiTextSourceEdgeCache",
+                "state": [
+                  18,
+                  6,
+                  true,
+                  4,
+                  true
+                ],
+                "before_count": 4,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_repeated_nonisomorphic_edges_use_a_lazy_range_index",
+                "operator": "assertIn",
+                "line": 19,
+                "operand": "source_edge_bounds_by_range",
+                "state": [
+                  19,
+                  18,
+                  true,
+                  2,
+                  true
+                ],
+                "before_count": 2,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_repeated_nonisomorphic_edges_use_a_lazy_range_index",
+                "operator": "assertIn",
+                "line": 20,
+                "operand": "OnceLock<HashMap<(usize, usize), (usize, usize)>>",
+                "state": [
+                  20,
+                  0,
+                  true,
+                  1,
+                  true
+                ],
+                "before_count": 1,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_repeated_nonisomorphic_edges_use_a_lazy_range_index",
+                "operator": "assertIn",
+                "line": 21,
+                "operand": "SOURCE_EDGE_LINEAR_QUERY_LIMIT",
+                "state": [
+                  21,
+                  5,
+                  true,
+                  2,
+                  true
+                ],
+                "before_count": 2,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_repeated_nonisomorphic_edges_use_a_lazy_range_index",
+                "operator": "assertIn",
+                "line": 22,
+                "operand": "source_edge_visual_bounds_linear",
+                "state": [
+                  22,
+                  19,
+                  true,
+                  2,
+                  true
+                ],
+                "before_count": 2,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_release_benchmark_and_behavior_oracle_are_present",
+                "operator": "assertIn",
+                "line": 27,
+                "operand": "runtime_interface03_batch16_cached_source_edges_preserve_projection",
+                "state": [
+                  27,
+                  16,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              },
+              {
+                "method": "test_release_benchmark_and_behavior_oracle_are_present",
+                "operator": "assertIn",
+                "line": 31,
+                "operand": "RUNTIME_INTERFACE03_SOURCE_EDGE_CACHE_BENCH_V1",
+                "state": [
+                  31,
+                  3,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              }
+            ],
+            "context_only": true,
+            "executed": false
+          },
+          {
+            "path": "tools/tests/test_runtime_interface03_source_span_cluster_range_performance_contract.py",
+            "sha256": "1f650c55ccb644c28295ee38822540e7377af90c6583c5775c943d039ef74065",
+            "bytes": 1248,
+            "lines": 36,
+            "selectors": {
+              "SOURCE": {
+                "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "exists": true
+              },
+              "BENCHMARK_SOURCE": {
+                "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line/tests/performance_tests.rs",
+                "exists": false
+              }
+            },
+            "assertions": [
+              {
+                "method": "test_ordered_source_spans_use_binary_cluster_slice",
+                "operator": "assertIn",
+                "line": 18,
+                "operand": "source_clusters_for_range",
+                "state": [
+                  18,
+                  17,
+                  true,
+                  2,
+                  true
+                ],
+                "before_count": 2,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_ordered_source_spans_use_binary_cluster_slice",
+                "operator": "assertIn",
+                "line": 19,
+                "operand": "partition_point",
+                "state": [
+                  19,
+                  10,
+                  true,
+                  6,
+                  true
+                ],
+                "before_count": 6,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_ordered_source_spans_use_binary_cluster_slice",
+                "operator": "assertIn",
+                "line": 20,
+                "operand": "visual_spans_for_source_range_linear",
+                "state": [
+                  20,
+                  24,
+                  true,
+                  2,
+                  true
+                ],
+                "before_count": 2,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_ordered_source_spans_use_binary_cluster_slice",
+                "operator": "assertIn",
+                "line": 21,
+                "operand": "source_ranges_are_disjoint_and_ordered",
+                "state": [
+                  21,
+                  20,
+                  true,
+                  6,
+                  true
+                ],
+                "before_count": 6,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_release_benchmark_and_behavior_oracle_are_present",
+                "operator": "assertIn",
+                "line": 26,
+                "operand": "runtime_interface03_batch15_binary_source_span_range_preserves_projection",
+                "state": [
+                  26,
+                  15,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              },
+              {
+                "method": "test_release_benchmark_and_behavior_oracle_are_present",
+                "operator": "assertIn",
+                "line": 30,
+                "operand": "RUNTIME_INTERFACE03_BINARY_SOURCE_SPAN_RANGE_BENCH_V1",
+                "state": [
+                  30,
+                  2,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              }
+            ],
+            "context_only": true,
+            "executed": false
+          },
+          {
+            "path": "tools/tests/test_runtime_interface03_caret_source_cluster_lookup_performance_contract.py",
+            "sha256": "6918f57c1fb29123dede2e04f80ff3dafc9912e9484164953ceb2c276260d2b2",
+            "bytes": 1363,
+            "lines": 38,
+            "selectors": {
+              "SOURCE": {
+                "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "exists": true
+              },
+              "BENCHMARK_SOURCE": {
+                "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line/tests/performance_tests.rs",
+                "exists": false
+              }
+            },
+            "assertions": [
+              {
+                "method": "test_disjoint_source_clusters_use_binary_caret_lookup",
+                "operator": "assertIn",
+                "line": 18,
+                "operand": "source_ranges_are_disjoint_and_ordered",
+                "state": [
+                  18,
+                  20,
+                  true,
+                  6,
+                  true
+                ],
+                "before_count": 6,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_disjoint_source_clusters_use_binary_caret_lookup",
+                "operator": "assertIn",
+                "line": 19,
+                "operand": "visual_offset_for_ordered_caret",
+                "state": [
+                  19,
+                  22,
+                  true,
+                  2,
+                  true
+                ],
+                "before_count": 2,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_disjoint_source_clusters_use_binary_caret_lookup",
+                "operator": "assertIn",
+                "line": 20,
+                "operand": "partition_point",
+                "state": [
+                  20,
+                  10,
+                  true,
+                  6,
+                  true
+                ],
+                "before_count": 6,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_disjoint_source_clusters_use_binary_caret_lookup",
+                "operator": "assertIn",
+                "line": 21,
+                "operand": "visual_offset_for_caret_linear",
+                "state": [
+                  21,
+                  21,
+                  true,
+                  2,
+                  true
+                ],
+                "before_count": 2,
+                "selected_input": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+                "executed": false
+              },
+              {
+                "method": "test_release_benchmark_and_behavior_oracle_are_present",
+                "operator": "assertIn",
+                "line": 27,
+                "operand": "mod performance_tests;",
+                "state": [
+                  27,
+                  9,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              },
+              {
+                "method": "test_release_benchmark_and_behavior_oracle_are_present",
+                "operator": "assertIn",
+                "line": 28,
+                "operand": "runtime_interface03_batch14_binary_caret_source_lookup_preserves_affinity",
+                "state": [
+                  28,
+                  14,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              },
+              {
+                "method": "test_release_benchmark_and_behavior_oracle_are_present",
+                "operator": "assertIn",
+                "line": 32,
+                "operand": "RUNTIME_INTERFACE03_BINARY_CARET_SOURCE_LOOKUP_BENCH_V1",
+                "state": [
+                  32,
+                  1,
+                  false,
+                  null,
+                  null
+                ],
+                "before_count": null,
+                "selected_input": null,
+                "executed": false
+              }
+            ],
+            "context_only": true,
+            "executed": false
+          }
+        ],
+        "assertion_count": 28,
+        "reachable_true": 13,
+        "reachable_false": 0,
+        "blocked_null": 15,
+        "execution": "AST-guided static read/operator evaluation only, no unittest import/run; ignored/provenance unresolved raw-reader files context-only"
+      },
+      "new_comment_operand_contribution": 0
+    },
+    "tests_run": false,
+    "builds_run": false,
+    "git_mutations": false
+  },
+  "test_interpretation": {
+    "normal": 4,
+    "ignored": 4,
+    "assertions": 11,
+    "executed": 0,
+    "limits": "Fixed denseASCII/dummy resolved-line fixtures compare linear reference methods only; ignored timings were not executed and ignore does not enforce release. Eleven sorted samples select maximum, fixture/cache prewarm outsideclock, query return allocations remain measured. Not real shaping/Unicode coverage/allocator/performance acceptance.",
+    "raw_reader_limits": "4legacyPython readers use actual old selectors without remapping:13reachable predicates true/15pre-read blocked null, no import/test execution, ignored input provenance unresolved. These readers receive no write grant or formal coverage."
+  },
+  "failure_history": [
+    {
+      "receipt": "root787/c76087 native31368->root788/f6889c exit1/PID52616",
+      "failure": "Context schema assumed semantic_sha256 for3anchor-pinned contexts; owned4 inverses/models/ranges and C1-C6 semantic comment evolution completed before prewrite KeyError. Corrected to explicit current-anchor ranges for C7-C9; no writes."
+    },
+    {
+      "receipt": "root784/c10bc2 native10717->root785/933827 exit1/PID52060",
+      "failure": "Exact #[ignore] counter omitted ignore reason-string attribute form; all4source inverse/models/48spans complete before prewrite assertion. Corrected regex handles ignore with optional reason; no writes."
+    },
+    {
+      "receipt": "root773/13b3cc exit0/PID3048",
+      "observation": "Full raw model/text_layout read; a guessed extra Runtime path was absent; not source issue."
+    },
+    {
+      "receipt": "root774/daed1c exit1/PID49908",
+      "failure": "Erroneous hard-coded guessed C6 hash after complete4legacy reader reads; corrected using actual immutable child C6 source and hash root776, no writes."
+    }
+  ],
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false,
+  "git_commit": false,
+  "push": false,
+  "notification": false,
+  "formal_gate": "Exact final-hash coverage book/candidate snapshots/designated Jenkins live lock-owner diagnosis/actual necessary validation/phase commit/attached authorized WeCom remain pending. Root never stages/commits/deletes locks/pushes/bypasses gates.",
+  "index_observation": {
+    "head": "89789b74beaef9bf83cb61f8c13236ca730a81c0",
+    "index": {
+      "bytes": 7479846,
+      "sha256": "45120c88a8b9210a3b78124b29dcf4e86b1297d3e215c80efb9ca5297b68a90f"
+    },
+    "index_lock": {
+      "exists": true,
+      "owner": "unknown",
+      "deleted_or_bypassed": false,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mtime_ns_text": "1792192256891113100"
+    }
+  },
+  "process_lifecycle": {
+    "pid": 51712,
+    "own_writer_terminal_known_at_creation": false,
+    "post_source_writers_terminal_known": true,
+    "source_writer": "reflection_luna outer10/dc9a6e native81483->48740f exit0/PID11320; exact4 independent13/1c2587 exit0/PID27092; finalchild S32/df2bb0 native46168->a55c5c exit0/PID35424",
+    "historical_unknown_R033_R039GroupC_R046_preserved": true
+  },
+  "artifact_lifecycle": {
+    "preregistered": true,
+    "source_copies": false,
+    "helpers": false,
+    "build_products": false,
+    "deleted_paths": [],
+    "freed_bytes": 0,
+    "retained": [
+      "Exact4sources",
+      "fixedchild/main/post",
+      "necessary validation and failure evidence"
+    ],
+    "keep_until": "Designated Jenkins actual validation/commit/attached authorized WeCom; preserve foreign/shared outputs."
+  }
+}

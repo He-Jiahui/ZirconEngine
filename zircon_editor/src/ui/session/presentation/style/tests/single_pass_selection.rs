@@ -53,7 +53,8 @@ fn optimization_batch_20260826ar_style_token_presentation_preserves_order_and_se
 
 #[test]
 fn optimization_batch_20260826ar_style_presentation_avoids_token_entry_projection() {
-    let presentation_source = include_str!("../../../../asset_editor/session/presentation/style.rs");
+    let presentation_source =
+        include_str!("../../../../asset_editor/session/presentation/style.rs");
     let style_pane = bounded_source(
         presentation_source,
         "pub(super) fn style_pane_presentation",

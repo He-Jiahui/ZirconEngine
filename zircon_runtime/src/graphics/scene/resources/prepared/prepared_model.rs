@@ -12,10 +12,14 @@ use crate::graphics::RuntimePrepareMeshSdfSeed;
 pub(in crate::graphics::scene::resources) struct PreparedModel {
     pub(in crate::graphics::scene::resources) revision: u64,
     pub(in crate::graphics::scene::resources) source_revision: u64,
+    pub(in crate::graphics::scene::resources) source_key: crate::core::resource::ResourceActiveVersionKey,
+    pub(in crate::graphics::scene::resources) mesh_dependency_keys: Vec<(crate::core::resource::ResourceId, Option<crate::core::resource::ResourceActiveVersionKey>)>,
     pub(in crate::graphics::scene::resources) mesh_dependency_states: Vec<ModelMeshDependencyState>,
     pub(in crate::graphics::scene::resources) local_bounds: RenderMeshBounds,
     pub(in crate::graphics::scene::resources) deformation: PreparedGeometryDeformation,
     pub(in crate::graphics::scene::resources) mesh_sdf: RuntimePrepareMeshSdfSeed,
     pub(in crate::graphics::scene::resources) asset: Arc<ModelAsset>,
-    pub(in crate::graphics::scene::resources) resource: Arc<GpuModelResource>,
+    pub(in crate::graphics::scene::resources) resource: Option<Arc<GpuModelResource>>,
+    pub(in crate::graphics::scene::resources) admission:
+        Arc<crate::graphics::VirtualGeometrySourceAdmission>,
 }

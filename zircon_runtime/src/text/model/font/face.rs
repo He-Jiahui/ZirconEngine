@@ -1,3 +1,6 @@
+//! 字体面的选择属性、源索引与可变轴声明值。
+//! 限幅方法只处理数值；字体源解析和实例归一由消费方负责。
+
 use serde::{Deserialize, Serialize};
 
 use crate::asset::assets::FontFamilyName;
@@ -11,6 +14,10 @@ impl FontWeight {
     pub const NORMAL: Self = Self(400);
     pub const BOLD: Self = Self(700);
 
+    /// 按本模型的字重范围组装包装值。
+    ///
+    /// # 参数与返回
+    /// `value` 为待截断的字重；返回 `100..=900` 内的值，不查找或验证字体面。
     pub fn clamped(value: u16) -> Self {
         Self(value.clamp(100, 900))
     }
@@ -27,12 +34,18 @@ pub enum FontStyle {
 }
 
 /// 以正常宽度为 100 的字体宽度偏好；选面按宽度距离排序，不是布局阶段的缩放倍率。
+/// 公开字段直接构造和派生反序列化不会调用 [`Self::clamped`]；
+/// 只有显式调用该方法时才按本模块的范围截断。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct FontStretch(pub u16);
 
 impl FontStretch {
     pub const NORMAL: Self = Self(100);
 
+    /// 按本模型的宽度范围组装包装值。
+    ///
+    /// # 参数与返回
+    /// `value` 以正常宽度 `100` 为基准；返回截断到 `50..=200` 的值，不执行布局缩放。
     pub fn clamped(value: u16) -> Self {
         Self(value.clamp(50, 200))
     }
@@ -60,6 +73,11 @@ pub struct FontFaceDescriptor {
 }
 
 impl FontFaceDescriptor {
+    /// 组装常规样式的字体面声明。
+    ///
+    /// # 参数与返回
+    /// `family` 转为 `FontFamilyName`；返回字重 `400`、`Normal` 样式、正常宽度 `100`、集合索引 `0` 及空轴坐标。
+    /// 返回值未读取字体源或登记字体面，也不证明该集合索引在实际文件中存在。
     pub fn regular(family: impl Into<FontFamilyName>) -> Self {
         Self {
             family: family.into(),

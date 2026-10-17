@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R025",
+  "reviewer": "root",
+  "created_at_utc": "2026-10-15T08:50:33.476454+00:00",
+  "immutable_child": {
+    "path": "docs/plans/source-comments/reviews/R025.json",
+    "sha256": "47f133a9cd83853c53cfd15136ff7bf459020712bc65c50813014726391d8b68",
+    "modified": false
+  },
+  "source_changes": false,
+  "corrections": [
+    {
+      "field": "context_evidence[path=zircon_runtime/src/asset/project/manifest/validation.rs].sha256",
+      "recorded_value": "e2528d416eea11d15253a4e5715308fb2c166b39ea68980ee5e9c0729abd297",
+      "correct_value": "e2528d416eea11d15253a4ae5715308fb2c166b39ea68980ee5e9c0729abd297",
+      "evidence": {
+        "path": "zircon_runtime/src/asset/project/manifest/validation.rs",
+        "sha256": "e2528d416eea11d15253a4ae5715308fb2c166b39ea68980ee5e9c0729abd297",
+        "lines": [
+          1,
+          134
+        ],
+        "root_read_receipt": "2edb10"
+      },
+      "reason": "The child copied a 63-character hash with one missing a. Root independently read the actual 134-line file, pinned its physical SHA and confirmed shared engine requirement validation. This is an evidence transcription correction; the input file did not change."
+    }
+  ],
+  "formal_coverage_added": 0,
+  "issues_opened_or_closed": [],
+  "formal_acceptance": false
+}

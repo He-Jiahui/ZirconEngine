@@ -2,6 +2,7 @@ use super::{
     PhysicsCombineRule, PhysicsJointConstraintMetadata, PhysicsJointDrive, PhysicsMaterialMetadata,
 };
 
+/// 只验证材质声明的 JSON 往返，不启动模拟或检验提供方支持范围。
 #[test]
 fn material_metadata_roundtrips_without_a_simulation_contract() {
     let material = PhysicsMaterialMetadata {
@@ -19,6 +20,7 @@ fn material_metadata_roundtrips_without_a_simulation_contract() {
     );
 }
 
+/// 验证默认字段省略、稀疏命名轴写出，以及旧数组表示的回读兼容。
 #[test]
 fn joint_constraint_metadata_roundtrips_sparse_axis_limits() {
     let default_document = toml::to_string_pretty(&PhysicsJointConstraintMetadata::default())
@@ -75,6 +77,7 @@ fn joint_constraint_metadata_roundtrips_sparse_axis_limits() {
     assert_eq!(array_constraint.angular_limits, constraint.angular_limits);
 }
 
+/// 覆盖同轴重名、别名重名、未知轴、映射空值及超长数组的结构错误。
 #[test]
 fn joint_constraint_metadata_rejects_invalid_axis_documents() {
     let duplicate_axis = r#"{

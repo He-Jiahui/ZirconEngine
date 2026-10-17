@@ -8,31 +8,20 @@ use super::super::super::project_policy::{
 use zircon_runtime::asset::project::ProjectManifest;
 
 impl RetainedEditorHost {
-    pub(super) fn set_project_plugin_enabled(
+    pub(in crate::ui::retained_host::app) fn set_project_plugin_enabled(
         &mut self,
         project_root: &Path,
-        manifest: &mut ProjectManifest,
         plugin_id: &str,
         enabled: bool,
     ) -> Result<String, String> {
-        let report = self
+        let manager = self
             .editor_manager
             .enter()
-            .map_err(|error| error.to_string())
-            .and_then(|manager| {
-                manager.set_native_aware_project_plugin_enabled(
-                    project_root,
-                    manifest,
-                    plugin_id,
-                    enabled,
-                )
-            })?;
-        let state = if report.enabled {
-            "enabled"
-        } else {
-            "disabled"
-        };
-        Ok(format!("Plugin {} {state}", report.plugin_id))
+            .map_err(|error| error.to_string())?;
+        manager
+            .set_project_plugin_enabled_durable(project_root, plugin_id, enabled)
+            .map(|report| report.status_message())
+            .map_err(|report| report.status_message())
     }
 
     pub(super) fn cycle_project_plugin_packaging(

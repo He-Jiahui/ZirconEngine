@@ -12,20 +12,20 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
         include_str!("../../../../asset/importer/ingest/import_ui_icon_asset.rs");
     let wrapper_tests = include_str!("../../../../asset/tests/assets/ui/wrappers.rs");
     let importer_tests = include_str!("../../../../asset/tests/assets/ui/importer.rs");
-    let review_findings = concat!(
+    let _review_findings = concat!(
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let module_doc =
+    let _module_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
-    let ui_asset_doc =
+    let _ui_asset_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/asset/assets/ui.md");
 
     for required in [

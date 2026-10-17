@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::scene::event_mirror::{
     RuntimeEventMirrorDescriptor, RuntimeEventMirrorDrainPage, RuntimeEventMirrorError,

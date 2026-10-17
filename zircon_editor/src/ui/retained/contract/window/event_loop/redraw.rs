@@ -110,7 +110,10 @@ impl UiHostWindowEventLoop {
         let existing = std::mem::replace(&mut self.pending_redraw, HostRedrawRequest::None);
         let should_schedule = !existing.request_redraw();
         capture_trace::record("pending_redraw_merge", || {
-            format!("owner={:#x} existing={existing:?} next={redraw:?}", self.host.state.as_ptr() as usize)
+            format!(
+                "owner={:#x} existing={existing:?} next={redraw:?}",
+                self.host.state.as_ptr() as usize
+            )
         });
         self.pending_redraw = existing.merge(redraw);
         should_schedule
@@ -134,8 +137,11 @@ impl UiHostWindowEventLoop {
             return;
         }
         capture_trace::record("native_redraw", || {
-            format!("owner={:#x} redraw={redraw:?} cursor={:?}",
-                self.host.state.as_ptr() as usize, self.host.get_host_presentation_generation().cursor())
+            format!(
+                "owner={:#x} redraw={redraw:?} cursor={:?}",
+                self.host.state.as_ptr() as usize,
+                self.host.get_host_presentation_generation().cursor()
+            )
         });
         let slow_redraw_started = slow_redraw_trace_enabled().then(Instant::now);
         // The standalone startup presenter may redraw before the runtime-owned surface exists.
@@ -169,7 +175,8 @@ impl UiHostWindowEventLoop {
         } else {
             None
         };
-        let trace_before = capture_trace::cursor_before(|| self.host.get_host_presentation_generation().cursor());
+        let trace_before =
+            capture_trace::cursor_before(|| self.host.get_host_presentation_generation().cursor());
         if requested_frame_update {
             static FRAME_UPDATE_ENTER: Once = Once::new();
             static FRAME_UPDATE_RETURNED: Once = Once::new();
@@ -268,7 +275,10 @@ impl UiHostWindowEventLoop {
         let queued = self.take_pending_redraw();
         let retry = self.take_surface_present_retry();
         capture_trace::record("redraw_for_present_merge", || {
-            format!("owner={:#x} queued={queued:?} retry={retry:?}", self.host.state.as_ptr() as usize)
+            format!(
+                "owner={:#x} queued={queued:?} retry={retry:?}",
+                self.host.state.as_ptr() as usize
+            )
         });
         queued.merge(retry)
     }

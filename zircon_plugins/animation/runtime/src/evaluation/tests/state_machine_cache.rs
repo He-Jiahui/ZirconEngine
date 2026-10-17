@@ -120,6 +120,9 @@ fn instance_cache_retires_removed_entities() {
 #[test]
 fn instance_cache_eviction_uses_a_bounded_clock_without_a_full_map_scan() {
     let source = include_str!("../pipeline/state_machine_cache.rs");
+    let struct_start = source
+        .find("pub(super) struct StateMachineInstanceCache {")
+        .expect("instance-cache struct starts");
     let start = source
         .find("impl StateMachineInstanceCache {")
         .expect("instance-cache implementation starts");
@@ -127,9 +130,10 @@ fn instance_cache_eviction_uses_a_bounded_clock_without_a_full_map_scan() {
         .find("impl AnimationEvaluationPipeline {")
         .map(|offset| start + offset)
         .expect("instance-cache implementation ends");
+    let declaration = &source[struct_start..start];
     let implementation = &source[start..end];
 
-    assert!(implementation.contains("eviction_clock: VecDeque"));
+    assert!(declaration.contains("eviction_clock: VecDeque"));
     assert!(implementation.contains(".pop_front()"));
     assert!(!implementation.contains(".min_by_key"));
     assert!(!implementation.contains("eviction_order"));

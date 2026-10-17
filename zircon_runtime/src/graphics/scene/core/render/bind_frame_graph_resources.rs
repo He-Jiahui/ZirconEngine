@@ -61,29 +61,61 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     bind_live_scene_velocity(device, graph, resources, target)?;
     bind_live_final_target_aliases(graph, resources, target, imported_final_target);
     bind_live_output_target(graph, resources, output_target_resource)?;
-    bind_live_frame_target_texture(
+    bind_live_frame_target_physical_texture(
         graph,
         resources,
         PostProcessGraphResourceNames::GBUFFER_ALBEDO,
+        &target.gbuffer_albedo,
         &target.gbuffer_albedo_view,
+        TextureDesc::new(
+            PostProcessGraphResourceNames::GBUFFER_ALBEDO,
+            target.render_size.x,
+            target.render_size.y,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ),
     );
-    bind_live_frame_target_texture(
+    bind_live_frame_target_physical_texture(
         graph,
         resources,
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
+        &target.normal,
         &target.normal_view,
+        TextureDesc::new(
+            PostProcessGraphResourceNames::GBUFFER_NORMAL,
+            target.render_size.x,
+            target.render_size.y,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ),
     );
-    bind_live_frame_target_texture(
+    bind_live_frame_target_physical_texture(
         graph,
         resources,
         PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        &target.gbuffer_material,
         &target.gbuffer_material_view,
+        TextureDesc::new(
+            PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+            target.render_size.x,
+            target.render_size.y,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ),
     );
-    bind_live_frame_target_texture(
+    bind_live_frame_target_physical_texture(
         graph,
         resources,
         PostProcessGraphResourceNames::GBUFFER_EMISSIVE,
+        &target.gbuffer_emissive,
         &target.gbuffer_emissive_view,
+        TextureDesc::new(
+            PostProcessGraphResourceNames::GBUFFER_EMISSIVE,
+            target.render_size.x,
+            target.render_size.y,
+            TextureFormat::Rgba16Float,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ),
     );
     bind_live_frame_target_physical_texture(
         graph,

@@ -5,4 +5,8 @@ mod pane_data;
 #[path = "module_plugin_projection/rows.rs"]
 mod rows;
 
+#[path = "module_plugin_projection/details.rs"]
+mod details;
+
 pub(super) use self::cache::ModulePluginPaneProjectionCache;
+pub(super) use self::details::ModulePluginDetailsState;

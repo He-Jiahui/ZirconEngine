@@ -23,6 +23,10 @@ fn watcher_activation(lifecycle: ProjectWatcherLifecycle) -> ProjectWatcherActiv
             diagnostics: Default::default(),
             errors: Default::default(),
             worker_scheduled: false,
+            ingress_epoch: Arc::new(()),
+            retry_timer: None,
+            retry_work: None,
+            retry_ready: false,
         }),
     }
 }
@@ -172,12 +176,12 @@ fn project_asset_manager_runtime_accessors_recover_poisoned_locks() {
     }))
     .is_err());
     assert!(catch_unwind(AssertUnwindSafe(|| {
-        let _guard = manager.change_subscribers.lock().unwrap();
+        let _guard = manager.change_events.lock_for_test();
         panic!("poison change subscribers lock");
     }))
     .is_err());
     assert!(catch_unwind(AssertUnwindSafe(|| {
-        let _guard = manager.watch_error_subscribers.lock().unwrap();
+        let _guard = manager.watch_errors.lock_for_test();
         panic!("poison watch error subscribers lock");
     }))
     .is_err());
@@ -201,8 +205,8 @@ fn project_asset_manager_runtime_accessors_recover_poisoned_locks() {
     assert!(manager.project_read().is_none());
     assert!(manager.project_source_paths_read().is_empty());
     assert!(manager.importer_registry_read().importers().is_empty());
-    assert!(manager.lock_change_subscribers().is_empty());
-    assert!(manager.lock_watch_error_subscribers().is_empty());
+    assert!(manager.change_events.subscriber_count_for_test() == 0);
+    assert!(manager.watch_errors.subscriber_count_for_test() == 0);
     assert!(manager.lock_watcher_activation().is_none());
     drop(manager.lock_watch_refresh());
     assert!(manager.lock_watchers().is_empty());
@@ -378,7 +382,7 @@ fn project_generation_precheck_distinguishes_current_newer_and_closed_projects()
 #[test]
 fn project_generation_publication_holds_the_write_fence_through_broadcast() {
     let manager = Arc::new(ProjectAssetManager::default());
-    let subscribers = manager.lock_change_subscribers();
+    let subscribers = manager.change_events.lock_for_test();
     let (generation_acquired, generation_ready) = mpsc::sync_channel(0);
     let publishing_manager = Arc::clone(&manager);
     let publication = thread::spawn(move || {
@@ -414,7 +418,8 @@ fn generation_publication_callers_share_the_fenced_runtime_owner() {
         .expect("runtime production source must precede its test module");
     let close = include_str!("../../close_project.rs");
     let open = include_str!("../../open_project.rs");
-    let contract = include_str!("../../../../../manager/service_contracts/asset_manager_contract.rs");
+    let contract =
+        include_str!("../../../../../manager/service_contracts/asset_manager_contract.rs");
 
     assert_eq!(
         open.matches("self.publish_project_generation(").count(),
@@ -464,9 +469,231 @@ fn project_generation_publication_installs_asset_management_before_observers_run
         .find("self.broadcast(changes);")
         .expect("change broadcast");
     let wake = publish
-        .find("self.publish_generation_wake();")
+        .find("self.collect_generation_wakes()")
         .expect("generation wake");
 
     assert!(install < broadcast);
     assert!(broadcast < wake);
+    let unlock = publish
+        .find("drop(generation);")
+        .expect("release generation fence");
+    let invoke = publish.find("wake();").expect("invoke callbacks");
+    assert!(wake < unlock && unlock < invoke);
+}
+
+// The production dependency/file boundary must reject an obsolete active capture before its callback.
+#[test]
+fn m6_watch_commit_rejects_stale_active_before_dependencies_and_preserves_failure_state() {
+    use crate::core::resource::{
+        ModelMarker, ResourceHandle, ResourceSourceMember, ResourceSourceOutcome,
+        ResourceSourcePublication, ResourceState,
+    };
+    #[derive(Debug)]
+    struct Payload(&'static str);
+    let manager = ProjectAssetManager::default();
+    let resources = manager.resource_manager();
+    let root = ResourceRecord::new(
+        ResourceId::from_stable_label("m6-watch-boundary"), ResourceKind::Model,
+        ResourceLocator::parse("res://models/m6-watch-boundary.glb").unwrap(),
+    ).with_state(ResourceState::Ready).with_source_hash("a");
+    resources.register_ready(root.clone(), Payload("a")).unwrap();
+    let mut failed_record = root.clone().with_state(ResourceState::Error);
+    failed_record.diagnostics = vec![crate::core::resource::ResourceDiagnostic::error("failed candidate")];
+    let capture_failure = || ResourceSourcePublication::capture(
+        root.id, vec![root.id],
+        vec![ResourceSourceMember { record: failed_record.clone(), payload: None }],
+        ResourceSourceOutcome::Failed, resources.projection_snapshot().active(),
+    );
+    let obsolete = capture_failure();
+    resources.register_ready(root.clone().with_source_hash("b"), Payload("b")).unwrap();
+    let before = resources.projection_snapshot();
+    let invoked = AtomicBool::new(false);
+    let stale = manager.commit_resource_batch_after_dependencies(
+        ResourceMutationBatch::new().publish_source(obsolete), || {
+            invoked.store(true, Ordering::Release);
+            Ok(())
+        },
+    );
+    assert!(stale.is_err());
+    assert!(!invoked.load(Ordering::Acquire));
+    assert_eq!(resources.projection_snapshot().active().key(root.id), before.active().key(root.id));
+    let abandoned: Result<(), _> = manager.commit_resource_batch_after_dependencies(
+        ResourceMutationBatch::new().publish_source(capture_failure()), || {
+            Err(asset_error(crate::asset::AssetImportError::Parse("file commit failed".into())))
+        },
+    );
+    assert!(abandoned.is_err());
+    assert_eq!(resources.registry().get(root.id).unwrap().state, ResourceState::Ready);
+    assert_eq!(resources.projection_snapshot().active().key(root.id), before.active().key(root.id));
+    manager.commit_resource_batch_after_dependencies(
+        ResourceMutationBatch::new().publish_source(capture_failure()), || Ok(()),
+    ).expect("watch's successful file/dependency boundary still publishes an Error candidate");
+    assert_eq!(resources.registry().get(root.id).unwrap().state, ResourceState::Error);
+    let handle = ResourceHandle::<ModelMarker>::new(root.id);
+    assert_eq!(resources.snapshot_expected::<_, Payload>(
+        handle, &before.active().key(root.id).unwrap(),
+    ).unwrap().resource().0, "b");
+    assert_eq!(resources.ref_count(root.id), Some(0));
+}
+
+
+#[test]
+fn m6_gltf_watch_failure_keeps_last_good_and_recovery_replaces_resident_group() {
+    use crate::asset::{AssetManager, MeshAsset, ModelAsset};
+    use crate::core::resource::{MeshMarker, ModelMarker, ResourceHandle, ResourceState, UntypedResourceHandle};
+    use crate::graphics::scene::render_scene::RenderSceneResourceReferenceDelta;
+    // Use the test facade while renderer resource ownership stays inside graphics.
+    use crate::graphics::{
+        RenderAssetDemandGeneration, RenderAssetDeviceEpoch, RenderAssetResidencyManager,
+        RenderAssetResidencyState, RenderAssetResidencyTransitionError,
+    };
+    use zr_rhi::{DeviceGeneration, DeviceId};
+
+    let root = unique_temp_project_root("m6_production_gltf_watch");
+    fs::create_dir_all(root.join("assets/warm")).unwrap();
+    fs::create_dir_all(root.join("assets/cold")).unwrap();
+    ProjectManifest::new(
+        "M6 Production Watch", AssetUri::parse("res://scenes/main.scene.toml").unwrap(), 1,
+    ).save(root.join("zircon-project.toml")).unwrap();
+    let model_bytes = br#"{"asset":{"version":"2.0"},"buffers":[{"uri":"aaa.bin","byteLength":36}],"bufferViews":[{"buffer":0,"byteLength":36}],"accessors":[{"bufferView":0,"componentType":5126,"count":3,"type":"VEC3","min":[0,0,0],"max":[10,1,0]}],"meshes":[{"primitives":[{"attributes":{"POSITION":0}}]}]}"#;
+    let vertices = |x: f32| [x, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0]
+        .into_iter().flat_map(f32::to_le_bytes).collect::<Vec<_>>();
+    let warm_uri = AssetUri::parse("res://warm/model.gltf").unwrap();
+    let cold_uri = AssetUri::parse("res://cold/model.gltf").unwrap();
+    for directory in ["warm", "cold"] {
+        fs::write(root.join("assets").join(directory).join("model.gltf"), model_bytes).unwrap();
+        fs::write(root.join("assets").join(directory).join("aaa.bin"), vertices(0.25)).unwrap();
+    }
+    // Persist sidecars before installing PAM, as in the existing production activation fixture.
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.register_first_wave_plugin_fixture_importers_for_test().unwrap();
+    project.scan_and_import().unwrap();
+    let initial_warm = project.source_resource_records(&warm_uri);
+    let initial_cold = project.source_resource_records(&cold_uri);
+    let warm_model = initial_warm.iter().find(|record| record.kind == ResourceKind::Model).unwrap().id;
+    let warm_mesh = initial_warm.iter().find(|record| record.kind == ResourceKind::Mesh).unwrap().id;
+    let cold_model = initial_cold.iter().find(|record| record.kind == ResourceKind::Model).unwrap().id;
+    let manager = ProjectAssetManager::default();
+    manager.register_first_wave_plugin_fixture_importers_for_test().unwrap();
+    AssetManager::open_prepared_project(&manager, project).unwrap();
+    // Drive the same production batch method deterministically, without filesystem watcher races.
+    assert!(manager.shutdown_project_watchers_until(Instant::now() + Duration::from_secs(2)));
+    let resources = manager.resource_manager();
+    let model_lease = manager.acquire_model_asset(warm_model).unwrap();
+    let mesh_lease = manager.acquire_mesh_asset(warm_mesh).unwrap();
+    let before = resources.projection_snapshot();
+    let model_key = before.active().key(warm_model).unwrap();
+    let mesh_key = before.active().key(warm_mesh).unwrap();
+    assert!(initial_cold.iter().filter(|record| matches!(record.kind, ResourceKind::Model | ResourceKind::Mesh))
+        .all(|record| before.active().row(record.id).is_none()));
+
+    let full_batch = || AssetWatchBatch {
+        changes: vec![AssetChange::new(AssetChangeKind::Modified, cold_uri.clone(), None)],
+        requires_reconciliation: true, ..AssetWatchBatch::default()
+    };
+    fs::write(root.join("assets/cold/aaa.bin"), vertices(0.5)).unwrap();
+    let cold_work = manager.prepare_watch_publication(full_batch()).expect("real full importer output");
+    let cold_source = cold_work.sources.iter().find(|source| source.owner == cold_model).unwrap();
+    assert!(cold_source.members.iter().filter(|member| matches!(member.record.kind, ResourceKind::Model | ResourceKind::Mesh))
+        .all(|member| member.payload.is_none()), "full preparation must immediately release cold owned geometry");
+    assert!(manager.commit_watch_preparation(cold_work, None).is_none());
+    assert!(initial_cold.iter().filter(|record| matches!(record.kind, ResourceKind::Model | ResourceKind::Mesh))
+        .all(|record| resources.projection_snapshot().active().row(record.id).is_none()));
+
+    // Reproduce demand arriving after preparation: the missing owned output cannot be retried
+    // forever or converted into an import failure. Its durable project generation stays unchanged.
+    fs::write(root.join("assets/cold/aaa.bin"), vertices(0.625)).unwrap();
+    let late_work = manager.prepare_watch_publication(full_batch()).unwrap();
+    let sequence = manager.current_project_generation_snapshot().unwrap()
+        .project().catalog_input_generation().sequence();
+    let late_lease = manager.acquire_model_asset(cold_model).unwrap();
+    let retry = manager.commit_watch_preparation(late_work, None);
+    let Some(WatchRetryWork::Reprepare(batch)) = retry else {
+        panic!("late cold demand must retain a real reprepare responsibility before file commit");
+    };
+    assert_eq!(manager.current_project_generation_snapshot().unwrap()
+        .project().catalog_input_generation().sequence(), sequence);
+    let recaptured = manager.prepare_watch_publication(batch).unwrap();
+    assert!(recaptured.sources.iter().find(|source| source.owner == cold_model).unwrap()
+        .members.iter().any(|member| member.record.id == cold_model && member.payload.is_some()));
+    assert!(manager.commit_watch_preparation(recaptured, None).is_none());
+    assert!(resources.projection_snapshot().active().row(cold_model).is_some());
+    drop(late_lease);
+
+    let watch_warm = || AssetWatchBatch {
+        changes: vec![AssetChange::new(AssetChangeKind::Modified, warm_uri.clone(), None)],
+        ..AssetWatchBatch::default()
+    };
+    fs::remove_file(root.join("assets/warm/aaa.bin")).unwrap();
+    manager.process_watch_batch_in_generation(watch_warm());
+    let failed_project = manager.current_project_generation_snapshot().unwrap();
+    let failed_root = failed_project.project().registry().get(warm_model).unwrap();
+    assert_eq!(failed_root.state, ResourceState::Error);
+    assert!(failed_root.artifact_locator.is_none());
+    assert!(failed_project.project().load_artifact(&warm_uri).is_err());
+    let failed = resources.projection_snapshot();
+    assert_eq!(failed.active().key(warm_model).as_ref(), Some(&model_key));
+    assert_eq!(failed.active().key(warm_mesh).as_ref(), Some(&mesh_key));
+    assert!(Arc::ptr_eq(resources.snapshot_expected::<_, ModelAsset>(
+        ResourceHandle::<ModelMarker>::new(warm_model), &model_key,
+    ).unwrap().resource(), model_lease.resource()));
+    assert!(Arc::ptr_eq(resources.snapshot_expected::<_, MeshAsset>(
+        ResourceHandle::<MeshMarker>::new(warm_mesh), &mesh_key,
+    ).unwrap().resource(), mesh_lease.resource()));
+
+    // Both tickets are first issued after the actual failed watch import.
+    let device = RenderAssetDeviceEpoch::new(DeviceId::new(19_407), DeviceGeneration::new(1));
+    let demand = RenderAssetDemandGeneration::new(1).unwrap();
+    let mut residency = RenderAssetResidencyManager::new();
+    let model_resource = UntypedResourceHandle::new(warm_model, ResourceKind::Model);
+    let mesh_resource = UntypedResourceHandle::new(warm_mesh, ResourceKind::Mesh);
+    let mutation = residency.apply_scene_reference_deltas(&[
+        RenderSceneResourceReferenceDelta::acquire(model_resource, 1),
+        RenderSceneResourceReferenceDelta::acquire(mesh_resource, 1),
+    ], &failed, device, demand).unwrap();
+    assert_eq!(mutation.requests().len(), 2);
+    let tickets = mutation.requests().to_vec();
+    for ticket in &tickets { residency.advance(ticket, RenderAssetResidencyState::Reading).unwrap(); }
+    manager.process_watch_batch_in_generation(watch_warm());
+    assert_eq!(resources.projection_snapshot().active().key(warm_model).as_ref(), Some(&model_key));
+    assert_eq!(resources.projection_snapshot().active().key(warm_mesh).as_ref(), Some(&mesh_key));
+
+    fs::write(root.join("assets/warm/aaa.bin"), vertices(0.75)).unwrap();
+    manager.process_watch_batch_in_generation(watch_warm());
+    let recovered_project = manager.current_project_generation_snapshot().unwrap();
+    assert_eq!(recovered_project.project().registry().get(warm_model).unwrap().state, ResourceState::Ready);
+    assert!(recovered_project.project().load_artifact(&warm_uri).is_ok());
+    let recovered = resources.projection_snapshot();
+    assert_ne!(recovered.active().key(warm_model).as_ref(), Some(&model_key));
+    assert_ne!(recovered.active().key(warm_mesh).as_ref(), Some(&mesh_key));
+    let new_model = resources.snapshot_expected::<_, ModelAsset>(
+        ResourceHandle::<ModelMarker>::new(warm_model), &recovered.active().key(warm_model).unwrap(),
+    ).unwrap();
+    let new_mesh = resources.snapshot_expected::<_, MeshAsset>(
+        ResourceHandle::<MeshMarker>::new(warm_mesh), &recovered.active().key(warm_mesh).unwrap(),
+    ).unwrap();
+    assert!(!model_lease.primitives.is_empty());
+    assert!(!new_model.resource().primitives.is_empty());
+    assert_eq!(mesh_lease.to_model_primitive().unwrap().vertices[0].position[0], 0.25);
+    assert_eq!(new_mesh.resource().to_model_primitive().unwrap().vertices[0].position[0], 0.75);
+    assert!(!Arc::ptr_eq(new_mesh.resource(), mesh_lease.resource()));
+    let replacement = residency.reconcile_changed_resources(
+        &[model_resource, mesh_resource], &recovered, device, demand,
+    ).unwrap();
+    assert_eq!(replacement.requests().len(), 2);
+    for ticket in &tickets {
+        assert!(matches!(residency.advance(ticket, RenderAssetResidencyState::Decoding),
+            Err(RenderAssetResidencyTransitionError::StaleTicket { .. })));
+    }
+    drop(model_lease);
+    drop(mesh_lease);
+    assert!(resources.projection_snapshot().active().row(warm_model).is_some(),
+        "old-generation lease release cannot evict the new active payload");
+    drop(new_model);
+    drop(new_mesh);
+    drop(recovered_project);
+    drop(failed_project);
+    drop(manager);
+    drop(resources);
+    fs::remove_dir_all(root).unwrap();
 }

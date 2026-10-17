@@ -38,10 +38,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn row_det
     row_rect: &FrameRect,
 ) -> FrameRect {
     let metrics = command_palette_metrics();
+    let width = row_rect.width.max(0.0);
+    let left = (width * metrics.row_detail_left_ratio).min(width);
+    let right = (width - metrics.row_text_x.min(width)).max(left);
     FrameRect {
-        x: row_rect.x + row_rect.width * metrics.row_detail_left_ratio,
+        x: row_rect.x + left,
         y: row_rect.y + metrics.row_text_y,
-        width: (row_rect.width * metrics.row_detail_width_ratio).max(metrics.min_frame_extent),
+        width: (width * metrics.row_detail_width_ratio)
+            .min(right - left)
+            .max(0.0),
         height: (row_rect.height - symmetric_extent(metrics.row_text_y)).max(metrics.line_height),
     }
 }

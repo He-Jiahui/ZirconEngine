@@ -1,14 +1,7 @@
 use std::sync::Arc;
 
-use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
-use zircon_runtime::core::math::{Transform, UVec2, Vec3};
-use zircon_runtime::scene::world::World;
 use crate::test_support::render_feature_fixtures::virtual_geometry_render_feature_descriptor;
-use crate::virtual_geometry::ViewportRenderFrame;
-use zircon_runtime::graphics::{
-    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
-    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
-};
+use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryClusterSelectionInputSource,
     RenderVirtualGeometryDebugState, RenderVirtualGeometryExecutionState,
@@ -18,6 +11,12 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
     RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
 };
+use zircon_runtime::core::math::{Transform, UVec2, Vec3};
+use zircon_runtime::graphics::{
+    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
+    RenderPipelineAsset, RenderPipelineCompileOptions,
+};
+use zircon_runtime::scene::world::World;
 
 fn compile_virtual_geometry_pipeline(
     extract: &zircon_runtime::core::framework::render::RenderFrameExtract,
@@ -41,12 +40,12 @@ fn compile_virtual_geometry_pipeline(
         .unwrap()
 }
 
-fn virtual_geometry_scene_renderer(asset_manager: Arc<ProjectAssetManager>) -> SceneRenderer {
-    SceneRenderer::new_with_plugin_render_features(
-        asset_manager,
-        [virtual_geometry_render_feature_descriptor()],
+fn virtual_geometry_scene_renderer(
+    asset_manager: Arc<ProjectAssetManager>,
+) -> crate::test_support::render_feature_fixtures::PluginizedWgpuRenderFrameworkFixture {
+    crate::test_support::render_feature_fixtures::pluginized_wgpu_render_framework_with_uploader_collector(
+        asset_manager, Arc::new(crate::virtual_geometry::VirtualGeometryUploaderTestCollector::default()),
     )
-    .unwrap()
 }
 
 #[test]
@@ -787,7 +786,10 @@ fn seed_backed_node_and_cluster_cull_derives_frontier_rank_from_unresolved_page_
 fn render_seed_backed_execution_frame(
     cluster_budget: u32,
     forced_mip: Option<u8>,
-) -> (SceneRenderer, u64) {
+) -> (
+    crate::test_support::render_feature_fixtures::PluginizedWgpuRenderFrameworkFixture,
+    u64,
+) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
@@ -835,8 +837,10 @@ fn render_seed_backed_execution_frame(
     let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size),
+        .render_compiled_virtual_geometry_test_frame_with_selections(
+            viewport_size,
+            extract,
+            None,
             &compiled,
             None,
         )
@@ -848,7 +852,10 @@ fn render_seed_backed_execution_frame(
 fn render_seed_backed_frontier_rank_execution_frame(
     cluster_budget: u32,
     forced_mip: Option<u8>,
-) -> (SceneRenderer, u64) {
+) -> (
+    crate::test_support::render_feature_fixtures::PluginizedWgpuRenderFrameworkFixture,
+    u64,
+) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
@@ -898,8 +905,10 @@ fn render_seed_backed_frontier_rank_execution_frame(
     let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size),
+        .render_compiled_virtual_geometry_test_frame_with_selections(
+            viewport_size,
+            extract,
+            None,
             &compiled,
             None,
         )
@@ -911,7 +920,10 @@ fn render_seed_backed_frontier_rank_execution_frame(
 fn render_seed_backed_parent_fallback_execution_frame(
     cluster_budget: u32,
     forced_mip: Option<u8>,
-) -> (SceneRenderer, u64) {
+) -> (
+    crate::test_support::render_feature_fixtures::PluginizedWgpuRenderFrameworkFixture,
+    u64,
+) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
@@ -962,8 +974,10 @@ fn render_seed_backed_parent_fallback_execution_frame(
     let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size),
+        .render_compiled_virtual_geometry_test_frame_with_selections(
+            viewport_size,
+            extract,
+            None,
             &compiled,
             None,
         )
@@ -975,7 +989,10 @@ fn render_seed_backed_parent_fallback_execution_frame(
 fn render_seed_backed_duplicate_parent_fallback_execution_frame(
     cluster_budget: u32,
     forced_mip: Option<u8>,
-) -> (SceneRenderer, u64) {
+) -> (
+    crate::test_support::render_feature_fixtures::PluginizedWgpuRenderFrameworkFixture,
+    u64,
+) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
@@ -1026,8 +1043,10 @@ fn render_seed_backed_duplicate_parent_fallback_execution_frame(
     let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size),
+        .render_compiled_virtual_geometry_test_frame_with_selections(
+            viewport_size,
+            extract,
+            None,
             &compiled,
             None,
         )
@@ -1039,7 +1058,10 @@ fn render_seed_backed_duplicate_parent_fallback_execution_frame(
 fn render_seed_backed_budget_order_execution_frame(
     cluster_budget: u32,
     forced_mip: Option<u8>,
-) -> (SceneRenderer, u64) {
+) -> (
+    crate::test_support::render_feature_fixtures::PluginizedWgpuRenderFrameworkFixture,
+    u64,
+) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
@@ -1087,8 +1109,10 @@ fn render_seed_backed_budget_order_execution_frame(
     let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size),
+        .render_compiled_virtual_geometry_test_frame_with_selections(
+            viewport_size,
+            extract,
+            None,
             &compiled,
             None,
         )
@@ -1100,7 +1124,10 @@ fn render_seed_backed_budget_order_execution_frame(
 fn render_seed_backed_subset_execution_frame(
     cluster_budget: u32,
     forced_mip: Option<u8>,
-) -> (SceneRenderer, u64) {
+) -> (
+    crate::test_support::render_feature_fixtures::PluginizedWgpuRenderFrameworkFixture,
+    u64,
+) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
@@ -1148,8 +1175,10 @@ fn render_seed_backed_subset_execution_frame(
     let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size),
+        .render_compiled_virtual_geometry_test_frame_with_selections(
+            viewport_size,
+            extract,
+            None,
             &compiled,
             None,
         )
@@ -1161,7 +1190,10 @@ fn render_seed_backed_subset_execution_frame(
 fn render_seed_backed_hierarchical_execution_frame(
     cluster_budget: u32,
     forced_mip: Option<u8>,
-) -> (SceneRenderer, u64) {
+) -> (
+    crate::test_support::render_feature_fixtures::PluginizedWgpuRenderFrameworkFixture,
+    u64,
+) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
@@ -1210,8 +1242,10 @@ fn render_seed_backed_hierarchical_execution_frame(
     let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size),
+        .render_compiled_virtual_geometry_test_frame_with_selections(
+            viewport_size,
+            extract,
+            None,
             &compiled,
             None,
         )

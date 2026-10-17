@@ -1,3 +1,6 @@
+//! 经真实 Surface 输入链验证 SearchBox 的剪贴板与安全文本边界。
+//! 宿主完成事件由夹具显式注入；传输身份与安全值引用只属于各自的 Surface 实例。
+
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,
@@ -20,6 +23,7 @@ use zircon_runtime_interface::ui::{
 };
 
 #[test]
+// 只读 Paste 在发起阶段就拒绝，保留文本与选择，不留下待宿主执行的请求。
 fn text_input_keyboard_read_only_paste_blocks_clipboard_request() {
     let mut surface =
         text_input_surface_with_attributes("alpha", 5, [("read_only", toml::Value::Boolean(true))]);
@@ -49,6 +53,7 @@ fn text_input_keyboard_read_only_paste_blocks_clipboard_request() {
 }
 
 #[test]
+// secure 的 Copy/Cut 保留文本和选择，且都不生成剪贴板写出请求。
 fn secure_text_input_copy_and_cut_preserve_text_without_clipboard_write() {
     for (logical_key, key_code, phase) in [
         ("c", 67, "keyboard.clipboard_copy"),
@@ -87,6 +92,7 @@ fn secure_text_input_copy_and_cut_preserve_text_without_clipboard_write() {
 }
 
 #[test]
+// 变更/提交只发布当前实例的最新不透明引用；旧引用、其他 Surface 与普通克隆不能解析它。
 fn secure_text_change_publishes_only_latest_resolvable_opaque_reference() {
     let mut surface = text_input_surface_with_attributes(
         "alpha",
@@ -159,6 +165,7 @@ fn secure_text_change_publishes_only_latest_resolvable_opaque_reference() {
 }
 
 #[test]
+// 安全文本事件仍保留 authored action 的路由身份，但序列化结果与 action payload 不携带明文。
 fn secure_text_change_and_submit_preserve_authored_route_without_secret_payload() {
     let mut surface = text_input_surface_with_attributes(
         "",
@@ -205,6 +212,7 @@ fn secure_text_change_and_submit_preserve_authored_route_without_secret_payload(
 }
 
 #[test]
+// secure 仍允许异步读取；完成事件按请求身份回注后，结果只通过安全引用暴露提交值。
 fn secure_text_input_paste_still_requests_clipboard_read() {
     let mut surface =
         text_input_surface_with_attributes("alpha", 5, [("secure", toml::Value::Boolean(true))]);
@@ -268,6 +276,7 @@ fn secure_text_input_paste_still_requests_clipboard_read() {
 }
 
 #[test]
+// 直接伪造写出效应也必须经过安全策略，不能绕过键盘入口的 Copy/Cut 拒绝。
 fn secure_text_input_rejects_forged_clipboard_write_effect() {
     let mut surface =
         text_input_surface_with_attributes("alpha", 5, [("secure", toml::Value::Boolean(true))]);
@@ -295,6 +304,7 @@ fn secure_text_input_rejects_forged_clipboard_write_effect() {
     assert!(!encoded.contains("alpha"));
 }
 
+/// 复用同一键盘夹具，仅通过一次性配置闭包打开 Control 修饰键。
 fn dispatch_key_with_control(
     surface: &mut UiSurface,
     logical_key: &str,
@@ -305,6 +315,7 @@ fn dispatch_key_with_control(
     })
 }
 
+/// 构造 Text 事件并经 Surface 的正式派发入口提交，保留序列号供用例区分输入。
 fn dispatch_text(
     surface: &mut UiSurface,
     text: &str,
@@ -340,6 +351,7 @@ fn keyboard_event() -> UiInputEvent {
     })
 }
 
+/// 在正式派发前调用 configure，闭包不会跨事件保存；普通键与 Control 快捷键共用此入口。
 fn dispatch_key_with_metadata(
     surface: &mut UiSurface,
     logical_key: &str,
@@ -366,6 +378,7 @@ fn dispatch_key_with_metadata(
         .unwrap()
 }
 
+/// 创建带 Change/Submit 绑定的独立 SearchBox，注入每例属性后重建派发所需的 Surface 状态。
 fn text_input_surface_with_attributes(
     value: &str,
     caret_offset: usize,

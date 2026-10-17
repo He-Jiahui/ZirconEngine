@@ -152,7 +152,7 @@ pub(crate) fn create_gpu_scene_bind_group(
 pub(crate) fn gpu_scene_bind_group_layout_entries(
     skinned_joint_palette_min_binding_size: wgpu::BufferSize,
 ) -> [wgpu::BindGroupLayoutEntry; 12] {
-    [
+    let mut entries = [
         storage_layout_entry(GPU_SCENE_PRIMITIVE_DATA_BINDING),
         storage_layout_entry(GPU_SCENE_INSTANCE_DATA_BINDING),
         storage_layout_entry(GPU_SCENE_LIGHT_DATA_BINDING),
@@ -171,7 +171,31 @@ pub(crate) fn gpu_scene_bind_group_layout_entries(
         storage_layout_entry(GPU_SCENE_VIRTUAL_GEOMETRY_PAGES_BINDING),
         storage_layout_entry(GPU_SCENE_VIRTUAL_GEOMETRY_CLUSTERS_BINDING),
         storage_layout_entry(GPU_SCENE_MORPH_PAYLOADS_BINDING),
-    ]
+    ];
+    if cfg!(target_arch = "wasm32") {
+        restrict_portable_scene_visibility(&mut entries);
+    }
+    entries
+}
+
+// Binding numbers and matrix/morph layouts stay identical to native. Browser
+// entry points do not consume virtual geometry or morph data in fragment shaders.
+fn restrict_portable_scene_visibility(entries: &mut [wgpu::BindGroupLayoutEntry; 12]) {
+    let vertex_compute = wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::COMPUTE;
+    for entry in entries {
+        entry.visibility = match entry.binding {
+            GPU_SCENE_LIGHT_DATA_BINDING => {
+                wgpu::ShaderStages::FRAGMENT | wgpu::ShaderStages::COMPUTE
+            }
+            GPU_SCENE_VISIBLE_INSTANCE_REMAP_BINDING
+            | GPU_SCENE_MORPH_DELTAS_BINDING
+            | GPU_SCENE_MORPH_WEIGHTS_BINDING
+            | GPU_SCENE_MORPH_PAYLOADS_BINDING => vertex_compute,
+            GPU_SCENE_VIRTUAL_GEOMETRY_PAGES_BINDING
+            | GPU_SCENE_VIRTUAL_GEOMETRY_CLUSTERS_BINDING => wgpu::ShaderStages::empty(),
+            _ => entry.visibility,
+        };
+    }
 }
 
 fn storage_layout_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {

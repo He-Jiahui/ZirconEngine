@@ -14,16 +14,17 @@ impl RetainedEditorHost {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return None;
         };
-        let size_result =
-            self.asset_surface_pointer_state(surface_mode)
-                .map(|surface| {
-                    self.resolve_callback_surface_size_for_asset_surface(
-                        surface_mode,
-                        width,
-                        height,
-                        surface.content_size,
-                    )
-                }).transpose();
+        let size_result = self
+            .asset_surface_pointer_state(surface_mode)
+            .map(|surface| {
+                self.resolve_callback_surface_size_for_asset_surface(
+                    surface_mode,
+                    width,
+                    height,
+                    surface.content_size,
+                )
+            })
+            .transpose();
         let content_size = match size_result {
             Ok(size) => size.flatten(),
             Err(error) => {
@@ -32,8 +33,7 @@ impl RetainedEditorHost {
                 return None;
             }
         };
-        let Some(content_size) = content_size
-        else {
+        let Some(content_size) = content_size else {
             self.clear_asset_content_drag_on_error(clear_drag_on_error);
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return None;

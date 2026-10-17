@@ -1,3 +1,7 @@
+//! 固定阶段命名、报告汇总及 Serde 往返的接口契约。
+//! 用例使用手工组装的数据；指针报告谓词不证明实际输入或布局路径。
+//! 调度与重建是否执行，需要对应 Runtime 测试或运行证据。
+
 use crate::ui::pipeline::{
     UiPipelineDirtyReason, UiPipelineFrameReport, UiPipelineStage, UiPipelineStageCounters,
     UiPipelineStageReport,

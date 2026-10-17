@@ -130,15 +130,25 @@ fn create_lifecycle_cancellation_precedes_selection_generation_failure() {
         let calls = Arc::new(AtomicUsize::new(0));
         let observed = calls.clone();
         level.with_world_mut(|scene| {
-            scene.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |world, _| {
-                observed.fetch_add(1, Ordering::SeqCst);
-                match cause {
-                    LifecycleTargetChange::World => {
-                        *world = replacement.lock().unwrap().take().unwrap()
-                    }
-                    LifecycleTargetChange::Schedule => *world.schedule_mut() = Default::default(),
-                }
-            });
+            scene.observe_component_lifecycle::<Name>(
+                LifecycleEventKind::Add,
+                // SAFETY: This retires the current World or schedule. Remaining work is
+                // counter-only scheduling; replacement history is never adopted.
+                unsafe {
+                    use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                        move |world, _| {
+                            observed.fetch_add(1, Ordering::SeqCst);
+                            match cause {
+                                LifecycleTargetChange::World => {
+                                    *world = replacement.lock().unwrap().take().unwrap()
+                                }
+                                LifecycleTargetChange::Schedule => *world.schedule_mut() = Default::default(),
+                            }
+                        },
+                    )
+                },
+            );
         });
         let mut command = EditorCommand::create_node(NodeKind::Cube);
 

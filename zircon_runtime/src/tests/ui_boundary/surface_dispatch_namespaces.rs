@@ -1,3 +1,9 @@
+//! 以根入口原文检查表面状态、输入策略和派发领域的命名空间边界。
+//!
+//! # 读取与判定
+//! 文件读取失败会得到空串；每个测试先检查所属命名空间存在，再检查禁止的文本片段。
+//! 这些断言只验证入口文本，不执行输入策略、焦点变更或指针与导航派发。
+
 #[test]
 fn runtime_ui_surface_keeps_surface_state_under_namespace() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

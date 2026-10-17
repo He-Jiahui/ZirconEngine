@@ -67,6 +67,91 @@ impl RenderBackend {
             queue: test_queue,
             backend_name,
             config,
+            #[cfg(target_arch = "wasm32")]
+            canvas: None,
+        })
+    }
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) async fn new_canvas(
+        canvas: web_sys::HtmlCanvasElement,
+        identity: u64,
+        policy: &RenderDeviceRequestPolicy,
+    ) -> Result<Self, GraphicsError> {
+        use zr_rhi::{
+            PresentMode, RenderNativeSurfaceTarget, RenderSurfaceDescriptor, SwapchainDesc,
+            TextureFormat,
+        };
+        let mut config = RenderBackendConfig::from_environment();
+        config.backends = wgpu::Backends::BROWSER_WEBGPU;
+        let instance = wgpu::Instance::new(config.instance_descriptor());
+        let registration = zr_rhi_wgpu::register_canvas_surface(
+            RenderNativeSurfaceTarget::Canvas { identity },
+            canvas.clone(),
+        )?;
+        let descriptor = RenderSurfaceDescriptor::new(
+            "zircon-browser-canvas",
+            RenderNativeSurfaceTarget::Canvas { identity },
+            SwapchainDesc {
+                width: canvas.width().max(1),
+                height: canvas.height().max(1),
+                present_mode: PresentMode::Fifo,
+                format: TextureFormat::Rgba8Unorm,
+            },
+        );
+        let bootstrap =
+            zr_rhi_wgpu::WgpuSurfaceBootstrap::from_canvas(instance, descriptor, canvas)?
+                .select_compatible_adapter_async(
+                    wgpu::Backends::BROWSER_WEBGPU,
+                    &AdapterSelectionPolicy::default(),
+                )
+                .await?;
+        let request = zr_rhi_wgpu::wgpu_device_request(bootstrap.adapter().features(), policy)?;
+        let limits = super::request_device::required_render_limits(
+            &bootstrap.adapter().limits(),
+            request.requested_features(),
+        );
+        let descriptor = wgpu::DeviceDescriptor {
+            label: Some("zircon-webgpu-device"),
+            required_features: request.requested_features(),
+            required_limits: limits,
+            memory_hints: wgpu::MemoryHints::MemoryUsage,
+            trace: wgpu::Trace::Off,
+            experimental_features: wgpu::ExperimentalFeatures::disabled(),
+        };
+        let (render_device, device, outcome) = bootstrap
+            .request_graphics_device_async(&descriptor, request)
+            .await?;
+        let render_device = Arc::new(render_device);
+        let diagnostic_router_limit = render_device
+            .profile()
+            .diagnostic_readback_budget()
+            .max_pending_requests()
+            .saturating_add(
+                render_device
+                    .profile()
+                    .diagnostic_readback_budget()
+                    .max_completed_receipts(),
+            );
+        let session = match outcome {
+            zr_rhi::SurfaceSessionCreateOutcome::Renderable(receipt)
+            | zr_rhi::SurfaceSessionCreateOutcome::NonRenderable(receipt) => receipt,
+        };
+        let system_textures =
+            super::system_texture_generation_owner::SystemTextureGenerationOwner::new(
+                render_device.as_ref(),
+            );
+        Ok(Self {
+            system_textures,
+            render_device,
+            diagnostic_delivery_router: Arc::new(std::sync::Mutex::new(
+                super::product_diagnostic_delivery_router::ProductDiagnosticDeliveryRouter::new(
+                    diagnostic_router_limit,
+                ),
+            )),
+            device,
+            backend_name: "wgpu(webgpu)".into(),
+            config,
+            canvas: Some((registration, std::sync::Mutex::new(Some(session)))),
         })
     }
 }

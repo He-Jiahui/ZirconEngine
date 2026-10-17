@@ -37,14 +37,22 @@ $environmentLines = & $env:ComSpec /d /s /c $environmentCommand
 if ($LASTEXITCODE -ne 0) {
     throw 'VsDevCmd.bat failed to initialize the x64 MSVC environment.'
 }
+$developerPath = $null
 foreach ($line in $environmentLines) {
     $separator = $line.IndexOf('=')
     if ($separator -le 0) { continue }
     $name = $line.Substring(0, $separator)
     $value = $line.Substring($separator + 1)
     if ($name -match '^=[A-Za-z]:$') { continue }
+    if ($name -ieq 'PATH') {
+        # Preserve the PATH updated by VsDevCmd when the inherited environment also contains
+        # a differently cased Path entry. Importing that stale entry last loses MSVC tools.
+        if ($name -ceq 'PATH' -or $null -eq $developerPath) { $developerPath = $value }
+        continue
+    }
     Set-Item -Path "Env:$name" -Value $value
 }
+if ($null -ne $developerPath) { $env:PATH = $developerPath }
 
 if (-not $env:VSCMD_VER -or -not (Get-Command cl.exe -ErrorAction SilentlyContinue) -or -not (Get-Command link.exe -ErrorAction SilentlyContinue)) {
     throw 'VsDevCmd did not provide the MSVC compiler and linker.'

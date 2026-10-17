@@ -13,9 +13,9 @@ mod picking;
 #[path = "plugins/mod.rs"]
 mod plugin_extensions;
 #[path = "prelude.rs"]
-mod prelude;
+pub(crate) mod prelude;
 #[path = "contracts/mod.rs"]
-mod runtime_absorption;
+pub(crate) mod runtime_absorption;
 #[cfg(feature = "graphics")]
 #[path = "runtime_diagnostics/mod.rs"]
 mod runtime_diagnostics;

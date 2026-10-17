@@ -55,7 +55,8 @@ fn menu_undo_replays_the_focused_animation_document_history() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should remain open");
@@ -73,7 +74,10 @@ fn menu_undo_replays_the_focused_animation_document_history() {
         !instance.dirty,
         "undoing back to the saved history mark must clear document dirty metadata"
     );
-    assert_eq!(harness.runtime.editor_snapshot().unwrap().status_line, "Undo");
+    assert_eq!(
+        harness.runtime.editor_snapshot().unwrap().status_line,
+        "Undo"
+    );
 }
 
 #[test]
@@ -117,7 +121,8 @@ fn animation_graph_ignores_duplicate_output_node_requests() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");
@@ -182,7 +187,8 @@ fn animation_graph_removes_output_node_when_requested() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");
@@ -247,7 +253,8 @@ fn animation_graph_ignores_connections_from_missing_source_nodes() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");
@@ -315,7 +322,8 @@ fn animation_graph_ignores_self_referential_connections() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");

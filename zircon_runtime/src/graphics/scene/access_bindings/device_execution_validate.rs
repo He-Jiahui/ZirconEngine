@@ -344,10 +344,45 @@ impl RenderGraphExecutionResources {
         key: RenderGraphVersionedAccessKey,
     ) -> Result<(), String> {
         match key.range {
-            RenderGraphResourceAccessRange::Texture(_)
-            | RenderGraphResourceAccessRange::UnresolvedExternal => {
+            RenderGraphResourceAccessRange::Texture(_) => {
                 self.external_texture_view_for_access(key.access_id)?;
                 Ok(())
+            }
+            RenderGraphResourceAccessRange::UnresolvedExternal => {
+                let (packet_key, binding) = self
+                    .external_access_contract_for_access(key.access_id)
+                    .ok_or_else(|| {
+                        format!(
+                            "external device access {:?} has no typed lease contract",
+                            key.access_id
+                        )
+                    })?;
+                if packet_key != key {
+                    return Err(format!(
+                        "external device access {:?} differs from its typed lease packet key",
+                        key.access_id
+                    ));
+                }
+                match binding.resource_type {
+                    crate::render_graph::RenderGraphExternalResourceType::Buffer => {
+                        let (buffer, actual_range) =
+                            self.external_buffer_binding_for_access(key.access_id)?;
+                        let expected_range =
+                            buffer_access_range(key.range, buffer.size(), key.access_id)?;
+                        if actual_range != expected_range {
+                            return Err(format!("external buffer access {:?} has physical range {:?}, expected {:?}", key.access_id, actual_range, expected_range));
+                        }
+                        Ok(())
+                    }
+                    crate::render_graph::RenderGraphExternalResourceType::Texture => {
+                        self.external_texture_view_for_access(key.access_id)?;
+                        Ok(())
+                    }
+                    crate::render_graph::RenderGraphExternalResourceType::Unknown => Err(format!(
+                        "external device access {:?} has an unknown physical resource type",
+                        key.access_id
+                    )),
+                }
             }
             range @ RenderGraphResourceAccessRange::Buffer(_) => {
                 let (buffer, actual_range) =

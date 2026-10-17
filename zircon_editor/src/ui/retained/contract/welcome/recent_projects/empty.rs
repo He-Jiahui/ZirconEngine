@@ -4,7 +4,6 @@ use super::super::super::super::paint_text::{
     draw_text_with_size_and_style, measure_runtime_text_width,
 };
 use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
-use super::super::style::WELCOME_MUTED_TEXT;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 const MIN_EMPTY_TEXT_SLOT_WIDTH: f32 = 1.0;
@@ -72,7 +71,7 @@ fn draw_centered_empty_text(
         },
         text,
         Some(clip),
-        WELCOME_MUTED_TEXT,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text_muted,
         font_size,
         line_height,
         UiTextRunPaintStyle::default(),

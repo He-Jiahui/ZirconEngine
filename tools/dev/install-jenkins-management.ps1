@@ -22,7 +22,8 @@ param(
     [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedPinnedActiveBuildProofSha256,
     [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedPinnedActiveGuardSha256,
     [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedCheckoutCommitAddonSha256,
-    [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedDeliveryAddonSha256
+    [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedDeliveryAddonSha256,
+    [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedBranchIntegrationAddonSha256
 )
 $ErrorActionPreference = 'Stop'
 function Assert-Physical([string]$Path) {
@@ -180,17 +181,17 @@ function Get-ManagementJobExtensionPrefix {
     param(
         [Parameter(Mandatory=$true)][AllowEmptyCollection()][byte[]]$AddonBytes,
         [Parameter(Mandatory=$true)][AllowEmptyString()][string]$ExpectedSha256,
-        [ValidateSet('checkout-commit','delivery')][string]$Kind = 'checkout-commit'
+        [ValidateSet('checkout-commit','delivery','branch-integration')][string]$Kind = 'checkout-commit'
     )
-    $taskAddonLabel = if ($Kind -ceq 'delivery') { 'Validated delivery addon' } else { 'Checkout commit addon' }
+    $taskAddonLabel = if ($Kind -ceq 'branch-integration') { 'Branch integration addon' } elseif ($Kind -ceq 'delivery') { 'Validated delivery addon' } else { 'Checkout commit addon' }
     if ($ExpectedSha256 -cnotmatch '^[0-9a-f]{64}$' -or (Hash-Bytes $AddonBytes) -cne $ExpectedSha256) {
         throw ($taskAddonLabel + ' source differs')
     }
     $taskAddonText = [Text.UTF8Encoding]::new($false,$true).GetString($AddonBytes)
     if ($taskAddonText.StartsWith([string][char]0xfeff, [StringComparison]::Ordinal)) { $taskAddonText = $taskAddonText.Substring(1) }
     $taskAddonText = $taskAddonText.Replace("`r`n", "`n").TrimEnd([char[]]"`r`n")
-    $taskBegin = if ($Kind -ceq 'delivery') { '// BEGIN ZIRCON VALIDATED DELIVERY' } else { '// BEGIN ZIRCON SCOPED CHECKOUT COMMIT' }
-    $taskEnd = if ($Kind -ceq 'delivery') { '// END ZIRCON VALIDATED DELIVERY' } else { '// END ZIRCON SCOPED CHECKOUT COMMIT' }
+    $taskBegin = if ($Kind -ceq 'branch-integration') { '// BEGIN ZIRCON BRANCH QUEUE' } elseif ($Kind -ceq 'delivery') { '// BEGIN ZIRCON VALIDATED DELIVERY' } else { '// BEGIN ZIRCON SCOPED CHECKOUT COMMIT' }
+    $taskEnd = if ($Kind -ceq 'branch-integration') { '// END ZIRCON BRANCH QUEUE' } elseif ($Kind -ceq 'delivery') { '// END ZIRCON VALIDATED DELIVERY' } else { '// END ZIRCON SCOPED CHECKOUT COMMIT' }
     # Use literal ordinal offsets for both unique markers and their exact boundaries.
     $taskBeginOffset = $taskAddonText.IndexOf($taskBegin, [StringComparison]::Ordinal)
     $taskLastBeginOffset = $taskAddonText.LastIndexOf($taskBegin, [StringComparison]::Ordinal)
@@ -215,6 +216,10 @@ function Join-ManagementJobExtension {
     if ($Core.Contains('// BEGIN ZIRCON VALIDATED DELIVERY') -or
             $Core.Contains('// END ZIRCON VALIDATED DELIVERY')) {
         throw 'Management core already contains a validated delivery addon'
+    }
+    if ($Core.Contains('// BEGIN ZIRCON BRANCH QUEUE') -or
+            $Core.Contains('// END ZIRCON BRANCH QUEUE')) {
+        throw 'Management core already contains a branch integration addon'
     }
     return ($Prefix + $Core)
 }
@@ -312,7 +317,18 @@ if ($PSBoundParameters.ContainsKey('ExpectedDeliveryAddonSha256')) {
         sourceSha256=$ExpectedDeliveryAddonSha256;prefixSha256=(Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskDeliveryExtensionPrefix)));
         capsuleMember=$false;liveVerified=$false;preserved=$false}
 }
-$taskCombinedExtensionPrefix = $taskDeliveryExtensionPrefix + $taskJobExtensionPrefix
+$taskBranchIntegrationExtension = $null
+$taskBranchIntegrationExtensionPrefix = ''
+if ($PSBoundParameters.ContainsKey('ExpectedBranchIntegrationAddonSha256')) {
+    if (-not $taskPrior) { throw 'Branch integration addon preservation requires an existing installation' }
+    $taskBranchIntegrationSource = Assert-Physical "$repo/tools/jenkins-management/branch-integration.groovy"
+    $taskBranchIntegrationBytes = [IO.File]::ReadAllBytes($taskBranchIntegrationSource)
+    $taskBranchIntegrationExtensionPrefix = Get-ManagementJobExtensionPrefix -AddonBytes $taskBranchIntegrationBytes -ExpectedSha256 $ExpectedBranchIntegrationAddonSha256 -Kind 'branch-integration'
+    $taskBranchIntegrationExtension = [ordered]@{kind='branch-integration-v1';sourcePath=$taskBranchIntegrationSource;
+        sourceSha256=$ExpectedBranchIntegrationAddonSha256;prefixSha256=(Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskBranchIntegrationExtensionPrefix)));
+        capsuleMember=$false;liveVerified=$false;preserved=$false}
+}
+$taskCombinedExtensionPrefix = $taskBranchIntegrationExtensionPrefix + $taskDeliveryExtensionPrefix + $taskJobExtensionPrefix
 $taskSourceRoot = "$repo/tools/jenkins-management"
 if ($taskPrior) {
     $taskOldInstalledBytes = [IO.File]::ReadAllBytes($taskInstalledPath)
@@ -472,6 +488,10 @@ if ($CheckOnly) {
         $taskCheckResult.deliveryExtension = $taskDeliveryExtension
         $taskCheckResult.combinedExtensionPrefixSha256 = Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskCombinedExtensionPrefix))
     }
+    if ($null -ne $taskBranchIntegrationExtension) {
+        $taskCheckResult.branchIntegrationExtension = $taskBranchIntegrationExtension
+        $taskCheckResult.combinedExtensionPrefixSha256 = Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskCombinedExtensionPrefix))
+    }
     [pscustomobject]$taskCheckResult | ConvertTo-Json -Depth 8
     return
 }
@@ -524,6 +544,7 @@ if ($taskPrior) {
     }
     Assert-ManagementJobExtensionSource $taskJobExtension $taskJobExtensionPrefix
 Assert-ManagementJobExtensionSource $taskDeliveryExtension $taskDeliveryExtensionPrefix -Kind 'delivery'
+Assert-ManagementJobExtensionSource $taskBranchIntegrationExtension $taskBranchIntegrationExtensionPrefix -Kind 'branch-integration'
     $taskOldResponse = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec 15
     [xml]$taskOldJob = ($taskOldResponse.Content -replace '^\s*<\?xml[^?]*\?>', '')
     $taskOldConfigBytes = [Text.Encoding]::UTF8.GetBytes($taskOldResponse.Content)
@@ -608,6 +629,7 @@ if ($taskPinnedActive) {
 }
 Assert-ManagementJobExtensionSource $taskJobExtension $taskJobExtensionPrefix
 Assert-ManagementJobExtensionSource $taskDeliveryExtension $taskDeliveryExtensionPrefix -Kind 'delivery'
+Assert-ManagementJobExtensionSource $taskBranchIntegrationExtension $taskBranchIntegrationExtensionPrefix -Kind 'branch-integration'
 $taskActivationRecord = [ordered]@{schemaVersion=1;job='zircon-management';capsule=$capsule;capsuleSha256=$digest;
     driverDigest=$ExpectedDriverDigest;runtimeOperationId=$ExpectedRuntimeOperationId;ordinaryEntry=$ordinaryEntry;formalAcceptance=$false}
 if ($null -ne $taskManagedWorktree) { $taskActivationRecord.managedWorktree = $taskManagedWorktree }
@@ -632,6 +654,7 @@ $taskUpdatedResponse = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicPa
 Assert-ManagementJob $taskUpdatedJob $pipeline $ExpectedDriverDigest $ExpectedRuntimeOperationId
 Assert-ManagementJobExtensionSource $taskJobExtension $taskJobExtensionPrefix
 Assert-ManagementJobExtensionSource $taskDeliveryExtension $taskDeliveryExtensionPrefix -Kind 'delivery'
+Assert-ManagementJobExtensionSource $taskBranchIntegrationExtension $taskBranchIntegrationExtensionPrefix -Kind 'branch-integration'
 if ($taskPinnedActive) { Invoke-PinnedActiveManagementGuard 'after-post' }
 if ($taskPrior -and (Hash-Bytes ([IO.File]::ReadAllBytes($taskInstalledPath))) -ne $ExpectedInstalledSha256) { throw 'Install changed while updating job' }
 if (-not $taskPrior -and (Test-Path -LiteralPath $taskInstalledPath)) { throw 'Installation appeared while updating job' }
@@ -650,7 +673,7 @@ if ((Hash-Bytes ([IO.File]::ReadAllBytes($taskRecordTemp))) -ne (Hash-Bytes $tas
 if ($taskPrior -and (Hash-Bytes ([IO.File]::ReadAllBytes($taskInstalledPath))) -ne $ExpectedInstalledSha256) { throw 'Original install changed before activation' }
 if (Test-Path -LiteralPath "$folder/installed.json") { [IO.File]::Replace($taskRecordTemp, "$folder/installed.json", [Management.Automation.Language.NullString]::Value) }
 else { [IO.File]::Move($taskRecordTemp, "$folder/installed.json") }
-if ($taskPinnedActive -or $null -ne $taskJobExtension -or $null -ne $taskDeliveryExtension) {
+if ($taskPinnedActive -or $null -ne $taskJobExtension -or $null -ne $taskDeliveryExtension -or $null -ne $taskBranchIntegrationExtension) {
     $taskResult = [ordered]@{}
     foreach ($taskResultKey in $record.Keys) { $taskResult[$taskResultKey] = $record[$taskResultKey] }
     if ($taskPinnedActive) {
@@ -668,6 +691,13 @@ if ($taskPinnedActive -or $null -ne $taskJobExtension -or $null -ne $taskDeliver
         foreach ($taskDeliveryKey in $taskDeliveryExtension.Keys) { $taskResult.deliveryExtension[$taskDeliveryKey] = $taskDeliveryExtension[$taskDeliveryKey] }
         $taskResult.deliveryExtension.liveVerified = $true
         $taskResult.deliveryExtension.preserved = $true
+        $taskResult.combinedExtensionPrefixSha256 = Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskCombinedExtensionPrefix))
+    }
+    if ($null -ne $taskBranchIntegrationExtension) {
+        $taskResult.branchIntegrationExtension = [ordered]@{}
+        foreach ($taskBranchIntegrationKey in $taskBranchIntegrationExtension.Keys) { $taskResult.branchIntegrationExtension[$taskBranchIntegrationKey] = $taskBranchIntegrationExtension[$taskBranchIntegrationKey] }
+        $taskResult.branchIntegrationExtension.liveVerified = $true
+        $taskResult.branchIntegrationExtension.preserved = $true
         $taskResult.combinedExtensionPrefixSha256 = Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskCombinedExtensionPrefix))
     }
     $taskResult | ConvertTo-Json -Depth 10

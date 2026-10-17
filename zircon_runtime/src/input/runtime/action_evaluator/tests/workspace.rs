@@ -104,10 +104,7 @@ fn runtime56_recovery_batch_growth_aware_action_reset_preserves_grow_shrink_and_
 #[test]
 fn runtime56_recovery_batch_growth_aware_action_reset_source_contract() {
     let source = include_str!("../workspace.rs");
-    let production = source
-        .split_once("#[cfg(test)]\nmod tests")
-        .expect("production module end")
-        .0;
+    let production = crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section(source);
     let prepare_actions = production
         .split_once("fn prepare_actions")
         .expect("prepare actions")

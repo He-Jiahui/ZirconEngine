@@ -308,6 +308,7 @@ impl TaskGraphScopeInner {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn wait_until_quiescent(&self, timeout: Duration) -> bool {
         let mut state = self.lock_state();
         if state.queued == 0 && state.running == 0 {
@@ -320,6 +321,12 @@ impl TaskGraphScopeInner {
             })
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         state = state_after_wait;
+        state.queued == 0 && state.running == 0
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub(super) fn wait_until_quiescent(&self, _timeout: Duration) -> bool {
+        let state = self.lock_state();
         state.queued == 0 && state.running == 0
     }
 
@@ -496,3 +503,7 @@ mod panic_payload_tests;
 #[cfg(test)]
 #[path = "scope/tests/cases.rs"]
 mod tests;
+
+#[cfg(target_arch = "wasm32")]
+#[path = "scope/web.rs"]
+mod web;

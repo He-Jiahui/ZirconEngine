@@ -100,7 +100,11 @@ fn existing_project_source_rechecks_reparse_target_before_world_save() {
     let world = World::empty_for_project(&project).expect("create project world");
     let scene_locator = ResourceLocator::parse("res://scenes/escape.scene.toml").unwrap();
     let save_error = world
-        .save_scene_to_project(&project, &scene_locator)
+        .save_scene_to_project(
+            &project,
+            &scene_locator,
+            &crate::scene::world::SceneSourceRevision::Missing,
+        )
         .expect_err("world save through an outside-root junction must be rejected");
     assert!(save_error
         .to_string()

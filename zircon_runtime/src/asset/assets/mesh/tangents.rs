@@ -64,26 +64,27 @@ impl MeshAsset {
             });
         }
 
-        let base_positions = self.positions()?.to_vec();
-        let base_normals = required_float32x3_attribute(self, MESH_ATTRIBUTE_NORMAL)?.to_vec();
-        let indices = self.indices.clone();
+        // Publish only after every target succeeds, so the base streams stay borrowed.
+        let base_positions = self.positions()?;
+        let base_normals = required_float32x3_attribute(self, MESH_ATTRIBUTE_NORMAL)?;
+        let indices = self.indices.as_ref();
         let tangent_inputs = tangent_uv_attribute
             .map(|uv_attribute| {
                 Ok::<_, MeshValidationError>((
-                    required_float32x2_attribute(self, uv_attribute)?.to_vec(),
-                    required_float32x4_attribute(self, MESH_ATTRIBUTE_TANGENT)?.to_vec(),
+                    required_float32x2_attribute(self, uv_attribute)?,
+                    required_float32x4_attribute(self, MESH_ATTRIBUTE_TANGENT)?,
                 ))
             })
             .transpose()?;
 
         if rebuild_flat_normals {
-            validate_face_corner_expanded_mesh(base_positions.len(), indices.as_ref())?;
+            validate_face_corner_expanded_mesh(base_positions.len(), indices)?;
         }
-        let mut target_positions = base_positions.clone();
-        let mut target_normals = base_normals.clone();
+        let mut target_positions = base_positions.to_vec();
+        let mut target_normals = base_normals.to_vec();
         let mut rebuilt_frames = Vec::with_capacity(self.morph_targets.len());
         for (target_index, target) in self.morph_targets.iter().enumerate() {
-            target_positions.clone_from_slice(&base_positions);
+            target_positions.clone_from_slice(base_positions);
             if let Some(position_deltas) =
                 optional_morph_float32x3_attribute(target_index, target, MESH_ATTRIBUTE_POSITION)?
             {
@@ -92,9 +93,9 @@ impl MeshAsset {
                 }
             }
 
-            target_normals.clone_from_slice(&base_normals);
+            target_normals.clone_from_slice(base_normals);
             if rebuild_flat_normals {
-                write_flat_corner_normals(&mut target_normals, &target_positions, indices.as_ref());
+                write_flat_corner_normals(&mut target_normals, &target_positions, indices);
             } else if let Some(normal_deltas) =
                 optional_morph_float32x3_attribute(target_index, target, MESH_ATTRIBUTE_NORMAL)?
             {
@@ -106,19 +107,18 @@ impl MeshAsset {
             }
 
             let normal_deltas =
-                rebuild_flat_normals.then(|| vector_deltas(&target_normals, &base_normals));
+                rebuild_flat_normals.then(|| vector_deltas(&target_normals, base_normals));
             let tangent_deltas = tangent_inputs
-                .as_ref()
                 .map(|(uvs, base_tangents)| {
                     let target_corner_tangents = mikktspace_corner_tangents_for_mesh(
                         &target_positions,
                         &target_normals,
                         uvs,
-                        indices.as_ref(),
+                        indices,
                     )?;
                     let target_tangents = morph_vertex_tangents_from_corners(
                         &target_corner_tangents,
-                        indices.as_ref(),
+                        indices,
                         base_tangents,
                         target_index,
                     )?;
@@ -265,16 +265,14 @@ fn publish_generated_corner_tangents(
         return insert_generated_tangents(asset, corner_tangents);
     };
 
-    let source_indices = indices.to_u32_vec();
     let mut split_sources = Vec::new();
     let mut output_tangents = vec![[1.0, 0.0, 0.0, 1.0]; vertex_count];
     let mut primary_group = vec![None; vertex_count];
-    let mut extra_groups =
-        HashMap::with_capacity(source_indices.len().saturating_sub(vertex_count));
-    let mut output_indices = Vec::with_capacity(source_indices.len());
+    let mut extra_groups = HashMap::new();
+    let mut output_indices: Option<Vec<u32>> = None;
 
-    for (source_index, tangent) in source_indices.iter().copied().zip(corner_tangents) {
-        let source_index = source_index as usize;
+    for (corner_index, tangent) in corner_tangents.into_iter().enumerate() {
+        let source_index = mesh_vertex_index(Some(indices), corner_index);
         let tangent_key = tangent_bits(tangent);
         let output_index = match primary_group[source_index] {
             None => {
@@ -308,12 +306,22 @@ fn publish_generated_corner_tangents(
                 }
             }
         };
-        output_indices.push(output_index as u32);
+        if output_index != source_index || output_indices.is_some() {
+            // Before the first split every output index equals its source index.
+            let output_indices = output_indices.get_or_insert_with(|| {
+                let mut output_indices = Vec::with_capacity(indices.len());
+                output_indices.extend(
+                    (0..corner_index).map(|corner| mesh_vertex_index(Some(indices), corner) as u32),
+                );
+                output_indices
+            });
+            output_indices.push(output_index as u32);
+        }
     }
 
-    if split_sources.is_empty() {
+    let Some(output_indices) = output_indices else {
         return insert_generated_tangents(asset, output_tangents);
-    }
+    };
     if asset.mesh_sdf.is_some() {
         return Err(MeshValidationError::TangentGenerationFailed {
             reason: "MikkTSpace vertex splitting must complete before Mesh SDF is cooked"
@@ -381,11 +389,11 @@ fn insert_generated_tangents(
 fn append_remapped_attribute_values(values: &mut MeshAttributeValues, split_sources: &[usize]) {
     macro_rules! append {
         ($values:expr) => {{
-            let appended = split_sources
-                .iter()
-                .map(|source_index| $values[*source_index])
-                .collect::<Vec<_>>();
-            $values.extend(appended);
+            $values.reserve(split_sources.len());
+            for source_index in split_sources {
+                let value = $values[*source_index];
+                $values.push(value);
+            }
         }};
     }
     match values {

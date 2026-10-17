@@ -14,9 +14,8 @@ fn runtime_15_shader_prewarm_project_plugin_registry_live_asset_roots_are_wired(
     let manifest_registry_tests = read_repo(
         "zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs",
     );
-    let registry_tests = read_repo(
-        "zircon_runtime/src/bin/manifest/resource_registry/tests/cases.rs",
-    );
+    let registry_tests =
+        read_repo("zircon_runtime/src/bin/manifest/resource_registry/tests/cases.rs");
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );

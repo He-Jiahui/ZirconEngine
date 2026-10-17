@@ -3,11 +3,18 @@ use notify::{Event, EventKind};
 use std::path::Path;
 
 use super::{
-    asset_watch_event::AssetWatchEvent, watched_asset_uri_for_path::watched_asset_uri_for_path,
+    asset_watch_event::AssetWatchEvent,
+    watched_asset_uri_for_path::{is_ignored_watch_path, watched_asset_uri_for_path},
 };
 
-// TODO: [CR-ASSET-PIPELINE-0005] 核实跨资产根及 From/To 分拆重命名在各平台的 notify 事件形态；当前无法映射 Both 任一端时静默丢弃，可能缺少退役或导入。
-pub(super) fn map_notify_event(assets_root: &Path, event: Event) -> Vec<AssetWatchEvent> {
+#[derive(Default)]
+pub(super) struct MappedWatchEvents {
+    pub(super) events: Vec<AssetWatchEvent>,
+    pub(super) requires_reconciliation: bool,
+}
+
+// TODO: [CR-ASSET-PIPELINE-0005] 核实跨平台的重命名配对与重放；无法可靠映射的重命名先请求全量对账。
+pub(super) fn map_notify_event(assets_root: &Path, event: Event) -> MappedWatchEvents {
     match event.kind {
         EventKind::Create(_) => {
             map_paths_with_capacity(assets_root, &event.paths, AssetWatchEvent::Added)
@@ -18,33 +25,56 @@ pub(super) fn map_notify_event(assets_root: &Path, event: Event) -> Vec<AssetWat
                     watched_asset_uri_for_path(assets_root, from),
                     watched_asset_uri_for_path(assets_root, to),
                 ) {
-                    return vec![AssetWatchEvent::Renamed { from, to }];
+                    return MappedWatchEvents {
+                        events: vec![AssetWatchEvent::Renamed { from, to }],
+                        requires_reconciliation: false,
+                    };
                 }
             }
-            Vec::new()
+            uncertain_rename(assets_root, &event.paths)
         }
+        EventKind::Modify(ModifyKind::Name(_)) => uncertain_rename(assets_root, &event.paths),
         EventKind::Modify(_) => map_modified_paths_with_capacity(assets_root, &event.paths),
         EventKind::Remove(_) => {
             map_paths_with_capacity(assets_root, &event.paths, AssetWatchEvent::Removed)
         }
-        _ => Vec::new(),
+        _ => MappedWatchEvents::default(),
+    }
+}
+
+fn is_relevant_watch_path(assets_root: &Path, path: &Path) -> bool {
+    path.starts_with(assets_root) && !is_ignored_watch_path(path)
+}
+
+fn uncertain_rename(assets_root: &Path, paths: &[std::path::PathBuf]) -> MappedWatchEvents {
+    MappedWatchEvents {
+        events: Vec::new(),
+        requires_reconciliation: paths.is_empty()
+            || paths
+                .iter()
+                .any(|path| is_relevant_watch_path(assets_root, path)),
     }
 }
 
 fn map_modified_paths_with_capacity(
     assets_root: &Path,
     paths: &[std::path::PathBuf],
-) -> Vec<AssetWatchEvent> {
+) -> MappedWatchEvents {
     let mut events = Vec::with_capacity(paths.len());
+    let mut requires_reconciliation = paths.is_empty();
     for path in paths {
         if is_ordinary_directory_modify_echo(path) {
             continue;
         }
-        if let Ok(uri) = watched_asset_uri_for_path(assets_root, path) {
-            events.push(AssetWatchEvent::Modified(uri));
+        match watched_asset_uri_for_path(assets_root, path) {
+            Ok(uri) => events.push(AssetWatchEvent::Modified(uri)),
+            Err(_) => requires_reconciliation |= is_relevant_watch_path(assets_root, path),
         }
     }
-    events
+    MappedWatchEvents {
+        events,
+        requires_reconciliation,
+    }
 }
 
 fn is_ordinary_directory_modify_echo(path: &Path) -> bool {
@@ -66,17 +96,22 @@ fn map_paths_with_capacity<F>(
     assets_root: &Path,
     paths: &[std::path::PathBuf],
     map: F,
-) -> Vec<AssetWatchEvent>
+) -> MappedWatchEvents
 where
     F: Fn(crate::asset::AssetUri) -> AssetWatchEvent,
 {
     let mut events = Vec::with_capacity(paths.len());
+    let mut requires_reconciliation = paths.is_empty();
     for path in paths {
-        if let Ok(uri) = watched_asset_uri_for_path(assets_root, path) {
-            events.push(map(uri));
+        match watched_asset_uri_for_path(assets_root, path) {
+            Ok(uri) => events.push(map(uri)),
+            Err(_) => requires_reconciliation |= is_relevant_watch_path(assets_root, path),
         }
     }
-    events
+    MappedWatchEvents {
+        events,
+        requires_reconciliation,
+    }
 }
 
 #[cfg(test)]

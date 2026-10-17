@@ -694,9 +694,104 @@ describe('review host state projection', () => {
     expect(normalizeZuiDocument(popup)).toEqual(before);
   });
 
-  it('returns focus to the invoking control in the popup source instance', () => {
+  it('limits PopupMenu state to its selected host and returns focus to its control anchor', () => {
+    const mainSource = 'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
+    const popupSource = 'zircon_editor/assets/ui/editor/unreal/components/menu_popups.zui';
+    const anchorSource = 'zircon_editor/assets/ui/editor/unreal/components/menus.zui';
+    const popupInstance = JSON.stringify([
+      { sourcePath: mainSource, sourceNodeId: 'menu_popups' },
+    ]);
+    const anchorInstance = JSON.stringify([
+      { sourcePath: mainSource, sourceNodeId: 'menu_bar' },
+    ]);
+    const source: ZuiDocument = {
+      asset: { kind: 'view', id: 'review-host', version: 2 },
+      root: { node: 'root' },
+      nodes: {
+        root: {
+          component: 'Overlay',
+          children: [
+            { node: 'popup_a' },
+            { node: 'slot_a' },
+            { node: 'popup_b' },
+            { node: 'slot_b' },
+          ],
+        },
+        popup_a: {
+          component: 'PopupMenu',
+          control_id: 'PopupA',
+          widget: {
+            popup_anchor: { kind: 'control', control_id: 'MenuSlot2' },
+          },
+          props: {
+            open: false,
+            popup_open: false,
+            menu_items: ['New Level|action=menu.item.new_scene'],
+          },
+          penpot_review_source_path: popupSource,
+          penpot_review_source_node_id: 'popup_a',
+          penpot_review_instance_path: popupInstance,
+        },
+        slot_a: {
+          component: 'Button',
+          control_id: 'MenuSlot2',
+          penpot_review_source_path: anchorSource,
+          penpot_review_source_node_id: 'menu_slot2',
+          penpot_review_instance_path: anchorInstance,
+        },
+        popup_b: {
+          component: 'PopupMenu',
+          control_id: 'PopupB',
+          widget: {
+            popup_anchor: { kind: 'control', control_id: 'MenuSlot3' },
+          },
+          props: { open: false, popup_open: false, menu_items: ['Window'] },
+          penpot_review_source_path: popupSource,
+          penpot_review_source_node_id: 'popup_b',
+          penpot_review_instance_path: JSON.stringify([
+            { sourcePath: popupSource, sourceNodeId: 'other_menus' },
+          ]),
+        },
+        slot_b: {
+          component: 'Button',
+          control_id: 'MenuSlot3',
+        },
+      },
+    };
+    const review = (state: 'open' | 'closed' | 'focus-return') =>
+      reviewDocumentForCase(source, {
+        ...reviewCase,
+        host: 'editor',
+        state,
+        data: {
+          workbenchState: {
+            sourcePath: popupSource,
+            sourceNodeId: 'popup_a',
+            controlId: 'PopupA',
+          },
+        },
+      });
+
+    const opened = review('open');
+    expect(opened.nodes?.['popup_a'].state).toMatchObject({ open: true });
+    expect(opened.nodes?.['popup_b'].state).toBeUndefined();
+
+    const closed = review('closed');
+    expect(closed.nodes?.['popup_a'].state).toMatchObject({ open: false });
+    expect(closed.nodes?.['popup_b'].state).toBeUndefined();
+
+    const returned = review('focus-return');
+    expect(returned.nodes?.['popup_a'].state).toMatchObject({ open: false });
+    expect(returned.nodes?.['slot_a'].state).toMatchObject({
+      focused: true,
+      focus_visible: true,
+    });
+    expect(returned.nodes?.['popup_b'].state).toBeUndefined();
+  });
+
+  it('rejects duplicate invoking control IDs even when the selected popup has an exact instance', () => {
     const sourcePath =
-      'zircon_editor/assets/ui/editor/windows/workbench_window.zui';
+      'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
     const instanceA = JSON.stringify([
       { sourcePath, sourceNodeId: 'toolbar_a' },
     ]);
@@ -756,7 +851,7 @@ describe('review host state projection', () => {
         },
       },
     };
-    const returned = reviewDocumentForCase(source, {
+    expect(() => reviewDocumentForCase(source, {
       ...reviewCase,
       host: 'editor',
       sourcePath,
@@ -769,13 +864,150 @@ describe('review host state projection', () => {
           instancePath: instanceB,
         },
       },
+    })).toThrow('Workbench focus return anchor SharedTrigger resolved 2 nodes');
+  });
+
+  it('requires one uniquely mounted invoking control across component sources', () => {
+    const popupSource =
+      'zircon_editor/assets/ui/editor/unreal/components/menu_popups.zui';
+    const popupInstance = JSON.stringify([
+      { sourcePath: popupSource, sourceNodeId: 'toolbar' },
+    ]);
+    const otherSource =
+      'zircon_editor/assets/ui/editor/unreal/components/menus.zui';
+    const otherInstance = JSON.stringify([
+      { sourcePath: otherSource, sourceNodeId: 'toolbar' },
+    ]);
+    const makeSource = (anchors: readonly ZuiNode[]): ZuiDocument => {
+      const nodes: Record<string, ZuiNode> = {
+        root: {
+          component: 'Overlay',
+          children: [
+            { node: 'popup' },
+            ...anchors.map((_, index) => ({ node: `trigger_${index}` })),
+          ],
+        },
+        popup: {
+          component: 'DropdownPopup',
+          control_id: 'ScopedPopup',
+          widget: {
+            popup_anchor: { kind: 'control', control_id: 'ScopedTrigger' },
+          },
+          props: { open: false, popup_open: false },
+          penpot_review_source_path: popupSource,
+          penpot_review_source_node_id: 'popup',
+          penpot_review_instance_path: popupInstance,
+        },
+      };
+      anchors.forEach((anchor, index) => {
+        nodes[`trigger_${index}`] = anchor;
+      });
+      return {
+        asset: { kind: 'view', id: popupSource, version: 2 },
+        root: { node: 'root' },
+        nodes,
+      };
+    };
+    const review = (anchors: readonly ZuiNode[]) =>
+      reviewDocumentForCase(makeSource(anchors), {
+        ...reviewCase,
+        host: 'editor',
+        sourcePath: popupSource,
+        state: 'focus-return',
+        data: {
+          workbenchState: {
+            sourcePath: popupSource,
+            sourceNodeId: 'popup',
+            controlId: 'ScopedPopup',
+            instancePath: popupInstance,
+          },
+        },
+      });
+    const anchor = (sourcePath: string, instancePath: string): ZuiNode => ({
+      component: 'Button',
+      control_id: 'ScopedTrigger',
+      penpot_review_source_path: sourcePath,
+      penpot_review_source_node_id: 'trigger',
+      penpot_review_instance_path: instancePath,
     });
 
-    expect(returned.nodes?.['trigger_a'].state).toBeUndefined();
-    expect(returned.nodes?.['trigger_b'].state).toMatchObject({
-      focused: true,
-      focus_visible: true,
+    expect(() => review([])).toThrow(
+      'Workbench focus return anchor ScopedTrigger resolved 0 nodes',
+    );
+    const returned = review([anchor(otherSource, otherInstance)]);
+    expect(returned.nodes?.['trigger_0'].state).toMatchObject({
+      focused: true, focus_visible: true,
     });
+    expect(() => review([
+      anchor(popupSource, popupInstance), anchor(otherSource, otherInstance),
+    ])).toThrow('Workbench focus return anchor ScopedTrigger resolved 2 nodes');
+    expect(() =>
+      review([
+        anchor(popupSource, popupInstance),
+        anchor(popupSource, popupInstance),
+      ]),
+    ).toThrow('Workbench focus return anchor ScopedTrigger resolved 2 nodes');
+  });
+
+  it('returns focus for the authored Unreal Window menu across component mounts', () => {
+    const repo = process.env['ZUI_LAYOUT_REPO_ROOT'] ??
+      fileURLToPath(new URL('../../../../../../', import.meta.url));
+    const mainSource = 'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
+    const popupSource = 'zircon_editor/assets/ui/editor/unreal/components/menu_popups.zui';
+    const anchorSource = 'zircon_editor/assets/ui/editor/unreal/components/menus.zui';
+    const readDocument = (path: string) =>
+      parseZuiDocument(readFileSync(`${repo}/${path}`, 'utf8')).document;
+    const popupEntry = Object.entries(readDocument(popupSource).nodes ?? {})
+      .find(([, node]) => node.control_id === 'UnrealWindowMenuPopup')!;
+    expect(popupEntry).toBeDefined();
+    const [popupNodeId, popup] = popupEntry;
+    const widget = popup['widget'] as {
+      popup_anchor: { kind: string; control_id: string };
+    };
+    expect(widget.popup_anchor.kind).toBe('control');
+    expect(widget.popup_anchor.control_id).toBe('MenuSlot2');
+    const anchorEntry = Object.entries(readDocument(anchorSource).nodes ?? {})
+      .find(([, node]) => node.control_id === widget.popup_anchor.control_id)!;
+    expect(anchorEntry).toBeDefined();
+    const [anchorNodeId, anchor] = anchorEntry;
+    const popupInstance = JSON.stringify([
+      { sourcePath: mainSource, sourceNodeId: 'menu_popups' },
+    ]);
+    const anchorInstance = JSON.stringify([
+      { sourcePath: mainSource, sourceNodeId: 'menu_bar' },
+    ]);
+    const source: ZuiDocument = {
+      asset: { kind: 'view', id: mainSource, version: 2 },
+      root: { node: 'root' },
+      nodes: {
+        root: { component: 'Overlay', children: [{ node: 'menus' }, { node: 'popups' }] },
+        menus: { component: 'HorizontalBox', children: [{ node: 'anchor' }] },
+        popups: { component: 'Overlay', children: [{ node: 'popup' }] },
+        popup: {
+          ...popup,
+          penpot_review_source_path: popupSource,
+          penpot_review_source_node_id: popupNodeId,
+          penpot_review_instance_path: popupInstance,
+        },
+        anchor: {
+          ...anchor,
+          penpot_review_source_path: anchorSource,
+          penpot_review_source_node_id: anchorNodeId,
+          penpot_review_instance_path: anchorInstance,
+        },
+      },
+    };
+    const before = normalizeZuiDocument(source);
+    const returned = reviewDocumentForCase(source, {
+      ...reviewCase, host: 'editor', sourcePath: mainSource, state: 'focus-return',
+      data: { workbenchState: {
+        sourcePath: popupSource, sourceNodeId: popupNodeId,
+        controlId: popup.control_id!, instancePath: popupInstance,
+      } },
+    });
+    expect(returned.nodes?.['popup'].state).toMatchObject({ open: false, popup_open: false });
+    expect(returned.nodes?.['anchor'].state).toMatchObject({ focused: true, focus_visible: true });
+    expect(normalizeZuiDocument(source)).toEqual(before);
   });
 
   it('uses native painter empty data only as a transient component-state override', () => {
@@ -1044,10 +1276,12 @@ describe('authored Workbench button painter states', () => {
   const root = (process.env['ZUI_LAYOUT_REPO_ROOT'] ?? fileURLToPath(new URL('../../../../../../', import.meta.url)));
   const assetPath =
     'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/button.zui';
+  const iconButtonPath =
+    'zircon_editor/assets/ui/editor/workbench/primitives/inputs/icon_button.zui';
   const themePath = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
   const dependencies = new LayoutDependencies();
   beforeAll(async () => {
-    await dependencies.load(root, [assetPath, themePath]);
+    await dependencies.load(root, [assetPath, iconButtonPath, themePath]);
   });
   const authoredButton = (): ZuiDocument => {
     const { document } = parseZuiDocument(
@@ -1055,6 +1289,13 @@ describe('authored Workbench button painter states', () => {
     );
     dependencies.embed(document, assetPath);
     return document;
+  };
+  const authoredIconButton = (): ZuiNode => {
+    const { document } = parseZuiDocument(
+      readFileSync(`${root}/${iconButtonPath}`, 'utf8'),
+    );
+    dependencies.embed(document, iconButtonPath);
+    return document.nodes!['root'];
   };
 
   it.each([
@@ -1252,12 +1493,8 @@ describe('authored Workbench button painter states', () => {
   });
 
   it('retains the runtime icon selection-before-press exception and disabled icon foreground', () => {
-    const source = parseZuiDocument(
-      readFileSync(
-        `${root}/${assetPath.replace('workbench_button.zui', 'workbench_icon_button.zui')}`,
-        'utf8',
-      ),
-    ).document.nodes!['root'];
+    const source = authoredIconButton();
+    expect(source.component).toBe('IconButton');
     Object.assign(source.props!, {
       selected: true,
       pressed: true,

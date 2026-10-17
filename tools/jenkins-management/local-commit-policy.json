@@ -4,8 +4,8 @@
   "repositoryRoot": "E:/Git/ZirconEngine",
   "authorization": {
     "source": "user",
-    "instruction": "再次放宽限制，我需要任意会话都有能力提交jenkins，然后完成验证后提交git commit，合并功能到主干",
-    "scope": "Any session may submit scoped work to Jenkins, validate it, commit task files locally and integrate the validated result into main"
+    "instruction": "主干工作区必须纯净；Jenkins 任务在 worktree 分支提交，合入最新主干后验证，通过 PR 合并主干，再快进同步本地主干。本次用户另行授权一次本地主干基线提交。",
+    "scope": "Any session uses its Jenkins task worktree; the scheduled queue validates the merged candidate and synchronizes clean local main only from a verified merged GitHub PR"
   },
   "requireSessionGrant": false,
   "requireSourceDigest": false,
@@ -14,10 +14,17 @@
   "pushAllowed": false,
   "notificationAllowed": false,
   "integration": {
+    "mode": "branch-commit-then-scheduled-merge",
+    "commitBeforeValidation": true,
+    "mergeExecutor": "zircon-merge-queue",
+    "mergeCron": "H/15 * * * *",
     "enabled": true,
     "sessions": "any",
     "targetBranch": "main",
     "validationRequired": true,
+    "requireCleanMain": true,
+    "requirePullRequest": true,
+    "pullRequestRepository": "He-Jiahui/ZirconEngine",
     "requireSeparateCommitApproval": false,
     "requireSeparateMergeApproval": false,
     "requireWholeWorkspaceAcceptance": false,

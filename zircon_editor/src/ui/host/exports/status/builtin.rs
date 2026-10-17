@@ -146,6 +146,7 @@ impl EditorManager {
         plugins.sort_by(|left, right| left.plugin_id.cmp(&right.plugin_id));
 
         EditorPluginStatusReport {
+            enablement: None,
             plugins,
             diagnostics,
         }

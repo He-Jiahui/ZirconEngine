@@ -12,10 +12,27 @@ impl RetainedEditorHost {
         let bootstrap_asset_count = self.asset_change_events.len();
         let mut asset_count = 0usize;
         for _ in 0..bootstrap_asset_count {
-            if self.asset_change_events.try_recv().is_err() {
-                break;
+            use zircon_runtime::asset::watch::AssetEventTryRecvError;
+            match self.asset_change_events.try_recv() {
+                Ok(_) => asset_count += 1,
+                Err(AssetEventTryRecvError::Lagged(_)) => {
+                    let _snapshot = self.asset_change_events.resync();
+                    self.asset_refresh_accumulator
+                        .request_asset_reconciliation(std::time::Instant::now());
+                    break;
+                }
+                Err(AssetEventTryRecvError::SequenceExhausted) => {
+                    if self
+                        .asset_refresh_accumulator
+                        .latch_asset_sequence_exhaustion()
+                    {
+                        self.asset_refresh_accumulator
+                            .request_asset_reconciliation(std::time::Instant::now());
+                    }
+                    break;
+                }
+                Err(AssetEventTryRecvError::Empty | AssetEventTryRecvError::Disconnected) => break,
             }
-            asset_count += 1;
         }
         let editor_count = self.editor_asset_change_events.discard_pending();
         let bootstrap_resource_count = self.resource_change_events.len();

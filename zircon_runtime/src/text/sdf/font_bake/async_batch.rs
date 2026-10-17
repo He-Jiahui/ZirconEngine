@@ -170,6 +170,7 @@ impl SdfFontBakeCache {
                         continue;
                     }
                 };
+                #[cfg(feature = "native-host")]
                 if let Some(offline) = self.offline_source.load_glyph(
                     &slot.key,
                     face,

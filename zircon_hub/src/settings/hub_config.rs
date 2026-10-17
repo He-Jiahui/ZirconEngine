@@ -6,16 +6,16 @@ use serde::{Deserialize, Serialize};
 use crate::engines::SourceEngineInstall;
 use crate::error::HubError;
 use crate::projects::{
-    CloudProjectBinding, ProjectMetadataMap, ProjectTemplateId, RECENT_PROJECT_LIMIT,
-    RecentProject, project_metadata_key, project_paths_match,
+    project_metadata_key, project_paths_match, CloudProjectBinding, ProjectMetadataMap,
+    ProjectTemplateId, RecentProject, RECENT_PROJECT_LIMIT,
 };
 use crate::state::{
-    ACTION_HISTORY_LIMIT, HubActionRecord, HubPage, ProjectFilterMode, ProjectSortMode,
-    ProjectSubpage, ProjectViewMode, repair_action_record_ids,
+    repair_action_record_ids, HubActionRecord, HubPage, ProjectFilterMode, ProjectSortMode,
+    ProjectSubpage, ProjectViewMode, ACTION_HISTORY_LIMIT,
 };
 
 use super::{
-    core::{HubSettings, migrate_legacy_build_output_default},
+    core::{migrate_legacy_build_output_default, HubSettings},
     default_project_dir,
 };
 

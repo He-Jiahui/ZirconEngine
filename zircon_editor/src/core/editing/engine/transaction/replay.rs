@@ -177,14 +177,32 @@ impl EditorTransactionEngine {
             self.clear_operation_locked(&mut state);
             return Err(error);
         }
-        let result = if undo {
-            store.undo(context.as_mut())
-        } else {
-            store.redo(context.as_mut())
-        };
+        let previous_top = store.current_transaction();
+        let mut result = store
+            .prepare_replay_v1(context.as_ref(), undo)
+            .and_then(|quotes| {
+                if undo {
+                    store.undo_quoted_v1(context.as_mut(), &quotes)
+                } else {
+                    store.redo_quoted_v1(context.as_mut(), &quotes)
+                }
+            });
         let faulted = result.as_ref().is_err_and(|error| {
             error.is_interrupted() || matches!(error, EditCommandError::RollbackFailed { .. })
         });
+        if let Err(error) = store.finish_replay_v1(undo, previous_top, faulted) {
+            result = Err(error);
+        }
+        let faulted =
+            faulted
+                || result.as_ref().is_err_and(|error| {
+                    matches!(
+                error,
+                EditCommandError::Retention(
+                    crate::core::editing::engine::retention::RetentionContractError::Provider { .. }
+                )
+            )
+                });
         let event = result.as_ref().ok().and_then(|event_metadata| {
             event_metadata
                 .as_ref()

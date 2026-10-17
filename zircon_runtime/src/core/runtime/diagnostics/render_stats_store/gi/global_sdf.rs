@@ -1,24 +1,23 @@
 use crate::core::framework::render::RenderStats;
 
-use super::super::{record_bool, record_count, DiagnosticStore};
+use super::super::{record_bool, record_bytes, record_count, record_microseconds, DiagnosticStore};
 
 /// 发布 Global SDF 的 CPU 准备成本、驻留与上传压力，判断数据准备和 GPU 供给是否匹配。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     // BUG: [CR-RENDER-STATS-0003] Global SDF 的耗时与字节量指标通过 record_count 写成 count 单位，快照将微秒与字节误标为数量；证据：record_count 固定单位。
-    record_count(
+    record_microseconds(
         store,
         "render.hybrid_gi.global_sdf.cpu_prepare_time_us",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_cpu_prepare_time_us).unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_cpu_prepare_time_us,
         &["render", "hybrid_gi", "global_sdf", "cpu", "prepare"],
     );
-    record_count(
+    record_microseconds(
         store,
         "render.hybrid_gi.global_sdf.cpu_mesh_object_collection_time_us",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_cpu_mesh_object_collection_time_us)
-            .unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_cpu_mesh_object_collection_time_us,
         &[
             "render",
             "hybrid_gi",
@@ -28,28 +27,25 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
             "collection",
         ],
     );
-    record_count(
+    record_microseconds(
         store,
         "render.hybrid_gi.global_sdf.cpu_mesh_scene_sync_time_us",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_cpu_mesh_scene_sync_time_us)
-            .unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_cpu_mesh_scene_sync_time_us,
         &["render", "hybrid_gi", "global_sdf", "cpu", "mesh", "sync"],
     );
-    record_count(
+    record_microseconds(
         store,
         "render.hybrid_gi.global_sdf.cpu_residency_time_us",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_cpu_residency_time_us)
-            .unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_cpu_residency_time_us,
         &["render", "hybrid_gi", "global_sdf", "cpu", "residency"],
     );
-    record_count(
+    record_microseconds(
         store,
         "render.hybrid_gi.global_sdf.cpu_influence_update_time_us",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_cpu_influence_update_time_us)
-            .unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_cpu_influence_update_time_us,
         &[
             "render",
             "hybrid_gi",
@@ -59,12 +55,11 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
             "update",
         ],
     );
-    record_count(
+    record_microseconds(
         store,
         "render.hybrid_gi.global_sdf.cpu_candidate_build_time_us",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_cpu_candidate_build_time_us)
-            .unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_cpu_candidate_build_time_us,
         &[
             "render",
             "hybrid_gi",
@@ -176,20 +171,18 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         stats.last_hybrid_gi_global_sdf_clipmap_fallback_count,
         &["render", "hybrid_gi", "global_sdf", "clipmap", "fallback"],
     );
-    record_count(
+    record_bytes(
         store,
         "render.hybrid_gi.global_sdf.candidate_bucket_capacity_bytes",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_candidate_bucket_capacity_bytes)
-            .unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_candidate_bucket_capacity_bytes,
         &["render", "hybrid_gi", "global_sdf", "candidate", "capacity"],
     );
-    record_count(
+    record_bytes(
         store,
         "render.hybrid_gi.global_sdf.persistent_resource_byte_count",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_persistent_resource_byte_count)
-            .unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_persistent_resource_byte_count,
         &[
             "render",
             "hybrid_gi",
@@ -212,44 +205,39 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         stats.last_hybrid_gi_global_sdf_transient_bind_group_creation_count,
         &["render", "hybrid_gi", "global_sdf", "resource", "transient"],
     );
-    record_count(
+    record_bytes(
         store,
         "render.hybrid_gi.global_sdf.transient_parameter_upload_byte_count",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_transient_parameter_upload_byte_count)
-            .unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_transient_parameter_upload_byte_count,
         &["render", "hybrid_gi", "global_sdf", "resource", "upload"],
     );
-    record_count(
+    record_bytes(
         store,
         "render.hybrid_gi.global_sdf.transient_page_upload_byte_count",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_transient_page_upload_byte_count)
-            .unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_transient_page_upload_byte_count,
         &["render", "hybrid_gi", "global_sdf", "resource", "upload"],
     );
-    record_count(
+    record_bytes(
         store,
         "render.hybrid_gi.global_sdf.transient_mesh_upload_byte_count",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_transient_mesh_upload_byte_count)
-            .unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_transient_mesh_upload_byte_count,
         &["render", "hybrid_gi", "global_sdf", "resource", "upload"],
     );
-    record_count(
+    record_bytes(
         store,
         "render.hybrid_gi.global_sdf.transient_completion_upload_byte_count",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_transient_completion_upload_byte_count)
-            .unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_transient_completion_upload_byte_count,
         &["render", "hybrid_gi", "global_sdf", "resource", "upload"],
     );
-    record_count(
+    record_bytes(
         store,
         "render.hybrid_gi.global_sdf.transient_upload_byte_count",
         frame_index,
-        usize::try_from(stats.last_hybrid_gi_global_sdf_transient_upload_byte_count)
-            .unwrap_or(usize::MAX),
+        stats.last_hybrid_gi_global_sdf_transient_upload_byte_count,
         &["render", "hybrid_gi", "global_sdf", "resource", "upload"],
     );
 }

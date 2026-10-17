@@ -224,3 +224,178 @@ fn plugin_document_replacement_evicts_same_id_action_slots_before_pane_rebuild()
         .expect("template action registry mutex should not be poisoned")
         .contains_token(&token));
 }
+
+#[test]
+fn module_plugin_detail_patches_bind_current_rows_and_actions_to_both_models() {
+    use crate::ui::layouts::windows::workbench_host_window::{
+        ModulePluginDetailsPayload, ModulePluginFeatureRowPayload, ModulePluginsPanePayload,
+        PaneBodyPresentation, PanePayload,
+    };
+    use crate::ui::workbench::view::{PaneInteractionMode, PanePayloadKind, PaneRouteNamespace};
+    use zircon_runtime_interface::ui::layout::UiSize;
+
+    let document_id = "res://ui/editor/host/module_plugins_body.zui";
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime
+        .load_builtin_host_templates_for_document_ids(&[document_id])
+        .unwrap();
+    let mut body = PaneBodyPresentation {
+        document_id: document_id.into(),
+        payload_kind: PanePayloadKind::ModulePluginsV1,
+        route_namespace: PaneRouteNamespace::Template,
+        interaction_mode: PaneInteractionMode::HybridNativeSlot,
+        payload: PanePayload::ModulePluginsV1(ModulePluginsPanePayload {
+            diagnostics: String::new(),
+            plugins: vec![],
+            detail_generation: 1,
+            detail_locale: "en".into(),
+            selected_plugin_id: "vendor.owner".into(),
+            focused_control: "features".into(),
+            details: Some(ModulePluginDetailsPayload {
+                plugin_id: "vendor.owner".into(),
+                title: "Owner".into(),
+                total_features: 2,
+                rows: ["first.feature", "second.feature"]
+                    .into_iter()
+                    .map(|id| ModulePluginFeatureRowPayload {
+                        feature_id: id.into(),
+                        label: format!(
+                            "{id}\nDesired: No\nEffective: Unknown\nRequired: No\nBlocked: No"
+                        ),
+                        effective: "Unknown".into(),
+                        ..Default::default()
+                    })
+                    .collect(),
+                selected_feature_id: "second.feature".into(),
+                selected_identity: "Owner: vendor.owner\nFeature: second.feature".into(),
+                selected_states: "Desired: No\nEffective: Unknown\nRequired: No\nBlocked: No"
+                    .into(),
+                action_label: "Enable Feature".into(),
+                action_id: "qualified-owner-feature-action".into(),
+                intent_id: "intent-current".into(),
+                ..Default::default()
+            }),
+        }),
+    };
+    let build = |body: &PaneBodyPresentation| {
+        let projection = runtime.project_pane_body(body).unwrap();
+        let mut surface = runtime.build_shared_surface(document_id).unwrap();
+        runtime
+            .apply_pane_component_patches_to_surface(body, &mut surface)
+            .unwrap();
+        surface.compute_layout(UiSize::new(320.0, 520.0)).unwrap();
+        let mut model = runtime
+            .build_host_model_with_surface(&projection, &surface)
+            .unwrap();
+        runtime
+            .bind_template_actions_for_pane("editor.module_plugins#dual", &mut surface, &mut model)
+            .unwrap();
+        (surface, model)
+    };
+    let (surface, model) = build(&body);
+    let table = model.node_by_control_id("ModulePluginFeatureRows").unwrap();
+    let node = surface.tree.node(table.surface_node_id.unwrap()).unwrap();
+    for key in [
+        "rows",
+        "row_identity_field",
+        "selected_row_identity",
+        "detail_generation",
+    ] {
+        assert_eq!(
+            table.attributes.get(key),
+            node.template_metadata.as_ref().unwrap().attributes.get(key),
+            "{key}"
+        );
+    }
+    assert_eq!(
+        table.attributes.get("selected_row_identity"),
+        Some(&Value::String("second.feature".into()))
+    );
+    let apply = model
+        .node_by_control_id("ModulePluginDetailsApply")
+        .unwrap();
+    assert_eq!(
+        apply.attributes.get("disabled"),
+        Some(&Value::Boolean(false))
+    );
+    let token = apply
+        .bindings
+        .iter()
+        .find(|binding| !binding.action_id.is_empty())
+        .unwrap()
+        .action_id
+        .clone();
+    let invocation = runtime
+        .dispatch_template_action_for_token(&token, Clone::clone)
+        .unwrap();
+    assert_eq!(invocation.target_id(), "workbench.plugin.details.apply");
+    assert_eq!(
+        invocation.payload.get("intent"),
+        Some(&UiValue::String("intent-current".into()))
+    );
+    assert!(runtime.select_template_table_row(
+        "editor.module_plugins#dual",
+        "ModulePluginFeatureRows",
+        1,
+        "string",
+        "second.feature"
+    ));
+    assert!(!runtime.select_template_table_row(
+        "other-pane",
+        "ModulePluginFeatureRows",
+        1,
+        "string",
+        "second.feature"
+    ));
+    assert!(!runtime.select_template_table_row(
+        "editor.module_plugins#dual",
+        "ModulePluginFeatureRows",
+        1,
+        "string",
+        "first.feature"
+    ));
+
+    let PanePayload::ModulePluginsV1(payload) = &mut body.payload else {
+        unreachable!()
+    };
+    payload.detail_generation += 1;
+    payload.focused_control = "back".into();
+    let detail = payload.details.as_mut().unwrap();
+    detail.plugin_id = "another.owner".into();
+    detail.selected_feature_id.clear();
+    detail.action_id.clear();
+    detail.intent_id.clear();
+    let (surface, model) = build(&body);
+    assert!(runtime
+        .dispatch_template_action_for_token(&token, Clone::clone)
+        .is_none());
+    let apply = model
+        .node_by_control_id("ModulePluginDetailsApply")
+        .unwrap();
+    assert_eq!(
+        apply.attributes.get("disabled"),
+        Some(&Value::Boolean(true))
+    );
+    assert!(
+        !surface
+            .tree
+            .node(apply.surface_node_id.unwrap())
+            .unwrap()
+            .state_flags
+            .enabled
+    );
+    let table = model.node_by_control_id("ModulePluginFeatureRows").unwrap();
+    assert_eq!(
+        table.attributes.get("selected_row_identity"),
+        Some(&Value::String(String::new()))
+    );
+    assert!(table.attributes.get("selected_index").is_none());
+    assert_eq!(
+        table
+            .attributes
+            .get("rows")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(2)
+    );
+}

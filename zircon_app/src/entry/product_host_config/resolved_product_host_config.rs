@@ -17,6 +17,7 @@ pub struct ResolvedProductHostConfig {
     pub(super) role_descriptor: ProductRoleDescriptor,
     pub(super) profile: EntryProfile,
     pub(super) runtime_profile: Option<RuntimeProfileId>,
+    pub(super) runtime_plugin_minimum_maturity: Option<zircon_runtime::plugin::PluginMaturity>,
     pub(super) target_mode: RuntimeTargetMode,
     pub(super) platform_target: PlatformTarget,
     pub(super) project_plugins: Option<ProjectPluginManifest>,
@@ -43,6 +44,12 @@ impl ResolvedProductHostConfig {
 
     pub const fn runtime_profile(&self) -> Option<RuntimeProfileId> {
         self.runtime_profile
+    }
+
+    pub const fn runtime_plugin_minimum_maturity(
+        &self,
+    ) -> Option<zircon_runtime::plugin::PluginMaturity> {
+        self.runtime_plugin_minimum_maturity
     }
 
     pub const fn target_mode(&self) -> RuntimeTargetMode {

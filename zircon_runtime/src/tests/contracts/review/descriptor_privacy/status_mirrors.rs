@@ -3,11 +3,9 @@
 fn review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_pending() {
     let descriptor = include_str!("../../../../plugin/runtime/descriptor.rs");
     let accessors = include_str!("../../../../plugin/runtime/descriptor/access.rs");
-    let descriptor_builder_mod =
-        include_str!("../../../../plugin/runtime/descriptor/builder.rs");
-    let descriptor_builder = include_str!(
-        "../../../../plugin/runtime/descriptor/builder/desc_builder.rs"
-    );
+    let descriptor_builder_mod = include_str!("../../../../plugin/runtime/descriptor/builder.rs");
+    let descriptor_builder =
+        include_str!("../../../../plugin/runtime/descriptor/builder/desc_builder.rs");
     let plugin_sdk_runtime =
         include_str!("../../../../../../zircon_plugins/plugin_sdk/src/runtime.rs");
     let review_findings = concat!(

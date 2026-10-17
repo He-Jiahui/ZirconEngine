@@ -16,9 +16,21 @@ impl RetainedEditorHost {
             height,
             self.console_scroll_surface.size(),
             ViewContentKind::Console,
-        ) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        });
         if self.console_scroll_surface.size() != size {
-            let console_output = (match self.runtime.console_output() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
+            let console_output = (match self.runtime.console_output() {
+                Ok(value) => value,
+                Err(error) => {
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            });
             self.console_scroll_surface.set_size(size);
             self.sync_console_pointer_layout(&console_output);
         }

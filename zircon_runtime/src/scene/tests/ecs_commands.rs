@@ -14,16 +14,19 @@ use crate::scene::World;
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
 impl Component for Health {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct Marker;
 
+zircon_runtime_interface::impl_retained_owner_v1!(Marker {});
 impl Component for Marker {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct SparseMarker;
 
+zircon_runtime_interface::impl_retained_owner_v1!(SparseMarker {});
 impl Component for SparseMarker {
     const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }

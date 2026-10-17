@@ -1,6 +1,6 @@
 use std::fmt;
 use std::sync::Arc;
-use std::time::Instant;
+use web_time::Instant;
 
 use super::terminal::{
     PreferenceMutationCancelError, PreferenceMutationTerminal, PreferenceTicketWaitResult,

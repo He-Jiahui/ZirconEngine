@@ -135,9 +135,17 @@ pub(crate) struct MeshDrawCommandReplayer {
     last_bind_ids: [Option<TrackedBindGroupIdentity>; TRACKED_BIND_GROUP_COUNT],
     last_geometry: Option<(u64, u64)>,
     stats: MeshDrawReplayStats,
+    issued_indexed_runs:
+        Vec<crate::graphics::scene::scene_renderer::mesh::mesh_draw::VirtualGeometryIndexedRunRef>,
 }
 
 impl MeshDrawCommandReplayer {
+    pub(crate) fn take_issued_indexed_runs(
+        &mut self,
+    ) -> Vec<crate::graphics::scene::scene_renderer::mesh::mesh_draw::VirtualGeometryIndexedRunRef>
+    {
+        std::mem::take(&mut self.issued_indexed_runs)
+    }
     /// 此判断立即更新回放缓存；若管线准入延后或失败，调用方须 invalidate，避免同 key 被误认为已经绑定。
     pub(crate) fn should_set_pipeline(
         &mut self,
@@ -236,6 +244,9 @@ impl MeshDrawCommandReplayer {
         command: &'pass MeshDrawCommand,
     ) {
         command.record_indexed_draw(pass);
+        if let Some(run) = &command.virtual_geometry_indexed_run {
+            self.issued_indexed_runs.push(run.clone());
+        }
         self.record_unbatched_draw_call(&command.draw_args);
     }
 

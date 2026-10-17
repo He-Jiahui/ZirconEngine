@@ -36,7 +36,40 @@ impl EditorTransactionEngine {
         history: HistoryContextId,
         operation_group_reservation: Option<&OperationGroupReservation>,
     ) -> Result<TransactionId, EditCommandError> {
+        self.begin_transaction_with_retention_v1(label, history, operation_group_reservation, None)
+    }
+
+    pub(crate) fn begin_with_retention_v1(
+        &self,
+        label: impl Into<String>,
+        history: HistoryContextId,
+        retention: crate::core::editing::engine::retention::RootRetentionV1,
+    ) -> Result<TransactionScope<'_>, EditCommandError> {
+        self.flush_operation_group()?;
+        let id = self.begin_transaction_with_retention_v1(label, history, None, Some(retention))?;
+        Ok(TransactionScope {
+            engine: self,
+            id,
+            closed: false,
+            not_send: PhantomData,
+        })
+    }
+
+    fn begin_transaction_with_retention_v1(
+        &self,
+        label: impl Into<String>,
+        history: HistoryContextId,
+        operation_group_reservation: Option<&OperationGroupReservation>,
+        retention_override: Option<crate::core::editing::engine::retention::RootRetentionV1>,
+    ) -> Result<TransactionId, EditCommandError> {
         self.start_operation("begin transaction")?;
+        if let Err(error) = self
+            .ensure_history_retention_v1(history)
+            .and_then(|()| self.ensure_active_retention_slot_v1())
+        {
+            self.clear_operation();
+            return Err(error);
+        }
         let mut context = self.take_context()?;
         let inherited_route = {
             let mut state = self.lock_state();
@@ -104,35 +137,97 @@ impl EditorTransactionEngine {
             self.finish_operation(context, false);
             return Err(error);
         }
-        let selection_before = context.selection_snapshot();
-        let mut state = self.lock_state();
-        let id = match Self::next_transaction_id(&mut state) {
-            Ok(id) => id,
+        let label = label.into();
+        let (id, root, timestamp_frame, inherited_retention) = {
+            let mut state = self.lock_state();
+            let id = match Self::next_transaction_id(&mut state) {
+                Ok(id) => id,
+                Err(error) => {
+                    state.context = Some(context);
+                    self.clear_operation_locked(&mut state);
+                    return Err(error);
+                }
+            };
+            (
+                id,
+                state.active.is_empty(),
+                state.current_frame,
+                state.active.last().map(|active| active.retention.clone()),
+            )
+        };
+        let retention = match inherited_retention
+            .or(retention_override)
+            .map(Ok)
+            .unwrap_or_else(|| {
+                crate::core::editing::engine::retention::RootRetentionV1::new(
+                    &self.retention_domain,
+                    0,
+                    0,
+                )
+            }) {
+            Ok(owner) => owner,
             Err(error) => {
-                state.context = Some(context);
-                self.clear_operation_locked(&mut state);
+                self.finish_operation(context, false);
+                return Err(error.into());
+            }
+        };
+        if let Err(error) = retention.bind_history_v1(&self.retention_domain, history) {
+            self.finish_operation(context, false);
+            return Err(error.into());
+        }
+        let selection_bound = match context
+            .selection_retention_bound_v1(retention.model(), retention.budget().record_bytes)
+        {
+            Ok(bound) => bound,
+            Err(error) => {
+                self.finish_operation(context, false);
                 return Err(error);
             }
         };
-        let label = label.into();
-        let root = state.active.is_empty();
-        let timestamp_frame = state.current_frame;
-        let mut participants = std::collections::BTreeSet::new();
-        if let HistoryContextId::Document(document) = history {
-            participants.insert(document);
+        let checkpoint = retention.checkpoint_v1();
+        if let Err(error) = retention.reserve_capture_v1(selection_bound) {
+            self.finish_operation(context, false);
+            return Err(error.into());
         }
-        state.active.push(ActiveTransaction {
+        let selection_before = context.selection_snapshot();
+        let mut selection_meter =
+            crate::core::editing::engine::retention::RetainedBoundBuilderV1::with_limit(
+                retention.model(),
+                crate::core::editing::engine::retention::RetainedBytesV1::new(selection_bound),
+            );
+        if let Err(error) = selection_meter.owned(&selection_before) {
+            drop(selection_before);
+            self.restore_begin_reservation_v1(history, &retention, checkpoint);
+            self.finish_operation(context, false);
+            return Err(error.into());
+        }
+        let mut active = ActiveTransaction {
             id,
             history,
-            label: label.clone(),
+            label,
             timestamp_frame,
             commands: Vec::new(),
-            participants,
+            participants: std::collections::BTreeSet::new(),
             selection_before,
             route,
             merge_mode: MergeMode::Disable,
             root,
-        });
+            selection_ceiling_v1: selection_bound,
+            retention,
+        };
+        if let Err(error) = self.reserve_active_retention_v1(&active, None, 0) {
+            let retention = active.retention.clone();
+            drop(active);
+            self.restore_begin_reservation_v1(history, &retention, checkpoint);
+            self.finish_operation(context, false);
+            return Err(error);
+        }
+        if let HistoryContextId::Document(document) = history {
+            active.participants.insert(document);
+        }
+        let label = active.label.clone();
+        let mut state = self.lock_state();
+        state.active.push(active);
         let event = root.then(|| super::TransactionEvent {
             transaction: id,
             history,
@@ -158,13 +253,37 @@ impl EditorTransactionEngine {
         }
     }
 
-    pub(super) fn add_participant(&self, scope: TransactionId, document: DocumentId) {
-        let mut state = self.lock_state();
-        if state.operation.is_none() && !state.faulted {
-            if let Some(active) = state.active.last_mut().filter(|active| active.id == scope) {
-                active.participants.insert(document);
+    pub(super) fn add_participant(
+        &self,
+        scope: TransactionId,
+        document: DocumentId,
+    ) -> Result<(), EditCommandError> {
+        self.start_operation("add transaction participant")?;
+        let (context, mut active) = match self.take_top_scope(scope) {
+            Ok(parts) => parts,
+            Err(error) => {
+                self.clear_operation();
+                return Err(error);
             }
-        }
+        };
+        let result = (|| {
+            if active.participants.contains(&document) {
+                return Ok(());
+            }
+            let mut meter = crate::core::editing::engine::retention::RetainedBoundBuilderV1::new(
+                active.retention.model(),
+            );
+            meter.btree_construction::<DocumentId, ()>(
+                active.participants.len().checked_add(1).ok_or(
+                    crate::core::editing::engine::retention::RetentionContractError::Overflow,
+                )?,
+            )?;
+            self.reserve_active_retention_v1(&active, None, meter.bytes().get())?;
+            active.participants.insert(document);
+            Ok(())
+        })();
+        self.finish_active(context, active, false);
+        result
     }
 }
 
@@ -202,10 +321,11 @@ impl TransactionScope<'_> {
         }
     }
 
-    pub fn add_participant(&mut self, document: DocumentId) {
-        if !self.closed {
-            self.engine.add_participant(self.id, document);
+    pub fn add_participant(&mut self, document: DocumentId) -> Result<(), EditCommandError> {
+        if self.closed {
+            return Err(EditCommandError::ScopeClosed);
         }
+        self.engine.add_participant(self.id, document)
     }
 
     pub fn cancel(mut self) -> Result<(), EditCommandError> {
@@ -264,7 +384,10 @@ impl Drop for TransactionScope<'_> {
             match self.engine.cancel(self.id) {
                 Err(EditCommandError::EngineBusy { .. }) => self.engine.wait_for_operation(),
                 Err(error) => {
-                    self.engine.lock_state().drop_error = Some(error);
+                    let report = error.bounded_failure_report_v1();
+                    drop(error); // arbitrary diagnostic Drop never runs under the state lock
+                    let previous = self.engine.lock_state().drop_error.replace(report);
+                    drop(previous);
                     break;
                 }
                 Ok(()) => break,

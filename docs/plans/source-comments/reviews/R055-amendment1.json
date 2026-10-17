@@ -1,0 +1,172 @@
+{
+  "schema": "zircon-source-comment-root-amendment-v1",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch_id": "R055",
+  "owner": "root",
+  "status": "comment-constraint-amended-scoped-static-validation-passed-managed-gates-open",
+  "created_at_utc": "2026-10-16T08:31:20.299133+00:00",
+  "formal_acceptance": false,
+  "source_path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/session.rs",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R055.json",
+    "sha256": "dbf52a59234238a6271d840b70d72a5c7aa080ee7fbaca45b094b01be7993fa4",
+    "bytes": 319950,
+    "immutable": true
+  },
+  "before": {
+    "sha256": "152b36d9ab106804dba86f632dd3d70c83d9b7f6caede0cc475ed2c4cc3a2c2d",
+    "bytes": 24424,
+    "lines": 591
+  },
+  "after": {
+    "sha256": "7cf62c6617a9992ad71fb0fd8b8d59d8e89b5d6cea5c66448501ce5091da9c16",
+    "bytes": 24529,
+    "lines": 592
+  },
+  "amendment": {
+    "kind": "one-new-Chinese-documentation-line-only",
+    "before_line_boundary": 88,
+    "current_lines": [
+      89,
+      89
+    ],
+    "content": "    /// 范围两端还须位于字素边界；计数只扣除旧源区间，不包含待插入文本。",
+    "content_sha256": "2ecaec895e6ee33c6e18972d2cd6c0f0531ad7b4bc8b737aef269090a9c47825",
+    "reason": "输入范围采用UTF-8字节偏移，但存储索引仍要求两端恰好命中字素边界；仅写字节范围会漏掉必要约束。计数针对已提交旧源，调用不含待插入文本参数。",
+    "raw_inverse_to_child": true,
+    "no_original_byte_replaced_or_removed": true,
+    "new_issue_tags": 0
+  },
+  "call_evidence": [
+    {
+      "path": "zircon_runtime/src/text/document/store.rs",
+      "sha256": "e42dcc888ea0d6741e8720e2411607a3ba57d2753918f718ab73aa4d1323e69c",
+      "read_spans": [
+        [
+          591,
+          640
+        ],
+        [
+          140,
+          153
+        ]
+      ],
+      "finding": "存储先核身份/版本/范围并接纳索引物化预算，再下传范围；查询不发布编辑。Prepared提交最终返回回执，无额外Result失败。"
+    },
+    {
+      "path": "zircon_runtime/src/text/document/index.rs",
+      "sha256": "73db6fdceb257aeb685994cc4ec637dd0df4a70ad8ede823623f484283d56fbf",
+      "read_spans": [
+        [
+          220,
+          250
+        ]
+      ],
+      "finding": "源索引字素边界数组对范围两端分别binary_search，任一未命中映射InvalidGraphemeBoundary，成功以总边界数减一再扣区间字素数。"
+    }
+  ],
+  "actual_root_reads": [
+    "fbe013 exit0 index220-250",
+    "146a05/native7096 -> 02d2ad exit0 session82-104/store140-153/index230-250",
+    "b4378a exit0 independent grant/prereg read"
+  ],
+  "source_write_receipt": {
+    "tool": "tools.apply_patch",
+    "outer_cell_id": "122",
+    "terminal": "completed",
+    "returned": {},
+    "native_identity": "not-exposed-by-tool",
+    "policy": "Terminal empty response is not claimed as a native exit0. This separate actual readback proves exact one-line insertion and inverse."
+  },
+  "scoped_validation": {
+    "argv": [
+      "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+      "--check",
+      "--edition",
+      "2021",
+      "--config",
+      "skip_children=true",
+      "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/session.rs"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "raw_inverse": "exact original child bytes restored by removing one registered line",
+    "all_nine_source_pins": [
+      {
+        "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/mod.rs",
+        "sha256": "72b29ecc73387b8f959a742c5cfafff53544292f25b44aeb7a3c8f1d7e8b35da",
+        "bytes": 1015,
+        "lines": 23,
+        "unchanged_since_child": true
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/binding.rs",
+        "sha256": "11bbecc9d4d4475ed2392e775a65ad3a45ede7f7c681f71b2e9e1877c9997c7f",
+        "bytes": 1168,
+        "lines": 23,
+        "unchanged_since_child": true
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/error.rs",
+        "sha256": "1f1c2ac91d2a858acb22d5603163a52d93a31df7525b437bd89e4f29f84db302",
+        "bytes": 3436,
+        "lines": 71,
+        "unchanged_since_child": true
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/limits.rs",
+        "sha256": "284c5b13ba19921befe3f014da9d47a6722abdf6ffd6f03b08000dabc9a65bf4",
+        "bytes": 2255,
+        "lines": 40,
+        "unchanged_since_child": true
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/history.rs",
+        "sha256": "e6de925c5ae63572f6b5f7b4b6a1b9d095bee1d9f0db6d46ee90df9cc578d84a",
+        "bytes": 9418,
+        "lines": 243,
+        "unchanged_since_child": true
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/input_manager/text_document_session/session.rs",
+        "sha256": "7cf62c6617a9992ad71fb0fd8b8d59d8e89b5d6cea5c66448501ce5091da9c16",
+        "bytes": 24529,
+        "lines": 592,
+        "unchanged_since_child": false
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/input_manager/session/tests/cases.rs",
+        "sha256": "aacb4947baa42fbfd84c12a667be28e80fedde8c621bd8cf5f7b71722de5287a",
+        "bytes": 10843,
+        "lines": 323,
+        "unchanged_since_child": true
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/input_manager/session/tests/committed_source.rs",
+        "sha256": "5d2f9c4a1975f89d0bae201b2cd43610801bf78db1455dc2d204e3264a65d0e4",
+        "bytes": 14004,
+        "lines": 395,
+        "unchanged_since_child": true
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/input_manager/tests/history.rs",
+        "sha256": "fdf11d8ceec9ba74ff2229342f2382a34bfa56e12387ea37eaca3a8054cea254",
+        "bytes": 3705,
+        "lines": 120,
+        "unchanged_since_child": true
+      }
+    ],
+    "cargo_or_behavior_tests_run": false
+  },
+  "metadata_writer": {
+    "pid": 31000,
+    "terminal_policy": "The actual native command terminal must be recorded by separate root read; this record does not self-assert future exit."
+  },
+  "lifecycle": {
+    "source_copies": false,
+    "temporary_helpers": false,
+    "freed_bytes": 0,
+    "retain_until": "Final root main/post validation and actual managed validation/phase commit/attached WeCom receipts."
+  }
+}

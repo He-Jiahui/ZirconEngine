@@ -1,7 +1,7 @@
 use core::ops::Range;
 
-use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::MeshAsset;
+use crate::asset::ProjectAssetManager;
 use crate::asset::ShaderSurfaceSourceContract;
 #[cfg(test)]
 use crate::asset::{
@@ -86,7 +86,9 @@ fn morph_shape_revision(morph_weights: &[f32]) -> u64 {
 }
 
 impl ResourceStreamer {
-    pub(crate) fn asset_manager(&self) -> Result<crate::core::runtime::ServiceCallGuard<ProjectAssetManager>, GraphicsError> {
+    pub(crate) fn asset_manager(
+        &self,
+    ) -> Result<crate::core::runtime::ServiceCallGuard<ProjectAssetManager>, GraphicsError> {
         self.asset_manager_access
             .resolve()
             .map_err(|error| GraphicsError::Asset(error.to_string()))
@@ -99,13 +101,14 @@ impl ResourceStreamer {
     }
 
     pub(crate) fn model(&self, id: &ResourceId) -> Option<&Arc<GpuModelResource>> {
-        self.models.get(id).map(|prepared| {
+        self.models.get(id).and_then(|prepared| {
+            let resource = prepared.resource.as_ref()?;
             debug_assert_eq!(
-                prepared.resource.id(),
+                resource.id(),
                 *id,
                 "GpuModelResource identity must match the ResourceStreamer model key",
             );
-            &prepared.resource
+            Some(resource)
         })
     }
 
@@ -114,7 +117,9 @@ impl ResourceStreamer {
     }
 
     pub(crate) fn mesh(&self, id: &ResourceId) -> Option<&Arc<GpuMeshResource>> {
-        self.meshes.get(id).map(|prepared| &prepared.resource)
+        self.meshes
+            .get(id)
+            .and_then(|prepared| prepared.resource.as_ref())
     }
 
     pub(crate) fn mesh_revision(&self, id: &ResourceId) -> Option<u64> {

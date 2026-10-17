@@ -32,13 +32,17 @@ impl RetainedEditorHost {
                         return;
                     }
                 };
-                match self.editor_manager
+                match self
+                    .editor_manager
                     .enter()
                     .map_err(EditorError::from)
                     .and_then(|manager| {
-                        manager.update_ui_asset_editor_palette_drag_target(&instance_id, surface_x, surface_y)
-                    })
-                {
+                        manager.update_ui_asset_editor_palette_drag_target(
+                            &instance_id,
+                            surface_x,
+                            surface_y,
+                        )
+                    }) {
                     Ok(true) => self.mark_presentation_dirty_for_view(&instance_id),
                     Ok(false) => {}
                     Err(error) => self.set_status_line(error.to_string()),

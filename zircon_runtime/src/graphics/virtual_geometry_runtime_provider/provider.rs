@@ -11,6 +11,17 @@ use super::{VirtualGeometryRuntimeExtractOutput, VirtualGeometryRuntimeState};
 pub trait VirtualGeometryRuntimeProvider: Debug + Send + Sync {
     fn create_state(&self) -> Box<dyn VirtualGeometryRuntimeState>;
 
+    /// Optional shared resolved geometry path. Existing owned providers retain
+    /// their original behavior through Unsupported, without a signature change.
+    fn build_extract_from_admitted_sources(
+        &self,
+        _meshes: &[RenderMeshSnapshot],
+        _debug: Option<RenderVirtualGeometryDebugState>,
+        _admit: &mut super::VirtualGeometrySourceLoader<'_>,
+    ) -> super::VirtualGeometryAdmittedExtract {
+        super::VirtualGeometryAdmittedExtract::Unsupported
+    }
+
     fn build_extract_from_meshes(
         &self,
         _meshes: &[RenderMeshSnapshot],

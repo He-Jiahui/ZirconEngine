@@ -304,17 +304,21 @@ impl EditorJobProgressSource {
             priority: spec.priority,
             terminal: false,
         };
-        let primary_projection_changes = match previous_primary {
-            None => true,
-            Some(primary) if id == primary => state.active.get(&id).is_some_and(|previous| {
-                previous.terminal != next_entry.terminal
-                    || previous.snapshot != next_entry.snapshot
-                    || previous.priority != next_entry.priority
-            }),
-            Some(primary) => state
-                .active
-                .get(&primary)
-                .is_some_and(|current| next_entry.primary_key() < current.primary_key()),
+        let primary_projection_changes = if !spec.primary_progress_visible {
+            previous_primary == Some(id)
+        } else {
+            match previous_primary {
+                None => true,
+                Some(primary) if id == primary => state.active.get(&id).is_some_and(|previous| {
+                    previous.terminal != next_entry.terminal
+                        || previous.snapshot != next_entry.snapshot
+                        || previous.priority != next_entry.priority
+                }),
+                Some(primary) => state
+                    .active
+                    .get(&primary)
+                    .is_some_and(|current| next_entry.primary_key() < current.primary_key()),
+            }
         };
         let next_generation = primary_projection_changes.then(|| state.next_primary_generation());
 
@@ -328,7 +332,9 @@ impl EditorJobProgressSource {
             .get(&id)
             .expect("registered progress entry must remain active")
             .primary_key();
-        state.visible_by_priority.insert(primary_key);
+        if spec.primary_progress_visible {
+            state.visible_by_priority.insert(primary_key);
+        }
         if let Some(next_generation) = next_generation {
             self.publish_primary_generation(&mut state, next_generation);
         }

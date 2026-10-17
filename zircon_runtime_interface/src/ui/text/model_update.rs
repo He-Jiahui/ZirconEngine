@@ -50,6 +50,11 @@ pub enum UiTextModelUpdateOrigin {
 ///
 /// The value may contain secure text. Consumers must not log the request with an alternate
 /// formatter or retain the value after the request reaches a terminal state.
+///
+/// # 约束与生命周期
+/// 请求持有 `value` 字符串；构造与派生反序列化均不自动调用本类型的 `validate`。
+/// 自定义 Debug 只输出内容字节数，Serde 仍编码完整内容；调试隐藏不代表清零或保密。
+/// 文档键为值快照，实际树归属、修订匹配及内容准入由 Runtime 判断。
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiTextModelUpdateRequest {
     pub schema_version: u32,
@@ -62,6 +67,16 @@ pub struct UiTextModelUpdateRequest {
 }
 
 impl UiTextModelUpdateRequest {
+    /// 组装更新请求并生成关联标识，交给文档所有者执行后续准入。
+    ///
+    /// # 参数
+    /// - `tree_id`、`node_id`：预期接收更新的树与节点。
+    /// - `expected_document`：调用者观察到的文档身份与修订快照。
+    /// - `origin`：更新意图，由 Runtime 据此选择聚焦时的处理方式。
+    /// - `value`：转为请求持有的字符串，未在这里检查内容策略或大小。
+    ///
+    /// # 返回
+    /// 尚未执行 [`Self::validate`] 或应用到文档的请求。
     pub fn new(
         tree_id: UiTreeId,
         node_id: UiNodeId,
@@ -81,6 +96,7 @@ impl UiTextModelUpdateRequest {
     }
 
     /// 只验证协议版本和请求标识；树归属、当前修订及内容策略由拥有文档的运行时判断。
+    /// 另要求预期文档标识非 nil；这里只核对身份格式，不查询树或文档是否存在。
     pub fn validate(&self) -> Result<(), UiTextModelUpdateFailure> {
         if self.schema_version != UI_TEXT_MODEL_UPDATE_SCHEMA_VERSION {
             return Err(UiTextModelUpdateFailure::UnsupportedSchemaVersion);
@@ -148,6 +164,11 @@ pub enum UiTextModelUpdateFailure {
 ///
 /// `Deferred` is returned directly by the update call. Its eventual terminal receipt is drained
 /// from the manager after focus loss, supersession, owner teardown, or policy change.
+///
+/// # 约束与生命周期
+/// 延后状态表示尚未应用。Runtime 的 drain 只移出已产生的终态回执，不处理待办或触发失焦；
+/// 管理器销毁后也不保证仍可取得终态。本值不保有文档，实际结果以生产者提交为准。
+/// 外层派生反序列化不调用本类型的 `validate`，但嵌套编辑回执仍执行自身的读取校验。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiTextModelUpdateReceipt {
     pub schema_version: u32,
@@ -168,6 +189,7 @@ impl UiTextModelUpdateReceipt {
         if self.schema_version != UI_TEXT_MODEL_UPDATE_SCHEMA_VERSION {
             return Err(UiTextModelUpdateFailure::UnsupportedSchemaVersion);
         }
+        // 拒绝回执需要报告坏输入；较早准入失败可保留原始坏标识，合法标识则不能伪造同类失败。
         let rejects_unsupported_schema = self.status == UiTextModelUpdateStatus::Rejected
             && self.failure == Some(UiTextModelUpdateFailure::UnsupportedSchemaVersion);
         let rejects_invalid_request_id = self.status == UiTextModelUpdateStatus::Rejected

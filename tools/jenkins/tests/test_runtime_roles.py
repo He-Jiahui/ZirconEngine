@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from tools.jenkins.contracts import JenkinsError, canonical_json
 from tools.jenkins.deployment import runtime_roles as roles
@@ -80,7 +80,8 @@ class RoleFixture:
             yield self
 
     def issue(self):
-        document = roles.inspect_runtime_role_review(self.manager, clients=[self.identity], reviewed_target=self.target)
+        document = roles.inspect_runtime_role_review(self.manager, clients=[self.identity], reviewed_target=self.target,
+            profile=getattr(self, "profile", None))
         path = self.manager.paths.state / "recovery-lifecycle/history/review.json"
         self.put(path, canonical_json(document) + b"\n")
         self.review_ref = self.ref(path)
@@ -278,3 +279,291 @@ class RuntimeRolesTests(TestCase):
                 if path.is_relative_to(fixture.state) and path not in {
                     fixture.paths["terminalCommand"], fixture.successor_path}:
                     self.assertEqual(raw, fixture.files[name])
+
+
+class PenpotRoleFixture(RoleFixture):
+    def __init__(self):
+        super().__init__()
+        self.profile = roles._PENPOT_PROFILE
+        self.script = Path("E:/cargo-targets/zircon-local/tmp/penpot-role-fixture/supervisor.py")
+        self.arguments[:] = [self.identity["executable"], "-B", "-X", "utf8", self.script.as_posix()]
+        self.identity["commandDigest"] = roles._digest_args(tuple(self.arguments))
+        self.inventory[:] = [deepcopy(self.identity)]
+        self.penpot_sources = {str(self.script): self.put(self.script, b"reviewed supervisor"),
+            str(Path(self.identity["executable"])): self.put(Path(self.identity["executable"]), b"reviewed Python"),
+            str(self.output / "read.json"): self.put(self.output / "read.json", b"reviewed input")}
+
+    @contextmanager
+    def observations(self):
+        with super().observations(), patch.object(roles, "_PENPOT_SCRIPT", self.script), \
+                patch.object(roles, "_PENPOT_CLIENT", deepcopy(self.identity)), \
+                patch.object(roles, "_PENPOT_SOURCES", self.penpot_sources), \
+                patch.object(roles, "_PENPOT_OUTPUTS", [str(self.output)]):
+            yield self
+
+
+class PenpotRuntimeRolesTests(TestCase):
+    def test_explicit_profile_is_independent_of_old_build_and_preserves_service_priority(self):
+        fixture = PenpotRoleFixture()
+        unknown = {**fixture.identity, "pid": 902}
+        fixture.inventory.append(unknown)
+        with fixture.observations():
+            fixture.files[str(ROOT / "tools/build/zircon_build.py")] += b" foreign edit"
+            fixture.put(ROOT / "tools/__init__.py", b"unrelated build namespace")
+            cap = fixture.issue()
+            view = cap.observe(fixture.manager)
+            self.assertEqual([unknown], view["blockingOwners"])
+            self.assertEqual(fixture.inventory, view["runtimeInventory"])
+            self.assertEqual("penpot-existing-runtime-supervisor", view["reviewedForeign"][0]["role"])
+            self.assertEqual(fixture.penpot_sources, view["reviewedForeign"][0]["sourceFiles"])
+            self.assertEqual(fixture.profile, cap.document["profile"])
+            roles.verify_driver.assert_called()
+            fixture.put(fixture.manager.paths.state / "deployment/host.json",
+                        canonical_json({"host": fixture.identity}))
+            self.assertIn(fixture.identity, cap.observe(fixture.manager)["blockingOwners"])
+            with self.assertRaises(JenkinsError):
+                fixture.issue()
+
+    def test_fixed_closure_target_profile_and_output_identity_are_revalidated(self):
+        for changed in ("script", "python", "input", "target", "profile", "output"):
+            with self.subTest(changed=changed):
+                fixture = PenpotRoleFixture()
+                with fixture.observations():
+                    cap = fixture.issue()
+                    if changed in {"script", "python", "input"}:
+                        name = list(fixture.penpot_sources)[{"script": 0, "python": 1, "input": 2}[changed]]
+                        fixture.files[name] += b" changed"
+                    elif changed == "target":
+                        roles.verify_driver.return_value = {**fixture.target, "driverDigest": "e" * 64}
+                    elif changed == "profile":
+                        value = cap.document
+                        value["profile"] = "unreviewed-profile"
+                        fixture.put(Path(fixture.review_ref["path"]), canonical_json(value))
+                        with self.assertRaises(JenkinsError):
+                            roles.prepare_runtime_role_review(fixture.manager,
+                                review_reference=fixture.ref(Path(fixture.review_ref["path"])))
+                        continue
+                    else:
+                        fixture.directory_id += 1
+                    with self.assertRaises(JenkinsError):
+                        cap.observe(fixture.manager)
+
+    def test_profile_cannot_adopt_replacement_or_runtime_command_or_implicit_script(self):
+        fixture = PenpotRoleFixture()
+        with fixture.observations():
+            cap = fixture.issue()
+            fixture.profile = None
+            with self.assertRaises(JenkinsError):
+                fixture.issue()
+            fixture.profile = roles._PENPOT_PROFILE
+            fixture.argv[fixture.identity["pid"]] = [*fixture.arguments, "__lifecycle-host"]
+            self.assertEqual([fixture.identity], cap.observe(fixture.manager)["blockingOwners"])
+            with self.assertRaises(JenkinsError):
+                fixture.issue()
+            fixture.argv[fixture.identity["pid"]] = fixture.arguments
+            replacement = {**fixture.identity, "creationTime": str(int(fixture.identity["creationTime"]) + 1)}
+            fixture.inventory[:] = [replacement]
+            view = cap.observe(fixture.manager)
+            self.assertEqual([replacement], view["blockingOwners"])
+            self.assertEqual("departed", view["reviewedForeign"][0]["status"])
+
+
+
+class CurrentServiceBoundaryTests(TestCase):
+    def fixture(self, body):
+        fixture = RoleFixture()
+        fixture.arguments[:] = [fixture.identity["executable"], "-B", *body]
+        fixture.identity["commandDigest"] = roles._digest_args(tuple(fixture.arguments))
+        fixture.inventory[:] = [deepcopy(fixture.identity)]
+        return fixture
+
+    @contextmanager
+    def live(self, fixture):
+        with fixture.observations(), patch.object(roles, "observe_departed_identity",
+                side_effect=JenkinsError("deployment_owner_live", "still live")):
+            yield fixture
+
+    def test_ordinary_script_stdin_and_inline_helpers_coexist_without_authority(self):
+        for body in ([str(Path("E:/cargo-targets/foreign/validate.py"))], ["-"], ["-c", "print('read-only')"]):
+            with self.subTest(body=body):
+                fixture = self.fixture(body)
+                with self.live(fixture):
+                    view = roles.observe_runtime_process_boundary(fixture.manager)
+                self.assertEqual(fixture.inventory, view["runtimeInventory"])
+                self.assertEqual([], view["blockingOwners"])
+                self.assertEqual(1, len(view["nonServiceProcesses"]))
+                self.assertEqual([], view["requestClients"])
+                self.assertTrue(view["observationOnly"])
+                self.assertFalse(view["terminalProof"])
+                for name in roles._FALSE:
+                    self.assertFalse(view[name])
+
+    def test_exact_canonical_request_hash_is_distinct_from_ordinary_helpers(self):
+        name = "tools/dev/jenkins_validate.py"
+        fixture = self.fixture([str(ROOT / name), "status"])
+        checksum = fixture.put(ROOT / name, b"reviewed request")
+        with self.live(fixture), patch.object(roles, "_REQUEST_CLIENT_SOURCES", {name: checksum}):
+            view = roles.observe_runtime_process_boundary(fixture.manager)
+            self.assertEqual([], view["blockingOwners"])
+            self.assertEqual("canonical-jenkins-request-client", view["requestClients"][0]["role"])
+            fixture.files[str(ROOT / name)] += b" changed"
+            view = roles.observe_runtime_process_boundary(fixture.manager)
+            self.assertEqual([], view["blockingOwners"])
+            self.assertEqual([], view["requestClients"])
+            self.assertEqual("non-service-unverified-client", view["nonServiceProcesses"][0]["role"])
+            self.assertEqual("request-source-verification", view["nonServiceProcesses"][0]["sourceVerification"]["stage"])
+
+    def test_request_import_namespace_cannot_silently_change(self):
+        name = "tools/dev/jenkins_validate.py"
+        fixture = self.fixture([str(ROOT / name), "status"])
+        checksum = fixture.put(ROOT / name, b"reviewed request")
+        with self.live(fixture), patch.object(roles, "_REQUEST_CLIENT_SOURCES", {name: checksum}):
+            fixture.put(ROOT / "tools/__init__.py", b"new import owner")
+            view = roles.observe_runtime_process_boundary(fixture.manager)
+            self.assertEqual([], view["blockingOwners"])
+            self.assertEqual([], view["requestClients"])
+            self.assertEqual("non-service-unverified-client", view["nonServiceProcesses"][0]["role"])
+            self.assertEqual("request-source-verification", view["nonServiceProcesses"][0]["sourceVerification"]["stage"])
+
+    def test_installed_management_entry_requires_exact_capsule_and_client_bytes(self):
+        name = "tools/jenkins-management/entry.py"
+        fixture = self.fixture([str(ROOT / name), "submit", "--repo-root", str(ROOT)])
+        names = {name, "tools/dev/local_cargo.py", "tools/dev/local-cargo.ps1",
+            "tools/dev/dev-fast-build.ps1", "tools/dev/submit-jenkins-management.ps1", "tools/jenkins/frontend.py"}
+        clients = {key: fixture.put(ROOT / key, ("reviewed " + key).encode()) for key in names}
+        files = {key: hashlib.sha256(key.encode()).hexdigest()
+                 for key in ("runner.py", "source_preparation.py", "zircon-management.groovy",
+                             "checkout_guard.py", "checkout_product.py")}
+        config = {"repositoryRoot": str(ROOT), "driverDigest": "f" * 64,
+            "runtimeOperationId": "runtime", "clientSources": clients, "files": files}
+        raw = canonical_json(config)
+        checksum = hashlib.sha256(raw).hexdigest()
+        capsule = ROOT / ".jenkins/runtime/management" / checksum
+        fixture.put(capsule / "capsule.json", raw)
+        for key in files:
+            fixture.put(capsule / key, key.encode())
+        fixture.put(fixture.manager.paths.state / "management/installed.json", canonical_json({
+            "schemaVersion": 1, "job": "zircon-management", "capsule": str(capsule),
+            "capsuleSha256": checksum, "driverDigest": "f" * 64, "runtimeOperationId": "runtime"}))
+        with self.live(fixture), patch.object(roles, "_REQUEST_CLIENT_SOURCES", {name: clients[name]}):
+            view = roles.observe_runtime_process_boundary(fixture.manager)
+            self.assertEqual("installed-management-request-client", view["requestClients"][0]["role"])
+            fixture.files[str(capsule / "runner.py")] += b" changed"
+            view = roles.observe_runtime_process_boundary(fixture.manager)
+            self.assertEqual([], view["blockingOwners"])
+            self.assertEqual([], view["requestClients"])
+            self.assertEqual("non-service-unverified-client", view["nonServiceProcesses"][0]["role"])
+            self.assertEqual("request-source-verification", view["nonServiceProcesses"][0]["sourceVerification"]["stage"])
+
+    def test_sealed_driver_requests_coexist_but_internal_or_deployment_hosts_block(self):
+        fixture = self.fixture([str(ROOT / ".jenkins/runtime/drivers" / ("f" * 64) / "launcher.py"),
+            "--repository", str(ROOT), "request", "observe", "--input-file", str(ROOT / ".jenkins/state/request.json")])
+        with self.live(fixture):
+            view = roles.observe_runtime_process_boundary(fixture.manager)
+            self.assertEqual("sealed-driver-request-client", view["requestClients"][0]["role"])
+            roles.verify_driver.assert_called()
+            for body in ([fixture.arguments[2], "__execution-host"],
+                         [str(ROOT / "tools/dev/jenkins_recovery_keeper.py")],
+                         ["-m", "tools.jenkins", "deployment", "start"]):
+                fixture.arguments[:] = [fixture.identity["executable"], "-B", *body]
+                fixture.identity["commandDigest"] = roles._digest_args(tuple(fixture.arguments))
+                fixture.inventory[:] = [deepcopy(fixture.identity)]
+                self.assertEqual(fixture.inventory, roles.observe_runtime_process_boundary(fixture.manager)["blockingOwners"])
+
+    def test_json_and_jvm_service_owners_have_priority_over_client_argv(self):
+        fixture = self.fixture(["-c", "print('ordinary')"])
+        path = fixture.manager.paths.state / "deployment/host.json"
+        with self.live(fixture):
+            fixture.put(path, canonical_json({"host": fixture.identity}))
+            self.assertEqual(fixture.inventory, roles.observe_runtime_process_boundary(fixture.manager)["blockingOwners"])
+            fixture.put(path, canonical_json({"host": {**fixture.identity,
+                "creationTime": str(int(fixture.identity["creationTime"]) - 1)}}))
+            self.assertEqual([], roles.observe_runtime_process_boundary(fixture.manager)["blockingOwners"])
+            java = {**fixture.identity, "pid": 991, "executable": str(ROOT / ".jenkins/runtime/jdk/bin/java.exe")}
+            fixture.inventory.append(java)
+            self.assertEqual([java], roles.observe_runtime_process_boundary(fixture.manager)["blockingOwners"])
+
+    def test_sqlite_native_birth_binding_blocks_and_preserves_unknown_row(self):
+        import sqlite3
+        fixture = self.fixture(["-"])
+        payload = json.dumps({"status": "unknown", "pid": fixture.identity["pid"],
+                             "birthToken": fixture.identity["creationTime"]})
+        row = ("native_job", "historic-unknown", 7, payload)
+        fixture.put(fixture.manager.paths.state / "coordination.sqlite3", b"native DB exists")
+        connection = Mock()
+        connection.execute.side_effect = lambda sql: [row] if sql.startswith("SELECT") else []
+        with self.live(fixture), patch.object(sqlite3, "connect", return_value=connection) as connect:
+            view = roles.observe_runtime_process_boundary(fixture.manager)
+            self.assertEqual(fixture.inventory, view["blockingOwners"])
+            self.assertEqual(hashlib.sha256(payload.encode()).hexdigest(), view["nativeBindings"][0]["payloadSha256"])
+            self.assertTrue(connect.call_args.kwargs["uri"])
+            self.assertIn("?mode=ro", connect.call_args.args[0])
+            self.assertEqual("unknown", json.loads(row[3])["status"])
+            self.assertFalse(any(sql.args[0].startswith(("UPDATE", "INSERT", "DELETE")) for sql in connection.execute.call_args_list))
+
+    def test_unreadable_live_identity_blocks_but_exact_departure_is_observation_only(self):
+        fixture = self.fixture(["-"])
+        with self.live(fixture):
+            roles._windows_command_line.side_effect = OSError("access denied")
+            self.assertEqual(fixture.inventory, roles.observe_runtime_process_boundary(fixture.manager)["blockingOwners"])
+            for status in ("absent", "pid-reused"):
+                roles.observe_departed_identity.side_effect = None
+                roles.observe_departed_identity.return_value = {"pid": fixture.identity["pid"],
+                    "expectedCreationTime": fixture.identity["creationTime"], "status": status}
+                view = roles.observe_runtime_process_boundary(fixture.manager)
+                self.assertEqual([], view["blockingOwners"])
+                self.assertEqual(status, view["departedDuringObservation"][0]["departure"]["status"])
+                self.assertTrue(view["departedDuringObservation"][0]["observationOnly"])
+                self.assertFalse(view["nativeProofIssued"])
+
+    def test_identity_race_does_not_reclassify_a_live_replacement(self):
+        fixture = self.fixture(["-"])
+        with self.live(fixture):
+            roles.observe_live_identity.side_effect = JenkinsError("identity_changed", "birth changed")
+            self.assertEqual(fixture.inventory, roles.observe_runtime_process_boundary(fixture.manager)["blockingOwners"])
+
+    def test_request_population_is_dynamic_but_owned_upgrade_snapshot_is_stable(self):
+        from tools.jenkins.deployment import owned_upgrade as upgrade
+        from tools.jenkins.tests.test_external_native_stop_upgrade import ExternalStoppedOwner
+        scenario = ExternalStoppedOwner()
+        fixture = RoleFixture(scenario.manager, scenario.files, scenario.targets["b" * 64])
+        fixture.arguments[:] = [fixture.identity["executable"], "-B", "-c", "print('ordinary')"]
+        fixture.identity["commandDigest"] = roles._digest_args(tuple(fixture.arguments))
+        fixture.inventory[:] = [deepcopy(fixture.identity)]
+        with scenario.observations(), self.live(fixture):
+            scenario.inventory.return_value = fixture.inventory
+            plan = scenario.prepare()
+            boundary = roles.observe_runtime_process_boundary(scenario.manager, inventory=fixture.inventory)["stableBoundary"]
+            fixture.inventory.clear()
+            plan.revalidate(scenario.manager)
+            self.assertEqual(boundary,
+                roles.observe_runtime_process_boundary(scenario.manager, inventory=fixture.inventory)["stableBoundary"])
+            scenario.home_probe.assert_called()
+            scenario.endpoint.assert_called()
+            java = {**fixture.identity, "pid": 910, "executable": str(ROOT / ".jenkins/runtime/jdk/bin/java.exe")}
+            fixture.inventory.append(java)
+            with self.assertRaises(JenkinsError):
+                plan.revalidate(scenario.manager)
+            self.assertEqual(scenario.holds, upgrade.protected_holds(scenario.state))
+
+
+    def test_service_path_strings_in_inline_code_and_request_data_do_not_claim_ownership(self):
+        cases = (["-c", "print('.jenkins/state/deployment/driver.json')"],
+                 [str(Path("E:/cargo-targets/foreign/inspect.py")), "--input",
+                  '{"path":"E:/Git/ZirconEngine/.jenkins/state/recovery-lifecycle/command.json"}'])
+        for body in cases:
+            with self.subTest(body=body):
+                fixture = self.fixture(body)
+                with self.live(fixture):
+                    view = roles.observe_runtime_process_boundary(fixture.manager)
+                self.assertEqual([], view["blockingOwners"])
+                self.assertEqual(1, len(view["nonServiceProcesses"]))
+                self.assertFalse(view["terminalProof"])
+
+    def test_service_entry_is_recognized_after_other_python_switches(self):
+        fixture = self.fixture([str(ROOT / "tools/dev/jenkins_recovery_keeper.py")])
+        fixture.arguments.insert(2, "-u")
+        fixture.identity["commandDigest"] = roles._digest_args(tuple(fixture.arguments))
+        fixture.inventory[:] = [deepcopy(fixture.identity)]
+        with self.live(fixture):
+            self.assertEqual(fixture.inventory, roles.observe_runtime_process_boundary(fixture.manager)["blockingOwners"])

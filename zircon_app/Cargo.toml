@@ -7,6 +7,9 @@ description = "Engine entry bootstrap, shell startup, and profile selection."
 autobins = false
 build = "build.rs"
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
 [[bin]]
 name = "zircon_editor"
 path = "src/bin/editor.rs"
@@ -38,7 +41,9 @@ required-features = ["target-client"]
 [features]
 default = ["target-client"]
 dev-dynamic-linking = ["dep:zr_runtime_dev_dylib", "zr_runtime_dev_dylib/runtime"]
-core-min = ["zircon_runtime/core-min", "zircon_runtime/native-host"]
+core-min = ["zircon_runtime/core-min"]
+asset-types = ["zircon_runtime/asset-types"]
+native-host = ["dep:image", "dep:sha2", "dep:toml", "core-min", "zircon_runtime/native-host", "dep:libloading", "dep:zircon_runtime_host"]
 cooked-assets = ["zircon_runtime/cooked-assets"]
 ai-contracts = ["zircon_runtime/ai-contracts"]
 net-contracts = ["zircon_runtime/net-contracts"]
@@ -61,7 +66,7 @@ runtime-api-core = ["dynamic-api", "zircon_runtime/runtime-api-core"]
 navigation = ["zircon_runtime/navigation"]
 script = ["diagnostic-log", "zircon_runtime/script"]
 text = ["zircon_runtime/text"]
-ui = ["graphics", "first-party-ui-document-importer", "zircon_runtime/ui"]
+ui = ["graphics", "zircon_runtime/ui"]
 first-party-runtime-plugins = [
     "dep:zircon_first_party_runtime_catalog",
     "zircon_first_party_runtime_catalog/base-runtime-plugins",
@@ -75,6 +80,7 @@ first-party-navigation-runtime-plugin = [
     "zircon_first_party_runtime_catalog/navigation-runtime-plugin",
 ]
 first-party-ui-document-importer = [
+    "native-host",
     "dep:zircon_first_party_runtime_catalog",
     "zircon_first_party_runtime_catalog/ui-document-importer",
 ]
@@ -99,6 +105,7 @@ backend-zr-vm = [
     "zircon_first_party_runtime_catalog/backend-zr-vm",
 ]
 default-platform = [
+    "native-host",
     "zircon_runtime/default-platform",
     "platform-window",
     "platform-winit",
@@ -111,6 +118,7 @@ default-platform = [
     "gamepad-gilrs",
 ]
 shipping-runtime = [
+    "native-host",
     "zircon_runtime/shipping-runtime",
     "diagnostic-log",
     "runtime-api-core",
@@ -145,6 +153,9 @@ profiling = ["zircon_runtime/profiling", "zircon_editor?/profiling"]
 profiling-chrome = ["profiling", "zircon_runtime/profiling-chrome", "zircon_editor?/profiling-chrome"]
 profiling-tracy = ["profiling", "zircon_runtime/profiling-tracy", "zircon_editor?/profiling-tracy"]
 profiling-memory = ["profiling", "zircon_runtime/profiling-memory", "zircon_editor?/profiling-memory"]
+memory-validation = ["zircon_runtime/memory-validation"]
+target-web = ["dep:zircon_plugin_animation_runtime", "core-min", "asset-types", "zircon_runtime/target-web", "animation", "graphics", "text", "ui"]
+
 target-client = [
     "zircon_runtime/target-client",
     "ai-contracts",
@@ -153,6 +164,7 @@ target-client = [
     "sound-contracts",
     "animation",
     "first-party-runtime-plugins",
+    "first-party-ui-document-importer",
     "diagnostic-log",
     "dynamic-api",
     "graphics",
@@ -163,6 +175,7 @@ target-client = [
     "default-platform",
 ]
 target-server = [
+    "native-host",
     "zircon_runtime/target-server",
     "diagnostic-log",
     "platform-headless",
@@ -170,6 +183,7 @@ target-server = [
 target-editor-host = [
     "zircon_runtime/target-editor-host",
     "first-party-runtime-plugins",
+    "first-party-ui-document-importer",
     "first-party-advanced-render-runtime-plugins",
     "first-party-navigation-runtime-plugin",
     "first-party-navigation-editor-plugin",
@@ -191,21 +205,22 @@ target-editor-host = [
 ]
 
 [dependencies]
-libloading = "0.9.0"
+zircon_plugin_animation_runtime = { path = "../zircon_plugins/animation/runtime", default-features = false, optional = true }
+libloading = { version = "0.9.0", optional = true }
 serde.workspace = true
 serde_json = "1.0.149"
-sha2.workspace = true
+sha2 = { workspace = true, optional = true }
 tracing.workspace = true
 gilrs = { version = "0.11.0", optional = true }
-image.workspace = true
+image = { workspace = true, optional = true }
 softbuffer = { version = "0.4.6", optional = true }
-toml.workspace = true
+toml = { workspace = true, optional = true }
 winit = { workspace = true, default-features = false, optional = true }
 zircon_editor = { path = "../zircon_editor", optional = true }
 zircon_first_party_editor_catalog = { path = "../zircon_plugins/first_party_editor_catalog", optional = true, default-features = false }
 zircon_first_party_runtime_catalog = { path = "../zircon_plugins/first_party_runtime_catalog", optional = true, default-features = false }
 zircon_runtime = { path = "../zircon_runtime", default-features = false }
-zircon_runtime_host.workspace = true
+zircon_runtime_host = { workspace = true, optional = true }
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }
 zr_runtime_dev_dylib = { workspace = true, optional = true }
 
@@ -217,3 +232,9 @@ windows-sys = { workspace = true, features = [
     "Win32_System_Ole",
     "Win32_System_Console",
 ] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["Window", "Document", "HtmlCanvasElement", "HtmlElement", "Element", "EventTarget", "Event", "KeyboardEvent", "PointerEvent", "MouseEvent", "WheelEvent", "DomRect", "AddEventListenerOptions"] }

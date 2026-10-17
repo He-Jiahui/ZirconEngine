@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::asset::runtime_asset_path;
+use crate::asset::{runtime_asset_path, AssetRelativePath};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum RuntimeUiFixture {
@@ -39,6 +39,8 @@ impl RuntimeUiFixture {
     }
 
     pub(crate) fn asset_path(self) -> PathBuf {
-        runtime_asset_path(self.relative_asset_path())
+        let relative = AssetRelativePath::parse(self.relative_asset_path())
+            .expect("runtime UI fixture paths must be valid asset-relative paths");
+        runtime_asset_path(&relative)
     }
 }

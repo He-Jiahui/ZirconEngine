@@ -56,3 +56,76 @@ fn erased_provider(value: i32) -> Arc<dyn Any + Send + Sync> {
     let provider: Arc<dyn PoisonBridge> = Arc::new(PoisonBridgeProvider { value });
     Arc::new(provider)
 }
+
+struct OtherBridgeProvider;
+
+impl PluginInterface for OtherBridgeProvider {
+    const INTERFACE_ID: &'static str = "test.other.bridge.v1";
+}
+
+#[test]
+fn frozen_bridge_rejects_wrong_interface_without_changing_slot() {
+    let (table, slot) = frozen_table();
+    let entry = table.entry(slot).unwrap();
+    let generation = entry.generation();
+
+    let error = table
+        .replace_provider(slot, Arc::new(OtherBridgeProvider))
+        .unwrap_err();
+    assert_eq!(
+        error,
+        RuntimeExtensionRegistryError::PluginInterfaceMismatch {
+            expected: <dyn PoisonBridge as PluginInterface>::INTERFACE_ID.into(),
+            actual: OtherBridgeProvider::INTERFACE_ID.into(),
+        }
+    );
+    assert_eq!(entry.generation(), generation);
+    assert_eq!(entry.status(), BridgeInterfaceStatus::Enabled);
+    assert!(entry.provider_installed());
+    assert_eq!(
+        table.provider::<dyn PoisonBridge>(slot).unwrap().1.sample(),
+        7
+    );
+
+    let replacement: Arc<dyn PoisonBridge> = Arc::new(PoisonBridgeProvider { value: 13 });
+    table.replace_provider(slot, replacement).unwrap();
+    assert_eq!(entry.generation(), generation.wrapping_add(2));
+    assert_eq!(
+        table.provider::<dyn PoisonBridge>(slot).unwrap().1.sample(),
+        13
+    );
+}
+
+#[test]
+fn frozen_bridge_reload_rejects_wrong_interface_while_disabled() {
+    let (table, slot) = frozen_table();
+    table.set_enabled(slot, false).unwrap();
+    let entry = table.entry(slot).unwrap();
+    let generation = entry.generation();
+
+    assert!(matches!(
+        table.reload_provider(slot, Arc::new(OtherBridgeProvider)),
+        Err(RuntimeExtensionRegistryError::PluginInterfaceMismatch { .. })
+    ));
+    assert_eq!(entry.generation(), generation);
+    assert_eq!(entry.status(), BridgeInterfaceStatus::Disabled);
+    assert!(entry.provider_installed());
+
+    table.set_enabled(slot, true).unwrap();
+    assert_eq!(
+        table.provider::<dyn PoisonBridge>(slot).unwrap().1.sample(),
+        7
+    );
+}
+
+fn frozen_table() -> (FrozenBridgeTable, InterfaceSlot) {
+    let provider: Arc<dyn PoisonBridge> = Arc::new(PoisonBridgeProvider { value: 7 });
+    let interface_id = <dyn PoisonBridge as PluginInterface>::INTERFACE_ID;
+    let table = FrozenBridgeTable::from_exports([(
+        PluginModuleId::from_raw(7),
+        interface_id.to_string(),
+        InterfaceExport::new(provider),
+    )]);
+    let slot = table.resolve_slot(interface_id).unwrap();
+    (table, slot)
+}

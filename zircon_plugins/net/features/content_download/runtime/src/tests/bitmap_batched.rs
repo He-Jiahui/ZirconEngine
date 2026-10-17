@@ -1,8 +1,7 @@
 use std::{hint::black_box, time::Instant};
 
 use zircon_runtime::core::framework::net::{
-    NetDownloadChunk, NetDownloadId, NetDownloadManifest, NetDownloadProgress,
-    NetDownloadStatus,
+    NetDownloadChunk, NetDownloadId, NetDownloadManifest, NetDownloadProgress, NetDownloadStatus,
 };
 
 use super::NetContentDownloadRuntimeManager;

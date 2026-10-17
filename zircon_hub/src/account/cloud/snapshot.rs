@@ -7,10 +7,10 @@ use std::{
 use sha2::{Digest, Sha256};
 use zircon_runtime_interface::project::{ProjectGuid, ProjectManifestSummary};
 
-use super::manifest::{FileEntry, MAX_BLOB_BYTES, MAX_PROJECT_BYTES, Manifest, valid_path};
+use super::manifest::{valid_path, FileEntry, Manifest, MAX_BLOB_BYTES, MAX_PROJECT_BYTES};
 use super::package_lock::{
-    PackageLockProviderError, ProjectPackageLockContext, ProjectPackageLockProvider,
-    package_lock_state,
+    package_lock_state, PackageLockProviderError, ProjectPackageLockContext,
+    ProjectPackageLockProvider,
 };
 
 const SNAPSHOT_SCHEMA_VERSION: u32 = 1;

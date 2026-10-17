@@ -35,6 +35,10 @@ impl UiPointerEvent {
         self
     }
 
+    /// 设置本次动作的点击次数，将输入 0 归一化为 1。
+    ///
+    /// # 约束
+    /// 此归一化仅发生在 builder 中；直接写字段或反序列化显式的 0 不会调用它。
     pub const fn with_click_count(mut self, click_count: u8) -> Self {
         self.click_count = if click_count == 0 { 1 } else { click_count };
         self

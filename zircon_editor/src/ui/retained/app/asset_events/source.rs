@@ -13,23 +13,26 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         match action_id {
-            "source.text.set" => match self.editor_manager
+            "source.text.set" => match self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
                     manager.update_ui_asset_editor_source(&instance_id, value.to_string())
-                })
-            {
+                }) {
                 Ok(()) => self.mark_presentation_dirty_for_view(&instance_id),
                 Err(error) => self.set_status_line(error.to_string()),
             },
-            "source.cursor.set" => match self.editor_manager
+            "source.cursor.set" => match self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
-                    manager.select_ui_asset_editor_source_byte_offset(&instance_id, item_index.max(0) as usize)
-                })
-            {
+                    manager.select_ui_asset_editor_source_byte_offset(
+                        &instance_id,
+                        item_index.max(0) as usize,
+                    )
+                }) {
                 Ok(changed) => {
                     if changed {
                         self.mark_presentation_dirty_for_view(&instance_id);

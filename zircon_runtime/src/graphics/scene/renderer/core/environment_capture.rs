@@ -378,8 +378,11 @@ impl SceneRenderer {
         // The renderer-owned cache key includes this exact capture recipe; the external
         // asset/editor identity is carried only as publication intent. Admission is optional:
         // a runtime-cache miss must never invalidate the visible capture.
+        #[cfg(feature = "native-host")]
         let mut prepared_persistence = None;
+        #[cfg(feature = "native-host")]
         let mut persistence_diagnostic_scope = None;
+        #[cfg(feature = "native-host")]
         if let Some(runtime_cache_request) = request.runtime_cache_artifact_request() {
             let cache_store = streamer
                 .asset_manager()
@@ -422,6 +425,7 @@ impl SceneRenderer {
                 return Err(error);
             }
         };
+        #[cfg(feature = "native-host")]
         let persistence_diagnostic_frame = persistence_diagnostic_scope
             .and_then(|scope| {
                 scope
@@ -429,9 +433,12 @@ impl SceneRenderer {
                     .ok()
             })
             .flatten();
+        #[cfg(feature = "native-host")]
         if persistence_diagnostic_frame.is_none() {
             prepared_persistence = None;
         }
+        #[cfg(not(feature = "native-host"))]
+        let persistence_diagnostic_frame = None;
         let capture_submission = match backend.submit_graphics_command_buffers_with_diagnostics(
             vec![encoder.finish()],
             persistence_diagnostic_frame,
@@ -457,6 +464,7 @@ impl SceneRenderer {
 
         core.mesh_pipelines
             .bind_recorded_pipeline_usage_to_submission(capture_submission);
+        #[cfg(feature = "native-host")]
         if let Some(prepared) = prepared_persistence {
             core.ibl_bake_runtime_writebacks.commit_submitted(prepared);
         }

@@ -612,7 +612,8 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
         .expect("register asset authoring extension");
     assert!(runtime
         .runtime
-        .asset_importers_for_extension(".glb").unwrap()
+        .asset_importers_for_extension(".glb")
+        .unwrap()
         .is_empty());
     let model_type = AssetTypeId::from_resource_kind(ResourceKind::Model);
     assert!(runtime
@@ -632,7 +633,10 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
         .unwrap();
     runtime.runtime.refresh_reflection();
 
-    let importers = runtime.runtime.asset_importers_for_extension("GLB").unwrap();
+    let importers = runtime
+        .runtime
+        .asset_importers_for_extension("GLB")
+        .unwrap();
     assert_eq!(importers.len(), 1);
     assert_eq!(importers[0].id(), "sdk.asset.model_importer");
     let definition = runtime

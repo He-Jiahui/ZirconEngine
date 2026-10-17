@@ -17,9 +17,20 @@ use super::{
 
 pub trait EditorAssetManager: Send + Sync {
     fn refresh_from_runtime_project(&self) -> Result<(), CoreError>;
+
+    /// Custom managers must explicitly implement receipt inclusion. Unsupported
+    /// is a repair outcome; it never acknowledges a durable receipt.
+    fn model_import_projection(
+        &self,
+        _activation: &zircon_runtime::asset::project::ProjectActivationIdentity,
+        _receipt: &zircon_runtime::asset::ProjectImportReceipt,
+    ) -> EditorModelImportProjection {
+        EditorModelImportProjection::Unsupported
+    }
+
     /// Projects Runtime watcher changes into editor-local stale state before the next catalog
     /// refresh observes a committed Runtime input generation.
-    fn project_runtime_asset_changes(&self, changes: &[AssetChange]);
+    fn project_runtime_asset_changes(&self, changes: &[std::sync::Arc<AssetChange>]);
     /// Clears the projection of the retired runtime project.
     ///
     /// Returns `true` only when an active project projection was replaced with a newer empty
@@ -63,3 +74,14 @@ pub trait EditorAssetManager: Send + Sync {
         visible: bool,
     ) -> Result<Option<Arc<EditorAssetDetailsGeneration>>, CoreError>;
 }
+
+/// The built-in projection proves an already committed model receipt against one
+/// atomically published project/index pair. A higher sequence alone is not proof.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EditorModelImportProjection {
+    AwaitingPublication,
+    Published { generation_sequence: u64 },
+    Superseded,
+    Unsupported,
+}
+

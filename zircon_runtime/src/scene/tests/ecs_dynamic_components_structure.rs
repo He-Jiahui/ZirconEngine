@@ -1,3 +1,8 @@
+//! 对 include_str 输入进行逐字截取和 contains、顺序谓词检查的结构约束。
+//!
+//! 这些断言观察格式化后的源文本，不解析 Rust 语法，也不执行动态组件行为。
+//! 补充文档时须保持选择区与谓词结果，不能用注释补齐断言缺少的代码片段。
+
 fn dynamic_components_source() -> &'static str {
     include_str!("../world/dynamic_components.rs")
 }
@@ -6,6 +11,7 @@ fn component_type_registry_source() -> &'static str {
     include_str!("../world/component_type_registry.rs")
 }
 
+/// 借用首个起始分段，再截到首个结束分段；缺少起始分段会 panic，结束串缺席则保留余段。
 fn section_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
     source
         .split(start)
@@ -279,7 +285,12 @@ fn dynamic_component_plugin_count_and_unload_scan_maps_directly() {
 #[test]
 fn dynamic_component_type_registry_validates_borrowed_plugin_prefix_without_formatting() {
     let source = component_type_registry_source();
-    let register = section_between(source, "pub fn register", "pub fn descriptor");
+    // 取证同时包含只读预检与登记入口，且必须验证入口实际调用了该预检。
+    let register = section_between(
+        source,
+        "pub(super) fn validate_new_descriptor(",
+        "pub fn descriptor",
+    );
     let plugin_matcher = source
         .split("fn component_type_belongs_to_plugin")
         .nth(1)
@@ -288,7 +299,8 @@ fn dynamic_component_type_registry_validates_borrowed_plugin_prefix_without_form
     assert!(
         register.contains(
             "if !component_type_belongs_to_plugin(&descriptor.type_id, &descriptor.plugin_id)"
-        ) && register.contains("SceneError::ComponentTypePluginPrefixMismatch")
+        ) && register.contains("self.validate_new_descriptor(&descriptor)?;")
+            && register.contains("SceneError::ComponentTypePluginPrefixMismatch")
             && register.contains("SceneError::DuplicateComponentType")
             && plugin_matcher.contains(".strip_prefix(plugin_id)")
             && plugin_matcher.contains("let Some(suffix) = type_id.strip_prefix(plugin_id) else")
@@ -349,11 +361,11 @@ fn dynamic_component_json_property_conversions_use_direct_branches() {
     let json_read = section_between(
         source,
         "fn scene_value_from_json",
-        "fn json_from_scene_value",
+        "fn json_from_scene_property_value",
     );
     let json_write = section_between(
         source,
-        "fn json_from_scene_value",
+        "fn json_from_scene_property_value",
         "fn scene_vector_from_json",
     );
     let number_helper =
@@ -438,7 +450,7 @@ fn dynamic_component_json_single_property_objects_are_pre_sized() {
     let source = dynamic_components_source();
     let json_write = section_between(
         source,
-        "fn json_from_scene_value",
+        "fn json_from_scene_property_value",
         "fn scene_vector_from_json",
     );
     let object_helper = section_between(source, "fn single_property_object", "fn vector_to_json");
@@ -467,7 +479,10 @@ fn vm_payload_validation_indexes_retained_components_before_registration_checks(
     assert!(
         validation.contains("let mut payloads_by_type = HashMap::with_capacity(")
             && validation.contains("for components in self.dynamic_components.values()")
-            && validation.contains("payloads_by_type.entry(type_path.as_str())")
+            && validation
+                .split_whitespace()
+                .collect::<String>()
+                .contains("payloads_by_type.entry(type_path.as_str())")
             && validation.contains("for registration in registrations")
             && validation.contains("payloads_by_type.get(type_path)")
             && !validation.contains(

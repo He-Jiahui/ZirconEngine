@@ -53,6 +53,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         hub_focus_binding: HubFocusBinding::default(),
         hub_focus_request_attention,
         module_plugin_projection_cache: Default::default(),
+        module_plugin_details: Default::default(),
         #[cfg(feature = "profiling")]
         runtime_gateway,
         module_plugin_live_host_backend: Box::new(

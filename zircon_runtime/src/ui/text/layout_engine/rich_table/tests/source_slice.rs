@@ -1,3 +1,6 @@
+//! 验证单元投影共享编译产物并保留文本和链接元数据。
+//! 该夹具不证明无分配，也不执行完整表格布局。
+
 use std::sync::Arc;
 
 use crate::text::RichTextFormat;

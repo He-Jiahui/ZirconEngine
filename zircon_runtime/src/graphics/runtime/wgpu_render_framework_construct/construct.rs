@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
+use zr_rhi::RenderDeviceRequestPolicy;
 
 #[cfg(test)]
 use crate::asset::ProjectAssetManager;
@@ -20,7 +21,7 @@ use crate::graphics::{
 use crate::plugin::PluginShaderModuleSource;
 use crate::text::font::{shared_font_collection_service, FontCollectionService};
 
-use super::super::capability_summary::{capability_summary, render_device_diagnostics};
+use super::super::capability_summary::render_device_diagnostics;
 use super::super::graphics_debugger_capture::{
     renderdoc_capture_frame_count_from_env, GraphicsDebuggerState,
 };
@@ -135,6 +136,36 @@ impl WgpuRenderFramework {
         )
     }
 
+    #[cfg(feature = "test-support")]
+    pub fn new_with_plugin_render_extensions_and_device_request_policy(
+        asset_manager: ProjectAssetManagerAccess,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
+        virtual_geometry_runtime_providers: impl IntoIterator<
+            Item = VirtualGeometryRuntimeProviderRegistration,
+        >,
+        compute_task_pool: TaskPool,
+        device_request_policy: RenderDeviceRequestPolicy,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_plugin_render_extensions_and_solari_and_compute_task_pool_and_device_request_policy(
+            asset_manager,
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            hybrid_gi_runtime_providers,
+            Vec::new(),
+            virtual_geometry_runtime_providers,
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            compute_task_pool,
+            shared_font_collection_service(),
+            device_request_policy,
+        )
+    }
+
     #[cfg(test)]
     pub(crate) fn new_for_test_with_plugin_render_extensions(
         asset_manager: Arc<ProjectAssetManager>,
@@ -230,7 +261,7 @@ impl WgpuRenderFramework {
         plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
         compute_task_pool: TaskPool,
     ) -> Result<Self, GraphicsError> {
-        Self::new_with_plugin_render_extensions_and_solari_and_compute_task_pool(
+        Self::new_with_plugin_render_extensions_and_solari_and_compute_task_pool_and_device_request_policy(
             asset_manager,
             render_features,
             render_pass_executors,
@@ -244,6 +275,7 @@ impl WgpuRenderFramework {
             compute_task_pool,
             // Runtime201 standalone compatibility: Core-owned products inject TextRuntimeContext.
             shared_font_collection_service(),
+            RenderDeviceRequestPolicy::mvp_baseline(),
         )
     }
 
@@ -294,6 +326,40 @@ impl WgpuRenderFramework {
         compute_task_pool: TaskPool,
         font_collection: Arc<FontCollectionService>,
     ) -> Result<Self, GraphicsError> {
+        Self::new_with_plugin_render_extensions_and_solari_and_compute_task_pool_and_device_request_policy(
+            asset_manager,
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            hybrid_gi_runtime_providers,
+            solari_runtime_providers,
+            virtual_geometry_runtime_providers,
+            plugin_geometry_sources,
+            plugin_shading_models,
+            plugin_shader_module_sources,
+            compute_task_pool,
+            font_collection,
+            RenderDeviceRequestPolicy::mvp_baseline(),
+        )
+    }
+
+    pub(crate) fn new_with_plugin_render_extensions_and_solari_and_compute_task_pool_and_device_request_policy(
+        asset_manager: ProjectAssetManagerAccess,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
+        solari_runtime_providers: impl IntoIterator<Item = SolariRuntimeProviderRegistration>,
+        virtual_geometry_runtime_providers: impl IntoIterator<
+            Item = VirtualGeometryRuntimeProviderRegistration,
+        >,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
+        plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
+        compute_task_pool: TaskPool,
+        font_collection: Arc<FontCollectionService>,
+        device_request_policy: RenderDeviceRequestPolicy,
+    ) -> Result<Self, GraphicsError> {
         let render_features = render_features.into_iter().collect::<Vec<_>>();
         let render_pass_executors = render_pass_executors.into_iter().collect::<Vec<_>>();
         let runtime_prepare_collectors = runtime_prepare_collectors.into_iter().collect::<Vec<_>>();
@@ -313,7 +379,7 @@ impl WgpuRenderFramework {
             select_solari_runtime_provider(solari_runtime_providers)?;
         let selected_virtual_geometry_runtime_provider =
             select_virtual_geometry_runtime_provider(virtual_geometry_runtime_providers)?;
-        let renderer = SceneRenderer::new_with_plugin_render_extensions_and_shading_models_and_font_collection(
+        let renderer = SceneRenderer::new_with_plugin_render_extensions_and_shading_models_and_font_collection_and_device_request_policy(
             asset_manager,
             render_features.clone(),
             render_pass_executors,
@@ -322,6 +388,7 @@ impl WgpuRenderFramework {
             plugin_shading_models,
             plugin_shader_module_sources,
             font_collection,
+            device_request_policy,
         )?;
         Ok(Self::from_renderer(
             renderer,
@@ -331,6 +398,55 @@ impl WgpuRenderFramework {
             selected_virtual_geometry_runtime_provider,
             compute_task_pool,
         ))
+    }
+
+    /// Browser startup transfers the asynchronously initialized Canvas device to the same renderer.
+    #[cfg(target_arch = "wasm32")]
+    pub async fn new_canvas(
+        asset_manager: ProjectAssetManagerAccess,
+        canvas: web_sys::HtmlCanvasElement,
+        identity: u64,
+        compute_task_pool: TaskPool,
+        font_collection: Arc<FontCollectionService>,
+    ) -> Result<Self, GraphicsError> {
+        let renderer =
+            SceneRenderer::new_canvas(asset_manager, canvas, identity, font_collection).await?;
+        Ok(Self::from_renderer(
+            renderer,
+            Vec::new(),
+            None,
+            None,
+            None,
+            compute_task_pool,
+        ))
+    }
+
+    /// Resolve every validation receipt produced by this browser frame before reporting success.
+    /// No renderer mutex is held across the browser await point.
+    #[cfg(target_arch = "wasm32")]
+    pub async fn finish_browser_frame_validation(
+        &self,
+        submitted: bool,
+    ) -> Result<(), GraphicsError> {
+        let device = {
+            let state = self.core.state.lock().unwrap_or_else(|e| e.into_inner());
+            state.renderer.web_validation_device()
+        };
+        let validation = crate::graphics::validation_scope::resolve(&device)
+            .await
+            .and_then(|()| {
+                self.core
+                    .device_fault_gate
+                    .ensure_admission()
+                    .map_err(|error| GraphicsError::WgpuValidation(format!("{error:?}")))
+            });
+        {
+            let mut state = self.core.state.lock().unwrap_or_else(|e| e.into_inner());
+            state
+                .renderer
+                .finish_browser_scene_history(submitted && validation.is_ok());
+        }
+        validation
     }
 
     fn from_renderer(
@@ -349,7 +465,7 @@ impl WgpuRenderFramework {
         );
         let device_fault_gate = renderer.device_fault_gate();
         let backend_caps = renderer.backend_caps();
-        let render_capabilities = capability_summary(&backend_caps);
+        let render_capabilities = renderer.native_render_capabilities();
         let device_diagnostics = render_device_diagnostics(&backend_caps);
         let graphics_debugger = GraphicsDebuggerState::available_with_capture_frame_count(
             renderer.backend_name(),
@@ -359,6 +475,10 @@ impl WgpuRenderFramework {
             submission_scheduler: Mutex::new(Default::default()),
             core: Arc::new(WgpuRenderFrameworkCore {
                 device_fault_gate,
+                virtual_geometry_readback_budget:
+                    crate::graphics::scene::VirtualGeometryReadbackBudget::new(),
+                #[cfg(feature = "test-support")]
+                compiled_pipeline_override: Mutex::new(None),
                 operation_lock: Mutex::new(()),
                 compute_task_pool,
                 planar_reflection_updates: Mutex::new(Default::default()),

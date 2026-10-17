@@ -195,7 +195,10 @@ fn imported_zui_components_are_single_component_assets() {
     ] {
         let document = UiZuiAssetLoader::load_zui_str(&source(relative))
             .unwrap_or_else(|error| panic!("{relative} should load as .zui: {error}"));
-        assert_eq!(document.asset.kind, zircon_runtime_interface::ui::v2::UiV2AssetKind::Component);
+        assert_eq!(
+            document.asset.kind,
+            zircon_runtime_interface::ui::v2::UiV2AssetKind::Component
+        );
         assert!(
             document.components.contains_key(component),
             "{relative} should declare `{component}`"

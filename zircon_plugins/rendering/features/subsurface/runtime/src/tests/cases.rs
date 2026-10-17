@@ -26,11 +26,11 @@ fn sss_feature_wrapper_uses_host_product_descriptor_and_executors() {
     assert_eq!(
         feature_passes
             .iter()
-            .map(|pass| pass.name.as_str())
+            .map(|pass| pass.pass_name.as_str())
             .collect::<Vec<_>>(),
         host_passes
             .iter()
-            .map(|pass| pass.name.as_str())
+            .map(|pass| pass.pass_name.as_str())
             .collect::<Vec<_>>()
     );
 

@@ -1,0 +1,1709 @@
+{
+  "schema_version": "source-comments-root-main-v2",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R084",
+  "owner": "root",
+  "agent": "runtime_pointer_luna",
+  "agent_model": "gpt-6-luna",
+  "agent_reasoning_effort": "max",
+  "created_at_utc": "2026-10-17T03:57:07.615380+00:00",
+  "status": "root-reviewed-locally-validated-pending-coverage-book-and-designated-Jenkins",
+  "source_scope": "Borrowed line source map, full visual grapheme-to-source projection, module facade and whole directly mounted tests; DTO/perf R086 and parent geometry R089 independently owned, other consumers readonly.",
+  "source_read_complete": true,
+  "source_files": [
+    {
+      "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/mod.rs",
+      "before_sha256": "497456912602290f23d58c9cb348fa6ae12a1cd0c4496a6651eb1d77dde7dbaa",
+      "before_bytes": 460,
+      "before_lines": 13,
+      "sha256": "401230b1bbf8ed9786184872b8af934f6282c7e7354dfd795c9a7e14644a8a59",
+      "bytes": 675,
+      "lines": 16,
+      "inserted_groups": 1,
+      "inserted_lines": 3,
+      "inserted_bytes": 215,
+      "removed_original_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF/noBOM/finalLF",
+      "stage0_blob": "6fc3b8601ab805002639071c2b953948a406a978",
+      "clean_filter_blob": "b234997264565287ac6c350001cb661e789dc2ab",
+      "owner": "runtime_pointer_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 1
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+      "before_sha256": "8c0ead0c43fd5d7ab7bf299839841a1f8ebced86bbbb9f752fb65299f89141d0",
+      "before_bytes": 15305,
+      "before_lines": 429,
+      "sha256": "f6af8fdfc75e12572e95852178a814ed990073f1ad8f958b9efe4616b739be75",
+      "bytes": 18724,
+      "lines": 478,
+      "inserted_groups": 18,
+      "inserted_lines": 49,
+      "inserted_bytes": 3419,
+      "removed_original_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF/noBOM/finalLF",
+      "stage0_blob": "590dce8989966f5227cfe41518562e0f43a2f73d",
+      "clean_filter_blob": "b73e749ac52c45c7826551afd9741b49aaadb945",
+      "owner": "runtime_pointer_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 70
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/surface/render/source_map/cluster.rs",
+      "before_sha256": "292d81a563f7ddc955e3782eaf13ba3cda7833759fc0215dbe4c432992c9f38a",
+      "before_bytes": 6446,
+      "before_lines": 181,
+      "sha256": "478bcd69fbf7bc256f23eabfef59f4fb8d25e0766913a1043d6d5054c8a23503",
+      "bytes": 7938,
+      "lines": 199,
+      "inserted_groups": 14,
+      "inserted_lines": 18,
+      "inserted_bytes": 1492,
+      "removed_original_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF/noBOM/finalLF",
+      "stage0_blob": "62b37e28765034c2e65640b792264c3a54b7d525",
+      "clean_filter_blob": "80fd49b59d5f81b83eba0b9e61d0058777f7ba3a",
+      "owner": "runtime_pointer_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 27
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/tests/source_map.rs",
+      "before_sha256": "a9caef847cc1dbb0c6e17a2bdd7c7d3c246639b62115655e612506e1a25ee9f4",
+      "before_bytes": 21556,
+      "before_lines": 672,
+      "sha256": "316a9be04673243b6dc8ddf9054b088a00727f774f1e8f4be3c2f6bdf3c4b8a4",
+      "bytes": 23027,
+      "lines": 688,
+      "inserted_groups": 15,
+      "inserted_lines": 16,
+      "inserted_bytes": 1471,
+      "removed_original_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF/noBOM/finalLF",
+      "stage0_blob": "cabe8cbe3258ab7f4f87e3b16433ec64e3dab344",
+      "clean_filter_blob": "565d628c5c398e3e19cf7ab26204dc298c5adc37",
+      "owner": "runtime_pointer_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 61
+    }
+  ],
+  "counts": {
+    "files": 4,
+    "objects": 54,
+    "members": 13,
+    "gapfree_semantic_blocks": 62,
+    "assertions": 33,
+    "normal_tests": 12,
+    "ignored_tests": 0,
+    "inserted_groups": 48,
+    "inserted_lines": 86,
+    "inserted_bytes": 6597,
+    "range_hashes": 159,
+    "caller_edges": 10,
+    "context_files": 11
+  },
+  "canonical_ranges": 159,
+  "canonical_range_digest": "72faa92161e47c56726c3c5d87fe6eeea65116c6e0a13a08b5e526b258a8169f",
+  "canonical_range_record": "docs/plans/source-comments/reviews/R084-post-validation.json",
+  "records": [
+    {
+      "path": "docs/plans/source-comments/reviews/R084.json",
+      "sha256": "81ffd4d76233cfa612407436de54aa83cbae901d2b1152a0bccdeadc83d048bb",
+      "bytes": 68345,
+      "lines": 1
+    },
+    {
+      "path": "docs/plans/source-comments/reviews/R084-post-validation.json",
+      "sha256": "a091370b4a20cde191ff2de718499f91c381bfe968844a595f2fe5ffebc05237",
+      "bytes": 180239,
+      "lines": 5952
+    }
+  ],
+  "child_immutable": true,
+  "source_amendments": [],
+  "root_review": {
+    "source": "root747/b0c70d native18882->7a16aa exit1/PID7688 read owned mod16LF+cluster199LF, then wrong line locator absent; no writes. root749/226b92 exit0/PID36584 correct owned line478LF and child schema. root750/df2728 exit0/PID18696 whole tests688LF; complete exact4 source1381LF.",
+    "models": "root751/d04c7a exit0/PID31140 full54objects13members62blocks33assertions/traits; root752/6f15ff exit0/PID6084 child metadata/callers/11context/raw/commands/receipts/lifecycle complete.",
+    "contexts": "root756/830014 native8441->a690b0 exit0/PID18832 full current parent602LF plus Runtime hit1-145/190-286 geometry1-95/175-249; outer default10000 truncated display but native11094token full stored and missing parent399-571 reemitted root758. root759/0479b8 exit0/PID7356 full render109/surface84/modelpressure131 and exact boundary ranges1-90/170-274/329-369/525-644/691-874/1062-1097. Additional helper dependency closure not wholly re-reviewed.",
+    "proof_schema": "root760/b23b10 exit0/PID31940 exact child schema159/48/registration/assignment; inspected complete original assertion slice, child input digest projection not assumed.",
+    "current_independent_verification": "This actual invocation independently verifies exact child/post records,4current pins and48comment inverses,159 range hashes/digest,11current contexts,raw predicates/config/guard/issues and scoped ownership before creating only main. No native receipt predicted."
+  },
+  "core_helper": {
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "max",
+    "conclusion": "No necessary new-doc correction or new proven BUG/TODO",
+    "receipts": [
+      "e9f16f exit0/PID7472 mod16+cluster199+line1-240",
+      "966d60 exit0/PID13080 line241-478/tests1-350",
+      "367f5c exit0/PID18572 tests351-688+childmodels",
+      "1ea23f native69228->defb36 exit0/PID38032 parentcontext",
+      "5254fd exit0/PID34616 remaining parent and Runtime selected contexts/finalpins"
+    ],
+    "source_lines_read": 1381,
+    "writes": 0
+  },
+  "semantic_contracts": [
+    "Borrowed resolved line lifetime bounds UiTextLineSourceMap, while constructor owns eagerly projected cluster Vec and each instance optionally owns lazy prefix/bounds indexes. OnceLock index laziness does not remove constructor allocation.",
+    "Source and visual byte offsets are separate from visual cluster boundary indices. Hit test derives physical midpoint boundary index and source fallback, prefers real glyph artifact or source metrics, and only constructs map on fallback. Caret geometry maps source bytes then asks visual-byte advance.",
+    "Full visual text Unicode grapheme segmentation precedes run projection; ordered visual run starts permit cursor path, otherwise full scan. Cross-run graphemes aggregate source envelope, direction from first intersecting run, and equal lengths do not validate text identity or UTF8 offsets.",
+    "Ordered disjoint source ranges select binary caret/range paths; repeated or unordered ranges choose linear matching and source-envelope indexes. Source-range selection retains complete clusters and merges visual adjacency only, allowing discontiguous bidi pieces.",
+    "Exact advance cache admission checks length and each finite nonnegative value; ordinary f32 sum/prefix can overflow. First two uncached queries scan; later OnceLock initializes. Runtime finite recovery is separate and not attributed to interface map.",
+    "LeadingCurrent restores downstream source caret; TrailingPrevious restores upstream. Missing cluster uses caller source fallback unchanged without UTF8 validation.",
+    "Twelve tests are handcrafted resolved DTO fixtures and33unchanged literal assertions, not real shaping/allocator/end-to-end/performance acceptance. Raw source bytes independently confirm single-backslash Rust Unicode escapes rather than JSON-display false defect.",
+    "Parent R089 and DTO/perf R086 context evolved by additional comments only; historical child evidence retained, current pins linked. Arithmetic pressure model does not read Rust sources and was not executed."
+  ],
+  "call_relation_evidence": {
+    "callers": {
+      "columns": [
+        "id",
+        "role",
+        "own_file_ranges",
+        "context_index_ranges",
+        "verified_flow"
+      ],
+      "rows": [
+        [
+          "K_MOUNT",
+          "模块及导出",
+          [
+            [
+              0,
+              [
+                1,
+                13
+              ]
+            ],
+            [
+              1,
+              [
+                15,
+                17
+              ]
+            ],
+            [
+              2,
+              [
+                5,
+                7
+              ]
+            ]
+          ],
+          [
+            [
+              0,
+              [
+                [
+                  11,
+                  18
+                ]
+              ]
+            ],
+            [
+              1,
+              [
+                [
+                  32,
+                  33
+                ],
+                [
+                  89,
+                  89
+                ]
+              ]
+            ],
+            [
+              2,
+              [
+                [
+                  19,
+                  20
+                ],
+                [
+                  73,
+                  78
+                ]
+              ]
+            ]
+          ],
+          "四叶由自有mod挂载；父text_geometry挂载整份source_map测试，perf叶留R086。"
+        ],
+        [
+          "K_NEW",
+          "构造拥有边界",
+          [
+            [
+              1,
+              [
+                64,
+                84
+              ]
+            ]
+          ],
+          [
+            [
+              0,
+              [
+                [
+                  193,
+                  234
+                ]
+              ]
+            ],
+            [
+              3,
+              [
+                [
+                  57,
+                  141
+                ]
+              ]
+            ],
+            [
+              4,
+              [
+                [
+                  61,
+                  91
+                ],
+                [
+                  175,
+                  204
+                ]
+              ]
+            ]
+          ],
+          "line.new实际调用视觉簇投影；父模块每行惰性保存映射，Runtime命中/几何按所需构造临时映射。"
+        ],
+        [
+          "K_CACHE",
+          "惰性标准库回调",
+          [
+            [
+              1,
+              [
+                22,
+                48
+              ]
+            ],
+            [
+              1,
+              [
+                69,
+                76
+              ]
+            ],
+            [
+              1,
+              [
+                252,
+                307
+              ]
+            ],
+            [
+              1,
+              [
+                330,
+                366
+              ]
+            ]
+          ],
+          [],
+          "bool::then有条件调用两个缓存构造函数；OnceLock回调同步建立该实例前缀或包络，非动态注册。"
+        ],
+        [
+          "K_CARET",
+          "源到视觉字节",
+          [
+            [
+              1,
+              [
+                90,
+                195
+              ]
+            ],
+            [
+              1,
+              [
+                405,
+                421
+              ]
+            ]
+          ],
+          [
+            [
+              0,
+              [
+                [
+                  371,
+                  407
+                ]
+              ]
+            ],
+            [
+              4,
+              [
+                [
+                  61,
+                  91
+                ]
+              ]
+            ]
+          ],
+          "父光标几何和Runtime caret入口调用visual_offset_for_caret，再以视觉字节位置求advance；内部self接收者已确定为行映射。"
+        ],
+        [
+          "K_SPAN",
+          "范围绘制",
+          [
+            [
+              1,
+              [
+                229,
+                250
+              ]
+            ],
+            [
+              1,
+              [
+                387,
+                403
+              ]
+            ]
+          ],
+          [
+            [
+              0,
+              [
+                [
+                  243,
+                  313
+                ]
+              ]
+            ],
+            [
+              4,
+              [
+                [
+                  175,
+                  204
+                ]
+              ]
+            ]
+          ],
+          "相交源范围选择完整簇；父装饰投影保持声明次序，Runtime优先已有artifact/metrics再回退source-map。"
+        ],
+        [
+          "K_ADVANCE",
+          "视觉字节累计",
+          [
+            [
+              1,
+              [
+                252,
+                307
+              ]
+            ],
+            [
+              1,
+              [
+                423,
+                429
+              ]
+            ]
+          ],
+          [
+            [
+              0,
+              [
+                [
+                  243,
+                  313
+                ],
+                [
+                  371,
+                  407
+                ]
+              ]
+            ],
+            [
+              4,
+              [
+                [
+                  236,
+                  245
+                ]
+              ]
+            ]
+          ],
+          "父装饰/光标及Runtime已知度量缺失分支使用advance入口；Runtime额外有限性恢复不可归给接口映射。"
+        ],
+        [
+          "K_HIT",
+          "视觉簇边界回映",
+          [
+            [
+              1,
+              [
+                197,
+                227
+              ]
+            ],
+            [
+              2,
+              [
+                84,
+                98
+              ]
+            ]
+          ],
+          [
+            [
+              3,
+              [
+                [
+                  116,
+                  127
+                ],
+                [
+                  190,
+                  259
+                ]
+              ]
+            ]
+          ],
+          "Runtime先由物理中点产生簇边界索引，缺少artifact/source metrics时才调用回映；fallback由调用方提供。"
+        ],
+        [
+          "K_CLUSTER",
+          "整行字素投影",
+          [
+            [
+              1,
+              [
+                64,
+                65
+              ]
+            ],
+            [
+              2,
+              [
+                18,
+                66
+              ]
+            ],
+            [
+              2,
+              [
+                100,
+                181
+              ]
+            ]
+          ],
+          [],
+          "UnicodeSegmentation为str提供grapheme_indices(true)；先分整行，再投影run，无重新整形/FFI/动态注册。"
+        ],
+        [
+          "K_EDGE",
+          "源边缘与包络",
+          [
+            [
+              1,
+              [
+                309,
+                384
+              ]
+            ],
+            [
+              2,
+              [
+                68,
+                98
+              ]
+            ]
+          ],
+          [],
+          "调用由方向/亲和性明确选择逻辑或视觉边缘；未标等长路径使用同源范围视觉包络。"
+        ],
+        [
+          "K_TEST",
+          "直属静态测试",
+          [
+            [
+              3,
+              [
+                1,
+                672
+              ]
+            ]
+          ],
+          [
+            [
+              0,
+              [
+                [
+                  16,
+                  18
+                ]
+              ]
+            ]
+          ],
+          "12个#[test]与2夹具函数整文件归属R084，手工DTO不是整形/分配/性能验收；实际执行0。"
+        ]
+      ]
+    },
+    "contexts": [
+      {
+        "id": 0,
+        "path": "zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs",
+        "sha256": "ab8ca6dd787c71ae75f146dd46af819791c44ad50a189f73bf10f9f4dbd933eb",
+        "bytes": 23218,
+        "lines": 602,
+        "historical_sha256": "60dd13f07ba0b00d9ea4fa1e11b544a4f0baa7e3b8b934b3b6a81d8a3dd8e9e3",
+        "historical_ranges": [
+          [
+            1,
+            135
+          ],
+          [
+            180,
+            315
+          ],
+          [
+            330,
+            420
+          ]
+        ],
+        "mapped_current_ranges": [
+          [
+            9,
+            165
+          ],
+          [
+            216,
+            385
+          ],
+          [
+            400,
+            521
+          ]
+        ],
+        "comment_only_evolution": true,
+        "formal_coverage": false,
+        "root_read_scope": "Full current parent602LF read root756/830014 native8441->a690b0 exit0/PID18832; native11094token full; outer truncated then parent399-571 reemitted root758"
+      },
+      {
+        "id": 1,
+        "path": "zircon_runtime_interface/src/ui/surface/render/mod.rs",
+        "sha256": "80d851eb70b07492618e31764969f3efd2b69aefa27e48edcac0ad7bc6fdf75d",
+        "bytes": 4053,
+        "lines": 109,
+        "historical_sha256": "80d851eb70b07492618e31764969f3efd2b69aefa27e48edcac0ad7bc6fdf75d",
+        "historical_ranges": [
+          [
+            1,
+            109
+          ]
+        ],
+        "mapped_current_ranges": [
+          [
+            1,
+            109
+          ]
+        ],
+        "comment_only_evolution": false,
+        "formal_coverage": false,
+        "root_read_scope": "Root actual selected context read; see root_read_receipts; whole dependency closure not claimed"
+      },
+      {
+        "id": 2,
+        "path": "zircon_runtime_interface/src/ui/surface/mod.rs",
+        "sha256": "32e39cf76d3ca79cccd1eaf73121a315339d6aaa2f7ede90d208a742509e4ad6",
+        "bytes": 4649,
+        "lines": 84,
+        "historical_sha256": "32e39cf76d3ca79cccd1eaf73121a315339d6aaa2f7ede90d208a742509e4ad6",
+        "historical_ranges": [
+          [
+            1,
+            84
+          ]
+        ],
+        "mapped_current_ranges": [
+          [
+            1,
+            84
+          ]
+        ],
+        "comment_only_evolution": false,
+        "formal_coverage": false,
+        "root_read_scope": "Root actual selected context read; see root_read_receipts; whole dependency closure not claimed"
+      },
+      {
+        "id": 3,
+        "path": "zircon_runtime/src/ui/text/hit_test.rs",
+        "sha256": "f831eae87b1a72cce0632da7776dd32e8a9b4a088d168fd5d947d69f0bc697a3",
+        "bytes": 10782,
+        "lines": 300,
+        "historical_sha256": "f831eae87b1a72cce0632da7776dd32e8a9b4a088d168fd5d947d69f0bc697a3",
+        "historical_ranges": [
+          [
+            1,
+            145
+          ],
+          [
+            190,
+            286
+          ]
+        ],
+        "mapped_current_ranges": [
+          [
+            1,
+            145
+          ],
+          [
+            190,
+            286
+          ]
+        ],
+        "comment_only_evolution": false,
+        "formal_coverage": false,
+        "root_read_scope": "Root actual selected context read; see root_read_receipts; whole dependency closure not claimed"
+      },
+      {
+        "id": 4,
+        "path": "zircon_runtime/src/ui/text/geometry.rs",
+        "sha256": "bd6d98c1f681d280be82e5c3a19db5d20d96218eca9ac59956b0abcaa3df0ff6",
+        "bytes": 9712,
+        "lines": 323,
+        "historical_sha256": "bd6d98c1f681d280be82e5c3a19db5d20d96218eca9ac59956b0abcaa3df0ff6",
+        "historical_ranges": [
+          [
+            1,
+            95
+          ],
+          [
+            175,
+            249
+          ]
+        ],
+        "mapped_current_ranges": [
+          [
+            1,
+            95
+          ],
+          [
+            175,
+            249
+          ]
+        ],
+        "comment_only_evolution": false,
+        "formal_coverage": false,
+        "root_read_scope": "Root actual selected context read; see root_read_receipts; whole dependency closure not claimed"
+      },
+      {
+        "id": 5,
+        "path": "zircon_runtime_interface/src/tests/boundary.rs",
+        "sha256": "7acb8b1622c66bc34670a217c350485f10c17bdab04a2423edcb82bc9b6f06b2",
+        "bytes": 44568,
+        "lines": 1107,
+        "historical_sha256": "7acb8b1622c66bc34670a217c350485f10c17bdab04a2423edcb82bc9b6f06b2",
+        "historical_ranges": [
+          [
+            1,
+            310
+          ],
+          [
+            329,
+            454
+          ],
+          [
+            500,
+            885
+          ],
+          [
+            1062,
+            1107
+          ]
+        ],
+        "mapped_current_ranges": [
+          [
+            1,
+            310
+          ],
+          [
+            329,
+            454
+          ],
+          [
+            500,
+            885
+          ],
+          [
+            1062,
+            1107
+          ]
+        ],
+        "comment_only_evolution": false,
+        "formal_coverage": false,
+        "root_read_scope": "Root actual selected context read; see root_read_receipts; whole dependency closure not claimed"
+      },
+      {
+        "id": 6,
+        "path": "zircon_runtime_interface/src/ui/surface/render/source_map/boundary_bias.rs",
+        "sha256": "1643d4d734337d72396b07e16d5ffbd8865a9107c5e9c91f01d68f0664cbb582",
+        "bytes": 701,
+        "lines": 12,
+        "historical_sha256": "148f7c3180b987be99649a015aabf90146bf8f3257b5a3e5bac994b85b71fb86",
+        "historical_ranges": [
+          [
+            1,
+            6
+          ]
+        ],
+        "mapped_current_ranges": [
+          [
+            1,
+            12
+          ]
+        ],
+        "comment_only_evolution": true,
+        "formal_coverage": false,
+        "root_read_scope": "Readonly R086 context before411LF full child/core receipts; root verifies only byte/comment evolution and actual module targets, not full independent current body review"
+      },
+      {
+        "id": 7,
+        "path": "zircon_runtime_interface/src/ui/surface/render/source_map/visual_span.rs",
+        "sha256": "7a47acbe74ec34e7c6b33e103f9d480419cbc5e8aeda7be6a58914f30e3a6709",
+        "bytes": 799,
+        "lines": 16,
+        "historical_sha256": "b3bed6cade08520fdc0c49b822b4a644ec72435756596afc8141bd4732ce7346",
+        "historical_ranges": [
+          [
+            1,
+            7
+          ]
+        ],
+        "mapped_current_ranges": [
+          [
+            1,
+            16
+          ]
+        ],
+        "comment_only_evolution": true,
+        "formal_coverage": false,
+        "root_read_scope": "Readonly R086 context before411LF full child/core receipts; root verifies only byte/comment evolution and actual module targets, not full independent current body review"
+      },
+      {
+        "id": 8,
+        "path": "zircon_runtime_interface/src/ui/surface/render/source_map/cluster/tests/perf.rs",
+        "sha256": "8750399ea265d96c3dc26d418e2791a5292ef4c59e23923652a45de3e2595216",
+        "bytes": 4498,
+        "lines": 127,
+        "historical_sha256": "824f0f10a22be0b40bae8025d916f6ace202f4019ff7ade8ce95b730d4e8c35d",
+        "historical_ranges": [
+          [
+            1,
+            113
+          ]
+        ],
+        "mapped_current_ranges": [
+          [
+            6,
+            127
+          ]
+        ],
+        "comment_only_evolution": true,
+        "formal_coverage": false,
+        "root_read_scope": "Readonly R086 context before411LF full child/core receipts; root verifies only byte/comment evolution and actual module targets, not full independent current body review"
+      },
+      {
+        "id": 9,
+        "path": "zircon_runtime_interface/src/ui/surface/render/source_map/line/tests/perf.rs",
+        "sha256": "b290edfe7983b98a68ba4304400f3a600fef198b75bd9224b710fbffa9b82021",
+        "bytes": 10957,
+        "lines": 306,
+        "historical_sha256": "7dd73db0b2a78aaf5c34fac56f5e3f3dc155e6f2b5a89b87b6cf1a9a373fe2f4",
+        "historical_ranges": [
+          [
+            1,
+            285
+          ]
+        ],
+        "mapped_current_ranges": [
+          [
+            6,
+            306
+          ]
+        ],
+        "comment_only_evolution": true,
+        "formal_coverage": false,
+        "root_read_scope": "Readonly R086 context before411LF full child/core receipts; root verifies only byte/comment evolution and actual module targets, not full independent current body review"
+      },
+      {
+        "id": 10,
+        "path": "tools/analysis/performance/runtime/runtime_ui_text_decoration_source_map_pressure.py",
+        "sha256": "0d4a841bad4acb46d3a87cb055041488937068419f56c5a867772f0b30b10332",
+        "bytes": 4567,
+        "lines": 131,
+        "historical_sha256": "0d4a841bad4acb46d3a87cb055041488937068419f56c5a867772f0b30b10332",
+        "historical_ranges": [
+          [
+            1,
+            131
+          ]
+        ],
+        "mapped_current_ranges": [
+          [
+            1,
+            131
+          ]
+        ],
+        "comment_only_evolution": false,
+        "formal_coverage": false,
+        "root_read_scope": "Root actual selected context read; see root_read_receipts; whole dependency closure not claimed"
+      }
+    ],
+    "context_version_limit": "Historical R086 DTO/perf bodies not independently re-read in full by root for R084; actual comment-only evolution, path existence and ownership checked. Parent R089 full current602LF independently read; whole indirect helper/callee closure is not declared reviewed.",
+    "traits_macros_dynamic_FFI": {
+      "derived": [
+        "Clone",
+        "Copy",
+        "Debug",
+        "PartialEq",
+        "Eq"
+      ],
+      "derive_file_range": [
+        2,
+        9,
+        9
+      ],
+      "external_trait": "UnicodeSegmentation::grapheme_indices(true) on full visual str",
+      "inherent_impls": 3,
+      "serde_or_default_derive": false,
+      "custom_trait_impl": false,
+      "dynamic_registration": false,
+      "ffi": false,
+      "macro_input_proof": "all original bytes restored by insertion inversion; 33 assert inputs and 12 test attributes unchanged"
+    }
+  },
+  "issue_ids": [],
+  "issues": [],
+  "reserved_unused": [
+    "CR-ZCA-R084-0001"
+  ],
+  "issue_ledger_registration_pending": false,
+  "verification": {
+    "post_writer_actual_terminal": "root761/0c90c5 exit0/PID39340",
+    "post_exact_commands": 24,
+    "all_command_exit_codes_zero": true,
+    "guard_summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "format_evidence_reused": {
+      "paths": [
+        "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/mod.rs",
+        "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+        "zircon_runtime_interface/src/ui/surface/render/source_map/cluster.rs",
+        "zircon_runtime_interface/src/ui/surface/render/text_geometry/tests/source_map.rs"
+      ],
+      "argv_prefix": [
+        "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true"
+      ],
+      "receipt": "runtime_pointer_luna outer18/30c9dd native37670->ecd4e1 exit0/PID12036",
+      "exact_current_pins_reused": true,
+      "exit_code": 0,
+      "repeated": false
+    },
+    "raw_consumers": {
+      "reader": "zircon_runtime_interface/src/tests/boundary.rs",
+      "sha256": "7acb8b1622c66bc34670a217c350485f10c17bdab04a2423edcb82bc9b6f06b2",
+      "selected_ranges": [
+        {
+          "range": [
+            170,
+            207
+          ],
+          "sha256": "b62440527ce501d3d840c4eb6806e548743ca10ad96ea7826462c22d8884181e"
+        },
+        {
+          "range": [
+            213,
+            274
+          ],
+          "sha256": "d396a6932897cbc822661a047845d969835be97158fe6500d5820cc4714720dc"
+        },
+        {
+          "range": [
+            329,
+            369
+          ],
+          "sha256": "4b48a609cdb4d2b1f3d266b03460ea7dd5ecdc3dabae587a580fdc28f7ee3e92"
+        },
+        {
+          "range": [
+            525,
+            579
+          ],
+          "sha256": "daa077ed341660276624cf485578fb92a9ca1c47795ed2cfa525f7b0d99301bf"
+        },
+        {
+          "range": [
+            580,
+            644
+          ],
+          "sha256": "106c752b6c897f296cca5b74fab7cd7f9ea0221a2559965fa2aa3d9a25d523d8"
+        },
+        {
+          "range": [
+            691,
+            853
+          ],
+          "sha256": "7a295c6b882d219aba431a079e32930f7097f8b0e30346acbcdd13d991dcf75f"
+        },
+        {
+          "range": [
+            855,
+            874
+          ],
+          "sha256": "81a1fa1882d292a7ccc1c13c3504441f6ebb7e1e1d0100cdfc112e74e8ea1d3e"
+        },
+        {
+          "range": [
+            1062,
+            1097
+          ],
+          "sha256": "f890a37f6f20f4958f934f60cf48d1829fc333b8c44b19201ee5c7156a4c4610"
+        }
+      ],
+      "domains": [
+        {
+          "file": 0,
+          "version": "before",
+          "sha256": "497456912602290f23d58c9cb348fa6ae12a1cd0c4496a6651eb1d77dde7dbaa",
+          "bytes": 460,
+          "removed_exact_cfg_test_module_items": 0
+        },
+        {
+          "file": 0,
+          "version": "current",
+          "sha256": "401230b1bbf8ed9786184872b8af934f6282c7e7354dfd795c9a7e14644a8a59",
+          "bytes": 675,
+          "removed_exact_cfg_test_module_items": 0
+        },
+        {
+          "file": 1,
+          "version": "before",
+          "sha256": "982a236cb261496f0fd82f75e0fad6d927c1339e1a824dc516ec847266b83dd2",
+          "bytes": 15223,
+          "removed_exact_cfg_test_module_items": 1
+        },
+        {
+          "file": 1,
+          "version": "current",
+          "sha256": "3569a407d3b02e96c6798d0438c04196c2d1e4f9698101a65e6bf3e154934490",
+          "bytes": 18642,
+          "removed_exact_cfg_test_module_items": 1
+        },
+        {
+          "file": 2,
+          "version": "before",
+          "sha256": "b0cfb8ac210aeb28bd053633398cf4f77bebf9fbbeab62196f5280aa358b484b",
+          "bytes": 6378,
+          "removed_exact_cfg_test_module_items": 1
+        },
+        {
+          "file": 2,
+          "version": "current",
+          "sha256": "8f066918c8dcbe5be4b36d152f5ac7f7d7126e92c537f9f0638449cb2da334cb",
+          "bytes": 7870,
+          "removed_exact_cfg_test_module_items": 1
+        }
+      ],
+      "literal_predicates": [
+        {
+          "file": 0,
+          "operand": "include_str!(",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "include_bytes!(",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "zircon_runtime/src",
+          "operator": "match_indices.any(is_rust_code_position)",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "zircon_editor/src",
+          "operator": "match_indices.any(is_rust_code_position)",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "zircon_runtime::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "zircon_editor::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "wgpu::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "winit::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "slint::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "libloading::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "tokio::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "std::fs",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "std::net",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "std::process",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "std::thread",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 0,
+          "operand": "std::sync",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "include_str!(",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "include_bytes!(",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "zircon_runtime/src",
+          "operator": "match_indices.any(is_rust_code_position)",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "zircon_editor/src",
+          "operator": "match_indices.any(is_rust_code_position)",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "zircon_runtime::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "zircon_editor::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "wgpu::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "winit::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "slint::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "libloading::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "tokio::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "std::fs",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "std::net",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "std::process",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "std::thread",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 1,
+          "operand": "std::sync",
+          "operator": "contains",
+          "raw_contains_before": true,
+          "raw_contains_current": true,
+          "admission_skip": true,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "include_str!(",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "include_bytes!(",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "zircon_runtime/src",
+          "operator": "match_indices.any(is_rust_code_position)",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "zircon_editor/src",
+          "operator": "match_indices.any(is_rust_code_position)",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "zircon_runtime::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "zircon_editor::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "wgpu::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "winit::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "slint::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "libloading::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "tokio::",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "std::fs",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "std::net",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "std::process",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "std::thread",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        },
+        {
+          "file": 2,
+          "operand": "std::sync",
+          "operator": "contains",
+          "raw_contains_before": false,
+          "raw_contains_current": false,
+          "admission_skip": false,
+          "own_violation": false,
+          "new_comment_contribution": 0,
+          "executed": false
+        }
+      ],
+      "module_path_predicates": [
+        {
+          "operand": "../../source_map/boundary_bias.rs",
+          "target": "zircon_runtime_interface/src/ui/surface/render/source_map/boundary_bias.rs",
+          "exists_inside_interface_src": true,
+          "new_comment_contribution": 0
+        },
+        {
+          "operand": "../../source_map/cluster.rs",
+          "target": "zircon_runtime_interface/src/ui/surface/render/source_map/cluster.rs",
+          "exists_inside_interface_src": true,
+          "new_comment_contribution": 0
+        },
+        {
+          "operand": "line.rs",
+          "target": "zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/line.rs",
+          "exists_inside_interface_src": true,
+          "new_comment_contribution": 0
+        },
+        {
+          "operand": "../../source_map/visual_span.rs",
+          "target": "zircon_runtime_interface/src/ui/surface/render/source_map/visual_span.rs",
+          "exists_inside_interface_src": true,
+          "new_comment_contribution": 0
+        }
+      ],
+      "std_sync": {
+        "exact_use_sha256": "3a2566d29008a86ff2c2131ab027ea9271f509702755e16a1e8a1cf300e1c4e4",
+        "allowed_top_symbols": [
+          "atomic",
+          "OnceLock"
+        ],
+        "own_path_admitted": true,
+        "forbidden_identifier_predicates": [
+          {
+            "operand": "Barrier",
+            "identifier_present": false
+          },
+          {
+            "operand": "LazyLock",
+            "identifier_present": false
+          },
+          {
+            "operand": "Weak",
+            "identifier_present": false
+          },
+          {
+            "operand": "ArcSwap",
+            "identifier_present": false
+          },
+          {
+            "operand": "Mutex",
+            "identifier_present": false
+          },
+          {
+            "operand": "RwLock",
+            "identifier_present": false
+          },
+          {
+            "operand": "Condvar",
+            "identifier_present": false
+          },
+          {
+            "operand": "mpsc",
+            "identifier_present": false
+          }
+        ]
+      },
+      "reachability": "Only exact owned domains evaluated statically; tests directory excluded. line std::sync is present but admission continues before generic forbidden predicate. Main production scan iterates all sources; whole aggregate/other-source failure/reviewed paths test not evaluated. Rust tests executed0.",
+      "new_comment_operand_contribution": 0
+    },
+    "tests_run": false,
+    "builds_run": false,
+    "git_mutations": false
+  },
+  "test_interpretation": {
+    "normal": 12,
+    "ignored": 0,
+    "assertions": 33,
+    "executed": 0,
+    "limits": "Handmade resolved DTO source map/geometry cases, not real shaping/allocation/performance acceptance. All original assertion macro slices are byte-identical and have independent physical-span hashes. Child input_projection digest formula is not known, not recomputed and is not treated as independently validated evidence.",
+    "input_digest_limitation": "R084 original projection script not retained in current agent memory; owner explicitly declined guessing from a later batch. Root relies on complete macro-byte equality and159physical-span hashes, preserving the immutable child metadata without claiming an explained input digest."
+  },
+  "failure_history": [
+    {
+      "receipt": "root747/b0c70d native18882->7a16aa exit1/PID7688",
+      "failure": "Incorrect readonly line.rs path after successful owned mod/cluster reads; corrected to text_geometry/source_map/line.rs root749",
+      "source_writes": 0
+    },
+    {
+      "receipt": "root753/9b3bdd native96907->a74efb exit1; PID not exposed",
+      "failure": "Rejected blank inserted parent documentation separator; only comments/empty lines permitted by corrected reader root756; no writes",
+      "literal_byte_observations_before_failure": true
+    },
+    {
+      "stage": "root755 functions memory-only ReferenceError py2 undeclared",
+      "native_created": false,
+      "writes": 0
+    }
+  ],
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false,
+  "git_commit": false,
+  "push": false,
+  "notification": false,
+  "formal_gate": "Exact final-hash coverage book, candidate snapshots, designated Jenkins live lock-owner diagnosis, actual necessary validation, phase commit and attached authorized WeCom remain pending. Root never stages, commits, deletes locks, pushes or bypasses gates.",
+  "index_observation": {
+    "head": "89789b74beaef9bf83cb61f8c13236ca730a81c0",
+    "index": {
+      "bytes": 7479846,
+      "sha256": "45120c88a8b9210a3b78124b29dcf4e86b1297d3e215c80efb9ca5297b68a90f"
+    },
+    "index_lock": {
+      "exists": true,
+      "owner": "unknown",
+      "deleted_or_bypassed": false,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mtime_ns_text": "1792192256891113100"
+    }
+  },
+  "process_lifecycle": {
+    "pid": 20908,
+    "own_writer_terminal_known_at_creation": false,
+    "post_source_writers_terminal_known": true,
+    "historical_unknown_R033_R039GroupC_R046_preserved": true,
+    "opaque_source_writer": "apply_patch source terminal{} exposes no native PID/exit, independent actual expected bytes prove result; no fabricated exit0."
+  },
+  "artifact_lifecycle": {
+    "preregistered": true,
+    "source_copies": false,
+    "helpers": false,
+    "build_products": false,
+    "deleted_paths": [],
+    "freed_bytes": 0,
+    "retained": [
+      "Exact4 sources",
+      "fixedchild/main/post",
+      "necessary validation and failure evidence"
+    ],
+    "keep_until": "Designated Jenkins actual validation/commit/attached authorized WeCom; preserve foreign/shared outputs."
+  }
+}

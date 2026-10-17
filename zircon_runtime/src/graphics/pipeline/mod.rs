@@ -1,6 +1,10 @@
 #[path = "admission.rs"]
 mod admission;
+#[cfg(not(target_arch = "wasm32"))]
 #[path = "async_compile.rs"]
+mod async_compile;
+#[cfg(target_arch = "wasm32")]
+#[path = "async_compile/web.rs"]
 mod async_compile;
 #[path = "compile_options/mod.rs"]
 mod compile_options;
@@ -14,6 +18,9 @@ mod pipeline_cache_gate;
 mod render_pipeline_asset;
 #[path = "validation/mod.rs"]
 mod validation;
+#[cfg(all(test, not(target_arch = "wasm32")))]
+#[path = "async_compile/web.rs"]
+mod web_compile_validation;
 
 pub(crate) use admission::{PipelineAdmission, PipelineAdmissionReason, PipelineUnavailable};
 pub(crate) use async_compile::{

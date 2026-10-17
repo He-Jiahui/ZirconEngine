@@ -1,3 +1,6 @@
+//! 将 Serde 映射键规整为规范 JSON 字符串，并在预聚合时核算其带引号和转义后的字节数。
+//! 仅接纳 JSON 对象键可表示的标量形式；null、RawValue 与复合形式不属于此键域。
+
 use std::fmt;
 
 use serde::ser::{Impossible, Serializer};
@@ -7,12 +10,15 @@ use super::super::write_error::CanonicalTextWriteError;
 use super::canonical_writer::SERDE_JSON_RAW_VALUE_TOKEN;
 
 /// A normalized JSON object key and the bytes its quoted canonical spelling owns.
+///
+/// `value` 保持不带引号的文本供对象排序与查找；`encoded_bytes` 包含引号和转义扩展，供 writer 提前预留输出预算。
 pub(super) struct CanonicalMapKey {
     value: String,
     encoded_bytes: usize,
 }
 
 impl CanonicalMapKey {
+    /// 复制借用文本，并按带引号、转义后的 JSON 键长度校验 `max_bytes`。
     pub(super) fn from_str(value: &str, max_bytes: usize) -> Result<Self, CanonicalTextWriteError> {
         let encoded_bytes = json_string_encoded_len(value, max_bytes)?;
         Ok(Self {
@@ -21,6 +27,7 @@ impl CanonicalMapKey {
         })
     }
 
+    /// 接管已格式化的文本，并执行与借用入口相同的 JSON 键长度校验。
     pub(super) fn from_string(
         value: String,
         max_bytes: usize,
@@ -46,6 +53,10 @@ impl CanonicalMapKey {
 }
 
 /// Converts serde map keys into the scalar JSON spelling used by canonical output.
+///
+/// 允许布尔、数字、字符、字符串、单元枚举变体与 `Display` 文本；`Some` 递归使用同一标量规则。
+/// 拒绝 null、RawValue、字节串及复合值。
+/// `max_bytes` 限制最终带引号且转义后的拼写长度，而不只是原始字符串长度。
 pub(super) struct CanonicalMapKeySerializer {
     max_bytes: usize,
 }
@@ -56,6 +67,7 @@ impl CanonicalMapKeySerializer {
     }
 }
 
+// 整数先转成十进制键文本，再统一校验 JSON 引号和转义所占的字节数。
 macro_rules! key_integer_methods {
     ($($method:ident($type:ty)),* $(,)?) => {
         $(fn $method(self, value: $type) -> Result<Self::Ok, Self::Error> {
@@ -238,6 +250,7 @@ impl Serializer for CanonicalMapKeySerializer {
     }
 }
 
+/// 增量收集 Display 文本并计算最终 JSON 键长度；`fmt::Write` 只能返回通用错误，因此另存具体预算错误。
 struct CanonicalMapKeyDisplayWriter {
     value: String,
     encoded_bytes: usize,
@@ -290,6 +303,7 @@ impl fmt::Write for CanonicalMapKeyDisplayWriter {
     }
 }
 
+// JSON 对象键仍是字符串；先拒绝非有限值，再将 JSON 数字文本按带引号键长度校验。
 fn finite_key(value: f64, max_bytes: usize) -> Result<CanonicalMapKey, CanonicalTextWriteError> {
     if !value.is_finite() {
         return Err(CanonicalTextWriteError::NonFinite { value });
@@ -324,6 +338,7 @@ fn json_string_encoded_len(
     Ok(found)
 }
 
+// 此处的转义长度必须与 json_string.rs 的实际输出规则一致，预算才不会低估最终键长度。
 fn json_string_content_len(
     value: &str,
     max_bytes: usize,

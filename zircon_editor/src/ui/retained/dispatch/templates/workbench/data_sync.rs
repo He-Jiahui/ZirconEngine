@@ -116,14 +116,11 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 _ => None,
             })
             .unwrap_or_default();
-        let text = [
-            title,
-            chrome.project_overview.project_name.as_str(),
-        ]
-        .into_iter()
-        .filter(|part| !part.trim().is_empty())
-        .collect::<Vec<_>>()
-        .join(" · ");
+        let text = [title, chrome.project_overview.project_name.as_str()]
+            .into_iter()
+            .filter(|part| !part.trim().is_empty())
+            .collect::<Vec<_>>()
+            .join(" · ");
 
         self.mutate_control_property(
             "UnrealProjectDocumentContextText",

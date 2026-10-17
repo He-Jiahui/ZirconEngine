@@ -63,7 +63,7 @@ pub use editor_document_transaction::{
 pub(crate) use deletion::PreparedProjectSourceDeletion;
 pub(crate) use load_or_create_meta::mint_meta_for_migration;
 pub(crate) use relocation::PreparedProjectSourceRelocation;
-pub(crate) use scan_and_import::ImportSourceWatchEcho;
+pub(crate) use scan_and_import::{ImportSourceWatchEcho, PreparedWatchFileGeneration, WatchSourceCandidate};
 
 pub use project_activation_identity::ProjectActivationIdentity;
 

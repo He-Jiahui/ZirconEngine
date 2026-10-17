@@ -1,6 +1,6 @@
 use std::any::Any;
-use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 
 use super::super::super::*;
 use crate::core::editing::engine::{
@@ -42,6 +42,14 @@ impl EditContext for Context {
     fn retire_world_route(&mut self, _: WorldDomain) -> Result<(), EditCommandError> {
         Ok(())
     }
+    fn selection_retention_bound_v1(
+        &self,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<u64, EditCommandError> {
+        SelectionSnapshot::scalar_retention_bound_v1(model, limit)
+    }
+
     fn selection_snapshot(&self) -> SelectionSnapshot {
         SelectionSnapshot::default()
     }
@@ -56,19 +64,53 @@ impl EditContext for Context {
     }
 }
 struct Add {
-    value: Arc<AtomicI64>,
+    value: Arc<Mutex<i64>>,
     amount: i64,
 }
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for Add {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        m.owned(&self.value)?;
+        Ok(())
+    }
+}
 impl EditCommand for Add {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<
+        crate::core::editing::engine::CommandRetentionPlanV1,
+        crate::core::editing::engine::EditCommandError,
+    > {
+        crate::core::editing::engine::CommandRetentionPlanV1::for_owner(
+            self, context, phase, model, limit,
+        )
+    }
+    fn prepare_retention_v1(
+        &mut self,
+        _: &mut dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        permit: &mut crate::core::editing::engine::RetentionMaterializationV1,
+    ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+        permit
+            .consume(self, phase)
+            .map_err(crate::core::editing::engine::CommandExecutionError::unchanged)
+    }
+
     fn label(&self) -> &str {
         "add"
     }
     fn apply(&mut self, _: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
-        self.value.fetch_add(self.amount, Ordering::SeqCst);
+        *self.value.lock().unwrap() += self.amount;
         Ok(())
     }
     fn revert(&mut self, _: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
-        self.value.fetch_sub(self.amount, Ordering::SeqCst);
+        *self.value.lock().unwrap() -= self.amount;
         Ok(())
     }
     fn try_merge(&mut self, next: &dyn EditCommand) -> MergeOutcome {
@@ -82,7 +124,7 @@ impl EditCommand for Add {
         self
     }
 }
-fn command(value: &Arc<AtomicI64>) -> Add {
+fn command(value: &Arc<Mutex<i64>>) -> Add {
     Add {
         value: Arc::clone(value),
         amount: 1,
@@ -102,7 +144,7 @@ fn update(
     engine: &EditorTransactionEngine,
     history: HistoryContextId,
     mode: MergeMode,
-    value: &Arc<AtomicI64>,
+    value: &Arc<Mutex<i64>>,
 ) -> TransactionId {
     engine
         .execute_operation(
@@ -120,7 +162,7 @@ fn update(
 fn decision_token_observes_pending_without_committing_and_detects_same_group_append() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     assert_eq!(engine.dirty_history_decision_token(h).unwrap(), None);
     let id = update(&engine, h, MergeMode::Disable, &value);
     let first = engine.dirty_history_decision_token(h).unwrap().unwrap();
@@ -133,27 +175,27 @@ fn decision_token_observes_pending_without_committing_and_detects_same_group_app
     assert_ne!(engine.dirty_history_decision_token(h).unwrap(), Some(first));
     assert_eq!(engine.history_generation_snapshot(h).unwrap(), 0);
     engine.cancel(id).unwrap();
-    assert_eq!(value.load(Ordering::SeqCst), 0);
+    assert_eq!(*value.lock().unwrap(), 0);
     assert_eq!(engine.dirty_history_decision_token(h).unwrap(), None);
 }
 #[test]
 fn decision_token_detects_merged_apply_even_when_command_count_and_transaction_stay_equal() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let id = update(&engine, h, MergeMode::Ends, &value);
     let first = engine.dirty_history_decision_token(h).unwrap();
     assert_eq!(update(&engine, h, MergeMode::Ends, &value), id);
     assert_eq!(engine.lock_state().active[0].commands.len(), 1);
     assert_ne!(engine.dirty_history_decision_token(h).unwrap(), first);
     engine.cancel(id).unwrap();
-    assert_eq!(value.load(Ordering::SeqCst), 0);
+    assert_eq!(*value.lock().unwrap(), 0);
 }
 #[test]
 fn decision_token_detects_commit_and_cancel_then_reapply() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let id = update(&engine, h, MergeMode::Disable, &value);
     let pending = engine.dirty_history_decision_token(h).unwrap();
     engine.cancel(id).unwrap();
@@ -168,7 +210,7 @@ fn decision_token_detects_commit_and_cancel_then_reapply() {
 fn decision_token_detects_nested_cancel_with_parent_still_dirty() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let mut parent = engine.begin("parent", h).unwrap();
     parent.push(command(&value)).unwrap();
     let mut child = engine.begin("child", h).unwrap();
@@ -176,14 +218,14 @@ fn decision_token_detects_nested_cancel_with_parent_still_dirty() {
     let before = engine.dirty_history_decision_token(h).unwrap();
     child.cancel().unwrap();
     assert_ne!(engine.dirty_history_decision_token(h).unwrap(), before);
-    assert_eq!(value.load(Ordering::SeqCst), 1);
+    assert_eq!(*value.lock().unwrap(), 1);
     parent.cancel().unwrap();
 }
 #[test]
 fn decision_token_preserves_engine_history_and_world_identity() {
     let first = engine();
     let second = engine();
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let h = HistoryContextId::Global;
     update(&first, h, MergeMode::Disable, &value);
     update(&second, h, MergeMode::Disable, &value);
@@ -207,7 +249,7 @@ fn decision_token_preserves_busy_fault_and_route_errors() {
     let unavailable = Arc::new(AtomicU64::new(0));
     let engine = EditorTransactionEngine::new(Context::new(Arc::clone(&unavailable)));
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let id = update(&engine, h, MergeMode::Disable, &value);
     engine.lock_state().operation = Some("push command");
     assert!(matches!(
@@ -234,14 +276,14 @@ fn decision_token_preserves_busy_fault_and_route_errors() {
 fn exhausted_apply_revision_rejects_before_world_mutation() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let mut scope = engine.begin("exhausted", h).unwrap();
     engine.lock_state().applied_command_revision = u64::MAX;
     assert!(matches!(
         scope.push(command(&value)),
         Err(EditCommandError::AppliedCommandRevisionExhausted)
     ));
-    assert_eq!(value.load(Ordering::SeqCst), 0);
+    assert_eq!(*value.lock().unwrap(), 0);
     scope.cancel().unwrap();
 }
 
@@ -250,7 +292,7 @@ fn decision_token_detects_nested_commit_and_live_gateway_replacement() {
     let gateway_generation = Arc::new(AtomicU64::new(0));
     let engine = EditorTransactionEngine::new(Context::new(Arc::clone(&gateway_generation)));
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let mut parent = engine.begin("parent", h).unwrap();
     parent.push(command(&value)).unwrap();
     let mut child = engine.begin("child", h).unwrap();
@@ -268,21 +310,54 @@ fn decision_token_detects_nested_commit_and_live_gateway_replacement() {
 fn exhausted_cancel_revision_preserves_pending_world_and_scope() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let id = update(&engine, h, MergeMode::Disable, &value);
     engine.lock_state().applied_command_revision = u64::MAX;
     assert!(matches!(
         engine.cancel(id),
         Err(EditCommandError::AppliedCommandRevisionExhausted)
     ));
-    assert_eq!(value.load(Ordering::SeqCst), 1);
+    assert_eq!(*value.lock().unwrap(), 1);
     assert!(engine.has_active_scope(id));
     engine.lock_state().applied_command_revision = 1;
     engine.cancel(id).unwrap();
 }
 
 struct Reject;
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for Reject {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        Ok(())
+    }
+}
 impl EditCommand for Reject {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<
+        crate::core::editing::engine::CommandRetentionPlanV1,
+        crate::core::editing::engine::EditCommandError,
+    > {
+        crate::core::editing::engine::CommandRetentionPlanV1::for_owner(
+            self, context, phase, model, limit,
+        )
+    }
+    fn prepare_retention_v1(
+        &mut self,
+        _: &mut dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        permit: &mut crate::core::editing::engine::RetentionMaterializationV1,
+    ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+        permit
+            .consume(self, phase)
+            .map_err(crate::core::editing::engine::CommandExecutionError::unchanged)
+    }
+
     fn label(&self) -> &str {
         "reject"
     }
@@ -304,14 +379,14 @@ impl EditCommand for Reject {
 fn decision_token_detects_automatic_child_cancel_after_failed_push() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let mut parent = engine.begin("parent", h).unwrap();
     parent.push(command(&value)).unwrap();
     let mut child = engine.begin("child", h).unwrap();
     child.push(command(&value)).unwrap();
     let before = engine.dirty_history_decision_token(h).unwrap();
     assert!(child.push(Reject).is_err());
-    assert_eq!(value.load(Ordering::SeqCst), 1);
+    assert_eq!(*value.lock().unwrap(), 1);
     assert_ne!(engine.dirty_history_decision_token(h).unwrap(), before);
     parent.cancel().unwrap();
 }
@@ -319,7 +394,7 @@ fn decision_token_detects_automatic_child_cancel_after_failed_push() {
 fn decision_token_detects_automatic_child_cancel_after_rejected_after_apply() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let mut parent = engine.begin("parent", h).unwrap();
     parent.push(command(&value)).unwrap();
     let mut child = engine.begin("child", h).unwrap();
@@ -330,7 +405,7 @@ fn decision_token_detects_automatic_child_cancel_after_rejected_after_apply() {
             invariant: "rejected after-apply fixture"
         }))
         .is_err());
-    assert_eq!(value.load(Ordering::SeqCst), 1);
+    assert_eq!(*value.lock().unwrap(), 1);
     assert_ne!(engine.dirty_history_decision_token(h).unwrap(), before);
     parent.cancel().unwrap();
 }
@@ -339,7 +414,7 @@ fn decision_token_detects_automatic_child_cancel_after_rejected_after_apply() {
 fn authorized_pending_transition_checks_before_flush_and_retains_one_gate_through_clear() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     update(&engine, h, MergeMode::Ends, &value);
     let token = engine.dirty_history_decision_token(h).unwrap().unwrap();
     let mut transition = engine
@@ -374,7 +449,7 @@ fn stale_pending_transition_rejects_append_and_merge_without_flushing_or_mutatin
     for mode in [MergeMode::Disable, MergeMode::Ends] {
         let engine = engine();
         let h = HistoryContextId::Global;
-        let value = Arc::new(AtomicI64::new(0));
+        let value = Arc::new(Mutex::new(0));
         let id = update(&engine, h, mode, &value);
         let token = engine.dirty_history_decision_token(h).unwrap().unwrap();
         assert_eq!(update(&engine, h, mode, &value), id);
@@ -392,7 +467,7 @@ fn stale_pending_transition_rejects_append_and_merge_without_flushing_or_mutatin
         assert_eq!(engine.dirty_history_decision_token(h).unwrap(), before);
         assert_eq!(engine.history_status(h).unwrap().len, 0);
         assert_eq!(engine.history_generation_snapshot(h).unwrap(), 0);
-        assert_eq!(value.load(Ordering::SeqCst), 2);
+        assert_eq!(*value.lock().unwrap(), 2);
         assert_eq!(update(&engine, h, mode, &value), id);
         engine.cancel(id).unwrap();
     }
@@ -401,7 +476,7 @@ fn stale_pending_transition_rejects_append_and_merge_without_flushing_or_mutatin
 fn history_transition_rejects_canceled_dirty_and_missing_authorization_before_flush() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let id = update(&engine, h, MergeMode::Disable, &value);
     let token = engine.dirty_history_decision_token(h).unwrap().unwrap();
     assert!(matches!(
@@ -431,7 +506,7 @@ fn authorized_history_transition_rejects_stale_route_busy_fault_and_manual_scope
     let route = Arc::new(AtomicU64::new(0));
     let engine = EditorTransactionEngine::new(Context::new(Arc::clone(&route)));
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let id = update(&engine, h, MergeMode::Disable, &value);
     let token = engine.dirty_history_decision_token(h).unwrap().unwrap();
     route.store(1, Ordering::SeqCst);
@@ -480,7 +555,7 @@ fn authorized_history_transition_rejects_stale_route_busy_fault_and_manual_scope
         ),
         Err(EditCommandError::InvariantViolation { .. })
     ));
-    assert_eq!(value.load(Ordering::SeqCst), 1);
+    assert_eq!(*value.lock().unwrap(), 1);
     scope.cancel().unwrap();
 }
 #[test]
@@ -500,7 +575,7 @@ fn pending_flush_events_publish_only_after_exclusive_reservation_is_released() {
         Arc::new(Sink(Arc::clone(&committed))),
     );
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     update(&engine, h, MergeMode::Disable, &value);
     let token = engine.dirty_history_decision_token(h).unwrap().unwrap();
     let transition = engine
@@ -524,7 +599,7 @@ fn pending_flush_events_publish_only_after_exclusive_reservation_is_released() {
 fn authorized_flush_failure_preserves_pending_scope_and_decision() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let id = update(&engine, h, MergeMode::Disable, &value);
     engine.set_history_generation_for_test(h, u64::MAX);
     let token = engine.dirty_history_decision_token(h).unwrap().unwrap();
@@ -539,7 +614,7 @@ fn authorized_flush_failure_preserves_pending_scope_and_decision() {
         Err(EditCommandError::HistoryGenerationExhausted { .. })
     ));
     assert_eq!(engine.dirty_history_decision_token(h).unwrap(), Some(token));
-    assert_eq!(value.load(Ordering::SeqCst), 1);
+    assert_eq!(*value.lock().unwrap(), 1);
     engine.set_history_generation_for_test(h, 0);
     engine.cancel(id).unwrap();
 }
@@ -549,7 +624,7 @@ fn fresh_decision_does_not_authorize_a_pending_scope_pinned_to_a_stale_route() {
     let route = Arc::new(AtomicU64::new(0));
     let engine = EditorTransactionEngine::new(Context::new(Arc::clone(&route)));
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let id = update(&engine, h, MergeMode::Disable, &value);
     route.store(1, Ordering::SeqCst);
     let current = engine.dirty_history_decision_token(h).unwrap().unwrap();
@@ -574,7 +649,7 @@ fn history_clear_preflight_rejects_second_counter_exhaustion_without_committing_
     for dirty_exhaustion in [false, true] {
         let engine = engine();
         let h = HistoryContextId::Global;
-        let value = Arc::new(AtomicI64::new(0));
+        let value = Arc::new(Mutex::new(0));
         let id = update(&engine, h, MergeMode::Disable, &value);
         if dirty_exhaustion {
             engine.set_dirty_generation_for_test(u64::MAX - 1);
@@ -603,7 +678,7 @@ fn history_clear_preflight_rejects_second_counter_exhaustion_without_committing_
                 .kind(),
             HistoryDirtyBatchKind::Unchanged
         );
-        assert_eq!(value.load(Ordering::SeqCst), 1);
+        assert_eq!(*value.lock().unwrap(), 1);
         assert_eq!(update(&engine, h, MergeMode::Disable, &value), id);
         engine.set_dirty_generation_for_test(0);
         engine.set_history_generation_for_test(h, 0);
@@ -615,7 +690,7 @@ fn history_clear_preflight_accepts_exact_pending_two_steps_and_clean_single_step
     let h = HistoryContextId::Global;
     for pending in [false, true] {
         let engine = engine();
-        let value = Arc::new(AtomicI64::new(0));
+        let value = Arc::new(Mutex::new(0));
         if pending {
             update(&engine, h, MergeMode::Disable, &value);
         }
@@ -646,7 +721,7 @@ fn history_clear_preflight_budgets_distinct_group_and_target_histories_separatel
     let target = HistoryContextId::Global;
     let group = HistoryContextId::Document(DocumentId::new(64));
     let engine = engine();
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let id = update(&engine, group, MergeMode::Disable, &value);
     engine.set_history_generation_for_test(target, u64::MAX - 1);
     engine.set_history_generation_for_test(group, u64::MAX - 1);
@@ -688,7 +763,7 @@ fn history_clear_preflight_budgets_distinct_group_and_target_histories_separatel
 fn typed_preparation_failure_and_context_mismatch_leave_pending_decision_unchanged() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let id = update(&engine, h, MergeMode::Disable, &value);
     let token = engine.dirty_history_decision_token(h).unwrap().unwrap();
     assert!(matches!(
@@ -710,7 +785,7 @@ fn typed_preparation_failure_and_context_mismatch_leave_pending_decision_unchang
     assert_eq!(engine.dirty_history_decision_token(h).unwrap(), Some(token));
     assert_eq!(engine.history_generation_snapshot(h).unwrap(), 0);
     assert_eq!(engine.history_status(h).unwrap().len, 0);
-    assert_eq!(value.load(Ordering::SeqCst), 1);
+    assert_eq!(*value.lock().unwrap(), 1);
     engine.cancel(id).unwrap();
 }
 
@@ -723,7 +798,7 @@ fn history_route_admission_rejects_replacement_before_mutating_retained_history(
         for undone in [false, true] {
             let route = Arc::new(AtomicU64::new(0));
             let engine = EditorTransactionEngine::new(Context::new(Arc::clone(&route)));
-            let value = Arc::new(AtomicI64::new(0));
+            let value = Arc::new(Mutex::new(0));
             let mut seed = engine.begin("seed old route", h).unwrap();
             seed.push(command(&value)).unwrap();
             seed.commit().unwrap();
@@ -763,7 +838,7 @@ fn history_route_admission_rejects_replacement_before_mutating_retained_history(
             assert_eq!(engine.history_status(h).unwrap(), before);
             assert_eq!(engine.lock_state().next_transaction, next_transaction);
             assert!(engine.lock_state().active.is_empty());
-            assert_eq!(value.load(Ordering::SeqCst), i64::from(!undone));
+            assert_eq!(*value.lock().unwrap(), i64::from(!undone));
             assert_eq!(
                 engine
                     .dirty_states_since(Some(dirty_before.cursor()))
@@ -783,10 +858,10 @@ fn history_route_admission_rejects_replacement_before_mutating_retained_history(
             let mut same_route = engine.begin("old route remains usable", h).unwrap();
             same_route.push(command(&value)).unwrap();
             same_route.commit().unwrap();
-            assert_eq!(value.load(Ordering::SeqCst), 2);
+            assert_eq!(*value.lock().unwrap(), 2);
             assert!(engine.undo(h).unwrap());
             assert!(engine.undo(h).unwrap());
-            assert_eq!(value.load(Ordering::SeqCst), 0);
+            assert_eq!(*value.lock().unwrap(), 0);
         }
     }
 }
@@ -795,7 +870,7 @@ fn history_route_admission_rejects_replacement_before_mutating_retained_history(
 fn history_route_admission_preserves_nested_transactions_on_the_parent_route() {
     let engine = engine();
     let h = HistoryContextId::Global;
-    let value = Arc::new(AtomicI64::new(0));
+    let value = Arc::new(Mutex::new(0));
     let mut seed = engine.begin("seed", h).unwrap();
     seed.push(command(&value)).unwrap();
     seed.commit().unwrap();
@@ -817,11 +892,11 @@ fn history_route_admission_preserves_nested_transactions_on_the_parent_route() {
     parent.commit().unwrap();
     assert_eq!(engine.history_status(h).unwrap().len, 2);
     assert_eq!(engine.history_generation_snapshot(h).unwrap(), 2);
-    assert_eq!(value.load(Ordering::SeqCst), 3);
+    assert_eq!(*value.lock().unwrap(), 3);
     assert!(engine.undo(h).unwrap());
-    assert_eq!(value.load(Ordering::SeqCst), 1);
+    assert_eq!(*value.lock().unwrap(), 1);
     assert!(engine.undo(h).unwrap());
-    assert_eq!(value.load(Ordering::SeqCst), 0);
+    assert_eq!(*value.lock().unwrap(), 0);
 }
 
 #[test]
@@ -830,7 +905,7 @@ fn history_route_admission_accepts_replacement_after_clear_and_for_an_empty_stor
         let route = Arc::new(AtomicU64::new(0));
         let engine = EditorTransactionEngine::new(Context::new(Arc::clone(&route)));
         let h = HistoryContextId::Global;
-        let value = Arc::new(AtomicI64::new(0));
+        let value = Arc::new(Mutex::new(0));
         if cleared {
             let mut seed = engine.begin("old route", h).unwrap();
             seed.push(command(&value)).unwrap();
@@ -848,7 +923,7 @@ fn history_route_admission_accepts_replacement_after_clear_and_for_an_empty_stor
                 .histories
                 .insert(h, HistoryStore::new(128).unwrap());
         }
-        value.store(0, Ordering::SeqCst);
+        *value.lock().unwrap() = 0;
         route.store(1, Ordering::SeqCst);
         let mut replacement = engine.begin("fresh route", h).unwrap();
         replacement.push(command(&value)).unwrap();
@@ -863,6 +938,6 @@ fn history_route_admission_accepts_replacement_after_clear_and_for_an_empty_stor
             )
         );
         assert!(engine.undo(h).unwrap());
-        assert_eq!(value.load(Ordering::SeqCst), 0);
+        assert_eq!(*value.lock().unwrap(), 0);
     }
 }

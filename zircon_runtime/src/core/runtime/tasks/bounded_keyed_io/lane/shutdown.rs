@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use super::{LaneInner, LaneState};
 use crate::core::runtime::tasks::bounded_keyed_io::{

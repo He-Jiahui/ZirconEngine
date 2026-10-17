@@ -1,7 +1,7 @@
 //! Optional readback owned by the actual normal presenter and existing device timeline.
 use super::WgpuUiSurfaceRenderer;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 use zr_rhi::{
     DiagnosticReadbackAdmission, DiagnosticReadbackReceipt, DiagnosticReadbackRequestId,
     DiagnosticReadbackTerminal, RenderDevice, RhiError, SubmissionTicket, UiSurfaceDrawList,

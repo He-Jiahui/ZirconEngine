@@ -25,14 +25,14 @@ try:
     from tools.analysis.profiling.shader_pbr.zircon_shader_pbr_profile_tool_identity import validate_profile_tool_files
     from tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_viewer_evidence import (
         ready_frame_evidence_summary,
-        validate_current_ready_frame_evidence,
+        validate_ready_frame_evidence,
     )
 except ModuleNotFoundError:
     from tools.analysis.profiling.shader_pbr.zircon_shader_pbr_evidence_identity import normalize_evidence_path
     from tools.analysis.profiling.shader_pbr.zircon_shader_pbr_profile_tool_identity import validate_profile_tool_files
     from tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_viewer_evidence import (
         ready_frame_evidence_summary,
-        validate_current_ready_frame_evidence,
+        validate_ready_frame_evidence,
     )
 
 
@@ -44,7 +44,8 @@ _PROFILE_COMPLETION_RECEIPT_KIND = "zircon_shader_pbr_profile_completion"
 _MANAGED_BUILD_PROVENANCE_SCHEMA_VERSION = 2
 _MANAGED_BUILD_PROVENANCE_KIND = "zircon_managed_viewer_artifact_provenance"
 _MANAGED_ARTIFACT_KIND = "shader-pbr-viewer"
-_READY_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v18"
+_V18_READY_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v18"
+_READY_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v19"
 _GPU_TIMING_SCHEMA = "zircon_shader_pbr_viewer_gpu_timing_evidence_v3"
 _GPU_TIMING_WARMUP_SAMPLE_COUNT = 5
 _GPU_TIMING_MEASURED_SAMPLE_COUNT = 31
@@ -107,6 +108,7 @@ _STARTUP_DURATION_FIELDS = {
     "environment_brdf_lut_builtin_payload_cache_wait": "scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait_ns",
     "environment_brdf_lut_builtin_payload_materialization": "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization_ns",
     "environment_brdf_lut_texture_upload_submission": "scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns",
+    "system_texture_upload_batch_submission": "scene_startup_renderer_system_texture_upload_batch_submission_ns",
     "renderer_deferred_standard_pipeline": "scene_startup_renderer_deferred_standard_pipeline_ns",
     "ibl_restore": "scene_startup_ibl_restore_ns",
     "startup_total": "scene_startup_total_ns",
@@ -412,6 +414,7 @@ def _summarize_mode(
     expected_ordinals = set(range(1, repetitions + 1))
     observed_ordinals: set[int] = set()
     startup_samples: dict[str, list[int]] = {name: [] for name in _STARTUP_DURATION_FIELDS}
+    upload_submission_metric: str | None = None
     pso_samples: dict[str, list[int]] = {name: [] for name in _PSO_DURATION_FIELDS}
     ibl_staging_samples: dict[str, list[int]] = {
         name: [] for name in _IBL_STAGING_DURATION_FIELDS
@@ -469,7 +472,30 @@ def _summarize_mode(
 
         ready_sidecar = _require_mapping(report, "ready_sidecar", summary_path)
         for output_name, source_field in _STARTUP_DURATION_FIELDS.items():
+            if output_name in (
+                "environment_brdf_lut_texture_upload_submission",
+                "system_texture_upload_batch_submission",
+            ):
+                continue
             startup_samples[output_name].append(_read_u64(ready_sidecar, source_field, summary_path))
+        sidecar_schema = _require_string(ready_sidecar, "schema", summary_path)
+        if sidecar_schema == _V18_READY_SCHEMA:
+            current_upload_metric = "environment_brdf_lut_texture_upload_submission"
+        elif sidecar_schema == _READY_SCHEMA:
+            current_upload_metric = "system_texture_upload_batch_submission"
+        else:
+            raise RuntimeError(
+                f"Shader PBR profile has unsupported Ready sidecar schema: mode={mode} schema={sidecar_schema} path={summary_path}"
+            )
+        if upload_submission_metric not in (None, current_upload_metric):
+            raise RuntimeError(
+                f"Shader PBR profile mixes BRDF-only v18 and system-texture v19 startup metrics: mode={mode} path={summary_path}"
+            )
+        upload_submission_metric = current_upload_metric
+        upload_field = _STARTUP_DURATION_FIELDS[current_upload_metric]
+        startup_samples[current_upload_metric].append(
+            _read_u64(ready_sidecar, upload_field, summary_path)
+        )
         for output_name, source_field in _PSO_DURATION_FIELDS.items():
             pso_samples[output_name].append(_read_u64(ready_sidecar, source_field, summary_path))
         for output_name, source_field in _IBL_STAGING_DURATION_FIELDS.items():
@@ -535,7 +561,9 @@ def _summarize_mode(
             f"Shader PBR profile has inconsistent active cubemap layouts: mode={mode} path={summary_path}"
         )
 
-    startup_median_ns = {name: _median(samples) for name, samples in startup_samples.items()}
+    startup_median_ns = {
+        name: _median(samples) for name, samples in startup_samples.items() if samples
+    }
     pso_median_us = {name: _median(samples) for name, samples in pso_samples.items()}
     ibl_staging_median_ns = {
         name: _median(samples) for name, samples in ibl_staging_samples.items()
@@ -564,9 +592,7 @@ def _summarize_mode(
         "environment_brdf_lut_builtin_payload_materialization": startup_median_ns[
             "environment_brdf_lut_builtin_payload_materialization"
         ],
-        "environment_brdf_lut_texture_upload_submission": startup_median_ns[
-            "environment_brdf_lut_texture_upload_submission"
-        ],
+        upload_submission_metric: startup_median_ns[upload_submission_metric],
         "ibl_restore": startup_median_ns["ibl_restore"],
         "render_pipeline_creation_cpu": pso_median_us["render_pipeline_creation_cpu"] * 1_000,
         "shader_module_creation_cpu": pso_median_us["shader_module_creation_cpu"] * 1_000,
@@ -648,7 +674,7 @@ def _validate_run_report(
             f"Shader PBR profile run expected {expected_status}: mode={mode} path={summary_path}"
         )
     ready_sidecar = _require_mapping(report, "ready_sidecar", summary_path)
-    if ready_sidecar.get("schema") != _READY_SCHEMA:
+    if ready_sidecar.get("schema") not in (_V18_READY_SCHEMA, _READY_SCHEMA):
         raise RuntimeError(f"Shader PBR profile has an unexpected Ready sidecar schema: mode={mode} path={summary_path}")
     if ready_sidecar.get("ibl_staging_status") != expected_status:
         raise RuntimeError(
@@ -1625,10 +1651,11 @@ def _validate_ready_evidence(
         )
     try:
         replay = ready_frame_evidence_summary(
-            validate_current_ready_frame_evidence(
+            validate_ready_frame_evidence(
                 screenshot_path,
                 expected_backend=expected_backend,
                 visual_oracle_path=visual_oracle_path,
+                required_schema=_require_string(expected, "schema", summary_path),
             )
         )
     except (OSError, RuntimeError, ValueError) as error:
@@ -1647,7 +1674,7 @@ def _validate_ready_evidence(
         "saved Ready validation",
     )
     for field, expected_value in {
-        "schema": _READY_SCHEMA,
+        "schema": _require_string(expected, "schema", summary_path),
         "backend": expected_backend,
         "render_profile": "environment_only_pbr_preview",
     }.items():

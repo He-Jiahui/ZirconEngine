@@ -338,6 +338,19 @@ fn particle_build_indirect_args(@builtin(global_invocation_id) id: vec3<u32>) {{
 }
 
 pub(crate) fn generate_particle_gpu_transparent_wgsl(layout: &ParticleGpuLayout) -> String {
+    generate_particle_gpu_transparent_wgsl_with_material(layout, None)
+}
+
+pub(crate) fn generate_particle_gpu_transparent_wgsl_with_material(
+    layout: &ParticleGpuLayout,
+    material: Option<&str>,
+) -> String {
+    let material_source = material.unwrap_or("");
+    let fragment_color = if material.is_some() {
+        "input.color * zircon_material_graph()"
+    } else {
+        "input.color"
+    };
     let position_offset = layout
         .attribute("position")
         .map(|attribute| attribute.word_offset)
@@ -452,9 +465,11 @@ fn particle_gpu_transparent_vs(
     return output;
 }}
 
+{material_source}
+
 @fragment
 fn particle_gpu_transparent_fs(input: VertexOutput) -> @location(0) vec4<f32> {{
-    return input.color;
+    return {fragment_color};
 }}
 "#,
         position_offset = position_offset,

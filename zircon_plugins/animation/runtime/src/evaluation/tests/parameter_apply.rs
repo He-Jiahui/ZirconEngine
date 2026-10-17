@@ -54,6 +54,7 @@ fn clip_player_time_is_deferred_until_event_batch_admission() {
         0.25
     );
     assert_eq!(transaction.scan.clip_event_samples[0].to_time_seconds, 0.75);
+    assert!(!transaction.scan.event_only_clip_requires_continuous_frame);
 }
 
 #[test]
@@ -212,6 +213,8 @@ fn sequence_time_and_revision_are_staged_until_owner_admission() {
     assert_eq!(first.sequence_player_updates[0].1.time_seconds, 0.75);
     assert_eq!(first.scan.sequences.len(), 1);
     assert_eq!(first.scan.sequences[0].entity, entity);
+    assert!(first.scan.sequences[0].playing);
+    assert_eq!(first.scan.sequences[0].playback_speed, 1.0);
     projection.commit_revision_stage(first.revision_stage, &BTreeSet::from([entity]));
 
     let retry = projection.scan(
@@ -258,7 +261,8 @@ fn new_world_resets_all_projection_caches_and_paused_player_revisions() {
         )
         .expect("paused animation player is installed");
     let mut clone = world.clone();
-    assert_eq!(clone.read_change_tick(), world.read_change_tick());
+    // Cloning rebuilds each entity's component row at a fresh World change tick.
+    assert_eq!(clone.read_change_tick(), world.read_change_tick().next());
     let mut projection = AnimationEvaluationProjection::default();
     let settings = AnimationPlaybackSettings::default();
     let first = projection.scan(
@@ -271,6 +275,8 @@ fn new_world_resets_all_projection_caches_and_paused_player_revisions() {
         &BTreeMap::new(),
     );
     assert_eq!(first.scan.clip_samples.len(), 1);
+    assert!(!first.scan.clip_samples[0].playing);
+    assert_eq!(first.scan.clip_samples[0].playback_speed, 1.0);
     projection.commit_revision_stage(first.revision_stage, &BTreeSet::new());
     let unchanged = projection.scan(
         &mut world,

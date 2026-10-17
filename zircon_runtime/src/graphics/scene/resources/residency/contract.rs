@@ -1,6 +1,6 @@
 use std::num::NonZeroU64;
 
-use crate::core::resource::{ResourceReadinessRowIdentity, UntypedResourceHandle};
+use crate::core::resource::{ResourceActiveVersionKey, ResourceId, ResourceReadinessRowIdentity, UntypedResourceHandle};
 use zr_rhi::{DeviceGeneration, DeviceId, SubmissionStatus, SubmissionTicket};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -72,12 +72,22 @@ pub(crate) enum RenderAssetResidencyRoute {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub(crate) enum RenderAssetResidencySourceIdentity {
+    CandidateReadiness(ResourceReadinessRowIdentity),
+    ActiveResident {
+        key: ResourceActiveVersionKey,
+        dependencies: Vec<(ResourceId, Option<ResourceActiveVersionKey>)>,
+        candidate_dependencies: Vec<(ResourceId, Option<ResourceReadinessRowIdentity>)>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 /// 把资产、依赖发布、需求与设备代际固定为同一次工作身份；完成与取消必须匹配完整 ticket，资源 ID 相同不足以复用旧工作。
 pub(crate) struct RenderAssetResidencyTicket {
     id: RenderAssetResidencyTicketId,
     resource: UntypedResourceHandle,
     asset_revision: u64,
-    readiness_identity: ResourceReadinessRowIdentity,
+    source_identity: RenderAssetResidencySourceIdentity,
     demand_generation: RenderAssetDemandGeneration,
     device: RenderAssetDeviceEpoch,
     scope: RenderAssetResidencyScope,
@@ -89,7 +99,7 @@ impl RenderAssetResidencyTicket {
         id: RenderAssetResidencyTicketId,
         resource: UntypedResourceHandle,
         asset_revision: u64,
-        readiness_identity: ResourceReadinessRowIdentity,
+        source_identity: RenderAssetResidencySourceIdentity,
         demand_generation: RenderAssetDemandGeneration,
         device: RenderAssetDeviceEpoch,
         scope: RenderAssetResidencyScope,
@@ -99,7 +109,7 @@ impl RenderAssetResidencyTicket {
             id,
             resource,
             asset_revision,
-            readiness_identity,
+            source_identity,
             demand_generation,
             device,
             scope,
@@ -119,8 +129,15 @@ impl RenderAssetResidencyTicket {
         self.asset_revision
     }
 
-    pub(crate) fn readiness_identity(&self) -> &ResourceReadinessRowIdentity {
-        &self.readiness_identity
+    pub(crate) fn source_identity(&self) -> &RenderAssetResidencySourceIdentity {
+        &self.source_identity
+    }
+
+    pub(crate) fn readiness_identity(&self) -> Option<&ResourceReadinessRowIdentity> {
+        match &self.source_identity {
+            RenderAssetResidencySourceIdentity::CandidateReadiness(identity) => Some(identity),
+            RenderAssetResidencySourceIdentity::ActiveResident { .. } => None,
+        }
     }
 
     pub(crate) const fn demand_generation(&self) -> RenderAssetDemandGeneration {

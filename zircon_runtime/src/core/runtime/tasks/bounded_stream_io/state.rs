@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::mem;
 use std::sync::{Condvar, Mutex, MutexGuard};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use super::decoder::DecodedLine;
 use super::model::{

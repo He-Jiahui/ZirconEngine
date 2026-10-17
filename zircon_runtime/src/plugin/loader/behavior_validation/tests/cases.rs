@@ -281,3 +281,30 @@ fn command_manifest() -> &'static str {
 fn command_table() -> std::sync::Arc<NativePluginCommandTable> {
     std::sync::Arc::new(NativePluginCommandTable::from_manifest_v4(command_manifest()).unwrap())
 }
+
+#[test]
+fn nonempty_command_manifest_does_not_mask_a_missing_command_callback() {
+    let behavior = NativePluginBehavior {
+        invoke_command: None,
+        ..runtime_behavior()
+    };
+    assert!(behavior
+        .command_manifest
+        .as_deref()
+        .is_some_and(|manifest| !manifest.trim().is_empty()));
+    assert!(behavior.command_table.is_some());
+    let report = validate(behavior);
+
+    assert_eq!(report.health, NativePluginBehaviorHealth::Degraded);
+    assert_eq!(report.is_stateless, Some(false));
+    assert_eq!(report.state_schema_version, Some(3));
+    assert!(report.has_command_manifest);
+    assert!(report.has_event_manifest);
+    assert!(report.has_registration_manifest);
+    assert!(!report.has_invoke_command);
+    assert!(report.has_save_state);
+    assert!(report.has_restore_state);
+    assert!(report.has_unload);
+    assert_eq!(report.diagnostics.len(), 1);
+    assert!(report.diagnostics[0].contains("behavior callback invoke_command is missing"));
+}

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "C003",
+  "implementer": "main",
+  "at_utc": "2026-10-14T18:35:21.862808+00:00",
+  "path": "zircon_runtime_interface/src/reflect/reflected_value.rs",
+  "before_sha256": "6a60c0ad5029755a32024d1da2dc0563c594454a9ece9ef4d4eabb56be4367ca",
+  "after_sha256": "8e16e84748660b8187d9865bf07854de34a61fd86253333f35467dc0cfd362c3",
+  "reviewed_draft_main_record_sha256": "f03bee4c183a3a012ac1b3ac35da50672fb40671de93fed4386f99f8f021c104",
+  "authority": "Current user audit authorization; exact independent clean canonical source assigned to root after prior full source/draft review. No known competing writer or foreign diff. No formal Jenkins authorization/release inferred.",
+  "previous_pending_owner_wording": "Conservative metadata-only edit deferral is superseded for this clean independent path; initial17 disputed paths and foreign diffs stay paused.",
+  "source_status_before": {
+    "stdout": "",
+    "stderr": "warning: unable to access 'C:\\Users\\HeJiahui/.config/git/ignore': Permission denied\n"
+  },
+  "line_ending": "CRLF",
+  "existing_comments_preserved": true,
+  "source_copies_created": false,
+  "proof": "In-memory removal of exactly these insertions reconstructs all original source bytes and original SHA. Compiler/doc-attribute acceptance remains separate.",
+  "insertions": [
+    {
+      "draft_index": 0,
+      "anchor": "after existing enum summary at current line 7",
+      "before_byte_offset": 313,
+      "after_byte_offset": 313,
+      "bytes": 722,
+      "sha256": "11bc227c71a27e8d7b32753163c911401ac0bac81988245d85b0dbd61beb91c6",
+      "after_line": 8,
+      "line_count": 12
+    }
+  ],
+  "status": "comments-written-awaiting-post-validation",
+  "formal_acceptance": false
+}

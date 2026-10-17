@@ -1,3 +1,8 @@
+//! Runtime Interface 跨领域值类型与 helper 的契约测试。
+//!
+//! 用例构造 `crate` API 值，检查选定 helper、ABI 字段布局和 JSON/TOML 往返。
+//! 这些局部断言不调用 Runtime 导出的宿主 ABI，也不证明其他目标上的布局或端到端行为。
+
 #[path = "contracts/selector.rs"]
 mod selector;
 
@@ -118,6 +123,7 @@ use crate::{
     ZR_RUNTIME_WINDOW_THEME_DARK_V1,
 };
 
+/// 为输入 DTO 样例统一时间、序号及用户、设备、窗口、表面和指针身份。
 fn sample_ui_input_metadata() -> UiInputEventMetadata {
     let mut metadata = UiInputEventMetadata::new(
         UiInputTimestamp::from_micros(123_456),
@@ -133,6 +139,7 @@ fn sample_ui_input_metadata() -> UiInputEventMetadata {
     metadata
 }
 
+/// 使用 `serde_json` 编码再解码值，不经过 Runtime 分发或动态 ABI。
 fn ui_input_round_trip<T>(value: &T) -> T
 where
     T: serde::Serialize + serde::de::DeserializeOwned,
@@ -693,6 +700,7 @@ fn byte_slices_can_be_empty_or_static() {
 
     let bytes = ZrByteSlice::from_static(b"runtime");
     assert_eq!(bytes.len, 7);
+    // SAFETY: 视图来自静态字节，长度与预算均为 7；只读借用期间存储始终有效。
     assert_eq!(unsafe { bytes.checked_slice(7) }.unwrap(), b"runtime");
 }
 
@@ -702,6 +710,7 @@ fn byte_slices_reject_invalid_shape_and_limits_before_slice_construction() {
         data: core::ptr::null(),
         len: 1,
     };
+    // SAFETY: 已核实实现先拒绝空指针与非零长度的组合，不会构造或读取切片。
     assert_eq!(
         unsafe { null_nonempty.checked_slice(16) },
         Err(ZrByteSliceError::NullWithNonZeroLength)
@@ -712,6 +721,7 @@ fn byte_slices_reject_invalid_shape_and_limits_before_slice_construction() {
         data: &byte,
         len: (isize::MAX as usize).saturating_add(1),
     };
+    // SAFETY: 长度超过地址空间限制会在构造切片前被拒绝；不会按该长度读取局部字节。
     assert_eq!(
         unsafe { over_address_space.checked_slice(usize::MAX) },
         Err(ZrByteSliceError::LengthExceedsAddressSpace {
@@ -723,6 +733,7 @@ fn byte_slices_reject_invalid_shape_and_limits_before_slice_construction() {
         data: &byte,
         len: 2,
     };
+    // SAFETY: 两字节请求超过一字节预算，会在构造切片前返回；局部存储只需保持到调用结束。
     assert_eq!(
         unsafe { over_budget.checked_slice(1) },
         Err(ZrByteSliceError::LengthExceedsLimit { len: 2, limit: 1 })
@@ -752,6 +763,7 @@ fn status_preserves_raw_codes_and_diagnostics() {
     assert_eq!(ZrStatusCode::from_raw(8), ZrStatusCode::LimitExceeded);
 }
 
+/// 只检查空表的表头、空回调槽和部分字段偏移，不检查 Runtime 导出的已填充表。
 #[test]
 fn runtime_api_table_records_size_and_version() {
     let api = ZrRuntimeApiV8::empty();
@@ -927,6 +939,7 @@ fn plugin_event_mirror_contract_preserves_session_schema_sequence_and_payload() 
     assert_eq!(legacy.oldest_pending_age_millis, 0);
 }
 
+/// 只检查空插件表的可选回调槽和字段偏移，不调用插件入口或事件回调。
 #[test]
 fn plugin_api_table_records_optional_event_callback() {
     let api = ZrPluginApiV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
@@ -1619,6 +1632,7 @@ fn runtime_host_request_batch_serializes_cursor_requests() {
     ));
 }
 
+/// 只检查 translated DTO 构造器的字段映射，不调用移动端/浏览器回调或 Runtime session。
 #[test]
 fn runtime_abi_translated_event_helpers_cover_mobile_and_browser_host_callbacks() {
     let viewport = ZrRuntimeViewportHandle::new(2);
@@ -1663,6 +1677,7 @@ fn runtime_abi_translated_event_helpers_cover_mobile_and_browser_host_callbacks(
     );
 }
 
+/// 当前只断言请求尺寸和规范空帧；非空 RGBA 与 App 侧释放路径由 Runtime/App 测试分别覆盖。
 #[test]
 fn runtime_frame_request_and_frame_carry_size_and_owned_rgba() {
     let request = ZrRuntimeFrameRequestV1::new(
@@ -1678,6 +1693,7 @@ fn runtime_frame_request_and_frame_carry_size_and_owned_rgba() {
     assert!(frame.is_empty());
 }
 
+/// 通过读取源码文本检查模块路径约束，不观察编译器的实际模块装载。
 #[test]
 fn ui_mod_is_not_runtime_source_path_inclusion() {
     let ui_mod_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/mod.rs");
@@ -2989,4 +3005,62 @@ fn binding_missing_value_policy_round_trips_every_explicit_outcome() {
         value: UiValue::Float(f64::NAN),
     }
     .is_well_formed());
+}
+
+#[test]
+fn runtime_host_request_batch_serializes_generation_bound_rumble_v2() {
+    use std::num::NonZeroU64;
+    use crate::ZrRuntimeGamepadRumbleRequestV2;
+
+    let generation = NonZeroU64::new(u64::MAX).unwrap();
+    let batch = ZrRuntimeHostRequestBatchV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        vec![
+            ZrRuntimeHostRequestV1::gamepad_rumble_v2(
+                ZrRuntimeGamepadRumbleRequestV2::add(7, generation, 0.5, 1.0, 125),
+            ),
+            ZrRuntimeHostRequestV1::gamepad_rumble_v2(
+                ZrRuntimeGamepadRumbleRequestV2::stop(7, generation),
+            ),
+        ],
+    );
+    let decoded: ZrRuntimeHostRequestBatchV1 = ui_input_round_trip(&batch);
+    assert_eq!(decoded, batch);
+    let json = serde_json::to_value(&batch).unwrap();
+    for request in json["requests"].as_array().unwrap() {
+        assert!(request.get("GamepadRumble").is_none());
+        assert_eq!(request["GamepadRumbleV2"]["generation"].as_u64(), Some(u64::MAX));
+    }
+}
+
+#[test]
+fn runtime_gamepad_rumble_v2_rejects_missing_or_invalid_generation() {
+    use std::num::NonZeroU64;
+    use crate::ZrRuntimeGamepadRumbleRequestV2;
+
+    let valid = serde_json::to_value(ZrRuntimeGamepadRumbleRequestV2::stop(
+        7,
+        NonZeroU64::new(1).unwrap(),
+    )).unwrap();
+    let mut missing = valid.clone();
+    missing.as_object_mut().unwrap().remove("generation");
+    let mut invalid = vec![missing];
+    for generation in [
+        serde_json::Value::Null,
+        serde_json::json!(0),
+        serde_json::json!(-1),
+        serde_json::json!("1"),
+    ] {
+        let mut request = valid.clone();
+        request["generation"] = generation;
+        invalid.push(request);
+    }
+    for request in invalid {
+        assert!(serde_json::from_value::<ZrRuntimeGamepadRumbleRequestV2>(request.clone()).is_err());
+        let batch = serde_json::json!({
+            "abi_version": ZIRCON_RUNTIME_ABI_VERSION_V1,
+            "requests": [{"GamepadRumbleV2": request}],
+        });
+        assert!(serde_json::from_value::<ZrRuntimeHostRequestBatchV1>(batch).is_err());
+    }
 }

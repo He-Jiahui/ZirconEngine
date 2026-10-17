@@ -1,5 +1,5 @@
 pub(super) use super::super::{
-    build_node_and_cluster_cull_global_state, execute_virtual_geometry_node_and_cluster_cull_pass,
+    build_node_and_cluster_cull_global_state, prepare_virtual_geometry_node_and_cluster_cull,
     VirtualGeometryNodeAndClusterCullPassOutput,
 };
 pub(super) use crate::virtual_geometry::renderer::VirtualGeometryGpuResources;
@@ -31,7 +31,7 @@ pub(super) struct RenderBackend {
     _instance: wgpu::Instance,
     _adapter: wgpu::Adapter,
     pub(super) device: wgpu::Device,
-    _queue: wgpu::Queue,
+    pub(super) queue: wgpu::Queue,
 }
 
 impl RenderBackend {
@@ -58,7 +58,7 @@ impl RenderBackend {
             _instance: instance,
             _adapter: adapter,
             device,
-            _queue: queue,
+            queue,
         })
     }
 }

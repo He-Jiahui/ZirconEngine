@@ -1,7 +1,7 @@
 use std::collections::{BTreeSet, HashMap};
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::core::runtime::TaskHandle;
 

@@ -99,10 +99,7 @@ fn runtime56_recovery_batch_bulk_recorder_capacity_trim_preserves_retired_record
 #[test]
 fn runtime56_recovery_batch_bulk_recorder_capacity_trim_source_contract() {
     let source = include_str!("../recorder.rs");
-    let production = source
-        .split_once("\n#[cfg(test)]\nmod tests")
-        .expect("production module end")
-        .0;
+    let production = crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section(source);
     let trim = production
         .split_once("fn trim_records_to_capacity")
         .expect("bulk recorder trim helper")

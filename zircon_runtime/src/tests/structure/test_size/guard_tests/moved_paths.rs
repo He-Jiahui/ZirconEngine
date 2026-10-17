@@ -25,22 +25,22 @@ const MOVED_MIRROR_GUARD_PATH: &str = "priority_plan_docs/guard_tests/moved_path
 
 #[test]
 fn runtime_15_priority_plan_docs_moved_guard_paths_stay_current() {
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = runtime_index_with_output_archive_source();
-    let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_index = runtime_index_with_output_archive_source();
+    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 }
 
 #[test]
 fn runtime_15_priority_plan_docs_moved_mirror_names_full_inventory() {
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = runtime_index_with_output_archive_source();
-    let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_index = runtime_index_with_output_archive_source();
+    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     let current_owner_archive = priority_plan_doc_current_owner_archive_source();
     assert_moved_mirror_windows_name_full_inventory(

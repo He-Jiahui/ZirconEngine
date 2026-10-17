@@ -75,7 +75,8 @@ fn optimization_batch_20260829bu_editor293_text_field_variants_preserve_results(
 
 #[test]
 fn optimization_batch_20260829bu_editor293_text_field_variant_uses_one_scan() {
-    let source = include_str!("../../../../retained/contract/paint/primitives/text_field/variant.rs");
+    let source =
+        include_str!("../../../../retained/contract/paint/primitives/text_field/variant.rs");
     let production = source.split_once("#[cfg(test)]").expect("test boundary").0;
     assert!(production.contains("for part in component_variant.split"));
     assert!(production.contains("return TextFieldVariant::Filled"));

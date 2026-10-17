@@ -239,7 +239,29 @@ jobs:
 
       - name: Check Rust formatting
         shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 fmt --all -- --check
+        run: |
+          $manifest = 'Cargo.toml'
+          $metadataLines = & ./.github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 metadata --manifest-path $manifest --format-version 1 --no-deps --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $metadata = ($metadataLines -join "`n") | ConvertFrom-Json
+          $memberIds = @($metadata.workspace_members)
+          if ($memberIds.Count -eq 0) { throw "Workspace has no members: $manifest" }
+          $memberIdSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+          foreach ($memberId in $memberIds) {
+            if (-not $memberIdSet.Add([string]$memberId)) { throw "Duplicate workspace member ID: $memberId" }
+          }
+          $members = @($metadata.packages | Where-Object { $memberIdSet.Contains([string]$_.id) })
+          if ($members.Count -ne $memberIds.Count) { throw "Cargo metadata omitted workspace members: $manifest" }
+          $names = @($members | ForEach-Object { [string]$_.name })
+          $nameSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+          foreach ($name in $names) {
+            if ([string]::IsNullOrWhiteSpace($name) -or -not $nameSet.Add($name)) { throw "Missing or duplicate workspace package name: $name" }
+          }
+          $fmtArguments = @('cargo', '+1.94.1', 'fmt', '--manifest-path', $manifest)
+          foreach ($name in $names) { $fmtArguments += @('--package', $name) }
+          $fmtArguments += @('--', '--check')
+          & ./.github/scripts/invoke-cargo-msvc.ps1 @fmtArguments
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build workspace
         shell: pwsh
@@ -263,7 +285,29 @@ jobs:
 
       - name: Check plugin workspace formatting
         shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 fmt --manifest-path zircon_plugins/Cargo.toml --all -- --check
+        run: |
+          $manifest = 'zircon_plugins/Cargo.toml'
+          $metadataLines = & ./.github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 metadata --manifest-path $manifest --format-version 1 --no-deps --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $metadata = ($metadataLines -join "`n") | ConvertFrom-Json
+          $memberIds = @($metadata.workspace_members)
+          if ($memberIds.Count -eq 0) { throw "Workspace has no members: $manifest" }
+          $memberIdSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+          foreach ($memberId in $memberIds) {
+            if (-not $memberIdSet.Add([string]$memberId)) { throw "Duplicate workspace member ID: $memberId" }
+          }
+          $members = @($metadata.packages | Where-Object { $memberIdSet.Contains([string]$_.id) })
+          if ($members.Count -ne $memberIds.Count) { throw "Cargo metadata omitted workspace members: $manifest" }
+          $names = @($members | ForEach-Object { [string]$_.name })
+          $nameSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+          foreach ($name in $names) {
+            if ([string]::IsNullOrWhiteSpace($name) -or -not $nameSet.Add($name)) { throw "Missing or duplicate workspace package name: $name" }
+          }
+          $fmtArguments = @('cargo', '+1.94.1', 'fmt', '--manifest-path', $manifest)
+          foreach ($name in $names) { $fmtArguments += @('--package', $name) }
+          $fmtArguments += @('--', '--check')
+          & ./.github/scripts/invoke-cargo-msvc.ps1 @fmtArguments
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run plugin workspace Clippy with warnings denied
         shell: pwsh
@@ -290,6 +334,12 @@ jobs:
       TMP: E:\cargo-targets\zircon-local\tmp
       CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\miri-scene-ecs\target
       MIRI_SYSROOT: E:\cargo-targets\zircon-local\ci\miri-scene-ecs\sysroot
+      ZIG_LOCAL_CACHE_DIR: E:\cargo-targets\zircon-local\ci\miri-scene-ecs\zig-cache\local
+      ZIG_GLOBAL_CACHE_DIR: E:\cargo-targets\zircon-local\ci\miri-scene-ecs\zig-cache\global
+      CC_x86_64_unknown_linux_gnu: ${{ github.workspace }}\.github\scripts\zig-cc-x86_64-unknown-linux-gnu.cmd
+      CXX_x86_64_unknown_linux_gnu: ${{ github.workspace }}\.github\scripts\zig-cxx-x86_64-unknown-linux-gnu.cmd
+      AR_x86_64_unknown_linux_gnu: ${{ github.workspace }}\.github\scripts\zig-ar-x86_64-unknown-linux-gnu.cmd
+      RANLIB_x86_64_unknown_linux_gnu: ${{ github.workspace }}\.github\scripts\zig-ranlib-x86_64-unknown-linux-gnu.cmd
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
@@ -298,6 +348,9 @@ jobs:
       - name: Prepare physical output roots
         shell: pwsh
         run: ./.github/scripts/prepare-cargo-roots.ps1
+      - name: Install pinned Zig Linux C/C++ cross tools
+        shell: pwsh
+        run: ./.github/scripts/install-zig-linux-tools.ps1
       - name: Install nightly Miri
         uses: dtolnay/rust-toolchain@nightly-2026-10-10
         with:

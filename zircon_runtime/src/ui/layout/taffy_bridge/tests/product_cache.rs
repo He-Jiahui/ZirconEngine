@@ -1,3 +1,4 @@
+//! 仅检查父产品缓存的精确版本失败和拓扑向量复用，不验证完整 UI 布局或最终回退帧。
 use taffy::prelude::Style;
 use zircon_runtime_interface::ui::event_ui::UiNodeId;
 use zircon_runtime_interface::ui::layout::UiFrame;

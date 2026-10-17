@@ -22,7 +22,9 @@ impl RetainedEditorHost {
                     .enter()
                     .map_err(EditorError::from)
                     .and_then(|manager| {
-                        manager.insert_ui_asset_editor_selected_palette_item_after_selection(instance_id)
+                        manager.insert_ui_asset_editor_selected_palette_item_after_selection(
+                            instance_id,
+                        )
                     }),
             ),
             "palette.drag.drop" => UiAssetActionDispatch::handled(
@@ -30,7 +32,8 @@ impl RetainedEditorHost {
                     .enter()
                     .map_err(EditorError::from)
                     .and_then(|manager| {
-                        manager.drop_ui_asset_editor_selected_palette_item_at_drag_target(instance_id)
+                        manager
+                            .drop_ui_asset_editor_selected_palette_item_at_drag_target(instance_id)
                     }),
             ),
             "palette.drag.cancel" => UiAssetActionDispatch::handled(
@@ -46,7 +49,9 @@ impl RetainedEditorHost {
                     .enter()
                     .map_err(EditorError::from)
                     .and_then(|manager| {
-                        manager.cycle_ui_asset_editor_palette_drag_target_candidate_previous(instance_id)
+                        manager.cycle_ui_asset_editor_palette_drag_target_candidate_previous(
+                            instance_id,
+                        )
                     }),
             ),
             "palette.target.next" => UiAssetActionDispatch::handled(
@@ -54,7 +59,8 @@ impl RetainedEditorHost {
                     .enter()
                     .map_err(EditorError::from)
                     .and_then(|manager| {
-                        manager.cycle_ui_asset_editor_palette_drag_target_candidate_next(instance_id)
+                        manager
+                            .cycle_ui_asset_editor_palette_drag_target_candidate_next(instance_id)
                     }),
             ),
             "palette.target.confirm" => UiAssetActionDispatch::handled(

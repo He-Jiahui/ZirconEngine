@@ -6,7 +6,8 @@ use super::{
 };
 use crate::core::framework::render::{
     packed_sort_key_u64, PrimitiveRelevance, RenderMeshStaticState, RenderPhase,
-    RenderPhaseSortComponents, RenderViewportPickPolicy, ShaderQualityTier,
+    RenderPhaseSortComponents, RenderViewportPickPolicy, RenderVirtualGeometryExecutionIdentity,
+    ShaderQualityTier,
 };
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::resources::{MaterialDisabledPasses, PipelineKey};
@@ -25,6 +26,10 @@ pub(crate) struct MeshBatchCacheIdentity {
 #[derive(Clone)]
 pub(crate) struct MeshBatchRef {
     pub(crate) source_draw_index: usize,
+    pub(crate) virtual_geometry_execution_identity: Option<RenderVirtualGeometryExecutionIdentity>,
+    pub(crate) virtual_geometry_indexed_run: Option<
+        crate::graphics::scene::scene_renderer::mesh::mesh_draw::VirtualGeometryIndexedRunRef,
+    >,
     pub(crate) cache_identity: Option<MeshBatchCacheIdentity>,
     pub(crate) queue_profile: MeshDrawQueueProfile,
     pub(crate) casts_shadow: bool,
@@ -194,6 +199,8 @@ impl MeshBatchRef {
     ) -> Self {
         Self {
             source_draw_index: 0,
+            virtual_geometry_execution_identity: None,
+            virtual_geometry_indexed_run: None,
             cache_identity: None,
             queue_profile,
             casts_shadow: false,
@@ -218,6 +225,24 @@ impl MeshBatchRef {
             material: None,
             standard_material: None,
         }
+    }
+
+    pub(crate) fn with_virtual_geometry_indexed_run(
+        mut self,
+        run: Option<
+            crate::graphics::scene::scene_renderer::mesh::mesh_draw::VirtualGeometryIndexedRunRef,
+        >,
+    ) -> Self {
+        self.virtual_geometry_indexed_run = run;
+        self
+    }
+
+    pub(crate) fn with_virtual_geometry_execution_identity(
+        mut self,
+        identity: Option<RenderVirtualGeometryExecutionIdentity>,
+    ) -> Self {
+        self.virtual_geometry_execution_identity = identity;
+        self
     }
 
     pub(crate) fn with_source_draw_index(mut self, source_draw_index: usize) -> Self {
@@ -422,7 +447,11 @@ impl MeshBatchRef {
         if let Some(identity) = self.cache_identity {
             command = command.with_source_entity(identity.source_entity);
         }
-        command = command.with_source_draw_index(self.source_draw_index);
+        command = command
+            .with_source_draw_index(self.source_draw_index)
+            .with_virtual_geometry_indexed_run(self.virtual_geometry_indexed_run.clone());
+        command = command
+            .with_virtual_geometry_execution_identity(self.virtual_geometry_execution_identity);
         command = command.with_half_resolution_transparency(self.half_resolution_transparency);
         if let Some(material_textures) = &self.material_textures {
             command = command.with_material_textures(material_textures.clone());

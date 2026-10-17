@@ -41,6 +41,7 @@ pub(super) fn translate_pointer_moved(
     }
 }
 
+// 进入通知不发起触摸接触会话，传入位置因此不用；触摸启动依赖按钮通知。
 pub(super) fn translate_pointer_entered(
     context: &UiWindowInputContext,
     _position: PhysicalPosition<f64>,
@@ -54,6 +55,7 @@ pub(super) fn translate_pointer_entered(
     }
 }
 
+// 触摸离开生成取消；缺少离开位置时用零点编码，不读取宿主光标缓存。
 pub(super) fn translate_pointer_left(
     context: UiWindowInputContext,
     position: Option<PhysicalPosition<f64>>,
@@ -103,6 +105,7 @@ pub(super) fn translate_mouse_wheel_event(
     )
 }
 
+// 先识别触摸接触，避免降为鼠标主键；其它来源仅保留可映射的三种鼠标键。
 pub(super) fn translate_pointer_button(
     context: UiWindowInputContext,
     state: ElementState,
@@ -142,6 +145,7 @@ fn touch_button_finger_id(button: &ButtonSource) -> Option<UiPointerId> {
     }
 }
 
+// 辅助键或未知按钮无法表示为共享三键枚举，交给上层的空结果路径处理。
 fn pointer_button(button: ButtonSource) -> Option<UiPointerButton> {
     match button.mouse_button() {
         Some(MouseButton::Left) => Some(UiPointerButton::Primary),
@@ -151,10 +155,12 @@ fn pointer_button(button: ButtonSource) -> Option<UiPointerButton> {
     }
 }
 
+// 复制平台接触标识，不分配全局身份，也不维护接触与窗口之间的映射表。
 fn pointer_id(finger_id: FingerId) -> UiPointerId {
     UiPointerId::new(finger_id.into_raw() as u64)
 }
 
+// 只窄化数值表示，不按 DPI 缩放或保证有限性；命中坐标约定由宿主与消费方保持一致。
 fn point_from_physical_position<T>(position: PhysicalPosition<T>) -> UiPoint
 where
     T: Into<f64>,

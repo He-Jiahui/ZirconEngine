@@ -4,6 +4,8 @@ use crate::core::framework::render::{
     ShaderVariantMissReport,
 };
 use crate::core::TaskPool;
+#[cfg(feature = "test-support")]
+use crate::core::{framework::render::RenderFrameExtract, math::UVec2};
 #[cfg(test)]
 use crate::core::{math::UVec2, resource::ResourceId};
 
@@ -17,6 +19,7 @@ use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphLightGri
 use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
 use crate::graphics::scene::scene_renderer::sprite::PreparedSpriteQueueStats;
 #[cfg(test)]
+#[cfg(feature = "native-host")]
 use crate::graphics::shader::ShaderVariantCacheDisk;
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 use crate::graphics::visibility::HzbOcclusionCullReport;
@@ -43,6 +46,22 @@ mod tests;
 pub(in crate::graphics::scene::scene_renderer::core) use gpu_timing_status::render_gpu_timing_status;
 
 impl SceneRenderer {
+    /// Executes the supplied compiled graph directly through the renderer's real GPU path.
+    /// This compatibility seam is available only to plugin GPU regression tests.
+    #[cfg(feature = "test-support")]
+    pub fn test_support_render_compiled_virtual_geometry_frame(
+        &mut self,
+        extract: RenderFrameExtract,
+        viewport_size: UVec2,
+        pipeline: &CompiledRenderPipeline,
+    ) -> Result<(), GraphicsError> {
+        let frame = ViewportRenderFrame::from_extract(extract, viewport_size);
+        let capabilities = self.native_render_capabilities();
+        let _completed_frame =
+            self.render_frame_with_pipeline(&frame, pipeline, &capabilities, None, false)?;
+        Ok(())
+    }
+
     pub(crate) fn reflection_probe_workload_report(&self) -> RenderReflectionProbeWorkloadReport {
         self.core
             .mesh_pipelines
@@ -51,6 +70,7 @@ impl SceneRenderer {
     }
 
     #[cfg(test)]
+    #[cfg(feature = "native-host")]
     pub(crate) fn replace_shader_variant_disk_cache_for_tests(
         &mut self,
         cache: ShaderVariantCacheDisk,

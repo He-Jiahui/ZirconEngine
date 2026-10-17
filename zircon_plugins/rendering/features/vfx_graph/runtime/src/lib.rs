@@ -1,7 +1,7 @@
 //! 视效图的运行时公共契约；特性提供者将此处元数据提交到目录与图编译。
 use zircon_runtime::graphics::{
-    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutionContext,
-    RenderPassExecutorRegistration, RenderPassStage,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutorRegistration,
+    RenderPassStage,
 };
 use zircon_runtime::render_graph::{QueueLane, RenderGraphComputeWorkload};
 
@@ -12,8 +12,9 @@ mod plugin;
 
 pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};
 pub use plugin::{
-    feature_manifest, plugin_feature_registration, runtime_plugin_feature,
-    RenderingVfxGraphRuntimeFeature,
+    compile_vfx_graph_program, feature_manifest, plugin_feature_registration,
+    runtime_plugin_feature, RenderingVfxGraphRuntimeFeature, VfxCompileError, VfxCompiledGraph,
+    VfxRuntime, VfxShaderGraphResolver,
 };
 
 pub const FEATURE_ID: &str = "rendering.vfx_graph";
@@ -105,7 +106,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
         Vec::new(),
         vec![
             RenderFeaturePassDescriptor::new(
-                RenderPassStage::Transparent,
+                RenderPassStage::Transparent3d,
                 "vfx-graph-simulate",
                 QueueLane::AsyncCompute,
             )
@@ -115,14 +116,21 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 VFX_GRAPH_SIMULATION_WORKGROUP_SIZE,
                 VFX_GRAPH_SIMULATION_DISPATCH_GROUPS,
             ))
-            .write_buffer("vfx-particle-state"),
+            .read_external_buffer("vfx.gpu.particles-a")
+            .read_external_buffer("vfx.gpu.emitter-params")
+            .write_external_buffer("vfx.gpu.particles-b")
+            .write_external_buffer("vfx.gpu.counters")
+            .write_external_buffer("vfx.gpu.alive-indices")
+            .write_external_buffer("vfx.gpu.indirect-draw-args"),
             RenderFeaturePassDescriptor::new(
-                RenderPassStage::Transparent,
+                RenderPassStage::Transparent3d,
                 "vfx-graph-transparent",
                 QueueLane::Graphics,
             )
             .with_executor_id(TRANSPARENT_EXECUTOR_ID)
-            .read_buffer("vfx-particle-state")
+            .read_external_buffer("vfx.gpu.particles-b")
+            .read_external_buffer("vfx.gpu.alive-indices")
+            .read_external_buffer("vfx.gpu.indirect-draw-args")
             .read_texture("scene-depth")
             .read_texture("scene-color")
             .write_texture("scene-color"),
@@ -132,15 +140,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
 
 /// 提供与特性图匹配的执行实现；宿主负责实际 GPU 资源与这些句柄的设备生命周期。
 pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistration> {
-    vec![
-        RenderPassExecutorRegistration::new(SIMULATION_EXECUTOR_ID, noop_render_executor),
-        RenderPassExecutorRegistration::new(TRANSPARENT_EXECUTOR_ID, noop_render_executor),
-    ]
-}
-
-// TODO: [CR-PLUGIN-RENDERING-0006] 确认视效图的模拟与透明绘制是否由其它 owner 处理；两个已注册通道都绑定空 executor，且模拟工作量固定为一组；下一步核对组件提取与资产容量对应的产品行为。
-fn noop_render_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
-    Ok(())
+    VfxRuntime::default().executor_registrations()
 }
 
 // 此测试边界覆盖声明与注册约束；GPU 效果证据需由对应产品测试另行提供。

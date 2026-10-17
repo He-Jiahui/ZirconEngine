@@ -20,6 +20,9 @@ pub(crate) struct TemplatePaneNodeData {
     pub source_surface_frame:
         Option<std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>>,
     pub surface_render_command_ref: Option<UiRenderFrameCommandRef>,
+    /// Pending service delivery identity, captured by this immutable projected node.
+    /// The renderer carries primitive metadata and never calls the notification service.
+    pub toast_presentation: Option<(SharedString, u64)>,
     pub has_workbench_icon_tooltip: bool,
     pub parent_node_id: SharedString,
     pub control_id: SharedString,

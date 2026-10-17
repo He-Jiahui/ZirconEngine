@@ -6,11 +6,15 @@ import unittest
 from pathlib import Path
 
 
+# 这里只读取 Editor 源码做文本契约检查，不编译 Rust 或执行其运行时行为。
+# 以本文件的第三个父目录定位仓库，读取位置不依赖启动目录。
 ROOT = Path(__file__).resolve().parents[2]
 EDITOR = ROOT / "zircon_editor" / "src"
 
 
+# unittest 按测试方法前缀收集成员，每个方法拥有独立的读取与断言流程。
 class PluginV2PaneContractTests(unittest.TestCase):
+    # 检查描述符、注册表和通用 pane 桥接的文本接线，禁用名称检查先转小写。
     def test_extension_views_bind_their_declared_template_without_a_plugin_branch(self) -> None:
         descriptor = (EDITOR / "core" / "editor_extension" / "view_descriptor.rs").read_text(
             encoding="utf-8"
@@ -20,6 +24,7 @@ class PluginV2PaneContractTests(unittest.TestCase):
             encoding="utf-8"
         )
 
+        # 标记存在或名称缺席不等于 Rust 作用域、调用顺序与运行时行为已经验证。
         self.assertIn("with_ui_template_id", descriptor)
         self.assertIn("ui_template_id", descriptor)
         self.assertIn("bind_matching_ui_templates_to_views", registry)
@@ -27,6 +32,7 @@ class PluginV2PaneContractTests(unittest.TestCase):
         self.assertIn("PaneRouteNamespace::Template", bridge)
         self.assertNotIn("navigation", bridge.lower())
 
+    # 检查类型化数据与通用 pane 投影的源文本，所有读取完成后才开始断言。
     def test_plugin_owned_template_data_is_typed_and_projects_through_the_generic_pane(self) -> None:
         descriptor = (EDITOR / "core" / "editor_extension" / "view_descriptor.rs").read_text(
             encoding="utf-8"
@@ -38,6 +44,8 @@ class PluginV2PaneContractTests(unittest.TestCase):
             / "editor_extension"
             / "template_contributions.rs"
         ).read_text(encoding="utf-8")
+        # BUG: [CR-ZCA-R071-0001] 旧物理路径缺失；前三次读取成功后，这里先抛 FileNotFoundError。
+        # 后面的旧投影路径也缺失，但被本次读取遮蔽，下面16项断言均不会执行。
         payload = (
             EDITOR
             / "ui"
@@ -67,7 +75,10 @@ class PluginV2PaneContractTests(unittest.TestCase):
         self.assertNotIn("navigation", payload.lower())
         self.assertNotIn("navigation", projection.lower())
 
+    # 通过源码标记检查批量准备、发布及回归测试接线，不执行候选失败场景。
     def test_plugin_template_sync_prepares_all_owner_candidates_before_publishing(self) -> None:
+        # BUG: [CR-ZCA-R071-0002] 首次读取仍用已迁移的旧物理路径，这里先抛 FileNotFoundError。
+        # 后两次读取也指向旧路径；它们及下面7项断言被遮蔽，与上一方法的错误独立。
         app = (
             EDITOR / "ui" / "retained_host" / "app" / "plugin_template_documents.rs"
         ).read_text(encoding="utf-8")
@@ -97,5 +108,6 @@ class PluginV2PaneContractTests(unittest.TestCase):
         self.assertNotIn("self.plugin_template_owners.difference", app)
 
 
+# 直接执行时交给 unittest；也可由 unittest 从本测试目录发现并加载。
 if __name__ == "__main__":
     unittest.main()

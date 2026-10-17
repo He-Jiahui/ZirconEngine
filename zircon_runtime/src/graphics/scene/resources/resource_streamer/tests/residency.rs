@@ -200,8 +200,7 @@ fn production_residency_bridge_requires_authoritative_delta_inputs() {
         .expect("residency bridge must retain a test boundary");
 
     assert!(production.contains("deltas: &[RenderSceneResourceReferenceDelta]"));
-    assert!(production.contains("management: &ResourceManagementGeneration"));
-    assert!(production.contains("readiness: &ResourceReadinessGeneration"));
+    assert!(production.contains("projection: &crate::core::resource::ResourceProjectionSnapshot"));
     assert!(production.contains("device: RenderAssetDeviceEpoch"));
     assert!(production.contains("demand_generation: RenderAssetDemandGeneration"));
     assert!(production.contains(".apply_scene_reference_deltas("));
@@ -237,7 +236,7 @@ fn scene_frame_admission_bounds_supplemental_geometry_event_retention() {
         .find(".drain(MAX_GEOMETRY_REPLAY_PRIMITIVES")
         .expect("resource cursor must retain its per-frame bound");
     let prepare = production
-        .find("self.ensure_render_scene_projection_geometry(&backend.device, artifact)?")
+        .find("self.stage_projection_geometry(&backend.device, required_resources, &projection)")
         .expect("changed artifact geometry must still be prepared before projection");
     assert!(classify < drain);
     assert!(drain < prepare);
@@ -271,7 +270,7 @@ fn scene_frame_admission_retains_requests_and_cancels_unstarted_work() {
         .map(|(production, _)| production)
         .expect("residency bridge must retain a test boundary");
 
-    assert!(production.contains("project_frame_with_resource_geometry_staging"));
+    assert!(production.contains("project_frame_with_resource_geometry_retirements_staging"));
     assert!(production.contains("projection_snapshot()"));
     assert!(production.contains("render_asset_residency_work_queue.retain_mutation"));
     assert!(production.contains("has_resource_replay"));
@@ -285,11 +284,12 @@ fn scene_frame_admission_retains_requests_and_cancels_unstarted_work() {
         .find("projector.is_exact_frame_replay(frame)")
         .expect("stable multi-view replay must be identified first");
     let geometry = production
-        .find("self.ensure_render_scene_projection_geometry")
+        .find("self.ensure_cold_projection_geometry")
         .expect("changed artifacts must resolve all-LOD geometry");
-    let projection = production
+    let projection = production[geometry..]
         .find("projection_snapshot()")
-        .expect("changed artifacts must capture resource generations");
+        .map(|offset| geometry + offset)
+        .expect("changed artifacts must capture resource generations after cold loading");
     assert!(replay < geometry);
     assert!(geometry < projection);
 }

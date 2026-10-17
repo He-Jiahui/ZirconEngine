@@ -279,6 +279,7 @@ impl Serialize for RawValueMapKeyProbe {
     }
 }
 
+/// 逐块格式化并计数的载荷探针，用于确认预聚合在资源超限后停止继续格式化。
 struct ChunkedDisplayProbe<'counter> {
     emitted_chunks: &'counter Cell<usize>,
     total_chunks: usize,
@@ -304,11 +305,13 @@ impl Serialize for ChunkedDisplayProbe<'_> {
     }
 }
 
+/// 按需生成大量 map 键的载荷探针，计数用于观察预聚合是否在保留完整 map 前中止。
 struct KeyHeavyProbe<'counter> {
     generated_keys: &'counter Cell<usize>,
     total_keys: usize,
 }
 
+/// 递归数组载荷探针，用于覆盖超过规范写入器深度上限的输入。
 struct NestedArrayProbe {
     remaining: usize,
 }
@@ -835,6 +838,7 @@ fn raw_streaming_writer_rejects_output_above_its_explicit_512_mebibyte_budget() 
     ));
 }
 
+/// 限制单次写入长度并可在指定位置失败的 sink，用于覆盖短写与错误传播。
 struct ChunkedSink {
     bytes: Vec<u8>,
     chunk_size: usize,
@@ -883,6 +887,7 @@ impl Write for ChunkedSink {
 }
 
 #[derive(Default)]
+/// 记录每次 `Write::write` 请求长度的 sink，用于验证暂存缓冲区上限。
 struct RequestTrackingSink {
     largest_request: usize,
 }

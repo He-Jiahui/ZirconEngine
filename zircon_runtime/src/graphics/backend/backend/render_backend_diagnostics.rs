@@ -1,5 +1,5 @@
 use std::sync::mpsc::{self, Receiver, TryRecvError};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::graphics::types::GraphicsError;
 use crate::rhi::{DiagnosticReadbackTerminal, SubmissionPollReceipt, SubmissionTicket};

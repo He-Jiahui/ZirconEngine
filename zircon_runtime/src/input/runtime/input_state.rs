@@ -9,11 +9,13 @@
 //! # 参考
 //! 参见 [`InputState::record_gamepad_axis_transition`]、[`InputState::clear_active_input_for_focus_loss`] 与 [`InputState::append_disconnected_axis_transitions`]。
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::num::NonZeroU64;
 
+use crate::core::framework::input::QueuedGamepadRumbleRequest;
 use crate::input::{
     ButtonInputState, CursorGrabMode, CursorHostRequest, FileDragDropEvent, GamepadAxis,
     GamepadAxisState, GamepadAxisTransition, GamepadButton, GamepadButtonValueState, GamepadId,
-    GamepadRumbleRequest, ImeDeleteSurrounding, ImeHostRequest, ImePreedit, InputButton,
+    ImeDeleteSurrounding, ImeHostRequest, ImePreedit, InputButton,
     MouseScrollUnit, MouseWheelEvent, TouchPoint, WindowStatusEvent,
 };
 
@@ -47,6 +49,8 @@ pub(crate) struct InputState {
     pub(crate) mouse_motion_accumulator: [f32; 2],
     pub(crate) active_touches: BTreeMap<u64, TouchPoint>,
     pub(crate) connected_gamepads: BTreeSet<GamepadId>,
+    /// Latest authoritative incarnation and its open/closed tombstone, retained across frames.
+    pub(crate) gamepad_generations: BTreeMap<GamepadId, (NonZeroU64, bool)>,
     pub(crate) gamepad_axes: BTreeMap<(GamepadId, GamepadAxis), f32>,
     /// 当前窗口的轴变化记录；普通采样更新首次索引槽位，断连辅助可追加同身份记录。
     /// 向量保留这些槽位和追加位置，不保证全局唯一或按键排序。
@@ -55,7 +59,8 @@ pub(crate) struct InputState {
     /// 索引与向量在帧边界一起清空；新增后缀用 `or_insert` 保留旧槽位，索引不是向量唯一性的证明。
     gamepad_axis_transition_indices: HashMap<(GamepadId, GamepadAxis), usize>,
     pub(crate) gamepad_button_values: BTreeMap<(GamepadId, GamepadButton), f32>,
-    pub(crate) gamepad_rumble_requests: Vec<GamepadRumbleRequest>,
+    /// Host-delivery FIFO: generations are captured at acceptance and never rebound on drain.
+    pub(crate) gamepad_rumble_requests: Vec<QueuedGamepadRumbleRequest>,
     /// 本帧震动请求快照的后缀起点，须不超过队列长度。
     /// 帧边界设为队尾，排空整队时归零；当前失焦与断连清理均不改此队列。
     pub(crate) gamepad_rumble_requests_frame_start: usize,
@@ -99,6 +104,7 @@ impl Default for InputState {
             mouse_motion_accumulator: [0.0, 0.0],
             active_touches: BTreeMap::new(),
             connected_gamepads: BTreeSet::new(),
+            gamepad_generations: BTreeMap::new(),
             gamepad_axes: BTreeMap::new(),
             gamepad_axis_transitions: Vec::new(),
             gamepad_axis_transition_indices: HashMap::new(),
@@ -210,6 +216,12 @@ impl InputState {
             &mut self.gamepad_axis_transitions,
         );
         self.index_appended_gamepad_axis_transitions(appended_start);
+    }
+
+    pub(crate) fn forget_gamepad_axis_transition_indices(&mut self, gamepad: GamepadId) {
+        // Keep prior routing-aggregate records; a new incarnation gets a new last source item.
+        self.gamepad_axis_transition_indices
+            .retain(|(id, _), _| *id != gamepad);
     }
 
     /// 从删除前的轴缓存追加指定设备的归零变化并索引新后缀。

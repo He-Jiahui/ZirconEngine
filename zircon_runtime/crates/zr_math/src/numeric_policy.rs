@@ -17,6 +17,9 @@ pub enum NumericPolicyError {
 }
 
 /// Per-operation lower bounds. Domain-specific policy registries can provide stricter values later.
+/// 阈值依次作用于归一化长度平方、每轴缩放绝对值和仿射行列式绝对值；try_new 要求其有限且非负。
+/// 派生的 Deserialize 不经过该构造校验，因此反序列化值不保证满足相同约束。
+/// TODO: [ZCA-M001-001] 确认策略反序列化的接纳契约，并验证负缩放阈值与 ValidatedTransform::try_new 接受零缩放的组合。
 #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct NumericPolicy {
     minimum_normalized_length_squared: Real,
@@ -27,8 +30,11 @@ pub struct NumericPolicy {
 /// Named numeric thresholds used to construct a checked policy.
 #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct NumericPolicyThresholds {
+    /// 方向或旋转归一化时要求超过的范数平方下限。
     pub normalized_length_squared: Real,
+    /// 每个缩放轴要求超过的绝对值下限。
     pub scale_absolute: Real,
+    /// 仿射求逆时要求超过的行列式绝对值下限。
     pub matrix_determinant_absolute: Real,
 }
 

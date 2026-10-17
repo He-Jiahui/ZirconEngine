@@ -44,7 +44,7 @@ use zircon_runtime::core::framework::physics::{
 use zircon_runtime::core::manager::{
     animation_manager_handle, physics_manager_handle, resolve_manager_service,
 };
-use zircon_runtime::core::math::{Transform, Vec3};
+use zircon_runtime::core::math::{Real, Transform, Vec3};
 use zircon_runtime::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
@@ -246,9 +246,11 @@ fn level_tick_applies_loaded_animation_sequences_to_world_properties() {
             .expect("test sequence locator");
     let sequence_id = ResourceId::from_locator(&sequence_uri);
     let asset_manager = runtime_asset_manager(&core);
+    let sequence_asset = sequence_asset_for_entity(target_entity_name);
+    let sequence_duration = sequence_asset.duration_seconds;
     asset_manager.resource_manager().register_ready(
         ResourceRecord::new(sequence_id, ResourceKind::AnimationSequence, sequence_uri),
-        sequence_asset_for_entity(target_entity_name),
+        sequence_asset,
     );
     let level = runtime.create_default_level().unwrap();
     let cube = level.with_world_mut(|world| {
@@ -279,6 +281,38 @@ fn level_tick_applies_loaded_animation_sequences_to_world_properties() {
     });
     assert_eq!(translation, Vec3::new(2.0, 0.0, 0.0));
     assert_eq!(player_time, 0.5);
+    assert!(level.animation_requires_continuous_frame());
+
+    let set_playback = |playing, playback_speed, time_seconds, looping| {
+        level.with_world_mut(|world| {
+            let mut player = world.animation_sequence_player(cube).unwrap().clone();
+            player.playing = playing;
+            player.playback_speed = playback_speed;
+            player.time_seconds = time_seconds;
+            player.looping = looping;
+            world
+                .set_animation_sequence_player(cube, Some(player))
+                .unwrap();
+        });
+    };
+    set_playback(false, 1.0, 0.5, false);
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+    assert!(!level.animation_requires_continuous_frame());
+    set_playback(true, 1.0, 0.5, true);
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+    assert!(level.animation_requires_continuous_frame());
+    set_playback(true, 0.0, 0.5, true);
+    runtime.tick_level_seconds(&level, 0.5).unwrap();
+    assert!(!level.animation_requires_continuous_frame());
+    set_playback(true, 1.0, sequence_duration, false);
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+    assert!(!level.animation_requires_continuous_frame());
+    set_playback(true, -1.0, 0.5, false);
+    runtime.tick_level_seconds(&level, 0.1).unwrap();
+    assert!(level.animation_requires_continuous_frame());
+    set_playback(true, -1.0, 0.0, true);
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+    assert!(!level.animation_requires_continuous_frame());
 }
 
 #[test]
@@ -811,6 +845,7 @@ fn level_tick_without_animation_plugin_does_not_advance_sequence_players() {
     assert_eq!(translation, Vec3::ZERO);
     assert_eq!(player_time, 0.0);
     assert!(level.animation_pose(cube).is_none());
+    assert!(!level.animation_requires_continuous_frame());
 }
 
 fn subscribe_animation_clip_events(
@@ -1025,4 +1060,263 @@ fn level_tick_applies_additive_graph_layer_only_to_mask_targets() {
         .local_transform
         .translation
         .abs_diff_eq(Vec3::new(10.0, 0.0, 0.0), 1.0e-4));
+}
+
+#[test]
+fn ready_clip_frame_demand_tracks_real_worker_results_and_idle_boundaries() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let core = runtime.handle();
+    let assets = runtime_asset_manager(&core);
+    let skeleton_uri = AssetUri::parse("res://animation/frame-demand.skeleton.zranim").unwrap();
+    let clip_uri = AssetUri::parse("res://animation/frame-demand.clip.zranim").unwrap();
+    let skeleton_id = ResourceId::from_locator(&skeleton_uri);
+    let clip_id = ResourceId::from_locator(&clip_uri);
+    let clip = single_hand_translation_clip(&skeleton_uri, 3.0);
+    let duration = clip.duration_seconds;
+    assert!(duration.is_finite() && duration > 0.0);
+    assert!(clip.event_tracks.is_empty());
+    assets.resource_manager().register_ready(
+        ResourceRecord::new(skeleton_id, ResourceKind::AnimationSkeleton, skeleton_uri),
+        two_bone_skeleton(),
+    );
+    assets.resource_manager().register_ready(
+        ResourceRecord::new(clip_id, ResourceKind::AnimationClip, clip_uri),
+        clip,
+    );
+    let level = runtime.create_default_level().unwrap();
+    let entity = level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_skeleton(
+                entity,
+                Some(AnimationSkeletonComponent {
+                    skeleton: ResourceHandle::<AnimationSkeletonMarker>::new(skeleton_id),
+                }),
+            )
+            .unwrap();
+        world
+            .set_animation_player(
+                entity,
+                Some(AnimationPlayerComponent {
+                    clip: ResourceHandle::<AnimationClipMarker>::new(clip_id),
+                    playback_speed: 1.0,
+                    time_seconds: duration * 0.25,
+                    weight: 1.0,
+                    looping: true,
+                    playing: true,
+                }),
+            )
+            .unwrap();
+        entity
+    });
+    let set_playback = |playing, speed, time, looping, weight| {
+        level.with_world_mut(|world| {
+            let mut player = world.animation_player(entity).unwrap().clone();
+            player.playing = playing;
+            player.playback_speed = speed;
+            player.time_seconds = time;
+            player.looping = looping;
+            player.weight = weight;
+            world.set_animation_player(entity, Some(player)).unwrap();
+        });
+    };
+
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+    assert!(level.animation_pose(entity).is_some());
+    assert!(level.animation_requires_continuous_frame());
+    // An inactive producer cannot erase the first worker's true result.
+    level.with_world_mut(|world| {
+        let idle = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_skeleton(
+                idle,
+                Some(AnimationSkeletonComponent {
+                    skeleton: ResourceHandle::<AnimationSkeletonMarker>::new(skeleton_id),
+                }),
+            )
+            .unwrap();
+        world
+            .set_animation_player(
+                idle,
+                Some(AnimationPlayerComponent {
+                    clip: ResourceHandle::<AnimationClipMarker>::new(clip_id),
+                    playback_speed: 0.0,
+                    time_seconds: 0.0,
+                    weight: 1.0,
+                    looping: true,
+                    playing: true,
+                }),
+            )
+            .unwrap();
+    });
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+    assert!(level.animation_requires_continuous_frame());
+
+    for (playing, speed, time, looping, weight, expected) in [
+        (false, 1.0, duration * 0.25, true, 1.0, false),
+        (true, 0.0, duration * 0.25, true, 1.0, false),
+        (true, Real::NAN, duration * 0.25, true, 1.0, false),
+        (true, 1.0, duration, false, 1.0, false),
+        (true, 1.0, duration * 2.0, true, 1.0, true),
+        (true, -1.0, duration * 0.5, false, 1.0, true),
+        (true, -1.0, 0.0, true, 1.0, false),
+        (true, 1.0, duration * 0.25, true, 0.0, false),
+    ] {
+        set_playback(playing, speed, time, looping, weight);
+        runtime.tick_level_seconds(&level, 0.0).unwrap();
+        assert_eq!(level.animation_requires_continuous_frame(), expected);
+    }
+    level.with_world_mut(|world| {
+        let mut player = world.animation_player(entity).unwrap().clone();
+        player.clip = ResourceHandle::<AnimationClipMarker>::new(ResourceId::from_stable_label(
+            "frame-demand.unavailable-clip",
+        ));
+        player.weight = 1.0;
+        world.set_animation_player(entity, Some(player)).unwrap();
+    });
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+    assert!(!level.animation_requires_continuous_frame());
+}
+
+#[test]
+fn ready_graph_and_machine_frame_demand_uses_weighted_contributions() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let core = runtime.handle();
+    let assets = runtime_asset_manager(&core);
+    let skeleton_uri = AssetUri::parse("res://animation/demand-graph.skeleton.zranim").unwrap();
+    let once_uri = AssetUri::parse("res://animation/demand-once.clip.zranim").unwrap();
+    let loop_uri = AssetUri::parse("res://animation/demand-loop.clip.zranim").unwrap();
+    let graph_uri = AssetUri::parse("res://animation/demand.graph.zranim").unwrap();
+    let machine_uri = AssetUri::parse("res://animation/demand.machine.zranim").unwrap();
+    let skeleton_id = ResourceId::from_locator(&skeleton_uri);
+    let graph_id = ResourceId::from_locator(&graph_uri);
+    let machine_id = ResourceId::from_locator(&machine_uri);
+    let once_clip = single_hand_translation_clip(&skeleton_uri, 0.0);
+    let clip_duration = once_clip.duration_seconds;
+    assert!(clip_duration.is_finite() && clip_duration > 0.0);
+    assets.resource_manager().register_ready(
+        ResourceRecord::new(
+            skeleton_id,
+            ResourceKind::AnimationSkeleton,
+            skeleton_uri.clone(),
+        ),
+        two_bone_skeleton(),
+    );
+    assets.resource_manager().register_ready(
+        ResourceRecord::new(
+            ResourceId::from_locator(&once_uri),
+            ResourceKind::AnimationClip,
+            once_uri.clone(),
+        ),
+        once_clip,
+    );
+    assets.resource_manager().register_ready(
+        ResourceRecord::new(
+            ResourceId::from_locator(&loop_uri),
+            ResourceKind::AnimationClip,
+            loop_uri.clone(),
+        ),
+        single_hand_translation_clip(&skeleton_uri, 10.0),
+    );
+    let register_graph = |weight| {
+        let mut graph = two_clip_blend_graph(&once_uri, &loop_uri, weight);
+        for node in &mut graph.nodes {
+            if let AnimationGraphNodeAsset::Clip { clip, looping, .. } = node {
+                *looping = clip.locator == loop_uri;
+            }
+        }
+        assets.resource_manager().register_ready(
+            ResourceRecord::new(graph_id, ResourceKind::AnimationGraph, graph_uri.clone()),
+            graph,
+        );
+    };
+    register_graph(0.0);
+    let level = runtime.create_default_level().unwrap();
+    let entity = level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_skeleton(
+                entity,
+                Some(AnimationSkeletonComponent {
+                    skeleton: ResourceHandle::<AnimationSkeletonMarker>::new(skeleton_id),
+                }),
+            )
+            .unwrap();
+        world
+            .set_animation_graph_player(
+                entity,
+                Some(AnimationGraphPlayerComponent {
+                    graph: ResourceHandle::<AnimationGraphMarker>::new(graph_id),
+                    parameters: BTreeMap::new().into(),
+                    playing: true,
+                }),
+            )
+            .unwrap();
+        entity
+    });
+    runtime
+        .tick_level_seconds(&level, clip_duration * 2.0)
+        .unwrap();
+    assert!(level.animation_pose(entity).is_some());
+    assert!(!level.animation_requires_continuous_frame());
+    register_graph(1.0);
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+    assert!(level.animation_requires_continuous_frame());
+    level.with_world_mut(|world| {
+        let mut player = world.animation_graph_player(entity).unwrap().clone();
+        player.playing = false;
+        world
+            .set_animation_graph_player(entity, Some(player))
+            .unwrap();
+    });
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+    assert!(!level.animation_requires_continuous_frame());
+
+    assets.resource_manager().register_ready(
+        ResourceRecord::new(machine_id, ResourceKind::AnimationStateMachine, machine_uri),
+        single_state_machine(&graph_uri),
+    );
+    level.with_world_mut(|world| {
+        world.set_animation_graph_player(entity, None).unwrap();
+        world
+            .set_animation_state_machine_player(
+                entity,
+                Some(AnimationStateMachinePlayerComponent {
+                    state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(machine_id),
+                    parameters: BTreeMap::new().into(),
+                    active_state: Some("Idle".to_string()),
+                    playing: true,
+                }),
+            )
+            .unwrap();
+    });
+    runtime.tick_level_seconds(&level, 0.1).unwrap();
+    assert!(level.animation_requires_continuous_frame());
+    level.with_world_mut(|world| {
+        let mut player = world
+            .animation_state_machine_player(entity)
+            .unwrap()
+            .clone();
+        player.playing = false;
+        world
+            .set_animation_state_machine_player(entity, Some(player))
+            .unwrap();
+    });
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+    assert!(!level.animation_requires_continuous_frame());
+    level.with_world_mut(|world| {
+        let mut player = world
+            .animation_state_machine_player(entity)
+            .unwrap()
+            .clone();
+        player.playing = true;
+        player.state_machine = ResourceHandle::<AnimationStateMachineMarker>::new(
+            ResourceId::from_stable_label("frame-demand.unavailable-machine"),
+        );
+        world
+            .set_animation_state_machine_player(entity, Some(player))
+            .unwrap();
+    });
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+    assert!(!level.animation_requires_continuous_frame());
 }

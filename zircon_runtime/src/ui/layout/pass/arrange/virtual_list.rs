@@ -16,6 +16,14 @@ use crate::ui::layout::pass::{
 
 /// 仅在 owner 已启用固定步长虚拟化且拥有物化投影时调用，逻辑总数决定内容长度。
 /// 物理槽可为末端回填而落在可见窗口之外，仍按其逻辑索引安排并依赖裁剪隐藏。
+///
+/// # 参数与生命周期
+/// `children` 是当前物理子项，`projection` 借读其逻辑行映射；物化重绑由调用外阶段负责。
+/// `frame`、`inherited_clip` 提供内容区与祖先裁剪，索引和引擎上下文随递归传递。
+///
+/// # 返回与约束
+/// 返回物理子项的安排结果；先更新 owner 的逻辑内容范围与滚动缓存，再预检直接子项存在性。
+/// 无映射子树清空几何，有映射子项按固定行尺寸安排；错误不会撤销此前已完成的写入。
 pub(super) fn arrange_materialized_virtual_list_children(
     tree: &mut UiTree,
     node_id: UiNodeId,
@@ -72,6 +80,7 @@ pub(super) fn arrange_materialized_virtual_list_children(
     }
 
     validate_scrollable_children(tree, children)?;
+    // 已登记的回填槽位继续按逻辑坐标安排，不以当前窗口再次筛除；最终可见部分交给裁剪。
     for child_id in children.iter().copied() {
         let Some(logical_index) = projection.logical_index_for_child(child_id) else {
             hide_subtree_layout(tree, child_id, slot_index, engine_context)?;
@@ -115,6 +124,7 @@ fn size_with_axis_extent(mut size: UiSize, axis: UiAxis, extent: f32) -> UiSize 
     size
 }
 
+// 仅覆盖滚动主轴长度为非负固定行尺寸，保留已计算的坐标与交叉轴长度。
 fn frame_with_axis_extent(mut frame: UiFrame, axis: UiAxis, extent: f32) -> UiFrame {
     match axis {
         UiAxis::Horizontal => frame.width = extent.max(0.0),

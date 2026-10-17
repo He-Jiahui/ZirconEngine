@@ -27,8 +27,7 @@ fn render_device_recovery_reissues_live_resources_and_terminalizes_old_projectio
                 RenderSceneResourceReferenceDelta::acquire(texture, 1),
                 RenderSceneResourceReferenceDelta::acquire(mesh, 2),
             ],
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             failed,
             demand_generation(7),
         )
@@ -70,8 +69,7 @@ fn render_device_recovery_reissues_live_resources_and_terminalizes_old_projectio
         .recover_device_epoch(
             failed,
             replacement,
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             demand_generation(8),
         )
         .expect("device recovery should commit atomically");
@@ -119,8 +117,7 @@ fn render_device_recovery_preflight_is_atomic_and_does_not_consume_ticket_ids() 
     let admitted = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(texture, 1)],
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             failed,
             demand_generation(1),
         )
@@ -129,8 +126,7 @@ fn render_device_recovery_preflight_is_atomic_and_does_not_consume_ticket_ids() 
 
     let premature_release = residency.apply_scene_reference_deltas(
         &[RenderSceneResourceReferenceDelta::release(texture, 1)],
-        &resources.management_generation(),
-        &resources.readiness_generation(),
+        &resources.projection_snapshot(),
         replacement,
         demand_generation(2),
     );
@@ -147,8 +143,7 @@ fn render_device_recovery_preflight_is_atomic_and_does_not_consume_ticket_ids() 
     let unchanged = residency.recover_device_epoch(
         failed,
         failed,
-        &resources.management_generation(),
-        &resources.readiness_generation(),
+        &resources.projection_snapshot(),
         demand_generation(2),
     );
     assert!(matches!(
@@ -163,8 +158,7 @@ fn render_device_recovery_preflight_is_atomic_and_does_not_consume_ticket_ids() 
     let stale_replacement = residency.recover_device_epoch(
         failed,
         device_epoch(52, 8),
-        &resources.management_generation(),
-        &resources.readiness_generation(),
+        &resources.projection_snapshot(),
         demand_generation(2),
     );
     assert!(matches!(
@@ -180,8 +174,7 @@ fn render_device_recovery_preflight_is_atomic_and_does_not_consume_ticket_ids() 
     let foreign = residency.recover_device_epoch(
         wrong_failed,
         replacement,
-        &resources.management_generation(),
-        &resources.readiness_generation(),
+        &resources.projection_snapshot(),
         demand_generation(2),
     );
     assert!(matches!(
@@ -197,8 +190,7 @@ fn render_device_recovery_preflight_is_atomic_and_does_not_consume_ticket_ids() 
         .recover_device_epoch(
             failed,
             replacement,
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             demand_generation(2),
         )
         .expect("valid recovery should succeed after rejected preflights");

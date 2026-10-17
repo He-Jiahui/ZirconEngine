@@ -16,9 +16,11 @@ use super::{
 const PROJECT_SESSION_ADMISSION_RECORD_WIRE_VERSION_V2: u32 = 2;
 
 /// Maximum encoded size accepted for one persisted project-session admission record.
+/// 编码和解码共用的记录字节上限；按 UTF-8 字节计数。
 pub const MAX_PROJECT_SESSION_ADMISSION_RECORD_BYTES: usize = 1024;
 
 /// 将准入快照编码为 Editor 持久化、Hub 探测读取的共享 V2 文本记录。
+/// 返回拥有的文本，不执行文件写入；键的顺序和名称属于跨进程线格式。
 pub fn encode_project_session_admission_record(record: &ProjectSessionAdmissionRecordV1) -> String {
     format!(
         "version={PROJECT_SESSION_ADMISSION_RECORD_WIRE_VERSION_V2}\nprocess_id={}\ninstance_id={}\nprincipal={}\nbuild_set_id={}\noperation_origin_instance={}\noperation_sequence={}\noperation_nonce={}\nlifecycle={}\nchecked_epoch={}\nsession_generation={}\nheartbeat_unix_millis={}\n",
@@ -40,6 +42,9 @@ pub fn encode_project_session_admission_record(record: &ProjectSessionAdmissionR
 }
 
 /// 严格读取有界 V2 记录：拒绝重复、缺失及未知字段，并重验记录不变量。
+///
+/// `source` 是借用的 UTF-8 记录文本；成功返回拥有字段的记录值，不保留输入借用。
+/// 长度按字节计，版本、字段解析或记录不变量失败均返回统一的记录错误。
 pub fn decode_project_session_admission_record(
     source: &str,
 ) -> Result<ProjectSessionAdmissionRecordV1, ProjectSessionAdmissionRecordError> {

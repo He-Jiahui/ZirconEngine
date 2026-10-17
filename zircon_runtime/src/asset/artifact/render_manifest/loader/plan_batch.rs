@@ -1,4 +1,4 @@
-use std::time::Instant;
+use web_time::Instant;
 
 use super::super::{RenderArtifactIoPriority, RenderArtifactLoadBatch};
 use super::contract::{RenderArtifactBlockAdmissionError, RenderArtifactBlockRequest};

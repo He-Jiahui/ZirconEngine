@@ -141,13 +141,11 @@ fn package_inventory_projects_only_verified_installations_and_rejects_duplicate_
         .unwrap()
         .push(raw["package"].clone());
     assert!(project_inventory(&inventory, PackageRuntimeMode::ClientRuntime).is_err());
-    assert!(
-        project_inventory(
-            &serde_json::json!({"schemaVersion":1,"revision":"01","packages":[]}),
-            PackageRuntimeMode::ClientRuntime,
-        )
-        .is_err()
-    );
+    assert!(project_inventory(
+        &serde_json::json!({"schemaVersion":1,"revision":"01","packages":[]}),
+        PackageRuntimeMode::ClientRuntime,
+    )
+    .is_err());
 }
 
 #[test]
@@ -399,20 +397,16 @@ fn catalog_license_request_and_receipt_bind_requested_release() {
     let body: Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(body["operationId"], OP);
     assert_eq!(body["expectedPolicyRevision"], "5");
-    assert!(
-        super::super::service::project_mutation_result(
-            &payload,
-            &serde_json::json!({"packageId":PKG,"revision":"2","token":"not projected"})
-        )
-        .unwrap()
-        .get("token")
-        .is_none()
-    );
-    assert!(
-        super::super::service::project_mutation_result(
-            &payload,
-            &serde_json::json!({"packageId":PKG,"revision":"3"})
-        )
-        .is_none()
-    );
+    assert!(super::super::service::project_mutation_result(
+        &payload,
+        &serde_json::json!({"packageId":PKG,"revision":"2","token":"not projected"})
+    )
+    .unwrap()
+    .get("token")
+    .is_none());
+    assert!(super::super::service::project_mutation_result(
+        &payload,
+        &serde_json::json!({"packageId":PKG,"revision":"3"})
+    )
+    .is_none());
 }

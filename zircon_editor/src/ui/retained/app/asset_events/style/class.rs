@@ -12,14 +12,16 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "style.class.add" => self.editor_manager
+            "style.class.add" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
                     manager.add_ui_asset_editor_class_to_selection(&instance_id, class_name)
                 })
                 .map(|_| ()),
-            "style.class.remove" => self.editor_manager
+            "style.class.remove" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {

@@ -27,5 +27,7 @@ fn shutdown_flushes_pending_remote_cleanup_without_an_active_play_session() {
 
     assert_eq!(host.pending_remote_cleanup_count(), 1);
     assert!(host.shutdown().is_err());
-    assert_eq!(host.pending_remote_cleanup_count(), 0);
+    assert_eq!(host.pending_remote_cleanup_count(), 1);
+    assert!(host.shutdown().is_err());
+    assert_eq!(host.pending_remote_cleanup_count(), 1);
 }

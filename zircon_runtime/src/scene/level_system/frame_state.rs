@@ -23,6 +23,10 @@ use super::AnimationStateTransitionRuntime;
 // LevelSystem 保留的动画运行状态；World 被替换时必须与物理和脚本状态一起清空，避免旧实体姿态进入新帧。
 pub(super) struct AnimationRuntimeState {
     pub(super) animation_requires_continuous_frame: bool,
+    pub(super) evaluated_animation_requires_continuous_frame: bool,
+    pub(super) evaluated_animation_replacement_epoch: u64,
+    pub(super) animation_evaluation_frame_sequence: u64,
+    pub(super) pending_animation_evaluation_frame: Option<(u64, u64, bool)>,
     pub(super) animation_event_backlog_requires_continuous_frame: bool,
     pub(super) playback_state: Arc<AnimationPlaybackStateSnapshot>,
     clip_event_samples: VecDeque<PendingAnimationClipEventSample>,
@@ -35,6 +39,10 @@ impl Default for AnimationRuntimeState {
     fn default() -> Self {
         Self {
             animation_requires_continuous_frame: false,
+            evaluated_animation_requires_continuous_frame: false,
+            evaluated_animation_replacement_epoch: 0,
+            animation_evaluation_frame_sequence: 0,
+            pending_animation_evaluation_frame: None,
             animation_event_backlog_requires_continuous_frame: false,
             playback_state: Arc::new(AnimationPlaybackStateSnapshot::default()),
             clip_event_samples: VecDeque::new(),
@@ -48,6 +56,10 @@ impl Default for AnimationRuntimeState {
 impl AnimationRuntimeState {
     pub(super) fn reset_after_world_replacement(&mut self) {
         self.animation_requires_continuous_frame = false;
+        self.evaluated_animation_requires_continuous_frame = false;
+        self.evaluated_animation_replacement_epoch = 0;
+        self.pending_animation_evaluation_frame = None;
+        // Frame tokens survive replacement so an old producer can never be reauthorized.
         self.animation_event_backlog_requires_continuous_frame = false;
         self.playback_state = Arc::new(self.playback_state.cleared());
         self.clip_event_samples.clear();

@@ -613,3 +613,177 @@ fn gameplay_host_spawn_model_sets_bindings_and_hud_text() {
     assert_eq!(count, 1);
     assert_eq!(hud.as_deref(), Some("Lv 1\nBuff: none"));
 }
+
+#[test]
+fn gameplay_camera_follow_converts_world_look_at_through_uniform_parent() {
+    let core = CoreRuntime::new();
+    let mut world = World::empty();
+    let parent = world.spawn_node(NodeKind::Empty).unwrap();
+    let camera = world.spawn_node(NodeKind::Empty).unwrap();
+    let target = world.spawn_node(NodeKind::Empty).unwrap();
+    world
+        .update_transform(
+            parent,
+            Transform {
+                translation: Vec3::new(8.0, 2.0, -3.0),
+                rotation: Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
+                scale: Vec3::splat(2.0),
+            },
+        )
+        .unwrap();
+    world.set_parent_checked(camera, Some(parent)).unwrap();
+    world.set_parent_checked(target, Some(parent)).unwrap();
+    world
+        .update_transform(
+            target,
+            Transform::from_translation(Vec3::new(1.0, 2.0, -1.0)),
+        )
+        .unwrap();
+    let level = LevelSystem::new(
+        WorldHandle::new(47),
+        Arc::new(Mutex::new(world)),
+        LevelMetadata::default(),
+    );
+    let exports = HostExportRegistry::new(HostRegistry::default());
+    register_gameplay_host_module(&exports).unwrap();
+    let capabilities = CapabilitySet::default().with("gameplay.entity");
+    let result = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity: camera,
+            delta_seconds: 0.016,
+        },
+        || {
+            exports.call_with_capabilities(
+                GAMEPLAY_MODULE,
+                "camera_follow",
+                vec![
+                    ScriptHostValue::Int(camera as i64),
+                    ScriptHostValue::Int(target as i64),
+                    ScriptHostValue::Float(3.0),
+                    ScriptHostValue::Float(2.0),
+                    ScriptHostValue::Float(4.0),
+                ],
+                &capabilities,
+            )
+        },
+    )
+    .expect("camera follow must support rotated, uniformly scaled parents");
+    assert_eq!(result, ScriptHostValue::Bool(true));
+    let (target_world, camera_world, camera_local) = level.with_world(|world| {
+        (
+            world.world_matrix(target).unwrap(),
+            world.world_matrix(camera).unwrap(),
+            world.local_transform(camera).unwrap(),
+        )
+    });
+    // Independent coordinate expectations: the parent rotates +X onto -Z and scales by two.
+    let target_position = Vec3::new(6.0, 6.0, -5.0);
+    let eye = target_position + Vec3::new(3.0, 2.0, 4.0);
+    let direction = (target_position + Vec3::Y - eye).normalize();
+    let right = direction.cross(Vec3::Y).normalize();
+    let up = right.cross(direction);
+    assert_vec3_close(target_world.w_axis.truncate(), target_position);
+    assert_vec3_close(camera_world.w_axis.truncate(), eye);
+    assert_vec3_close(-camera_world.z_axis.truncate().normalize(), direction);
+    assert_vec3_close(camera_world.x_axis.truncate().normalize(), right);
+    assert_vec3_close(camera_world.y_axis.truncate().normalize(), up);
+    assert_vec3_close(
+        Vec3::new(
+            camera_world.x_axis.truncate().length(),
+            camera_world.y_axis.truncate().length(),
+            camera_world.z_axis.truncate().length(),
+        ),
+        Vec3::ONE,
+    );
+    assert_vec3_close(camera_local.translation, Vec3::new(-1.0, 3.0, 0.5));
+    assert_vec3_close(camera_local.scale, Vec3::splat(0.5));
+    // Inverse +90-degree parent yaw maps a world direction (x, y, z) to (-z, y, x).
+    assert_vec3_close(
+        camera_local.rotation * -Vec3::Z,
+        Vec3::new(-direction.z, direction.y, direction.x),
+    );
+}
+
+#[test]
+fn gameplay_camera_follow_rejects_local_shear_without_partial_mutation() {
+    let core = CoreRuntime::new();
+    let mut world = World::empty();
+    let parent = world.spawn_node(NodeKind::Empty).unwrap();
+    let camera = world.spawn_node(NodeKind::Empty).unwrap();
+    let target = world.spawn_node(NodeKind::Empty).unwrap();
+    world
+        .update_transform(
+            parent,
+            Transform {
+                translation: Vec3::ZERO,
+                rotation: Quat::IDENTITY,
+                scale: Vec3::new(2.0, 1.0, 4.0),
+            },
+        )
+        .unwrap();
+    let authored = Transform {
+        translation: Vec3::new(1.0, 2.0, -1.0),
+        rotation: Quat::from_rotation_y(0.2),
+        scale: Vec3::new(1.0, 2.0, 0.5),
+    };
+    world.update_transform(camera, authored).unwrap();
+    world.set_parent_checked(camera, Some(parent)).unwrap();
+    world
+        .update_transform(
+            target,
+            Transform::from_translation(Vec3::new(3.0, -1.0, -3.0)),
+        )
+        .unwrap();
+    let original_world = world.world_matrix(camera).unwrap();
+    let original_target = world.world_matrix(target).unwrap();
+    let original_parent = world.world_matrix(parent).unwrap();
+    let level = LevelSystem::new(
+        WorldHandle::new(48),
+        Arc::new(Mutex::new(world)),
+        LevelMetadata::default(),
+    );
+    let exports = HostExportRegistry::new(HostRegistry::default());
+    register_gameplay_host_module(&exports).unwrap();
+    let capabilities = CapabilitySet::default().with("gameplay.entity");
+    let result = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity: camera,
+            delta_seconds: 0.016,
+        },
+        || {
+            // eye=(0,0,0), focus=(3,0,-3): this yaw mixes unequal parent-scale axes.
+            exports.call_with_capabilities(
+                GAMEPLAY_MODULE,
+                "camera_follow",
+                vec![
+                    ScriptHostValue::Int(camera as i64),
+                    ScriptHostValue::Int(target as i64),
+                    ScriptHostValue::Float(-3.0),
+                    ScriptHostValue::Float(1.0),
+                    ScriptHostValue::Float(3.0),
+                ],
+                &capabilities,
+            )
+        },
+    );
+    let error = result.expect_err("camera follow must reject nonrepresentable local shear");
+    let crate::script::vm::VmError::Operation(message) = error else {
+        panic!("camera follow must return the registered host operation error: {error:?}");
+    };
+    assert_eq!(
+        message,
+        format!(
+            "host export call failed: {GAMEPLAY_MODULE}.camera_follow: cannot represent world transform for entity {camera} as local TRS under parent {parent}"
+        ),
+    );
+    level.with_world(|world| {
+        assert_eq!(world.local_transform(camera).unwrap(), authored);
+        assert_eq!(world.world_matrix(camera).unwrap(), original_world);
+        assert_eq!(world.world_matrix(target).unwrap(), original_target);
+        assert_eq!(world.world_matrix(parent).unwrap(), original_parent);
+    });
+}

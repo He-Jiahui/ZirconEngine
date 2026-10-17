@@ -196,6 +196,7 @@ fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
     };
 
     RuntimeDiagnosticsSnapshot {
+        identities: Default::default(),
         render: RuntimeRenderDiagnostics {
             available: true,
             stats: Some(RenderStats {

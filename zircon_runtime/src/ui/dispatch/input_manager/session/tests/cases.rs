@@ -1,3 +1,6 @@
+//! 验证保留文档的 owner 回收、源 epoch 与成功提交后的绑定/历史策略。
+//! 源码结构断言单独限制提交路径的树键复制次数；ignored 项比较旧实现与当前实现的 Release 性能。
+
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
     surface::UiEditableTextState,

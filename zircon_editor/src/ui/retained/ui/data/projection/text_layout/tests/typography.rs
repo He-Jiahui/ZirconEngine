@@ -51,7 +51,8 @@ fn field_label_width_preserves_logical_zero_and_rejects_invalid_values() {
         assert_eq!(offsets.authored_field_label_width, expected);
     }
     assert_eq!(
-        super::super::offsets::projected_layout_offsets(&BTreeMap::new()).authored_field_label_width,
+        super::super::offsets::projected_layout_offsets(&BTreeMap::new())
+            .authored_field_label_width,
         None
     );
 }

@@ -298,7 +298,18 @@ fn original_native_panic_survives_rejected_cycle_and_schedule_is_reusable() {
 
 #[test]
 fn whole_tick_pins_later_stage_callbacks_and_releases_after_success() {
+    use crate::engine_module::EngineModule;
+
     let runtime = CoreRuntime::new();
+    runtime
+        .register_module(crate::core::runtime::TasksModule.descriptor())
+        .unwrap();
+    runtime
+        .register_module(crate::core::runtime::TimeModule.descriptor())
+        .unwrap();
+    runtime
+        .register_module(crate::asset::module_descriptor())
+        .unwrap();
     runtime
         .register_module(crate::scene::module_descriptor())
         .unwrap();

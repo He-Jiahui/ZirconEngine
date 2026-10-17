@@ -1,0 +1,774 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R023",
+  "reviewer": "root",
+  "reviewed_at_utc": "2026-10-15T06:54:31.896029+00:00",
+  "status": "independently-reviewed-and-scoped-static-validated",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R023.json",
+    "sha256": "e72891fc97779408d1a32e61a5f444f69565b891f6e048a497f46409781ebe87",
+    "immutable": true
+  },
+  "files": {
+    "zircon_runtime_interface/src/serialization/text/canonical.rs": {
+      "before_sha256": "2ddb186428ccab21622df4d9269f20b9151acb39b4888fc54d3fee9b8e6c31d8",
+      "reviewed_sha256": "d7de6cb03e64ab6f95c74f3e47b75d663e6c97817c949a826696c3ef433fd068",
+      "bytes": 1673,
+      "lines": 49,
+      "full_source_review_spans": [
+        [
+          1,
+          49
+        ]
+      ],
+      "child_object_groups_reviewed": 5,
+      "child_named_objects_reviewed": 7,
+      "continuous_block_partitions": 5,
+      "insertion_blocks": 3,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 49
+    },
+    "zircon_runtime_interface/src/serialization/text/canonical_writer.rs": {
+      "before_sha256": "b512879570b2da9f67d7546ee745f3c5dc8b1de24a4384fa7fae4e5ae7e40c28",
+      "reviewed_sha256": "e2268a1b4fd3a9961922a63e87eabe38fbc1ed9e8ef9ff84b5806b4a3eeb6e77",
+      "bytes": 33910,
+      "lines": 890,
+      "full_source_review_spans": [
+        [
+          1,
+          890
+        ]
+      ],
+      "child_object_groups_reviewed": 113,
+      "child_named_objects_reviewed": 157,
+      "continuous_block_partitions": 65,
+      "insertion_blocks": 52,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 890,
+      "lone_lf_count": 0
+    },
+    "zircon_runtime_interface/src/serialization/text/canonical_writer/output.rs": {
+      "before_sha256": "f522c9ac94bd76cf7d19b3bd5a8909ec6c67d9243024f554d74bab7a9ca44c81",
+      "reviewed_sha256": "dc6d1f542debe745e81963f98ac11e9b44449f9151e463b7a26399d7daf91e63",
+      "bytes": 9181,
+      "lines": 222,
+      "full_source_review_spans": [
+        [
+          1,
+          222
+        ]
+      ],
+      "child_object_groups_reviewed": 30,
+      "child_named_objects_reviewed": 36,
+      "continuous_block_partitions": 18,
+      "insertion_blocks": 28,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 222
+    },
+    "zircon_runtime_interface/src/serialization/text/tests/canonical_perf.rs": {
+      "before_sha256": "8368b0cb08585794df00e48f87fd278912d8d40b699409bcbec5fb62aaa12813",
+      "reviewed_sha256": "8368b0cb08585794df00e48f87fd278912d8d40b699409bcbec5fb62aaa12813",
+      "bytes": 3636,
+      "lines": 99,
+      "full_source_review_spans": [
+        [
+          1,
+          99
+        ]
+      ],
+      "child_object_groups_reviewed": 9,
+      "child_named_objects_reviewed": 15,
+      "continuous_block_partitions": 9,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 99
+    }
+  },
+  "all_objects_and_blocks_reviewed": true,
+  "object_groups_reviewed": 157,
+  "named_objects_reviewed": 215,
+  "continuous_block_partitions_reviewed": 97,
+  "branch_groups_reviewed": 49,
+  "changed_source_count": 3,
+  "unchanged_source_count": 1,
+  "insertion_blocks": 83,
+  "added_source_lines": 146,
+  "comment_lines_added": 144,
+  "blank_separator_lines_added": 2,
+  "root_actual_read_receipts": [
+    {
+      "chunk_id": "e42d6c",
+      "exit_code": 0,
+      "scope": "Complete canonical49 and writer161-530; initial perf location absent, correct explicit cfg path read later."
+    },
+    {
+      "chunk_id": "5787af",
+      "exit_code": 0,
+      "scope": "Complete writer531-890 and explicitly mounted text/tests/canonical_perf.rs99."
+    },
+    {
+      "chunk_id": "45b7ad",
+      "exit_code": 0,
+      "scope": "Complete writer1-160/output222; full source text precedes the later metadata display truncation."
+    },
+    {
+      "chunk_id": "fa6ed5",
+      "exit_code": 0,
+      "scope": "Current include_str selector/assertions, all17 current context bindings and actual16 boundary needles."
+    },
+    {
+      "chunk_id": "c46044",
+      "exit_code": 0,
+      "scope": "All exact83 raw reversals,215 object spans,97 continuous partitions,535 evidence ranges,17 current context pins,5 source predicates,48 local contributions and actual scoped checks."
+    }
+  ],
+  "source_review_complete_spans": {
+    "canonical.rs": [
+      [
+        1,
+        49
+      ]
+    ],
+    "canonical_writer.rs": [
+      [
+        1,
+        160
+      ],
+      [
+        161,
+        530
+      ],
+      [
+        531,
+        890
+      ]
+    ],
+    "canonical_writer/output.rs": [
+      [
+        1,
+        222
+      ]
+    ],
+    "text/tests/canonical_perf.rs": [
+      [
+        1,
+        99
+      ]
+    ]
+  },
+  "context_history": {
+    "initial_context_pins_receipt": "0e0801 exit0",
+    "final_probe_receipt": "ceb87d exit0",
+    "current_changed_span_read_receipts": [
+      "890aaa exit0",
+      "9e43fa exit0",
+      "ceb87d exit0"
+    ],
+    "historical_records": [
+      {
+        "path": "zircon_runtime_interface/src/serialization/text/canonical_spool.rs",
+        "sha256": "4084b62706b687499f618899fc40fc5e86b0f98efaa33d9b420bdbb2a80b023e",
+        "line_count": 332,
+        "read_spans": [
+          [
+            1,
+            332
+          ]
+        ],
+        "id": "R023-E02",
+        "read_receipts": [
+          "769468"
+        ],
+        "formal_coverage": false,
+        "current_recheck_ref": "R023-E24",
+        "historical_read_only_pin": true,
+        "historical": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/text/canonical_map_key.rs",
+        "sha256": "18767204804d8fcb8fcfba443fd94f1ef170b36c711496d401a6029480fea89c",
+        "line_count": 366,
+        "read_spans": [
+          [
+            1,
+            366
+          ]
+        ],
+        "id": "R023-E03",
+        "read_receipts": [
+          "769468",
+          "109b30"
+        ],
+        "formal_coverage": false,
+        "current_recheck_ref": "R023-E19",
+        "historical_read_only_pin": true,
+        "historical": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/text/canonical_writer/json_string.rs",
+        "sha256": "007923a75f09e22aaeb5b153ed22e26ac6279667bb1691a937edf40cc6609008",
+        "line_count": 125,
+        "read_spans": [
+          [
+            1,
+            125
+          ]
+        ],
+        "id": "R023-E04",
+        "read_receipts": [
+          "769468"
+        ],
+        "formal_coverage": false,
+        "current_recheck_ref": "R023-E20",
+        "historical_read_only_pin": true,
+        "historical": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/write.rs",
+        "sha256": "82e8c35a6bc599ac23b8efaae33898a2507721c08fd84482b3ed445a0cb138cb",
+        "line_count": 466,
+        "read_spans": [
+          [
+            1,
+            165
+          ],
+          [
+            255,
+            352
+          ]
+        ],
+        "id": "R023-E05",
+        "read_receipts": [
+          "769468",
+          "aad5c1"
+        ],
+        "formal_coverage": false,
+        "historical": true,
+        "current_recheck_ref": "R023-E26"
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/write_error.rs",
+        "sha256": "5e556bcedf84b12fbcdcaa216136238881afb0f402823ff9520c47b01d675797",
+        "line_count": 118,
+        "read_spans": [
+          [
+            1,
+            118
+          ]
+        ],
+        "id": "R023-E06",
+        "read_receipts": [
+          "769468"
+        ],
+        "formal_coverage": false,
+        "historical": true,
+        "current_recheck_ref": "R023-E27"
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/text/wire.rs",
+        "sha256": "216534ee17a313a768ca18def0ba5f54589f7186d67e5d501f3704f9b33c3b6d",
+        "line_count": 4,
+        "read_spans": [
+          [
+            1,
+            4
+          ]
+        ],
+        "id": "R023-E08",
+        "read_receipts": [
+          "769468"
+        ],
+        "formal_coverage": false,
+        "historical": true,
+        "current_recheck_ref": "R023-E23"
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+        "sha256": "f1d4bccd23a391a602db885c708ea4a9d9ca0e4b4a94e5fddbf622487101db64",
+        "line_count": 899,
+        "read_spans": [
+          [
+            1,
+            899
+          ]
+        ],
+        "id": "R023-E10",
+        "read_receipts": [
+          "109b30",
+          "a79907",
+          "aad5c1"
+        ],
+        "formal_coverage": false,
+        "historical": true,
+        "current_recheck_ref": "R023-E28"
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/text/canonical_spool.rs",
+        "sha256": "a613fa87f36ea80615f15de27e0365046f79b493bc861e6026fbb51af9a55150",
+        "line_count": 347,
+        "read_spans": [
+          [
+            1,
+            347
+          ]
+        ],
+        "id": "R023-E18",
+        "read_receipts": [
+          "761647"
+        ],
+        "formal_coverage": false,
+        "rechecks_historical_ref": "R023-E02",
+        "historical": true,
+        "current_recheck_ref": "R023-E24"
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/write.rs",
+        "sha256": "cc32b34523d86d7732ac6b03476ce9eda488836eddf8f6bc19330ef356261211",
+        "line_count": 500,
+        "read_spans": [
+          [
+            1,
+            230
+          ],
+          [
+            280,
+            410
+          ]
+        ],
+        "id": "R023-E21",
+        "read_receipts": [
+          "890aaa"
+        ],
+        "formal_coverage": false,
+        "rechecks_historical_refs": [
+          "R023-E05"
+        ],
+        "recheck_scope": "only listed current spans; earlier broader reads remain historical evidence",
+        "historical": true,
+        "current_recheck_ref": "R023-E26"
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/write_error.rs",
+        "sha256": "f0cbb2acc191b5594206d3880e08dc9a2ecb6b98b5f50e5ed0b27b18b7e71f39",
+        "line_count": 136,
+        "read_spans": [
+          [
+            1,
+            136
+          ]
+        ],
+        "id": "R023-E22",
+        "read_receipts": [
+          "890aaa"
+        ],
+        "formal_coverage": false,
+        "rechecks_historical_refs": [
+          "R023-E06"
+        ],
+        "recheck_scope": "only listed current spans; earlier broader reads remain historical evidence",
+        "historical": true,
+        "current_recheck_ref": "R023-E27"
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+        "sha256": "fe5902977c9ab83f40b8f9429724c3f4d2a0ce5329b987c93c496c9f3e998c2b",
+        "line_count": 904,
+        "read_spans": [
+          [
+            590,
+            625
+          ]
+        ],
+        "id": "R023-E25",
+        "read_receipts": [
+          "890aaa"
+        ],
+        "formal_coverage": false,
+        "rechecks_historical_refs": [
+          "R023-E10"
+        ],
+        "recheck_scope": "only listed current spans; earlier broader reads remain historical evidence",
+        "historical": true,
+        "current_recheck_ref": "R023-E28"
+      }
+    ],
+    "current_latest_observed": [
+      {
+        "path": "zircon_runtime_interface/src/serialization/text/mod.rs",
+        "sha256": "2d5e7a01ee621f86ca6b372d11e96f43b7275dd68bfbc41baa620975572320bc",
+        "line_count": 19,
+        "read_spans": [
+          [
+            1,
+            19
+          ]
+        ],
+        "id": "R023-E01",
+        "read_receipts": [
+          "769468"
+        ],
+        "formal_coverage": false,
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/budget.rs",
+        "sha256": "1213d94d395c713d859239b106027a510b1cd7ab6e7e1acefa2f6477e4d3a843",
+        "line_count": 29,
+        "read_spans": [
+          [
+            1,
+            29
+          ]
+        ],
+        "id": "R023-E07",
+        "read_receipts": [
+          "769468"
+        ],
+        "formal_coverage": false,
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/binary/encode.rs",
+        "sha256": "0662f3f4ed25d9685812b08aa780fd74ce23ae7a2ef6ec899e0d7fce7dcf5f14",
+        "line_count": 70,
+        "read_spans": [
+          [
+            1,
+            70
+          ]
+        ],
+        "id": "R023-E09",
+        "read_receipts": [
+          "769468"
+        ],
+        "formal_coverage": false,
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/mod.rs",
+        "sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+        "line_count": 53,
+        "read_spans": [
+          [
+            1,
+            53
+          ]
+        ],
+        "id": "R023-E11",
+        "read_receipts": [
+          "109b30"
+        ],
+        "formal_coverage": false,
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/text/document.rs",
+        "sha256": "bf75dade35a3a83aeeb19b78dd2d73b9ff64a245dbf858d5965c76e61065c4e7",
+        "line_count": 13,
+        "read_spans": [
+          [
+            1,
+            13
+          ]
+        ],
+        "id": "R023-E12",
+        "read_receipts": [
+          "109b30"
+        ],
+        "formal_coverage": false,
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime/src/scene/dynamic/session/artifact.rs",
+        "sha256": "f56683b937ab484b2640cc16b81ee726adf8f05ad5e47d1a879076f016203e6b",
+        "line_count": 533,
+        "read_spans": [
+          [
+            1,
+            35
+          ],
+          [
+            145,
+            235
+          ]
+        ],
+        "id": "R023-E13",
+        "read_receipts": [
+          "109b30"
+        ],
+        "formal_coverage": false,
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime_interface/Cargo.toml",
+        "sha256": "8a61722b1b2eb8e37ce0ad8decbc67445bd15c9b1b550f2c4cc56b59932a5de7",
+        "line_count": 26,
+        "read_spans": [
+          [
+            1,
+            26
+          ]
+        ],
+        "id": "R023-E14",
+        "read_receipts": [
+          "a79907"
+        ],
+        "formal_coverage": false,
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/tests/mod.rs",
+        "sha256": "55ae7bab29bd22dc3c0e7f0422a3d1d7aca12445131fb0401cccf76a09f50ed9",
+        "line_count": 79,
+        "read_spans": [
+          [
+            1,
+            79
+          ]
+        ],
+        "id": "R023-E15",
+        "read_receipts": [
+          "a79907"
+        ],
+        "formal_coverage": false,
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/text/tests/canonical_spool.rs",
+        "sha256": "d2b0e0b77dffa21ec569dcbbd67dc02d86114c8906078127bb6df65c5556e4e5",
+        "line_count": 112,
+        "read_spans": [
+          [
+            1,
+            112
+          ]
+        ],
+        "id": "R023-E16",
+        "read_receipts": [
+          "aad5c1"
+        ],
+        "formal_coverage": false,
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/boundary.rs",
+        "sha256": "7acb8b1622c66bc34670a217c350485f10c17bdab04a2423edcb82bc9b6f06b2",
+        "line_count": 1107,
+        "read_spans": [
+          [
+            1,
+            215
+          ],
+          [
+            280,
+            430
+          ],
+          [
+            650,
+            725
+          ],
+          [
+            760,
+            945
+          ],
+          [
+            980,
+            1107
+          ]
+        ],
+        "id": "R023-E17",
+        "read_receipts": [
+          "9a874e",
+          "a08f29",
+          "614484",
+          "9e43fa"
+        ],
+        "formal_coverage": false,
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/text/canonical_map_key.rs",
+        "sha256": "e9931fcd768ac1249f299fba617b5e5bf439483731f6b274d50ab7df164bcf5c",
+        "line_count": 381,
+        "read_spans": [
+          [
+            1,
+            381
+          ]
+        ],
+        "id": "R023-E19",
+        "read_receipts": [
+          "761647"
+        ],
+        "formal_coverage": false,
+        "rechecks_historical_ref": "R023-E03",
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/text/canonical_writer/json_string.rs",
+        "sha256": "9ae6f5483504a4910412d11e97a8c4c57e8ddaa995ed1c7dc041184ff748bb93",
+        "line_count": 132,
+        "read_spans": [
+          [
+            1,
+            132
+          ]
+        ],
+        "id": "R023-E20",
+        "read_receipts": [
+          "761647"
+        ],
+        "formal_coverage": false,
+        "rechecks_historical_ref": "R023-E04",
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/text/wire.rs",
+        "sha256": "5a65e27c8304ad1b6a59ee8879aefef9d2353337583b7e8f70e666295e7bae0e",
+        "line_count": 5,
+        "read_spans": [
+          [
+            1,
+            5
+          ]
+        ],
+        "id": "R023-E23",
+        "read_receipts": [
+          "890aaa"
+        ],
+        "formal_coverage": false,
+        "rechecks_historical_refs": [
+          "R023-E08"
+        ],
+        "recheck_scope": "only listed current spans; earlier broader reads remain historical evidence",
+        "historical": false
+      },
+      {
+        "path": "zircon_runtime_interface/src/serialization/text/canonical_spool.rs",
+        "sha256": "42b4b6566cdf5cb0dbc25dc6bb1d98bd21b816467ea964b4d6975b4f154ab84b",
+        "line_count": 348,
+        "read_spans": [
+          [
+            185,
+            345
+          ]
+        ],
+        "id": "R023-E24",
+        "read_receipts": [
+          "890aaa",
+          "9e43fa"
+        ],
+        "formal_coverage": false,
+        "rechecks_historical_refs": [
+          "R023-E02",
+          "R023-E18"
+        ],
+        "recheck_scope": "only listed current spans; earlier broader reads remain historical evidence",
+        "historical": false
+      },
+      {
+        "id": "R023-E26",
+        "path": "zircon_runtime_interface/src/serialization/write.rs",
+        "sha256": "68200fe0be1a26245e08914bc59b8bdc869ba1222cd6054364c58bebd28cf280",
+        "line_count": 500,
+        "read_spans": [
+          [
+            1,
+            230
+          ],
+          [
+            280,
+            410
+          ]
+        ],
+        "read_receipts": [
+          "ceb87d"
+        ],
+        "formal_coverage": false,
+        "rechecks_historical_refs": [
+          "R023-E05",
+          "R023-E21"
+        ],
+        "recheck_scope": "same listed current spans actually reread from amended physical file; unlisted areas not newly covered",
+        "historical": false
+      },
+      {
+        "id": "R023-E27",
+        "path": "zircon_runtime_interface/src/serialization/write_error.rs",
+        "sha256": "6ac4eab74fe83daa6e11b64aec5bc3da47bfd7607b5fafa54fb98fd7c4c5d9df",
+        "line_count": 136,
+        "read_spans": [
+          [
+            1,
+            136
+          ]
+        ],
+        "read_receipts": [
+          "ceb87d"
+        ],
+        "formal_coverage": false,
+        "rechecks_historical_refs": [
+          "R023-E06",
+          "R023-E22"
+        ],
+        "recheck_scope": "same listed current spans actually reread from amended physical file; unlisted areas not newly covered",
+        "historical": false
+      },
+      {
+        "id": "R023-E28",
+        "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+        "sha256": "26d13a647247416bdd2d9f183b22eddde3605dce70f5eccfad6acb76847b2e57",
+        "line_count": 904,
+        "read_spans": [
+          [
+            590,
+            625
+          ]
+        ],
+        "read_receipts": [
+          "ceb87d"
+        ],
+        "formal_coverage": false,
+        "rechecks_historical_refs": [
+          "R023-E10",
+          "R023-E25"
+        ],
+        "recheck_scope": "same listed current spans actually reread from amended physical file; unlisted areas not newly covered",
+        "historical": false
+      }
+    ],
+    "claim": "Each latest observed exact pin is rechecked at metadata finalization. Earlier historical=true entries preserve read-time snapshots; current files are only reviewed at the listed spans. No context file formally covered or edited.",
+    "current_unique_path_count": 17
+  },
+  "context_files_formal_coverage": false,
+  "review_conclusions": [
+    "The root text traversal owns one OutputBudget and one shared attempt. Arrays stream their elements; objects own sorted key/value spools and alternate pending map keys with values. Each serde compound trait delegates to the corresponding inherent state and consumes it on end.",
+    "Object duplicates replace the previous value. Key bytes remain reserved once; only the prior value's accounted output bytes are refunded before the replacement serialization, without restoring the old entry on failure.",
+    "Text entry points keep fixed versioned output ceilings separate from an explicit archive ceiling. The byte count includes the final newline; borrowed sinks are flushed on success without a durability, atomic-publication or rollback promise.",
+    "Output reservations occur before sink I/O; spool-work reservations are independent and cumulative. Copying preaccounted values or keys does not charge final output again, and copying into another spool still adds work bytes.",
+    "Root depth starts at zero and each actual child container/value path checks the intended inclusive depth. Object admission counts distinct retained keys; ignored length hints do not become an allocation/admission guarantee.",
+    "Integer ranges, finite floats, byte-array output, Option/unit values, externally tagged enum wrappers, RawValue rejection and Display error propagation retain their existing Serde paths and ownership boundaries.",
+    "The separate owned-Value canonicalizer recursively sorts object keys for binary encoding, preserves array order and does not validate schema or budgets. The ignored99-line performance fixture compares old/new parsed Value normalization with cloning outside timing and result drop inside timing; its fixed log claims are not measured allocation evidence.",
+    "Current source-string contracts bind the exact selected write entry section and raw writer file, including original CRLF. All five original predicates and48 local forbidden-needle contributions were evaluated before/current; these are static checks, not executed Rust or whole-crate boundary tests."
+  ],
+  "issues": [],
+  "new_issue_markers": 0,
+  "all_original_bytes_and_comments_preserved": true,
+  "builds_or_Rust_tests_executed": false,
+  "metadata_wording_limits": [
+    "An initial root schema read assumed files was a mapping; R023 correctly uses a list.7d120f stopped before any source read/write or validation. Corrected schema and complete source reads followed.",
+    "525 file evidence references plus10 context-finding references were range-checked independently; named objects and object groups are separate counts.",
+    "Historical context entries remain immutable and distinct from17 current path pins, including R021 root amendments and R022 late precision changes.",
+    "No managed format, six Git/three native/index lifecycle release, formal Jenkins acceptance or commit is inferred."
+  ],
+  "validation_record": {
+    "path": "docs/plans/source-comments/reviews/R023-post-validation.json",
+    "sha256": "ffb5a3af6575626f428931ea238e3ba20691355c478f9ce1e7893a241964dc82"
+  },
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

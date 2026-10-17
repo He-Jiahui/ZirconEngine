@@ -1,3 +1,6 @@
+//! 将启动实例、非零序号与 nonce 组合为跨请求传递的项目激活操作身份。
+//! 进程级调用方复用本模块的生成器；序号耗尽时分配返回 `None`。
+
 #[path = "generator.rs"]
 mod generator;
 #[path = "operation_id.rs"]

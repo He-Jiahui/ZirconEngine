@@ -1,16 +1,13 @@
 use crate::core::resource::{ResourceData, ResourceHandle, ResourceMarker};
 use crate::core::CoreError;
 
-use super::super::super::errors::asset_error_message;
 use super::super::ProjectAssetManager;
+use crate::asset::runtime::asset_error_message;
 use crate::asset::AssetId;
 
 impl ProjectAssetManager {
     /// 供 load_* 入口取得当前资产值的独立副本；需要精确修订版身份时应取 snapshot。
-    pub(in crate::asset::pipeline::manager::project_asset_manager::loading) fn load_typed<
-        TMarker,
-        TAsset,
-    >(
+    pub(super) fn load_typed<TMarker, TAsset>(
         &self,
         id: AssetId,
         handle: ResourceHandle<TMarker>,

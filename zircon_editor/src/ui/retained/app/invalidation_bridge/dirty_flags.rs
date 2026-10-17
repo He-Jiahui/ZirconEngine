@@ -1,5 +1,5 @@
-use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use crate::ui::retained_host::app::{HostInvalidationMask, RetainedEditorHost};
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use crate::ui::retained_host::ui_perf::{
     current_ui_perf_scenario, record_current_ui_perf_counter, UiPerfCounter, UiPerfScenario,
 };
@@ -51,7 +51,11 @@ impl RetainedEditorHost {
         mask: HostInvalidationMask,
     ) {
         capture_trace::record("shell_content_invalidation", || {
-            format!("mask={} scope={scope:?} cursor={:?}", mask.summary(), self.ui.get_host_presentation_generation().cursor())
+            format!(
+                "mask={} scope={scope:?} cursor={:?}",
+                mask.summary(),
+                self.ui.get_host_presentation_generation().cursor()
+            )
         });
         self.capture_pending_ui_perf_scenario();
         record_ui_dirty_mask(mask);
@@ -78,7 +82,12 @@ impl RetainedEditorHost {
         mask: HostInvalidationMask,
     ) {
         capture_trace::record("host_invalidation", || {
-            format!("mask={} view_scoped={} cursor={:?}", mask.summary(), view.is_some(), self.ui.get_host_presentation_generation().cursor())
+            format!(
+                "mask={} view_scoped={} cursor={:?}",
+                mask.summary(),
+                view.is_some(),
+                self.ui.get_host_presentation_generation().cursor()
+            )
         });
         self.capture_pending_ui_perf_scenario();
         record_ui_dirty_mask(mask);

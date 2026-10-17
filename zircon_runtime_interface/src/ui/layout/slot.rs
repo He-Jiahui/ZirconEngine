@@ -160,6 +160,7 @@ impl UiCanvasSlotPlacement {
 }
 
 /// Parent-owned cell placement for GridBox children.
+/// 仅保存行列起点与跨度；with_span 将跨度下限归一为 1，本类型不校验起点与跨度之和。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiGridSlotPlacement {
     #[serde(default)]

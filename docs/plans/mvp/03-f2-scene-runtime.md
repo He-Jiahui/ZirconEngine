@@ -32,6 +32,10 @@ last_refined: 2026-07-24
 
 **Architecture:** 以 product template 为唯一 F2 fixture，复用现有 `foundation_render` 的真实 WGPU capture 和诊断断言，删除测试 helper 与产品模板之间的场景分裂。Runtime session 负责加载和渲染，App runtime entry 只负责正常产品循环。
 
+F2 产品证明由参数显式选择：Runtime 使用 `--project <path> --runtime-product-proof f2-lit-mesh`；`Stage-MvpProducts.ps1` 使用 `-RuntimeProductProof f2-lit-mesh`，同时指定 `-ProjectRoot` 或 `-CreateProject`。staging 会把参数传给每次 Runtime 产品运行；`-NoLaunch` 不能产生该证明。Minimal/Headless profile 会在加载 Runtime DLL 前拒绝 F2 请求。
+
+普通项目保留实际成功帧、backend/device 和设备 limits 诊断，不因缺少 mesh、方向光或选定模型/材质而自动进入固定 F2 场景断言。截图、帧限、项目路径和 input probe 都不隐含 F2；input probe 仍独立执行。显式 F2 保留本节全部资源、pass/draw/light、零 fallback/error 和输入阈值，成功诊断必须包含实际产品输出的 `proof_policy=f2-lit-mesh`。staging 与 `Invoke-MvpAcceptance.ps1 -RequireProductEvidence` 均拒绝缺失或错误的 policy；旧产品和旧日志须重新构建/运行，不得补写字段作为验收证据。原生产品验收仍按下列开放门槛执行。
+
 **Tech Stack:** SceneAsset TOML、AssetRef、WGPU frame capture、RuntimeDynamicSession、Winit input events、PNG evidence。
 
 ---

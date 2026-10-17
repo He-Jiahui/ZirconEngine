@@ -244,6 +244,12 @@ pub(crate) fn parse_field_attributes(attributes: &[Attribute]) -> syn::Result<Fi
 /// 将一个嵌套键应用到字段配置；本函数只更新单键状态，组合约束交由解析完成后的校验处理。
 ///
 /// 容器中的 `field(...)` 与实体字段自身的 `zr_reflect(...)` 共用此解析器，因此两种字段声明接受相同键集。
+///
+/// # 参数
+/// `parsed` 是本组字段属性共享的配置累积器；`meta` 是当前待处理的嵌套键和值。
+///
+/// # 返回值
+/// 已知键解析并写入配置后返回 `Ok(())`；未知键或键值格式错误返回 `syn::Error`。
 fn parse_field_meta(
     parsed: &mut FieldAttributes,
     meta: syn::meta::ParseNestedMeta<'_>,
@@ -277,6 +283,15 @@ fn parse_field_meta(
 }
 
 /// 检查字段键之间的互斥关系，并要求稳定身份键非空且无首尾空白。
+///
+/// # 使用时机与生命周期
+/// 容器虚拟字段或实体字段的嵌套属性解析完成后调用；只借用本次展开的配置并返回诊断。
+///
+/// # 参数
+/// `parsed` 是已合并的单个字段配置；本检查不会修改其中的选项。
+///
+/// # 返回值
+/// 身份键有效且只读字段未声明写访问器时返回 `Ok(())`；读写冲突或身份键为空、带首尾空白时返回 `syn::Error`。
 fn validate_field_attributes(parsed: &FieldAttributes) -> syn::Result<()> {
     if parsed.readonly && parsed.write.is_some() {
         return Err(syn::Error::new(
@@ -298,22 +313,29 @@ fn validate_field_attributes(parsed: &FieldAttributes) -> syn::Result<()> {
 }
 
 /// 读取字符串型嵌套属性并返回其解码后的 Rust 字符串值。
+///
 fn parse_string(meta: syn::meta::ParseNestedMeta<'_>) -> syn::Result<String> {
     Ok(meta.value()?.parse::<LitStr>()?.value())
 }
 
 /// 读取布尔型嵌套属性；调用者负责将返回值放入对应的可选配置项。
+///
 fn parse_bool(meta: syn::meta::ParseNestedMeta<'_>) -> syn::Result<bool> {
     Ok(meta.value()?.parse::<LitBool>()?.value())
 }
 
 /// 将字符串字面量解析为 Rust 路径，供生成的自定义访问分支引用。
+///
+/// # 返回值
+/// 返回语法有效的 `syn::Path`；路径文本格式错误返回 `syn::Error`。这里只解析路径语法，名称解析和回调签名由生成后的 Rust 代码编译检查。
 fn parse_path(meta: syn::meta::ParseNestedMeta<'_>) -> syn::Result<Path> {
     let value = meta.value()?.parse::<LitStr>()?;
     value.parse()
 }
 
 /// 将策略字符串限定到五个受支持的序列化变体。
+///
+/// `meta` 是类型级 `serialization` 键及其字符串值。接受 `none`、`value`、`json`、`resource_handle` 和 `entity_reference`，返回对应的 `SerializationKind`；其他值返回 `syn::Error`。
 fn parse_serialization(meta: syn::meta::ParseNestedMeta<'_>) -> syn::Result<SerializationKind> {
     let value = parse_string(meta)?;
     match value.as_str() {

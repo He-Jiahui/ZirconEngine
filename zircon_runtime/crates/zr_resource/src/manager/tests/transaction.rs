@@ -1002,3 +1002,157 @@ fn concurrent_final_lease_releases_unload_the_current_payload() {
     );
     assert!(manager.get_untyped(resource.id).is_none());
 }
+
+// Complete source publication is the public watch boundary; no test-only authority view is used.
+#[test]
+fn m6_source_publication_preserves_last_good_and_reserves_exact_versions() {
+    use crate::{MeshMarker, ResourceSourceMember, ResourceSourceOutcome, ResourceSourcePublication};
+    let manager = ResourceManager::new();
+    let root = record("m6-source", "res://models/m6-source.glb").with_state(ResourceState::Ready).with_source_hash("a");
+    let mut mesh = record("m6-source-mesh", "res://models/m6-source.glb#Mesh0").with_state(ResourceState::Ready).with_source_hash("a");
+    mesh.kind = ResourceKind::Mesh;
+    let mut cold = record("m6-source-cold", "res://models/m6-source.glb#Mesh1").with_state(ResourceState::Ready).with_source_hash("a");
+    cold.kind = ResourceKind::Mesh;
+    let members = vec![
+        ResourceSourceMember { record: root.clone(), payload: Some(Arc::new(TestPayload("a-root"))) },
+        ResourceSourceMember { record: mesh.clone(), payload: Some(Arc::new(TestPayload("a-mesh"))) },
+    ];
+    let initial = ResourceSourcePublication::capture(
+        root.id, Vec::new(), members, ResourceSourceOutcome::CompleteSuccess,
+        manager.projection_snapshot().active(),
+    );
+    manager.commit(ResourceMutationBatch::new().publish_source(initial)).unwrap();
+    assert!(manager.get_untyped(root.id).is_none(), "owned importer output keeps cold members lazy");
+    let revision = manager.registry().get(root.id).unwrap().revision;
+    manager.store_payload(root.id, revision, TestPayload("a-root")).unwrap();
+    let revision = manager.registry().get(mesh.id).unwrap().revision;
+    manager.store_payload(mesh.id, revision, TestPayload("a-mesh")).unwrap();
+    let root_handle = ResourceHandle::<ModelMarker>::new(root.id);
+    let mesh_handle = ResourceHandle::<MeshMarker>::new(mesh.id);
+    let old_root = manager.acquire::<ModelMarker, TestPayload>(root_handle).unwrap();
+    let old_mesh = manager.acquire::<MeshMarker, TestPayload>(mesh_handle).unwrap();
+    let captured = manager.projection_snapshot();
+    let root_key = captured.active().key(root.id).unwrap();
+    let mesh_key = captured.active().key(mesh.id).unwrap();
+    let invalid_success = ResourceSourcePublication::capture(
+        root.id, vec![root.id, mesh.id],
+        vec![ResourceSourceMember { record: root.clone().with_state(ResourceState::Error), payload: None }],
+        ResourceSourceOutcome::CompleteSuccess, captured.active(),
+    );
+    assert!(matches!(manager.commit(ResourceMutationBatch::new().publish_source(invalid_success)),
+        Err(ResourceRegistryError::InvalidSourcePublication { .. })));
+    assert_eq!(manager.projection_snapshot().active().key(root.id).as_ref(), Some(&root_key));
+
+    let mut failed = root.clone().with_state(ResourceState::Error);
+    failed.diagnostics = vec![ResourceDiagnostic::error("candidate import failed")];
+    for _ in 0..3 {
+        let publication = ResourceSourcePublication::capture(
+            root.id, vec![root.id, mesh.id],
+            vec![ResourceSourceMember { record: failed.clone(), payload: None }],
+            ResourceSourceOutcome::Failed, manager.projection_snapshot().active(),
+        );
+        manager.commit(ResourceMutationBatch::new().publish_source(publication)).unwrap();
+        assert_eq!(manager.registry().get(root.id).unwrap().state, ResourceState::Error);
+        assert!(manager.registry().get(mesh.id).is_none(), "candidate manifest still records failure");
+        let projection = manager.projection_snapshot();
+        assert_eq!(projection.active().key(root.id).as_ref(), Some(&root_key));
+        assert_eq!(projection.active().key(mesh.id).as_ref(), Some(&mesh_key));
+        let fallback = manager.acquire::<MeshMarker, TestPayload>(mesh_handle).unwrap();
+        assert_eq!(fallback.resource().0, "a-mesh");
+        drop(fallback);
+        assert_eq!(manager.ref_count(mesh.id), Some(1), "metadata never increments leases");
+        // Both full-reconcile and clear-removed use this same protocol operation.
+        manager.commit(ResourceMutationBatch::new().remove(mesh.primary_locator.clone())
+            .reconcile_sources([root.id])).unwrap();
+        assert!(manager.get_untyped(mesh.id).is_some(), "failed active-only orphan survives candidate GC");
+    }
+    assert_eq!(old_root.resource().0, "a-root");
+    assert!(Arc::ptr_eq(captured.active(), manager.projection_snapshot().active()),
+        "repeated failed publication and candidate GC keep the exact active generation");
+    assert!(manager.authority.read().unwrap().runtime.values().all(|slot| slot.prepared.is_none()));
+
+    // Last release in a prepared Ready batch is deferred, and abandon rechecks the real count.
+    let unrelated = record("m6-reserved", "res://models/m6-reserved.glb");
+    manager.commit(ready_batch(unrelated.clone(), "reserved")).unwrap();
+    let lease = manager.acquire::<ModelMarker, TestPayload>(ResourceHandle::new(unrelated.id)).unwrap();
+    let unchanged = manager.registry().get(unrelated.id).unwrap().clone();
+    let prepared = manager.prepare_commit(ResourceMutationBatch::new().upsert_lazy(unchanged)).unwrap();
+    drop(lease); // Same-thread release must not try to acquire the serial lock.
+    assert!(manager.get_untyped(unrelated.id).is_some());
+    drop(prepared);
+    assert!(manager.get_untyped(unrelated.id).is_none());
+    assert!(manager.projection_snapshot().active().key(unrelated.id).is_none());
+
+    // Expected None is stable under the same serial writer gate and rejects an intervening install.
+    manager.commit(ResourceMutationBatch::new().upsert_lazy(cold.clone())).unwrap();
+    let none_expected = ResourceSourcePublication::capture(
+        cold.id, Vec::new(), vec![ResourceSourceMember { record: cold.clone(), payload: None }],
+        ResourceSourceOutcome::CompleteSuccess, manager.projection_snapshot().active(),
+    );
+    let revision = manager.registry().get(cold.id).unwrap().revision;
+    manager.store_payload(cold.id, revision, TestPayload("intervening")).unwrap();
+    assert!(matches!(
+        manager.commit(ResourceMutationBatch::new().publish_source(none_expected)),
+        Err(ResourceRegistryError::ActiveVersionConflict { .. })
+    ));
+    manager.commit(ResourceMutationBatch::new().remove(cold.primary_locator.clone())).unwrap();
+
+    // Success replaces only residents, keeps new members cold and removes omitted old subassets.
+    let success = ResourceSourcePublication::capture(
+        root.id, vec![root.id, mesh.id], vec![
+            ResourceSourceMember { record: root.clone().with_source_hash("b"), payload: Some(Arc::new(TestPayload("b-root"))) },
+            ResourceSourceMember { record: cold.clone().with_source_hash("b"), payload: Some(Arc::new(TestPayload("b-cold"))) },
+        ], ResourceSourceOutcome::CompleteSuccess, manager.projection_snapshot().active(),
+    );
+    manager.commit(ResourceMutationBatch::new().publish_source(success)).unwrap();
+    assert_ne!(manager.projection_snapshot().active().key(root.id).as_ref(), Some(&root_key));
+    assert!(manager.get_untyped(mesh.id).is_none());
+    assert!(manager.get_untyped(cold.id).is_none());
+    assert_eq!(manager.registry().get(cold.id).unwrap().state, ResourceState::Ready);
+    assert_eq!(manager.ref_count(root.id), Some(0));
+    drop(old_root);
+    drop(old_mesh);
+    assert_eq!(manager.get::<ModelMarker, TestPayload>(root_handle).unwrap().0, "b-root");
+    let b = manager.acquire::<ModelMarker, TestPayload>(root_handle).unwrap();
+    assert_eq!(b.resource().0, "b-root");
+    drop(b);
+    assert!(manager.get_untyped(root.id).is_none(), "B's first real acquire/last drop keeps Ready semantics");
+
+    let removed = ResourceSourcePublication::capture(
+        root.id, Vec::new(), Vec::new(), ResourceSourceOutcome::Removed,
+        manager.projection_snapshot().active(),
+    );
+    manager.commit(ResourceMutationBatch::new().publish_source(removed).reconcile_sources([])).unwrap();
+    assert!(manager.projection_snapshot().active().source_members(root.id).is_empty());
+    assert!(manager.registry().get(root.id).is_none());
+    assert!(manager.registry().get(cold.id).is_none());
+
+    // A failed preflight owns candidate bytes until after both locks have been released.
+    struct DropProbe {
+        manager: std::sync::Weak<ResourceManager>,
+        dropped: Arc<AtomicBool>,
+    }
+    impl std::fmt::Debug for DropProbe {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { f.write_str("DropProbe") }
+    }
+    impl Drop for DropProbe {
+        fn drop(&mut self) {
+            let manager = self.manager.upgrade().unwrap();
+            assert!(!manager.commit_gate_is_locked_for_test());
+            assert!(manager.authority.try_write().is_ok(), "candidate final Drop must not hold authority");
+            self.dropped.store(true, Ordering::Release);
+        }
+    }
+    let manager = Arc::new(ResourceManager::new());
+    let dropped = Arc::new(AtomicBool::new(false));
+    let installed = record("m6-drop-root", "res://models/m6-drop-root.glb");
+    manager.commit(ready_batch(installed.clone(), "original")).unwrap();
+    let mut wrong_kind = installed;
+    wrong_kind.kind = ResourceKind::Mesh;
+    let result = manager.commit(ResourceMutationBatch::new()
+        .upsert_ready(record("m6-drop-probe", "res://models/m6-drop-probe.glb"),
+            DropProbe { manager: Arc::downgrade(&manager), dropped: Arc::clone(&dropped) })
+        .upsert_lazy(wrong_kind));
+    assert!(matches!(result, Err(ResourceRegistryError::KindConflict { .. })));
+    assert!(dropped.load(Ordering::Acquire));
+}

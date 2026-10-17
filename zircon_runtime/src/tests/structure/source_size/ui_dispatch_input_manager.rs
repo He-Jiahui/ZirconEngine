@@ -1,3 +1,8 @@
+//! 以源码文本和历史文档锚点检查输入管理器的测试归属。
+//!
+//! 读取器统一换行后检查字面包含关系与行数；这里不执行被定位的计时器测试，
+//! 也不据函数名验证行为。文档输入必须先可读，读取失败会阻止后续结构断言。
+
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
 // TODO: [CR-RUNTIME-TESTS-STRUCT-0110] 界面输入管理器的计时器行为测试的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
@@ -10,6 +15,8 @@ fn runtime_15_ui_dispatch_input_manager_tests_are_child_owner() {
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    // BUG: [CR-ZCA-R059-0002] 当前检出缺少此处和下一行的两个文档输入；read_repo 的错误分支直接 panic，
+    // 因而先在 module_doc 读取中止，ui_doc 与后续结构断言尚不可达。
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
 
@@ -22,6 +29,8 @@ fn runtime_15_ui_dispatch_input_manager_tests_are_child_owner() {
             "pub fn dispatch_window_input_pump_event(",
             "pub fn dispatch_window_input_pump_batch(",
             "pub fn tick(",
+            // BUG: [CR-ZCA-R059-0001] 被读父模块在 cfg 属性与 tests 声明之间还有 path 属性，
+            // 下列连续字串经仅统一换行的读取器处理后仍不存在；若前置文档可读，此正向包含断言会失败。
             "#[cfg(test)]\nmod tests;",
         ],
     );

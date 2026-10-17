@@ -31,9 +31,9 @@ use super::prepare_compiled_scene_mesh_submission::{
     project_compiled_scene_mesh_draw_lists, PreparedCompiledSceneMeshSubmission,
 };
 use super::prepare_overlay_buffers::prepare_overlay_buffers;
-use super::submit_compiled_scene_frame::{
-    prepare_environment_ibl_runtime_cache_writeback, CompiledSceneFrameSubmissionContext,
-};
+#[cfg(feature = "native-host")]
+use super::submit_compiled_scene_frame::prepare_environment_ibl_runtime_cache_writeback;
+use super::submit_compiled_scene_frame::CompiledSceneFrameSubmissionContext;
 use super::terminal_frame_packet::{prepare_terminal_frame_packet, TerminalFramePacketContext};
 
 impl SceneRendererCore {
@@ -280,6 +280,7 @@ impl SceneRendererCore {
             );
             return Err(error);
         }
+        let native_virtual_geometry_packets = graph_execution.take_virtual_geometry_readbacks();
         let mut graph_buffer_uploads = graph_execution.take_buffer_uploads();
         let graph_texture_uploads = graph_execution.take_texture_uploads();
         let screen_space_ui_upload_commits = graph_execution.take_screen_space_ui_upload_commits();
@@ -373,6 +374,7 @@ impl SceneRendererCore {
                 }
             }
         }
+        #[cfg(feature = "native-host")]
         let mut prepared_ibl_writeback = None;
         if product_diagnostic_frame_scope.is_some() {
             if let Some(viewport_capture) = viewport_capture.take() {
@@ -440,6 +442,7 @@ impl SceneRendererCore {
                     backend,
                 );
             }
+            #[cfg(feature = "native-host")]
             if environment_ibl_prepare_error.is_none() {
                 match prepare_environment_ibl_runtime_cache_writeback(
                     &self.ibl_bake_runtime_writebacks,
@@ -498,6 +501,7 @@ impl SceneRendererCore {
                 frame,
                 graph_resources: &mut graph_resources,
                 graph_execution_record: &mut graph_execution_record,
+                #[cfg(feature = "native-host")]
                 prepared_ibl_writeback,
                 environment_ibl_prepare_error,
                 realtime_ibl_submission,
@@ -517,6 +521,12 @@ impl SceneRendererCore {
                 source: Box::new(source.into()),
             });
         }
+        advanced_plugin_readbacks = advanced_plugin_readbacks.with_ticketed_native_packets(
+            native_virtual_geometry_packets
+                .into_iter()
+                .map(|packet| packet.bind_ticket(scene_submission))
+                .collect(),
+        );
         Ok(
             self.commit_compiled_scene_frame_success(CompiledSceneFrameSuccessContext {
                 hzb_occlusion_params_commits,

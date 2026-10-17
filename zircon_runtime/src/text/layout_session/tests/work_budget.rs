@@ -1,3 +1,6 @@
+//! 比较同一请求首次未命中与后续命中的工作回执。
+//! 断言只覆盖这组有效横排输入的四项计数，不覆盖所有工作预算边界。
+
 use super::SharedTextLayoutSession;
 use crate::core::framework::text::TextDirection;
 use crate::text::{TextRange, TextStyle};

@@ -41,6 +41,8 @@ pub mod project;
 pub mod random;
 #[path = "render/mod.rs"]
 pub mod render;
+#[path = "retained_memory.rs"]
+pub mod retained_memory;
 #[path = "scene/mod.rs"]
 pub mod scene;
 #[path = "script.rs"]

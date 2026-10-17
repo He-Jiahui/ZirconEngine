@@ -38,9 +38,10 @@ fn workbench_toolbar_window_menus_anchor_to_toolbar_controls_across_widths() {
 
 #[test]
 fn workbench_toolbar_window_menus_do_not_snapshot_editor_owned_geometry() {
-    let source = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
-        "src/ui/retained/dispatch/templates/workbench/window_menu_state.rs",
-    ))
+    let source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src/ui/retained/dispatch/templates/workbench/window_menu_state.rs"),
+    )
     .expect("window menu state source should be readable");
 
     for removed_editor_geometry_owner in [

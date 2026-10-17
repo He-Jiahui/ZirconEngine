@@ -1,4 +1,4 @@
-use super::{OptionalExtension, Principal, ServiceError, Transaction, now_seconds, params};
+use super::{now_seconds, params, OptionalExtension, Principal, ServiceError, Transaction};
 
 pub(super) fn authorized_role(
     transaction: &Transaction<'_>,

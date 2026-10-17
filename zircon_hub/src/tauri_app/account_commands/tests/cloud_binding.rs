@@ -12,20 +12,16 @@ fn binding_actions_require_native_selection_guard_and_do_not_expose_commit() {
     .unwrap();
     assert_eq!(attach.backend_epoch(), "hub-current");
     assert!(!attach.service_response_context().unwrap().mutation);
-    assert!(
-        serde_json::from_value::<AccountActionRequest>(json!({
-            "action": "attach-cloud-project", "backendEpoch": "hub-current", "generation": "7",
-            "organization": "00000000-0000-4000-8000-000000000001",
-            "project": "00000000-0000-4000-8000-000000000002"
-        }))
-        .is_err()
-    );
-    assert!(
-        serde_json::from_value::<AccountActionRequest>(json!({
-            "action": "cloud-commit", "backendEpoch": "hub-current", "generation": "7"
-        }))
-        .is_err()
-    );
+    assert!(serde_json::from_value::<AccountActionRequest>(json!({
+        "action": "attach-cloud-project", "backendEpoch": "hub-current", "generation": "7",
+        "organization": "00000000-0000-4000-8000-000000000001",
+        "project": "00000000-0000-4000-8000-000000000002"
+    }))
+    .is_err());
+    assert!(serde_json::from_value::<AccountActionRequest>(json!({
+        "action": "cloud-commit", "backendEpoch": "hub-current", "generation": "7"
+    }))
+    .is_err());
 }
 
 #[test]

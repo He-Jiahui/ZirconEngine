@@ -69,10 +69,7 @@ fn runtime56_recovery_batch_indexed_focus_loss_axis_reset_preserves_retired_tran
 #[test]
 fn runtime56_recovery_batch_indexed_focus_loss_axis_reset_source_contract() {
     let source = include_str!("../input_state.rs");
-    let production = source
-        .split_once("\n#[cfg(test)]\nmod tests")
-        .expect("production module end")
-        .0;
+    let production = crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section(source);
     let reset = production
         .split_once("fn reset_gamepad_axes_for_focus_loss")
         .expect("indexed focus-loss axis reset")
@@ -172,10 +169,7 @@ fn runtime56_recovery_batch_allocation_free_gamepad_disconnect_transitions_prese
 #[test]
 fn runtime56_recovery_batch_allocation_free_gamepad_disconnect_transitions_source_contract() {
     let input_state_source = include_str!("../input_state.rs");
-    let input_state_production = input_state_source
-        .split_once("\n#[cfg(test)]\nmod tests")
-        .expect("production module end")
-        .0;
+    let input_state_production = crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section(input_state_source);
     let append = input_state_production
         .split_once("fn append_disconnected_axis_transitions")
         .expect("direct disconnect transition helper")

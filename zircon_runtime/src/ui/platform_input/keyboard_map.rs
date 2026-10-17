@@ -5,6 +5,7 @@ use winit::event::ElementState;
 use winit::keyboard::{Key, NamedKey, NativeKeyCode, PhysicalKey};
 use zircon_runtime_interface::ui::dispatch::UiKeyboardInputState;
 
+/// 释放状态优先于重复标记；只有按下时才把平台重复位映射为重复事件。
 pub(super) fn keyboard_state(state: ElementState, repeat: bool) -> UiKeyboardInputState {
     match (state, repeat) {
         (ElementState::Pressed, true) => UiKeyboardInputState::Repeated,
@@ -37,6 +38,7 @@ pub(super) fn dom_key_code(key: &Key) -> u32 {
     }
 }
 
+/// 已识别的物理键保留名称而不伪造扫描码；这里只透传平台提供的原生数值。
 pub(super) fn native_scan_code(physical_key: PhysicalKey) -> Option<u32> {
     match physical_key {
         PhysicalKey::Unidentified(NativeKeyCode::Android(code)) => Some(code),
@@ -47,6 +49,7 @@ pub(super) fn native_scan_code(physical_key: PhysicalKey) -> Option<u32> {
     }
 }
 
+/// 返回拥有的物理身份文本；枚举显示名和原生调试名都不能当作数值扫描码。
 pub(super) fn physical_key_name(physical_key: PhysicalKey) -> String {
     match physical_key {
         PhysicalKey::Code(code) => code.to_string(),
@@ -54,6 +57,7 @@ pub(super) fn physical_key_name(physical_key: PhysicalKey) -> String {
     }
 }
 
+/// 保留逻辑字符与死键身份，避免从兼容数字码重建输入语义。
 pub(super) fn logical_key_name(key: &Key) -> String {
     match key {
         Key::Named(named) => named.to_string(),
@@ -64,6 +68,7 @@ pub(super) fn logical_key_name(key: &Key) -> String {
     }
 }
 
+// 只接受恰好一个 Unicode 标量；多标量组合文本仍由独立文本载荷保留。
 fn dom_character_key_code(text: &str) -> u32 {
     let mut chars = text.chars();
     let Some(ch) = chars.next() else {

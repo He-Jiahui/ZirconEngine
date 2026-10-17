@@ -1,0 +1,29 @@
+{
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R003",
+  "at_utc": "2026-10-14T18:52:16.984336+00:00",
+  "reviewer_finding": "core_sol independent post-review found generated VM paths are behind Runtime script feature; derive framework-only path not subject to this added condition.",
+  "path": "zircon_runtime/reflection_macros/src/lib.rs",
+  "before_sha256": "54d751930b169a3cdfed4c32e936bf9b3a404a4fe31378a26092e7fd728d69e0",
+  "after_sha256": "a2445ce095c4a3145df58658da7de650af625d268a2071b3fbd3c47af39b2ed7",
+  "insertions": [
+    {
+      "after_byte_offset": 3044,
+      "bytes": 96,
+      "content_sha256": "1053815a9a1b5746cd6d45c153713221c469195f47505c2e2b8269afbd7f078e",
+      "after_line": 61,
+      "line_count": 1
+    },
+    {
+      "after_byte_offset": 4787,
+      "bytes": 108,
+      "content_sha256": "bf82647574a870bc3a5b2a0e241178be9da3947313749012c04b23b5797b9319",
+      "after_line": 88,
+      "line_count": 1
+    }
+  ],
+  "existing_bytes_preserved": true,
+  "source_copies_created": false,
+  "formal_acceptance": false,
+  "status": "comments-written-awaiting-post-validation"
+}

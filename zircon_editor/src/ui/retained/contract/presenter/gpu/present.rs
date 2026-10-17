@@ -123,20 +123,27 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
                 {
                     evidence["presentedFrameCount"] = profile["presentedFrameCount"].clone();
                     evidence["presentationCursor"] = serde_json::json!(presentation_cursor);
-                    if let Some((stamp, business)) = presentation.normal_workbench_business.as_ref() {
+                    if let Some((stamp, business)) = presentation.normal_workbench_business.as_ref()
+                    {
                         if stamp.same_business_generation(presentation_cursor) {
                             if let Ok(mut publication) = serde_json::to_value(business.as_ref()) {
-                                publication["authority"] = "normal-retained-workbench-projection".into();
+                                publication["authority"] =
+                                    "normal-retained-workbench-projection".into();
                                 publication["observed"] = true.into();
-                                publication["presentationCursor"] = serde_json::json!(presentation_cursor);
-                                publication["presentedFrameCount"] = profile["presentedFrameCount"].clone();
+                                publication["presentationCursor"] =
+                                    serde_json::json!(presentation_cursor);
+                                publication["presentedFrameCount"] =
+                                    profile["presentedFrameCount"].clone();
                                 evidence["workbenchStatePublication"] = publication;
                             }
                         }
                     }
                     finalize_viewport_toolbar_success(
                         &mut evidence,
-                        presentation.normal_viewport_toolbar.as_ref().map(|(stamp, _, _)| *stamp),
+                        presentation
+                            .normal_viewport_toolbar
+                            .as_ref()
+                            .map(|(stamp, _, _)| *stamp),
                         result.is_ok(),
                         presentation_cursor,
                         &profile["presentedFrameCount"],
@@ -336,11 +343,11 @@ fn finalize_viewport_toolbar_success(
     presented_frame_count: &serde_json::Value,
 ) {
     if successful && toolbar_cursor == Some(cursor) {
-        if let Some(toolbar)=evidence.get_mut("viewportToolbarPublication") {
-            toolbar["presentationCursor"]=serde_json::json!(cursor);
-            toolbar["presentedFrameCount"]=presented_frame_count.clone();
+        if let Some(toolbar) = evidence.get_mut("viewportToolbarPublication") {
+            toolbar["presentationCursor"] = serde_json::json!(cursor);
+            toolbar["presentedFrameCount"] = presented_frame_count.clone();
         }
-    } else if let Some(evidence)=evidence.as_object_mut() {
+    } else if let Some(evidence) = evidence.as_object_mut() {
         evidence.remove("viewportToolbarPublication");
     }
 }
@@ -351,29 +358,50 @@ mod viewport_toolbar_success_tests {
     #[test]
     fn toolbar_success_requires_each_of_the_seven_actual_cursor_fields() {
         let toolbar_cursor = Some(HostPresentationGenerationCursor::default());
-        let mut exact=json!({"viewportToolbarPublication":{"observed":true}});
-        finalize_viewport_toolbar_success(&mut exact,toolbar_cursor,true,Default::default(),&json!(7));
-        assert_eq!(exact["viewportToolbarPublication"]["presentedFrameCount"],7);
-        assert_eq!(exact["viewportToolbarPublication"]["presentationCursor"],json!(HostPresentationGenerationCursor::default()));
+        let mut exact = json!({"viewportToolbarPublication":{"observed":true}});
+        finalize_viewport_toolbar_success(
+            &mut exact,
+            toolbar_cursor,
+            true,
+            Default::default(),
+            &json!(7),
+        );
+        assert_eq!(
+            exact["viewportToolbarPublication"]["presentedFrameCount"],
+            7
+        );
+        assert_eq!(
+            exact["viewportToolbarPublication"]["presentationCursor"],
+            json!(HostPresentationGenerationCursor::default())
+        );
         for cursor in [
-            HostPresentationGenerationCursor::new_with_geometry(1,0,0,0,0,0,0),
-            HostPresentationGenerationCursor::new_with_geometry(0,1,0,0,0,0,0),
-            HostPresentationGenerationCursor::new_with_geometry(0,0,1,0,0,0,0),
-            HostPresentationGenerationCursor::new_with_geometry(0,0,0,1,0,0,0),
-            HostPresentationGenerationCursor::new_with_geometry(0,0,0,0,1,0,0),
-            HostPresentationGenerationCursor::new_with_geometry(0,0,0,0,0,1,0),
-            HostPresentationGenerationCursor::new_with_geometry(0,0,0,0,0,0,1),
+            HostPresentationGenerationCursor::new_with_geometry(1, 0, 0, 0, 0, 0, 0),
+            HostPresentationGenerationCursor::new_with_geometry(0, 1, 0, 0, 0, 0, 0),
+            HostPresentationGenerationCursor::new_with_geometry(0, 0, 1, 0, 0, 0, 0),
+            HostPresentationGenerationCursor::new_with_geometry(0, 0, 0, 1, 0, 0, 0),
+            HostPresentationGenerationCursor::new_with_geometry(0, 0, 0, 0, 1, 0, 0),
+            HostPresentationGenerationCursor::new_with_geometry(0, 0, 0, 0, 0, 1, 0),
+            HostPresentationGenerationCursor::new_with_geometry(0, 0, 0, 0, 0, 0, 1),
         ] {
-            let mut stale=json!({"viewportToolbarPublication":{"observed":true}});
-            finalize_viewport_toolbar_success(&mut stale,toolbar_cursor,true,cursor,&json!(8));
+            let mut stale = json!({"viewportToolbarPublication":{"observed":true}});
+            finalize_viewport_toolbar_success(&mut stale, toolbar_cursor, true, cursor, &json!(8));
             assert!(stale.get("viewportToolbarPublication").is_none());
         }
     }
     #[test]
     fn failed_present_and_missing_prepared_metadata_cannot_publish_toolbar_evidence() {
-        for (successful,toolbar_cursor) in [(false,Some(HostPresentationGenerationCursor::default())),(true,None)] {
-            let mut evidence=json!({"viewportToolbarPublication":{"observed":true}});
-            finalize_viewport_toolbar_success(&mut evidence,toolbar_cursor,successful,Default::default(),&json!(8));
+        for (successful, toolbar_cursor) in [
+            (false, Some(HostPresentationGenerationCursor::default())),
+            (true, None),
+        ] {
+            let mut evidence = json!({"viewportToolbarPublication":{"observed":true}});
+            finalize_viewport_toolbar_success(
+                &mut evidence,
+                toolbar_cursor,
+                successful,
+                Default::default(),
+                &json!(8),
+            );
             assert!(evidence.get("viewportToolbarPublication").is_none());
         }
     }

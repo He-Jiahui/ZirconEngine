@@ -23,14 +23,20 @@ impl EditorRuntimeEventConsumerHost {
             return Ok(());
         };
         self.release_pending_bytes(consumer.pending_retained_bytes);
-        // BUG: [CR-EDITOR-SERVICES-0004] 先移除本地条目后若远端取消失败，此处只返回错误，未存入 pending_remote_cleanup；
-        // shutdown/reconcile 后续没有该订阅可重试，旧运行时可能继续保留订阅。
+        // 退订失败后保留原端点订阅，供后续清理重试。
         let remote_cleanup = unsubscribe_consumer(
             &consumer.origin,
             &identity.consumer_id,
             &identity.subscription,
         )
         .err();
+        if remote_cleanup.is_some() {
+            self.defer_remote_cleanup(
+                &identity.consumer_id,
+                identity.subscription.clone(),
+                consumer.origin.clone(),
+            );
+        }
         let callback_cleanup = invoke_consumer_callback(
             &identity.consumer_id,
             EditorRuntimeEventConsumerCallbackPhase::EndSession,
@@ -83,21 +89,27 @@ impl EditorRuntimeEventConsumerHost {
         first_error
     }
 
-    /// BeginSession 回调异常的远端清理失败会暂存原端点，供后续 reconcile 或 shutdown 重试。
+    /// 失败的远端清理保留原端点；同一消费者的不同订阅分别保留，重复登记同一订阅不会增加待办。
     pub(super) fn defer_remote_cleanup(
         &self,
         consumer_id: &str,
         subscription: QualifiedSubscription,
         origin: GatewayOrigin,
     ) {
-        self.pending_remote_cleanup
+        let mut pending = self
+            .pending_remote_cleanup
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .entry(consumer_id.to_string())
-            .or_insert(PendingRemoteCleanup {
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let cleanups = pending.entry(consumer_id.to_string()).or_default();
+        if !cleanups
+            .iter()
+            .any(|cleanup| cleanup.subscription == subscription)
+        {
+            cleanups.push(PendingRemoteCleanup {
                 subscription,
                 origin,
             });
+        }
     }
 
     pub(super) fn retry_pending_remote_cleanup(&self) {
@@ -106,14 +118,25 @@ impl EditorRuntimeEventConsumerHost {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .iter()
-            .map(|(consumer_id, cleanup)| (consumer_id.clone(), cleanup.clone()))
+            .flat_map(|(consumer_id, cleanups)| {
+                cleanups
+                    .iter()
+                    .cloned()
+                    .map(move |cleanup| (consumer_id.clone(), cleanup))
+            })
             .collect::<Vec<_>>();
         for (consumer_id, cleanup) in pending {
             if unsubscribe_consumer(&cleanup.origin, &consumer_id, &cleanup.subscription).is_ok() {
-                self.pending_remote_cleanup
+                let mut pending = self
+                    .pending_remote_cleanup
                     .lock()
-                    .unwrap_or_else(|poisoned| poisoned.into_inner())
-                    .remove(&consumer_id);
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                if let Some(cleanups) = pending.get_mut(&consumer_id) {
+                    cleanups.retain(|entry| entry.subscription != cleanup.subscription);
+                    if cleanups.is_empty() {
+                        pending.remove(&consumer_id);
+                    }
+                }
             }
         }
     }
@@ -127,11 +150,20 @@ impl EditorRuntimeEventConsumerHost {
         );
         pending
             .into_iter()
-            .fold(None, |first_error, (consumer_id, cleanup)| {
-                let cleanup_error =
-                    unsubscribe_consumer(&cleanup.origin, &consumer_id, &cleanup.subscription)
-                        .err();
-                first_error.or(cleanup_error)
+            .fold(None, |mut first_error, (consumer_id, cleanups)| {
+                for cleanup in cleanups {
+                    if let Err(error) =
+                        unsubscribe_consumer(&cleanup.origin, &consumer_id, &cleanup.subscription)
+                    {
+                        self.defer_remote_cleanup(
+                            &consumer_id,
+                            cleanup.subscription,
+                            cleanup.origin,
+                        );
+                        first_error.get_or_insert(error);
+                    }
+                }
+                first_error
             })
     }
 }

@@ -46,8 +46,8 @@ pub fn module_descriptor() -> ModuleDescriptor {
                         "manager context no longer has a live core handle".to_string(),
                     )
                 })?;
-                let host = core_handle
-                    .resolve_driver::<PluginHostDriver>(PLUGIN_HOST_DRIVER_NAME)?;
+                let host =
+                    core_handle.resolve_driver::<PluginHostDriver>(PLUGIN_HOST_DRIVER_NAME)?;
                 let manager = VmPluginManager::with_plugin_context_and_host_exports(
                     plugin_context(VM_PLUGIN_RUNTIME_NAME, core.clone()),
                     host.registry(),

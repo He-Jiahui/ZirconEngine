@@ -72,6 +72,52 @@ impl AnimationEditCommand {
 }
 
 impl EditCommand for AnimationEditCommand {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<crate::core::editing::engine::CommandRetentionPlanV1, EditCommandError> {
+        use crate::core::editing::engine::*;
+        use zircon_runtime_interface::retained_memory::*;
+        let mut plan = CommandRetentionPlanV1::for_owner(self, context, phase, model, limit)?;
+        let context = context.as_any().downcast_ref::<CoreEditContext>().ok_or(
+            EditCommandError::ContextTypeMismatch {
+                expected: "CoreEditContext",
+            },
+        )?;
+        let handle = context
+            .animation_documents()
+            .handle(self.document)
+            .map_err(|error| EditCommandError::TargetMissing {
+                target: error.to_string(),
+            })?;
+        let document = handle.read();
+        if document.revision() != self.expected_revision {
+            return Err(RetentionContractError::Stale.into());
+        }
+        let mut meter = RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(limit));
+        meter.owned(document.asset())?;
+        plan.add_retained(meter.bytes().get())?;
+        // The exact alternate source is rechecked while holding the authority's
+        // read guard; the CAS swap remains the sole publication point.
+        Ok(plan)
+    }
+    fn prepare_retention_v1(
+        &mut self,
+        context: &mut dyn EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        permit: &mut crate::core::editing::engine::RetentionMaterializationV1,
+    ) -> Result<(), CommandExecutionError> {
+        permit
+            .consume(self, phase)
+            .map_err(CommandExecutionError::unchanged)?;
+        self.retention_plan_v1(context, phase, permit.model(), permit.plan().retained_bytes)
+            .map_err(CommandExecutionError::unchanged)?;
+        Ok(())
+    }
+
     fn label(&self) -> &str {
         self.label
     }
@@ -86,5 +132,30 @@ impl EditCommand for AnimationEditCommand {
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+}
+
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for AnimationAuthoringAsset {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        use zircon_runtime_interface::retained_memory::RetainedOwnerV1;
+        match self {
+            Self::Sequence(v) => v.retained_bound_v1(m),
+            Self::Graph(v) => v.retained_bound_v1(m),
+            Self::StateMachine(v) => v.retained_bound_v1(m),
+        }
+    }
+}
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for AnimationEditCommand {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        zircon_runtime_interface::retained_memory::RetainedOwnerV1::retained_bound_v1(
+            &self.replacement,
+            m,
+        )
     }
 }

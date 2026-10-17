@@ -1,3 +1,6 @@
+//! 对照线性参考检查阶段索引的既有语义；两个忽略入口用于手工性能比较。
+//! 夹具只构造报告，不启动 Runtime 调度；性能结论需要单独实际执行基准。
+
 use std::{hint::black_box, time::Instant};
 
 use super::UiPipelineFrameReport;

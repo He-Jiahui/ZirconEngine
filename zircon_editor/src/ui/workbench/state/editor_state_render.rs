@@ -51,7 +51,7 @@ impl EditorState {
                     RenderWorldSnapshotHandle::new(scene.world_generation()),
                     snapshot,
                 ),
-                ui: controller.build_runtime_overlay_ui(),
+                ui: None,
             }
         }) {
             Ok(submission) => submission,
@@ -92,7 +92,7 @@ impl EditorState {
                     RenderWorldSnapshotHandle::new(scene.world_generation()),
                     snapshot,
                 ),
-                ui: controller.build_runtime_overlay_ui(),
+                ui: None,
             }
         }) {
             Ok(submission) => submission,

@@ -1,9 +1,9 @@
 use super::{
     error::ServiceError,
-    identity::{Principal, now_seconds},
+    identity::{now_seconds, Principal},
     storage::receipt,
 };
-use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
+use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 #[path = "invitation.rs"]
@@ -11,8 +11,8 @@ mod invitation;
 #[path = "query.rs"]
 mod query;
 pub use query::{
-    Invitation, IssuedInvitation, Member, Page, PageQuery, Project, invitations,
-    issued_invitations, list, members, projects,
+    invitations, issued_invitations, list, members, projects, Invitation, IssuedInvitation, Member,
+    Page, PageQuery, Project,
 };
 
 #[derive(Serialize, Deserialize)]

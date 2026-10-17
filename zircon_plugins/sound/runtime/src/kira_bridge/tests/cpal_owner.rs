@@ -19,6 +19,7 @@ fn callback_gate_timeout_resumes_then_retries_to_idle() {
     assert!(gate.retire_until(Instant::now() + Duration::from_millis(10)));
 }
 
+#[derive(Debug)]
 struct BlockingProvider {
     drop_started: std::sync::mpsc::SyncSender<()>,
     release: std::sync::mpsc::Receiver<()>,

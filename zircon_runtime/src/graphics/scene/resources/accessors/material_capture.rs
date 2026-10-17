@@ -43,8 +43,7 @@ impl ResourceStreamer {
         crate::profile_counter!("render", "material_capture_cold_asset_resolution", 1);
         let asset_manager = self.asset_manager().ok()?;
         let (material, _) = asset_manager.load_effective_material_asset(*id).ok()?;
-        let shader_contract =
-            Self::load_shader_contract(&*asset_manager, material.shader.clone());
+        let shader_contract = Self::load_shader_contract(&*asset_manager, material.shader.clone());
         let descriptor = shader_contract
             .as_ref()
             .map(|shader| material.standard_material_descriptor_for_shader(shader.asset()))
@@ -77,8 +76,8 @@ impl ResourceStreamer {
             self.current_texture_capture_snapshot(&*asset_manager, base_color_texture);
         let (normal_texture_revision, normal_texture_center_rgba) =
             self.current_texture_capture_snapshot(&*asset_manager, normal_texture);
-        let (metallic_roughness_texture_revision, metallic_roughness_texture_center_rgba) = self
-            .current_texture_capture_snapshot(&*asset_manager, metallic_roughness_texture);
+        let (metallic_roughness_texture_revision, metallic_roughness_texture_center_rgba) =
+            self.current_texture_capture_snapshot(&*asset_manager, metallic_roughness_texture);
         let (occlusion_texture_revision, occlusion_texture_center_rgba) =
             self.current_texture_capture_snapshot(&*asset_manager, occlusion_texture);
         let (emissive_texture_revision, emissive_texture_center_rgba) =

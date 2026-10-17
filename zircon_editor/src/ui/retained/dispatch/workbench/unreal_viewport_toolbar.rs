@@ -20,30 +20,73 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         for (control_id, mode) in [
             ("SelectMode", SceneModeActivation::Select),
-            ("TranslateMode", SceneModeActivation::Transform(TransformHandleKind::Move)),
-            ("RotateMode", SceneModeActivation::Transform(TransformHandleKind::Rotate)),
-            ("ScaleMode", SceneModeActivation::Transform(TransformHandleKind::Scale)),
+            (
+                "TranslateMode",
+                SceneModeActivation::Transform(TransformHandleKind::Move),
+            ),
+            (
+                "RotateMode",
+                SceneModeActivation::Transform(TransformHandleKind::Rotate),
+            ),
+            (
+                "ScaleMode",
+                SceneModeActivation::Transform(TransformHandleKind::Scale),
+            ),
         ] {
             self.set_control_active(control_id, settings.mode == mode)?;
         }
-        self.set_unreal_viewport_dropdown("SetProjectionMode", format!("{:?}", settings.projection_mode),
-            format!("{:?}", settings.projection_mode))?;
-        self.set_unreal_viewport_dropdown("SetDisplayMode", format!("{:?}", settings.display_mode),
+        self.set_unreal_viewport_dropdown(
+            "SetProjectionMode",
+            format!("{:?}", settings.projection_mode),
+            format!("{:?}", settings.projection_mode),
+        )?;
+        self.set_unreal_viewport_dropdown(
+            "SetDisplayMode",
+            format!("{:?}", settings.display_mode),
             match settings.display_mode {
                 DisplayMode::Shaded => "Lit",
                 DisplayMode::WireOverlay => "Wireframe Overlay",
                 DisplayMode::WireOnly => "Wireframe",
-            })?;
-        self.set_unreal_viewport_dropdown("SetGridMode", if settings.grid_mode == crate::scene::viewport::GridMode::Hidden { "Hidden" } else { "VisibleNoSnap" }, "Show")?;
-        self.set_unreal_viewport_dropdown("SetTransformSpace", format!("{:?}", settings.transform_space),
-            match settings.transform_space { TransformSpace::Local => "Local", TransformSpace::Global => "World" })?;
-        self.set_unreal_viewport_dropdown("SetPivotMode", format!("{:?}", settings.pivot_mode),
-            match settings.pivot_mode { PivotMode::Primary => "Pivot", PivotMode::Centroid => "Centroid" })?;
-        self.set_unreal_viewport_dropdown("AlignView", format!("{:?}", settings.view_orientation),
+            },
+        )?;
+        self.set_unreal_viewport_dropdown(
+            "SetGridMode",
+            if settings.grid_mode == crate::scene::viewport::GridMode::Hidden {
+                "Hidden"
+            } else {
+                "VisibleNoSnap"
+            },
+            "Show",
+        )?;
+        self.set_unreal_viewport_dropdown(
+            "SetTransformSpace",
+            format!("{:?}", settings.transform_space),
+            match settings.transform_space {
+                TransformSpace::Local => "Local",
+                TransformSpace::Global => "World",
+            },
+        )?;
+        self.set_unreal_viewport_dropdown(
+            "SetPivotMode",
+            format!("{:?}", settings.pivot_mode),
+            match settings.pivot_mode {
+                PivotMode::Primary => "Pivot",
+                PivotMode::Centroid => "Centroid",
+            },
+        )?;
+        self.set_unreal_viewport_dropdown(
+            "AlignView",
+            format!("{:?}", settings.view_orientation),
             match settings.view_orientation {
-                ViewOrientation::User => "Align", ViewOrientation::PosX => "+X", ViewOrientation::NegX => "-X",
-                ViewOrientation::PosY => "+Y", ViewOrientation::NegY => "-Y", ViewOrientation::PosZ => "+Z", ViewOrientation::NegZ => "-Z",
-            })?;
+                ViewOrientation::User => "Align",
+                ViewOrientation::PosX => "+X",
+                ViewOrientation::NegX => "-X",
+                ViewOrientation::PosY => "+Y",
+                ViewOrientation::NegY => "-Y",
+                ViewOrientation::PosZ => "+Z",
+                ViewOrientation::NegZ => "-Z",
+            },
+        )?;
         for (control_id, step) in [
             ("SetTranslateSnap", settings.translate_step),
             ("SetRotateSnapDegrees", settings.rotate_step_deg),
@@ -73,7 +116,11 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let value = value.into();
         self.mutate_control_property(control_id, "value", UiValue::String(value.clone()))?;
         self.mutate_control_property(control_id, "value_text", UiValue::String(caption.into()))?;
-        self.mutate_control_property(control_id, "special_options", UiValue::Array(vec![UiValue::String(value)]))
+        self.mutate_control_property(
+            control_id,
+            "special_options",
+            UiValue::Array(vec![UiValue::String(value)]),
+        )
     }
 }
 

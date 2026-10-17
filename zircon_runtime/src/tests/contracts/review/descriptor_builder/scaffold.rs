@@ -3,13 +3,11 @@
 fn review_f8_runtime_plugin_descriptor_exposes_builder_scaffold() {
     let descriptor = include_str!("../../../../plugin/runtime/descriptor.rs");
     let builder_mod = include_str!("../../../../plugin/runtime/descriptor/builder.rs");
-    let builder_source = include_str!(
-        "../../../../plugin/runtime/descriptor/builder/desc_builder.rs"
-    );
+    let builder_source =
+        include_str!("../../../../plugin/runtime/descriptor/builder/desc_builder.rs");
     let runtime_plugin_mod = include_str!("../../../../plugin/runtime/mod.rs");
     let plugin_mod = include_str!("../../../../plugin/mod.rs");
-    let plugin_descriptor_tests =
-        include_str!("../../../plugins/runtime_plugin_desc.rs");
+    let plugin_descriptor_tests = include_str!("../../../plugins/runtime_plugin_desc.rs");
     let review_findings = concat!(
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")

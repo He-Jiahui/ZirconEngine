@@ -1,0 +1,5153 @@
+{
+  "schema": "zircon-source-comments-review-v1",
+  "batch": "R051",
+  "task_id": "source-comments-20261014-01a13a81",
+  "reviewer": "core_sol",
+  "requested_model": "gpt-6.1-sol",
+  "requested_reasoning_effort": "max",
+  "companion_of": "R048",
+  "state": "source-audit-and-comment-implementation-complete; awaiting independent parent acceptance",
+  "scope": {
+    "audited_paths": [
+      "zircon_runtime/src/ui/tests/material_layout.rs",
+      "zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs",
+      "zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs",
+      "zircon_runtime/src/ui/tests/material_layout/constraints_children.rs",
+      "zircon_runtime/src/ui/tests/material_layout/field_values.rs",
+      "zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs"
+    ],
+    "metadata_write_path": "docs/plans/source-comments/reviews/R051.json",
+    "source_write_policy": "insert-only Chinese comments; all original bytes, code, attributes, assertions, strings and LF retained",
+    "outside_scope": "All production material/R045/R038 sources, other tests, globals, parent main/post, Git mutations and Jenkins remain read-only."
+  },
+  "authorization": {
+    "parent_grant_receipts": [
+      "71125f/session67174 -> d89d6e exit0 PID7544",
+      "1875d9 exit0 independent parent verification"
+    ],
+    "assignment_sha256_at_preflight": "3a46665e6268a197eae567d2bc69f655c613d1e926711e3bf76b9fff4bce8bd9",
+    "assignment_sha256_at_source_final_check": "3a46665e6268a197eae567d2bc69f655c613d1e926711e3bf76b9fff4bce8bd9",
+    "assignment_key": "metadata_tasks.R051",
+    "owner": "core_sol",
+    "head_before_and_final": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+    "own_preflight_receipt": "c16bbb exit0",
+    "source_writer_rechecked_grant_and_before_pins": true,
+    "registry_basis": "Parent reported six exact assigned rows and three planned metadata outputs independently verified before editing. This child is the only metadata destination owned here."
+  },
+  "standards": {
+    "unified_standard": {
+      "path": "docs/plans/source-comments/01-standard.md",
+      "sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3",
+      "read_receipt": "19532c exit0"
+    },
+    "skills": [
+      {
+        "path": ".codex/skills/zircon-dev/SKILL.md",
+        "sha256": "2d699cd12492709facc84079838a836356e4f7dd8b7bac475b65d10a804ed957",
+        "read_receipt": "0cca78 exit0; English Rust guidance additionally a8071b"
+      },
+      {
+        "path": "D:/CodexData/.codex/skills/artifact-lifecycle/SKILL.md",
+        "sha256": "3d6ba59f005a6fb1cc2a4da199863fb5567e6d35276e4b54b3610a321b6421a6",
+        "read_receipt": "19532c exit0"
+      }
+    ],
+    "config": {
+      "path": ".codex/config.toml",
+      "sha256": "b31490a9954ca9cc2c89d006ef98e8b019b2ea1c64114f03500db9c09af031d9",
+      "read_receipt": "81b570 exit0",
+      "observation": "Actual allowlist grants Runtime src and docs/plans writes; no permission expansion. This is not a claim of separately probed permission-profile enforcement."
+    }
+  },
+  "coverage_summary": {
+    "source_files": 6,
+    "before_bytes": 21857,
+    "after_bytes": 23692,
+    "before_lines": 849,
+    "after_lines": 874,
+    "named_functions": 29,
+    "ordinary_test_functions": 24,
+    "shared_helper_functions": 5,
+    "module_declarations": 5,
+    "import_declarations": 7,
+    "module_doc_reviews": 6,
+    "continuous_gapfree_partitions": 58,
+    "function_statement_regions": 83,
+    "inserted_comment_blocks": 7,
+    "inserted_lines": 25,
+    "inserted_bytes": 1835,
+    "changed_sources": 1,
+    "unchanged_audited_sources": 5,
+    "definition_extraction": "Anchored actual top-level fn and mod declarations, with reviewed signatures and bounded physical spans; step ranges are manually tied to actual statements. This is not compiler/AST execution.",
+    "evidence_receipts": [
+      "2f830b",
+      "bff842",
+      "e3daf2",
+      "b7db0b"
+    ],
+    "span_coordinates": "All per-object, step and continuous-block ranges are inclusive current physical lines; byte offsets are zero-based raw UTF-8, and per-range SHA refers to exact current raw bytes. Grant before SHA and inverse insertions bind the prior state."
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/src/ui/tests/material_layout.rs",
+      "before_sha256": "063030e9e6c99317b96705435ac428f5d9ff340d40756146684dec07388b9691",
+      "current_sha256": "4c64e5b718082349355316b711d49dbb532440c3b5a2e3d376e773753301816b",
+      "before_bytes": 4258,
+      "current_bytes": 6093,
+      "before_lines": 126,
+      "current_lines": 151,
+      "before_eol": {
+        "crlf": 0,
+        "lf": 126,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "current_eol": {
+        "crlf": 0,
+        "lf": 151,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_matches_grant": true,
+      "id": "F01",
+      "formal_scope": "whole source file; context dependencies are excluded",
+      "module_documentation": {
+        "lines": [
+          1,
+          3
+        ],
+        "decision": "append shared fixture ownership and lexical guard limits",
+        "reason": "跨子模块复用的夹具具有输入、panic和返回所有权边界；新增说明与实际UiSurface局部作用域对应。"
+      },
+      "imports": [
+        {
+          "name": "use crate::ui::surface::UiSurface",
+          "lines": [
+            5,
+            5
+          ],
+          "names": [
+            "UiSurface"
+          ],
+          "audit": "夹具独占的运行时表面类型；未引入全局表面共享。"
+        },
+        {
+          "name": "use zircon_runtime_interface::ui",
+          "lines": [
+            6,
+            11
+          ],
+          "names": [
+            "UiNodeId",
+            "UiNodePath",
+            "UiTreeId",
+            "AxisConstraint",
+            "BoxConstraints",
+            "DesiredSize",
+            "LayoutBoundary",
+            "StretchMode",
+            "UiSize",
+            "UiRenderCommandKind",
+            "UiVisualAssetRef",
+            "UiTemplateNodeMetadata",
+            "UiTreeNode"
+          ],
+          "audit": "引入值类型、轴配置和绘制枚举，供父夹具及子模块super通配导入复用；这些是使用点，不将其定义计入本批覆盖。"
+        }
+      ],
+      "module_declarations": [
+        {
+          "name": "asset_icon_roles",
+          "lines": [
+            13,
+            14
+          ],
+          "path_attribute": "material_layout/asset_icon_roles.rs",
+          "decision": "retain; actual path mount resolves to a separately owned audited file"
+        },
+        {
+          "name": "button_icon_metrics",
+          "lines": [
+            15,
+            16
+          ],
+          "path_attribute": "material_layout/button_icon_metrics.rs",
+          "decision": "retain; actual path mount resolves to a separately owned audited file"
+        },
+        {
+          "name": "constraints_children",
+          "lines": [
+            17,
+            18
+          ],
+          "path_attribute": "material_layout/constraints_children.rs",
+          "decision": "retain; actual path mount resolves to a separately owned audited file"
+        },
+        {
+          "name": "field_values",
+          "lines": [
+            19,
+            20
+          ],
+          "path_attribute": "material_layout/field_values.rs",
+          "decision": "retain; actual path mount resolves to a separately owned audited file"
+        },
+        {
+          "name": "row_label_metrics",
+          "lines": [
+            21,
+            22
+          ],
+          "path_attribute": "material_layout/row_label_metrics.rs",
+          "decision": "retain; actual path mount resolves to a separately owned audited file"
+        }
+      ],
+      "objects": [
+        {
+          "name": "material_layout_resolves_metrics_without_preflight_attribute_rescan",
+          "kind": "test",
+          "signature": "fn material_layout_resolves_metrics_without_preflight_attribute_rescan() {",
+          "lines": [
+            26,
+            33
+          ],
+          "byte_offset": 1216,
+          "byte_length": 514,
+          "span_sha256": "166ab683b7b70985728c0bdc16aa051df9de737c502510f204af0a186569f0ad",
+          "summary": "对生产 Material 测量源作两项词法包含检查；该测试没有测量实际属性访问次数。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "add-confirmed-bug-comment; keep old TODO and both assertions",
+          "steps": [
+            {
+              "lines": [
+                26,
+                28
+              ],
+              "byte_offset": 1216,
+              "byte_length": 137,
+              "sha256": "a46831ba8bcbe04dea26b9fdd207bd999800e720d43b931c2c4aff391df4e9f5",
+              "audit": "在编译时将实际 pass/material.rs 文本包含到测试字符串。"
+            },
+            {
+              "lines": [
+                29,
+                29
+              ],
+              "byte_offset": 1353,
+              "byte_length": 55,
+              "sha256": "cfe9da5086ca77fb21c8bb540d7d002b0943e0a87792d1314afff446b17a8084",
+              "audit": "否定旧预扫描名称的存在；当前生产源计数为0，因此该项为真。"
+            },
+            {
+              "lines": [
+                30,
+                32
+              ],
+              "byte_offset": 1408,
+              "byte_length": 320,
+              "sha256": "e0a339f63c4282bdb4e414c6e2e18e0ca42f0279a458cd83ca8490bff2b7853a",
+              "audit": "保留旧 let-else 正向包含断言并邻接标记；当前链式回退实现中该旧文本计数为0，断言为假。"
+            },
+            {
+              "lines": [
+                33,
+                33
+              ],
+              "byte_offset": 1728,
+              "byte_length": 2,
+              "sha256": "412ca345ccf75bf9c0806bce695be8de808b79984251a7a54d202cf6101dd451",
+              "audit": "测试函数结束；静态断言错误在终点前触发panic，未执行此测试。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [
+              "assert! 的正常/失败分支分别由实际字符串谓词决定；只确认当前第二谓词为假。"
+            ],
+            "assert_macro_counts": {
+              "assert": 2,
+              "assert_eq": 0,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [],
+          "references": [
+            "C04",
+            "C09"
+          ],
+          "issues": [
+            "CR-ZCA-R051-0001",
+            "CR-UI-TEST-0204"
+          ]
+        },
+        {
+          "name": "measure_material_leaf",
+          "kind": "test-helper",
+          "signature": "fn measure_material_leaf( component: &str, attributes: &str, constraints: BoxConstraints, ) -> DesiredSize {",
+          "lines": [
+            44,
+            76
+          ],
+          "byte_offset": 2260,
+          "byte_length": 1113,
+          "span_sha256": "49f4dfc027ded04d16b8fee9d1f1d7169af52e4e1aaab487fc4889cf861117c9",
+          "summary": "独立创建局部 UiSurface，挂载内容驱动根和一个带作者元数据的子节点，完整布局后复制期望尺寸。",
+          "parameters": [
+            [
+              "component",
+              "&str",
+              "复制为节点元数据组件名"
+            ],
+            [
+              "attributes",
+              "&str",
+              "解析为自有 TOML 属性表"
+            ],
+            [
+              "constraints",
+              "BoxConstraints",
+              "按值设置子节点轴约束"
+            ]
+          ],
+          "returns": "DesiredSize（自有值）；不返回树、表面或属性借用。",
+          "doc_decision": "add-helper-doc",
+          "steps": [
+            {
+              "lines": [
+                44,
+                48
+              ],
+              "byte_offset": 2260,
+              "byte_length": 121,
+              "sha256": "2c75a596753ed77d9783108e4e935ee7657c52479d1c1e62671485a6a97a8bfd",
+              "audit": "声明三个输入及自有期望尺寸返回值。"
+            },
+            {
+              "lines": [
+                49,
+                53
+              ],
+              "byte_offset": 2381,
+              "byte_length": 253,
+              "sha256": "db89676e892581bb0c27cf98bad5c24e65e5e93589cd3fde879758c3966ea73d",
+              "audit": "新建本次独占的表面并插入 ContentDriven 根节点1。"
+            },
+            {
+              "lines": [
+                54,
+                67
+              ],
+              "byte_offset": 2634,
+              "byte_length": 552,
+              "sha256": "146aa8ae16b99835241a8f904714b7ae9a16dc02772687b10fecc8fd28fbc51d",
+              "audit": "构造子节点2，按值设置传入约束，复制组件名并反序列化TOML属性；插入子项后unwrap。"
+            },
+            {
+              "lines": [
+                68,
+                69
+              ],
+              "byte_offset": 3186,
+              "byte_length": 65,
+              "sha256": "b1e559cde2eaab8de034381a0a81997a45cf755ece231866c7834a6ddb598ba7",
+              "audit": "以240×120根区域调用完整布局并unwrap结果。"
+            },
+            {
+              "lines": [
+                70,
+                76
+              ],
+              "byte_offset": 3251,
+              "byte_length": 122,
+              "sha256": "55903713caddb249cf8e13c241093c8be8a1d60a88fcfa7c47523782efaec04f",
+              "audit": "按ID查子节点并unwrap，将layout_cache.desired_size复制给调用者；局部状态随后释放。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [
+              "TOML读取Err、insert_child的Err、布局Err和node(None)分别由unwrap触发panic；没有恢复或回滚承诺。"
+            ],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 0,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [],
+          "references": [
+            "C07",
+            "C08",
+            "C05",
+            "C06"
+          ],
+          "issues": []
+        },
+        {
+          "name": "render_material_leaf_command",
+          "kind": "test-helper",
+          "signature": "fn render_material_leaf_command( component: &str, attributes: &str, ) -> zircon_runtime_interface::ui::surface::UiRenderCommand {",
+          "lines": [
+            86,
+            118
+          ],
+          "byte_offset": 3807,
+          "byte_length": 1269,
+          "span_sha256": "9348b067d2d7709ba441c705e216a8581bd85baca28ed84526cca4af24319485",
+          "summary": "独立表面上布局单个组件，再消费渲染命令列表并返回首个属于节点2的自有命令。",
+          "parameters": [
+            [
+              "component",
+              "&str",
+              "复制为元数据组件名"
+            ],
+            [
+              "attributes",
+              "&str",
+              "解析为节点自有属性表"
+            ]
+          ],
+          "returns": "UiRenderCommand；命令从列表移出，返回值不借用局部表面。",
+          "doc_decision": "add-helper-doc",
+          "steps": [
+            {
+              "lines": [
+                86,
+                89
+              ],
+              "byte_offset": 3807,
+              "byte_length": 138,
+              "sha256": "05d6e9089170cf3a7a49c775994aed914e903fadd687f735a1d5a847efe372bd",
+              "audit": "声明组件与TOML文本输入和自有命令返回类型。"
+            },
+            {
+              "lines": [
+                90,
+                94
+              ],
+              "byte_offset": 3945,
+              "byte_length": 260,
+              "sha256": "f84b07feece6dd588111dd8f91ecae250fc884f9a5e27df03ea9a82ddcca4c49",
+              "audit": "新建独立表面和内容驱动根节点1。"
+            },
+            {
+              "lines": [
+                95,
+                108
+              ],
+              "byte_offset": 4205,
+              "byte_length": 564,
+              "sha256": "108929056fcd88645f9f8bf888f8638380ee14f551b28019147b54aa343c6af8",
+              "audit": "子节点2使用共享固有轴配置，附自有组件名和属性表；解析和插入均unwrap。"
+            },
+            {
+              "lines": [
+                109,
+                110
+              ],
+              "byte_offset": 4769,
+              "byte_length": 65,
+              "sha256": "b1e559cde2eaab8de034381a0a81997a45cf755ece231866c7834a6ddb598ba7",
+              "audit": "完整布局240×120区域并unwrap。"
+            },
+            {
+              "lines": [
+                111,
+                118
+              ],
+              "byte_offset": 4834,
+              "byte_length": 242,
+              "sha256": "b1d8663d3ae618c5fb5aec9d3a9d0dae776639a41f687103a563cf3878062bc8",
+              "audit": "消费commands列表，find按node_id筛首项；Some返回该自有命令，None进入惰性panic。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [
+              "TOML/子项插入/布局失败会panic。",
+              "find谓词分别处理目标ID和其他ID；遍历结束None触发unwrap_or_else的panic闭包。"
+            ],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 0,
+              "assert_ne": 0,
+              "panic": 1
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "intrinsic_constraints",
+              "line": 101
+            }
+          ],
+          "references": [
+            "C07",
+            "C08"
+          ],
+          "issues": []
+        },
+        {
+          "name": "fixed_constraint",
+          "kind": "test-helper",
+          "signature": "fn fixed_constraint(size: f32) -> AxisConstraint {",
+          "lines": [
+            122,
+            131
+          ],
+          "byte_offset": 5277,
+          "byte_length": 229,
+          "span_sha256": "6401fc23a1faa8f709aa1682f3f72aae3bd4d43c8b9f0ef9f46c1e7e3ffb5488",
+          "summary": "把输入size同时写入min/max/preferred，并用priority100、weight1和Fixed模式建立测试控制轴。",
+          "parameters": [
+            [
+              "size",
+              "f32",
+              "原值写入三个轴字段；夹具不另行检查非负或有限性"
+            ]
+          ],
+          "returns": "AxisConstraint 自有值。",
+          "doc_decision": "add-helper-doc",
+          "steps": [
+            {
+              "lines": [
+                122,
+                131
+              ],
+              "byte_offset": 5277,
+              "byte_length": 229,
+              "sha256": "6401fc23a1faa8f709aa1682f3f72aae3bd4d43c8b9f0ef9f46c1e7e3ffb5488",
+              "audit": "返回AxisConstraint字面量，min/max/preferred=size、priority=100、weight=1、stretch_mode=Fixed。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 0,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [],
+          "references": [
+            "C11"
+          ],
+          "issues": []
+        },
+        {
+          "name": "intrinsic_constraints",
+          "kind": "test-helper",
+          "signature": "fn intrinsic_constraints() -> BoxConstraints {",
+          "lines": [
+            134,
+            139
+          ],
+          "byte_offset": 5593,
+          "byte_length": 165,
+          "span_sha256": "f424a51d9b6b2af68dcabc2c337e0fd91ae772c3986d93b462cffb88fb127dd8",
+          "summary": "为BoxConstraints宽高分别调用同一个无上界轴夹具。",
+          "parameters": [],
+          "returns": "BoxConstraints 自有值；两个轴是各自的值。",
+          "doc_decision": "add-helper-doc",
+          "steps": [
+            {
+              "lines": [
+                134,
+                139
+              ],
+              "byte_offset": 5593,
+              "byte_length": 165,
+              "sha256": "f424a51d9b6b2af68dcabc2c337e0fd91ae772c3986d93b462cffb88fb127dd8",
+              "audit": "返回width和height均为intrinsic_axis_constraint()的BoxConstraints。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 0,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "intrinsic_axis_constraint",
+              "line": 136
+            },
+            {
+              "callee": "intrinsic_axis_constraint",
+              "line": 137
+            }
+          ],
+          "references": [
+            "C11"
+          ],
+          "issues": []
+        },
+        {
+          "name": "intrinsic_axis_constraint",
+          "kind": "test-helper",
+          "signature": "fn intrinsic_axis_constraint() -> AxisConstraint {",
+          "lines": [
+            142,
+            151
+          ],
+          "byte_offset": 5866,
+          "byte_length": 227,
+          "span_sha256": "9aa7a1c457f4c5d35371f5fe787a7881046c64a9ce31f3771dbda64952c880be",
+          "summary": "内容驱动夹具使用min/preferred0、max-1、priority100、weight1和Fixed模式；负max在真实resolved分支转成None。",
+          "parameters": [],
+          "returns": "AxisConstraint 自有值；函数名并不引入另一种StretchMode。",
+          "doc_decision": "add-helper-doc",
+          "steps": [
+            {
+              "lines": [
+                142,
+                151
+              ],
+              "byte_offset": 5866,
+              "byte_length": 227,
+              "sha256": "9aa7a1c457f4c5d35371f5fe787a7881046c64a9ce31f3771dbda64952c880be",
+              "audit": "按值构造六个轴字段，未调用解析或验证；后续消费者将负max解释为无上界。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 0,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [],
+          "references": [
+            "C11"
+          ],
+          "issues": []
+        }
+      ],
+      "continuous_blocks": [
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_layout_resolves_metrics_without_preflight_attribute_rescan",
+          "lines": [
+            1,
+            25
+          ],
+          "byte_offset": 0,
+          "byte_length": 1216,
+          "sha256": "e902a55baa2d8b9c1d484811f0af2fe61bcdd6269c6cd7f6d9860f2d57606550",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_layout_resolves_metrics_without_preflight_attribute_rescan",
+          "lines": [
+            26,
+            33
+          ],
+          "byte_offset": 1216,
+          "byte_length": 514,
+          "sha256": "166ab683b7b70985728c0bdc16aa051df9de737c502510f204af0a186569f0ad",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "measure_material_leaf",
+          "lines": [
+            34,
+            43
+          ],
+          "byte_offset": 1730,
+          "byte_length": 530,
+          "sha256": "e371abcb0df69250636e2159efbf7b3d1c49809ae74072b68e931c6bdf64dc0c",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "measure_material_leaf",
+          "lines": [
+            44,
+            76
+          ],
+          "byte_offset": 2260,
+          "byte_length": 1113,
+          "sha256": "49f4dfc027ded04d16b8fee9d1f1d7169af52e4e1aaab487fc4889cf861117c9",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "render_material_leaf_command",
+          "lines": [
+            77,
+            85
+          ],
+          "byte_offset": 3373,
+          "byte_length": 434,
+          "sha256": "25bb9fd7b11c7092698d135495f2f82dce40c62e3623df84a229375c5e968ba1",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "render_material_leaf_command",
+          "lines": [
+            86,
+            118
+          ],
+          "byte_offset": 3807,
+          "byte_length": 1269,
+          "sha256": "9348b067d2d7709ba441c705e216a8581bd85baca28ed84526cca4af24319485",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "fixed_constraint",
+          "lines": [
+            119,
+            121
+          ],
+          "byte_offset": 5076,
+          "byte_length": 201,
+          "sha256": "bf260ed33d4c718da02bd0fbf5336cb009ff30326f4d77b364ededfcede80d4c",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "fixed_constraint",
+          "lines": [
+            122,
+            131
+          ],
+          "byte_offset": 5277,
+          "byte_length": 229,
+          "sha256": "6401fc23a1faa8f709aa1682f3f72aae3bd4d43c8b9f0ef9f46c1e7e3ffb5488",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "intrinsic_constraints",
+          "lines": [
+            132,
+            133
+          ],
+          "byte_offset": 5506,
+          "byte_length": 87,
+          "sha256": "8f05dd876d1276b96a4c4bf347408702a3b544f2cba7fde5411de354e1c54695",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "intrinsic_constraints",
+          "lines": [
+            134,
+            139
+          ],
+          "byte_offset": 5593,
+          "byte_length": 165,
+          "sha256": "f424a51d9b6b2af68dcabc2c337e0fd91ae772c3986d93b462cffb88fb127dd8",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "intrinsic_axis_constraint",
+          "lines": [
+            140,
+            141
+          ],
+          "byte_offset": 5758,
+          "byte_length": 108,
+          "sha256": "b0873d0572c8025934ef8b15a6fb5e09e2ba2e8187c7ad7076066cd8b73558b1",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "intrinsic_axis_constraint",
+          "lines": [
+            142,
+            151
+          ],
+          "byte_offset": 5866,
+          "byte_length": 227,
+          "sha256": "9aa7a1c457f4c5d35371f5fe787a7881046c64a9ce31f3771dbda64952c880be",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        }
+      ],
+      "coverage": {
+        "gapfree": true,
+        "first_line": 1,
+        "last_line": 151
+      },
+      "insertions": [
+        {
+          "id": "R051-I001",
+          "kind": "module-doc",
+          "anchor": "//! 这里搭建真实表面测量夹具；子测试从作者布局指标到期望尺寸和绘制命令验证 Material 约束。\n",
+          "position": "after",
+          "reason": "补清共享夹具与词法守卫的职责、状态所有者和返回值寿命。",
+          "before_byte_offset": 129,
+          "byte_length": 259,
+          "inserted_bytes_sha256": "685fc17741589f3155f94598575a38745a2c5665fe5509d19a8188a117126111",
+          "before_line": 2,
+          "after_byte_offset": 129,
+          "after_line": 2,
+          "exact_text": "//! 共享夹具在本地表面执行完整布局，返回自有期望尺寸或渲染命令；表面由各次调用单独创建和释放。\n//! 子模块覆盖组件行为；父模块还保留源码文本守卫，不能据此推断实际属性扫描次数。\n"
+        },
+        {
+          "id": "R051-I002",
+          "kind": "bug",
+          "anchor": "    assert!(source.contains(\"let Some(metrics) = MaterialLayoutMetrics::resolve(metadata) else\"));\n",
+          "position": "before",
+          "reason": "保留旧TODO与断言，指出由真实include_str目标闭合的既有词法断言失配。",
+          "before_byte_offset": 1149,
+          "byte_length": 221,
+          "inserted_bytes_sha256": "9b3fcd216d303b8527b6e51a4a0a44de13602a33c9ff4e6bbb0c41d5a08c43d4",
+          "before_line": 28,
+          "after_byte_offset": 1408,
+          "after_line": 30,
+          "exact_text": "    // BUG: [CR-ZCA-R051-0001] 材料测量已改用带 Dropdown 回退的链式解析，此处旧文本锚点不存在，\n    // 因而该包含断言会失败；这里只核对了静态源码，未执行 Rust 测试。\n"
+        },
+        {
+          "id": "R051-I003",
+          "kind": "helper-doc",
+          "anchor": "fn measure_material_leaf(\n",
+          "position": "before",
+          "reason": "说明组件/属性/约束输入、固定根区域、原地布局与复制输出以及panic边界。",
+          "before_byte_offset": 1251,
+          "byte_length": 529,
+          "inserted_bytes_sha256": "d0f8ce3329ceb912ff4a98cf0c487d6a4ac7ae33226502220c7b6da7530f8937",
+          "before_line": 31,
+          "after_byte_offset": 1731,
+          "after_line": 35,
+          "exact_text": "/// 在临时表面的内容驱动根下插入单个组件，执行完整布局后读取其期望尺寸。\n///\n/// # 参数\n/// `component` 与 TOML `attributes` 构造节点自有元数据；`constraints` 直接赋给被测节点。\n/// 根布局区域固定为 240×120；属性文本须能解析为 TOML 表。\n///\n/// # 返回与生命周期\n/// 返回复制出的 `DesiredSize`；本地表面在返回后释放，不保留树节点或元数据借用。\n/// 属性解析、构树或布局失败会在夹具中触发 panic。\n"
+        },
+        {
+          "id": "R051-I004",
+          "kind": "helper-doc",
+          "anchor": "fn render_material_leaf_command(\n",
+          "position": "before",
+          "reason": "明确独立表面、TOML输入、默认轴配置、命令所有权与缺失命令panic。",
+          "before_byte_offset": 2365,
+          "byte_length": 433,
+          "inserted_bytes_sha256": "0f1c4b634706a113c22d0f542d4d47c90d5b526bf49806fe415d075c208f210c",
+          "before_line": 65,
+          "after_byte_offset": 3374,
+          "after_line": 78,
+          "exact_text": "/// 在新的临时表面上布局单个组件，并取出该节点的首个渲染命令。\n///\n/// # 参数\n/// `component` 与 TOML `attributes` 构造节点自有元数据，节点使用本模块的固有尺寸约束。\n///\n/// # 返回与生命周期\n/// 返回从列表移出的自有 `UiRenderCommand`，可在临时表面销毁后继续读取。\n/// 属性解析、构树、布局失败或缺少目标命令会触发 panic。\n"
+        },
+        {
+          "id": "R051-I005",
+          "kind": "helper-doc",
+          "anchor": "fn fixed_constraint(size: f32) -> AxisConstraint {\n",
+          "position": "before",
+          "reason": "说明固定约束夹具的控制变量及不额外验证数值的边界。",
+          "before_byte_offset": 3635,
+          "byte_length": 200,
+          "inserted_bytes_sha256": "87881782d696eef9f0e9bc1b1b2d3a2e8b4b6fabf6333564380db8b4ac0b0c01",
+          "before_line": 99,
+          "after_byte_offset": 5077,
+          "after_line": 120,
+          "exact_text": "/// 将最小、最大与首选尺寸绑定为同一输入，建立高优先级 Fixed 轴。\n/// 不另行验证输入数值；测试通过它隔离作者固定约束与内容尺寸的优先关系。\n"
+        },
+        {
+          "id": "R051-I006",
+          "kind": "helper-doc",
+          "anchor": "fn intrinsic_constraints() -> BoxConstraints {\n",
+          "position": "before",
+          "reason": "说明两个轴共享配置的夹具职责。",
+          "before_byte_offset": 3865,
+          "byte_length": 86,
+          "inserted_bytes_sha256": "19564c0c0b3e870c80e74d95a2a51a44a7da8e82197568f3db90c546cb2e74dc",
+          "before_line": 110,
+          "after_byte_offset": 5507,
+          "after_line": 133,
+          "exact_text": "/// 为宽高分别使用下方的无上界轴配置，供内容驱动夹具复用。\n"
+        },
+        {
+          "id": "R051-I007",
+          "kind": "helper-doc",
+          "anchor": "fn intrinsic_axis_constraint() -> AxisConstraint {\n",
+          "position": "before",
+          "reason": "补清intrinsic命名与显式Fixed模式、负上界哨兵之间的关系。",
+          "before_byte_offset": 4031,
+          "byte_length": 107,
+          "inserted_bytes_sha256": "ef7e029adb73d91644a1cac3ae9aedf1e38bd40cd9331e331ab1370249548baa",
+          "before_line": 117,
+          "after_byte_offset": 5759,
+          "after_line": 141,
+          "exact_text": "/// 此处仍使用 Fixed 模式；负 max 在轴解析时成为无上界，供内容驱动夹具使用。\n"
+        }
+      ],
+      "no_new_comment_reason": null
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs",
+      "before_sha256": "e2cd06a748bb5fc1e77d649e19e0c20d6ed20c008f8810c2a98146663565adc8",
+      "current_sha256": "e2cd06a748bb5fc1e77d649e19e0c20d6ed20c008f8810c2a98146663565adc8",
+      "before_bytes": 2957,
+      "current_bytes": 2957,
+      "before_lines": 114,
+      "current_lines": 114,
+      "before_eol": {
+        "crlf": 0,
+        "lf": 114,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "current_eol": {
+        "crlf": 0,
+        "lf": 114,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_matches_grant": true,
+      "id": "F02",
+      "formal_scope": "whole source file; context dependencies are excluded",
+      "module_documentation": {
+        "lines": [
+          1,
+          1
+        ],
+        "decision": "retain existing concise Chinese module summary",
+        "reason": "模块摘要、每项测试名、输入字面量与精确断言已形成可复核契约，未机械重复添加。"
+      },
+      "imports": [
+        {
+          "name": "use super::*",
+          "lines": [
+            3,
+            3
+          ],
+          "names": [
+            "parent imports and private test helpers"
+          ],
+          "audit": "仅继承父测试模块导入与共享夹具；本文件没有新公共API或动态注册。"
+        }
+      ],
+      "module_declarations": [],
+      "objects": [
+        {
+          "name": "asset_value_nodes_render_as_image_or_icon_not_text",
+          "kind": "test",
+          "signature": "fn asset_value_nodes_render_as_image_or_icon_not_text() {",
+          "lines": [
+            6,
+            51
+          ],
+          "byte_offset": 146,
+          "byte_length": 1362,
+          "span_sha256": "9b96e5c61b23401d0a5c2c5ea48f0f76fa5eada2d0ce06629097199d0f56abf1",
+          "summary": "分别布局Image、Icon、SvgIcon，断言命令为Image、文本为空，且资源引用分别保留Image/Icon/Image身份。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                6,
+                13
+              ],
+              "byte_offset": 146,
+              "byte_length": 234,
+              "sha256": "432eee9d9793252fd661fd6d826a936ac16fe2377c2dbb757979f3a3a5a56f27",
+              "audit": "Image夹具提供value与image为showcase_checker.svg。"
+            },
+            {
+              "lines": [
+                14,
+                20
+              ],
+              "byte_offset": 380,
+              "byte_length": 156,
+              "sha256": "9c1d8283ebf6357a33c56a647cf0a09d6a4b91f5d593547703a6e30d0af64886",
+              "audit": "Icon夹具提供value路径与icon名称options-outline。"
+            },
+            {
+              "lines": [
+                21,
+                28
+              ],
+              "byte_offset": 536,
+              "byte_length": 179,
+              "sha256": "934f4ea8a65c647d2a9b6011c8643cb39c36ded8e40355da80a36891b658bd3f",
+              "audit": "SvgIcon夹具提供value/source同一路径。"
+            },
+            {
+              "lines": [
+                29,
+                36
+              ],
+              "byte_offset": 715,
+              "byte_length": 275,
+              "sha256": "15c9a3bdaa399e1747607b13aa380a227f2e414f0d4e5fab74daf664bce889b3",
+              "audit": "核对Image种类、无文本和Image资源引用。"
+            },
+            {
+              "lines": [
+                37,
+                42
+              ],
+              "byte_offset": 990,
+              "byte_length": 234,
+              "sha256": "f69747fea96a6d9eac44ec1d514e09b182092e451a82a2e5ee6a9b11be1cd983",
+              "audit": "核对Icon种类、无文本和Icon资源引用。"
+            },
+            {
+              "lines": [
+                43,
+                51
+              ],
+              "byte_offset": 1224,
+              "byte_length": 284,
+              "sha256": "f8d37f1c79c564795ded219e8b6228050715bd06cb71ba5c567e1bcf43220b36",
+              "audit": "核对SvgIcon种类、无文本和Image资源引用。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 9,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "render_material_leaf_command",
+              "line": 7
+            },
+            {
+              "callee": "render_material_leaf_command",
+              "line": 14
+            },
+            {
+              "callee": "render_material_leaf_command",
+              "line": 21
+            }
+          ],
+          "references": [
+            "C07"
+          ],
+          "issues": []
+        },
+        {
+          "name": "icon_button_label_is_accessibility_text_not_rendered_text",
+          "kind": "test",
+          "signature": "fn icon_button_label_is_accessibility_text_not_rendered_text() {",
+          "lines": [
+            54,
+            72
+          ],
+          "byte_offset": 1517,
+          "byte_length": 515,
+          "span_sha256": "cfe5f2ca2f73376cec2d907ded4a3ed4805d67df17db947ab008ff8e61adf587",
+          "summary": "有search-outline图标的IconButton携带label时，断言绘制命令仍是Image且无渲染文本。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                54,
+                69
+              ],
+              "byte_offset": 1517,
+              "byte_length": 384,
+              "sha256": "40bd7ef4cd2af132ec52c4d880a15d8069eb63f22c0b2e3dc53616d8a93ba4b9",
+              "audit": "构造label=Focus Console、icon=search-outline、最小40×40、图标18且零padding的IconButton。"
+            },
+            {
+              "lines": [
+                70,
+                72
+              ],
+              "byte_offset": 1901,
+              "byte_length": 131,
+              "sha256": "62f51ffb0ab93f8720caa36c55ad26314952e5cddbe85c266b97c42a6f18a4a9",
+              "audit": "核对命令种类和text=None；测试未直接检查独立无障碍树。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 2,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "render_material_leaf_command",
+              "line": 55
+            }
+          ],
+          "references": [
+            "C04",
+            "C07"
+          ],
+          "issues": []
+        },
+        {
+          "name": "common_native_material_roles_use_authored_layout_metrics",
+          "kind": "test",
+          "signature": "fn common_native_material_roles_use_authored_layout_metrics() {",
+          "lines": [
+            75,
+            114
+          ],
+          "byte_offset": 2041,
+          "byte_length": 916,
+          "span_sha256": "3719ec1a6608ea7b90036d4a9b4d29803f5f3fd634600a698b8a76004fd74850",
+          "summary": "同一测量夹具核对ProgressBar、Spinner与ContextActionMenu的作者指标；Spinner仅图标尺寸字段不等于存在图标源。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                75,
+                82
+              ],
+              "byte_offset": 2041,
+              "byte_length": 207,
+              "sha256": "4e13aefb9ecabe43674069aed234160a0305b3b9463912dd043ab47739213ff2",
+              "audit": "ProgressBar只有layout_min_height=8，预期0×8。"
+            },
+            {
+              "lines": [
+                83,
+                96
+              ],
+              "byte_offset": 2248,
+              "byte_length": 280,
+              "sha256": "dcf092fe8223a4bfaa81e681be90c7b3868e660cac979e4cf9cefc736dcb31eb",
+              "audit": "Spinner含Loading文本、字号12、行高14、左右padding16、间距8、min_height40及icon_size18但无图标源。"
+            },
+            {
+              "lines": [
+                97,
+                110
+              ],
+              "byte_offset": 2528,
+              "byte_length": 266,
+              "sha256": "4888e9e1d73cbc7efeff5c462ae1ccf4b377b6a2b7626c29542474b9ce1846ae",
+              "audit": "ContextActionMenu含Inspect文本与相同左右padding/min_height。"
+            },
+            {
+              "lines": [
+                111,
+                114
+              ],
+              "byte_offset": 2794,
+              "byte_length": 163,
+              "sha256": "cb6d142b5230afcf303b88762767e9b0268805e601acc65897717fa1c7a9304e",
+              "audit": "断言ProgressBar0×8，Spinner/Menu均74×40。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 3,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 76
+            },
+            {
+              "callee": "measure_material_leaf",
+              "line": 83
+            },
+            {
+              "callee": "measure_material_leaf",
+              "line": 97
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 81
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 95
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 108
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        }
+      ],
+      "continuous_blocks": [
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "asset_value_nodes_render_as_image_or_icon_not_text",
+          "lines": [
+            1,
+            5
+          ],
+          "byte_offset": 0,
+          "byte_length": 146,
+          "sha256": "aa79048689f732da8999faf8bccf1fdd5796e66c5a969780d31e1123cff3126e",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "asset_value_nodes_render_as_image_or_icon_not_text",
+          "lines": [
+            6,
+            51
+          ],
+          "byte_offset": 146,
+          "byte_length": 1362,
+          "sha256": "9b96e5c61b23401d0a5c2c5ea48f0f76fa5eada2d0ce06629097199d0f56abf1",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "icon_button_label_is_accessibility_text_not_rendered_text",
+          "lines": [
+            52,
+            53
+          ],
+          "byte_offset": 1508,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "icon_button_label_is_accessibility_text_not_rendered_text",
+          "lines": [
+            54,
+            72
+          ],
+          "byte_offset": 1517,
+          "byte_length": 515,
+          "sha256": "cfe5f2ca2f73376cec2d907ded4a3ed4805d67df17db947ab008ff8e61adf587",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "common_native_material_roles_use_authored_layout_metrics",
+          "lines": [
+            73,
+            74
+          ],
+          "byte_offset": 2032,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "common_native_material_roles_use_authored_layout_metrics",
+          "lines": [
+            75,
+            114
+          ],
+          "byte_offset": 2041,
+          "byte_length": 916,
+          "sha256": "3719ec1a6608ea7b90036d4a9b4d29803f5f3fd634600a698b8a76004fd74850",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        }
+      ],
+      "coverage": {
+        "gapfree": true,
+        "first_line": 1,
+        "last_line": 114
+      },
+      "insertions": [],
+      "no_new_comment_reason": "原有模块摘要与具体测试/断言已经充分；整文件审查后保留全部字节。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs",
+      "before_sha256": "b52196f7648a45f3ee4b74d5f1c1184dfb5fe1b25e7ff48e2698f7533c544649",
+      "current_sha256": "b52196f7648a45f3ee4b74d5f1c1184dfb5fe1b25e7ff48e2698f7533c544649",
+      "before_bytes": 3482,
+      "current_bytes": 3482,
+      "before_lines": 154,
+      "current_lines": 154,
+      "before_eol": {
+        "crlf": 0,
+        "lf": 154,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "current_eol": {
+        "crlf": 0,
+        "lf": 154,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_matches_grant": true,
+      "id": "F03",
+      "formal_scope": "whole source file; context dependencies are excluded",
+      "module_documentation": {
+        "lines": [
+          1,
+          1
+        ],
+        "decision": "retain existing concise Chinese module summary",
+        "reason": "模块摘要、每项测试名、输入字面量与精确断言已形成可复核契约，未机械重复添加。"
+      },
+      "imports": [
+        {
+          "name": "use super::*",
+          "lines": [
+            3,
+            3
+          ],
+          "names": [
+            "parent imports and private test helpers"
+          ],
+          "audit": "仅继承父测试模块导入与共享夹具；本文件没有新公共API或动态注册。"
+        }
+      ],
+      "module_declarations": [],
+      "objects": [
+        {
+          "name": "material_button_measures_text_plus_layout_padding",
+          "kind": "test",
+          "signature": "fn material_button_measures_text_plus_layout_padding() {",
+          "lines": [
+            6,
+            24
+          ],
+          "byte_offset": 140,
+          "byte_length": 424,
+          "span_sha256": "786ff59235ef7a051bb5a38bb3657e20b12e56dca607f0a11b607768ca05fa10",
+          "summary": "Apply按钮以字号10、行高12、左右24和上下10的作者padding，断言期望尺寸73×40。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                6,
+                22
+              ],
+              "byte_offset": 140,
+              "byte_length": 367,
+              "sha256": "99ec8d5c4344361a731af12433dd91fd7d461843f0742ae725ea7f7c1ba27c39",
+              "audit": "通过共享测量夹具建立Button元数据和固有轴配置。"
+            },
+            {
+              "lines": [
+                23,
+                24
+              ],
+              "byte_offset": 507,
+              "byte_length": 57,
+              "sha256": "eed93aca1f8e4e2e963ce3a27910d033ad95c6319515cf1ead3d1c99ca4758a9",
+              "audit": "核对73×40自有期望尺寸。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 7
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 20
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_button_long_text_expands_beyond_default_frame_width",
+          "kind": "test",
+          "signature": "fn material_button_long_text_expands_beyond_default_frame_width() {",
+          "lines": [
+            27,
+            49
+          ],
+          "byte_offset": 573,
+          "byte_length": 632,
+          "span_sha256": "d93dd6047d7d64d699c316549d6f9e3fa221539f24d0ea6794e1ba1cb52b926a",
+          "summary": "长文本Button以字号12、行高14和作者padding测量，断言288×40且宽度大于40。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                27,
+                43
+              ],
+              "byte_offset": 573,
+              "byte_length": 413,
+              "sha256": "b7ac36f302ea263aa040141dfd4f3bb914bee083bd5bab60d993eff07adf72db",
+              "audit": "构造Launch Comprehensive Runtime Diagnostics按钮并测量。"
+            },
+            {
+              "lines": [
+                44,
+                49
+              ],
+              "byte_offset": 986,
+              "byte_length": 219,
+              "sha256": "29032149beffc92368c03d027856f75a9dd9dcc479a3a05e3f5cff3c046a344f",
+              "audit": "同时核对精确尺寸和独立宽度下限谓词，保留失败诊断文本。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 1,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 28
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 41
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_button_with_icon_adds_icon_size_and_spacing",
+          "kind": "test",
+          "signature": "fn material_button_with_icon_adds_icon_size_and_spacing() {",
+          "lines": [
+            52,
+            73
+          ],
+          "byte_offset": 1214,
+          "byte_length": 483,
+          "span_sha256": "b19a8e5e414088c8f437c28648eb8923c8a2418998b9ea2c95ae3d23afeabfa8",
+          "summary": "Apply按钮增加check图标、图标18和间距8，断言99×40，区别于无图标73×40场景。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                52,
+                71
+              ],
+              "byte_offset": 1214,
+              "byte_length": 426,
+              "sha256": "31fd3fb9816a038d67aa99557d6538898e84fe9980055f07b3dcb6183a72c760",
+              "audit": "构造文本、真实icon属性和作者图标/padding指标并测量。"
+            },
+            {
+              "lines": [
+                72,
+                73
+              ],
+              "byte_offset": 1640,
+              "byte_length": 57,
+              "sha256": "aa6d48afc26484c76507961f180786ad93d82d46a888e86a761dff5c0e4bf27f",
+              "audit": "核对99×40。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 53
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 69
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_icon_button_without_text_uses_icon_and_minimum_outer_size",
+          "kind": "test",
+          "signature": "fn material_icon_button_without_text_uses_icon_and_minimum_outer_size() {",
+          "lines": [
+            76,
+            92
+          ],
+          "byte_offset": 1706,
+          "byte_length": 416,
+          "span_sha256": "8b409d199fa58d9828ed226643f902f7794937fbbefd2bdcae514d79bf17ea51",
+          "summary": "无文本也无icon源的IconButton依赖其组件身份及正icon_size18，最小40×40约束决定输出。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                76,
+                90
+              ],
+              "byte_offset": 1706,
+              "byte_length": 359,
+              "sha256": "1bca242e971892d89e4577c48203a7aee339678ffd580b8eb67aa5c4a831af3a",
+              "audit": "设置最小40×40、图标18和零padding，使用固有轴。"
+            },
+            {
+              "lines": [
+                91,
+                92
+              ],
+              "byte_offset": 2065,
+              "byte_length": 57,
+              "sha256": "babed58affada522c8920034f8bd2107cfe760d924e2c931ec008fc6e15eb5bd",
+              "audit": "断言40×40；不声称存在具体资源引用。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 77
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 88
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_icon_only_button_keeps_square_material_size",
+          "kind": "test",
+          "signature": "fn material_icon_only_button_keeps_square_material_size() {",
+          "lines": [
+            95,
+            112
+          ],
+          "byte_offset": 2131,
+          "byte_length": 423,
+          "span_sha256": "d2bb2495c32fa1834b06b7db50bb3f1315687fcd1c014d9b38a06316b80e58ff",
+          "summary": "只有add-outline图标的IconButton使用最小40×40及图标18，断言方形期望尺寸。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                95,
+                110
+              ],
+              "byte_offset": 2131,
+              "byte_length": 366,
+              "sha256": "a62eb39332632afd4158edc360cf7ca3e266e0cd03cef5369df1ff7e09c7ca00",
+              "audit": "构造显式图标来源和零padding的IconButton。"
+            },
+            {
+              "lines": [
+                111,
+                112
+              ],
+              "byte_offset": 2497,
+              "byte_length": 57,
+              "sha256": "babed58affada522c8920034f8bd2107cfe760d924e2c931ec008fc6e15eb5bd",
+              "audit": "核对40×40。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 96
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 108
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_icon_button_ignores_accessibility_label_for_intrinsic_text",
+          "kind": "test",
+          "signature": "fn material_icon_button_ignores_accessibility_label_for_intrinsic_text() {",
+          "lines": [
+            115,
+            132
+          ],
+          "byte_offset": 2563,
+          "byte_length": 441,
+          "span_sha256": "7f9d0e5b8fb17ca110854b9bb9751878269c47c27b153f540dd81b4ce0615c45",
+          "summary": "IconButton的label=Focus Console不进入固有文本尺寸；正icon_size18和最小40×40仍得到40×40。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                115,
+                130
+              ],
+              "byte_offset": 2563,
+              "byte_length": 384,
+              "sha256": "a544b43a4d6af78a41465bc5a56175bc37c6eba4fe46edf0e3d3c1e936ac292c",
+              "audit": "仅提供label、图标尺寸和作者最小/padding指标，无可视text。"
+            },
+            {
+              "lines": [
+                131,
+                132
+              ],
+              "byte_offset": 2947,
+              "byte_length": 57,
+              "sha256": "babed58affada522c8920034f8bd2107cfe760d924e2c931ec008fc6e15eb5bd",
+              "audit": "核对40×40；结论限于该测量场景。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 116
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 128
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_icon_button_without_visual_icon_keeps_label_accessibility_only",
+          "kind": "test",
+          "signature": "fn material_icon_button_without_visual_icon_keeps_label_accessibility_only() {",
+          "lines": [
+            135,
+            154
+          ],
+          "byte_offset": 3013,
+          "byte_length": 469,
+          "span_sha256": "1b3b9d3abd0c3ae4b6ad91f83be239c360482771e664656149ba78e548e4b14a",
+          "summary": "IconButton设icon_size0、无图标源，仅label和最小24×40，断言24×40而不把label当可视文本。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                135,
+                152
+              ],
+              "byte_offset": 3013,
+              "byte_length": 412,
+              "sha256": "8136be89128fc8f2cf7e87f97b97e23710648b6338048daa113e10756ad3d36c",
+              "audit": "构造label=Reveal、字号12、行高14、图标0与零padding。"
+            },
+            {
+              "lines": [
+                153,
+                154
+              ],
+              "byte_offset": 3425,
+              "byte_length": 57,
+              "sha256": "ecd1e6fbd3bcb46cff326ba76d9dcfb285edc3aca12b12de8a4703adaacdce1c",
+              "audit": "核对24×40，区别于正图标尺寸分支。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 136
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 150
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        }
+      ],
+      "continuous_blocks": [
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_button_measures_text_plus_layout_padding",
+          "lines": [
+            1,
+            5
+          ],
+          "byte_offset": 0,
+          "byte_length": 140,
+          "sha256": "0fa112ed7dd5f4b917f4b3b1ff0268230361ac0fd771e7c197bc1e3313fc5324",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_button_measures_text_plus_layout_padding",
+          "lines": [
+            6,
+            24
+          ],
+          "byte_offset": 140,
+          "byte_length": 424,
+          "sha256": "786ff59235ef7a051bb5a38bb3657e20b12e56dca607f0a11b607768ca05fa10",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_button_long_text_expands_beyond_default_frame_width",
+          "lines": [
+            25,
+            26
+          ],
+          "byte_offset": 564,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_button_long_text_expands_beyond_default_frame_width",
+          "lines": [
+            27,
+            49
+          ],
+          "byte_offset": 573,
+          "byte_length": 632,
+          "sha256": "d93dd6047d7d64d699c316549d6f9e3fa221539f24d0ea6794e1ba1cb52b926a",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_button_with_icon_adds_icon_size_and_spacing",
+          "lines": [
+            50,
+            51
+          ],
+          "byte_offset": 1205,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_button_with_icon_adds_icon_size_and_spacing",
+          "lines": [
+            52,
+            73
+          ],
+          "byte_offset": 1214,
+          "byte_length": 483,
+          "sha256": "b19a8e5e414088c8f437c28648eb8923c8a2418998b9ea2c95ae3d23afeabfa8",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_icon_button_without_text_uses_icon_and_minimum_outer_size",
+          "lines": [
+            74,
+            75
+          ],
+          "byte_offset": 1697,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_icon_button_without_text_uses_icon_and_minimum_outer_size",
+          "lines": [
+            76,
+            92
+          ],
+          "byte_offset": 1706,
+          "byte_length": 416,
+          "sha256": "8b409d199fa58d9828ed226643f902f7794937fbbefd2bdcae514d79bf17ea51",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_icon_only_button_keeps_square_material_size",
+          "lines": [
+            93,
+            94
+          ],
+          "byte_offset": 2122,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_icon_only_button_keeps_square_material_size",
+          "lines": [
+            95,
+            112
+          ],
+          "byte_offset": 2131,
+          "byte_length": 423,
+          "sha256": "d2bb2495c32fa1834b06b7db50bb3f1315687fcd1c014d9b38a06316b80e58ff",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_icon_button_ignores_accessibility_label_for_intrinsic_text",
+          "lines": [
+            113,
+            114
+          ],
+          "byte_offset": 2554,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_icon_button_ignores_accessibility_label_for_intrinsic_text",
+          "lines": [
+            115,
+            132
+          ],
+          "byte_offset": 2563,
+          "byte_length": 441,
+          "sha256": "7f9d0e5b8fb17ca110854b9bb9751878269c47c27b153f540dd81b4ce0615c45",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_icon_button_without_visual_icon_keeps_label_accessibility_only",
+          "lines": [
+            133,
+            134
+          ],
+          "byte_offset": 3004,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_icon_button_without_visual_icon_keeps_label_accessibility_only",
+          "lines": [
+            135,
+            154
+          ],
+          "byte_offset": 3013,
+          "byte_length": 469,
+          "sha256": "1b3b9d3abd0c3ae4b6ad91f83be239c360482771e664656149ba78e548e4b14a",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        }
+      ],
+      "coverage": {
+        "gapfree": true,
+        "first_line": 1,
+        "last_line": 154
+      },
+      "insertions": [],
+      "no_new_comment_reason": "原有模块摘要与具体测试/断言已经充分；整文件审查后保留全部字节。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/material_layout/constraints_children.rs",
+      "before_sha256": "4c4b08a6aa35176624cb3b204a83fff92284ed02d825629153b224f7b5663391",
+      "current_sha256": "4c4b08a6aa35176624cb3b204a83fff92284ed02d825629153b224f7b5663391",
+      "before_bytes": 3345,
+      "current_bytes": 3345,
+      "before_lines": 121,
+      "current_lines": 121,
+      "before_eol": {
+        "crlf": 0,
+        "lf": 121,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "current_eol": {
+        "crlf": 0,
+        "lf": 121,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_matches_grant": true,
+      "id": "F04",
+      "formal_scope": "whole source file; context dependencies are excluded",
+      "module_documentation": {
+        "lines": [
+          1,
+          1
+        ],
+        "decision": "retain existing concise Chinese module summary",
+        "reason": "模块摘要、每项测试名、输入字面量与精确断言已形成可复核契约，未机械重复添加。"
+      },
+      "imports": [
+        {
+          "name": "use super::*",
+          "lines": [
+            3,
+            3
+          ],
+          "names": [
+            "parent imports and private test helpers"
+          ],
+          "audit": "仅继承父测试模块导入与共享夹具；本文件没有新公共API或动态注册。"
+        }
+      ],
+      "module_declarations": [],
+      "objects": [
+        {
+          "name": "material_button_respects_authored_fixed_constraints",
+          "kind": "test",
+          "signature": "fn material_button_respects_authored_fixed_constraints() {",
+          "lines": [
+            6,
+            27
+          ],
+          "byte_offset": 149,
+          "byte_length": 518,
+          "span_sha256": "0e80bdce7171e4b9557a386d5da474d81214ad549012b7bb736b9fd334225c54",
+          "summary": "相同Apply内容指标下，用固定轴宽120/高44覆写固有内容结果，断言120×44。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                6,
+                25
+              ],
+              "byte_offset": 149,
+              "byte_length": 460,
+              "sha256": "a52fd447eb3df701ac8f830f48dfa387fd295de4c78614594913dab5d9bd4d64",
+              "audit": "构造Button并显式传入由fixed_constraint生成的BoxConstraints宽120/高44。"
+            },
+            {
+              "lines": [
+                26,
+                27
+              ],
+              "byte_offset": 609,
+              "byte_length": 58,
+              "sha256": "76a3dbbe8fc07cbaea07dfb909cd881b07bede775f2d6dbf00010551051a7346",
+              "audit": "核对最终期望尺寸120×44。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 7
+            },
+            {
+              "callee": "fixed_constraint",
+              "line": 21
+            },
+            {
+              "callee": "fixed_constraint",
+              "line": 22
+            }
+          ],
+          "references": [
+            "C11",
+            "C05",
+            "C06"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_button_with_child_content_receives_padding_and_minimum_height",
+          "kind": "test",
+          "signature": "fn material_button_with_child_content_receives_padding_and_minimum_height() {",
+          "lines": [
+            30,
+            88
+          ],
+          "byte_offset": 676,
+          "byte_length": 2002,
+          "span_sha256": "466bf20815b8f3e65936636170acc6422d8899acff8712a351cb077bef3f5cba",
+          "summary": "直接构造根→Button→Label三层局部树，检验子内容经过父级Material padding及最小高度后得到73×40。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                30,
+                36
+              ],
+              "byte_offset": 676,
+              "byte_length": 352,
+              "sha256": "de4158b42bc4afc642f8ccbe63240d6eaaf47e76ec8718e226f014fb6d1c0821",
+              "audit": "建立独立表面和内容驱动根节点1。"
+            },
+            {
+              "lines": [
+                37,
+                58
+              ],
+              "byte_offset": 1028,
+              "byte_length": 739,
+              "sha256": "3c0a4e87180b9c5e80f953e46b73eaf1d4ee8443e9569bdf7589f86ebc30e736",
+              "audit": "插入内容驱动Button节点2，固有约束，左右padding24、上下10、min_height40，元数据解析和插入均unwrap。"
+            },
+            {
+              "lines": [
+                59,
+                79
+              ],
+              "byte_offset": 1767,
+              "byte_length": 678,
+              "sha256": "87848c56b0025ea0073a1eb5dab932661fc63922af80011d3eccd43d8284e48f",
+              "audit": "在Button下插入Label节点3，固有约束，Apply字号10/行高12；解析和插入unwrap。"
+            },
+            {
+              "lines": [
+                80,
+                82
+              ],
+              "byte_offset": 2445,
+              "byte_length": 66,
+              "sha256": "088a3cbc7267881b22d59a09e4bff57eff00406b91ed1ebbee31fb6b8d5eb2f1",
+              "audit": "执行240×120完整布局并unwrap。"
+            },
+            {
+              "lines": [
+                83,
+                88
+              ],
+              "byte_offset": 2511,
+              "byte_length": 167,
+              "sha256": "f630e9053cd4fed97b5b1e027228e34a1f0c779d60ba6c602539bfefaa19be18",
+              "audit": "借用仍存活的局部树节点2，断言其缓存期望尺寸73×40；借用不离开测试。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [
+              "两处TOML读取和insert_child、布局Err、node(None)都会panic，未建立错误恢复协议。"
+            ],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "intrinsic_constraints",
+              "line": 42
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 65
+            }
+          ],
+          "references": [
+            "C04",
+            "C05",
+            "C06",
+            "C07",
+            "C08"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_list_field_and_switch_controls_keep_min_height",
+          "kind": "test",
+          "signature": "fn material_list_field_and_switch_controls_keep_min_height() {",
+          "lines": [
+            91,
+            121
+          ],
+          "byte_offset": 2687,
+          "byte_length": 658,
+          "span_sha256": "b97f9eab16db7164cf01e9310275eb41bbca95807529fedfa118a89dbf238cb6",
+          "summary": "ListRow、空TextField和Switch分别保留作者min_height40/56/40；本测试只比较高度。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                91,
+                101
+              ],
+              "byte_offset": 2687,
+              "byte_length": 247,
+              "sha256": "8cdfdd033eb9db85d474530d4f0b1cf05e16467eb133ab79c5f8d7d7480a3367",
+              "audit": "测量带Go文本的ListRow。"
+            },
+            {
+              "lines": [
+                102,
+                109
+              ],
+              "byte_offset": 2934,
+              "byte_length": 154,
+              "sha256": "8c8b335f59cdfe26a413664bdc214fcfe170a8e7f585cb1b27e9f42aed99f3aa",
+              "audit": "测量空text并设min_height56的TextField。"
+            },
+            {
+              "lines": [
+                110,
+                117
+              ],
+              "byte_offset": 3088,
+              "byte_length": 138,
+              "sha256": "669338ee476af89cc470b6c1ba5d9d7221c67597894e1658eab57073ee6116b9",
+              "audit": "测量只设min_height40的Switch。"
+            },
+            {
+              "lines": [
+                118,
+                121
+              ],
+              "byte_offset": 3226,
+              "byte_length": 119,
+              "sha256": "00f1219a98804d9fd818374723814ec4cb9505907117ab46869c39201f11745c",
+              "audit": "分别核对三项height；不把宽度纳入本测试结论。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 3,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 92
+            },
+            {
+              "callee": "measure_material_leaf",
+              "line": 102
+            },
+            {
+              "callee": "measure_material_leaf",
+              "line": 110
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 100
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 108
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 115
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        }
+      ],
+      "continuous_blocks": [
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_button_respects_authored_fixed_constraints",
+          "lines": [
+            1,
+            5
+          ],
+          "byte_offset": 0,
+          "byte_length": 149,
+          "sha256": "1d9b895a72b0d44f562d43f03b75a07236896982e088b89f4beb5204cce3d09e",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_button_respects_authored_fixed_constraints",
+          "lines": [
+            6,
+            27
+          ],
+          "byte_offset": 149,
+          "byte_length": 518,
+          "sha256": "0e80bdce7171e4b9557a386d5da474d81214ad549012b7bb736b9fd334225c54",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_button_with_child_content_receives_padding_and_minimum_height",
+          "lines": [
+            28,
+            29
+          ],
+          "byte_offset": 667,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_button_with_child_content_receives_padding_and_minimum_height",
+          "lines": [
+            30,
+            88
+          ],
+          "byte_offset": 676,
+          "byte_length": 2002,
+          "sha256": "466bf20815b8f3e65936636170acc6422d8899acff8712a351cb077bef3f5cba",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_list_field_and_switch_controls_keep_min_height",
+          "lines": [
+            89,
+            90
+          ],
+          "byte_offset": 2678,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_list_field_and_switch_controls_keep_min_height",
+          "lines": [
+            91,
+            121
+          ],
+          "byte_offset": 2687,
+          "byte_length": 658,
+          "sha256": "b97f9eab16db7164cf01e9310275eb41bbca95807529fedfa118a89dbf238cb6",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        }
+      ],
+      "coverage": {
+        "gapfree": true,
+        "first_line": 1,
+        "last_line": 121
+      },
+      "insertions": [],
+      "no_new_comment_reason": "原有模块摘要与具体测试/断言已经充分；整文件审查后保留全部字节。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/material_layout/field_values.rs",
+      "before_sha256": "13dd3152b92a64769784777031e7e5f3e70710e5aec6f9f607f8a9adb7029b2d",
+      "current_sha256": "13dd3152b92a64769784777031e7e5f3e70710e5aec6f9f607f8a9adb7029b2d",
+      "before_bytes": 5766,
+      "current_bytes": 5766,
+      "before_lines": 239,
+      "current_lines": 239,
+      "before_eol": {
+        "crlf": 0,
+        "lf": 239,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "current_eol": {
+        "crlf": 0,
+        "lf": 239,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_matches_grant": true,
+      "id": "F05",
+      "formal_scope": "whole source file; context dependencies are excluded",
+      "module_documentation": {
+        "lines": [
+          1,
+          1
+        ],
+        "decision": "retain existing concise Chinese module summary",
+        "reason": "模块摘要、每项测试名、输入字面量与精确断言已形成可复核契约，未机械重复添加。"
+      },
+      "imports": [
+        {
+          "name": "use super::*",
+          "lines": [
+            3,
+            3
+          ],
+          "names": [
+            "parent imports and private test helpers"
+          ],
+          "audit": "仅继承父测试模块导入与共享夹具；本文件没有新公共API或动态注册。"
+        }
+      ],
+      "module_declarations": [],
+      "objects": [
+        {
+          "name": "material_fields_measure_visible_value_placeholder_and_options_text",
+          "kind": "test",
+          "signature": "fn material_fields_measure_visible_value_placeholder_and_options_text() {",
+          "lines": [
+            6,
+            71
+          ],
+          "byte_offset": 167,
+          "byte_length": 1703,
+          "span_sha256": "c1d8d7e48301e1967689220b7c72ad6f2fd92d64eadb03158f93493f99e080a4",
+          "summary": "InputField值、TextField空值占位符、ComboBox选择值和缺省首项分别参与测量；精确预期206/224/116/164宽、统一56高。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                6,
+                21
+              ],
+              "byte_offset": 167,
+              "byte_length": 415,
+              "sha256": "39f328efc83a2918e33edf3a96243cd243900ee685fc865fe2f40b0d001be383",
+              "audit": "InputField value=runtime/material/search/query，另有Search占位符。"
+            },
+            {
+              "lines": [
+                22,
+                36
+              ],
+              "byte_offset": 582,
+              "byte_length": 342,
+              "sha256": "a48de632566d9e31894d26cc6a2f6eac3a77ac0ebd716d8af7fb4454aac9c05e",
+              "audit": "TextField value为空，placeholder=Describe runtime material layout。"
+            },
+            {
+              "lines": [
+                37,
+                51
+              ],
+              "byte_offset": 924,
+              "byte_length": 354,
+              "sha256": "3e8623c90596a08a0a1efb111f911e487aeccc6f1991fa99a875dfb175dd3d74",
+              "audit": "ComboBox value=Slate Material，options含Native/Slate Material/Compact。"
+            },
+            {
+              "lines": [
+                52,
+                66
+              ],
+              "byte_offset": 1278,
+              "byte_length": 333,
+              "sha256": "a40c531bf3d27eda7fc40e721ff3db4978c85769be086cdca229441a064a218b",
+              "audit": "ComboBox未设value，options第一项First Available Option。"
+            },
+            {
+              "lines": [
+                67,
+                71
+              ],
+              "byte_offset": 1611,
+              "byte_length": 259,
+              "sha256": "85e2a62cd25ade2ad218976641dbb5b3abd900ff719d7be88e10bcb71472d2f1",
+              "audit": "核对四个DesiredSize，保留作者左右padding16、上下4、min_height56。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 4,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 7
+            },
+            {
+              "callee": "measure_material_leaf",
+              "line": 22
+            },
+            {
+              "callee": "measure_material_leaf",
+              "line": 37
+            },
+            {
+              "callee": "measure_material_leaf",
+              "line": 52
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 20
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 35
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 50
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 64
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "text_field_placeholder_measures_without_becoming_editable_value",
+          "kind": "test",
+          "signature": "fn text_field_placeholder_measures_without_becoming_editable_value() {",
+          "lines": [
+            74,
+            103
+          ],
+          "byte_offset": 1879,
+          "byte_length": 743,
+          "span_sha256": "f8bf8e29125c8f82b692e0d012a752fb716439b6f34b7ef40f7627e78796118f",
+          "summary": "空值TextField的占位符参与显示/测量，命令frame宽224，但editable.text仍为空字符串。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                74,
+                89
+              ],
+              "byte_offset": 1879,
+              "byte_length": 379,
+              "sha256": "2d5d97735265f21cee99e0bc5ba316277ddc9102aa126922b67ec1bc360a2353",
+              "audit": "渲染空value、Describe runtime material layout占位符的TextField。"
+            },
+            {
+              "lines": [
+                90,
+                94
+              ],
+              "byte_offset": 2258,
+              "byte_length": 149,
+              "sha256": "340c89711cb11b351f852b2cfbf44e8dbcd817dc1a6e3bc8c90fa93bb99ab1c7",
+              "audit": "核对绘制文本与frame.width=224。"
+            },
+            {
+              "lines": [
+                95,
+                103
+              ],
+              "byte_offset": 2407,
+              "byte_length": 215,
+              "sha256": "c81b70103cd3f6ab6afa92bd18072074425744c49e06283b7f2b9ca159065d24",
+              "audit": "通过as_ref/and_then/map借用命令内text_layout和editable，最终比较Some(空串)。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [
+              "text_layout=None或editable=None时Option链返回None并导致assert失败；Some分支借用的字符串仅在命令存活的断言内使用。"
+            ],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 3,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "render_material_leaf_command",
+              "line": 75
+            }
+          ],
+          "references": [
+            "C07"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_numeric_fields_measure_numeric_value_text",
+          "kind": "test",
+          "signature": "fn material_numeric_fields_measure_numeric_value_text() {",
+          "lines": [
+            106,
+            138
+          ],
+          "byte_offset": 2631,
+          "byte_length": 741,
+          "span_sha256": "e3aba53b58467a1ed43c62764f5e1ad2a4dc27b4bc1bac3bac7b17601e5a71e3",
+          "summary": "NumberField整数12345与RangeField小数0.75以字号12和作者padding测量，断言62×56及56×56。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                106,
+                120
+              ],
+              "byte_offset": 2631,
+              "byte_length": 346,
+              "sha256": "55665f775f1bdc92f6fb114bd56d5bdad6850451a800772775773beddfef7e91",
+              "audit": "构造数值NumberField并测量。"
+            },
+            {
+              "lines": [
+                121,
+                135
+              ],
+              "byte_offset": 2977,
+              "byte_length": 286,
+              "sha256": "4625520350d847acd315715b9ef26315105101c8b1831ec1f5bbc200219e2fa1",
+              "audit": "构造小数RangeField并测量。"
+            },
+            {
+              "lines": [
+                136,
+                138
+              ],
+              "byte_offset": 3263,
+              "byte_length": 109,
+              "sha256": "5bcc62d080bfa83297d8b2e4ab2c8130db3645fbfb2035f876b3b5faf7c09730",
+              "audit": "核对两个精确期望尺寸。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 2,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 107
+            },
+            {
+              "callee": "measure_material_leaf",
+              "line": 121
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 119
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 133
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_options_measure_scalar_and_object_visible_text",
+          "kind": "test",
+          "signature": "fn material_options_measure_scalar_and_object_visible_text() {",
+          "lines": [
+            141,
+            203
+          ],
+          "byte_offset": 3381,
+          "byte_length": 1595,
+          "span_sha256": "678d2ac6d3faa5a700f11d3e8d2acbf9a984733c2f0ae990d1ac3a6a625c273a",
+          "summary": "ComboBox首项可为数值、对象label回退、对象value回退或布尔值，分别断言44/116/44/56宽且高56。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                141,
+                155
+              ],
+              "byte_offset": 3381,
+              "byte_length": 360,
+              "sha256": "aee86a81998ff81cad82076433a980ad922c6e28eb078bbe68a2194ffd76258b",
+              "audit": "options=[42,7]数值场景。"
+            },
+            {
+              "lines": [
+                156,
+                169
+              ],
+              "byte_offset": 3741,
+              "byte_length": 338,
+              "sha256": "430cab664bbc578ad4d108e1bd856dc2750c08165cef3be10b668ccf4e51e7e7",
+              "audit": "对象text为空而label=Fallback Label场景。"
+            },
+            {
+              "lines": [
+                170,
+                183
+              ],
+              "byte_offset": 4079,
+              "byte_length": 335,
+              "sha256": "5f2a06d27cb6aaa3deeceb8607a7a4eccf375bd69fd76fbbda59d0a6bf881a62",
+              "audit": "对象text与label均空，value=42场景。"
+            },
+            {
+              "lines": [
+                184,
+                198
+              ],
+              "byte_offset": 4414,
+              "byte_length": 301,
+              "sha256": "e5830968443b23bd317db9eb49cef3dc6a22fd9431d834ead6522e4f7bf2b814",
+              "audit": "options=[true,false]布尔场景。"
+            },
+            {
+              "lines": [
+                199,
+                203
+              ],
+              "byte_offset": 4715,
+              "byte_length": 261,
+              "sha256": "be735aa2d182c9056260574da34aec2b32e57cbe9c454f3f60a3fb89a4a2675c",
+              "audit": "核对四项期望尺寸；测试没有覆盖所有选项类型或越界选择。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 4,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 142
+            },
+            {
+              "callee": "measure_material_leaf",
+              "line": 156
+            },
+            {
+              "callee": "measure_material_leaf",
+              "line": 170
+            },
+            {
+              "callee": "measure_material_leaf",
+              "line": 184
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 154
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 168
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 182
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 196
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_vector_fields_measure_visible_value_text",
+          "kind": "test",
+          "signature": "fn material_vector_fields_measure_visible_value_text() {",
+          "lines": [
+            206,
+            239
+          ],
+          "byte_offset": 4985,
+          "byte_length": 781,
+          "span_sha256": "783ec57a3f8035ef89f366c4a9d17746e4611cde80e7db70b6678f04e2c62938",
+          "summary": "Vector3Field显式value_text与ColorField颜色字符串参与测量，两项断言74×28。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                206,
+                221
+              ],
+              "byte_offset": 4985,
+              "byte_length": 379,
+              "sha256": "6b9770973dc1abbc0a0b82273bd87be4507aa344b1c1dcac91324311782dbb80",
+              "audit": "Vector3Field value=[0,1,0]，value_text为0, 1, 0。"
+            },
+            {
+              "lines": [
+                222,
+                236
+              ],
+              "byte_offset": 5364,
+              "byte_length": 293,
+              "sha256": "d30eaf0d77f685cb3653def31b9dce4bbd249cbe66639d9096944b4d41b8823d",
+              "audit": "ColorField携带颜色文本和相同字号/左右padding/min_height指标。"
+            },
+            {
+              "lines": [
+                237,
+                239
+              ],
+              "byte_offset": 5657,
+              "byte_length": 109,
+              "sha256": "1593e537701b4d503c52f0cec4d3754a72f2d3128a2ab221e809f14cd529739c",
+              "audit": "核对两个DesiredSize为74×28。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 2,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 207
+            },
+            {
+              "callee": "measure_material_leaf",
+              "line": 222
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 220
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 234
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        }
+      ],
+      "continuous_blocks": [
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_fields_measure_visible_value_placeholder_and_options_text",
+          "lines": [
+            1,
+            5
+          ],
+          "byte_offset": 0,
+          "byte_length": 167,
+          "sha256": "714e5f8b55400cf93562ed71319a0faf80ed0f5d2203a299928da696072bb33a",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_fields_measure_visible_value_placeholder_and_options_text",
+          "lines": [
+            6,
+            71
+          ],
+          "byte_offset": 167,
+          "byte_length": 1703,
+          "sha256": "c1d8d7e48301e1967689220b7c72ad6f2fd92d64eadb03158f93493f99e080a4",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "text_field_placeholder_measures_without_becoming_editable_value",
+          "lines": [
+            72,
+            73
+          ],
+          "byte_offset": 1870,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "text_field_placeholder_measures_without_becoming_editable_value",
+          "lines": [
+            74,
+            103
+          ],
+          "byte_offset": 1879,
+          "byte_length": 743,
+          "sha256": "f8bf8e29125c8f82b692e0d012a752fb716439b6f34b7ef40f7627e78796118f",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_numeric_fields_measure_numeric_value_text",
+          "lines": [
+            104,
+            105
+          ],
+          "byte_offset": 2622,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_numeric_fields_measure_numeric_value_text",
+          "lines": [
+            106,
+            138
+          ],
+          "byte_offset": 2631,
+          "byte_length": 741,
+          "sha256": "e3aba53b58467a1ed43c62764f5e1ad2a4dc27b4bc1bac3bac7b17601e5a71e3",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_options_measure_scalar_and_object_visible_text",
+          "lines": [
+            139,
+            140
+          ],
+          "byte_offset": 3372,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_options_measure_scalar_and_object_visible_text",
+          "lines": [
+            141,
+            203
+          ],
+          "byte_offset": 3381,
+          "byte_length": 1595,
+          "sha256": "678d2ac6d3faa5a700f11d3e8d2acbf9a984733c2f0ae990d1ac3a6a625c273a",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_vector_fields_measure_visible_value_text",
+          "lines": [
+            204,
+            205
+          ],
+          "byte_offset": 4976,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_vector_fields_measure_visible_value_text",
+          "lines": [
+            206,
+            239
+          ],
+          "byte_offset": 4985,
+          "byte_length": 781,
+          "sha256": "783ec57a3f8035ef89f366c4a9d17746e4611cde80e7db70b6678f04e2c62938",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        }
+      ],
+      "coverage": {
+        "gapfree": true,
+        "first_line": 1,
+        "last_line": 239
+      },
+      "insertions": [],
+      "no_new_comment_reason": "原有模块摘要与具体测试/断言已经充分；整文件审查后保留全部字节。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs",
+      "before_sha256": "cfc8bcb3eaead4d1e0d3b7f885b7f428639c019bd1179cf687bab402c9dffa1d",
+      "current_sha256": "cfc8bcb3eaead4d1e0d3b7f885b7f428639c019bd1179cf687bab402c9dffa1d",
+      "before_bytes": 2049,
+      "current_bytes": 2049,
+      "before_lines": 95,
+      "current_lines": 95,
+      "before_eol": {
+        "crlf": 0,
+        "lf": 95,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "current_eol": {
+        "crlf": 0,
+        "lf": 95,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_matches_grant": true,
+      "id": "F06",
+      "formal_scope": "whole source file; context dependencies are excluded",
+      "module_documentation": {
+        "lines": [
+          1,
+          1
+        ],
+        "decision": "retain existing concise Chinese module summary",
+        "reason": "模块摘要、每项测试名、输入字面量与精确断言已形成可复核契约，未机械重复添加。"
+      },
+      "imports": [
+        {
+          "name": "use super::*",
+          "lines": [
+            3,
+            3
+          ],
+          "names": [
+            "parent imports and private test helpers"
+          ],
+          "audit": "仅继承父测试模块导入与共享夹具；本文件没有新公共API或动态注册。"
+        }
+      ],
+      "module_declarations": [],
+      "objects": [
+        {
+          "name": "material_menu_item_uses_list_row_height_and_horizontal_padding",
+          "kind": "test",
+          "signature": "fn material_menu_item_uses_list_row_height_and_horizontal_padding() {",
+          "lines": [
+            6,
+            22
+          ],
+          "byte_offset": 150,
+          "byte_length": 389,
+          "span_sha256": "bc85d7cfe0ebdfdfd6b1b5a1dcce5ed66eca1be28f53647cf66f91cec5fb3f92",
+          "summary": "Duplicate菜单项使用字号12、行高14、左右padding16、min_height40，断言86×40。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                6,
+                20
+              ],
+              "byte_offset": 150,
+              "byte_length": 332,
+              "sha256": "ffd4d65adbba083591eeeff9e592b5926b227e1071f145c7a6cfedc96718fa47",
+              "audit": "构造MenuItem元数据，含spacing8但无图标源。"
+            },
+            {
+              "lines": [
+                21,
+                22
+              ],
+              "byte_offset": 482,
+              "byte_length": 57,
+              "sha256": "17e447a7ae94f3f6238d485e5a18d26bd3529f9e4d82ec23a09afe98db1d2f7f",
+              "audit": "核对86×40。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 7
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 18
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_tab_uses_control_height_and_text_width_plus_padding",
+          "kind": "test",
+          "signature": "fn material_tab_uses_control_height_and_text_width_plus_padding() {",
+          "lines": [
+            25,
+            43
+          ],
+          "byte_offset": 548,
+          "byte_length": 437,
+          "span_sha256": "6b110d5a6d3fa8eeb1e339d2f4befe26c56a66d6b429218897d6429e3a6988b1",
+          "summary": "Inspector标签页使用左右padding24、上下10和min40×36，断言102×36。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                25,
+                41
+              ],
+              "byte_offset": 548,
+              "byte_length": 379,
+              "sha256": "231994a279d2f552edce22f7a4cdda2ca52a6499319f0a2484b04c3b84f24176",
+              "audit": "构造Tab作者指标并测量。"
+            },
+            {
+              "lines": [
+                42,
+                43
+              ],
+              "byte_offset": 927,
+              "byte_length": 58,
+              "sha256": "89e87525d2fa008a88aa73a5d6e962e96340fd435621c2b44c8f98aa4c1d4be4",
+              "audit": "核对102×36。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 26
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 39
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "plain_non_material_label_remains_text_only",
+          "kind": "test",
+          "signature": "fn plain_non_material_label_remains_text_only() {",
+          "lines": [
+            46,
+            58
+          ],
+          "byte_offset": 994,
+          "byte_length": 275,
+          "span_sha256": "f3dc1a140f05cb576837be61decfeb02f9a7d063226ba7530aef50d1b2b9192d",
+          "summary": "Label没有任何layout_*作者指标时，Plain label纯文本尺寸仍为66×14。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                46,
+                56
+              ],
+              "byte_offset": 994,
+              "byte_length": 218,
+              "sha256": "fefdf92d5f29675a1249a5adf6ab1d6ba85f29b7042f844eeb03b05d284fc449",
+              "audit": "只给text、font_size12与line_height14，使用共享固有轴。"
+            },
+            {
+              "lines": [
+                57,
+                58
+              ],
+              "byte_offset": 1212,
+              "byte_length": 57,
+              "sha256": "92decefd9efc7f0b26d958f43f2461c636cba6b3ee9e230811f91dabfcdde06f",
+              "audit": "核对66×14；与有指标Label场景形成边界对照。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 47
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 54
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_label_with_layout_attributes_receives_conservative_padding",
+          "kind": "test",
+          "signature": "fn material_label_with_layout_attributes_receives_conservative_padding() {",
+          "lines": [
+            61,
+            76
+          ],
+          "byte_offset": 1278,
+          "byte_length": 369,
+          "span_sha256": "309527d6d859e531015ccf5d896291d5215ace0e3754d4eb1264e89e148f4801",
+          "summary": "Label提供Status文本及左右padding16、min_height40后，断言68×40。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                61,
+                74
+              ],
+              "byte_offset": 1278,
+              "byte_length": 312,
+              "sha256": "1a5f68e89e4af8593f94683f45ce7264a22a94823d8f8942384a822c5e9cbbad",
+              "audit": "构造显式layout指标的Label。"
+            },
+            {
+              "lines": [
+                75,
+                76
+              ],
+              "byte_offset": 1590,
+              "byte_length": 57,
+              "sha256": "cac4d3189bbf8eb34db83c982fdf7165e0b2092d046984217414e8dcae4ad5d7",
+              "audit": "核对68×40。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 62
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 72
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        },
+        {
+          "name": "material_table_row_uses_list_row_height_and_text_width_plus_padding",
+          "kind": "test",
+          "signature": "fn material_table_row_uses_list_row_height_and_text_width_plus_padding() {",
+          "lines": [
+            79,
+            95
+          ],
+          "byte_offset": 1656,
+          "byte_length": 393,
+          "span_sha256": "afaf2cea66ee946d883910f0a461b7657238bb33747c6ada5539e9ed7c5d06ee",
+          "summary": "Row 1024表格行以字号12、行高14、左右padding16、min_height40测量，断言80×40。",
+          "parameters": [],
+          "returns": "()；测试内断言失败会panic。",
+          "doc_decision": "retain-existing-doc-and-test; no additional comment",
+          "steps": [
+            {
+              "lines": [
+                79,
+                93
+              ],
+              "byte_offset": 1656,
+              "byte_length": 336,
+              "sha256": "64e94e9540ecd78ae7f082b47388ea886103bd0b39208a8f58abb98f447578cd",
+              "audit": "构造TableRow作者指标，spacing8但无图标源。"
+            },
+            {
+              "lines": [
+                94,
+                95
+              ],
+              "byte_offset": 1992,
+              "byte_length": 57,
+              "sha256": "7a680ea7447e850f43e128ffb4245eb123929c6b1a5fd449d59e95380e4d5539",
+              "audit": "核对80×40。"
+            }
+          ],
+          "control_flow": {
+            "explicit_if_for_while_match_tokens": 0,
+            "reviewed_macro_option_result_paths": [],
+            "assert_macro_counts": {
+              "assert": 0,
+              "assert_eq": 1,
+              "assert_ne": 0,
+              "panic": 0
+            }
+          },
+          "helper_calls": [
+            {
+              "callee": "measure_material_leaf",
+              "line": 80
+            },
+            {
+              "callee": "intrinsic_constraints",
+              "line": 91
+            }
+          ],
+          "references": [
+            "C04",
+            "C05"
+          ],
+          "issues": []
+        }
+      ],
+      "continuous_blocks": [
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_menu_item_uses_list_row_height_and_horizontal_padding",
+          "lines": [
+            1,
+            5
+          ],
+          "byte_offset": 0,
+          "byte_length": 150,
+          "sha256": "3a847a665f101f7a63d1e3aac6b5b7334eec5afc9f7ad1fe02b88d05912ca7d4",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_menu_item_uses_list_row_height_and_horizontal_padding",
+          "lines": [
+            6,
+            22
+          ],
+          "byte_offset": 150,
+          "byte_length": 389,
+          "sha256": "bc85d7cfe0ebdfdfd6b1b5a1dcce5ed66eca1be28f53647cf66f91cec5fb3f92",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_tab_uses_control_height_and_text_width_plus_padding",
+          "lines": [
+            23,
+            24
+          ],
+          "byte_offset": 539,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_tab_uses_control_height_and_text_width_plus_padding",
+          "lines": [
+            25,
+            43
+          ],
+          "byte_offset": 548,
+          "byte_length": 437,
+          "sha256": "6b110d5a6d3fa8eeb1e339d2f4befe26c56a66d6b429218897d6429e3a6988b1",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "plain_non_material_label_remains_text_only",
+          "lines": [
+            44,
+            45
+          ],
+          "byte_offset": 985,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "plain_non_material_label_remains_text_only",
+          "lines": [
+            46,
+            58
+          ],
+          "byte_offset": 994,
+          "byte_length": 275,
+          "sha256": "f3dc1a140f05cb576837be61decfeb02f9a7d063226ba7530aef50d1b2b9192d",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_label_with_layout_attributes_receives_conservative_padding",
+          "lines": [
+            59,
+            60
+          ],
+          "byte_offset": 1269,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_label_with_layout_attributes_receives_conservative_padding",
+          "lines": [
+            61,
+            76
+          ],
+          "byte_offset": 1278,
+          "byte_length": 369,
+          "sha256": "309527d6d859e531015ccf5d896291d5215ace0e3754d4eb1264e89e148f4801",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        },
+        {
+          "kind": "declarations-comments-or-test-attributes",
+          "next_function": "material_table_row_uses_list_row_height_and_text_width_plus_padding",
+          "lines": [
+            77,
+            78
+          ],
+          "byte_offset": 1647,
+          "byte_length": 9,
+          "sha256": "4c5cb097667c065b6976e1a613742d338bdd4ae1bfa573982f4017e91c610132",
+          "audit": "覆盖下一函数之前的模块说明、导入、模块挂载、空行或test属性；不含未审查的独立可执行块。"
+        },
+        {
+          "kind": "complete-function",
+          "name": "material_table_row_uses_list_row_height_and_text_width_plus_padding",
+          "lines": [
+            79,
+            95
+          ],
+          "byte_offset": 1656,
+          "byte_length": 393,
+          "sha256": "afaf2cea66ee946d883910f0a461b7657238bb33747c6ada5539e9ed7c5d06ee",
+          "audit": "完整函数体及内部闭包/宏分派详见同名objects条目和具体steps。"
+        }
+      ],
+      "coverage": {
+        "gapfree": true,
+        "first_line": 1,
+        "last_line": 95
+      },
+      "insertions": [],
+      "no_new_comment_reason": "原有模块摘要与具体测试/断言已经充分；整文件审查后保留全部字节。"
+    }
+  ],
+  "cross_file_contracts": {
+    "mount_chain": [
+      "C01:41–43 feature=ui -> ui module",
+      "C02:58–60 cfg(test) -> ui/tests/mod.rs",
+      "C03:103–104 -> parent material_layout.rs",
+      "F01:13–22 -> five separately audited children"
+    ],
+    "call_chain": [
+      "F01 measure/render helpers -> C07:409–426 full UiSurface layout",
+      "C07 -> C08:44–95 -> all-root measurement C06 and then arrangement",
+      "C05:135–138 container path / 178–198 leaf path -> C04 material content decoration",
+      "C07:446–454 retained arranged tree and owned render extraction -> F01 owned command selection"
+    ],
+    "traits_macros_serde_ffi": {
+      "owned_definitions": "No trait, struct/enum field or variant definition, unsafe block/impl, extern/FFI boundary, registration or custom proc macro definition occurs in the six formal sources.",
+      "standard_macros": "24 ordinary unignored test attributes; assert/assert_eq/panic and one include_str are reviewed at their actual functions. Input fixture text and macro arguments are unchanged.",
+      "serde": "Three direct TOML parse sites in shared helpers and the nested-child fixture build owned UiTemplateNodeMetadata.attributes; parse failures are unwrap panic paths. No ABI lease or foreign allocation is introduced.",
+      "lifetimes": "Each helper creates its own UiSurface. DesiredSize is returned by value; render command is moved from the owned vector. The placeholder Option chain borrows command fields only during its assertion; no tree/metadata borrow escapes."
+    },
+    "literal_field_audit": [
+      {
+        "objects": [
+          "measure_material_leaf",
+          "render_material_leaf_command"
+        ],
+        "members": [
+          "UiTemplateNodeMetadata.component",
+          "UiTemplateNodeMetadata.attributes",
+          "UiTemplateNodeMetadata..Default",
+          "UiTreeNode constraints/layout boundary via builders",
+          "UiLayoutCache.desired_size"
+        ],
+        "audit": "组件字符串复制，TOML属性表自有；传入或共享约束按值设置；DesiredSize读取或命令移出均不延长表面借用。"
+      },
+      {
+        "objects": [
+          "fixed_constraint",
+          "intrinsic_axis_constraint"
+        ],
+        "members": [
+          "AxisConstraint.min",
+          "AxisConstraint.max",
+          "AxisConstraint.preferred",
+          "AxisConstraint.priority",
+          "AxisConstraint.weight",
+          "AxisConstraint.stretch_mode"
+        ],
+        "audit": "六字段逐项核对；fixed原值写入三尺寸，intrinsic仅将max设-1，均Fixed/priority100/weight1；不额外验证f32。"
+      },
+      {
+        "objects": [
+          "intrinsic_constraints"
+        ],
+        "members": [
+          "BoxConstraints.width",
+          "BoxConstraints.height"
+        ],
+        "audit": "分别构造两个相同配置的值；无共享可变借用。"
+      },
+      {
+        "objects": [
+          "material_button_with_child_content_receives_padding_and_minimum_height"
+        ],
+        "members": [
+          "Button and Label metadata component/attributes/default",
+          "node IDs 1/2/3 and parent links",
+          "node2.layout_cache.desired_size"
+        ],
+        "audit": "直接三层树夹具及每处unwrap、最终仍在作用域内的节点借用全部核对。"
+      }
+    ]
+  },
+  "contexts": [
+    {
+      "id": "C01",
+      "path": "zircon_runtime/src/lib.rs",
+      "sha256": "4db54e8d6c7a61ce33fc411fc28fcc549549e7276516c4ee72de6a7aa6d91243",
+      "bytes": 2325,
+      "lines": 87,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [
+        [
+          38,
+          45
+        ]
+      ],
+      "read_receipts": [
+        "8f7817",
+        "b9bdb8"
+      ],
+      "audit": "feature=ui 才挂载 Runtime ui；本批普通测试还须经C02的cfg(test)。"
+    },
+    {
+      "id": "C02",
+      "path": "zircon_runtime/src/ui/mod.rs",
+      "sha256": "c2428bd042db5c94d637bfcaf9565872b468b6b81199a4607e33440a367f1b09",
+      "bytes": 1557,
+      "lines": 60,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [
+        [
+          48,
+          60
+        ]
+      ],
+      "read_receipts": [
+        "2f830b",
+        "b9bdb8"
+      ],
+      "audit": "#[cfg(test)] + tests/mod.rs 实际挂载本地测试模块。"
+    },
+    {
+      "id": "C03",
+      "path": "zircon_runtime/src/ui/tests/mod.rs",
+      "sha256": "4b1e97d1aad576402e7b5d9c5a1c95c9b0fce94f4ae9ac1736a22e437424733b",
+      "bytes": 8322,
+      "lines": 263,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [
+        [
+          95,
+          110
+        ]
+      ],
+      "read_receipts": [
+        "2f830b",
+        "b9bdb8"
+      ],
+      "audit": "103–104把 material_layout.rs 挂为子模块；该父文件自身再挂载本批五子文件。"
+    },
+    {
+      "id": "C04",
+      "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+      "sha256": "1eca8745e6fac3dae6ca0bbfe8fbbfa9c9c60d353c47b93680501f6e8a4c3a3b",
+      "bytes": 9759,
+      "lines": 237,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [
+        [
+          1,
+          237
+        ]
+      ],
+      "current_recheck_ranges": [
+        [
+          126,
+          148
+        ]
+      ],
+      "read_receipts": [
+        "811ce8/86260->4b3830",
+        "2f830b",
+        "5d364f",
+        "b9bdb8",
+        "b7db0b"
+      ],
+      "audit": "逐项解析作者指标、装饰内容与最小尺寸；真实has_icon条件不把任意icon_size当所有组件的图标。生产测量136–137使用链式Dropdown回退，静态证实旧文本不再存在。本批仅作调用/词法上下文，不计覆盖。"
+    },
+    {
+      "id": "C05",
+      "path": "zircon_runtime/src/ui/layout/pass/measure.rs",
+      "sha256": "f3559a685523e7b7c39412a6fba4509930ea5d9b86f0cd136811234a396f5ad6",
+      "bytes": 20886,
+      "lines": 625,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [
+        [
+          122,
+          140
+        ],
+        [
+          178,
+          198
+        ]
+      ],
+      "read_receipts": [
+        "8f7817",
+        "b9bdb8"
+      ],
+      "audit": "容器内容与叶内容均调用material测量；叶路径先取文本尺寸，Some材料尺寸则提前返回。"
+    },
+    {
+      "id": "C06",
+      "path": "zircon_runtime/src/ui/layout/pass/measure/traversal.rs",
+      "sha256": "55339b7c41190f237c5011356eae7a76e263f33d5644a622ef1f5ed996db2e76",
+      "bytes": 8631,
+      "lines": 241,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [
+        [
+          1,
+          48
+        ]
+      ],
+      "read_receipts": [
+        "8f7817",
+        "b9bdb8"
+      ],
+      "audit": "measure_node将局部测量结果从临时工作区映射为DesiredSize；归还暂存长度后返回Result。本批夹具仅unwrap整体布局，不承诺失败回滚。"
+    },
+    {
+      "id": "C07",
+      "path": "zircon_runtime/src/ui/surface/surface/rebuild.rs",
+      "sha256": "70047bc5cfd665ddf87a4afe8b3911856ac34888bcc2990bbf0e907aaa2d2d5d",
+      "bytes": 23329,
+      "lines": 581,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [
+        [
+          409,
+          490
+        ]
+      ],
+      "read_receipts": [
+        "64d493/13367->c90b0e",
+        "b9bdb8",
+        "e3daf2"
+      ],
+      "audit": "UiSurface::compute_layout先运行完整layout pass，成功后更新arranged tree和渲染抽取454；R051 helper随后读取DesiredSize或消费其自有commands列表。"
+    },
+    {
+      "id": "C08",
+      "path": "zircon_runtime/src/ui/layout/pass/layout_tree.rs",
+      "sha256": "16497673e45c5fb519f557cc960858741ec7b4eceb5cf0b2aae5b868cb92d6b1",
+      "bytes": 4435,
+      "lines": 134,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [
+        [
+          1,
+          134
+        ]
+      ],
+      "current_recheck_ranges": [
+        [
+          1,
+          27
+        ],
+        [
+          44,
+          95
+        ]
+      ],
+      "read_receipts": [
+        "8c2ad2",
+        "b9bdb8"
+      ],
+      "audit": "公共完整布局使用本地文本缓存；核心44入口先响应式处理，再对所有根measure，随后arrange。只作共享夹具实际调用时机证据。"
+    },
+    {
+      "id": "C09",
+      "path": "zircon_runtime/src/tests/contracts/structure/test_size/ui_material_layout.rs",
+      "sha256": "ca3317eb0b3cc70d9f58c7f4d0f49c7a6f3590c43614169fa60eb799ea811476",
+      "bytes": 7139,
+      "lines": 168,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [
+        [
+          1,
+          168
+        ]
+      ],
+      "read_receipts": [
+        "0565da/18805->4c3b47",
+        "5d364f",
+        "b7db0b",
+        "b9bdb8"
+      ],
+      "audit": "真实源字符串测试检验父/子函数与模块针值、移动函数缺席、测试数量和每源<800行。既有0206要求父无test但实际为1；0209下游文档守卫保留并关联现有问题。"
+    },
+    {
+      "id": "C10",
+      "path": "zircon_runtime/src/tests/contracts/structure/test_size/mod.rs",
+      "sha256": "db0d265328fea6a046155c585f40af720def66d1488dd0c199f9f701d38df09b",
+      "bytes": 18806,
+      "lines": 402,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [
+        [
+          1,
+          22
+        ],
+        [
+          305,
+          314
+        ],
+        [
+          345,
+          355
+        ],
+        [
+          400,
+          402
+        ]
+      ],
+      "read_receipts": [
+        "8f7817",
+        "81b570",
+        "b9bdb8"
+      ],
+      "audit": "310–311实际挂载C09；read_runtime_src读取物理源码并统一CRLF/CR为LF。六正式源本来全LF，原始和该规范化文本的实际谓词一致。"
+    },
+    {
+      "id": "C11",
+      "path": "zircon_runtime_interface/src/ui/layout/constraints.rs",
+      "sha256": "90ff6d697d513e4af43dc96d4d700f3128f63710b617a4764273310ff16335b8",
+      "bytes": 3201,
+      "lines": 107,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [
+        [
+          1,
+          75
+        ]
+      ],
+      "current_recheck_ranges": [
+        [
+          38,
+          55
+        ]
+      ],
+      "read_receipts": [
+        "81b570",
+        "b9bdb8"
+      ],
+      "audit": "固定/固有轴夹具本身仅构造六字段值；真实resolved在max<0分支返回None，支持所补无上界说明。未扩展成任意f32有限性保证。"
+    },
+    {
+      "id": "C12",
+      "path": "docs/plans/source-comments/reviews/R048.json",
+      "sha256": "7f1c89f0e291248ec38a857036c0eb7a5c609af96f6a70dde9bc3f963426c84a",
+      "bytes": 43510,
+      "lines": 1279,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [],
+      "read_receipts": [
+        "2f830b",
+        "bf3441"
+      ],
+      "audit": "R048固定子记录是生产material先前代码pin与root注释增补历史的证据；不改该记录。"
+    },
+    {
+      "id": "C13",
+      "path": "docs/plans/source-comments/reviews/R048-comment-amendment.json",
+      "sha256": "f10dbabc51c8d6cd97ed5cbc68c1c9de5f6284a7b8d289b89a1fe9b35e587635",
+      "bytes": 17839,
+      "lines": 271,
+      "scope": "read-only context; excluded from formal source coverage",
+      "ranges": [],
+      "read_receipts": [
+        "bf3441",
+        "5d364f",
+        "b9bdb8"
+      ],
+      "audit": "combined_insertions的offset/text/length/hash允许从当前material移除8块补注并精确重建ad42授前raw字节；5d364f已真实执行内存反演，未用normalized HEAD或创建源码副本。"
+    }
+  ],
+  "source_string_contracts": {
+    "interpretation": "Static raw text/line predicates only; no Rust or Cargo test was run. Existing failures remain failures.",
+    "fixture": {
+      "path": "zircon_runtime/src/tests/contracts/structure/test_size/ui_material_layout.rs",
+      "sha256": "ca3317eb0b3cc70d9f58c7f4d0f49c7a6f3590c43614169fa60eb799ea811476",
+      "lines": 168,
+      "reader": "C10 read_runtime_src normalizes CRLF then CR to LF; six owned sources are LF before/after, so raw and normalized predicate values coincide."
+    },
+    "classes": [
+      {
+        "name": "production include_str predicates",
+        "count": 2,
+        "values": "before/current contains=[false,false]; actual assertions=[true,false] due to negation of the first predicate"
+      },
+      {
+        "name": "structure positive module/helper/moved function anchors",
+        "count": 24,
+        "values": "all counts=1 before/after"
+      },
+      {
+        "name": "structure moved-test absence from parent",
+        "count": 5,
+        "values": "all counts=0 before/after"
+      },
+      {
+        "name": "test attribute counts",
+        "count": 6,
+        "values": "[1,3,7,3,5,5] unchanged; children sum23"
+      },
+      {
+        "name": "per-source line budgets",
+        "count": 6,
+        "values": "all six <800 before/after; exact lines retained in files"
+      }
+    ],
+    "before": [
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "mod asset_icon_roles;",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "mod button_icon_metrics;",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "mod constraints_children;",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "mod field_values;",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "mod row_label_metrics;",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "fn measure_material_leaf(",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "fn render_material_leaf_command(",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "fn intrinsic_constraints()",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "button_icon_metrics",
+        "needle": "fn material_button_measures_text_plus_layout_padding",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "button_icon_metrics",
+        "needle": "fn material_button_long_text_expands_beyond_default_frame_width",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "button_icon_metrics",
+        "needle": "fn material_button_with_icon_adds_icon_size_and_spacing",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "button_icon_metrics",
+        "needle": "fn material_icon_button_without_visual_icon_keeps_label_accessibility_only",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "row_label_metrics",
+        "needle": "fn material_menu_item_uses_list_row_height_and_horizontal_padding",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "row_label_metrics",
+        "needle": "fn material_tab_uses_control_height_and_text_width_plus_padding",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "row_label_metrics",
+        "needle": "fn material_table_row_uses_list_row_height_and_text_width_plus_padding",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "field_values",
+        "needle": "fn material_fields_measure_visible_value_placeholder_and_options_text",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "field_values",
+        "needle": "fn text_field_placeholder_measures_without_becoming_editable_value",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "field_values",
+        "needle": "fn material_vector_fields_measure_visible_value_text",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "asset_icon_roles",
+        "needle": "fn asset_value_nodes_render_as_image_or_icon_not_text",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "asset_icon_roles",
+        "needle": "fn icon_button_label_is_accessibility_text_not_rendered_text",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "asset_icon_roles",
+        "needle": "fn common_native_material_roles_use_authored_layout_metrics",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "constraints_children",
+        "needle": "fn material_button_respects_authored_fixed_constraints",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "constraints_children",
+        "needle": "fn material_button_with_child_content_receives_padding_and_minimum_height",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "constraints_children",
+        "needle": "fn material_list_field_and_switch_controls_keep_min_height",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "moved-test-absent",
+        "file": "parent",
+        "needle": "material_button_measures_text_plus_layout_padding",
+        "count": 0,
+        "value": true
+      },
+      {
+        "kind": "moved-test-absent",
+        "file": "parent",
+        "needle": "material_menu_item_uses_list_row_height_and_horizontal_padding",
+        "count": 0,
+        "value": true
+      },
+      {
+        "kind": "moved-test-absent",
+        "file": "parent",
+        "needle": "material_fields_measure_visible_value_placeholder_and_options_text",
+        "count": 0,
+        "value": true
+      },
+      {
+        "kind": "moved-test-absent",
+        "file": "parent",
+        "needle": "asset_value_nodes_render_as_image_or_icon_not_text",
+        "count": 0,
+        "value": true
+      },
+      {
+        "kind": "moved-test-absent",
+        "file": "parent",
+        "needle": "material_button_respects_authored_fixed_constraints",
+        "count": 0,
+        "value": true
+      },
+      {
+        "kind": "test-attribute-count",
+        "file": "parent",
+        "needle": "#[test]",
+        "count": 1
+      },
+      {
+        "kind": "test-attribute-count",
+        "file": "asset_icon_roles",
+        "needle": "#[test]",
+        "count": 3
+      },
+      {
+        "kind": "test-attribute-count",
+        "file": "button_icon_metrics",
+        "needle": "#[test]",
+        "count": 7
+      },
+      {
+        "kind": "test-attribute-count",
+        "file": "constraints_children",
+        "needle": "#[test]",
+        "count": 3
+      },
+      {
+        "kind": "test-attribute-count",
+        "file": "field_values",
+        "needle": "#[test]",
+        "count": 5
+      },
+      {
+        "kind": "test-attribute-count",
+        "file": "row_label_metrics",
+        "needle": "#[test]",
+        "count": 5
+      },
+      {
+        "kind": "line-budget",
+        "file": "parent",
+        "limit_exclusive": 800,
+        "value": true
+      },
+      {
+        "kind": "line-budget",
+        "file": "asset_icon_roles",
+        "limit_exclusive": 800,
+        "value": true
+      },
+      {
+        "kind": "line-budget",
+        "file": "button_icon_metrics",
+        "limit_exclusive": 800,
+        "value": true
+      },
+      {
+        "kind": "line-budget",
+        "file": "constraints_children",
+        "limit_exclusive": 800,
+        "value": true
+      },
+      {
+        "kind": "line-budget",
+        "file": "field_values",
+        "limit_exclusive": 800,
+        "value": true
+      },
+      {
+        "kind": "line-budget",
+        "file": "row_label_metrics",
+        "limit_exclusive": 800,
+        "value": true
+      }
+    ],
+    "after": [
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "mod asset_icon_roles;",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "mod button_icon_metrics;",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "mod constraints_children;",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "mod field_values;",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "mod row_label_metrics;",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "fn measure_material_leaf(",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "fn render_material_leaf_command(",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "parent",
+        "needle": "fn intrinsic_constraints()",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "button_icon_metrics",
+        "needle": "fn material_button_measures_text_plus_layout_padding",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "button_icon_metrics",
+        "needle": "fn material_button_long_text_expands_beyond_default_frame_width",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "button_icon_metrics",
+        "needle": "fn material_button_with_icon_adds_icon_size_and_spacing",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "button_icon_metrics",
+        "needle": "fn material_icon_button_without_visual_icon_keeps_label_accessibility_only",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "row_label_metrics",
+        "needle": "fn material_menu_item_uses_list_row_height_and_horizontal_padding",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "row_label_metrics",
+        "needle": "fn material_tab_uses_control_height_and_text_width_plus_padding",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "row_label_metrics",
+        "needle": "fn material_table_row_uses_list_row_height_and_text_width_plus_padding",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "field_values",
+        "needle": "fn material_fields_measure_visible_value_placeholder_and_options_text",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "field_values",
+        "needle": "fn text_field_placeholder_measures_without_becoming_editable_value",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "field_values",
+        "needle": "fn material_vector_fields_measure_visible_value_text",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "asset_icon_roles",
+        "needle": "fn asset_value_nodes_render_as_image_or_icon_not_text",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "asset_icon_roles",
+        "needle": "fn icon_button_label_is_accessibility_text_not_rendered_text",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "asset_icon_roles",
+        "needle": "fn common_native_material_roles_use_authored_layout_metrics",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "constraints_children",
+        "needle": "fn material_button_respects_authored_fixed_constraints",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "constraints_children",
+        "needle": "fn material_button_with_child_content_receives_padding_and_minimum_height",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "contains",
+        "file": "constraints_children",
+        "needle": "fn material_list_field_and_switch_controls_keep_min_height",
+        "count": 1,
+        "value": true
+      },
+      {
+        "kind": "moved-test-absent",
+        "file": "parent",
+        "needle": "material_button_measures_text_plus_layout_padding",
+        "count": 0,
+        "value": true
+      },
+      {
+        "kind": "moved-test-absent",
+        "file": "parent",
+        "needle": "material_menu_item_uses_list_row_height_and_horizontal_padding",
+        "count": 0,
+        "value": true
+      },
+      {
+        "kind": "moved-test-absent",
+        "file": "parent",
+        "needle": "material_fields_measure_visible_value_placeholder_and_options_text",
+        "count": 0,
+        "value": true
+      },
+      {
+        "kind": "moved-test-absent",
+        "file": "parent",
+        "needle": "asset_value_nodes_render_as_image_or_icon_not_text",
+        "count": 0,
+        "value": true
+      },
+      {
+        "kind": "moved-test-absent",
+        "file": "parent",
+        "needle": "material_button_respects_authored_fixed_constraints",
+        "count": 0,
+        "value": true
+      },
+      {
+        "kind": "test-attribute-count",
+        "file": "parent",
+        "needle": "#[test]",
+        "count": 1
+      },
+      {
+        "kind": "test-attribute-count",
+        "file": "asset_icon_roles",
+        "needle": "#[test]",
+        "count": 3
+      },
+      {
+        "kind": "test-attribute-count",
+        "file": "button_icon_metrics",
+        "needle": "#[test]",
+        "count": 7
+      },
+      {
+        "kind": "test-attribute-count",
+        "file": "constraints_children",
+        "needle": "#[test]",
+        "count": 3
+      },
+      {
+        "kind": "test-attribute-count",
+        "file": "field_values",
+        "needle": "#[test]",
+        "count": 5
+      },
+      {
+        "kind": "test-attribute-count",
+        "file": "row_label_metrics",
+        "needle": "#[test]",
+        "count": 5
+      },
+      {
+        "kind": "line-budget",
+        "file": "parent",
+        "limit_exclusive": 800,
+        "value": true
+      },
+      {
+        "kind": "line-budget",
+        "file": "asset_icon_roles",
+        "limit_exclusive": 800,
+        "value": true
+      },
+      {
+        "kind": "line-budget",
+        "file": "button_icon_metrics",
+        "limit_exclusive": 800,
+        "value": true
+      },
+      {
+        "kind": "line-budget",
+        "file": "constraints_children",
+        "limit_exclusive": 800,
+        "value": true
+      },
+      {
+        "kind": "line-budget",
+        "file": "field_values",
+        "limit_exclusive": 800,
+        "value": true
+      },
+      {
+        "kind": "line-budget",
+        "file": "row_label_metrics",
+        "limit_exclusive": 800,
+        "value": true
+      }
+    ],
+    "structural_predicates_equal": true,
+    "production_context": {
+      "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+      "sha256": "1eca8745e6fac3dae6ca0bbfe8fbbfa9c9c60d353c47b93680501f6e8a4c3a3b",
+      "bytes": 9759,
+      "lines": 237,
+      "predicates": [
+        {
+          "needle": "has_layout_attribute",
+          "count": 0,
+          "contains": false
+        },
+        {
+          "needle": "let Some(metrics) = MaterialLayoutMetrics::resolve(metadata) else",
+          "count": 0,
+          "contains": false
+        }
+      ]
+    },
+    "local_contributions": {
+      "unique_needles": 32,
+      "insertions": 7,
+      "total_pairs": 224,
+      "all_zero": true,
+      "needle_order": [
+        "mod asset_icon_roles;",
+        "mod button_icon_metrics;",
+        "mod constraints_children;",
+        "mod field_values;",
+        "mod row_label_metrics;",
+        "fn measure_material_leaf(",
+        "fn render_material_leaf_command(",
+        "fn intrinsic_constraints()",
+        "fn material_button_measures_text_plus_layout_padding",
+        "fn material_button_long_text_expands_beyond_default_frame_width",
+        "fn material_button_with_icon_adds_icon_size_and_spacing",
+        "fn material_icon_button_without_visual_icon_keeps_label_accessibility_only",
+        "fn material_menu_item_uses_list_row_height_and_horizontal_padding",
+        "fn material_tab_uses_control_height_and_text_width_plus_padding",
+        "fn material_table_row_uses_list_row_height_and_text_width_plus_padding",
+        "fn material_fields_measure_visible_value_placeholder_and_options_text",
+        "fn text_field_placeholder_measures_without_becoming_editable_value",
+        "fn material_vector_fields_measure_visible_value_text",
+        "fn asset_value_nodes_render_as_image_or_icon_not_text",
+        "fn icon_button_label_is_accessibility_text_not_rendered_text",
+        "fn common_native_material_roles_use_authored_layout_metrics",
+        "fn material_button_respects_authored_fixed_constraints",
+        "fn material_button_with_child_content_receives_padding_and_minimum_height",
+        "fn material_list_field_and_switch_controls_keep_min_height",
+        "material_button_measures_text_plus_layout_padding",
+        "material_menu_item_uses_list_row_height_and_horizontal_padding",
+        "material_fields_measure_visible_value_placeholder_and_options_text",
+        "asset_value_nodes_render_as_image_or_icon_not_text",
+        "material_button_respects_authored_fixed_constraints",
+        "#[test]",
+        "has_layout_attribute",
+        "let Some(metrics) = MaterialLayoutMetrics::resolve(metadata) else"
+      ],
+      "actual_count_vectors": [
+        {
+          "insertion": "R051-I001",
+          "counts": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "insertion": "R051-I002",
+          "counts": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "insertion": "R051-I003",
+          "counts": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "insertion": "R051-I004",
+          "counts": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "insertion": "R051-I005",
+          "counts": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "insertion": "R051-I006",
+          "counts": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "insertion": "R051-I007",
+          "counts": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    "existing_failures": [
+      {
+        "id": "CR-UI-TEST-0206",
+        "path": "C09",
+        "lines": [
+          29,
+          32
+        ],
+        "expression": "parent.matches(\"#[test]\").count()",
+        "expected": 0,
+        "observed_before": 1,
+        "observed_after": 1,
+        "scope": "existing outside-scope source test issue; no new duplicate label"
+      },
+      {
+        "id": "CR-UI-TEST-0209",
+        "path": "C09",
+        "lines": [
+          139,
+          166
+        ],
+        "scope": "downstream six-document/six-needle guard unchanged, existing issue retained; those six document files were not reopened or reevaluated in this source-only batch"
+      }
+    ]
+  },
+  "issues": [
+    {
+      "id": "CR-ZCA-R051-0001",
+      "classification": "BUG",
+      "status": "confirmed-by-static-path; annotated, behavior and assertion preserved",
+      "trigger": "Run material_layout_resolves_metrics_without_preflight_attribute_rescan against the currently included material.rs under its real UI/test module mount.",
+      "observable_effect": "The positive old let-else contains assertion is false; normal assert! expansion panics if this test executes.",
+      "source": {
+        "path": "zircon_runtime/src/ui/tests/material_layout.rs",
+        "before_sha256": "063030e9e6c99317b96705435ac428f5d9ff340d40756146684dec07388b9691",
+        "current_sha256": "4c64e5b718082349355316b711d49dbb532440c3b5a2e3d376e773753301816b",
+        "before_test_lines": [
+          24,
+          29
+        ],
+        "current_test_lines": [
+          26,
+          33
+        ],
+        "current_marker_lines": [
+          30,
+          31
+        ],
+        "before_assert_line": 28,
+        "current_assert_line": 32,
+        "exact_assertion": "assert!(source.contains(\"let Some(metrics) = MaterialLayoutMetrics::resolve(metadata) else\"));",
+        "include_str_literal": "../layout/pass/material.rs"
+      },
+      "callee": {
+        "path": "zircon_runtime/src/ui/layout/pass/material.rs",
+        "grant_before_sha256": "ad42b514d5bee3b5bac4d1e94e21c0d402ca8cbe344cacc51cf15352321d1bf5",
+        "current_sha256": "1eca8745e6fac3dae6ca0bbfe8fbbfa9c9c60d353c47b93680501f6e8a4c3a3b",
+        "grant_before_lines": [
+          92,
+          93
+        ],
+        "current_lines": [
+          136,
+          137
+        ],
+        "actual_path": "MaterialLayoutMetrics::resolve(metadata).or_else(|| is_dropdown.then(MaterialLayoutMetrics::default))?",
+        "exact_old_needle": "let Some(metrics) = MaterialLayoutMetrics::resolve(metadata) else",
+        "old_count": 0,
+        "current_count": 0
+      },
+      "proof_basis": [
+        "Real compile-time include_str resolves to the canonical production pass/material.rs, not a fixture with a similar name.",
+        "5d364f exit0 reconstructed ad42 raw bytes by removing the eight recorded comment insertions from current 1eca; no normalized HEAD or source copy was used.",
+        "Old and current material both contain the same chain with a Dropdown fallback and neither contains the old needle.",
+        "3d385b and b7db0b prove all new comment texts contribute zero to all source needles and leave the original assertion bytes intact."
+      ],
+      "related_existing": "CR-UI-TEST-0204 concerns actual scan-observation adequacy and is retained verbatim; it is a distinct question from this false literal assertion.",
+      "approval": "Parent explicitly approved CR-ZCA-R051-0001 in exact R051 grant; no other new issue ID is used.",
+      "next_step": "Owner may update the structural contract or replace it with scoped observation under separately authorized behavior/test work; this batch only annotates the confirmed existing failure.",
+      "executed_reproduction": false
+    }
+  ],
+  "byte_preservation": {
+    "method": "Read exact current bytes, remove seven exact_text blocks at recorded after_byte_offset in descending order, verify lengths/SHA and each grant before SHA; no line-ending normalization and no reliance on HEAD reconstruction.",
+    "source_writer_inverse": true,
+    "final_inverse_receipt": "b7db0b exit0",
+    "all_six_match_grant_before": true,
+    "all_original_code_comments_attributes_strings_assertions_preserved": true,
+    "insertions_are_comments_only": true,
+    "eol_policy": "All six input sources are UTF-8 without BOM, with LF only; all original line-ending bytes remain. Git CRLF warning is recorded and does not change the observed raw file bytes."
+  },
+  "validation": {
+    "source_writer": {
+      "tool": "exec_command via functions.exec cell6",
+      "command": "& 'E:/Git/ZirconEngine/.jenkins/runtime/python/python.exe' -B -X utf8 -c @'\nimport pathlib,hashlib,json,subprocess,os\nr=pathlib.Path('E:/Git/ZirconEngine')\nprint(json.dumps({'event':'writer-start','pid':os.getpid(),'scope':'R051-parent-comments-only'}),flush=True)\na=json.loads((r/'docs/plans/source-comments/assignments.json').read_bytes())\ng=a['metadata_tasks']['R051'];paths=g['audited_paths'];before=g['before_sha256']\nexpected=['zircon_runtime/src/ui/tests/material_layout.rs']+['zircon_runtime/src/ui/tests/material_layout/'+n+'.rs' for n in ['asset_icon_roles','button_icon_metrics','constraints_children','field_values','row_label_metrics']]\nassert paths==expected and g['owner']=='core_sol' and g['write_path']=='docs/plans/source-comments/reviews/R051.json'\nraw={p:(r/p).read_bytes() for p in paths}\nfor p in paths:assert hashlib.sha256(raw[p]).hexdigest()==before[p],p\ngit=[]\nfor args in [['git','--no-optional-locks','rev-parse','HEAD'],['git','--no-optional-locks','status','--porcelain=v1','--',*paths],['git','--no-optional-locks','diff','--no-ext-diff','--no-textconv','--name-status','--',*paths],['git','--no-optional-locks','diff','--cached','--no-ext-diff','--no-textconv','--name-status','--',*paths]]:\n q=subprocess.run(args,cwd=r,capture_output=True,encoding='utf-8',errors='replace')\n git.append({'command':args,'exit':q.returncode,'stdout':q.stdout,'stderr':q.stderr});assert q.returncode==0\n if 'rev-parse' in args:assert q.stdout.strip()=='f28ba39a5095f4964c046ecc702778627f80cfd5'\n else:assert not q.stdout\nnotes=json.loads(r'''[{\"id\":\"R051-I001\",\"kind\":\"module-doc\",\"anchor\":\"//! \\u8fd9\\u91cc\\u642d\\u5efa\\u771f\\u5b9e\\u8868\\u9762\\u6d4b\\u91cf\\u5939\\u5177\\uff1b\\u5b50\\u6d4b\\u8bd5\\u4ece\\u4f5c\\u8005\\u5e03\\u5c40\\u6307\\u6807\\u5230\\u671f\\u671b\\u5c3a\\u5bf8\\u548c\\u7ed8\\u5236\\u547d\\u4ee4\\u9a8c\\u8bc1 Material \\u7ea6\\u675f\\u3002\\n\",\"position\":\"after\",\"text\":\"//! \\u5171\\u4eab\\u5939\\u5177\\u5728\\u672c\\u5730\\u8868\\u9762\\u6267\\u884c\\u5b8c\\u6574\\u5e03\\u5c40\\uff0c\\u8fd4\\u56de\\u81ea\\u6709\\u671f\\u671b\\u5c3a\\u5bf8\\u6216\\u6e32\\u67d3\\u547d\\u4ee4\\uff1b\\u8868\\u9762\\u7531\\u5404\\u6b21\\u8c03\\u7528\\u5355\\u72ec\\u521b\\u5efa\\u548c\\u91ca\\u653e\\u3002\\n//! \\u5b50\\u6a21\\u5757\\u8986\\u76d6\\u7ec4\\u4ef6\\u884c\\u4e3a\\uff1b\\u7236\\u6a21\\u5757\\u8fd8\\u4fdd\\u7559\\u6e90\\u7801\\u6587\\u672c\\u5b88\\u536b\\uff0c\\u4e0d\\u80fd\\u636e\\u6b64\\u63a8\\u65ad\\u5b9e\\u9645\\u5c5e\\u6027\\u626b\\u63cf\\u6b21\\u6570\\u3002\\n\",\"reason\":\"\\u8865\\u6e05\\u5171\\u4eab\\u5939\\u5177\\u4e0e\\u8bcd\\u6cd5\\u5b88\\u536b\\u7684\\u804c\\u8d23\\u3001\\u72b6\\u6001\\u6240\\u6709\\u8005\\u548c\\u8fd4\\u56de\\u503c\\u5bff\\u547d\\u3002\"},{\"id\":\"R051-I002\",\"kind\":\"bug\",\"anchor\":\"    assert!(source.contains(\\\"let Some(metrics) = MaterialLayoutMetrics::resolve(metadata) else\\\"));\\n\",\"position\":\"before\",\"text\":\"    // BUG: [CR-ZCA-R051-0001] \\u6750\\u6599\\u6d4b\\u91cf\\u5df2\\u6539\\u7528\\u5e26 Dropdown \\u56de\\u9000\\u7684\\u94fe\\u5f0f\\u89e3\\u6790\\uff0c\\u6b64\\u5904\\u65e7\\u6587\\u672c\\u951a\\u70b9\\u4e0d\\u5b58\\u5728\\uff0c\\n    // \\u56e0\\u800c\\u8be5\\u5305\\u542b\\u65ad\\u8a00\\u4f1a\\u5931\\u8d25\\uff1b\\u8fd9\\u91cc\\u53ea\\u6838\\u5bf9\\u4e86\\u9759\\u6001\\u6e90\\u7801\\uff0c\\u672a\\u6267\\u884c Rust \\u6d4b\\u8bd5\\u3002\\n\",\"reason\":\"\\u4fdd\\u7559\\u65e7TODO\\u4e0e\\u65ad\\u8a00\\uff0c\\u6307\\u51fa\\u7531\\u771f\\u5b9einclude_str\\u76ee\\u6807\\u95ed\\u5408\\u7684\\u65e2\\u6709\\u8bcd\\u6cd5\\u65ad\\u8a00\\u5931\\u914d\\u3002\"},{\"id\":\"R051-I003\",\"kind\":\"helper-doc\",\"anchor\":\"fn measure_material_leaf(\\n\",\"position\":\"before\",\"text\":\"/// \\u5728\\u4e34\\u65f6\\u8868\\u9762\\u7684\\u5185\\u5bb9\\u9a71\\u52a8\\u6839\\u4e0b\\u63d2\\u5165\\u5355\\u4e2a\\u7ec4\\u4ef6\\uff0c\\u6267\\u884c\\u5b8c\\u6574\\u5e03\\u5c40\\u540e\\u8bfb\\u53d6\\u5176\\u671f\\u671b\\u5c3a\\u5bf8\\u3002\\n///\\n/// # \\u53c2\\u6570\\n/// `component` \\u4e0e TOML `attributes` \\u6784\\u9020\\u8282\\u70b9\\u81ea\\u6709\\u5143\\u6570\\u636e\\uff1b`constraints` \\u76f4\\u63a5\\u8d4b\\u7ed9\\u88ab\\u6d4b\\u8282\\u70b9\\u3002\\n/// \\u6839\\u5e03\\u5c40\\u533a\\u57df\\u56fa\\u5b9a\\u4e3a 240\\u00d7120\\uff1b\\u5c5e\\u6027\\u6587\\u672c\\u987b\\u80fd\\u89e3\\u6790\\u4e3a TOML \\u8868\\u3002\\n///\\n/// # \\u8fd4\\u56de\\u4e0e\\u751f\\u547d\\u5468\\u671f\\n/// \\u8fd4\\u56de\\u590d\\u5236\\u51fa\\u7684 `DesiredSize`\\uff1b\\u672c\\u5730\\u8868\\u9762\\u5728\\u8fd4\\u56de\\u540e\\u91ca\\u653e\\uff0c\\u4e0d\\u4fdd\\u7559\\u6811\\u8282\\u70b9\\u6216\\u5143\\u6570\\u636e\\u501f\\u7528\\u3002\\n/// \\u5c5e\\u6027\\u89e3\\u6790\\u3001\\u6784\\u6811\\u6216\\u5e03\\u5c40\\u5931\\u8d25\\u4f1a\\u5728\\u5939\\u5177\\u4e2d\\u89e6\\u53d1 panic\\u3002\\n\",\"reason\":\"\\u8bf4\\u660e\\u7ec4\\u4ef6/\\u5c5e\\u6027/\\u7ea6\\u675f\\u8f93\\u5165\\u3001\\u56fa\\u5b9a\\u6839\\u533a\\u57df\\u3001\\u539f\\u5730\\u5e03\\u5c40\\u4e0e\\u590d\\u5236\\u8f93\\u51fa\\u4ee5\\u53capanic\\u8fb9\\u754c\\u3002\"},{\"id\":\"R051-I004\",\"kind\":\"helper-doc\",\"anchor\":\"fn render_material_leaf_command(\\n\",\"position\":\"before\",\"text\":\"/// \\u5728\\u65b0\\u7684\\u4e34\\u65f6\\u8868\\u9762\\u4e0a\\u5e03\\u5c40\\u5355\\u4e2a\\u7ec4\\u4ef6\\uff0c\\u5e76\\u53d6\\u51fa\\u8be5\\u8282\\u70b9\\u7684\\u9996\\u4e2a\\u6e32\\u67d3\\u547d\\u4ee4\\u3002\\n///\\n/// # \\u53c2\\u6570\\n/// `component` \\u4e0e TOML `attributes` \\u6784\\u9020\\u8282\\u70b9\\u81ea\\u6709\\u5143\\u6570\\u636e\\uff0c\\u8282\\u70b9\\u4f7f\\u7528\\u672c\\u6a21\\u5757\\u7684\\u56fa\\u6709\\u5c3a\\u5bf8\\u7ea6\\u675f\\u3002\\n///\\n/// # \\u8fd4\\u56de\\u4e0e\\u751f\\u547d\\u5468\\u671f\\n/// \\u8fd4\\u56de\\u4ece\\u5217\\u8868\\u79fb\\u51fa\\u7684\\u81ea\\u6709 `UiRenderCommand`\\uff0c\\u53ef\\u5728\\u4e34\\u65f6\\u8868\\u9762\\u9500\\u6bc1\\u540e\\u7ee7\\u7eed\\u8bfb\\u53d6\\u3002\\n/// \\u5c5e\\u6027\\u89e3\\u6790\\u3001\\u6784\\u6811\\u3001\\u5e03\\u5c40\\u5931\\u8d25\\u6216\\u7f3a\\u5c11\\u76ee\\u6807\\u547d\\u4ee4\\u4f1a\\u89e6\\u53d1 panic\\u3002\\n\",\"reason\":\"\\u660e\\u786e\\u72ec\\u7acb\\u8868\\u9762\\u3001TOML\\u8f93\\u5165\\u3001\\u9ed8\\u8ba4\\u8f74\\u914d\\u7f6e\\u3001\\u547d\\u4ee4\\u6240\\u6709\\u6743\\u4e0e\\u7f3a\\u5931\\u547d\\u4ee4panic\\u3002\"},{\"id\":\"R051-I005\",\"kind\":\"helper-doc\",\"anchor\":\"fn fixed_constraint(size: f32) -> AxisConstraint {\\n\",\"position\":\"before\",\"text\":\"/// \\u5c06\\u6700\\u5c0f\\u3001\\u6700\\u5927\\u4e0e\\u9996\\u9009\\u5c3a\\u5bf8\\u7ed1\\u5b9a\\u4e3a\\u540c\\u4e00\\u8f93\\u5165\\uff0c\\u5efa\\u7acb\\u9ad8\\u4f18\\u5148\\u7ea7 Fixed \\u8f74\\u3002\\n/// \\u4e0d\\u53e6\\u884c\\u9a8c\\u8bc1\\u8f93\\u5165\\u6570\\u503c\\uff1b\\u6d4b\\u8bd5\\u901a\\u8fc7\\u5b83\\u9694\\u79bb\\u4f5c\\u8005\\u56fa\\u5b9a\\u7ea6\\u675f\\u4e0e\\u5185\\u5bb9\\u5c3a\\u5bf8\\u7684\\u4f18\\u5148\\u5173\\u7cfb\\u3002\\n\",\"reason\":\"\\u8bf4\\u660e\\u56fa\\u5b9a\\u7ea6\\u675f\\u5939\\u5177\\u7684\\u63a7\\u5236\\u53d8\\u91cf\\u53ca\\u4e0d\\u989d\\u5916\\u9a8c\\u8bc1\\u6570\\u503c\\u7684\\u8fb9\\u754c\\u3002\"},{\"id\":\"R051-I006\",\"kind\":\"helper-doc\",\"anchor\":\"fn intrinsic_constraints() -> BoxConstraints {\\n\",\"position\":\"before\",\"text\":\"/// \\u4e3a\\u5bbd\\u9ad8\\u5206\\u522b\\u4f7f\\u7528\\u4e0b\\u65b9\\u7684\\u65e0\\u4e0a\\u754c\\u8f74\\u914d\\u7f6e\\uff0c\\u4f9b\\u5185\\u5bb9\\u9a71\\u52a8\\u5939\\u5177\\u590d\\u7528\\u3002\\n\",\"reason\":\"\\u8bf4\\u660e\\u4e24\\u4e2a\\u8f74\\u5171\\u4eab\\u914d\\u7f6e\\u7684\\u5939\\u5177\\u804c\\u8d23\\u3002\"},{\"id\":\"R051-I007\",\"kind\":\"helper-doc\",\"anchor\":\"fn intrinsic_axis_constraint() -> AxisConstraint {\\n\",\"position\":\"before\",\"text\":\"/// \\u6b64\\u5904\\u4ecd\\u4f7f\\u7528 Fixed \\u6a21\\u5f0f\\uff1b\\u8d1f max \\u5728\\u8f74\\u89e3\\u6790\\u65f6\\u6210\\u4e3a\\u65e0\\u4e0a\\u754c\\uff0c\\u4f9b\\u5185\\u5bb9\\u9a71\\u52a8\\u5939\\u5177\\u4f7f\\u7528\\u3002\\n\",\"reason\":\"\\u8865\\u6e05intrinsic\\u547d\\u540d\\u4e0e\\u663e\\u5f0fFixed\\u6a21\\u5f0f\\u3001\\u8d1f\\u4e0a\\u754c\\u54e8\\u5175\\u4e4b\\u95f4\\u7684\\u5173\\u7cfb\\u3002\"}]''')\np=paths[0];b=raw[p];ops=[]\nfor n in notes:\n anchor=n['anchor'].encode();assert b.count(anchor)==1,n['id']\n off=b.index(anchor)+(len(anchor) if n['position']=='after' else 0)\n nb=n['text'].encode();assert all(not l.strip() or l.lstrip().startswith(b'//') for l in nb.splitlines())\n ops.append({**n,'before_byte_offset':off,'byte_length':len(nb),'inserted_bytes_sha256':hashlib.sha256(nb).hexdigest(),'before_line':b[:off].count(b'\\n')+1})\nops.sort(key=lambda o:o['before_byte_offset']);delta=0\nfor o in ops:\n o['after_byte_offset']=o['before_byte_offset']+delta;o['after_line']=o['before_line']+sum(x['text'].count('\\n') for x in ops if x['before_byte_offset']<o['before_byte_offset']);delta+=o['byte_length']\nout=b\nfor o in reversed(ops):\n k=o['before_byte_offset'];out=out[:k]+o['text'].encode()+out[k:]\ninverse=out\nfor o in reversed(ops):\n k=o['after_byte_offset'];nb=o['text'].encode();assert inverse[k:k+len(nb)]==nb;inverse=inverse[:k]+inverse[k+len(nb):]\nassert inverse==b\nfixture=(r/'zircon_runtime/src/tests/contracts/structure/test_size/ui_material_layout.rs').read_bytes().decode()\nimport re\nnames=['parent','asset_icon_roles','button_icon_metrics','constraints_children','field_values','row_label_metrics']\ndef checks(src):\n s={n:src[pp].decode() for n,pp in zip(names,paths)}\n ns=[];v=[]\n for m in re.finditer(r'assert_contains_all\\(\\s*\"([^\"]+)\",\\s*&(\\w+),\\s*&\\[(.*?)\\]',fixture,re.S):\n  label,name,arr=m.groups()\n  if name in s:\n   for needle in re.findall(r'\"([^\"]+)\"',arr):ns.append(needle);v.append([name,needle,s[name].count(needle)])\n moved=re.findall(r'\"([^\"]+)\"',re.search(r'for moved_test in \\[(.*?)\\]',fixture,re.S).group(1))\n for needle in moved:ns.append(needle);v.append(['parent-negative',needle,s['parent'].count(needle)])\n ns+=['#[test]','has_layout_attribute','let Some(metrics) = MaterialLayoutMetrics::resolve(metadata) else']\n v += [['tests',n,s[n].count('#[test]')] for n in names]\n v += [['budget',n,len(s[n].splitlines())<800] for n in names]\n return v,list(dict.fromkeys(ns))\nv0,needles=checks(raw);v1,_=checks({**raw,p:out});assert v0==v1\nfor o in ops:assert all(o['text'].count(n)==0 for n in needles),o['id']\nassert hashlib.sha256((r/p).read_bytes()).hexdigest()==before[p]\n(r/p).write_bytes(out)\nreadback=(r/p).read_bytes();assert readback==out\nfor pp in paths[1:]:assert (r/pp).read_bytes()==raw[pp]\nprint(json.dumps({'event':'writer-complete','pid':os.getpid(),'preflight_git':git,'path':p,'before_sha256':before[p],'after_sha256':hashlib.sha256(out).hexdigest(),'before_bytes':len(b),'after_bytes':len(out),'before_lines':len(b.splitlines()),'after_lines':len(out.splitlines()),'inserted_lines':sum(o['text'].count('\\n') for o in ops),'insertions':ops,'inverse_matches_before':True,'raw_predicate_vectors_equal':True,'predicate_count':len(v0),'local_needle_count':len(needles),'all_comment_contributions_zero':True,'unchanged_other_sources':paths[1:]},ensure_ascii=True),flush=True)\n\n'@",
+      "pid": 4424,
+      "chunk_id": "3d385b",
+      "native_session": null,
+      "exit": 0,
+      "observed_terminal": true,
+      "preflight_git": [
+        {
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "rev-parse",
+            "HEAD"
+          ],
+          "exit": 0,
+          "stdout": "f28ba39a5095f4964c046ecc702778627f80cfd5\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "status",
+            "--porcelain=v1",
+            "--",
+            "zircon_runtime/src/ui/tests/material_layout.rs",
+            "zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs",
+            "zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs",
+            "zircon_runtime/src/ui/tests/material_layout/constraints_children.rs",
+            "zircon_runtime/src/ui/tests/material_layout/field_values.rs",
+            "zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": "warning: unable to access 'C:\\Users\\HeJiahui/.config/git/ignore': Permission denied\n"
+        },
+        {
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "diff",
+            "--no-ext-diff",
+            "--no-textconv",
+            "--name-status",
+            "--",
+            "zircon_runtime/src/ui/tests/material_layout.rs",
+            "zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs",
+            "zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs",
+            "zircon_runtime/src/ui/tests/material_layout/constraints_children.rs",
+            "zircon_runtime/src/ui/tests/material_layout/field_values.rs",
+            "zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "diff",
+            "--cached",
+            "--no-ext-diff",
+            "--no-textconv",
+            "--name-status",
+            "--",
+            "zircon_runtime/src/ui/tests/material_layout.rs",
+            "zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs",
+            "zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs",
+            "zircon_runtime/src/ui/tests/material_layout/constraints_children.rs",
+            "zircon_runtime/src/ui/tests/material_layout/field_values.rs",
+            "zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        }
+      ]
+    },
+    "source_final_check": {
+      "tool": "exec_command",
+      "pid": 19976,
+      "chunk_id": "b7db0b",
+      "native_session": null,
+      "exit": 0,
+      "observed_terminal": true,
+      "checks": [
+        {
+          "command": [
+            "rustfmt",
+            "--check",
+            "--edition",
+            "2021",
+            "--config",
+            "skip_children=true",
+            "zircon_runtime/src/ui/tests/material_layout.rs",
+            "zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs",
+            "zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs",
+            "zircon_runtime/src/ui/tests/material_layout/constraints_children.rs",
+            "zircon_runtime/src/ui/tests/material_layout/field_values.rs",
+            "zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "diff",
+            "--check",
+            "--",
+            "zircon_runtime/src/ui/tests/material_layout.rs",
+            "zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs",
+            "zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs",
+            "zircon_runtime/src/ui/tests/material_layout/constraints_children.rs",
+            "zircon_runtime/src/ui/tests/material_layout/field_values.rs",
+            "zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/ui/tests/material_layout.rs.\nThe file will have its original line endings in your working directory\n"
+        },
+        {
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "diff",
+            "--cached",
+            "--check",
+            "--",
+            "zircon_runtime/src/ui/tests/material_layout.rs",
+            "zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs",
+            "zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs",
+            "zircon_runtime/src/ui/tests/material_layout/constraints_children.rs",
+            "zircon_runtime/src/ui/tests/material_layout/field_values.rs",
+            "zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "rev-parse",
+            "HEAD"
+          ],
+          "exit": 0,
+          "stdout": "f28ba39a5095f4964c046ecc702778627f80cfd5\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "diff",
+            "--no-ext-diff",
+            "--no-textconv",
+            "--",
+            "zircon_runtime/src/ui/tests/material_layout.rs",
+            "zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs",
+            "zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs",
+            "zircon_runtime/src/ui/tests/material_layout/constraints_children.rs",
+            "zircon_runtime/src/ui/tests/material_layout/field_values.rs",
+            "zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs"
+          ],
+          "exit": 0,
+          "stdout_description": "Full scoped diff read independently; contains seven comment-only insertions in parent and no deletions.",
+          "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/ui/tests/material_layout.rs.\nThe file will have its original line endings in your working directory\n"
+        },
+        {
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "diff",
+            "--cached",
+            "--no-ext-diff",
+            "--no-textconv",
+            "--name-status",
+            "--",
+            "zircon_runtime/src/ui/tests/material_layout.rs",
+            "zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs",
+            "zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs",
+            "zircon_runtime/src/ui/tests/material_layout/constraints_children.rs",
+            "zircon_runtime/src/ui/tests/material_layout/field_values.rs",
+            "zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "status",
+            "--porcelain=v1",
+            "--",
+            "zircon_runtime/src/ui/tests/material_layout.rs",
+            "zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs",
+            "zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs",
+            "zircon_runtime/src/ui/tests/material_layout/constraints_children.rs",
+            "zircon_runtime/src/ui/tests/material_layout/field_values.rs",
+            "zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs"
+          ],
+          "exit": 0,
+          "stdout": " M zircon_runtime/src/ui/tests/material_layout.rs\n",
+          "stderr": "warning: unable to access 'C:\\Users\\HeJiahui/.config/git/ignore': Permission denied\n"
+        }
+      ]
+    },
+    "evidence_reads": [
+      {
+        "chunk_id": "2f830b",
+        "exit": 0,
+        "scope": "five complete child sources, production material tail, source/test mounts"
+      },
+      {
+        "chunk_id": "bff842",
+        "pid": 10896,
+        "exit": 0,
+        "scope": "actual 29 declaration names, signatures and selected statement anchors"
+      },
+      {
+        "chunk_id": "b9bdb8",
+        "pid": 11420,
+        "exit": 0,
+        "scope": "exact fixture literal tables and 13 current read-only context hashes/ranges"
+      },
+      {
+        "chunk_id": "e3daf2",
+        "pid": 16752,
+        "exit": 0,
+        "scope": "58 exact gapfree blocks, 83 bounded statement regions, helper call sites, hashes and rendering tail"
+      }
+    ],
+    "reused_historical_read_receipts": [
+      "0565da/session18805 -> 4c3b47 exit0: full direct source-string structure fixture and clean discovery",
+      "811ce8/session86260 -> 4b3830 exit0: actual production material head and issue/mount evidence",
+      "bf3441 exit0: R048 immutable child and amendment structure",
+      "5d364f exit0: old/current material inverse and source-string baseline",
+      "8f7817 exit0: targeted call/mount selection and new ID unused",
+      "c16bbb exit0: formal six-path grant/HEAD/fresh scoped clean"
+    ],
+    "nonpassing_or_unknown_reads": [
+      {
+        "receipt": "e3bb86 exit1",
+        "detail": "Parent source read completed, then initial wrong production path failed FileNotFound; this whole call is not a passing check. Correct pass/material.rs was later fully read."
+      },
+      {
+        "receipt": "84c02d exit1",
+        "detail": "Broad rg output truncated and unused-ID rg returned1; not claimed as complete verification; targeted successful readers supersede relevant evidence."
+      },
+      {
+        "receipt": "8aa05a exit1",
+        "detail": "ConstrainedLanguage rejected PowerShell .NET method invocation before any write; Python canonical writer used later."
+      },
+      {
+        "receipt": "readonly policy cell24",
+        "detail": "Tool host lost readonly wrapper observation; no actual native/session/exit is known and no pass is claimed."
+      },
+      {
+        "receipt": "six historical R045 readonly wrappers",
+        "detail": "Native terminal observation unavailable; they were readonly, unrelated to R051 writer. No inference of unknown PID identity, owner release or global process closure."
+      }
+    ],
+    "not_run": [
+      "Cargo",
+      "Rust tests",
+      "builds",
+      "generators",
+      "broad test suites",
+      "formal Jenkins acceptance",
+      "Git mutations"
+    ],
+    "checks_limit": "Format/diff/raw inverse/source-string calculations are local static evidence only; they do not establish actual Rust test success.",
+    "metadata_create_preflight": {
+      "chunk_id": "f61f9f",
+      "pid": 16480,
+      "exit": 0,
+      "observed_terminal": true,
+      "child_existed": false,
+      "six_source_pins_match": true
+    },
+    "metadata_writer": {
+      "tool": "apply_patch",
+      "path": "docs/plans/source-comments/reviews/R051.json",
+      "native_command": null,
+      "native_pid": null,
+      "reason": "Tool-managed canonical metadata creation; actual patch input and tool receipt are retained in current functions.store and reported at final handoff. No shell helper or source snapshot is created."
+    }
+  },
+  "artifact_lifecycle": {
+    "created_outputs": [
+      "docs/plans/source-comments/reviews/R051.json (parent pre-registered canonical metadata)"
+    ],
+    "temporary_files": [],
+    "source_copies": [],
+    "build_outputs": [],
+    "deleted_paths": [],
+    "released_bytes": 0,
+    "retained": "Canonical comment insertions and this immutable child; all foreign/preexisting sources, caches, Git data and historical receipts preserved.",
+    "process_status": "Observed R051 source writer and all listed final readers/checks are terminal. Metadata write/readback receipt and final child SHA will be supplied in the final handoff; historical readonly unknown observations remain explicit."
+  },
+  "delivery": {
+    "metadata_content_rule": "Contains review metadata, bounded names/ranges/hashes/assertion needles and exact inserted comment text only; no source-tree snapshot or full source copy.",
+    "source_write_stopped": true,
+    "source_after_pins_fixed": true,
+    "parent_acceptance": "pending independent parent main/post and formal Jenkins gates; no external owner release is asserted",
+    "child_final_hash": "reported externally after actual post-write parse and source/predicate/inverse readback"
+  }
+}

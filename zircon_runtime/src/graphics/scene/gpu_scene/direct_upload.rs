@@ -47,11 +47,10 @@ impl GpuScene {
         } else {
             let ranges = self
                 .updates
-                .prepare_primitive_upload_ranges(GPU_PRIMITIVE_DATA_STRIDE as u64)
-                .to_vec();
+                .prepare_primitive_upload_ranges(GPU_PRIMITIVE_DATA_STRIDE as u64);
             report.primitive_upload_range_count = ranges.len();
             report.uploaded_bytes +=
-                uploads.push_upload_ranges(&self.primitive_buffer, &self.primitive_shadow, &ranges);
+                uploads.push_upload_ranges(&self.primitive_buffer, &self.primitive_shadow, ranges);
         }
 
         if self.force_full_instance_upload {
@@ -68,11 +67,10 @@ impl GpuScene {
         } else {
             let ranges = self
                 .updates
-                .prepare_instance_upload_ranges(GPU_INSTANCE_DATA_STRIDE as u64)
-                .to_vec();
+                .prepare_instance_upload_ranges(GPU_INSTANCE_DATA_STRIDE as u64);
             report.instance_upload_range_count = ranges.len();
             report.uploaded_bytes +=
-                uploads.push_upload_ranges(&self.instance_buffer, &self.instance_shadow, &ranges);
+                uploads.push_upload_ranges(&self.instance_buffer, &self.instance_shadow, ranges);
         }
 
         if self.force_full_light_upload {
@@ -84,11 +82,10 @@ impl GpuScene {
         } else {
             let ranges = self
                 .updates
-                .prepare_light_upload_ranges(GpuLightData::STRIDE as u64)
-                .to_vec();
+                .prepare_light_upload_ranges(GpuLightData::STRIDE as u64);
             report.light_upload_range_count = ranges.len();
             report.uploaded_bytes +=
-                uploads.push_upload_ranges(&self.light_buffer, &self.light_shadow, &ranges);
+                uploads.push_upload_ranges(&self.light_buffer, &self.light_shadow, ranges);
         }
         let uploaded_scene_data_counts =
             self.append_scene_data_count_param_uploads(&mut uploads, scene_data_counts);

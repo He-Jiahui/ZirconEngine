@@ -74,6 +74,15 @@ pub type ZrRuntimeCaptureAccessibilityTreeFnV2 = unsafe extern "C" fn(
 /// 归还一次原会话的输出分配；参数依次为发放会话和分配 ID，返回释放状态。
 /// 当前注册表核对归属后移除分配；零 ID、错误会话或已释放 ID 返回未找到。
 /// 成功释放后所有指向该输出的借用失效，复制 ID 不产生第二份释放权。
+///
+/// # 约束与生命周期
+/// 对有效分配 ID，先检查会话释放准入，再查找分配；会话处于 `Closing` 时也返回
+/// `NotFound`，不能仅凭此码推断分配已经回收。销毁失败转入 `TeardownRetryPending`
+/// 后仍允许通过原会话归还输出，调用方须继续持有原提供方及未完成的释放责任。
+///
+/// # 参考
+/// `release_runtime_allocation` 先调用 `begin_session_release_action`；后者经
+/// `SessionSlot::begin_release_action` 区分关闭阶段和允许释放的待重试阶段。
 pub type ZrRuntimeReleaseAllocationFnV2 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeAllocationId) -> ZrStatus;
 /// 将宿主原生表面绑定到会话/视口，参数依次为会话和绑定请求，返回绑定状态。

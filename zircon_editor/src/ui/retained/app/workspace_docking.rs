@@ -95,7 +95,14 @@ impl RetainedEditorHost {
             let Some(owner) = active.source_window.as_ref() else {
                 return;
             };
-            (!(match self.runtime.floating_window_exists(owner) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } })).then(|| owner.clone())
+            (!(match self.runtime.floating_window_exists(owner) {
+                Ok(value) => value,
+                Err(error) => {
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            }))
+            .then(|| owner.clone())
         };
         let Some(owner) = removed_owner else {
             return;

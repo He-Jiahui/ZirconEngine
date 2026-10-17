@@ -11,6 +11,7 @@ use zircon_runtime_interface::reflect::ReflectError;
 #[derive(Debug, PartialEq, Eq)]
 struct Unrelated(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(Unrelated { 0 });
 impl Component for Unrelated {}
 
 fn clean_derived_world() -> (World, u64) {

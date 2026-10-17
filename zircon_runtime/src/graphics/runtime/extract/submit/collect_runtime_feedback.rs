@@ -66,13 +66,21 @@ fn collect_virtual_geometry_feedback(
     let node_and_cluster_cull_page_requests =
         readback_outputs.take_node_and_cluster_cull_page_request_ids();
 
+    let gpu_completion = VirtualGeometryGpuCompletion::from_readback_outputs(readback_outputs);
+
     VirtualGeometryRuntimeFeedback::new(
-        VirtualGeometryGpuCompletion::from_readback_outputs(readback_outputs),
+        gpu_completion,
         node_and_cluster_cull_page_requests,
         context.virtual_geometry_feedback().cloned(),
         context.predicted_generation(),
     )
     .with_evictable_page_ids(sidebands.take_virtual_geometry_evictable_page_ids())
+    .with_cpu_prepare_token(
+        sidebands
+            .virtual_geometry_prepared_cpu_frame
+            .take()
+            .and_then(|frame| frame.commit_token),
+    )
 }
 
 fn merge_hybrid_gi_readback_outputs(

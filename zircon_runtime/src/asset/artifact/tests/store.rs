@@ -103,3 +103,44 @@ fn scene_artifact_manifest_has_stable_schema_codec_and_content_identity() {
 
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn failed_stream_serialization_preserves_the_last_model_cache_and_removes_staging() {
+    struct FailsAfterPrefix;
+    impl serde::Serialize for FailsAfterPrefix {
+        fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            use serde::ser::SerializeSeq;
+            let mut sequence = serializer.serialize_seq(Some(2))?;
+            sequence.serialize_element(&[19_u8; 1024].as_slice())?;
+            Err(<S::Error as serde::ser::Error>::custom(
+                "injected stream failure",
+            ))
+        }
+    }
+    let root = crate::asset::tests::project::unique_temp_project_root("model_cache_stream_failure");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+    let uri = AssetUri::parse("res://models/last-valid.zmodel").unwrap();
+    let metadata = ResourceRecord::new(crate::asset::AssetId::new(), AssetKind::Model, uri.clone());
+    let asset = ImportedAsset::Model(crate::asset::ModelAsset {
+        uri,
+        primitives: Vec::new(),
+    });
+    let store = ArtifactStore::default();
+    let locator = store.write(&paths, &metadata, &asset).unwrap();
+    let manifest = resolve_artifact_cache_path(&paths, &locator).unwrap();
+    let original = fs::read(&manifest).unwrap();
+
+    assert!(StagedArtifactPayload::write(&paths.asset_artifact_root(), &FailsAfterPrefix).is_err());
+    assert_eq!(fs::read(&manifest).unwrap(), original);
+    assert_eq!(store.read(&paths, &locator).unwrap(), asset);
+    assert_eq!(
+        fs::read_dir(paths.asset_artifact_root().join(ARTIFACT_STAGING_DIRECTORY))
+            .unwrap()
+            .count(),
+        0
+    );
+    fs::remove_dir_all(root).unwrap();
+}

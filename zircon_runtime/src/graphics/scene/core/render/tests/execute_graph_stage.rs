@@ -130,6 +130,7 @@ fn stage_execution_commits_pass_owned_results_in_topology_order() {
                     ..RenderPluginRendererOutputs::default()
                 },
                 history_writes: Default::default(),
+                virtual_geometry_readbacks: Vec::new(),
             },
             None,
         );
@@ -145,8 +146,7 @@ fn stage_execution_commits_pass_owned_results_in_topology_order() {
 #[test]
 fn graph_pass_uploads_are_pass_local_and_merged_in_recorded_order_without_a_mutex() {
     let stage_source = include_str!("../render/execute_graph_stage.rs");
-    let gpu_context_source =
-        include_str!("../../../renderer/execution/context/gpu.rs");
+    let gpu_context_source = include_str!("../../../renderer/execution/context/gpu.rs");
 
     assert!(gpu_context_source.contains("buffer_uploads: WgpuBufferUploadBatch"));
     assert!(gpu_context_source.contains("take_buffer_uploads"));
@@ -263,15 +263,13 @@ fn compiled_graph_passes_expose_upload_recording_without_native_queue_authority(
     let services = include_str!("../graph_pass_frame_services.rs");
     let stages = include_str!("../../../../core/render/execute_compiled_scene_graph_stages.rs");
     let stage = include_str!("../render/execute_graph_stage.rs");
-    let gpu_context =
-        include_str!("../../../renderer/execution/context/gpu.rs");
+    let gpu_context = include_str!("../../../renderer/execution/context/gpu.rs");
     let gpu_product = gpu_context
         .split_once("#[cfg(test)]")
         .map(|(product, _)| product)
         .expect("GPU pass context should retain a test-constructor boundary");
     let ui_record = include_str!("../../../renderer/ui/render/record.rs");
-    let particle_context =
-        include_str!("../../../renderer/execution/context/gpu/particle.rs");
+    let particle_context = include_str!("../../../renderer/execution/context/gpu/particle.rs");
     let frame = include_str!("../../../renderer/core/render/render/render.rs");
 
     assert!(!services.contains("wgpu::Queue"));

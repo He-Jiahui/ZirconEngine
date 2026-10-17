@@ -6,6 +6,7 @@ mod builtin_global_shader_contracts;
 mod fullscreen_pass_parameters;
 #[path = "global_pipeline_layout.rs"]
 mod global_pipeline_layout;
+#[cfg(feature = "native-host")]
 #[path = "ide_env_generation.rs"]
 mod ide_env_generation;
 #[path = "ide_preview.rs"]
@@ -18,11 +19,13 @@ pub mod invocation;
 mod shader_assets;
 #[path = "template/mod.rs"]
 pub(crate) mod template;
+#[cfg(feature = "native-host")]
 #[path = "variant_cache/mod.rs"]
 pub(crate) mod variant_cache;
 
 pub use crate::core::framework::render::ShaderIdePreviewVariant;
 use crate::core::framework::render::{ShaderAssetKind, ShaderIdeModuleSource};
+#[cfg(feature = "native-host")]
 pub use ide_env_generation::{write_shader_ide_env_for_project, ShaderIdeEnvReport};
 pub use ide_preview::{
     assemble_shader_ide_surface_preview, ShaderIdePreviewError, ShaderIdeSurfacePreview,
@@ -81,6 +84,7 @@ pub(crate) use global_pipeline_layout::{
     create_compute_shader_bind_group_layout, create_fullscreen_pass_input_bind_group_layout,
     ShaderWgpuResourceDescriptor,
 };
+#[cfg(feature = "native-host")]
 pub(crate) use variant_cache::{
     prewarm_shader_variants_to_disk, prewarm_shader_variants_to_disk_with_budget,
     prewarm_shader_variants_to_disk_with_module_and_pipeline_validation,

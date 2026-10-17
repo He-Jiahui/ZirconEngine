@@ -18,13 +18,11 @@ fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners() {
     let runtime_07_archive = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
     );
-    let runtime_index =
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let large_file_doc =
         include_str!("../../../../../docs/architecture/large-file-ownership-m1.md");
-    let hotspot_doc = include_str!(
-        "../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
-    );
+    let hotspot_doc =
+        include_str!("../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md");
 
     for root_anchor in [
         "mod camera;",

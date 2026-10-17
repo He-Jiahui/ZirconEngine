@@ -10,6 +10,8 @@ use crate::core::{ServiceKind, StartupMode};
 /// Runtime entries keep their mutable lifecycle state in the registries. This
 /// graph intentionally retains only validated topology and provenance, so the
 /// declaration order cannot drift after lifecycle work has started.
+///
+/// 此快照不保存工厂或运行状态；失败时不产出半个图，成功缓存由 CoreHandle 的调用入口负责。
 #[derive(Clone, Debug)]
 pub(crate) struct FrozenModuleGraph {
     module_activation_order: Arc<[String]>,
@@ -21,12 +23,18 @@ pub(crate) struct FrozenModuleGraph {
 /// 冻结模块的服务计划：启动仅选 Immediate 项，关闭则反转完整依赖顺序。
 #[derive(Clone, Debug)]
 pub(crate) struct FrozenModuleServices {
+    /// 本模块的全部服务，保留全局服务拓扑序在该模块上的投影。
     service_names: Arc<[RegistryName]>,
+    /// 上述投影中标为 Immediate 的服务；解析其依赖仍可能创建 Lazy 服务。
     startup_service_names: Arc<[RegistryName]>,
+    /// 全部服务投影的逆序，用于关闭、排空与卸载，不限于启动时实际创建的项。
     shutdown_service_names: Arc<[RegistryName]>,
 }
 
 impl FrozenModuleGraph {
+    /// 从借用的描述符构建完整模块/服务拓扑，不执行工厂或生命周期回调。
+    /// 模块边、服务边或环校验失败返回 CoreError；本函数不修改注册表或发布缓存。
+    /// 名称归属与注册种类的准入由注册入口负责，图校验不能代替该入口。
     pub(crate) fn freeze(descriptors: &[ModuleDescriptor]) -> CoreResult<Self> {
         let module_activation_order = sort_module_activation_order(descriptors)?;
         let module_dependencies = module_dependency_map(descriptors);
@@ -50,10 +58,13 @@ impl FrozenModuleGraph {
         })
     }
 
+    /// 借用全局模块启动顺序；运行状态变化不会重排此拓扑。
     pub(crate) fn module_activation_order(&self) -> &[String] {
         &self.module_activation_order
     }
 
+    /// 返回目标模块及其传递提供方，按全局启动序排列的独立名称列表。
+    /// 目标未登记时返回缺失模块错误；这里只遍历声明，不检查模块当前是否运行。
     pub(crate) fn module_activation_closure(&self, module_name: &str) -> CoreResult<Vec<String>> {
         let Some((registered_name, _)) = self.module_dependencies.get_key_value(module_name) else {
             return Err(CoreError::MissingModule(module_name.to_owned()));
@@ -79,6 +90,7 @@ impl FrozenModuleGraph {
     }
 
     /// Lists all transitively dependent modules in stable activation order.
+    /// 不包含目标模块自身；停用入口还需另查这些依赖方的当前生命周期。
     pub(crate) fn module_dependent_closure(&self, module_name: &str) -> CoreResult<Vec<String>> {
         let Some((_, direct_dependents)) = self.module_dependents.get_key_value(module_name) else {
             return Err(CoreError::MissingModule(module_name.to_owned()));
@@ -106,6 +118,7 @@ impl FrozenModuleGraph {
             .collect())
     }
 
+    /// 借用指定模块的冻结服务计划；目标不存在时返回缺失模块错误。
     pub(crate) fn module_services(&self, module_name: &str) -> CoreResult<&FrozenModuleServices> {
         self.module_services
             .get(module_name)
@@ -144,6 +157,7 @@ enum VisitState {
 
 #[derive(Clone, Copy, Debug)]
 struct TraversalFrame {
+    // 规范名称仍由图节点持有；显式帧只保存节点索引和下一条待访问的边。
     node_index: usize,
     next_dependency_index: usize,
 }
@@ -154,10 +168,22 @@ struct TraversalFrame {
 /// diagnostics report the first invalid declaration. The traversal needs its
 /// own deterministic lexical view after that validation has succeeded.
 struct ServiceTraversalEdges {
+    // 每个节点的边区间由相邻起点界定，末尾额外起点等于目标数组长度。
     starts: Vec<usize>,
     targets: Vec<usize>,
 }
 
+/// 校验模块依赖并返回提供方先于使用方的启动名称列表。
+///
+/// # 参数与返回
+///
+/// `descriptors` 仅被借用；返回的名称由结果独立持有。重复模块/依赖、缺失目标、
+/// 依赖更晚初始化层级或存在环时返回相应 CoreError，不执行生命周期回调。
+///
+/// # 顺序与边界
+///
+/// 先按初始化层级和输入位置选遍历根，再沿各模块原有依赖顺序进行显式栈遍历。
+/// 本入口只校验模块图；服务依赖、注册名归属与服务种类还须经过注册/完整冻结流程。
 pub fn sort_module_activation_order(descriptors: &[ModuleDescriptor]) -> CoreResult<Vec<String>> {
     let mut by_name: HashMap<&str, usize> = HashMap::with_capacity(descriptors.len());
     for (index, descriptor) in descriptors.iter().enumerate() {
@@ -447,6 +473,7 @@ fn sorted_service_traversal_edges(
     ServiceTraversalEdges { starts, targets }
 }
 
+// 按已排序的服务边使用显式帧进行深度优先遍历；遇到当前栈内节点时返回首尾重复的环路径。
 fn visit_service_iterative(
     root_index: usize,
     names: &[&str],
@@ -563,6 +590,7 @@ fn module_service_plans(
         .collect()
 }
 
+// 模块边保留声明顺序，显式帧与状态数组区分当前路径和已完成节点，避免递归依赖本机栈。
 fn visit_module_iterative(
     root_index: usize,
     descriptors: &[ModuleDescriptor],

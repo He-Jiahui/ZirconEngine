@@ -19,7 +19,7 @@ use super::super::{
 };
 use super::output::{RenderArtifactCookOutput, RenderArtifactCookedBlock};
 
-pub const RENDER_ARTIFACT_STATIC_MESH_FORMAT_V1: &str = "zr-static-mesh-v1";
+pub use super::super::contract::RENDER_ARTIFACT_STATIC_MESH_FORMAT_V1;
 
 const DEFAULT_NORMAL: [f32; 3] = [0.0, 0.0, 1.0];
 const DEFAULT_UV: [f32; 2] = [0.0, 0.0];

@@ -87,16 +87,14 @@ pub fn tilemap_component_descriptor() -> ComponentTypeDescriptor {
 }
 
 pub fn tilemap_importer_descriptors() -> Vec<zircon_runtime::asset::AssetImporterDescriptor> {
-    vec![
-        zircon_runtime::asset::AssetImporterDescriptor::new(
-            TILED_IMPORTER_ID,
-            PLUGIN_ID,
-            zircon_runtime::asset::AssetKind::TileMap,
-            1,
-        )
-        .with_source_extensions(["tmx", "tsx", "json"])
-        .with_required_capabilities([TILEMAP_2D_RUNTIME_CAPABILITY]),
-    ]
+    vec![zircon_runtime::asset::AssetImporterDescriptor::new(
+        TILED_IMPORTER_ID,
+        PLUGIN_ID,
+        zircon_runtime::asset::AssetKind::TileMap,
+        1,
+    )
+    .with_source_extensions(["tmx", "tsx", "json"])
+    .with_required_capabilities([TILEMAP_2D_RUNTIME_CAPABILITY])]
 }
 
 zircon_plugin_sdk::runtime_plugin_exports!(Tilemap2dRuntimePlugin);

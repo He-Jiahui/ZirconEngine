@@ -308,3 +308,29 @@ impl VirtualGeometryNodeAndClusterCullPassOutput {
         self.cluster_work_item_buffer = None;
     }
 }
+
+impl super::store_parts::VirtualGeometryNodeAndClusterCullPreparedParts {
+    pub(in crate::virtual_geometry) fn into_neutral_inspection(
+        self,
+    ) -> zircon_runtime::core::framework::render::RenderVirtualGeometryPreparedCpuInspection {
+        zircon_runtime::core::framework::render::RenderVirtualGeometryPreparedCpuInspection {
+            source: self.source,
+            record_count: self.record_count,
+            cull_input: self.global_state.as_ref().map(|state| state.cull_input),
+            global_state: self.global_state,
+            dispatch_setup: self.dispatch_setup,
+            launch_worklist: self.launch_worklist,
+            instance_seeds: self.instance_seeds,
+            instance_work_items: self.instance_work_items,
+            cluster_work_items: self
+                .cluster_work_items
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            hierarchy_child_ids: self.hierarchy_child_ids,
+            child_work_items: self.child_work_items.into_iter().map(Into::into).collect(),
+            traversal_records: self.traversal_records.into_iter().map(Into::into).collect(),
+            page_request_ids: self.page_request_ids,
+        }
+    }
+}

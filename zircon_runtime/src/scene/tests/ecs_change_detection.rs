@@ -11,11 +11,13 @@ use crate::scene::{EntityId, World};
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
 impl Component for Health {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct SparseHealth(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(SparseHealth { 0 });
 impl Component for SparseHealth {
     const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }

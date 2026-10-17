@@ -1,7 +1,7 @@
 //! 资源内容、名称区域与预览采用不同交互强调；选中资源名称优先于按压，而内容面板避免整体染成焦点色。
 
 use super::super::super::super::super::data::TemplatePaneNodeData;
-use super::super::super::super::super::paint_theme::PALETTE;
+use super::super::super::super::super::paint_theme::current_host_palette;
 use super::super::super::super::template_style_color::is_primary_contained_button;
 use super::super::super::state::button_interaction_state;
 use super::super::super::surface_roles::{
@@ -25,14 +25,14 @@ pub(super) fn interaction_surface_color(node: &TemplatePaneNodeData) -> Option<[
 
     match button_interaction_state(node) {
         ButtonInteractionState::Pressed | ButtonInteractionState::Focused => {
-            Some(PALETTE.surface_pressed)
+            Some(current_host_palette().surface_pressed)
         }
         ButtonInteractionState::Hover => Some(if is_primary_contained_button(node) {
-            PALETTE.accent_soft
+            current_host_palette().accent_soft
         } else {
-            PALETTE.surface_hover
+            current_host_palette().surface_hover
         }),
-        ButtonInteractionState::Disabled => Some(PALETTE.surface_disabled),
+        ButtonInteractionState::Disabled => Some(current_host_palette().surface_disabled),
         ButtonInteractionState::Loading | ButtonInteractionState::Normal => None,
     }
 }
@@ -43,7 +43,7 @@ mod tests;
 
 fn content_panel_interaction_surface_color(state: ButtonInteractionState) -> Option<[u8; 4]> {
     match state {
-        ButtonInteractionState::Disabled => Some(PALETTE.surface_disabled),
+        ButtonInteractionState::Disabled => Some(current_host_palette().surface_disabled),
         ButtonInteractionState::Loading
         | ButtonInteractionState::Pressed
         | ButtonInteractionState::Focused
@@ -55,10 +55,10 @@ fn content_panel_interaction_surface_color(state: ButtonInteractionState) -> Opt
 fn asset_preview_interaction_surface_color(state: ButtonInteractionState) -> Option<[u8; 4]> {
     match state {
         ButtonInteractionState::Pressed | ButtonInteractionState::Focused => {
-            Some(PALETTE.surface_pressed)
+            Some(current_host_palette().surface_pressed)
         }
-        ButtonInteractionState::Hover => Some(PALETTE.surface_hover),
-        ButtonInteractionState::Disabled => Some(PALETTE.surface_disabled),
+        ButtonInteractionState::Hover => Some(current_host_palette().surface_hover),
+        ButtonInteractionState::Disabled => Some(current_host_palette().surface_disabled),
         ButtonInteractionState::Loading | ButtonInteractionState::Normal => None,
     }
 }
@@ -68,12 +68,12 @@ fn asset_thumbnail_name_area_interaction_surface_color(
     state: ButtonInteractionState,
 ) -> Option<[u8; 4]> {
     match state {
-        ButtonInteractionState::Disabled => Some(PALETTE.surface_disabled),
-        _ if node.selected || node.checked => Some(PALETTE.surface_selected),
+        ButtonInteractionState::Disabled => Some(current_host_palette().surface_disabled),
+        _ if node.selected || node.checked => Some(current_host_palette().surface_selected),
         ButtonInteractionState::Pressed | ButtonInteractionState::Focused => {
-            Some(PALETTE.surface_pressed)
+            Some(current_host_palette().surface_pressed)
         }
-        ButtonInteractionState::Hover => Some(PALETTE.surface_hover),
+        ButtonInteractionState::Hover => Some(current_host_palette().surface_hover),
         ButtonInteractionState::Loading | ButtonInteractionState::Normal => None,
     }
 }

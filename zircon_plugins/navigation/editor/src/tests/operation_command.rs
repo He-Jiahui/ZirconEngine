@@ -121,6 +121,7 @@ struct RecordingGatewayState {
     next_handle: u64,
     current: NavigationGeneratedBakeSnapshot,
     requests: Vec<ZrRuntimeOperationSubmitRequestV1>,
+    wire_requests: Vec<ZrRuntimeOperationSubmitRequestV1>,
     results: BTreeMap<u64, ZrRuntimeOperationResultV1>,
     foreign_progress: bool,
     failed_result: bool,
@@ -135,6 +136,7 @@ impl RecordingGateway {
                 next_handle: 1,
                 current: NavigationGeneratedBakeSnapshot::empty(Some(7)),
                 requests: Vec::new(),
+                wire_requests: Vec::new(),
                 results: BTreeMap::new(),
                 foreign_progress: false,
                 failed_result: false,
@@ -196,10 +198,50 @@ impl EditorRuntimeGateway for RecordingGateway {
         &self,
         request: ZrRuntimeOperationSubmitRequestV1,
     ) -> Result<ZrRuntimeOperationHandle, GatewayError> {
+        use zircon_runtime::core::framework::navigation::{
+            NavigationHistoryRequestV1, NAVIGATION_HISTORY_BAKE_SCENE_V1,
+            NAVIGATION_HISTORY_BAKE_SURFACE_V1, NAVIGATION_HISTORY_CLEAR_SURFACE_V1,
+            NAVIGATION_HISTORY_RESTORE_V1,
+        };
         let mut state = self.state.lock().unwrap();
         let handle = ZrRuntimeOperationHandle::new(state.next_handle);
         state.next_handle += 1;
-        let before = state.current.clone();
+        let wire_id = request.operation_id.clone();
+        state.wire_requests.push(request.clone());
+        let mut request = request;
+        let budget = if wire_id.starts_with("navigation.history.v1.") {
+            let envelope: NavigationHistoryRequestV1 = serde_json::from_value(std::mem::replace(
+                &mut request.payload,
+                serde_json::Value::Null,
+            ))
+            .map_err(|error| GatewayError::Runtime {
+                message: error.to_string(),
+            })?;
+            if envelope.budget.version != 1
+                || envelope.budget.retained_bytes == 0
+                || envelope.budget.peak_bytes < envelope.budget.retained_bytes
+            {
+                return Err(GatewayError::Runtime {
+                    message: "invalid history envelope".into(),
+                });
+            }
+            request.operation_id = match wire_id.as_str() {
+                NAVIGATION_HISTORY_BAKE_SCENE_V1 => NAVIGATION_BAKE_SCENE_OPERATION,
+                NAVIGATION_HISTORY_BAKE_SURFACE_V1 => NAVIGATION_BAKE_SURFACE_OPERATION,
+                NAVIGATION_HISTORY_CLEAR_SURFACE_V1 => NAVIGATION_CLEAR_SURFACE_OPERATION,
+                NAVIGATION_HISTORY_RESTORE_V1 => NAVIGATION_RESTORE_BAKE_OPERATION,
+                _ => {
+                    return Err(GatewayError::Runtime {
+                        message: "unknown history operation".into(),
+                    })
+                }
+            }
+            .into();
+            request.payload = envelope.payload;
+            Some(envelope.budget)
+        } else {
+            None
+        };
         let after = if request.operation_id == NAVIGATION_BAKE_SCENE_OPERATION {
             NavigationGeneratedBakeSnapshot {
                 surface_entity: Some(7),
@@ -218,28 +260,53 @@ impl EditorRuntimeGateway for RecordingGateway {
                 message: format!("unexpected operation {}", request.operation_id),
             });
         };
-        state.current = after.clone();
+        // The fixture uses the same concrete borrowed DTO proof as Runtime,
+        // before its first publication clone. Wire requests and actually
+        // published semantic operations are recorded separately.
+        if budget.is_some_and(|b| b.check_projection_v1(&state.current, &after, None).is_err()) {
+            state.results.insert(
+                handle.raw(),
+                ZrRuntimeOperationResultV1::succeeded(
+                    ZIRCON_RUNTIME_ABI_VERSION_V1,
+                    handle,
+                    wire_id,
+                    serde_json::json!({"_history_retention_v1":{"version":1,"accepted":false,
+                    "reason":"prepublication_admission"}}),
+                ),
+            );
+            return Ok(handle);
+        }
         let change = NavigationGeneratedBakeChange {
-            before,
+            before: state.current.clone(),
             after,
             report: None,
         };
-        let result = if state.failed_result {
+        let mut output = serde_json::to_value(&change).unwrap();
+        if let Some(budget) = budget {
+            output.as_object_mut().unwrap().insert(
+                "_history_retention_v1".into(),
+                serde_json::json!({"version":1,"accepted":true}),
+            );
+            budget
+                .check_snapshots_v1(&output, &change.before, &change.after)
+                .expect("the concrete projection must dominate actual normal Value backing");
+        }
+        state.current = change.after.clone();
+        let mut result = if state.failed_result {
             ZrRuntimeOperationResultV1::failed(
                 ZIRCON_RUNTIME_ABI_VERSION_V1,
                 handle,
-                request.operation_id.clone(),
+                wire_id,
                 "runtime rejected the generated bake",
             )
         } else {
             ZrRuntimeOperationResultV1::succeeded(
                 ZIRCON_RUNTIME_ABI_VERSION_V1,
                 handle,
-                request.operation_id.clone(),
-                serde_json::to_value(change).unwrap(),
+                wire_id,
+                output,
             )
         };
-        let mut result = result;
         if state.wrong_result_abi {
             result.abi_version = ZIRCON_RUNTIME_ABI_VERSION_V1 + 1;
         }
@@ -354,6 +421,14 @@ impl EditContext for GatewayEditContext {
                 source: Box::new(source),
             },
         )
+    }
+
+    fn selection_retention_bound_v1(
+        &self,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<u64, EditCommandError> {
+        SelectionSnapshot::scalar_retention_bound_v1(model, limit)
     }
 
     fn selection_snapshot(&self) -> SelectionSnapshot {
@@ -636,4 +711,170 @@ fn navigation_editor_command_consumes_real_dynamic_session_tick_poll_harvest_and
         .expect("linked runtime API exposes session destruction");
     let status = unsafe { destroy(session) };
     assert_eq!(status.status_code(), ZrStatusCode::Ok);
+}
+
+fn navigation_budgeted_engine_v1(gateway: Arc<RecordingGateway>) -> EditorTransactionEngine {
+    use zircon_editor::core::editing::engine::{
+        HistoryRetentionBudgetV1, HistoryRetentionDomainV1,
+    };
+    let domain = HistoryRetentionDomainV1::try_new(HistoryRetentionBudgetV1 {
+        record_bytes: 256 * 1024,
+        history_bytes: 1024 * 1024,
+        committed_bytes: 4 * 1024 * 1024,
+        staging_bytes: 2 * 1024 * 1024,
+    })
+    .unwrap();
+    EditorTransactionEngine::with_retention_domain_v1(
+        GatewayEditContext::new(EditorRuntimeGatewayHandle::new(gateway)),
+        128,
+        domain,
+    )
+    .unwrap()
+}
+fn navigation_bake_command_v1() -> NavigationOperationCommand {
+    NavigationOperationCommand::new(ZrRuntimeOperationSubmitRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        NAVIGATION_BAKE_SCENE_OPERATION,
+        serde_json::to_value(NavMeshBakeRequest::default()).unwrap(),
+    ))
+}
+#[test]
+fn navigation_history_preflight_refusal_is_unchanged() {
+    let gateway = Arc::new(RecordingGateway::new());
+    // Genuine unused owned capacity in the current Runtime DTO. The receiver
+    // must refuse before the fixture's first publication clone.
+    let output = String::with_capacity(512 * 1024);
+    let output_capacity = output.capacity();
+    gateway.state.lock().unwrap().current.output_asset = Some(output);
+    let engine = navigation_budgeted_engine_v1(gateway.clone());
+    let before = engine.history_status(HistoryContextId::Global).unwrap();
+    let refused = engine.execute_operation(
+        "budgeted bake",
+        HistoryContextId::Global,
+        None,
+        MergeMode::Disable,
+        Box::new(navigation_bake_command_v1()),
+    );
+    assert!(matches!(
+        refused,
+        Err(EditCommandError::RetentionAdmissionRefused { .. })
+    ));
+    let state = gateway.state.lock().unwrap();
+    assert!(state.current.asset.is_none());
+    assert_eq!(
+        state.current.output_asset.as_ref().unwrap().capacity(),
+        output_capacity
+    );
+    assert!(state.requests.is_empty());
+    assert_eq!(state.wire_requests.len(), 1);
+    assert_eq!(
+        state.wire_requests[0].operation_id,
+        zircon_runtime::core::framework::navigation::NAVIGATION_HISTORY_BAKE_SCENE_V1
+    );
+    drop(state);
+    assert_eq!(
+        engine.history_status(HistoryContextId::Global).unwrap(),
+        before
+    );
+    assert!(
+        !engine.undo(HistoryContextId::Global).unwrap(),
+        "admission refusal must not fault the engine"
+    );
+}
+#[test]
+fn navigation_history_quota_precedes_submit_and_replay_keeps_snapshots() {
+    use zircon_runtime::core::framework::navigation::{
+        NavigationHistoryRequestV1, NAVIGATION_HISTORY_BAKE_SCENE_V1, NAVIGATION_HISTORY_RESTORE_V1,
+    };
+    let gateway = Arc::new(RecordingGateway::new());
+    let engine = navigation_budgeted_engine_v1(gateway.clone());
+    let before = engine.history_status(HistoryContextId::Global).unwrap();
+    let mut request = ZrRuntimeOperationSubmitRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        NAVIGATION_BAKE_SCENE_OPERATION,
+        serde_json::Value::Null,
+    );
+    let mut id = String::with_capacity(512 * 1024);
+    id.push_str(NAVIGATION_BAKE_SCENE_OPERATION);
+    request.operation_id = id;
+    let refused = engine.execute_operation(
+        "oversize request",
+        HistoryContextId::Global,
+        None,
+        MergeMode::Disable,
+        Box::new(NavigationOperationCommand::new(request)),
+    );
+    assert!(matches!(refused, Err(EditCommandError::Retention(_))));
+    assert!(gateway.state.lock().unwrap().wire_requests.is_empty());
+    assert_eq!(
+        engine.history_status(HistoryContextId::Global).unwrap(),
+        before
+    );
+
+    // The retained String fits the record cap, but escaping plus the real
+    // transport Vec and parse owners exceeds this domain's staging remainder.
+    let escaped = ZrRuntimeOperationSubmitRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        NAVIGATION_BAKE_SCENE_OPERATION,
+        serde_json::json!({"output_asset": "\0".repeat(64 * 1024)}),
+    );
+    let refused = engine.execute_operation(
+        "escaped request peak",
+        HistoryContextId::Global,
+        None,
+        MergeMode::Disable,
+        Box::new(NavigationOperationCommand::new(escaped)),
+    );
+    assert!(matches!(refused, Err(EditCommandError::Retention(_))));
+    assert!(gateway.state.lock().unwrap().wire_requests.is_empty());
+    assert_eq!(
+        engine.history_status(HistoryContextId::Global).unwrap(),
+        before
+    );
+
+    engine
+        .execute_operation(
+            "bounded bake",
+            HistoryContextId::Global,
+            None,
+            MergeMode::Disable,
+            Box::new(navigation_bake_command_v1()),
+        )
+        .unwrap();
+    let baked = gateway.current();
+    for _ in 0..2 {
+        assert!(engine.undo(HistoryContextId::Global).unwrap());
+        assert!(gateway.current().asset.is_none());
+        assert!(engine.redo(HistoryContextId::Global).unwrap());
+        assert_eq!(gateway.current(), baked);
+    }
+    let state = gateway.state.lock().unwrap();
+    assert_eq!(state.wire_requests.len(), 5);
+    for (i, request) in state.wire_requests.iter().enumerate() {
+        assert_eq!(
+            request.operation_id,
+            if i == 0 {
+                NAVIGATION_HISTORY_BAKE_SCENE_V1
+            } else {
+                NAVIGATION_HISTORY_RESTORE_V1
+            }
+        );
+        let envelope: NavigationHistoryRequestV1 =
+            serde_json::from_value(request.payload.clone()).unwrap();
+        assert_eq!(envelope.budget.version, 1);
+        assert!(envelope.budget.retained_bytes > 0);
+        assert!(envelope.budget.retained_bytes < 256 * 1024);
+        assert!(envelope.budget.peak_bytes >= envelope.budget.retained_bytes * 8);
+    }
+    drop(state);
+    assert_eq!(
+        gateway.operation_ids(),
+        vec![
+            NAVIGATION_BAKE_SCENE_OPERATION.to_string(),
+            NAVIGATION_RESTORE_BAKE_OPERATION.to_string(),
+            NAVIGATION_RESTORE_BAKE_OPERATION.to_string(),
+            NAVIGATION_RESTORE_BAKE_OPERATION.to_string(),
+            NAVIGATION_RESTORE_BAKE_OPERATION.to_string(),
+        ]
+    );
 }

@@ -1,0 +1,2712 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R040",
+  "owner": "contracts_luna",
+  "review_role": "scoped-source-audit-and-necessary-comments-only-runtime-interface-contract-fixtures",
+  "model": "gpt-6-luna",
+  "reasoning_effort": "max",
+  "created_at_utc": "2026-10-15T17:14:34.096822Z",
+  "status": "local-comments-complete-pending-main-independent-review",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "canonical_checkout": "E:/Git/ZirconEngine",
+  "write_authorization": {
+    "assignment_path": "docs/plans/source-comments/assignments.json",
+    "assignment_sha256_at_metadata_write": "340bd664c1ddbf1a3a2878f6a41352a9ff69e5bb651715124a8f116f6ec4b95d",
+    "metadata_task": "R040",
+    "write_path": "docs/plans/source-comments/reviews/R040.json",
+    "audited_paths": [
+      "zircon_runtime_interface/src/tests/contracts.rs",
+      "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "zircon_runtime_interface/src/tests/mod.rs"
+    ],
+    "before_sha256": {
+      "zircon_runtime_interface/src/tests/contracts.rs": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+      "zircon_runtime_interface/src/tests/contracts/selector.rs": "09adf4660c353adbb9da6b8b5aecf1f80a1a68a9afc91a6e8714dc28a1427e1c",
+      "zircon_runtime_interface/src/tests/mod.rs": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a"
+    },
+    "original_line_count": 3122,
+    "exact_scope_only": true
+  },
+  "scope": {
+    "summary": "审查 Runtime Interface contracts、selector 子模块与 crate 测试路径根。仅 contracts.rs 插入必要中文解释注释；selector.rs 与 tests/mod.rs 已有中文模块说明准确，保持字节不变。",
+    "source_count": 3,
+    "original_lines": 3122,
+    "current_lines": 3134,
+    "reviewed_all_objects_and_continuous_blocks": true,
+    "cross_tree_context_is_read_only": true,
+    "no_behavior_api_test_assertion_string_or_source_guard_operand_changed": true
+  },
+  "source_pins": [
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "before_sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+      "after_sha256": "bbadbfd7c5303d6e69b8bf8dace1cfcc65dd8989350dc261352f6d6e76bb30c3",
+      "before_bytes": 121249,
+      "after_bytes": 122283,
+      "before_lines": 2992,
+      "after_lines": 3004,
+      "before_eol": "CRLF",
+      "after_eol": "CRLF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": true,
+      "diff_added_lines": 12,
+      "diff_deleted_lines": 0,
+      "raw_inverse_sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+      "raw_inverse_matches_grant": true,
+      "raw_inverse_equals_HEAD_after_worktree_eol_normalization": true,
+      "change_kind": "only inserted explanatory comments"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "before_sha256": "09adf4660c353adbb9da6b8b5aecf1f80a1a68a9afc91a6e8714dc28a1427e1c",
+      "after_sha256": "09adf4660c353adbb9da6b8b5aecf1f80a1a68a9afc91a6e8714dc28a1427e1c",
+      "before_bytes": 2008,
+      "after_bytes": 2008,
+      "before_lines": 51,
+      "after_lines": 51,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": false,
+      "diff_added_lines": 0,
+      "diff_deleted_lines": 0,
+      "raw_inverse_sha256": "09adf4660c353adbb9da6b8b5aecf1f80a1a68a9afc91a6e8714dc28a1427e1c",
+      "raw_inverse_matches_grant": true,
+      "raw_inverse_equals_HEAD_after_worktree_eol_normalization": true,
+      "change_kind": "unchanged; existing Chinese module scope documentation is sufficient"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "before_sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "after_sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "before_bytes": 2666,
+      "after_bytes": 2666,
+      "before_lines": 79,
+      "after_lines": 79,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": false,
+      "diff_added_lines": 0,
+      "diff_deleted_lines": 0,
+      "raw_inverse_sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "raw_inverse_matches_grant": true,
+      "raw_inverse_equals_HEAD_after_worktree_eol_normalization": true,
+      "change_kind": "unchanged; existing Chinese module scope documentation is sufficient"
+    }
+  ],
+  "insertions": [
+    {
+      "id": "R040-I01",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "object": "module_docs",
+      "line_range": [
+        1,
+        5
+      ],
+      "byte_offset": 0,
+      "byte_length": 297,
+      "inserted_bytes_sha256": "e009d278eee110251a2aaad2a550a92c342321b6a41fc60186832984c36f5489",
+      "exact_text": "//! Runtime Interface 跨领域值类型与 helper 的契约测试。\r\n//!\r\n//! 用例构造 `crate` API 值，检查选定 helper、ABI 字段布局和 JSON/TOML 往返。\r\n//! 这些局部断言不调用 Runtime 导出的宿主 ABI，也不证明其他目标上的布局或端到端行为。\r\n\r\n",
+      "line_ending": "CRLF",
+      "reversal": "remove this exact unique raw byte block"
+    },
+    {
+      "id": "R040-I02",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "object": "sample_ui_input_metadata",
+      "line_range": [
+        126,
+        126
+      ],
+      "byte_offset": 8952,
+      "byte_length": 101,
+      "inserted_bytes_sha256": "7ec8c6b5a065dca1699481a6c47e68945b214557baeca894ed4e30d2c1cf7b16",
+      "exact_text": "/// 为输入 DTO 样例统一时间、序号及用户、设备、窗口、表面和指针身份。\r\n",
+      "line_ending": "CRLF",
+      "reversal": "remove this exact unique raw byte block"
+    },
+    {
+      "id": "R040-I03",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "object": "ui_input_round_trip",
+      "line_range": [
+        142,
+        142
+      ],
+      "byte_offset": 9649,
+      "byte_length": 87,
+      "inserted_bytes_sha256": "2b2e99d89444ca26509993f5be5deeaf252bdb5746de13220ab49f91b4b331dc",
+      "exact_text": "/// 使用 `serde_json` 编码再解码值，不经过 Runtime 分发或动态 ABI。\r\n",
+      "line_ending": "CRLF",
+      "reversal": "remove this exact unique raw byte block"
+    },
+    {
+      "id": "R040-I04",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "object": "runtime_api_table_records_size_and_version",
+      "line_range": [
+        762,
+        762
+      ],
+      "byte_offset": 33868,
+      "byte_length": 111,
+      "inserted_bytes_sha256": "aec8cd06720c0431af83089651ea115916f296ece9b7ae50cc69e3d0b4155713",
+      "exact_text": "/// 只检查空表的表头、空回调槽和部分字段偏移，不检查 Runtime 导出的已填充表。\r\n",
+      "line_ending": "CRLF",
+      "reversal": "remove this exact unique raw byte block"
+    },
+    {
+      "id": "R040-I05",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "object": "plugin_api_table_records_optional_event_callback",
+      "line_range": [
+        938,
+        938
+      ],
+      "byte_offset": 41695,
+      "byte_length": 102,
+      "inserted_bytes_sha256": "6d1add4b0dd03479bb4de8e7e72915b1157fe0ec04a876283fb6404726b4cb95",
+      "exact_text": "/// 只检查空插件表的可选回调槽和字段偏移，不调用插件入口或事件回调。\r\n",
+      "line_ending": "CRLF",
+      "reversal": "remove this exact unique raw byte block"
+    },
+    {
+      "id": "R040-I06",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "object": "runtime_abi_translated_event_helpers_cover_mobile_and_browser_host_callbacks",
+      "line_range": [
+        1631,
+        1631
+      ],
+      "byte_offset": 68406,
+      "byte_length": 114,
+      "inserted_bytes_sha256": "659d7229277042098fa39fe2453b75a7cd8626e425b212aeee3e89f16869af82",
+      "exact_text": "/// 只检查 translated DTO 构造器的字段映射，不调用移动端/浏览器回调或 Runtime session。\r\n",
+      "line_ending": "CRLF",
+      "reversal": "remove this exact unique raw byte block"
+    },
+    {
+      "id": "R040-I07",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "object": "runtime_frame_request_and_frame_carry_size_and_owned_rgba",
+      "line_range": [
+        1676,
+        1676
+      ],
+      "byte_offset": 70103,
+      "byte_length": 123,
+      "inserted_bytes_sha256": "e227c75b502be79e72aef5d9dc45d543eb430df41e5c7b381f4c609be9f8e185",
+      "exact_text": "/// 当前只断言请求尺寸和规范空帧；非空 RGBA 与 App 侧释放路径由 Runtime/App 测试分别覆盖。\r\n",
+      "line_ending": "CRLF",
+      "reversal": "remove this exact unique raw byte block"
+    },
+    {
+      "id": "R040-I08",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "object": "ui_mod_is_not_runtime_source_path_inclusion",
+      "line_range": [
+        1692,
+        1692
+      ],
+      "byte_offset": 70730,
+      "byte_length": 99,
+      "inserted_bytes_sha256": "a47426cb7071b531909fb4c7a06802abada67858a28365113ca31581ff5c7337",
+      "exact_text": "/// 通过读取源码文本检查模块路径约束，不观察编译器的实际模块装载。\r\n",
+      "line_ending": "CRLF",
+      "reversal": "remove this exact unique raw byte block"
+    }
+  ],
+  "object_anchors": {
+    "declaration_inventory": "从实际源行枚举函数/测试函数及 path module 声明，line_range 是声明锚点；函数体、连续分支和断言由连续 block_audit 覆盖。tests/mod.rs 只确认本文件模块挂载，不扩张邻接源覆盖。",
+    "object_count": 93,
+    "test_count": 52,
+    "objects": [
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "function",
+        "name": "sample_ui_input_metadata",
+        "line_range": [
+          127,
+          127
+        ],
+        "anchor_line": 127,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "function",
+        "name": "ui_input_round_trip",
+        "line_range": [
+          143,
+          143
+        ],
+        "anchor_line": 143,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "math_contract_exposes_shared_transform_and_glam_aliases",
+        "line_range": [
+          150,
+          151
+        ],
+        "anchor_line": 151,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_surface_frame_contract_carries_arranged_render_and_hit_state",
+        "line_range": [
+          165,
+          166
+        ],
+        "anchor_line": 166,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_tree_contract_owns_base_construction_insertion_and_access",
+        "line_range": [
+          270,
+          271
+        ],
+        "anchor_line": 271,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_hit_metadata_contract_carries_scope_space_and_world_ray",
+        "line_range": [
+          311,
+          312
+        ],
+        "anchor_line": 312,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_surface_debug_snapshot_contract_serializes_reflector_and_batch_stats",
+        "line_range": [
+          348,
+          349
+        ],
+        "anchor_line": 349,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_surface_debug_snapshot_zircon_layout_report_recovers_fallback_reason_counts",
+        "line_range": [
+          518,
+          519
+        ],
+        "anchor_line": 519,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_visibility_contract_separates_layout_render_and_hit_policy",
+        "line_range": [
+          562,
+          563
+        ],
+        "anchor_line": 563,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_abi_versions_preserve_prior_dtos_and_add_v3_for_play_startup",
+        "line_range": [
+          603,
+          604
+        ],
+        "anchor_line": 604,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "function",
+        "name": "wake_sink_stub",
+        "line_range": [
+          610,
+          610
+        ],
+        "anchor_line": 610,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_v3_session_config_and_wake_sink_layout_and_validity_are_stable",
+        "line_range": [
+          612,
+          613
+        ],
+        "anchor_line": 613,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_frame_demand_keeps_raw_checked_kind_and_stable_layout",
+        "line_range": [
+          656,
+          657
+        ],
+        "anchor_line": 657,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "opaque_handles_reserve_zero_as_invalid",
+        "line_range": [
+          688,
+          689
+        ],
+        "anchor_line": 689,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "byte_slices_can_be_empty_or_static",
+        "line_range": [
+          696,
+          697
+        ],
+        "anchor_line": 697,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "byte_slices_reject_invalid_shape_and_limits_before_slice_construction",
+        "line_range": [
+          706,
+          707
+        ],
+        "anchor_line": 707,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "owned_buffer_empty_has_no_free_callback",
+        "line_range": [
+          739,
+          740
+        ],
+        "anchor_line": 740,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "status_preserves_raw_codes_and_diagnostics",
+        "line_range": [
+          746,
+          747
+        ],
+        "anchor_line": 747,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_api_table_records_size_and_version",
+        "line_range": [
+          763,
+          764
+        ],
+        "anchor_line": 764,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "plugin_event_mirror_contract_preserves_session_schema_sequence_and_payload",
+        "line_range": [
+          870,
+          871
+        ],
+        "anchor_line": 871,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "plugin_api_table_records_optional_event_callback",
+        "line_range": [
+          939,
+          940
+        ],
+        "anchor_line": 940,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "plugin_event_callback_request_preserves_payload_slices",
+        "line_range": [
+          955,
+          956
+        ],
+        "anchor_line": 956,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "profiling_dtos_serialize_optional_abi_control_contract",
+        "line_range": [
+          1010,
+          1011
+        ],
+        "anchor_line": 1011,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_native_surface_target_constructors_preserve_handles",
+        "line_range": [
+          1092,
+          1093
+        ],
+        "anchor_line": 1093,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_events_use_fixed_repr_payload_fields",
+        "line_range": [
+          1115,
+          1116
+        ],
+        "anchor_line": 1116,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics",
+        "line_range": [
+          1131,
+          1132
+        ],
+        "anchor_line": 1132,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_host_fetch_request_declares_streaming_resource_contract",
+        "line_range": [
+          1481,
+          1482
+        ],
+        "anchor_line": 1482,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_host_request_batch_serializes_ime_requests",
+        "line_range": [
+          1497,
+          1498
+        ],
+        "anchor_line": 1498,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_host_request_batch_serializes_gamepad_rumble_requests",
+        "line_range": [
+          1539,
+          1540
+        ],
+        "anchor_line": 1540,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_host_request_batch_serializes_cursor_requests",
+        "line_range": [
+          1577,
+          1578
+        ],
+        "anchor_line": 1578,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_abi_translated_event_helpers_cover_mobile_and_browser_host_callbacks",
+        "line_range": [
+          1632,
+          1633
+        ],
+        "anchor_line": 1633,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_frame_request_and_frame_carry_size_and_owned_rgba",
+        "line_range": [
+          1677,
+          1678
+        ],
+        "anchor_line": 1678,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_mod_is_not_runtime_source_path_inclusion",
+        "line_range": [
+          1693,
+          1694
+        ],
+        "anchor_line": 1694,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_reflector_contract_carries_lifecycle_property_sources_and_dirty_reasons",
+        "line_range": [
+          1702,
+          1703
+        ],
+        "anchor_line": 1703,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_binding_and_event_contracts_construct_and_serialize",
+        "line_range": [
+          1792,
+          1793
+        ],
+        "anchor_line": 1793,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize",
+        "line_range": [
+          1818,
+          1819
+        ],
+        "anchor_line": 1819,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_dispatch_root_exports_retain_typed_input_diagnostics_contracts",
+        "line_range": [
+          2027,
+          2028
+        ],
+        "anchor_line": 2028,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_text_wrap_word_smart_serializes_as_contract_value",
+        "line_range": [
+          2043,
+          2044
+        ],
+        "anchor_line": 2044,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_text_writing_mode_vertical_rl_serializes_as_contract_value",
+        "line_range": [
+          2052,
+          2053
+        ],
+        "anchor_line": 2053,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_pointer_component_event_drag_metrics_are_optional_and_round_trip",
+        "line_range": [
+          2061,
+          2062
+        ],
+        "anchor_line": 2062,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_input_dispatch_result_drag_metrics_are_optional_and_round_trip",
+        "line_range": [
+          2096,
+          2097
+        ],
+        "anchor_line": 2097,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_input_event_contract_constructs_every_event_family",
+        "line_range": [
+          2149,
+          2150
+        ],
+        "anchor_line": 2150,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_popup_tooltip_owner_fields_are_backward_compatible",
+        "line_range": [
+          2261,
+          2262
+        ],
+        "anchor_line": 2262,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_dispatch_effect_contract_constructs_every_effect_family",
+        "line_range": [
+          2347,
+          2348
+        ],
+        "anchor_line": 2348,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_dispatch_reply_merge_records_phase_handler_and_stops_route",
+        "line_range": [
+          2560,
+          2561
+        ],
+        "anchor_line": 2561,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_input_payloads_round_trip_through_serde",
+        "line_range": [
+          2643,
+          2644
+        ],
+        "anchor_line": 2644,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_input_method_surrounding_text_validates_byte_positions",
+        "line_range": [
+          2776,
+          2777
+        ],
+        "anchor_line": 2777,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_input_method_surrounding_text_rebases_and_validates_composition_range",
+        "line_range": [
+          2791,
+          2792
+        ],
+        "anchor_line": 2792,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_component_state_with_value_clears_reference_source_metadata",
+        "line_range": [
+          2807,
+          2808
+        ],
+        "anchor_line": 2808,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_component_template_policy_localization_and_package_contracts_construct",
+        "line_range": [
+          2835,
+          2836
+        ],
+        "anchor_line": 2836,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_schema_report_contracts_serialize",
+        "line_range": [
+          2940,
+          2941
+        ],
+        "anchor_line": 2941,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "binding_compile_schema_version_invalidates_unresolved_or_unscoped_artifacts",
+        "line_range": [
+          2961,
+          2962
+        ],
+        "anchor_line": 2962,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "binding_missing_value_policy_round_trips_every_explicit_outcome",
+        "line_range": [
+          2969,
+          2970
+        ],
+        "anchor_line": 2970,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+        "kind": "test_function",
+        "name": "ui_selector_contracts_parse_reject_trailing_child_and_serialize",
+        "line_range": [
+          11,
+          12
+        ],
+        "anchor_line": 12,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+        "kind": "test_function",
+        "name": "ui_selector_specificity_contract_uses_public_template_api",
+        "line_range": [
+          43,
+          44
+        ],
+        "anchor_line": 44,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "module",
+        "name": "selector",
+        "line_range": [
+          6,
+          7
+        ],
+        "anchor_line": 7,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "abi_safety_contracts",
+        "line_range": [
+          5,
+          6
+        ],
+        "anchor_line": 6,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "accessibility_contracts",
+        "line_range": [
+          7,
+          8
+        ],
+        "anchor_line": 8,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "binding_conversion_contracts",
+        "line_range": [
+          9,
+          10
+        ],
+        "anchor_line": 10,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "binding_value_contracts",
+        "line_range": [
+          11,
+          12
+        ],
+        "anchor_line": 12,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "boundary",
+        "line_range": [
+          13,
+          14
+        ],
+        "anchor_line": 14,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "contracts",
+        "line_range": [
+          15,
+          16
+        ],
+        "anchor_line": 16,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "dispatch_reply_contracts",
+        "line_range": [
+          17,
+          18
+        ],
+        "anchor_line": 18,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "editor_design_tokens",
+        "line_range": [
+          19,
+          20
+        ],
+        "anchor_line": 20,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "input_response_contracts",
+        "line_range": [
+          21,
+          22
+        ],
+        "anchor_line": 22,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "layout_engine_contracts",
+        "line_range": [
+          23,
+          24
+        ],
+        "anchor_line": 24,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "model_context_contracts",
+        "line_range": [
+          25,
+          26
+        ],
+        "anchor_line": 26,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "model_schema_contracts",
+        "line_range": [
+          27,
+          28
+        ],
+        "anchor_line": 28,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "pipeline_contracts",
+        "line_range": [
+          29,
+          30
+        ],
+        "anchor_line": 30,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "plugin_api_contracts",
+        "line_range": [
+          31,
+          32
+        ],
+        "anchor_line": 32,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "reflect_contracts",
+        "line_range": [
+          33,
+          34
+        ],
+        "anchor_line": 34,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "reflect_value_budget_contracts",
+        "line_range": [
+          35,
+          36
+        ],
+        "anchor_line": 36,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "render_contracts",
+        "line_range": [
+          37,
+          38
+        ],
+        "anchor_line": 38,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "render_parity_key_reuse_performance_contracts",
+        "line_range": [
+          39,
+          40
+        ],
+        "anchor_line": 40,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "resource_contracts",
+        "line_range": [
+          41,
+          42
+        ],
+        "anchor_line": 42,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "runtime_operation",
+        "line_range": [
+          43,
+          44
+        ],
+        "anchor_line": 44,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "runtime_owned_result",
+        "line_range": [
+          45,
+          46
+        ],
+        "anchor_line": 46,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "surface_frame_contracts",
+        "line_range": [
+          47,
+          48
+        ],
+        "anchor_line": 48,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "ui_contract_spine",
+        "line_range": [
+          49,
+          50
+        ],
+        "anchor_line": 50,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "ui_dispatch_error_contracts",
+        "line_range": [
+          51,
+          52
+        ],
+        "anchor_line": 52,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "ui_ecs_node_lookup_contracts",
+        "line_range": [
+          53,
+          54
+        ],
+        "anchor_line": 54,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "ui_ecs_projection_contracts",
+        "line_range": [
+          55,
+          56
+        ],
+        "anchor_line": 56,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "ui_geometry_metrics",
+        "line_range": [
+          57,
+          58
+        ],
+        "anchor_line": 58,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "ui_layout",
+        "line_range": [
+          59,
+          60
+        ],
+        "anchor_line": 60,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "ui_painter_style_contracts",
+        "line_range": [
+          61,
+          62
+        ],
+        "anchor_line": 62,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "ui_skin_contracts",
+        "line_range": [
+          63,
+          64
+        ],
+        "anchor_line": 64,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "ui_theme_contracts",
+        "line_range": [
+          65,
+          66
+        ],
+        "anchor_line": 66,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "ui_v2_contracts",
+        "line_range": [
+          67,
+          68
+        ],
+        "anchor_line": 68,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "window_input_contracts",
+        "line_range": [
+          69,
+          70
+        ],
+        "anchor_line": 70,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "window_runtime_event_adapter_contracts",
+        "line_range": [
+          71,
+          72
+        ],
+        "anchor_line": 72,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "window_transient_contracts",
+        "line_range": [
+          73,
+          74
+        ],
+        "anchor_line": 74,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "world_sync_contracts",
+        "line_range": [
+          75,
+          76
+        ],
+        "anchor_line": 76,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "kind": "module",
+        "name": "window_runtime_event_borrowing_contracts",
+        "line_range": [
+          78,
+          79
+        ],
+        "anchor_line": 79,
+        "module_file_scope_only": true,
+        "body_reviewed_in_block_audit": true
+      }
+    ],
+    "test_anchors": [
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "math_contract_exposes_shared_transform_and_glam_aliases",
+        "line_range": [
+          150,
+          151
+        ],
+        "anchor_line": 151,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_surface_frame_contract_carries_arranged_render_and_hit_state",
+        "line_range": [
+          165,
+          166
+        ],
+        "anchor_line": 166,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_tree_contract_owns_base_construction_insertion_and_access",
+        "line_range": [
+          270,
+          271
+        ],
+        "anchor_line": 271,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_hit_metadata_contract_carries_scope_space_and_world_ray",
+        "line_range": [
+          311,
+          312
+        ],
+        "anchor_line": 312,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_surface_debug_snapshot_contract_serializes_reflector_and_batch_stats",
+        "line_range": [
+          348,
+          349
+        ],
+        "anchor_line": 349,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_surface_debug_snapshot_zircon_layout_report_recovers_fallback_reason_counts",
+        "line_range": [
+          518,
+          519
+        ],
+        "anchor_line": 519,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_visibility_contract_separates_layout_render_and_hit_policy",
+        "line_range": [
+          562,
+          563
+        ],
+        "anchor_line": 563,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_abi_versions_preserve_prior_dtos_and_add_v3_for_play_startup",
+        "line_range": [
+          603,
+          604
+        ],
+        "anchor_line": 604,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_v3_session_config_and_wake_sink_layout_and_validity_are_stable",
+        "line_range": [
+          612,
+          613
+        ],
+        "anchor_line": 613,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_frame_demand_keeps_raw_checked_kind_and_stable_layout",
+        "line_range": [
+          656,
+          657
+        ],
+        "anchor_line": 657,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "opaque_handles_reserve_zero_as_invalid",
+        "line_range": [
+          688,
+          689
+        ],
+        "anchor_line": 689,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "byte_slices_can_be_empty_or_static",
+        "line_range": [
+          696,
+          697
+        ],
+        "anchor_line": 697,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "byte_slices_reject_invalid_shape_and_limits_before_slice_construction",
+        "line_range": [
+          706,
+          707
+        ],
+        "anchor_line": 707,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "owned_buffer_empty_has_no_free_callback",
+        "line_range": [
+          739,
+          740
+        ],
+        "anchor_line": 740,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "status_preserves_raw_codes_and_diagnostics",
+        "line_range": [
+          746,
+          747
+        ],
+        "anchor_line": 747,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_api_table_records_size_and_version",
+        "line_range": [
+          763,
+          764
+        ],
+        "anchor_line": 764,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "plugin_event_mirror_contract_preserves_session_schema_sequence_and_payload",
+        "line_range": [
+          870,
+          871
+        ],
+        "anchor_line": 871,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "plugin_api_table_records_optional_event_callback",
+        "line_range": [
+          939,
+          940
+        ],
+        "anchor_line": 940,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "plugin_event_callback_request_preserves_payload_slices",
+        "line_range": [
+          955,
+          956
+        ],
+        "anchor_line": 956,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "profiling_dtos_serialize_optional_abi_control_contract",
+        "line_range": [
+          1010,
+          1011
+        ],
+        "anchor_line": 1011,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_native_surface_target_constructors_preserve_handles",
+        "line_range": [
+          1092,
+          1093
+        ],
+        "anchor_line": 1093,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_events_use_fixed_repr_payload_fields",
+        "line_range": [
+          1115,
+          1116
+        ],
+        "anchor_line": 1116,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics",
+        "line_range": [
+          1131,
+          1132
+        ],
+        "anchor_line": 1132,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_host_fetch_request_declares_streaming_resource_contract",
+        "line_range": [
+          1481,
+          1482
+        ],
+        "anchor_line": 1482,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_host_request_batch_serializes_ime_requests",
+        "line_range": [
+          1497,
+          1498
+        ],
+        "anchor_line": 1498,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_host_request_batch_serializes_gamepad_rumble_requests",
+        "line_range": [
+          1539,
+          1540
+        ],
+        "anchor_line": 1540,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_host_request_batch_serializes_cursor_requests",
+        "line_range": [
+          1577,
+          1578
+        ],
+        "anchor_line": 1578,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_abi_translated_event_helpers_cover_mobile_and_browser_host_callbacks",
+        "line_range": [
+          1632,
+          1633
+        ],
+        "anchor_line": 1633,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "runtime_frame_request_and_frame_carry_size_and_owned_rgba",
+        "line_range": [
+          1677,
+          1678
+        ],
+        "anchor_line": 1678,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_mod_is_not_runtime_source_path_inclusion",
+        "line_range": [
+          1693,
+          1694
+        ],
+        "anchor_line": 1694,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_reflector_contract_carries_lifecycle_property_sources_and_dirty_reasons",
+        "line_range": [
+          1702,
+          1703
+        ],
+        "anchor_line": 1703,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_binding_and_event_contracts_construct_and_serialize",
+        "line_range": [
+          1792,
+          1793
+        ],
+        "anchor_line": 1793,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize",
+        "line_range": [
+          1818,
+          1819
+        ],
+        "anchor_line": 1819,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_dispatch_root_exports_retain_typed_input_diagnostics_contracts",
+        "line_range": [
+          2027,
+          2028
+        ],
+        "anchor_line": 2028,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_text_wrap_word_smart_serializes_as_contract_value",
+        "line_range": [
+          2043,
+          2044
+        ],
+        "anchor_line": 2044,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_text_writing_mode_vertical_rl_serializes_as_contract_value",
+        "line_range": [
+          2052,
+          2053
+        ],
+        "anchor_line": 2053,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_pointer_component_event_drag_metrics_are_optional_and_round_trip",
+        "line_range": [
+          2061,
+          2062
+        ],
+        "anchor_line": 2062,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_input_dispatch_result_drag_metrics_are_optional_and_round_trip",
+        "line_range": [
+          2096,
+          2097
+        ],
+        "anchor_line": 2097,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_input_event_contract_constructs_every_event_family",
+        "line_range": [
+          2149,
+          2150
+        ],
+        "anchor_line": 2150,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_popup_tooltip_owner_fields_are_backward_compatible",
+        "line_range": [
+          2261,
+          2262
+        ],
+        "anchor_line": 2262,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_dispatch_effect_contract_constructs_every_effect_family",
+        "line_range": [
+          2347,
+          2348
+        ],
+        "anchor_line": 2348,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_dispatch_reply_merge_records_phase_handler_and_stops_route",
+        "line_range": [
+          2560,
+          2561
+        ],
+        "anchor_line": 2561,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_input_payloads_round_trip_through_serde",
+        "line_range": [
+          2643,
+          2644
+        ],
+        "anchor_line": 2644,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_input_method_surrounding_text_validates_byte_positions",
+        "line_range": [
+          2776,
+          2777
+        ],
+        "anchor_line": 2777,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_input_method_surrounding_text_rebases_and_validates_composition_range",
+        "line_range": [
+          2791,
+          2792
+        ],
+        "anchor_line": 2792,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_component_state_with_value_clears_reference_source_metadata",
+        "line_range": [
+          2807,
+          2808
+        ],
+        "anchor_line": 2808,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_component_template_policy_localization_and_package_contracts_construct",
+        "line_range": [
+          2835,
+          2836
+        ],
+        "anchor_line": 2836,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "ui_schema_report_contracts_serialize",
+        "line_range": [
+          2940,
+          2941
+        ],
+        "anchor_line": 2941,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "binding_compile_schema_version_invalidates_unresolved_or_unscoped_artifacts",
+        "line_range": [
+          2961,
+          2962
+        ],
+        "anchor_line": 2962,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "kind": "test_function",
+        "name": "binding_missing_value_policy_round_trips_every_explicit_outcome",
+        "line_range": [
+          2969,
+          2970
+        ],
+        "anchor_line": 2970,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+        "kind": "test_function",
+        "name": "ui_selector_contracts_parse_reject_trailing_child_and_serialize",
+        "line_range": [
+          11,
+          12
+        ],
+        "anchor_line": 12,
+        "body_reviewed_in_block_audit": true
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+        "kind": "test_function",
+        "name": "ui_selector_specificity_contract_uses_public_template_api",
+        "line_range": [
+          43,
+          44
+        ],
+        "anchor_line": 44,
+        "body_reviewed_in_block_audit": true
+      }
+    ]
+  },
+  "block_audit": [
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1,
+        80
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI value tree/surface/frame/debug/layout/render/hit/visibility DTOs and SerDe assertions."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        81,
+        160
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI value tree/surface/frame/debug/layout/render/hit/visibility DTOs and SerDe assertions."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        161,
+        240
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI value tree/surface/frame/debug/layout/render/hit/visibility DTOs and SerDe assertions."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        241,
+        320
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI value tree/surface/frame/debug/layout/render/hit/visibility DTOs and SerDe assertions."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        321,
+        400
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI value tree/surface/frame/debug/layout/render/hit/visibility DTOs and SerDe assertions."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        401,
+        480
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI value tree/surface/frame/debug/layout/render/hit/visibility DTOs and SerDe assertions."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        481,
+        560
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI value tree/surface/frame/debug/layout/render/hit/visibility DTOs and SerDe assertions."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        561,
+        640
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Runtime ABI/version/handle/buffer/status and empty Runtime/Plugin API table layout assertions."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        641,
+        720
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Runtime ABI/version/handle/buffer/status and empty Runtime/Plugin API table layout assertions."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        721,
+        800
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Runtime ABI/version/handle/buffer/status and empty Runtime/Plugin API table layout assertions."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        801,
+        880
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Runtime ABI/version/handle/buffer/status and empty Runtime/Plugin API table layout assertions."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        881,
+        960
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Runtime ABI/version/handle/buffer/status and empty Runtime/Plugin API table layout assertions."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        961,
+        1040
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Plugin event mirror/request, profiling DTO, native surface and repr event fixture."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1041,
+        1120
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Plugin event mirror/request, profiling DTO, native surface and repr event fixture."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1121,
+        1200
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Plugin event mirror/request, profiling DTO, native surface and repr event fixture."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1201,
+        1280
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Runtime event families, host request batches, translated DTO helper and frame fixture."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1281,
+        1360
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Runtime event families, host request batches, translated DTO helper and frame fixture."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1361,
+        1440
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Runtime event families, host request batches, translated DTO helper and frame fixture."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1441,
+        1520
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Runtime event families, host request batches, translated DTO helper and frame fixture."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1521,
+        1600
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Runtime event families, host request batches, translated DTO helper and frame fixture."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1601,
+        1680
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Runtime event families, host request batches, translated DTO helper and frame fixture."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1681,
+        1760
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Source-path text guard and UI reflector/binding/layout/dispatch construction/serialization."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1761,
+        1840
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Source-path text guard and UI reflector/binding/layout/dispatch construction/serialization."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1841,
+        1920
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Source-path text guard and UI reflector/binding/layout/dispatch construction/serialization."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        1921,
+        2000
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Source-path text guard and UI reflector/binding/layout/dispatch construction/serialization."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2001,
+        2080
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "Source-path text guard and UI reflector/binding/layout/dispatch construction/serialization."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2081,
+        2160
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI enums, pointer/input event/effect, route merge and optional-field SerDe."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2161,
+        2240
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI enums, pointer/input event/effect, route merge and optional-field SerDe."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2241,
+        2320
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI enums, pointer/input event/effect, route merge and optional-field SerDe."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2321,
+        2400
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI enums, pointer/input event/effect, route merge and optional-field SerDe."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2401,
+        2480
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI enums, pointer/input event/effect, route merge and optional-field SerDe."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2481,
+        2560
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI enums, pointer/input event/effect, route merge and optional-field SerDe."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2561,
+        2640
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "UI enums, pointer/input event/effect, route merge and optional-field SerDe."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2641,
+        2720
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "input payload SerDe, surrounding-text validation/rebase, component/template/schema/binding fixtures."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2721,
+        2800
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "input payload SerDe, surrounding-text validation/rebase, component/template/schema/binding fixtures."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2801,
+        2880
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "input payload SerDe, surrounding-text validation/rebase, component/template/schema/binding fixtures."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2881,
+        2960
+      ],
+      "line_count": 80,
+      "reviewed": true,
+      "focus": "input payload SerDe, surrounding-text validation/rebase, component/template/schema/binding fixtures."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "line_range": [
+        2961,
+        3004
+      ],
+      "line_count": 44,
+      "reviewed": true,
+      "focus": "input payload SerDe, surrounding-text validation/rebase, component/template/schema/binding fixtures."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "line_range": [
+        1,
+        51
+      ],
+      "line_count": 51,
+      "reviewed": true,
+      "focus": "Public UiSelector parse/Serde/trailing-combinator/specificity fixture only; no Runtime path-match/style cascade."
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "line_range": [
+        1,
+        79
+      ],
+      "line_count": 79,
+      "reviewed": true,
+      "focus": "cfg(test) root path-module declarations only; mounted neighboring files stay outside this batch."
+    }
+  ],
+  "call_trait_macro_ffi_evidence": {
+    "summary": "fixture 构造 interface crate 值、SerDe 和布局 helper；未调用 Runtime 动态 ABI getter、插件入口或宿主回调。cross-tree 实现用于限定断言边界，只读且不计覆盖。",
+    "evidence": [
+      {
+        "path": "zircon_runtime_interface/src/lib.rs",
+        "lines": [
+          249,
+          251
+        ],
+        "claim": "cfg(test) crate test root path mount"
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "lines": [
+          15,
+          16
+        ],
+        "claim": "contracts.rs path module mount"
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/exports.rs",
+        "lines": [
+          25,
+          75
+        ],
+        "claim": "populated Runtime API table and exported getter"
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/tests/api_table.rs",
+        "lines": [
+          1,
+          38
+        ],
+        "claim": "Runtime tests call the actual getter and assert live slots"
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/tests/api_table.rs",
+        "lines": [
+          55,
+          74
+        ],
+        "claim": "additional tests call actual API getter"
+      },
+      {
+        "path": "zircon_runtime/src/ui/v2/style.rs",
+        "lines": [
+          428,
+          458
+        ],
+        "claim": "Runtime style application calls selector matches_path"
+      },
+      {
+        "path": "zircon_runtime/src/ui/v2/style.rs",
+        "lines": [
+          507,
+          525
+        ],
+        "claim": "Runtime rule collection parses selectors and reads specificity"
+      },
+      {
+        "path": "zircon_runtime/src/ui/v2/style.rs",
+        "lines": [
+          693,
+          703
+        ],
+        "claim": "private Runtime selector path matcher"
+      },
+      {
+        "path": "zircon_runtime_interface/src/plugin_api.rs",
+        "lines": [
+          598,
+          624
+        ],
+        "claim": "public plugin API v1 layout and empty constructor docs"
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+        "lines": [
+          16,
+          50
+        ],
+        "claim": "event DTO selected fields and synchronous borrowed payload docs"
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+        "lines": [
+          13,
+          50
+        ],
+        "claim": "translated helper DTO boundary and payload lifetime docs"
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/ffi.rs",
+        "lines": [
+          254,
+          285
+        ],
+        "claim": "Runtime FFI frame capture and owned output registration"
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/tests/foundation_render.rs",
+        "lines": [
+          296,
+          361
+        ],
+        "claim": "Runtime integration capture checks non-empty RGBA output"
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+        "lines": [
+          311,
+          370
+        ],
+        "claim": "App provider call, output validation, session-bound RuntimeFrame return"
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+        "lines": [
+          699,
+          735
+        ],
+        "claim": "borrowed RGBA access and RuntimeFrame Drop release"
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+        "lines": [
+          788,
+          814
+        ],
+        "claim": "frame ABI/shape validation and release-on-error"
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_library/runtime_session/owned_buffer.rs",
+        "lines": [
+          8,
+          90
+        ],
+        "claim": "owned-output release authority and combined errors"
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_library/runtime_session/tests/cases.rs",
+        "lines": [
+          250,
+          360
+        ],
+        "claim": "malformed output/frame shape and release tests"
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_library/runtime_session/tests/cases.rs",
+        "lines": [
+          382,
+          470
+        ],
+        "claim": "release diagnostics and truncated pixel cleanup tests"
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_library/tests/api_v8_layout.rs",
+        "lines": [
+          1,
+          125
+        ],
+        "claim": "separate App integration API layout coverage"
+      }
+    ],
+    "read_only_context_files": [
+      {
+        "path": "zircon_runtime_interface/src/lib.rs",
+        "sha256_at_read": "e851a09cf3b0946ce83a7723a48da45656746820bc0375b9285df9c740409078",
+        "bytes": 15930,
+        "line_count": 254
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/exports.rs",
+        "sha256_at_read": "fb6564729a8cc2457f7eb5b356bb4cfee3e359f39caad61d2f9fab1b3f5f23a8",
+        "bytes": 10582,
+        "line_count": 291
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/tests/api_table.rs",
+        "sha256_at_read": "3593c71c25c1051cc9033dc868ae3159a817ea0b794109f790576a2f1d103d2e",
+        "bytes": 5951,
+        "line_count": 146
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/ffi.rs",
+        "sha256_at_read": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+        "bytes": 33879,
+        "line_count": 924
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/tests/foundation_render.rs",
+        "sha256_at_read": "6a3d5209346a02b9ce9a0ed6b6a71c9827a3d823f2984694f7224e8861a48b32",
+        "bytes": 24089,
+        "line_count": 629
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+        "sha256_at_read": "aff4edd1b0d58e5d202ab5e04a7fda6c0074acadb08f8e652a09a6fc8ed72353",
+        "bytes": 21815,
+        "line_count": 691
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+        "sha256_at_read": "d1c38e8165a88ea8a9fe9741e9dae09b0963ec6a3b5e1065c5c7543016d70ba7",
+        "bytes": 3157,
+        "line_count": 86
+      },
+      {
+        "path": "zircon_runtime_interface/src/plugin_api.rs",
+        "sha256_at_read": "c6b59a92f07ef0b6d48bcc162b28948519e24a836378b04a9548cf30e0997564",
+        "bytes": 29914,
+        "line_count": 662
+      },
+      {
+        "path": "zircon_runtime/src/ui/v2/style.rs",
+        "sha256_at_read": "d93c82402a7b503ea04d309c8d4646b733846d8291ec06e4c2aef2ef8a1609f6",
+        "bytes": 28862,
+        "line_count": 788
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+        "sha256_at_read": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+        "bytes": 33657,
+        "line_count": 860
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_library/runtime_session/owned_buffer.rs",
+        "sha256_at_read": "f9a53391f084f7f36466d7a8fe0ddbf4aabaa746e06351e6e4b238553568b8a9",
+        "bytes": 3011,
+        "line_count": 90
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_library/runtime_session/tests/cases.rs",
+        "sha256_at_read": "71288868a5a8e7c0ba44f7d450b2b8b562aa0374a15092ad3d01a56af0b0c49f",
+        "bytes": 16993,
+        "line_count": 473
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_library/tests/api_v8_layout.rs",
+        "sha256_at_read": "648c3175b8ab940580aa6a2f2c80cf40421d351e509cad97f15e53c089844ac3",
+        "bytes": 4249,
+        "line_count": 125
+      }
+    ],
+    "traits_macros_and_registration": "#[test] 属性执行静态测试；#[path] 是模块挂载。没有新增 trait、动态注册或 FFI 调用。Runtime/Plugin table tests 只调用 empty constructor。",
+    "ffi_boundary": "实际 extern C Runtime getter/frame capture 位于只读 context files；contracts.rs fixture 不调用它们。translated-event 测试只调用 interface DTO constructors。"
+  },
+  "assertion_table": [
+    {
+      "id": "R040-A01",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "test": "runtime_api_table_records_size_and_version",
+      "declaration_lines": [
+        763,
+        764
+      ],
+      "assertion_scope": "ZrRuntimeApiV8::empty 的版本、大小、选定字段偏移和空 callback slots。",
+      "limit": "不调用 zircon_runtime_get_api_v8，也不检查 Runtime 导出的 populated table。"
+    },
+    {
+      "id": "R040-A02",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "test": "plugin_api_table_records_optional_event_callback",
+      "declaration_lines": [
+        939,
+        940
+      ],
+      "assertion_scope": "ZrPluginApiV1::empty 版本、大小、可选 event callback slot 与布局。",
+      "limit": "不调用插件入口、注册表或 event callback。"
+    },
+    {
+      "id": "R040-A03",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "test": "runtime_abi_translated_event_helpers_cover_mobile_and_browser_host_callbacks",
+      "declaration_lines": [
+        1632,
+        1633
+      ],
+      "assertion_scope": "translated DTO constructor 所填入 viewport、metrics/input/event 字段。",
+      "limit": "不触发移动端/浏览器 callback、Runtime session 或动态 ABI。"
+    },
+    {
+      "id": "R040-A04",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "test": "runtime_frame_request_and_frame_carry_size_and_owned_rgba",
+      "declaration_lines": [
+        1677,
+        1678
+      ],
+      "assertion_lines": [
+        1684,
+        1689
+      ],
+      "assertion_scope": "构造请求尺寸与规范 empty frame，并断言尺寸和 is_empty。",
+      "limit": "不构造非空 RGBA、不调用 capture_frame 或释放拥有缓冲；Runtime 非空输出和 App release 由外部测试分别覆盖。"
+    },
+    {
+      "id": "R040-A05",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "test": "ui_mod_is_not_runtime_source_path_inclusion",
+      "declaration_lines": [
+        1693,
+        1694
+      ],
+      "assertion_lines": [
+        1695,
+        1699
+      ],
+      "assertion_scope": "读取源码文本并检查本地 path guard。",
+      "limit": "不观察编译器实际 module resolution。"
+    },
+    {
+      "id": "R040-A06",
+      "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "test": "ui_selector_contracts_parse_reject_trailing_child_and_serialize",
+      "declaration_lines": [
+        11,
+        12
+      ],
+      "assertion_lines": [
+        13,
+        40
+      ],
+      "assertion_scope": "UiSelector public parse、Serde roundtrip、segment/token mapping 与 trailing child combinator 拒绝。",
+      "limit": "不匹配 Runtime node path；既有模块 doc 已明确。"
+    },
+    {
+      "id": "R040-A07",
+      "path": "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "test": "ui_selector_specificity_contract_uses_public_template_api",
+      "declaration_lines": [
+        43,
+        44
+      ],
+      "assertion_lines": [
+        45,
+        51
+      ],
+      "assertion_scope": "公开 specificity tuple、legacy display score 与比较顺序。",
+      "limit": "不执行 style cascade；Runtime matcher 见只读上下文。"
+    },
+    {
+      "id": "R040-A08",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "test": "ui_input_round_trip",
+      "declaration_lines": [
+        142,
+        143
+      ],
+      "assertion_scope": "serde_json 字符串 roundtrip of Serialize/DeserializeOwned value。",
+      "limit": "不经过 Runtime input dispatch 或 ABI。"
+    },
+    {
+      "id": "R040-A09",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "test": "ui_component_template_policy_localization_and_package_contracts_construct",
+      "declaration_lines": [
+        2835,
+        2836
+      ],
+      "assertion_lines": [
+        2936,
+        2936
+      ],
+      "exact_assertion": "assert_eq!(UiTextDirection::Auto, UiTextDirection::Auto);",
+      "assertion_scope": "只证明 UiTextDirection::Auto 可用且与自身相等。",
+      "not_proved": [
+        "产品转换行为",
+        "Serde 行为",
+        "Runtime 行为",
+        "要求增加何种额外覆盖的设计意图"
+      ],
+      "classification": "非产品 BUG；未证明必须增加某项覆盖。按主审裁定不加 TODO/BUG，不占 CR-ZCA-R040-0001。"
+    }
+  ],
+  "issues": {
+    "new_candidates": [],
+    "preexisting": [],
+    "static_only": true,
+    "notes": "三源 TODO/FIXME/BUG 扫描仅命中 UI_SURFACE_DEBUG_SCHEMA_VERSION 常量名，不是 issue。UiTextDirection 自比较不升级为 BUG/TODO。"
+  },
+  "validation": {
+    "before_pins_rechecked": true,
+    "exact_grant_rechecked": true,
+    "scoped_status_before_metadata": "warning: unable to access 'C:\\Users\\HeJiahui/.config/git/ignore': Permission denied\n M zircon_runtime_interface/src/tests/contracts.rs",
+    "scoped_numstat": "12\t0\tzircon_runtime_interface/src/tests/contracts.rs",
+    "all_original_bytes_equal_after_removing_exact_insertions": true,
+    "contracts_inverse_sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+    "contracts_inverse_matches_grant": true,
+    "contracts_inverse_equals_HEAD_with_original_CRLF": true,
+    "unchanged_sources_equal_before_pins": true,
+    "non_comment_diff": "contracts.rs 仅 12 行插入、0 删除；8 个精确 UTF-8 注释块反演到授予 before 原字节。selector.rs 与 tests/mod.rs 不变。",
+    "rustfmt": {
+      "command": "rustfmt --check --edition 2021 --config skip_children=true <exact 3 R040 Rust paths>",
+      "exit_code": 0,
+      "chunk_id": "6ab105",
+      "scope": "仅三条授权源；无格式化写回。"
+    },
+    "git_diff_check": {
+      "command": "git --no-optional-locks diff --check -- <exact 3 R040 paths>",
+      "exit_code": 0,
+      "chunk_id": "ac1e83",
+      "scope": "仅三条授权源。"
+    },
+    "raw_inverse_check": {
+      "method": "inline Python exact-byte removal of all eight unique blocks; compare grant SHA and git show HEAD normalized to worktree EOL",
+      "exit_code": 0,
+      "result": "before SHA 0f133e…fd52; inverse equals normalized HEAD",
+      "current_continuation": "raw inverse independently rechecked; no source writer started here"
+    },
+    "tests_builds_generators": {
+      "cargo_run": false,
+      "rust_tests_run": false,
+      "build_run": false,
+      "generator_run": false,
+      "note": "本批仅注释；未运行 Cargo、Rust tests、build 或 generator。"
+    },
+    "standard_path": "docs/plans/source-comments/01-standard.md",
+    "standard_sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3"
+  },
+  "artifact_lifecycle": {
+    "created_build_products": false,
+    "created_source_copies_or_temporary_scripts": false,
+    "cleanup_performed": false,
+    "actual_released_bytes": 0,
+    "retained": [
+      "zircon_runtime_interface/src/tests/contracts.rs",
+      "zircon_runtime_interface/src/tests/contracts/selector.rs",
+      "zircon_runtime_interface/src/tests/mod.rs",
+      "docs/plans/source-comments/reviews/R040.json"
+    ],
+    "foreign_and_shared_artifacts_untouched": true
+  },
+  "handoff": {
+    "sources_frozen_after_child_write": true,
+    "metadata_immutable_after_final_hash": true,
+    "parent_controls_ledgers_main_post_jenkins": true,
+    "global_ledger_written_by_child": false,
+    "formal_jenkins_acceptance": "pending-parent-handoff",
+    "ownership_release_claim": false,
+    "owned_source_writer_commands_completed": true,
+    "parent_independent_review_pending": true,
+    "no_writer_session_started_in_current_continuation": true,
+    "no_writer_session_in_flight": true
+  }
+}

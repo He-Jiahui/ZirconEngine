@@ -12,8 +12,7 @@ fn acquire(
     let mutation = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(resource, 1)],
-            projection.management(),
-            projection.readiness(),
+            &projection,
             device_epoch(41, 3),
             demand_generation(1),
         )
@@ -30,8 +29,7 @@ fn reconcile(
     residency
         .reconcile_changed_resources(
             &[resource],
-            projection.management(),
-            projection.readiness(),
+            &projection,
             device_epoch(41, 3),
             demand_generation(1),
         )
@@ -120,7 +118,7 @@ fn dependency_publication_reissues_unchanged_root_and_rejects_old_completion() {
     let mutation = reconcile(&mut residency, &resources, mesh);
     let current = request_for(mutation.requests(), mesh);
     assert_eq!(current.asset_revision(), old.asset_revision());
-    assert_ne!(current.readiness_identity(), old.readiness_identity());
+    assert_ne!(current.source_identity(), old.source_identity());
     assert_eq!(mutation.releases().len(), 1);
     assert_eq!(
         mutation.releases()[0].kind(),
@@ -149,10 +147,11 @@ fn dependency_publication_reissues_unchanged_root_and_rejects_old_completion() {
 #[test]
 fn manager_replacement_and_remove_readd_cannot_alias_retained_publication() {
     let mut residency = RenderAssetResidencyManager::new();
-    let (mesh, old) = {
+    let (mesh, old, old_projection) = {
         let resources = ResourceManager::new();
         let mesh = register_resource(&resources, "identity/mesh", ResourceKind::Mesh, Vec::new());
-        (mesh, acquire(&mut residency, &resources, mesh))
+        let old = acquire(&mut residency, &resources, mesh);
+        (mesh, old, resources.projection_snapshot())
     };
     let resources = ResourceManager::new();
     assert_eq!(
@@ -162,12 +161,12 @@ fn manager_replacement_and_remove_readd_cannot_alias_retained_publication() {
     let mutation = reconcile(&mut residency, &resources, mesh);
     let current = request_for(mutation.requests(), mesh);
     assert_eq!(old.asset_revision(), current.asset_revision());
-    assert_ne!(old.readiness_identity(), current.readiness_identity());
+    assert_ne!(old.source_identity(), current.source_identity());
     let wrong_publication = RenderAssetResidencyTicket::from_parts(
         current.id(),
         mesh,
         current.asset_revision(),
-        old.readiness_identity().clone(),
+        old.source_identity().clone(),
         current.demand_generation(),
         current.device(),
         current.scope(),
@@ -177,71 +176,60 @@ fn manager_replacement_and_remove_readd_cannot_alias_retained_publication() {
         residency.advance(&wrong_publication, RenderAssetResidencyState::Reading),
         Err(RenderAssetResidencyTransitionError::StaleTicket { .. })
     ));
-    let locator = current
-        .readiness_identity()
-        .row()
-        .record
-        .primary_locator
-        .clone();
+    let locator = resources.projection_snapshot().active().row(mesh.id())
+        .expect("active fixture row").record.primary_locator.clone();
     assert!(resources
         .remove_by_locator(&locator)
         .expect("remove resource")
         .is_some());
     register_resource(&resources, "identity/mesh", ResourceKind::Mesh, Vec::new());
     let readded = request_for(reconcile(&mut residency, &resources, mesh).requests(), mesh);
-    assert_ne!(current.readiness_identity(), readded.readiness_identity());
+    assert_ne!(current.source_identity(), readded.source_identity());
     assert!(matches!(
         residency.advance(&current, RenderAssetResidencyState::Reading),
         Err(RenderAssetResidencyTransitionError::StaleTicket { .. })
     ));
     assert_eq!(
-        old.readiness_identity().row().record.primary_locator,
+        old_projection.active().row(mesh.id()).expect("retained active metadata").record.primary_locator,
         locator
     );
 }
 
 #[test]
 fn mixed_catalog_readiness_revisions_fail_before_residency_mutation() {
+    // Independent catalog/readiness inputs no longer exist. Keep this fixture and FQN,
+    // and exercise the actual negative boundary: a source identity from an old capture
+    // cannot advance or publish the pending ticket from a newer, paired capture.
     let resources = ResourceManager::new();
     let mesh = register_resource(&resources, "identity/mesh", ResourceKind::Mesh, Vec::new());
     let mut residency = RenderAssetResidencyManager::new();
     let current = acquire(&mut residency, &resources, mesh);
-    let old_management = resources.management_generation();
-    resources
-        .register_ready(
-            resource_record("identity/mesh", ResourceKind::Mesh, Vec::new()).with_source_hash("v2"),
-            TestPayload {
-                _label: "identity/mesh",
-            },
-        )
-        .expect("publish changed root");
-    let readiness = resources.readiness_generation();
-    let newer_revision = readiness
-        .row_identity(mesh.id())
-        .expect("updated row")
-        .row()
-        .record
-        .revision;
-    assert_ne!(newer_revision, current.asset_revision());
-    let result = residency.reconcile_changed_resources(
-        &[mesh],
-        &old_management,
-        &readiness,
-        device_epoch(41, 3),
-        demand_generation(1),
-    );
-    assert_eq!(
-        result,
-        Err(
-            RenderAssetResidencyAdmissionError::CatalogReadinessRevisionMismatch {
-                resource: mesh,
-                catalog_revision: current.asset_revision(),
-                readiness_revision: newer_revision,
-            }
-        )
-    );
-    assert_eq!(residency.pending_ticket(mesh).as_ref(), Some(&current));
-    assert_eq!(residency.reference_count(mesh), 1);
-    let next = request_for(reconcile(&mut residency, &resources, mesh).requests(), mesh);
+    let old_projection = resources.projection_snapshot();
+    let old_submission = begin_upload(&mut residency, &current);
+    resources.register_ready(
+        resource_record("identity/mesh", ResourceKind::Mesh, Vec::new()).with_source_hash("v2"),
+        TestPayload { _label: "identity/mesh" },
+    ).expect("publish changed root");
+    let fresh = resources.projection_snapshot();
+    assert_ne!(old_projection.active().key(mesh.id()), fresh.active().key(mesh.id()));
+    let mutation = residency.reconcile_changed_resources(
+        &[mesh], &fresh, device_epoch(41, 3), demand_generation(1),
+    ).expect("fresh paired capture");
+    let next = request_for(mutation.requests(), mesh);
     assert_eq!(next.id().raw(), current.id().raw() + 1);
+    assert!(matches!(
+        residency.advance(&current, RenderAssetResidencyState::Reading),
+        Err(RenderAssetResidencyTransitionError::StaleTicket { .. })
+    ));
+    assert!(matches!(
+        residency.complete_upload(&current, old_submission, SubmissionStatus::Completed),
+        Err(RenderAssetResidencyTransitionError::StaleTicket { .. })
+    ));
+    assert_eq!(residency.pending_ticket(mesh).as_ref(), Some(&next));
+    assert_eq!(residency.reference_count(mesh), 1);
+    assert_eq!(residency.resident_ticket(mesh), None);
+    let submission = begin_upload(&mut residency, &next);
+    residency.complete_upload(&next, submission, SubmissionStatus::Completed)
+        .expect("fresh identity can publish after stale rejection");
+    assert_eq!(residency.resident_ticket(mesh).as_ref(), Some(&next));
 }

@@ -18,6 +18,12 @@ pub enum TransactionPhase {
 
 #[derive(Debug, Error)]
 pub enum DurableTransactionError {
+    #[error("source changed before durable publication: {path}")]
+    SourceConflict {
+        path: PathBuf,
+        expected: crate::io::source_revision::SourceRevision,
+        actual: crate::io::source_revision::SourceRevision,
+    },
     #[error(transparent)]
     ArtifactIdentityExhausted(#[from] ArtifactIdentityExhausted),
     #[error("invalid durable transaction journal {path}: {reason}")]

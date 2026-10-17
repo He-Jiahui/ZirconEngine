@@ -10,6 +10,7 @@ use super::{HubProtocolVersionV1, HubSessionToken};
 /// editor's `SessionGuard` contract.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// 携带目标实例、会话代、序号和截止时刻；读取方仍须执行 validate。
 pub struct HubEditorFocusSignalV1 {
     pub protocol_version: HubProtocolVersionV1,
     pub request_id: HubSessionToken,
@@ -39,6 +40,7 @@ impl HubEditorFocusSignalV1 {
         Ok(signal)
     }
 
+    /// 校验跨进程载荷字段和协议约束；成功反序列化本身不代表请求有效。
     pub fn validate(&self) -> Result<(), HubEditorFocusSignalError> {
         if self.target_instance_id.is_empty()
             || self.target_instance_id.len() > MAX_TARGET_INSTANCE_ID_BYTES
@@ -67,6 +69,7 @@ const MAX_TARGET_INSTANCE_ID_BYTES: usize = 128;
 
 /// Categorical validation error for a malformed focus request.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 聚焦请求校验失败的分类，不携带项目路径诊断。
 pub enum HubEditorFocusSignalError {
     InvalidTargetInstanceId,
     ZeroTargetSessionGeneration,

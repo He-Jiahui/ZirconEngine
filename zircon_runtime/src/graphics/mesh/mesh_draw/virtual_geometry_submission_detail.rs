@@ -1,4 +1,6 @@
-use crate::core::framework::render::RenderVirtualGeometryExecutionState;
+use crate::core::framework::render::{
+    RenderVirtualGeometryExecutionIdentity, RenderVirtualGeometryExecutionState,
+};
 
 /// 在 MeshDraw 到帧报告投影间保留虚拟几何间接提交的选择与溯源记录。
 /// entity/page 和 draw-ref 序号分别用于执行选择、去重与提交令牌。
@@ -18,6 +20,7 @@ pub(crate) struct VirtualGeometrySubmissionDetail {
     lineage_depth: u32,
     lod_level: u8,
     frontier_rank: u32,
+    execution_identity: Option<RenderVirtualGeometryExecutionIdentity>,
 }
 
 impl VirtualGeometrySubmissionDetail {
@@ -53,7 +56,20 @@ impl VirtualGeometrySubmissionDetail {
             lineage_depth,
             lod_level,
             frontier_rank,
+            execution_identity: None,
         }
+    }
+
+    pub(crate) fn with_execution_identity(
+        mut self,
+        identity: RenderVirtualGeometryExecutionIdentity,
+    ) -> Self {
+        self.execution_identity = Some(identity);
+        self
+    }
+
+    pub(crate) fn execution_identity(self) -> Option<RenderVirtualGeometryExecutionIdentity> {
+        self.execution_identity
     }
 
     pub(crate) fn instance_index(self) -> Option<u32> {

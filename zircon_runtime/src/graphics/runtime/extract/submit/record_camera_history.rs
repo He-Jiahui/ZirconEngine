@@ -41,6 +41,7 @@ pub(super) fn record_non_viewport_camera_state_after_success(
         let (hybrid_gi_feedback, _particle_feedback, virtual_geometry_feedback) =
             runtime_feedback.into_parts();
 
+        record.apply_ready_virtual_geometry_readbacks();
         update_hybrid_gi_runtime(record, context.camera_history_key(), hybrid_gi_feedback);
         update_virtual_geometry_runtime(
             record,

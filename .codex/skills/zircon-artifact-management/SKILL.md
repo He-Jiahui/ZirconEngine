@@ -29,13 +29,19 @@ or generation runs, cleanup commands or independent scheduled jobs. Follow the
 
 ## Audit and route
 
-For task delivery, the user's 2026-10-17 standing authorization covers **any
-session** submitting Jenkins validation followed by local task commit and main
-integration. Use [validated delivery](../../../docs/tools/jenkins-local-commits.md)
-and its executable policy. No separate session grant or commit/merge approval
-is required. Jenkins retains version ownership; task scope, actual validation,
-foreign changes and unknown-result reconciliation still apply. Do not treat the
-older transition exception below as revoking this later authorization.
+For task delivery, the user's latest 2026-10-17 order covers **any session**:
+Jenkins first checks the real per-worktree index.lock, commits exact task files
+on that task's branch, and registers the immutable commit in the single scheduled
+merge queue. Keep shared main clean and perform task edits in its assigned
+worktree. `zircon-merge-queue` validates the candidate containing current main,
+then requires an actual merged PR with the same result tree before fast-forwarding
+local main. Branch commit success alone is not validation or integration; direct
+local candidate publication is disabled.
+Use [the delivery contract](../../../docs/tools/jenkins-branch-integration.md) and
+`tools/dev/jenkins_branch_queue.py`. No separate session/commit/merge approval is
+required. Preserve foreign dirt, unknown locks and original pending results;
+Jenkins may recover a lock only after actual owner/native reconciliation. The
+older transition exception below does not revoke this later authorization.
 
 - Read the current `.codex/config.toml`; distinguish explicit write grants from
   actual ownership and sandbox enforcement. Do not change grants during cleanup.

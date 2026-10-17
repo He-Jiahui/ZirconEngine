@@ -18,9 +18,9 @@ pub use extension_ids::{
     TIMELINE_SEQUENCE_DRAWER_ID, TIMELINE_SEQUENCE_TEMPLATE_ID, TIMELINE_SEQUENCE_VIEW_ID,
 };
 pub use plugin::{
+    editor_capabilities, editor_plugin, editor_plugin_descriptor, package_manifest,
+    plugin_registration, timeline_sequence_dist_module_manifest, TimelineSequenceEditorPlugin,
     TIMELINE_SEQUENCE_DIST_CRATE_NAME, TIMELINE_SEQUENCE_DIST_EDITOR_ENTRY,
-    TimelineSequenceEditorPlugin, editor_capabilities, editor_plugin, editor_plugin_descriptor,
-    package_manifest, plugin_registration, timeline_sequence_dist_module_manifest,
 };
 
 #[derive(Clone, Debug, PartialEq)]

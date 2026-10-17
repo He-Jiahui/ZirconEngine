@@ -232,9 +232,13 @@ fn vm_plugin_discovery_supports_zr_vm_project_packages_without_bytecode() {
     let discovered = &packages[0];
     assert_eq!(discovered.backend_name, "zr_vm:project");
     assert!(discovered.package.bytecode.is_empty());
+    let expected_project_path = fixture
+        .project_path
+        .canonicalize()
+        .expect("fixture project should have a physical path");
     assert_eq!(
         discovered.source.zr_vm_project_path.as_deref(),
-        Some(fixture.project_path.as_path())
+        Some(expected_project_path.as_path())
     );
     assert_eq!(
         discovered
@@ -252,7 +256,7 @@ fn vm_plugin_discovery_supports_zr_vm_project_packages_without_bytecode() {
             .as_ref()
             .unwrap()
             .project_path,
-        fixture.project_path
+        expected_project_path
     );
     assert!(discovered.source.bytecode_path.is_none());
 }

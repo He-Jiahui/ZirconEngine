@@ -9,24 +9,23 @@ fn review_f5_vm_plugin_management_policy_uses_typed_validation_errors() {
     let policy = include_str!("../../../../script/vm/plugin/management_policy/policy.rs");
     let script_vm_mod = include_str!("../../../../script/vm/mod.rs");
     let script_mod = include_str!("../../../../script/mod.rs");
-    let review_findings =
+    let _review_findings =
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_13_plan = include_str!(
+    let _runtime_13_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"
     );
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let host_reflection = include_str!(
+    let _host_reflection = include_str!(
         "../../../../../../docs/crates/zircon_runtime/script/vm/zr_vm_host_reflection.md"
     );
-    let module_doc = include_str!(
-        "../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
-    );
+    let _module_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
     for required in [
         "mod error;",

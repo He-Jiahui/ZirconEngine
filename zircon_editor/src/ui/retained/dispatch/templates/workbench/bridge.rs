@@ -8,7 +8,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::retained_host::callback_dispatch::constants::{
-    UNREAL_EDITOR_SHELL_DOCUMENT_ID, DOCUMENT_TABS_CONTROL_ID, UI_HOST_WINDOW_CONTROL_ID,
+    DOCUMENT_TABS_CONTROL_ID, UI_HOST_WINDOW_CONTROL_ID, UNREAL_EDITOR_SHELL_DOCUMENT_ID,
 };
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, RetainedUiHostProjection, RetainedUiProjection,

@@ -310,9 +310,9 @@ fn runtime_input_protocol_crosses_through_runtime_interface_events() {
         "pub(in crate::entry::runtime_entry_app) fn poll_gamepads",
         "EventType::ButtonChanged",
         "EventType::AxisChanged",
-        "ZrRuntimeEventV1::gamepad_connection_with_ids",
-        "ZrRuntimeEventV1::gamepad_button",
-        "ZrRuntimeEventV1::gamepad_axis",
+        "ZrRuntimeEventV1::gamepad_connection_v2",
+        "ZrRuntimeEventV1::gamepad_button_v2",
+        "ZrRuntimeEventV1::gamepad_axis_v2",
         "send_raw_button",
     ] {
         assert!(

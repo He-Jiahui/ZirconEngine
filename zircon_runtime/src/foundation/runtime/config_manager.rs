@@ -34,12 +34,13 @@ const DEFAULT_SHUTDOWN_FLUSH_TIMEOUT: Duration = Duration::from_secs(2);
 ///
 /// # 使用时机
 ///
-/// 构造时先注册路径 epoch、恢复并加载磁盘 JSON，再启动后台 worker。
+/// 构造时在路径 gate 内恢复、读取和解析磁盘 JSON，并启动后台 worker；全部成功才激活新 epoch。
 /// 选择默认文件使用 [Self::new]；宿主预先绑定文件使用 [Self::new_with_file_path]。
 ///
 /// # 所有权与生命周期
 ///
-/// clone 共享路径和 worker。Core 回引用保持为弱句柄，避免服务注册表与运行时形成强引用环。
+/// 同一路径只允许一个独立 manager；同 Core 再构造也返回 owner conflict，clone 才共享 worker。
+/// Core 回引用只用于调用和诊断；Core 释放或取消提交都不会提前释放 worker 的独占租约。
 /// 最后一个 worker 所有者释放时执行关闭并 join 线程；关闭预算不是整个析构的耗时上限。
 ///
 /// # 参考
@@ -63,7 +64,7 @@ impl DefaultConfigManager {
     /// # 返回与错误
     ///
     /// 成功返回已加载现有配置并启动 worker 的服务。
-    /// 路径 epoch 注册、备份恢复、文件读取、JSON 解析或线程创建失败会终止构造。
+    /// 路径 gate 准入、备份恢复、文件读取、JSON 解析或线程创建失败会终止构造，并保留旧 owner。
     ///
     /// # 约束与参考
     ///
@@ -123,8 +124,9 @@ impl DefaultConfigManager {
     ///
     /// # 顺序与返回
     ///
-    /// 先注册 [ConfigCommitFence]，再恢复及加载磁盘内容，最后启动 worker。
-    /// 任一步失败即返回错误；此内部入口不代替显式路径入口的绝对路径检查。
+    /// 在 [ConfigCommitFence] 的路径 gate 内恢复、读取、解析并创建 idle worker，再发布新 epoch。
+    /// 失败保留旧 epoch；成功解锁后才合并 Core，worker 不在持 gate 时析构或 join。
+    /// 此内部入口不代替显式路径入口的绝对路径检查。
     /// 成功返回的 clone 共享同一 worker，释放语义见 [DefaultConfigManager]。
     pub(super) fn new_with_options(
         core: &CoreHandle,
@@ -133,18 +135,26 @@ impl DefaultConfigManager {
         debounce: Duration,
         shutdown_timeout: Duration,
     ) -> Result<Self, CoreError> {
-        let commit_fence = ConfigCommitFence::register(&path)
-            .map_err(|error| config_error(&path, error.to_string()))?;
-        recover_and_load_from_disk(core, &path, &commit_fence)?;
-        let path = Arc::new(path);
-        let persistence = ConfigPersistenceWorker::start(
-            Arc::clone(&path),
-            core.config_snapshot_source(),
-            writer,
-            debounce,
-            shutdown_timeout,
-            commit_fence,
-        )?;
+        let (path, persistence, values) =
+            ConfigCommitFence::initialize_owned(&path, core.downgrade(), |commit_fence| {
+                // The resolved operation path is captured once, before any config I/O.
+                let path = Arc::new(commit_fence.operation_path().to_path_buf());
+                let values = recover_and_read_from_disk(&path)?;
+                ConfigPersistenceWorker::start(
+                    Arc::clone(&path),
+                    core.config_snapshot_source(),
+                    writer,
+                    debounce,
+                    shutdown_timeout,
+                    commit_fence,
+                )
+                .map(|persistence| (path, persistence, values))
+            })?;
+        // The worker is idle and unexposed. Merge only after gate release, so any worker
+        // retirement remains outside that gate; disk keys retain their existing precedence.
+        for (key, value) in values {
+            core.store_config_value(key, value);
+        }
         Ok(Self {
             core: core.downgrade(),
             path,
@@ -211,6 +221,23 @@ impl ConfigManager for DefaultConfigManager {
     }
 }
 
+// The initialization transaction already holds the path gate across recovery and parsing.
+fn recover_and_read_from_disk(path: &PathBuf) -> Result<HashMap<String, Value>, CoreError> {
+    crate::core::resource::io::recover_missing_target_from_backup(path)
+        .map_err(|error| config_error(path, error.to_string()))?;
+    let json = match fs::read_to_string(path) {
+        Ok(json) => json,
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(HashMap::new()),
+        Err(error) => return Err(config_error(path, error.to_string())),
+    };
+    // 先解析整份 JSON 对象；磁盘同名键覆盖已有值，缺键不会清空旧值。
+    // 宿主 overlay 未在此分层；更高优先级的启动值由上层在加载后重新应用。
+    serde_json::from_str::<HashMap<String, Value>>(&json)
+        .map_err(|error| config_error(path, error.to_string()))
+}
+
+// Retain the original recovery probe for the existing managed 60-case admission matrix.
+#[cfg(test)]
 fn recover_and_load_from_disk(
     core: &CoreHandle,
     path: &PathBuf,

@@ -6,6 +6,10 @@ use serde::{Deserialize, Serialize};
 use crate::world_sync::LifecycleTargetChange;
 
 /// 反射目录、值转换和世界适配器用这些变体区分契约失败，调用端可直接匹配错误类型。
+///
+/// # serde 线格式
+///
+/// JSON 对象以 `kind` 字段标识变体名，其余变体数据与该标签并列存放。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum ReflectError {
@@ -85,6 +89,7 @@ pub enum ReflectError {
         field_name: String,
     },
     /// 输入反射值不能转换为字段声明的 Rust 值类型。
+    /// Runtime 的 VM 声明类型准入也使用此变体；expected 与 actual 由报告错误的调用方提供。
     TypeMismatch {
         /// 字段所属类型。
         type_path: String,

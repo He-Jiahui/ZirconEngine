@@ -178,21 +178,37 @@ fn viewer_rejects_c_drive_artifact_destinations() {
 #[cfg(windows)]
 #[test]
 fn viewer_rejects_artifact_paths_below_a_c_drive_reparse_point() {
-    let root = crate::work_paths::viewer_test_artifact_root("c-drive-reparse-point");
+    let registered_fixture_root = std::path::Path::new(
+        r"E:\cargo-targets\zircon-local\reports\pasted-audit-fixes-01a13029\fixtures",
+    );
+    let registered_fixture_root = std::fs::canonicalize(registered_fixture_root)
+        .expect("registered E-drive fixture root should exist");
+    let root = registered_fixture_root.join(format!(
+        "viewer-c-drive-reparse-point-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir(&root).expect("unique viewer test root should be created");
     let reparse_path = root.join("redirected-output");
-    match std::os::windows::fs::symlink_dir(r"C:\Windows", &reparse_path) {
-        Ok(()) => {}
-        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
-            std::fs::remove_dir_all(root).expect("test artifact root should be removed");
-            return;
-        }
-        Err(error) => panic!("create C-drive test reparse point: {error}"),
+    let junction = std::process::Command::new("cmd.exe")
+        .args(["/d", "/c", "mklink", "/J"])
+        .arg(&reparse_path)
+        .arg(r"C:\Windows")
+        .output()
+        .expect("cmd.exe should create the test junction");
+    if !junction.status.success() {
+        std::fs::remove_dir_all(&root).expect("test artifact root should be removed");
+        panic!(
+            "create C-drive test junction: {}{}",
+            String::from_utf8_lossy(&junction.stdout),
+            String::from_utf8_lossy(&junction.stderr)
+        );
     }
 
-    let error = resolve_non_c_artifact_path("--screenshot", &reparse_path.join("ready.png"))
-        .expect_err("an artifact path below a reparse point must be rejected");
+    let resolution = resolve_non_c_artifact_path("--screenshot", &reparse_path.join("ready.png"));
+    std::fs::remove_dir(&reparse_path).expect("test junction should be removed explicitly");
+    std::fs::remove_dir_all(&root).expect("test artifact root should be removed");
+    let error = resolution.expect_err("an artifact path below a reparse point must be rejected");
     assert!(error.to_string().contains("reparse point"));
-    std::fs::remove_dir_all(root).expect("test artifact root should be removed");
 }
 
 #[test]

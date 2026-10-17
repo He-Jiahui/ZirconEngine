@@ -179,15 +179,11 @@ fn ssao_evaluate_spatial_and_upsample_shaders_are_valid_wgsl() {
         ),
         (
             "spatial",
-            include_str!(
-                "../../../../scene/post/shaders/ssao_spatial_denoise.wgsl"
-            ),
+            include_str!("../../../../scene/post/shaders/ssao_spatial_denoise.wgsl"),
         ),
         (
             "bilateral-upsample",
-            include_str!(
-                "../../../../scene/post/shaders/ssao_bilateral_upsample.wgsl"
-            ),
+            include_str!("../../../../scene/post/shaders/ssao_bilateral_upsample.wgsl"),
         ),
     ] {
         let module = naga::front::wgsl::parse_str(source)

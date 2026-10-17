@@ -30,12 +30,8 @@ fn explicit_texture_capture_uses_the_product_diagnostic_owner() {
         .split("\n#[cfg(test)]")
         .next()
         .unwrap_or_default();
-    let scene_target = include_str!(
-        "../../../core/scene_renderer_target/finish_viewport_frame.rs"
-    );
-    let renderer = include_str!(
-        "../../../scene/renderer/core/pipeline/pipeline/readback.rs"
-    );
+    let scene_target = include_str!("../../../core/scene_renderer_target/finish_viewport_frame.rs");
+    let renderer = include_str!("../../../scene/renderer/core/pipeline/pipeline/readback.rs");
     let backend_root = include_str!("../mod.rs");
     let graphics_backend_root = include_str!("../../mod.rs");
     let standalone = diagnostics

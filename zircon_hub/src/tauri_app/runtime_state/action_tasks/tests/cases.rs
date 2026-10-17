@@ -12,14 +12,14 @@ use crate::{
     settings::HubConfig,
     state::{
         HubActionKind, HubActionStatus, HubMessage, HubMessageId, ShellMessageId,
-        TASK_PROGRESS_PREPARED_PERCENT, TASK_PROGRESS_STARTED_PERCENT, TaskExecutionOutcome,
-        TaskOperationKind, TaskSeverity, TaskStatus,
+        TaskExecutionOutcome, TaskOperationKind, TaskSeverity, TaskStatus,
+        TASK_PROGRESS_PREPARED_PERCENT, TASK_PROGRESS_STARTED_PERCENT,
     },
 };
 
 use super::super::HubRuntimeSession;
 use super::{
-    BackgroundTask, BackgroundTaskContext, execute_background_task, run_background_worker_loop,
+    execute_background_task, run_background_worker_loop, BackgroundTask, BackgroundTaskContext,
 };
 use crate::tauri_app::HubActionRequest;
 
@@ -47,12 +47,10 @@ fn editor_shutdown_cancels_active_launch_and_removes_only_queued_editor_work() {
 
     assert_eq!(session.request_editor_launch_shutdown(), Some(1));
     assert!(session.editor_launch_task_is_active(1));
-    assert!(
-        session
-            .background_cancellation_for_task(1)
-            .expect("active Editor cancellation token")
-            .is_cancellation_requested()
-    );
+    assert!(session
+        .background_cancellation_for_task(1)
+        .expect("active Editor cancellation token")
+        .is_cancellation_requested());
     assert_eq!(session.background_action_queue.len(), 1);
     assert_eq!(
         session.background_action_queue[0].action_id,
@@ -77,12 +75,10 @@ fn editor_shutdown_leaves_unrelated_running_task_intact() {
         .unwrap();
 
     assert_eq!(session.request_editor_launch_shutdown(), None);
-    assert!(
-        !session
-            .background_cancellation_for_task(1)
-            .expect("active build cancellation token")
-            .is_cancellation_requested()
-    );
+    assert!(!session
+        .background_cancellation_for_task(1)
+        .expect("active build cancellation token")
+        .is_cancellation_requested());
     assert!(!session.editor_launch_task_is_active(1));
 
     fs::remove_dir_all(temp).unwrap();
@@ -372,17 +368,13 @@ fn background_action_lifecycle_dequeued_action_starts_new_running_status() {
     let build_request = background_request("build-project");
     let package_request = background_request("package-project");
 
-    assert!(
-        session
-            .start_background_action_or_record_error(&build_request)
-            .unwrap()
-    );
+    assert!(session
+        .start_background_action_or_record_error(&build_request)
+        .unwrap());
     let first_task_id = session.task_status.task_id;
-    assert!(
-        !session
-            .start_background_action_or_record_error(&package_request)
-            .unwrap()
-    );
+    assert!(!session
+        .start_background_action_or_record_error(&package_request)
+        .unwrap());
 
     let next_request = session
         .take_next_background_action()
@@ -415,33 +407,25 @@ fn cancellation_is_bound_to_the_exact_running_task_and_not_reused_by_the_queue()
     let build_request = background_request("build-project");
     let package_request = background_request("package-project");
 
-    assert!(
-        session
-            .start_background_action_or_record_error(&build_request)
-            .unwrap()
-    );
-    assert!(
-        !session
-            .start_background_action_or_record_error(&package_request)
-            .unwrap()
-    );
+    assert!(session
+        .start_background_action_or_record_error(&build_request)
+        .unwrap());
+    assert!(!session
+        .start_background_action_or_record_error(&package_request)
+        .unwrap());
     let first_task_id = session.task_status.task_id;
 
     session.request_background_task_cancellation(first_task_id + 1);
-    assert!(
-        !session
-            .background_cancellation_for_task(first_task_id)
-            .unwrap()
-            .is_cancellation_requested()
-    );
+    assert!(!session
+        .background_cancellation_for_task(first_task_id)
+        .unwrap()
+        .is_cancellation_requested());
 
     session.request_background_task_cancellation(first_task_id);
-    assert!(
-        session
-            .background_cancellation_for_task(first_task_id)
-            .unwrap()
-            .is_cancellation_requested()
-    );
+    assert!(session
+        .background_cancellation_for_task(first_task_id)
+        .unwrap()
+        .is_cancellation_requested());
     let task_summary = session.view_model().task_summary;
     assert!(!task_summary.cancellable);
     assert_eq!(
@@ -455,12 +439,10 @@ fn cancellation_is_bound_to_the_exact_running_task_and_not_reused_by_the_queue()
     let second_task_id = session.task_status.task_id;
     assert_ne!(second_task_id, first_task_id);
     assert!(session.task_status.cancellable);
-    assert!(
-        !session
-            .background_cancellation_for_task(second_task_id)
-            .unwrap()
-            .is_cancellation_requested()
-    );
+    assert!(!session
+        .background_cancellation_for_task(second_task_id)
+        .unwrap()
+        .is_cancellation_requested());
 
     fs::remove_dir_all(temp).unwrap();
 }
@@ -473,11 +455,9 @@ fn foreground_status_changes_do_not_detach_the_running_background_task() {
     let mut session = session_with_project(&temp, "Game", &project);
     let request = background_request("build-project");
 
-    assert!(
-        session
-            .start_background_action_or_record_error(&request)
-            .unwrap()
-    );
+    assert!(session
+        .start_background_action_or_record_error(&request)
+        .unwrap());
     let task_id = session
         .active_background_task_id()
         .expect("running background task should own an identity");
@@ -492,12 +472,10 @@ fn foreground_status_changes_do_not_detach_the_running_background_task() {
 
     session.request_background_task_cancellation(task_id);
 
-    assert!(
-        session
-            .background_cancellation_for_task(task_id)
-            .expect("foreground status must not detach background cancellation")
-            .is_cancellation_requested()
-    );
+    assert!(session
+        .background_cancellation_for_task(task_id)
+        .expect("foreground status must not detach background cancellation")
+        .is_cancellation_requested());
     assert!(!session.view_model().task_summary.cancellable);
 
     fs::remove_dir_all(temp).unwrap();
@@ -511,11 +489,9 @@ fn preparation_progress_does_not_reenable_a_cancelled_background_task() {
     let mut session = session_with_project(&temp, "Game", &project);
     let request = background_request("build-project");
 
-    assert!(
-        session
-            .start_background_action_or_record_error(&request)
-            .unwrap()
-    );
+    assert!(session
+        .start_background_action_or_record_error(&request)
+        .unwrap());
     let task_id = session
         .active_background_task_id()
         .expect("running background task should own an identity");

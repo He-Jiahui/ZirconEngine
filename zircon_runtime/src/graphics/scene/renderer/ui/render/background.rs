@@ -100,6 +100,12 @@ impl ScreenSpaceUiBackgroundTracker {
                 } if frame_covers(*background_frame, frame) => {
                     return (Some(*color), visit_count);
                 }
+                ScreenSpaceUiBackgroundEffect::OpaqueBackground {
+                    frame: background_frame,
+                    ..
+                } if frames_intersect(*background_frame, frame) => {
+                    return (None, visit_count);
+                }
                 ScreenSpaceUiBackgroundEffect::Blocker {
                     frame: blocker_frame,
                 } if frames_intersect(*blocker_frame, frame) => {

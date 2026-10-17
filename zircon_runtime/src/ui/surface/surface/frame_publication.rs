@@ -179,7 +179,7 @@ impl UiSurface {
 
         if publication.dirty || transient_state_changed {
             #[cfg(feature = "profiling")]
-            let publication_start = std::time::Instant::now();
+            let publication_start = web_time::Instant::now();
             publication.generation = publication.generation.saturating_add(1);
             let generation = publication.generation;
             let dirty_domains = publication.dirty_domains;

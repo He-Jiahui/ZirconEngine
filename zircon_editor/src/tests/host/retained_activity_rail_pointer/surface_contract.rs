@@ -13,11 +13,8 @@ fn shared_activity_rail_surfaces_use_rust_callbacks_and_toml_projection() {
         .nth(1)
         .and_then(|source| source.split("fn sync_host_page_pointer_layout").next())
         .expect("activity rail pointer sync function should exist");
-    let activity_rail_layout = source(
-        "src/ui/build_host_activity_rail_pointer_layout.rs",
-    );
-    let chrome_projection =
-        source("src/ui/layouts/windows/window/projection.rs");
+    let activity_rail_layout = source("src/ui/build_host_activity_rail_pointer_layout.rs");
+    let chrome_projection = source("src/ui/layouts/windows/window/projection.rs");
     let activity_asset = source("assets/ui/editor/workbench_activity_rail.zui");
 
     assert!(globals.contains("on_activity_rail_pointer_clicked"));
@@ -50,8 +47,7 @@ fn shared_activity_rail_surfaces_use_rust_callbacks_and_toml_projection() {
 
 #[test]
 fn activity_rail_pointer_bridge_uses_route_intent_only() {
-    let bridge =
-        source("src/ui/activity_rail_pointer/host_activity_rail_pointer_bridge.rs");
+    let bridge = source("src/ui/activity_rail_pointer/host_activity_rail_pointer_bridge.rs");
     let rebuild = source("src/ui/retained/activity_rail_pointer/rebuild_surface.rs");
     let insert_strip = source("src/ui/retained/activity_rail_pointer/insert_strip.rs");
     let dispatch = source("src/ui/retained/activity_rail_pointer/dispatch_event.rs");
@@ -91,9 +87,7 @@ fn activity_rail_pointer_bridge_publishes_retained_geometry_deltas() {
 fn window_metrics_activity_rail_sync_uses_geometry_only_semantics() {
     let shell_chrome = source("src/ui/retained/app/pointer_layout/shell_chrome.rs");
     let recompute = source("src/ui/retained/app/host_lifecycle/recompute_viewport.rs");
-    let layout = source(
-        "src/ui/build_host_activity_rail_pointer_layout.rs",
-    );
+    let layout = source("src/ui/build_host_activity_rail_pointer_layout.rs");
 
     assert!(recompute.contains("window_metrics_target"));
     assert!(shell_chrome.contains("sync_activity_rail_pointer_layout_for_target"));

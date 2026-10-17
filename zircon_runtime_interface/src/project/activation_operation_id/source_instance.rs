@@ -10,10 +10,12 @@ use super::ProjectLaunchInstanceIdError;
 pub struct ProjectLaunchInstanceId(Uuid);
 
 impl ProjectLaunchInstanceId {
+    /// 为新的启动进程实例生成 UUID v4 身份。
     pub fn new() -> Self {
         Self(Uuid::new_v4())
     }
 
+    /// 从传输 UUID 恢复启动实例身份；仅拒绝 nil 值，成功时保留给定 UUID。
     pub fn try_from_uuid(value: Uuid) -> Result<Self, ProjectLaunchInstanceIdError> {
         if value.is_nil() {
             return Err(ProjectLaunchInstanceIdError::Nil);

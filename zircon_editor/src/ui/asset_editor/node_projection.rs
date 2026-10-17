@@ -10,7 +10,7 @@ use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::v2_design_tokens::prepare_editor_v2_document;
 use thiserror::Error;
 use toml::Value;
-use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
+use zircon_runtime::asset::{runtime_asset_path_with_dev_asset_root, AssetRelativePath};
 use zircon_runtime::ui::{
     style::resolve_button_style_from_values,
     surface::UiSurface,
@@ -207,8 +207,8 @@ fn load_node_projection_document(
         .lock()
         .expect("ui asset editor v2 projection cache mutex should not be poisoned")
         .load_store([
-            asset_path(UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH),
-            asset_path(UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH),
+            ui_source_asset_path(UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH)?,
+            ui_source_asset_path(UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH)?,
         ])?;
 
     Ok(NodeProjectionDocument {
@@ -496,8 +496,18 @@ fn project_ui_asset_editor_nodes(
     })
 }
 
-fn asset_path(relative: &str) -> PathBuf {
-    runtime_asset_path_with_dev_asset_root(relative, editor_dev_asset_root())
+fn ui_source_asset_path(source: &str) -> Result<PathBuf, UiV2AssetError> {
+    // UI source identities retain their exact /assets/ namespace at this domain boundary.
+    let relative = source.strip_prefix("/assets/").unwrap_or(source);
+    let relative =
+        AssetRelativePath::parse(relative).map_err(|error| UiV2AssetError::InvalidDocument {
+            asset_id: source.to_string(),
+            detail: format!("invalid UI source asset path: {error}"),
+        })?;
+    Ok(runtime_asset_path_with_dev_asset_root(
+        &relative,
+        editor_dev_asset_root(),
+    ))
 }
 
 fn editor_dev_asset_root() -> PathBuf {

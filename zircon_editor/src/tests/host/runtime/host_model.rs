@@ -452,7 +452,10 @@ fn retained_ui_host_adapter_builds_generic_projection_from_host_model() {
 
     let retained_projection = RetainedUiHostAdapter::build_projection(&host_model);
 
-    assert_eq!(retained_projection.document_id, UNREAL_EDITOR_SHELL_DOCUMENT_ID);
+    assert_eq!(
+        retained_projection.document_id,
+        UNREAL_EDITOR_SHELL_DOCUMENT_ID
+    );
     assert_eq!(
         retained_projection
             .nodes

@@ -1,7 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use crate::settings::HubConfig;
-use crate::tauri_app::{HubActionRequest, action_request::HubAction};
+use crate::tauri_app::{action_request::HubAction, HubActionRequest};
 
 use super::*;
 

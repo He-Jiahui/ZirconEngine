@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Weak};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::core::runtime::TaskCancellationToken;
 
@@ -31,6 +31,7 @@ pub(super) struct RenderArtifactBlockLoaderMetrics {
 }
 
 // 读取编码块后按 codec 决定直接完成或交给独立解码任务；两阶段均尊重 scope 取消。
+#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn run_io_task(
     loader: Weak<RenderArtifactBlockLoaderInner>,
     entry: Arc<RenderArtifactBlockEntry>,
@@ -49,6 +50,41 @@ pub(super) fn run_io_task(
     }
     let started = Instant::now();
     let result = store.read_block(entry.descriptor(), limits);
+    finish_io(loader, entry, metrics, cancellation, result, started);
+}
+
+#[cfg(target_arch = "wasm32")]
+pub(super) async fn run_io_task_async(
+    loader: Weak<RenderArtifactBlockLoaderInner>,
+    entry: Arc<RenderArtifactBlockEntry>,
+    store: RenderArtifactStore,
+    limits: RenderArtifactStoreLimits,
+    metrics: Arc<RenderArtifactBlockLoaderMetrics>,
+    cancellation: TaskCancellationToken,
+) {
+    if cancellation.is_cancellation_requested() {
+        cancellation.acknowledge_cancellation();
+        record_cancelled(&entry, &metrics);
+        return;
+    }
+    if !entry.begin_io() {
+        return;
+    }
+    let started = Instant::now();
+    let result = store
+        .read_block_async(entry.descriptor(), limits, &cancellation)
+        .await;
+    finish_io(loader, entry, metrics, cancellation, result, started);
+}
+
+fn finish_io(
+    loader: Weak<RenderArtifactBlockLoaderInner>,
+    entry: Arc<RenderArtifactBlockEntry>,
+    metrics: Arc<RenderArtifactBlockLoaderMetrics>,
+    cancellation: TaskCancellationToken,
+    result: Result<Arc<[u8]>, RenderArtifactStoreError>,
+    started: Instant,
+) {
     atomic_add_duration(&metrics.io_worker_wall_ns, started.elapsed());
     if cancellation.is_cancellation_requested() {
         cancellation.acknowledge_cancellation();

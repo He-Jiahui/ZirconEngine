@@ -125,7 +125,7 @@ fn test_skinned_joint_palette_min_binding_size() -> wgpu::BufferSize {
 fn test_source(device: &wgpu::Device, x: f32) -> GpuSceneSkinnedGpuSourceState {
     GpuSceneSkinnedGpuSourceState {
         morph_shape_signature: x.to_bits() as u64,
-        mesh: Arc::new(GpuMeshResource::from_asset(device, test_primitive(x))),
+        mesh: Arc::new(GpuMeshResource::from_asset(device, &test_primitive(x))),
     }
 }
 

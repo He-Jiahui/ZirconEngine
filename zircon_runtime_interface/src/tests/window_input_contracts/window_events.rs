@@ -1,5 +1,9 @@
+//! 对照窗口通知的便捷构造、影响提示与所列样例的序列化往返。
+
 use super::*;
 
+/// 固定度量、激活、重绘与关闭的影响标志，并对照枚举直构与便捷构造。
+/// 末段只对所列样例做 JSON 往返；窗口动作的瞬态效果由相邻测试单独核对。
 #[test]
 fn ui_window_events_carry_cursor_focus_scale_redraw_and_close_contracts() {
     let metadata = sample_window_metadata();

@@ -1,0 +1,4616 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R054",
+  "owner": "root",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "status": "reviewed-local-pending-ledger-booking-and-actual-managed-gates",
+  "formal_acceptance": false,
+  "fixed_child_record": {
+    "path": "docs/plans/source-comments/reviews/R054.json",
+    "sha256": "b8ae869534581a6d8baf33c96a28bf74432ae33091f9e6b92bd0c0681b6316b2",
+    "bytes": 122759
+  },
+  "source_pins": [
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+      "before_sha256": "1a78860761d9f7dde18c047c50ed33fc71ef6340aa46542936e70e82c46bbb1c",
+      "after_sha256": "c3109871964871af8f37a4719cc534af5504616ad5250c3bff5b55fe39b1a359",
+      "before_bytes": 10267,
+      "after_bytes": 12824,
+      "before_lines": 285,
+      "after_lines": 333,
+      "raw_inverse_matches_grant_and_raw_HEAD": true,
+      "changed": true,
+      "objects": 11,
+      "blocks": 29,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 333,
+        "bom": false
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+      "before_sha256": "79384c4942fe95fd50463fe8819f1c0cc8fe1c373743b604e8e54d2033f1bf95",
+      "after_sha256": "7530c7c96293c8a2dbd1717b35bf37e890e51e0952248d4b3ac0f6b4748316be",
+      "before_bytes": 7977,
+      "after_bytes": 8537,
+      "before_lines": 243,
+      "after_lines": 249,
+      "raw_inverse_matches_grant_and_raw_HEAD": true,
+      "changed": true,
+      "objects": 15,
+      "blocks": 19,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 249,
+        "bom": false
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+      "before_sha256": "a93c4c53ff3c8580b787073624e22ff877bc2cb3260eb24e4ad232772d1d9cbe",
+      "after_sha256": "2e8fef09dd43b6a5b418063d7a4b95bbba89fadc9aa5da15367834de3dcd39aa",
+      "before_bytes": 2699,
+      "after_bytes": 2883,
+      "before_lines": 73,
+      "after_lines": 76,
+      "raw_inverse_matches_grant_and_raw_HEAD": true,
+      "changed": true,
+      "objects": 8,
+      "blocks": 8,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 76,
+        "bom": false
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+      "before_sha256": "02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298",
+      "after_sha256": "02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298",
+      "before_bytes": 4371,
+      "after_bytes": 4371,
+      "before_lines": 132,
+      "after_lines": 132,
+      "raw_inverse_matches_grant_and_raw_HEAD": true,
+      "changed": false,
+      "objects": 5,
+      "blocks": 10,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 132,
+        "bom": false
+      }
+    }
+  ],
+  "proof": {
+    "source_pins": [
+      {
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_sha256": "1a78860761d9f7dde18c047c50ed33fc71ef6340aa46542936e70e82c46bbb1c",
+        "after_sha256": "c3109871964871af8f37a4719cc534af5504616ad5250c3bff5b55fe39b1a359",
+        "before_bytes": 10267,
+        "after_bytes": 12824,
+        "before_lines": 285,
+        "after_lines": 333,
+        "raw_inverse_matches_grant_and_raw_HEAD": true,
+        "changed": true,
+        "objects": 11,
+        "blocks": 29,
+        "eol": {
+          "crlf": 0,
+          "lf_only": 333,
+          "bom": false
+        }
+      },
+      {
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_sha256": "79384c4942fe95fd50463fe8819f1c0cc8fe1c373743b604e8e54d2033f1bf95",
+        "after_sha256": "7530c7c96293c8a2dbd1717b35bf37e890e51e0952248d4b3ac0f6b4748316be",
+        "before_bytes": 7977,
+        "after_bytes": 8537,
+        "before_lines": 243,
+        "after_lines": 249,
+        "raw_inverse_matches_grant_and_raw_HEAD": true,
+        "changed": true,
+        "objects": 15,
+        "blocks": 19,
+        "eol": {
+          "crlf": 0,
+          "lf_only": 249,
+          "bom": false
+        }
+      },
+      {
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_sha256": "a93c4c53ff3c8580b787073624e22ff877bc2cb3260eb24e4ad232772d1d9cbe",
+        "after_sha256": "2e8fef09dd43b6a5b418063d7a4b95bbba89fadc9aa5da15367834de3dcd39aa",
+        "before_bytes": 2699,
+        "after_bytes": 2883,
+        "before_lines": 73,
+        "after_lines": 76,
+        "raw_inverse_matches_grant_and_raw_HEAD": true,
+        "changed": true,
+        "objects": 8,
+        "blocks": 8,
+        "eol": {
+          "crlf": 0,
+          "lf_only": 76,
+          "bom": false
+        }
+      },
+      {
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_sha256": "02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298",
+        "after_sha256": "02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298",
+        "before_bytes": 4371,
+        "after_bytes": 4371,
+        "before_lines": 132,
+        "after_lines": 132,
+        "raw_inverse_matches_grant_and_raw_HEAD": true,
+        "changed": false,
+        "objects": 5,
+        "blocks": 10,
+        "eol": {
+          "crlf": 0,
+          "lf_only": 132,
+          "bom": false
+        }
+      }
+    ],
+    "all_original_bytes_restored_to_grant_and_raw_HEAD": true,
+    "insertions": [
+      {
+        "before_offset": 0,
+        "before_line": 1,
+        "length": 409,
+        "sha256": "12fd9bd473b563c329155449e6f553138adc1403eb3249929d7721d96ec0aff8",
+        "inserted_lines": 7,
+        "exact_text": "//! 将一次指针派发的记录投影为统一输入回复，并合并随后产生的文本结果。\n//!\n//! 路由和状态变更由调用方及专属 owner 完成；本模块组装拥有型效果与回执记录。\n//! 借入的指针结果只在投影期间使用，文本结果按值消费；返回记录不借用两者。\n//!\n//! 主要入口为 [`pointer_reply`] 和 [`merge_pointer_text_result`]。\n\n",
+        "after_offset": 0,
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs"
+      },
+      {
+        "before_offset": 340,
+        "before_line": 10,
+        "length": 599,
+        "sha256": "ae902baf2d582d9a4856ca6066661831be025fbc066765567377c799a32a4bb2",
+        "inserted_lines": 12,
+        "exact_text": "/// 把已完成的一次指针派发投影为统一回复。\n///\n/// # 参数与返回值\n/// 借入派发记录，`pointer_id` 用于捕获及释放效果的身份；返回值拥有新建的效果列表。\n/// 返回记录选择阻断或处理节点，必要时以最后一个组件事件节点补足处理者。\n///\n/// # 约束与时机\n/// 本函数读取已产生的状态与事件，不再次调用处理器或应用效果。\n/// 阶段可采用兜底值，不能仅据此证明相应阶段实际执行过处理器。\n///\n/// # 参考\n/// [`UiDispatchReply`]、[`UiPointerDispatchResult`]。\n",
+        "after_offset": 749,
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs"
+      },
+      {
+        "before_offset": 4980,
+        "before_line": 136,
+        "length": 417,
+        "sha256": "f6b467aa024aef6b2f13857b810a4826862606c480d93698b63eac4ebc4dfabf",
+        "inserted_lines": 8,
+        "exact_text": "/// 估计固定效果加逐项或兜底重绘所需的条目容量。\n///\n/// # 参数与返回值\n/// 三个计数分别来自固定状态变化、调用记录数和兜底目标数。\n/// 逐项已产生重绘时不会再追加兜底重绘，因而后两项取较大值后与固定数做饱和相加。\n///\n/// # 约束\n/// 这里只估计条目数；不设置内存预算，也不保证后续容量申请成功。\n",
+        "after_offset": 5988,
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs"
+      },
+      {
+        "before_offset": 5389,
+        "before_line": 150,
+        "length": 523,
+        "sha256": "a217c0772466524e6a9d123314b949c361086ebfd35744dbf605e727519b17ce",
+        "inserted_lines": 9,
+        "exact_text": "/// 顺序投影非空 dirty 请求，并记录最后匹配的处理与重绘阶段。\n///\n/// # 参数与返回值\n/// 借入派发记录，按节点与可选处理者匹配；把新效果追加到传入向量，不清空原内容。\n/// 返回值分别保留最后一次节点匹配和最后一次 dirty/damage 调用的阶段。\n///\n/// # 约束\n/// damage 请求在此只参与阶段选择；此处不会为它另建 damage 效果。\n/// 记录阶段不要求 dirty 非空；只有非空 dirty 才追加重绘效果。\n",
+        "after_offset": 6814,
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs"
+      },
+      {
+        "before_offset": 7114,
+        "before_line": 196,
+        "length": 609,
+        "sha256": "da7f17d55defe4ff1642ee7d6980bb84e92c1202be4cb79656e99c3eccb06d41",
+        "inserted_lines": 12,
+        "exact_text": "/// 消费文本侧结果，将其效果与回执按原有顺序附加到指针结果。\n///\n/// # 参数与所有权\n/// `result` 原地接收累计结果；`text_result` 按值消费，内部向量迁入累计结果。\n///\n/// # 约束\n/// 仅落在文本效果序列内的本地索引会平移；越界索引保持原值，由调用方保证回执身份有效。\n/// 本函数不校验两份结果是否属于同一输入，也不重新应用效果或执行宿主请求。\n/// 已有阻断结论只保护回复头部的选择，后续记录仍会附加。\n///\n/// # 参考\n/// [`UiInputDispatchResult`]。\n",
+        "after_offset": 9062,
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs"
+      },
+      {
+        "before_offset": 0,
+        "before_line": 1,
+        "length": 281,
+        "sha256": "ecdec6fe8dce7772458cbb3e5689c2d9e8a0e9234bd7251b9a87c5d98692e147",
+        "inserted_lines": 4,
+        "exact_text": "//! 检查阶段与 dirty 投影，并保留源码形状守卫和手动性能样本。\n//! 源码断言只匹配原始文本边界；性能样本只比较本文件构造的调用序列。\n//! `ignore` 只控制默认运行选择，性能样本的构建配置由执行方决定。\n\n",
+        "after_offset": 0,
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs"
+      },
+      {
+        "before_offset": 2048,
+        "before_line": 69,
+        "length": 279,
+        "sha256": "0a7a25805a1128d9d7fba9e303fae3d26a242c2b10604920c494d3b722587eb0",
+        "inserted_lines": 2,
+        "exact_text": "    // BUG: [CR-ZCA-R054-0001] 该切片只取包装函数；扫描已委派给切片终点后的 helper，故下方正向 contains 在当前源码为 false。\n    // 后续应按真实委派边界修正守卫；不能靠在包装函数注释中加入目标字串使其通过。\n",
+        "after_offset": 2329,
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs"
+      },
+      {
+        "before_offset": 0,
+        "before_line": 1,
+        "length": 184,
+        "sha256": "bef66a3806bb2ab56e76e8eda9e6cb3f1ef9bc4cc864385acc8d4bb15fc33303",
+        "inserted_lines": 3,
+        "exact_text": "//! 有限容量公式样例与手动运行的容量性能样本。\n//! 增长次数使用显式倍增模型，耗时来自独立 Vec 填充；两者均非完整指针派发测量。\n\n",
+        "after_offset": 0,
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs"
+      }
+    ],
+    "inserted_blocks": 8,
+    "added_lines": 57,
+    "added_bytes": 3301,
+    "deleted_original_bytes": 0,
+    "final_ranged_objects": [
+      {
+        "name": "pointer_reply",
+        "kind": "fn",
+        "before_lines": [
+          10,
+          46
+        ],
+        "audit": "借入一次指针派发记录，选择显式 handler、组件末项 fallback、disposition 与 phase，并返回拥有新效果向量的统一回复。Blocked 优先；无显式 handler 时组件事件或效果也可令回复 Handled。",
+        "documentation_decision": "新增 summary/参数返回/时机/phase fallback 约束与类型参考；不用被源码守卫搜索的标识填充文档。",
+        "parameters": {
+          "routed_result": "只在本次投影借用的既有派发记录",
+          "pointer_id": "复制到捕获/释放效果的指针身份"
+        },
+        "returns": "拥有 effects 的 UiDispatchReply；phase 可为 fallback，不能由 Some 单独推出处理器实际执行",
+        "callers": [
+          "C1:pointer.rs89-90",
+          "T1:single_pass_tests40,51"
+        ],
+        "calls": [
+          "pointer_component_handler",
+          "pointer_reply_effects"
+        ],
+        "after_lines": [
+          17,
+          65
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            10,
+            46
+          ],
+          "byte_offset": 340,
+          "byte_length": 1379,
+          "sha256": "bf49b942faa069b401afae9f745c0d4bf64c4b7d83f94b9beb684d77b3baf914"
+        },
+        "final_span": {
+          "lines": [
+            17,
+            65
+          ],
+          "byte_offset": 749,
+          "byte_length": 1978,
+          "sha256": "599e0844bbb1e9864f0d89f5e59b59a643eef67d2918e9a9a8136d3666d1c782"
+        }
+      },
+      {
+        "name": "pointer_component_handler",
+        "kind": "fn",
+        "before_lines": [
+          48,
+          55
+        ],
+        "audit": "只取组件事件列表末项的 node_id，为 wrapper 和父级派发收集同一候选处理者；空列表返回 None，不遍历绑定或执行事件。",
+        "documentation_decision": "不新增：last/map 的借用访问器清楚，wrapper 新文档说明其 fallback 用途。",
+        "parameters": {
+          "routed_result": "借入的组件事件序列"
+        },
+        "returns": "末项节点身份或 None",
+        "callers": [
+          "pointer_reply:14",
+          "C1:pointer.rs89"
+        ],
+        "after_lines": [
+          67,
+          74
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            48,
+            55
+          ],
+          "byte_offset": 1720,
+          "byte_length": 208,
+          "sha256": "a6b28b87835aea9b0c5bf49b7140731e2b38fe80460109f13db6ed6a03d82f66"
+        },
+        "final_span": {
+          "lines": [
+            67,
+            74
+          ],
+          "byte_offset": 2728,
+          "byte_length": 208,
+          "sha256": "a6b28b87835aea9b0c5bf49b7140731e2b38fe80460109f13db6ed6a03d82f66"
+        }
+      },
+      {
+        "name": "pointer_reply_effects",
+        "kind": "fn",
+        "before_lines": [
+          58,
+          134
+        ],
+        "audit": "先估计容量并按 capture/release/set-focus/clear-focus 顺序写效果，再扫描调用记录；仅在无任何 DirtyRedraw 时将聚合 dirty 投影给 target 或 roots。",
+        "documentation_decision": "保留原57行中文顺序说明；新的容量与 scan 文档补非显然依赖，不重复为该 helper 添同义正文。",
+        "parameters": {
+          "routed_result": "状态、调用和 route 的借用视图",
+          "pointer_id": "捕获效果身份",
+          "handler": "用于选择处理阶段的可选节点"
+        },
+        "returns": "新效果 Vec 与两类最后匹配阶段",
+        "callers": [
+          "pointer_reply:16"
+        ],
+        "calls": [
+          "pointer_release_target",
+          "pointer_reply_effect_capacity_hint",
+          "scan_pointer_invocations"
+        ],
+        "after_lines": [
+          77,
+          153
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            58,
+            134
+          ],
+          "byte_offset": 2144,
+          "byte_length": 2835,
+          "sha256": "90d0f948aaa7c7cf3245745389932e3fefdf5e1bfff45948360730967b207b69"
+        },
+        "final_span": {
+          "lines": [
+            77,
+            153
+          ],
+          "byte_offset": 3152,
+          "byte_length": 2835,
+          "sha256": "90d0f948aaa7c7cf3245745389932e3fefdf5e1bfff45948360730967b207b69"
+        }
+      },
+      {
+        "name": "pointer_reply_effect_capacity_hint",
+        "kind": "fn",
+        "before_lines": [
+          136,
+          142
+        ],
+        "audit": "fixed + max(invocation,fallback) 做饱和相加；fallback 只在没有逐项 dirty 效果时追加，故不把两类重绘上界相加。它仅返回条目数，实际 Vec 申请仍可失败。",
+        "documentation_decision": "新增为何取 max、三项计数语义、返回与分配边界。",
+        "parameters": {
+          "fixed_effect_count": "固定状态变化最多输出的效果条目数",
+          "invocation_count": "每条调用至多一个 dirty 效果的条目上界",
+          "fallback_effect_count": "target一项或roots数的兜底上界"
+        },
+        "returns": "饱和 usize 容量提示",
+        "callers": [
+          "pointer_reply_effects:72-76",
+          "T4:capacity_tests12-15"
+        ],
+        "after_lines": [
+          155,
+          169
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            136,
+            142
+          ],
+          "byte_offset": 4980,
+          "byte_length": 231,
+          "sha256": "64158db9689abe1dc91e07bba3e3a0054f13911c1e96aafbfaffc5218f1b1f05"
+        },
+        "final_span": {
+          "lines": [
+            155,
+            169
+          ],
+          "byte_offset": 5988,
+          "byte_length": 648,
+          "sha256": "7805796fbcfd50c1a770cce36268cbb2b3c61a01e2083099954bd4eea2d7e0c0"
+        }
+      },
+      {
+        "name": "PointerInvocationPhases",
+        "kind": "struct",
+        "before_lines": [
+          144,
+          148
+        ],
+        "audit": "两项 Option 只记录扫描所得阶段；派生 Default 使其起始为 None，不拥有引用或执行状态。",
+        "documentation_decision": "不新增：私有两字段容器直接可读，scan 新文档说明最后匹配含义。",
+        "derives": [
+          "Clone",
+          "Copy",
+          "Debug",
+          "Default",
+          "PartialEq",
+          "Eq"
+        ],
+        "members": [
+          {
+            "name": "handler_phase",
+            "before_line": 146,
+            "meaning": "最后一次 node匹配 handler 的阶段",
+            "after_line": 173,
+            "before_span": {
+              "lines": [
+                146,
+                146
+              ],
+              "byte_offset": 5299,
+              "byte_length": 44,
+              "sha256": "ff4048acc723c5a58cb5d6d8348cf4d730bdd1969838c280cdae4261c350d238"
+            },
+            "final_span": {
+              "lines": [
+                173,
+                173
+              ],
+              "byte_offset": 6724,
+              "byte_length": 44,
+              "sha256": "ff4048acc723c5a58cb5d6d8348cf4d730bdd1969838c280cdae4261c350d238"
+            }
+          },
+          {
+            "name": "redraw_phase",
+            "before_line": 147,
+            "meaning": "最后一次 RequestDirty 或 RequestDamage 的阶段，与dirty是否为空分开",
+            "after_line": 174,
+            "before_span": {
+              "lines": [
+                147,
+                147
+              ],
+              "byte_offset": 5343,
+              "byte_length": 43,
+              "sha256": "14c536ab6d44c3c81165bffe7648636baebe44b20538366a26909ec5e30760e8"
+            },
+            "final_span": {
+              "lines": [
+                174,
+                174
+              ],
+              "byte_offset": 6768,
+              "byte_length": 43,
+              "sha256": "14c536ab6d44c3c81165bffe7648636baebe44b20538366a26909ec5e30760e8"
+            }
+          }
+        ],
+        "callers": [
+          "scan_pointer_invocations:155-176",
+          "pointer_reply:33-42"
+        ],
+        "after_lines": [
+          171,
+          175
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            144,
+            148
+          ],
+          "byte_offset": 5212,
+          "byte_length": 176,
+          "sha256": "487607f04e9576a911add37616dc5e9e83c77198fe4d65fe3809fb10c35fd943"
+        },
+        "final_span": {
+          "lines": [
+            171,
+            175
+          ],
+          "byte_offset": 6637,
+          "byte_length": 176,
+          "sha256": "487607f04e9576a911add37616dc5e9e83c77198fe4d65fe3809fb10c35fd943"
+        }
+      },
+      {
+        "name": "scan_pointer_invocations",
+        "kind": "fn",
+        "before_lines": [
+          150,
+          177
+        ],
+        "audit": "单个前向循环分别覆盖阶段值；只有非空 RequestDirty 追加重绘效果，RequestDamage 仅影响 redraw phase。已有向量内容保留；None handler 不匹配任何节点。",
+        "documentation_decision": "新增顺序/追加/最后匹配/空dirty与damage分工；未写运行性能保证。",
+        "parameters": {
+          "routed_result": "顺序调用记录的借用",
+          "handler": "按节点匹配的可选处理者",
+          "effects": "追加写入的可变 Vec 借用"
+        },
+        "returns": "拥有两个 Option<phase> 的值；无借用逃逸",
+        "callers": [
+          "pointer_reply_effects:106",
+          "single_pass_tests::optimized_scan_checksum:175"
+        ],
+        "related_existing_issue": "CR-DISPATCH-0004 context only",
+        "after_lines": [
+          177,
+          213
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            150,
+            177
+          ],
+          "byte_offset": 5389,
+          "byte_length": 1000,
+          "sha256": "e13c495a9dbbc333304e671b817f01ee3a6fee9dc09daef19286434f17c44b28"
+        },
+        "final_span": {
+          "lines": [
+            177,
+            213
+          ],
+          "byte_offset": 6814,
+          "byte_length": 1523,
+          "sha256": "48db714446d9f0a8ebcadc34d65c629c8ab13b66c642e8e6713148c46b8be8e9"
+        }
+      },
+      {
+        "name": "pointer_release_target",
+        "kind": "fn",
+        "before_lines": [
+          179,
+          185
+        ],
+        "audit": "显式 released_capture 优先；否则仅当诊断记录 capture_released 且当前无 captured_by 时取 route.captured。此处不自行释放捕获，也不查节点有效性。",
+        "documentation_decision": "不新增：短路 fallback 已直接表达约束，调用方和类型文档足够。",
+        "returns": "应在统一回复中记录释放的节点或 None",
+        "callers": [
+          "pointer_reply_effects:63"
+        ],
+        "after_lines": [
+          215,
+          221
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            179,
+            185
+          ],
+          "byte_offset": 6390,
+          "byte_length": 314,
+          "sha256": "bc79a7a38096e6d9f41a3cf3a4208f78f9adba76aa5dedf2f1c55f4bf3a04038"
+        },
+        "final_span": {
+          "lines": [
+            215,
+            221
+          ],
+          "byte_offset": 8338,
+          "byte_length": 314,
+          "sha256": "bc79a7a38096e6d9f41a3cf3a4208f78f9adba76aa5dedf2f1c55f4bf3a04038"
+        }
+      },
+      {
+        "name": "single_pass_tests",
+        "kind": "cfg_test_module",
+        "before_lines": [
+          187,
+          189
+        ],
+        "audit": "cfg(test)+path 挂载完整243行源测试文件，super::* 可访问私有 helper。",
+        "documentation_decision": "不新增：挂载属性清楚；测试文件新增模块说明。",
+        "attributes": [
+          "cfg(test)",
+          "path = \"pointer_reply/tests/single_pass_tests.rs\""
+        ],
+        "calls": [
+          "tests/single_pass_tests.rs"
+        ],
+        "after_lines": [
+          223,
+          225
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            187,
+            189
+          ],
+          "byte_offset": 6705,
+          "byte_length": 89,
+          "sha256": "15c3d31dbf36718836e4d5c79eb6e569d78bd8a7e50037d507647b406470bc2b"
+        },
+        "final_span": {
+          "lines": [
+            223,
+            225
+          ],
+          "byte_offset": 8653,
+          "byte_length": 89,
+          "sha256": "15c3d31dbf36718836e4d5c79eb6e569d78bd8a7e50037d507647b406470bc2b"
+        }
+      },
+      {
+        "name": "capacity_tests",
+        "kind": "cfg_test_module",
+        "before_lines": [
+          191,
+          193
+        ],
+        "audit": "cfg(test)+path 挂载完整73行容量测试文件。",
+        "documentation_decision": "不新增：挂载属性足够；测试文件解释模型与微测量边界。",
+        "attributes": [
+          "cfg(test)",
+          "path = \"pointer_reply/tests/capacity_tests.rs\""
+        ],
+        "after_lines": [
+          227,
+          229
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            191,
+            193
+          ],
+          "byte_offset": 6795,
+          "byte_length": 83,
+          "sha256": "2cb977917a5f4bcc5dcdc11669482bc5adbec129cb570f2b57506b32c9e11355"
+        },
+        "final_span": {
+          "lines": [
+            227,
+            229
+          ],
+          "byte_offset": 8743,
+          "byte_length": 83,
+          "sha256": "2cb977917a5f4bcc5dcdc11669482bc5adbec129cb570f2b57506b32c9e11355"
+        }
+      },
+      {
+        "name": "merge_pointer_text_result",
+        "kind": "fn",
+        "before_lines": [
+          196,
+          281
+        ],
+        "audit": "按值消费文本结果并原地累计；非Blocked时替换disposition并以文本Some优先handler/phase。追加向量并仅平移小于文本效果长度的本地索引；越界值原样保存，event/pointer_routing等未赋值字段保持原值。",
+        "documentation_decision": "保留原195行说明，新增消费时机、所有权、有效索引限制、Blocked仅保护头部及不验证事件身份的边界。",
+        "parameters": {
+          "result": "原地累积的指针结果",
+          "text_result": "被消费的文本侧拥有型结果"
+        },
+        "returns": "()；可变参数中的向量/诊断被合并",
+        "callers": [
+          "C1:pointer.rs139-140",
+          "T6:sibling_test55"
+        ],
+        "calls": [],
+        "constraints": [
+          "不验证两event相同",
+          "不重新应用效果/执行宿主请求",
+          "回执索引合法性由生产者保证"
+        ],
+        "after_lines": [
+          232,
+          329
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            196,
+            281
+          ],
+          "byte_offset": 7114,
+          "byte_length": 3093,
+          "sha256": "da8cbc6a668f619021c2dba6da8ff0f0c6088ec17508515951bd1a05f527b2d1"
+        },
+        "final_span": {
+          "lines": [
+            232,
+            329
+          ],
+          "byte_offset": 9062,
+          "byte_length": 3702,
+          "sha256": "7d1fd3d25aeb5a53d3e22a9513f34f76a07fc9a3a04d10604fc78709ec9fd683"
+        }
+      },
+      {
+        "name": "tests",
+        "kind": "cfg_test_module",
+        "before_lines": [
+          283,
+          285
+        ],
+        "audit": "cfg(test)+path 挂载相邻 input/tests/pointer_reply.rs，不是 pointer_reply/tests 子目录内文件。",
+        "documentation_decision": "不新增：路径明确，正式范围包含其完整132行。",
+        "attributes": [
+          "cfg(test)",
+          "path = \"tests/pointer_reply.rs\""
+        ],
+        "after_lines": [
+          331,
+          333
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            283,
+            285
+          ],
+          "byte_offset": 10208,
+          "byte_length": 59,
+          "sha256": "bcd079415543426db8a78a6963c48caa5fb9e61885b61c7caa6c300ed3ac7e96"
+        },
+        "final_span": {
+          "lines": [
+            331,
+            333
+          ],
+          "byte_offset": 12765,
+          "byte_length": 59,
+          "sha256": "bcd079415543426db8a78a6963c48caa5fb9e61885b61c7caa6c300ed3ac7e96"
+        }
+      },
+      {
+        "name": "SAMPLE_PAIRS",
+        "kind": "const",
+        "before_lines": [
+          12,
+          12
+        ],
+        "audit": "性能采样对数固定17；普通测试不依赖计时。",
+        "documentation_decision": "无需新增：常量名与使用循环清楚，模块新增说明限定性能证据。",
+        "value": "17usize",
+        "callers": [
+          "ignored performance test:99-117"
+        ],
+        "after_lines": [
+          16,
+          16
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            12,
+            12
+          ],
+          "byte_offset": 266,
+          "byte_length": 32,
+          "sha256": "e40b7beb14a0bc7856a29924cabff4d691f448c354893a1bb2f91859661fb887"
+        },
+        "final_span": {
+          "lines": [
+            16,
+            16
+          ],
+          "byte_offset": 547,
+          "byte_length": 32,
+          "sha256": "e40b7beb14a0bc7856a29924cabff4d691f448c354893a1bb2f91859661fb887"
+        }
+      },
+      {
+        "name": "optimization_batch_20260826ar_pointer_reply_preserves_phase_and_dirty_effects",
+        "kind": "test_fn",
+        "before_lines": [
+          14,
+          53
+        ],
+        "audit": "构造Capture handler、Target dirty、Bubble damage，断言显式handler阶段与唯一dirty效果；清handler后断言重绘阶段来自末项damage。",
+        "documentation_decision": "无需逐测试重复说明：名字、夹具和4个assert明示契约，模块补范围。",
+        "assertion_macros": 4,
+        "attributes": [
+          "test"
+        ],
+        "calls": [
+          "invocation",
+          "empty_route",
+          "pointer_reply"
+        ],
+        "evidence": [
+          "T1"
+        ],
+        "after_lines": [
+          18,
+          57
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            14,
+            53
+          ],
+          "byte_offset": 299,
+          "byte_length": 1321,
+          "sha256": "3b95f157ec3ed6ac9b9762da5d024898317a11b8c2605fa0bc96ec067c61bb6f"
+        },
+        "final_span": {
+          "lines": [
+            18,
+            57
+          ],
+          "byte_offset": 580,
+          "byte_length": 1321,
+          "sha256": "3b95f157ec3ed6ac9b9762da5d024898317a11b8c2605fa0bc96ec067c61bb6f"
+        }
+      },
+      {
+        "name": "optimization_batch_20260826ar_pointer_reply_scans_invocations_once",
+        "kind": "test_fn",
+        "before_lines": [
+          55,
+          80
+        ],
+        "audit": "通过include_str读取主源，按字面函数边界截取两段；第一条正向contains与已委派helper失配，其他原始操作数逐项保存。",
+        "documentation_decision": "仅在真实错误assert前新增批准BUG；保留所有断言，不注入主源匹配字串。",
+        "assertion_macros": 6,
+        "attributes": [
+          "test"
+        ],
+        "calls": [
+          "bounded_source"
+        ],
+        "evidence": [
+          "T2",
+          "CR-ZCA-R054-0001"
+        ],
+        "after_lines": [
+          59,
+          86
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            55,
+            80
+          ],
+          "byte_offset": 1621,
+          "byte_length": 841,
+          "sha256": "bc956ad77f2c694fd19d6ac497f76ab510fb9582edd76238595a73f5a0e46c48"
+        },
+        "final_span": {
+          "lines": [
+            59,
+            86
+          ],
+          "byte_offset": 1902,
+          "byte_length": 1120,
+          "sha256": "e688c5268fdc1aed78a20cd053b7c6a4040b60d70b74f299ea0afe1fba962191"
+        }
+      },
+      {
+        "name": "optimization_batch_20260826ar_pointer_reply_single_pass_p95",
+        "kind": "test_fn",
+        "before_lines": [
+          82,
+          135
+        ],
+        "audit": "ignored微测量按17对交替顺序比较两个checksum扫描器；仅Handled效果输入，p95相对阈值为optimized*5<=legacy*4。不是完整wrapper/surface测量。",
+        "documentation_decision": "新增模块说明ignore不选构建profile；保留测试名、阈值、输出字符串与代码。",
+        "attributes": [
+          "test",
+          "ignore = \"release performance evidence\""
+        ],
+        "assertion_macros": 1,
+        "calls": [
+          "invocation",
+          "empty_route",
+          "measure_ns",
+          "legacy_scan_checksum",
+          "optimized_scan_checksum",
+          "nearest_rank",
+          "join_samples"
+        ],
+        "evidence": [
+          "T3"
+        ],
+        "after_lines": [
+          88,
+          141
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            82,
+            135
+          ],
+          "byte_offset": 2463,
+          "byte_length": 2349,
+          "sha256": "c570c4e83bf783dbb1106f4b03419074d8dfe8d47c1292d2f2a90a215f35c69c"
+        },
+        "final_span": {
+          "lines": [
+            88,
+            141
+          ],
+          "byte_offset": 3023,
+          "byte_length": 2349,
+          "sha256": "c570c4e83bf783dbb1106f4b03419074d8dfe8d47c1292d2f2a90a215f35c69c"
+        }
+      },
+      {
+        "name": "INVOCATIONS",
+        "kind": "local_const",
+        "before_lines": [
+          85,
+          85
+        ],
+        "audit": "ignored样本使用16384个调用记录；仅该函数内有效。",
+        "documentation_decision": "无需新增：局部基准规模直接可读。",
+        "value": "16_384usize",
+        "callers": [
+          "performance fixture:89-97",
+          "report:130-131"
+        ],
+        "after_lines": [
+          91,
+          91
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            85,
+            85
+          ],
+          "byte_offset": 2581,
+          "byte_length": 39,
+          "sha256": "b03d5d8a87da622eaca13620f6fb47383adf1dce6bc315196a4fb3a174b7983e"
+        },
+        "final_span": {
+          "lines": [
+            91,
+            91
+          ],
+          "byte_offset": 3141,
+          "byte_length": 39,
+          "sha256": "b03d5d8a87da622eaca13620f6fb47383adf1dce6bc315196a4fb3a174b7983e"
+        }
+      },
+      {
+        "name": "REPLIES",
+        "kind": "local_const",
+        "before_lines": [
+          86,
+          86
+        ],
+        "audit": "每样本对每扫描器执行128次；不是wrapper回复对象数的实测。",
+        "documentation_decision": "无需新增：模块已限定测量对象，常量与measure调用明确。",
+        "value": "128usize",
+        "callers": [
+          "measure_ns calls:103-115"
+        ],
+        "after_lines": [
+          92,
+          92
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            86,
+            86
+          ],
+          "byte_offset": 2620,
+          "byte_length": 32,
+          "sha256": "aff530d7d08d8cf370c402cb3086f8ac3722694ae2739e7455020fd2207550ea"
+        },
+        "final_span": {
+          "lines": [
+            92,
+            92
+          ],
+          "byte_offset": 3180,
+          "byte_length": 32,
+          "sha256": "aff530d7d08d8cf370c402cb3086f8ac3722694ae2739e7455020fd2207550ea"
+        }
+      },
+      {
+        "name": "invocation",
+        "kind": "fixture_fn",
+        "before_lines": [
+          137,
+          147
+        ],
+        "audit": "将node/phase/effect按值放入接口调用记录，不执行handler或验证节点。",
+        "documentation_decision": "无需新增：三字段夹具组装清楚。",
+        "parameters": {
+          "node_id": "值身份",
+          "phase": "预设阶段",
+          "effect": "预设效果"
+        },
+        "returns": "UiPointerDispatchInvocation",
+        "callers": [
+          "T1",
+          "T3"
+        ],
+        "after_lines": [
+          143,
+          153
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            137,
+            147
+          ],
+          "byte_offset": 4813,
+          "byte_length": 228,
+          "sha256": "68bf7799911e3346e7c23eb399e15403c909abec1b61de56acfa9271799b9e6c"
+        },
+        "final_span": {
+          "lines": [
+            143,
+            153
+          ],
+          "byte_offset": 5373,
+          "byte_length": 228,
+          "sha256": "68bf7799911e3346e7c23eb399e15403c909abec1b61de56acfa9271799b9e6c"
+        }
+      },
+      {
+        "name": "empty_route",
+        "kind": "fixture_fn",
+        "before_lines": [
+          149,
+          171
+        ],
+        "audit": "返回Move/零坐标、无目标/焦点/捕获且集合皆空的路由；为投影单测隔离真实命中测试。",
+        "documentation_decision": "无需新增：显式19字段夹具及测试名足够，模块范围声明避免误作真实路由执行。",
+        "fixture_fields": [
+          "kind",
+          "button",
+          "modifiers",
+          "activation_phase",
+          "point",
+          "scroll_delta",
+          "target",
+          "hit_path",
+          "routing_path",
+          "stacked",
+          "entered",
+          "left",
+          "captured",
+          "pressed",
+          "click_target",
+          "release_inside_pressed",
+          "focused",
+          "fallback_to_root",
+          "root_targets"
+        ],
+        "callers": [
+          "T1",
+          "T3"
+        ],
+        "after_lines": [
+          155,
+          177
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            149,
+            171
+          ],
+          "byte_offset": 5042,
+          "byte_length": 702,
+          "sha256": "4743a7b15ebf899c6f86aefdabbcd52ac8335e0628739636ceac812e7427daae"
+        },
+        "final_span": {
+          "lines": [
+            155,
+            177
+          ],
+          "byte_offset": 5602,
+          "byte_length": 702,
+          "sha256": "4743a7b15ebf899c6f86aefdabbcd52ac8335e0628739636ceac812e7427daae"
+        }
+      },
+      {
+        "name": "optimized_scan_checksum",
+        "kind": "benchmark_fn",
+        "before_lines": [
+          173,
+          179
+        ],
+        "audit": "创建空效果向量并调用实际scan，checksum加效果数和两类阶段；向量在调用结束释放。",
+        "documentation_decision": "无需新增：测试模块说明它仅为微测量，实际调用直接可读。",
+        "returns": "usize checksum，不是回复或耗时",
+        "callers": [
+          "T3"
+        ],
+        "after_lines": [
+          179,
+          185
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            173,
+            179
+          ],
+          "byte_offset": 5745,
+          "byte_length": 366,
+          "sha256": "dfa49824041357821b3e53ca8680ae848eff192ba53a15f8b89baab310fe87ed"
+        },
+        "final_span": {
+          "lines": [
+            179,
+            185
+          ],
+          "byte_offset": 6305,
+          "byte_length": 366,
+          "sha256": "dfa49824041357821b3e53ca8680ae848eff192ba53a15f8b89baab310fe87ed"
+        }
+      },
+      {
+        "name": "legacy_scan_checksum",
+        "kind": "benchmark_fn",
+        "before_lines": [
+          181,
+          196
+        ],
+        "audit": "前向计非空dirty再反向找最后handler阶段；未计算重绘阶段。与优化版本的比较只用于全Handled的本夹具，不能声称任意输入checksum等价。",
+        "documentation_decision": "无需新增：模块边界配合具体夹具已足够；不添加未经证明的普遍等价或性能保证。",
+        "callers": [
+          "T3"
+        ],
+        "returns": "usize checksum",
+        "after_lines": [
+          187,
+          202
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            181,
+            196
+          ],
+          "byte_offset": 6112,
+          "byte_length": 573,
+          "sha256": "4ac8ddd7c6354dc86f50648736e1bf82e630d1ff595d343dd310dd4f4b0a3fc7"
+        },
+        "final_span": {
+          "lines": [
+            187,
+            202
+          ],
+          "byte_offset": 6672,
+          "byte_length": 573,
+          "sha256": "4ac8ddd7c6354dc86f50648736e1bf82e630d1ff595d343dd310dd4f4b0a3fc7"
+        }
+      },
+      {
+        "name": "phase_checksum",
+        "kind": "benchmark_fn",
+        "before_lines": [
+          198,
+          208
+        ],
+        "audit": "将当前七个阶段映射到1..7的非零整数；仅供checksum防优化。",
+        "documentation_decision": "无需新增：七个match臂直接可读。",
+        "control_points": [
+          "Preprocess=>1",
+          "PreviewTunnel=>2",
+          "Direct=>3",
+          "Target=>4",
+          "Bubble=>5",
+          "DefaultAction=>6",
+          "Capture=>7"
+        ],
+        "callers": [
+          "optimized_scan_checksum",
+          "legacy_scan_checksum"
+        ],
+        "after_lines": [
+          204,
+          214
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            198,
+            208
+          ],
+          "byte_offset": 6686,
+          "byte_length": 364,
+          "sha256": "338315e1007801b8cc85f69907835336c690bc0d9300cf67884ac4460198a1a2"
+        },
+        "final_span": {
+          "lines": [
+            204,
+            214
+          ],
+          "byte_offset": 7246,
+          "byte_length": 364,
+          "sha256": "338315e1007801b8cc85f69907835336c690bc0d9300cf67884ac4460198a1a2"
+        }
+      },
+      {
+        "name": "measure_ns",
+        "kind": "benchmark_fn",
+        "before_lines": [
+          210,
+          218
+        ],
+        "audit": "同步FnMut调用iterations次，以black_box/wrapping checksum抑制消除，返回Instant elapsed nanos；未要求非零。",
+        "documentation_decision": "无需新增：局部计时流程明确，模块不把ignore文案当profile门。",
+        "parameters": {
+          "iterations": "本地循环次数",
+          "operation": "调用期间借用的同步可变闭包，无Send/static注册约束"
+        },
+        "returns": "u128纳秒",
+        "callers": [
+          "T3"
+        ],
+        "after_lines": [
+          216,
+          224
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            210,
+            218
+          ],
+          "byte_offset": 7051,
+          "byte_length": 307,
+          "sha256": "258efc88616f53656198de36f5798ead433a82a4ec07b4873f71857c761c0878"
+        },
+        "final_span": {
+          "lines": [
+            216,
+            224
+          ],
+          "byte_offset": 7611,
+          "byte_length": 307,
+          "sha256": "258efc88616f53656198de36f5798ead433a82a4ec07b4873f71857c761c0878"
+        }
+      },
+      {
+        "name": "bounded_source",
+        "kind": "test_helper_fn",
+        "before_lines": [
+          220,
+          228
+        ],
+        "audit": "返回借自source的片段；缺start会panic，缺end则保留剩余全文，因为split.next始终有第一段。当前四个分隔符在before/current均恰1次。",
+        "documentation_decision": "无需新增：本批修正的是错误断言的证据注释，未改变helper或声称其校验end存在。",
+        "parameters": {
+          "source": "返回借用的来源，生命周期'a",
+          "start": "查找起始字面量",
+          "end": "结束分隔字面量"
+        },
+        "returns": "&'a str；不借用start/end",
+        "callers": [
+          "T2:58-67"
+        ],
+        "after_lines": [
+          226,
+          234
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            220,
+            228
+          ],
+          "byte_offset": 7359,
+          "byte_length": 225,
+          "sha256": "5b78dc08d5e844e748acb2fa6b7af06dfdd961ea6d4e7e66f44759017c0f6085"
+        },
+        "final_span": {
+          "lines": [
+            226,
+            234
+          ],
+          "byte_offset": 7919,
+          "byte_length": 225,
+          "sha256": "5b78dc08d5e844e748acb2fa6b7af06dfdd961ea6d4e7e66f44759017c0f6085"
+        }
+      },
+      {
+        "name": "nearest_rank",
+        "kind": "benchmark_fn",
+        "before_lines": [
+          230,
+          235
+        ],
+        "audit": "复制排序后按ceil(len*percentile/100)-1取样；当前调用是17个样本、50/95。空样本或越界百分位不在现有调用域。",
+        "documentation_decision": "无需新增：局部辅助仅服务固定调用域，未扩成通用统计API。",
+        "returns": "u128选中样本",
+        "callers": [
+          "T3:119-122"
+        ],
+        "after_lines": [
+          236,
+          241
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            230,
+            235
+          ],
+          "byte_offset": 7585,
+          "byte_length": 237,
+          "sha256": "a0bd38c77f7b21e7cd90d6634beb0b0be12ff913f3deb8acb39b7ad6a5fc0a04"
+        },
+        "final_span": {
+          "lines": [
+            236,
+            241
+          ],
+          "byte_offset": 8145,
+          "byte_length": 237,
+          "sha256": "a0bd38c77f7b21e7cd90d6634beb0b0be12ff913f3deb8acb39b7ad6a5fc0a04"
+        }
+      },
+      {
+        "name": "join_samples",
+        "kind": "benchmark_fn",
+        "before_lines": [
+          237,
+          243
+        ],
+        "audit": "按输入顺序把纳秒值转十进制并逗号连接，用于保留采样明细。",
+        "documentation_decision": "无需新增：单用途迭代链清楚。",
+        "returns": "拥有型String",
+        "callers": [
+          "T3:132-133"
+        ],
+        "after_lines": [
+          243,
+          249
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            237,
+            243
+          ],
+          "byte_offset": 7823,
+          "byte_length": 154,
+          "sha256": "cfac1d50b0bbc53a4b380cceaa9268767b53f407d32d15e580601dbfbb34874f"
+        },
+        "final_span": {
+          "lines": [
+            243,
+            249
+          ],
+          "byte_offset": 8383,
+          "byte_length": 154,
+          "sha256": "cfac1d50b0bbc53a4b380cceaa9268767b53f407d32d15e580601dbfbb34874f"
+        }
+      },
+      {
+        "name": "EFFECTS_PER_SAMPLE",
+        "kind": "const",
+        "before_lines": [
+          6,
+          6
+        ],
+        "audit": "每次Vec填充1024个usize；用于独立分配微测量。",
+        "documentation_decision": "无需新增：模块已说明非完整派发测量。",
+        "value": "1_024usize",
+        "after_lines": [
+          9,
+          9
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            6,
+            6
+          ],
+          "byte_offset": 99,
+          "byte_length": 41,
+          "sha256": "a11ff9773ff458c79225e508892a4705a501b3cccf82bd1ca8e125e61e7f6bce"
+        },
+        "final_span": {
+          "lines": [
+            9,
+            9
+          ],
+          "byte_offset": 283,
+          "byte_length": 41,
+          "sha256": "a11ff9773ff458c79225e508892a4705a501b3cccf82bd1ca8e125e61e7f6bce"
+        }
+      },
+      {
+        "name": "SAMPLE_PAIRS",
+        "kind": "const",
+        "before_lines": [
+          7,
+          7
+        ],
+        "audit": "ignored性能测试执行17对交替计时。",
+        "documentation_decision": "无需新增：固定采样规模直接可读。",
+        "value": "17usize",
+        "after_lines": [
+          10,
+          10
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            7,
+            7
+          ],
+          "byte_offset": 140,
+          "byte_length": 32,
+          "sha256": "e40b7beb14a0bc7856a29924cabff4d691f448c354893a1bb2f91859661fb887"
+        },
+        "final_span": {
+          "lines": [
+            10,
+            10
+          ],
+          "byte_offset": 324,
+          "byte_length": 32,
+          "sha256": "e40b7beb14a0bc7856a29924cabff4d691f448c354893a1bb2f91859661fb887"
+        }
+      },
+      {
+        "name": "MERGED_PROJECTIONS",
+        "kind": "const",
+        "before_lines": [
+          8,
+          8
+        ],
+        "audit": "值8仅写报告字段，没有驱动八次真实结果合并。",
+        "documentation_decision": "无需逐常量新增：模块文档已把测量范围限定为独立Vec；记录明确此常量只是报告标签。",
+        "value": "8usize",
+        "after_lines": [
+          11,
+          11
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            8,
+            8
+          ],
+          "byte_offset": 172,
+          "byte_length": 37,
+          "sha256": "5ff94a3b40e8d1c79754ff22c154099d13f2446ffc8777149471d12533d0fdb3"
+        },
+        "final_span": {
+          "lines": [
+            11,
+            11
+          ],
+          "byte_offset": 356,
+          "byte_length": 37,
+          "sha256": "5ff94a3b40e8d1c79754ff22c154099d13f2446ffc8777149471d12533d0fdb3"
+        }
+      },
+      {
+        "name": "runtime77_pointer_reply_capacity_hint_preserves_upper_bound",
+        "kind": "test_fn",
+        "before_lines": [
+          10,
+          16
+        ],
+        "audit": "四个有限断言检查fixed+max的两种大小顺序、单fallback和全零；没有执行真实Vec分配或证明所有输入。",
+        "documentation_decision": "无需新增：测试名及四个显式例子清楚。",
+        "attributes": [
+          "test"
+        ],
+        "assertion_macros": 4,
+        "calls": [
+          "pointer_reply_effect_capacity_hint"
+        ],
+        "evidence": [
+          "T4"
+        ],
+        "after_lines": [
+          13,
+          19
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            10,
+            16
+          ],
+          "byte_offset": 210,
+          "byte_length": 337,
+          "sha256": "8e511cb8f306897846c91beefec53ae01c94f54aa81684386008a29bec8ba5fa"
+        },
+        "final_span": {
+          "lines": [
+            13,
+            19
+          ],
+          "byte_offset": 394,
+          "byte_length": 337,
+          "sha256": "8e511cb8f306897846c91beefec53ae01c94f54aa81684386008a29bec8ba5fa"
+        }
+      },
+      {
+        "name": "runtime77_pointer_reply_capacity_release_benchmark",
+        "kind": "test_fn",
+        "before_lines": [
+          18,
+          43
+        ],
+        "audit": "ignored测试交替收集空/预留1024容量Vec填充耗时；增长比较来自独立倍增模型，未计 allocator实际调用。只assert模型增长减少和预留0增长，不assert耗时优势。",
+        "documentation_decision": "新增模块文档区分模型、Vec计时和真实派发，保留原ignored文案。",
+        "attributes": [
+          "test",
+          "ignore = \"managed Windows release performance evidence\""
+        ],
+        "assertion_macros": 2,
+        "calls": [
+          "measure_growth",
+          "growth_events",
+          "percentile"
+        ],
+        "evidence": [
+          "T5"
+        ],
+        "after_lines": [
+          21,
+          46
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            18,
+            43
+          ],
+          "byte_offset": 548,
+          "byte_length": 1336,
+          "sha256": "ca49a1a14b2a430b71fb1d72bb0eff2ae3dfb6e3b1a215daddc74a4cb6c1de18"
+        },
+        "final_span": {
+          "lines": [
+            21,
+            46
+          ],
+          "byte_offset": 732,
+          "byte_length": 1336,
+          "sha256": "ca49a1a14b2a430b71fb1d72bb0eff2ae3dfb6e3b1a215daddc74a4cb6c1de18"
+        }
+      },
+      {
+        "name": "measure_growth",
+        "kind": "benchmark_fn",
+        "before_lines": [
+          45,
+          53
+        ],
+        "audit": "构造Vec并push length次black_box值，返回elapsed纳秒max1；capacity是初始申请值，不是实际allocator事件计数。",
+        "documentation_decision": "无需新增：局部实现及模块范围已足够。",
+        "parameters": {
+          "length": "push次数",
+          "capacity": "Vec初始容量请求"
+        },
+        "returns": "至少1的u128纳秒",
+        "callers": [
+          "T5"
+        ],
+        "after_lines": [
+          48,
+          56
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            45,
+            53
+          ],
+          "byte_offset": 1885,
+          "byte_length": 284,
+          "sha256": "77bf8ae9cdbfe55c8b337ee72a9dd6d631f53d84e768b341ff75a6d70eb78755"
+        },
+        "final_span": {
+          "lines": [
+            48,
+            56
+          ],
+          "byte_offset": 2069,
+          "byte_length": 284,
+          "sha256": "77bf8ae9cdbfe55c8b337ee72a9dd6d631f53d84e768b341ff75a6d70eb78755"
+        }
+      },
+      {
+        "name": "growth_events",
+        "kind": "model_fn",
+        "before_lines": [
+          55,
+          66
+        ],
+        "audit": "容量已足够则0，否则从max(capacity,1)反复饱和倍增直到覆盖length；模型把初始0当1，不计首次真实申请。",
+        "documentation_decision": "模块新增倍增模型说明，不把模型数值声称实际Vec实现或allocator统计。",
+        "parameters": {
+          "length": "目标长度",
+          "capacity": "模型起始容量"
+        },
+        "returns": "usize倍增步数",
+        "callers": [
+          "T5"
+        ],
+        "after_lines": [
+          58,
+          69
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            55,
+            66
+          ],
+          "byte_offset": 2170,
+          "byte_length": 293,
+          "sha256": "893d6581a05f8b6c592495ec80661b9aed7e99c100400660e824fdff4b8e024e"
+        },
+        "final_span": {
+          "lines": [
+            58,
+            69
+          ],
+          "byte_offset": 2354,
+          "byte_length": 293,
+          "sha256": "893d6581a05f8b6c592495ec80661b9aed7e99c100400660e824fdff4b8e024e"
+        }
+      },
+      {
+        "name": "percentile",
+        "kind": "benchmark_fn",
+        "before_lines": [
+          68,
+          73
+        ],
+        "audit": "复制排序后ceil(len*p/100)选样；当前只以17个样本和95调用。",
+        "documentation_decision": "无需新增：局部统计域明确；不扩为通用边界保证。",
+        "returns": "选中的u128纳秒样本",
+        "callers": [
+          "T5:40-41"
+        ],
+        "after_lines": [
+          71,
+          76
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            68,
+            73
+          ],
+          "byte_offset": 2464,
+          "byte_length": 235,
+          "sha256": "498d2e8b1aab7b32cb714e5bdb183c25d97e607541fe6b16272b490f08745868"
+        },
+        "final_span": {
+          "lines": [
+            71,
+            76
+          ],
+          "byte_offset": 2648,
+          "byte_length": 235,
+          "sha256": "498d2e8b1aab7b32cb714e5bdb183c25d97e607541fe6b16272b490f08745868"
+        }
+      },
+      {
+        "name": "merge_pointer_text_result_preserves_text_effect_statuses_when_rebasing_indexes",
+        "kind": "test_fn",
+        "before_lines": [
+          13,
+          96
+        ],
+        "audit": "显式构造旧release效果、文本focus/popup效果及applied/rejected/host/widget回执；断言追加顺序与有效本地索引0/1平移到1/2。",
+        "documentation_decision": "不新增：测试名、完整夹具和10个assert足够；正式完整审查132行。",
+        "attributes": [
+          "test"
+        ],
+        "assertion_macros": 10,
+        "calls": [
+          "pointer_event",
+          "release_pointer_effect",
+          "focus_effect",
+          "popup_effect",
+          "merge_pointer_text_result"
+        ],
+        "evidence": [
+          "T6"
+        ],
+        "after_lines": [
+          13,
+          96
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            13,
+            96
+          ],
+          "byte_offset": 452,
+          "byte_length": 2872,
+          "sha256": "7a70bd7f87a6874e6e70c9374fd01a9a260cfc38f3aadfe99a9f633fe1dc8ff0"
+        },
+        "final_span": {
+          "lines": [
+            13,
+            96
+          ],
+          "byte_offset": 452,
+          "byte_length": 2872,
+          "sha256": "7a70bd7f87a6874e6e70c9374fd01a9a260cfc38f3aadfe99a9f633fe1dc8ff0"
+        }
+      },
+      {
+        "name": "pointer_event",
+        "kind": "fixture_fn",
+        "before_lines": [
+          98,
+          108
+        ],
+        "audit": "固定timestamp1/sequence1与Up/Secondary指针事件；两结果使用同类夹具，不实际派发。",
+        "documentation_decision": "无需新增：显式嵌套值构造清楚。",
+        "returns": "拥有型UiInputEvent::Pointer",
+        "callers": [
+          "T6:16,27"
+        ],
+        "after_lines": [
+          98,
+          108
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            98,
+            108
+          ],
+          "byte_offset": 3325,
+          "byte_length": 400,
+          "sha256": "999918b27fdbba9f9af800c7f7501c3288d1d429554f84804088ff54243d303c"
+        },
+        "final_span": {
+          "lines": [
+            98,
+            108
+          ],
+          "byte_offset": 3325,
+          "byte_length": 400,
+          "sha256": "999918b27fdbba9f9af800c7f7501c3288d1d429554f84804088ff54243d303c"
+        }
+      },
+      {
+        "name": "release_pointer_effect",
+        "kind": "fixture_fn",
+        "before_lines": [
+          110,
+          116
+        ],
+        "audit": "按值组装ReleasePointerCapture/Cancel，保留给定target与pointer_id。",
+        "documentation_decision": "无需新增：简单fixture不执行捕获变更。",
+        "returns": "UiDispatchEffect",
+        "callers": [
+          "T6:15"
+        ],
+        "after_lines": [
+          110,
+          116
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            110,
+            116
+          ],
+          "byte_offset": 3726,
+          "byte_length": 229,
+          "sha256": "d82e01183df840dfa146df45d77d6197b444b04b8e9c6cc44580874bd0e52af3"
+        },
+        "final_span": {
+          "lines": [
+            110,
+            116
+          ],
+          "byte_offset": 3726,
+          "byte_length": 229,
+          "sha256": "d82e01183df840dfa146df45d77d6197b444b04b8e9c6cc44580874bd0e52af3"
+        }
+      },
+      {
+        "name": "focus_effect",
+        "kind": "fixture_fn",
+        "before_lines": [
+          118,
+          123
+        ],
+        "audit": "组装SetFocus/Input，节点来自参数。",
+        "documentation_decision": "无需新增：单一fixture变体直观。",
+        "returns": "UiDispatchEffect",
+        "callers": [
+          "T6:25"
+        ],
+        "after_lines": [
+          118,
+          123
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            118,
+            123
+          ],
+          "byte_offset": 3956,
+          "byte_length": 157,
+          "sha256": "e5db3653e87eef7b5d2e2e69854b5bcd3c34b0fdbe5ea15463990aa83c7dfcf4"
+        },
+        "final_span": {
+          "lines": [
+            118,
+            123
+          ],
+          "byte_offset": 3956,
+          "byte_length": 157,
+          "sha256": "e5db3653e87eef7b5d2e2e69854b5bcd3c34b0fdbe5ea15463990aa83c7dfcf4"
+        }
+      },
+      {
+        "name": "popup_effect",
+        "kind": "fixture_fn",
+        "before_lines": [
+          125,
+          132
+        ],
+        "audit": "拥有popup_id字符串，构造Open、owner node2与无anchor的效果；拒绝理由由测试显式填入。",
+        "documentation_decision": "无需新增：fixture不是owner校验器，显式字段足够。",
+        "returns": "UiDispatchEffect",
+        "callers": [
+          "T6:26"
+        ],
+        "after_lines": [
+          125,
+          132
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            125,
+            132
+          ],
+          "byte_offset": 4114,
+          "byte_length": 257,
+          "sha256": "b3fe9a7da3c6a01f1c58fd06b915034ecf101b762be029fe3251c16e37bb09f3"
+        },
+        "final_span": {
+          "lines": [
+            125,
+            132
+          ],
+          "byte_offset": 4114,
+          "byte_length": 257,
+          "sha256": "b3fe9a7da3c6a01f1c58fd06b915034ecf101b762be029fe3251c16e37bb09f3"
+        }
+      }
+    ],
+    "gapfree_semantic_blocks": [
+      {
+        "name": "导入与模块边界",
+        "before_lines": [
+          1,
+          9
+        ],
+        "entry": "模块载入",
+        "state_change": "只引入接口 DTO 与 UiNodeId",
+        "downstream_effect": "无注册、Serde实现或执行效果",
+        "control_points": [],
+        "after_lines": [
+          1,
+          16
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            1,
+            9
+          ],
+          "byte_offset": 0,
+          "byte_length": 340,
+          "sha256": "0b85019cb8307f5042c2a24520e48db836acbba1a0f22df229eee1ca74657d1d"
+        },
+        "final_span": {
+          "lines": [
+            1,
+            16
+          ],
+          "byte_offset": 0,
+          "byte_length": 749,
+          "sha256": "492152b9d4eac4905f13ec6c0d8e5493a2201467a03039db1e272fef8bafae1a"
+        }
+      },
+      {
+        "name": "选择候选处理者并组装效果",
+        "before_lines": [
+          10,
+          16
+        ],
+        "entry": "pointer_reply 调用",
+        "state_change": "分别取得组件末项、显式 handled/blocked handler 和投影效果",
+        "downstream_effect": "后续用这些值选择统一头部",
+        "control_points": [
+          "handled_by.or(blocked_by)",
+          "调用helper而非在wrapper内扫描"
+        ],
+        "after_lines": [
+          17,
+          35
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            10,
+            16
+          ],
+          "byte_offset": 340,
+          "byte_length": 367,
+          "sha256": "f548cd084ae71d1d8608fc428cd576ae428d48d346bab2d83a5f347f2e67af42"
+        },
+        "final_span": {
+          "lines": [
+            17,
+            35
+          ],
+          "byte_offset": 749,
+          "byte_length": 966,
+          "sha256": "60f74ff994633c7f83793783391f3cb40eabdcb11cd60f882d1cd74da87ab91b"
+        }
+      },
+      {
+        "name": "disposition 优先序",
+        "before_lines": [
+          17,
+          29
+        ],
+        "entry": "已有状态与效果已读取",
+        "state_change": "Blocked优先，其次显式处理/组件事件/非空效果，再passthrough，否则Unhandled",
+        "downstream_effect": "不再次调用处理器",
+        "control_points": [
+          "blocked_by Some",
+          "handled_by/component/effects OR",
+          "passthrough非空"
+        ],
+        "after_lines": [
+          36,
+          48
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            17,
+            29
+          ],
+          "byte_offset": 707,
+          "byte_length": 517,
+          "sha256": "911f87c999acd1d1a8415a4d212b06510be4bf9fad75d98bdf6ec6b7cdd7242d"
+        },
+        "final_span": {
+          "lines": [
+            36,
+            48
+          ],
+          "byte_offset": 1715,
+          "byte_length": 517,
+          "sha256": "911f87c999acd1d1a8415a4d212b06510be4bf9fad75d98bdf6ec6b7cdd7242d"
+        }
+      },
+      {
+        "name": "拥有型回复与phase兜底",
+        "before_lines": [
+          30,
+          47
+        ],
+        "entry": "disposition 已确定",
+        "state_change": "显式handler优先组件末项；handler阶段缺省Bubble，组件Target，其余重绘阶段缺省Target",
+        "downstream_effect": "phase可能是解释用fallback；返回Vec拥有数据",
+        "control_points": [
+          "handler是否Some",
+          "component_handler是否Some"
+        ],
+        "after_lines": [
+          49,
+          66
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            30,
+            47
+          ],
+          "byte_offset": 1224,
+          "byte_length": 496,
+          "sha256": "f71be43146e46aaa256943161da084088734d7c0b9e95ad0de452be21d15d7ed"
+        },
+        "final_span": {
+          "lines": [
+            49,
+            66
+          ],
+          "byte_offset": 2232,
+          "byte_length": 496,
+          "sha256": "f71be43146e46aaa256943161da084088734d7c0b9e95ad0de452be21d15d7ed"
+        }
+      },
+      {
+        "name": "组件处理者末项投影",
+        "before_lines": [
+          48,
+          56
+        ],
+        "entry": "读取component_events",
+        "state_change": "last/map只复制节点身份",
+        "downstream_effect": "提供统一回复和父级诊断候选",
+        "control_points": [],
+        "after_lines": [
+          67,
+          75
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            48,
+            56
+          ],
+          "byte_offset": 1720,
+          "byte_length": 209,
+          "sha256": "98cebffc44db6d4b95e30319ee826d44bb8cd1c4080fbea7c32aea31a4905dc8"
+        },
+        "final_span": {
+          "lines": [
+            67,
+            75
+          ],
+          "byte_offset": 2728,
+          "byte_length": 209,
+          "sha256": "98cebffc44db6d4b95e30319ee826d44bb8cd1c4080fbea7c32aea31a4905dc8"
+        }
+      },
+      {
+        "name": "效果上界与容量申请",
+        "before_lines": [
+          57,
+          77
+        ],
+        "entry": "pointer_reply_effects",
+        "state_change": "算固定数、target或roots兜底数，再申请Vec容量",
+        "downstream_effect": "容量提示不等同预算或申请成功",
+        "control_points": [
+          "capture/release/focus/clear四项计数",
+          "route.target Some =>1"
+        ],
+        "after_lines": [
+          76,
+          96
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            57,
+            77
+          ],
+          "byte_offset": 1929,
+          "byte_length": 1118,
+          "sha256": "d2a75db444c91e2366f08dcbd63783546e5449b2432068cc963dc9de8ece075b"
+        },
+        "final_span": {
+          "lines": [
+            76,
+            96
+          ],
+          "byte_offset": 2937,
+          "byte_length": 1118,
+          "sha256": "d2a75db444c91e2366f08dcbd63783546e5449b2432068cc963dc9de8ece075b"
+        }
+      },
+      {
+        "name": "捕获效果",
+        "before_lines": [
+          78,
+          84
+        ],
+        "entry": "captured_by Some",
+        "state_change": "追加CapturePointer/Press",
+        "downstream_effect": "只记录效果，不在本helper中改变捕获表",
+        "control_points": [],
+        "after_lines": [
+          97,
+          103
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            78,
+            84
+          ],
+          "byte_offset": 3047,
+          "byte_length": 223,
+          "sha256": "a08aa45b900983c39150ca984376cb0142f90c8c904422d7ad9d563edcfa81d8"
+        },
+        "final_span": {
+          "lines": [
+            97,
+            103
+          ],
+          "byte_offset": 4055,
+          "byte_length": 223,
+          "sha256": "a08aa45b900983c39150ca984376cb0142f90c8c904422d7ad9d563edcfa81d8"
+        }
+      },
+      {
+        "name": "释放效果",
+        "before_lines": [
+          85,
+          91
+        ],
+        "entry": "release_target Some",
+        "state_change": "追加ReleasePointerCapture/Cancel",
+        "downstream_effect": "目标由release helper决定",
+        "control_points": [],
+        "after_lines": [
+          104,
+          110
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            85,
+            91
+          ],
+          "byte_offset": 3270,
+          "byte_length": 220,
+          "sha256": "550d709d787283623d664a61e818f209fb6c5a420d73678487d95c0d4dc01a33"
+        },
+        "final_span": {
+          "lines": [
+            104,
+            110
+          ],
+          "byte_offset": 4278,
+          "byte_length": 220,
+          "sha256": "550d709d787283623d664a61e818f209fb6c5a420d73678487d95c0d4dc01a33"
+        }
+      },
+      {
+        "name": "焦点设置效果",
+        "before_lines": [
+          92,
+          97
+        ],
+        "entry": "focus_changed_to Some",
+        "state_change": "追加SetFocus/Input",
+        "downstream_effect": "记录已产生的焦点变化",
+        "control_points": [],
+        "after_lines": [
+          111,
+          116
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            92,
+            97
+          ],
+          "byte_offset": 3490,
+          "byte_length": 195,
+          "sha256": "dcce55d349457a96c0518482b9a0e9573dcbda46acfde3c66e267c7aa7ec116c"
+        },
+        "final_span": {
+          "lines": [
+            111,
+            116
+          ],
+          "byte_offset": 4498,
+          "byte_length": 195,
+          "sha256": "dcce55d349457a96c0518482b9a0e9573dcbda46acfde3c66e267c7aa7ec116c"
+        }
+      },
+      {
+        "name": "焦点清理效果",
+        "before_lines": [
+          98,
+          105
+        ],
+        "entry": "focus_cleared为真",
+        "state_change": "只有route.focused Some才追加ClearFocus",
+        "downstream_effect": "空旧焦点不产生清理条目",
+        "control_points": [
+          "双层条件"
+        ],
+        "after_lines": [
+          117,
+          124
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            98,
+            105
+          ],
+          "byte_offset": 3685,
+          "byte_length": 261,
+          "sha256": "20da4725c63b6da1f6772a2bf4d206391ddf1191d5fd9ba6a8129af31ea094a5"
+        },
+        "final_span": {
+          "lines": [
+            117,
+            124
+          ],
+          "byte_offset": 4693,
+          "byte_length": 261,
+          "sha256": "20da4725c63b6da1f6772a2bf4d206391ddf1191d5fd9ba6a8129af31ea094a5"
+        }
+      },
+      {
+        "name": "单遍扫描后按需兜底重绘",
+        "before_lines": [
+          106,
+          132
+        ],
+        "entry": "已有固定效果向量",
+        "state_change": "扫描调用，再在聚合dirty非空且无DirtyRedraw时补target或各root",
+        "downstream_effect": "逐项重绘与fallback互斥，支持容量max公式",
+        "control_points": [
+          "requested_dirty.any",
+          "效果向量不存在DirtyRedraw",
+          "target/roots二选一"
+        ],
+        "after_lines": [
+          125,
+          151
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            106,
+            132
+          ],
+          "byte_offset": 3946,
+          "byte_length": 998,
+          "sha256": "814db0f3f45881e96771603c980e256656b2d5032894275c6ec18dcccba71c78"
+        },
+        "final_span": {
+          "lines": [
+            125,
+            151
+          ],
+          "byte_offset": 4954,
+          "byte_length": 998,
+          "sha256": "814db0f3f45881e96771603c980e256656b2d5032894275c6ec18dcccba71c78"
+        }
+      },
+      {
+        "name": "返回效果与阶段",
+        "before_lines": [
+          133,
+          135
+        ],
+        "entry": "投影结束",
+        "state_change": "移出Vec与阶段值",
+        "downstream_effect": "不返回输入借用",
+        "control_points": [],
+        "after_lines": [
+          152,
+          154
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            133,
+            135
+          ],
+          "byte_offset": 4944,
+          "byte_length": 36,
+          "sha256": "3e94f0deafcffd8b8302acecb67336a94d673358319b6813c2a49a18b86929cf"
+        },
+        "final_span": {
+          "lines": [
+            152,
+            154
+          ],
+          "byte_offset": 5952,
+          "byte_length": 36,
+          "sha256": "3e94f0deafcffd8b8302acecb67336a94d673358319b6813c2a49a18b86929cf"
+        }
+      },
+      {
+        "name": "容量公式",
+        "before_lines": [
+          136,
+          143
+        ],
+        "entry": "三项usize计数",
+        "state_change": "max后saturating_add",
+        "downstream_effect": "避免该算式整数回绕，不限制Vec分配",
+        "control_points": [],
+        "after_lines": [
+          155,
+          170
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            136,
+            143
+          ],
+          "byte_offset": 4980,
+          "byte_length": 232,
+          "sha256": "eee9008856da23ad79a5be3d4e7293f2d965b55870f6793f6dd5d9fa3b42664c"
+        },
+        "final_span": {
+          "lines": [
+            155,
+            170
+          ],
+          "byte_offset": 5988,
+          "byte_length": 649,
+          "sha256": "8e61c59bab9d9f3b16cbd1d66d77e28c2634877ebf03df47f0c6d13b9f7fed6d"
+        }
+      },
+      {
+        "name": "阶段容器与默认",
+        "before_lines": [
+          144,
+          149
+        ],
+        "entry": "派生Default/扫描创建",
+        "state_change": "两个Option初始None",
+        "downstream_effect": "后续覆盖表示最后匹配",
+        "control_points": [],
+        "after_lines": [
+          171,
+          176
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            144,
+            149
+          ],
+          "byte_offset": 5212,
+          "byte_length": 177,
+          "sha256": "e177c39bc972b410badb7b0a33dd04135ae0cc368d16b9fc958420d002dbc6cf"
+        },
+        "final_span": {
+          "lines": [
+            171,
+            176
+          ],
+          "byte_offset": 6637,
+          "byte_length": 177,
+          "sha256": "e177c39bc972b410badb7b0a33dd04135ae0cc368d16b9fc958420d002dbc6cf"
+        }
+      },
+      {
+        "name": "扫描进入与handler阶段覆盖",
+        "before_lines": [
+          150,
+          159
+        ],
+        "entry": "对调用列表前向迭代",
+        "state_change": "每次节点匹配就覆盖处理阶段",
+        "downstream_effect": "重复同节点取最后匹配",
+        "control_points": [
+          "Some(node)==handler"
+        ],
+        "after_lines": [
+          177,
+          195
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            150,
+            159
+          ],
+          "byte_offset": 5389,
+          "byte_length": 403,
+          "sha256": "4783958d81d9d5686a989ae98d076d799f7b19f7042f99d1176fcb0fcb433024"
+        },
+        "final_span": {
+          "lines": [
+            177,
+            195
+          ],
+          "byte_offset": 6814,
+          "byte_length": 926,
+          "sha256": "1eb1951d79059216e8e15d37fb379ac52014697fba1b7b922ec20e7aa8912f6d"
+        }
+      },
+      {
+        "name": "重绘阶段覆盖",
+        "before_lines": [
+          160,
+          165
+        ],
+        "entry": "当前调用效果",
+        "state_change": "dirty或damage覆盖重绘阶段",
+        "downstream_effect": "空dirty也记录阶段",
+        "control_points": [
+          "RequestDirty OR RequestDamage"
+        ],
+        "after_lines": [
+          196,
+          201
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            160,
+            165
+          ],
+          "byte_offset": 5792,
+          "byte_length": 229,
+          "sha256": "a9407f447640685824658bcb80d4d92302c511d560a28ecb2e881f2e8ac29270"
+        },
+        "final_span": {
+          "lines": [
+            196,
+            201
+          ],
+          "byte_offset": 7740,
+          "byte_length": 229,
+          "sha256": "a9407f447640685824658bcb80d4d92302c511d560a28ecb2e881f2e8ac29270"
+        }
+      },
+      {
+        "name": "非空dirty效果与扫描返回",
+        "before_lines": [
+          166,
+          178
+        ],
+        "entry": "当前调用为RequestDirty",
+        "state_change": "非空才追加DirtyRedraw，完成循环返回阶段",
+        "downstream_effect": "damage不在此投影为效果",
+        "control_points": [
+          "dirty.any"
+        ],
+        "after_lines": [
+          202,
+          214
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            166,
+            178
+          ],
+          "byte_offset": 6021,
+          "byte_length": 369,
+          "sha256": "e0f4e40039a4eac168be839c37fb9c7d3847e5f3ede335f45094e3aad3dc9fe7"
+        },
+        "final_span": {
+          "lines": [
+            202,
+            214
+          ],
+          "byte_offset": 7969,
+          "byte_length": 369,
+          "sha256": "e0f4e40039a4eac168be839c37fb9c7d3847e5f3ede335f45094e3aad3dc9fe7"
+        }
+      },
+      {
+        "name": "释放目标短路fallback",
+        "before_lines": [
+          179,
+          186
+        ],
+        "entry": "需描述释放目标",
+        "state_change": "显式released优先，否则看diagnostics与current capture",
+        "downstream_effect": "只返回Option值",
+        "control_points": [
+          "released_capture.or_else",
+          "capture_released && captured_by None"
+        ],
+        "after_lines": [
+          215,
+          222
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            179,
+            186
+          ],
+          "byte_offset": 6390,
+          "byte_length": 315,
+          "sha256": "17288481fbfa15a10f9a4f3f47b9da161ab5dae20870526ec3e46b24373bd57a"
+        },
+        "final_span": {
+          "lines": [
+            215,
+            222
+          ],
+          "byte_offset": 8338,
+          "byte_length": 315,
+          "sha256": "17288481fbfa15a10f9a4f3f47b9da161ab5dae20870526ec3e46b24373bd57a"
+        }
+      },
+      {
+        "name": "单遍测试模块挂载",
+        "before_lines": [
+          187,
+          190
+        ],
+        "entry": "cfg(test)",
+        "state_change": "载入single_pass测试",
+        "downstream_effect": "含普通断言与1个ignored性能样本",
+        "control_points": [],
+        "after_lines": [
+          223,
+          226
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            187,
+            190
+          ],
+          "byte_offset": 6705,
+          "byte_length": 90,
+          "sha256": "000c148dce019491afbe628b54f7d90584ea0f1dddf8dbabe4c96a12df16f720"
+        },
+        "final_span": {
+          "lines": [
+            223,
+            226
+          ],
+          "byte_offset": 8653,
+          "byte_length": 90,
+          "sha256": "000c148dce019491afbe628b54f7d90584ea0f1dddf8dbabe4c96a12df16f720"
+        }
+      },
+      {
+        "name": "容量测试模块挂载",
+        "before_lines": [
+          191,
+          194
+        ],
+        "entry": "cfg(test)",
+        "state_change": "载入capacity测试",
+        "downstream_effect": "含有限公式样例与ignored样本",
+        "control_points": [],
+        "after_lines": [
+          227,
+          230
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            191,
+            194
+          ],
+          "byte_offset": 6795,
+          "byte_length": 84,
+          "sha256": "4fbdc1a25856469087aacf4135ef43874cde7bb746ec6faff25cf99821135e6f"
+        },
+        "final_span": {
+          "lines": [
+            227,
+            230
+          ],
+          "byte_offset": 8743,
+          "byte_length": 84,
+          "sha256": "4fbdc1a25856469087aacf4135ef43874cde7bb746ec6faff25cf99821135e6f"
+        }
+      },
+      {
+        "name": "合并头部与Blocked边界",
+        "before_lines": [
+          195,
+          204
+        ],
+        "entry": "merge获得mut累计和拥有文本结果",
+        "state_change": "非Blocked才替换disposition，文本Some优先handler/phase",
+        "downstream_effect": "Blocked不阻止后续集合追加",
+        "control_points": [
+          "if !Blocked"
+        ],
+        "after_lines": [
+          231,
+          252
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            195,
+            204
+          ],
+          "byte_offset": 6879,
+          "byte_length": 669,
+          "sha256": "83c05746f41287dbf7816e2a46bd9632c254c77e3590971c7dea2b615a3b5420"
+        },
+        "final_span": {
+          "lines": [
+            231,
+            252
+          ],
+          "byte_offset": 8827,
+          "byte_length": 1278,
+          "sha256": "c4c1b7f62c43a3f07b4b37c73260238efda3176d73517775ad07a6dee4be2280"
+        }
+      },
+      {
+        "name": "记住索引基点并预留集合",
+        "before_lines": [
+          205,
+          229
+        ],
+        "entry": "累计已有effects与文本效果已知",
+        "state_change": "记offset/text_count并reserve七类集合与notes",
+        "downstream_effect": "reserve仅容量安排，不验证回执索引",
+        "control_points": [],
+        "after_lines": [
+          253,
+          277
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            205,
+            229
+          ],
+          "byte_offset": 7548,
+          "byte_length": 804,
+          "sha256": "3d3d2bfd2b5755918b506cad36cdfc110303884ee3d9932b59d632a44e71c342"
+        },
+        "final_span": {
+          "lines": [
+            253,
+            277
+          ],
+          "byte_offset": 10105,
+          "byte_length": 804,
+          "sha256": "3d3d2bfd2b5755918b506cad36cdfc110303884ee3d9932b59d632a44e71c342"
+        }
+      },
+      {
+        "name": "连续追加文本效果",
+        "before_lines": [
+          230,
+          236
+        ],
+        "entry": "消费文本effects",
+        "state_change": "enumerate顺序push；debug断言当前长度等于offset+localindex",
+        "downstream_effect": "建立有效本地索引平移的连续区域",
+        "control_points": [
+          "debug_assert_eq仅debug配置检查"
+        ],
+        "after_lines": [
+          278,
+          284
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            230,
+            236
+          ],
+          "byte_offset": 8352,
+          "byte_length": 271,
+          "sha256": "0b51ea0e6358e8926feb5564433d72daa73e086f2b29fb71a3a26530947f62cf"
+        },
+        "final_span": {
+          "lines": [
+            278,
+            284
+          ],
+          "byte_offset": 10909,
+          "byte_length": 271,
+          "sha256": "0b51ea0e6358e8926feb5564433d72daa73e086f2b29fb71a3a26530947f62cf"
+        }
+      },
+      {
+        "name": "applied索引条件平移",
+        "before_lines": [
+          237,
+          244
+        ],
+        "entry": "消费applied回执",
+        "state_change": "index<text_count时加offset，否则保持",
+        "downstream_effect": "保留原有先前回执并追加",
+        "control_points": [
+          "严格<，不是<="
+        ],
+        "after_lines": [
+          285,
+          292
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            237,
+            244
+          ],
+          "byte_offset": 8623,
+          "byte_length": 278,
+          "sha256": "628c0149e3495d925e22e5d4c6794a4dd243b37483a23d8dd076a93bc63be8f9"
+        },
+        "final_span": {
+          "lines": [
+            285,
+            292
+          ],
+          "byte_offset": 11180,
+          "byte_length": 278,
+          "sha256": "628c0149e3495d925e22e5d4c6794a4dd243b37483a23d8dd076a93bc63be8f9"
+        }
+      },
+      {
+        "name": "追加组件、widget与binding记录",
+        "before_lines": [
+          245,
+          247
+        ],
+        "entry": "拥有型文本集合",
+        "state_change": "依序extend三集合",
+        "downstream_effect": "不执行组件、widget或binding回调",
+        "control_points": [],
+        "after_lines": [
+          293,
+          295
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            245,
+            247
+          ],
+          "byte_offset": 8901,
+          "byte_length": 190,
+          "sha256": "aba23bd87f8a4ce40fcf3e4eea4eb63764a495ab41108121b3ddc3efb6c63dd9"
+        },
+        "final_span": {
+          "lines": [
+            293,
+            295
+          ],
+          "byte_offset": 11458,
+          "byte_length": 190,
+          "sha256": "aba23bd87f8a4ce40fcf3e4eea4eb63764a495ab41108121b3ddc3efb6c63dd9"
+        }
+      },
+      {
+        "name": "宿主请求索引条件平移",
+        "before_lines": [
+          248,
+          255
+        ],
+        "entry": "消费host请求",
+        "state_change": "只平移有效本地索引",
+        "downstream_effect": "请求仍交宿主消费，不在此执行",
+        "control_points": [
+          "effect_index<text_count"
+        ],
+        "after_lines": [
+          296,
+          303
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            248,
+            255
+          ],
+          "byte_offset": 9091,
+          "byte_length": 274,
+          "sha256": "5047c505ad134f7356944123b1b2a21be075e2098f212edc65ff6dae39e88e22"
+        },
+        "final_span": {
+          "lines": [
+            296,
+            303
+          ],
+          "byte_offset": 11648,
+          "byte_length": 274,
+          "sha256": "5047c505ad134f7356944123b1b2a21be075e2098f212edc65ff6dae39e88e22"
+        }
+      },
+      {
+        "name": "rejected索引条件平移",
+        "before_lines": [
+          256,
+          266
+        ],
+        "entry": "消费拒绝回执",
+        "state_change": "只平移有效本地索引",
+        "downstream_effect": "保留reason与effect本体",
+        "control_points": [
+          "effect_index<text_count"
+        ],
+        "after_lines": [
+          304,
+          314
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            256,
+            266
+          ],
+          "byte_offset": 9365,
+          "byte_length": 340,
+          "sha256": "ae03ea9f310ba5bd4dd64d6f8bdd25c61bb4762071ac6ea162c51e871e624e2b"
+        },
+        "final_span": {
+          "lines": [
+            304,
+            314
+          ],
+          "byte_offset": 11922,
+          "byte_length": 340,
+          "sha256": "ae03ea9f310ba5bd4dd64d6f8bdd25c61bb4762071ac6ea162c51e871e624e2b"
+        }
+      },
+      {
+        "name": "drag与诊断合并",
+        "before_lines": [
+          267,
+          282
+        ],
+        "entry": "效果与回执追加完成",
+        "state_change": "文本drag/route_target/handled_phase Some优先；routed按OR，notes追加",
+        "downstream_effect": "未赋值的event/pointer_routing/其他诊断字段保持累计值",
+        "control_points": [],
+        "after_lines": [
+          315,
+          330
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            267,
+            282
+          ],
+          "byte_offset": 9705,
+          "byte_length": 503,
+          "sha256": "d3793fcb5062cae7e087d7c467ca5aa8c15c5ebe93746e8654a761ca6009a931"
+        },
+        "final_span": {
+          "lines": [
+            315,
+            330
+          ],
+          "byte_offset": 12262,
+          "byte_length": 503,
+          "sha256": "d3793fcb5062cae7e087d7c467ca5aa8c15c5ebe93746e8654a761ca6009a931"
+        }
+      },
+      {
+        "name": "相邻合并测试挂载",
+        "before_lines": [
+          283,
+          285
+        ],
+        "entry": "cfg(test)",
+        "state_change": "载入input/tests/pointer_reply.rs",
+        "downstream_effect": "该文件属于本批完整正式覆盖",
+        "control_points": [],
+        "after_lines": [
+          331,
+          333
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            283,
+            285
+          ],
+          "byte_offset": 10208,
+          "byte_length": 59,
+          "sha256": "bcd079415543426db8a78a6963c48caa5fb9e61885b61c7caa6c300ed3ac7e96"
+        },
+        "final_span": {
+          "lines": [
+            331,
+            333
+          ],
+          "byte_offset": 12765,
+          "byte_length": 59,
+          "sha256": "bcd079415543426db8a78a6963c48caa5fb9e61885b61c7caa6c300ed3ac7e96"
+        }
+      },
+      {
+        "name": "导入与采样对常量",
+        "before_lines": [
+          1,
+          13
+        ],
+        "entry": "测试模块载入",
+        "state_change": "引入父helper、接口夹具和计时器；定义17对",
+        "downstream_effect": "不自动运行ignored样本",
+        "control_points": [],
+        "after_lines": [
+          1,
+          17
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            1,
+            13
+          ],
+          "byte_offset": 0,
+          "byte_length": 299,
+          "sha256": "98c1c5314a78ab5c420f007cd79d52bffba2c7455ba0d34e53cf4bb0f0cdc7e1"
+        },
+        "final_span": {
+          "lines": [
+            1,
+            17
+          ],
+          "byte_offset": 0,
+          "byte_length": 580,
+          "sha256": "61e068ea48d7c33a5bcb21b3ef1b1bac2c80fd0d0ea34a41d664abda4977eade"
+        }
+      },
+      {
+        "name": "阶段与效果夹具",
+        "before_lines": [
+          14,
+          38
+        ],
+        "entry": "普通T1",
+        "state_change": "用三条调用区分handler与最后重绘阶段",
+        "downstream_effect": "没有真实dispatcher或命中测试",
+        "control_points": [
+          "Capture Handled",
+          "Target 非空dirty",
+          "Bubble damage"
+        ],
+        "after_lines": [
+          18,
+          42
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            14,
+            38
+          ],
+          "byte_offset": 299,
+          "byte_length": 829,
+          "sha256": "cd42facb7f66861b8286f99d6625f47ce62e270c71868900f5d5aa529859af28"
+        },
+        "final_span": {
+          "lines": [
+            18,
+            42
+          ],
+          "byte_offset": 580,
+          "byte_length": 829,
+          "sha256": "cd42facb7f66861b8286f99d6625f47ce62e270c71868900f5d5aa529859af28"
+        }
+      },
+      {
+        "name": "首轮阶段与dirty断言",
+        "before_lines": [
+          39,
+          48
+        ],
+        "entry": "带显式handler的投影",
+        "state_change": "断言Capture、单效果与node8/render",
+        "downstream_effect": "不把damage变为统一damage效果",
+        "control_points": [],
+        "after_lines": [
+          43,
+          52
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            39,
+            48
+          ],
+          "byte_offset": 1128,
+          "byte_length": 338,
+          "sha256": "fab1672497b066379ce143669afafec525bc69c7e76ee35026b61d71bac7a4b4"
+        },
+        "final_span": {
+          "lines": [
+            43,
+            52
+          ],
+          "byte_offset": 1409,
+          "byte_length": 338,
+          "sha256": "fab1672497b066379ce143669afafec525bc69c7e76ee35026b61d71bac7a4b4"
+        }
+      },
+      {
+        "name": "移除handler后的阶段断言",
+        "before_lines": [
+          49,
+          54
+        ],
+        "entry": "同夹具清空handled_by",
+        "state_change": "再次投影并断言Bubble",
+        "downstream_effect": "确认重绘phase可来自末项damage",
+        "control_points": [],
+        "after_lines": [
+          53,
+          58
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            49,
+            54
+          ],
+          "byte_offset": 1466,
+          "byte_length": 155,
+          "sha256": "97bcca8b498629257e12ccfdad302b258194e54051665dea2d8be81139522b47"
+        },
+        "final_span": {
+          "lines": [
+            53,
+            58
+          ],
+          "byte_offset": 1747,
+          "byte_length": 155,
+          "sha256": "97bcca8b498629257e12ccfdad302b258194e54051665dea2d8be81139522b47"
+        }
+      },
+      {
+        "name": "源码读取与两段分隔",
+        "before_lines": [
+          55,
+          68
+        ],
+        "entry": "普通T2",
+        "state_change": "include_str并按四个原始字面量分隔",
+        "downstream_effect": "借用片段仅供静态字符串守卫",
+        "control_points": [],
+        "after_lines": [
+          59,
+          72
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            55,
+            68
+          ],
+          "byte_offset": 1621,
+          "byte_length": 427,
+          "sha256": "7cf5e1abbf4ac382847facb5c4e74224998bfbe3767cea328fcc170829f77572"
+        },
+        "final_span": {
+          "lines": [
+            59,
+            72
+          ],
+          "byte_offset": 1902,
+          "byte_length": 427,
+          "sha256": "7cf5e1abbf4ac382847facb5c4e74224998bfbe3767cea328fcc170829f77572"
+        }
+      },
+      {
+        "name": "六个原始源码谓词",
+        "before_lines": [
+          69,
+          81
+        ],
+        "entry": "已得wrapper与scan切片",
+        "state_change": "依次contains/absence/count；原第一条false",
+        "downstream_effect": "批准BUG标错误assert；不执行Rust测试、不把其余谓词称运行通过",
+        "control_points": [
+          "before/current:[false,true,1,true,true,true]"
+        ],
+        "after_lines": [
+          73,
+          87
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            69,
+            81
+          ],
+          "byte_offset": 2048,
+          "byte_length": 415,
+          "sha256": "28da2683217cdec5dc871ad4991d4f675072056b2db3f9ee749a7624580cfc99"
+        },
+        "final_span": {
+          "lines": [
+            73,
+            87
+          ],
+          "byte_offset": 2329,
+          "byte_length": 694,
+          "sha256": "a7572aa75a197d9d06bec96ccb61a134543682754c41c8208e35e380a6646aed"
+        }
+      },
+      {
+        "name": "ignored样本与固定规模",
+        "before_lines": [
+          82,
+          98
+        ],
+        "entry": "显式选择ignored性能测试时",
+        "state_change": "构造16384个Bubble Handled调用、handler1、128次",
+        "downstream_effect": "不包括完整回复效果/输入管线",
+        "control_points": [],
+        "after_lines": [
+          88,
+          104
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            82,
+            98
+          ],
+          "byte_offset": 2463,
+          "byte_length": 567,
+          "sha256": "e1b9867b02993eb383fbb2ff1db2acf5534839dfc8191dac24ee0c1aaeb730c2"
+        },
+        "final_span": {
+          "lines": [
+            88,
+            104
+          ],
+          "byte_offset": 3023,
+          "byte_length": 567,
+          "sha256": "e1b9867b02993eb383fbb2ff1db2acf5534839dfc8191dac24ee0c1aaeb730c2"
+        }
+      },
+      {
+        "name": "交替成对计时",
+        "before_lines": [
+          99,
+          117
+        ],
+        "entry": "17个sample index",
+        "state_change": "偶数先旧/奇数先新，分别收集纳秒",
+        "downstream_effect": "减少固定先后偏差，不等于证明真实提升",
+        "control_points": [],
+        "after_lines": [
+          105,
+          123
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            99,
+            117
+          ],
+          "byte_offset": 3030,
+          "byte_length": 737,
+          "sha256": "952dde57b73156e0c393db1c92891082f70a75e13c1c33ba958eef50198f258e"
+        },
+        "final_span": {
+          "lines": [
+            105,
+            123
+          ],
+          "byte_offset": 3590,
+          "byte_length": 737,
+          "sha256": "952dde57b73156e0c393db1c92891082f70a75e13c1c33ba958eef50198f258e"
+        }
+      },
+      {
+        "name": "分位选择与相对阈值",
+        "before_lines": [
+          118,
+          126
+        ],
+        "entry": "两组样本已有",
+        "state_change": "计算p50/p95并用饱和乘法比较20%阈值",
+        "downstream_effect": "本批未运行，阈值不算已满足",
+        "control_points": [],
+        "after_lines": [
+          124,
+          132
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            118,
+            126
+          ],
+          "byte_offset": 3767,
+          "byte_length": 468,
+          "sha256": "9324fa48f8cb0eb0981d2d72d19e9b22c02c3003bb7017d0afed2db929e631df"
+        },
+        "final_span": {
+          "lines": [
+            124,
+            132
+          ],
+          "byte_offset": 4327,
+          "byte_length": 468,
+          "sha256": "9324fa48f8cb0eb0981d2d72d19e9b22c02c3003bb7017d0afed2db929e631df"
+        }
+      },
+      {
+        "name": "性能报告输出",
+        "before_lines": [
+          127,
+          136
+        ],
+        "entry": "阈值检查之后",
+        "state_change": "输出规模、理论访问数与原始样本",
+        "downstream_effect": "字符串保持；访问数为公式不是计数器观测",
+        "control_points": [],
+        "after_lines": [
+          133,
+          142
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            127,
+            136
+          ],
+          "byte_offset": 4235,
+          "byte_length": 578,
+          "sha256": "6d2cc23c0c0a9352c5fc721243159f59dd53faa09bd32590957ec706b6b9e2c9"
+        },
+        "final_span": {
+          "lines": [
+            133,
+            142
+          ],
+          "byte_offset": 4795,
+          "byte_length": 578,
+          "sha256": "6d2cc23c0c0a9352c5fc721243159f59dd53faa09bd32590957ec706b6b9e2c9"
+        }
+      },
+      {
+        "name": "调用记录夹具组装",
+        "before_lines": [
+          137,
+          148
+        ],
+        "entry": "测试/基准请求一条记录",
+        "state_change": "三值原样填接口struct",
+        "downstream_effect": "不调用处理器",
+        "control_points": [],
+        "after_lines": [
+          143,
+          154
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            137,
+            148
+          ],
+          "byte_offset": 4813,
+          "byte_length": 229,
+          "sha256": "aea472ab5f8718955ea537ec6dc69ed9e11f8c9a79cffa0498dfdc1b76282487"
+        },
+        "final_span": {
+          "lines": [
+            143,
+            154
+          ],
+          "byte_offset": 5373,
+          "byte_length": 229,
+          "sha256": "aea472ab5f8718955ea537ec6dc69ed9e11f8c9a79cffa0498dfdc1b76282487"
+        }
+      },
+      {
+        "name": "空路由夹具",
+        "before_lines": [
+          149,
+          172
+        ],
+        "entry": "隔离投影输入",
+        "state_change": "明确Move/零坐标/无目标和空集合",
+        "downstream_effect": "不模拟真实surface路由",
+        "control_points": [],
+        "after_lines": [
+          155,
+          178
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            149,
+            172
+          ],
+          "byte_offset": 5042,
+          "byte_length": 703,
+          "sha256": "527d3554d9abc7ce984d9423de43cd5f624d5bb14080968d88a59b87691938c1"
+        },
+        "final_span": {
+          "lines": [
+            155,
+            178
+          ],
+          "byte_offset": 5602,
+          "byte_length": 703,
+          "sha256": "527d3554d9abc7ce984d9423de43cd5f624d5bb14080968d88a59b87691938c1"
+        }
+      },
+      {
+        "name": "优化扫描checksum",
+        "before_lines": [
+          173,
+          180
+        ],
+        "entry": "性能闭包调用",
+        "state_change": "实际scan写临时Vec并汇总阶段",
+        "downstream_effect": "局部Vec生命周期结束即释放",
+        "control_points": [],
+        "after_lines": [
+          179,
+          186
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            173,
+            180
+          ],
+          "byte_offset": 5745,
+          "byte_length": 367,
+          "sha256": "6c2a586717a15d55048bc425ec9f5da063e83c15b8759b8fb28f0982382f5620"
+        },
+        "final_span": {
+          "lines": [
+            179,
+            186
+          ],
+          "byte_offset": 6305,
+          "byte_length": 367,
+          "sha256": "6c2a586717a15d55048bc425ec9f5da063e83c15b8759b8fb28f0982382f5620"
+        }
+      },
+      {
+        "name": "旧双扫描checksum",
+        "before_lines": [
+          181,
+          197
+        ],
+        "entry": "性能闭包调用",
+        "state_change": "dirty count后反向handler查找",
+        "downstream_effect": "不同一般输入不保证与新checksum等价",
+        "control_points": [],
+        "after_lines": [
+          187,
+          203
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            181,
+            197
+          ],
+          "byte_offset": 6112,
+          "byte_length": 574,
+          "sha256": "03a0177839ca700a123062ed5ebf3eabcdec5acc399bfcd1f56dd79d54f02cc2"
+        },
+        "final_span": {
+          "lines": [
+            187,
+            203
+          ],
+          "byte_offset": 6672,
+          "byte_length": 574,
+          "sha256": "03a0177839ca700a123062ed5ebf3eabcdec5acc399bfcd1f56dd79d54f02cc2"
+        }
+      },
+      {
+        "name": "阶段数值编码",
+        "before_lines": [
+          198,
+          209
+        ],
+        "entry": "checksum需要非零phase值",
+        "state_change": "七个match臂映射1..7",
+        "downstream_effect": "仅防优化辅助，不是wire编码",
+        "control_points": [],
+        "after_lines": [
+          204,
+          215
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            198,
+            209
+          ],
+          "byte_offset": 6686,
+          "byte_length": 365,
+          "sha256": "c2480c544beb33fa8a802d876486585213c2d967b3abede3f1bca2a8ccf2f17b"
+        },
+        "final_span": {
+          "lines": [
+            204,
+            215
+          ],
+          "byte_offset": 7246,
+          "byte_length": 365,
+          "sha256": "c2480c544beb33fa8a802d876486585213c2d967b3abede3f1bca2a8ccf2f17b"
+        }
+      },
+      {
+        "name": "计时与黑盒累加",
+        "before_lines": [
+          210,
+          219
+        ],
+        "entry": "同步FnMut样本",
+        "state_change": "Instant包围iterations循环，checksum wrapping_add",
+        "downstream_effect": "返回原始u128纳秒，可能受环境噪声",
+        "control_points": [],
+        "after_lines": [
+          216,
+          225
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            210,
+            219
+          ],
+          "byte_offset": 7051,
+          "byte_length": 308,
+          "sha256": "a09a791bebf6ba0ec2b43c256d8130e1247895bde71d19de4ceab22eabb30f94"
+        },
+        "final_span": {
+          "lines": [
+            216,
+            225
+          ],
+          "byte_offset": 7611,
+          "byte_length": 308,
+          "sha256": "a09a791bebf6ba0ec2b43c256d8130e1247895bde71d19de4ceab22eabb30f94"
+        }
+      },
+      {
+        "name": "借用的源码边界辅助",
+        "before_lines": [
+          220,
+          229
+        ],
+        "entry": "T2提供三个str",
+        "state_change": "缺start panic；end缺失不被expect检测",
+        "downstream_effect": "返回值只绑定source生命周期",
+        "control_points": [
+          "split(start).nth(1)",
+          "split(end).next"
+        ],
+        "after_lines": [
+          226,
+          235
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            220,
+            229
+          ],
+          "byte_offset": 7359,
+          "byte_length": 226,
+          "sha256": "5a048c788846d631305485c2dfe53b30f9b10e4cb7cdc160466f71b00cb80417"
+        },
+        "final_span": {
+          "lines": [
+            226,
+            235
+          ],
+          "byte_offset": 7919,
+          "byte_length": 226,
+          "sha256": "5a048c788846d631305485c2dfe53b30f9b10e4cb7cdc160466f71b00cb80417"
+        }
+      },
+      {
+        "name": "nearest-rank辅助",
+        "before_lines": [
+          230,
+          236
+        ],
+        "entry": "17个正数百分位采样调用",
+        "state_change": "复制、排序、ceil后索引",
+        "downstream_effect": "当前调用满足非空/50或95前提",
+        "control_points": [],
+        "after_lines": [
+          236,
+          242
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            230,
+            236
+          ],
+          "byte_offset": 7585,
+          "byte_length": 238,
+          "sha256": "c58e3c30023173675a1a2ae00f6708d6f3f292cdd14c4c9a851cf98c432ebc66"
+        },
+        "final_span": {
+          "lines": [
+            236,
+            242
+          ],
+          "byte_offset": 8145,
+          "byte_length": 238,
+          "sha256": "c58e3c30023173675a1a2ae00f6708d6f3f292cdd14c4c9a851cf98c432ebc66"
+        }
+      },
+      {
+        "name": "样本序列格式化",
+        "before_lines": [
+          237,
+          243
+        ],
+        "entry": "报告原始timing样本",
+        "state_change": "保留输入顺序连接十进制值",
+        "downstream_effect": "返回拥有的报告文本",
+        "control_points": [],
+        "after_lines": [
+          243,
+          249
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+        "before_span": {
+          "lines": [
+            237,
+            243
+          ],
+          "byte_offset": 7823,
+          "byte_length": 154,
+          "sha256": "cfac1d50b0bbc53a4b380cceaa9268767b53f407d32d15e580601dbfbb34874f"
+        },
+        "final_span": {
+          "lines": [
+            243,
+            249
+          ],
+          "byte_offset": 8383,
+          "byte_length": 154,
+          "sha256": "cfac1d50b0bbc53a4b380cceaa9268767b53f407d32d15e580601dbfbb34874f"
+        }
+      },
+      {
+        "name": "基准依赖与三个常量",
+        "before_lines": [
+          1,
+          9
+        ],
+        "entry": "测试模块载入",
+        "state_change": "定义1024填充、17样本对、报告标签8",
+        "downstream_effect": "报告标签不驱动实际merge",
+        "control_points": [],
+        "after_lines": [
+          1,
+          12
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            1,
+            9
+          ],
+          "byte_offset": 0,
+          "byte_length": 210,
+          "sha256": "65b7bb291eed465b87e13bcada4fe26003a67155bbd0751c6df9be052068b5e3"
+        },
+        "final_span": {
+          "lines": [
+            1,
+            12
+          ],
+          "byte_offset": 0,
+          "byte_length": 394,
+          "sha256": "32eabe882d321283f6a9b46a3ed4d7d7c772efb5a4e364698c3122aad8ba4c95"
+        }
+      },
+      {
+        "name": "有限容量公式断言",
+        "before_lines": [
+          10,
+          17
+        ],
+        "entry": "普通T4",
+        "state_change": "四次调用helper并比较值",
+        "downstream_effect": "不测试usize极值或实际申请",
+        "control_points": [],
+        "after_lines": [
+          13,
+          20
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            10,
+            17
+          ],
+          "byte_offset": 210,
+          "byte_length": 338,
+          "sha256": "13c2efeb37dd751118a3d8464a8785759f86466f73370fb10f14c4fd9e0338b2"
+        },
+        "final_span": {
+          "lines": [
+            13,
+            20
+          ],
+          "byte_offset": 394,
+          "byte_length": 338,
+          "sha256": "13c2efeb37dd751118a3d8464a8785759f86466f73370fb10f14c4fd9e0338b2"
+        }
+      },
+      {
+        "name": "ignored容量微测量",
+        "before_lines": [
+          18,
+          31
+        ],
+        "entry": "手动选择性能样本",
+        "state_change": "17对交替计时初始容量0/1024的独立Vec",
+        "downstream_effect": "未执行本批",
+        "control_points": [],
+        "after_lines": [
+          21,
+          34
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            18,
+            31
+          ],
+          "byte_offset": 548,
+          "byte_length": 646,
+          "sha256": "243e39353f800014a95dfc94c77dc1e35a4c196b39ab663c53d0c720c3d1ff0f"
+        },
+        "final_span": {
+          "lines": [
+            21,
+            34
+          ],
+          "byte_offset": 732,
+          "byte_length": 646,
+          "sha256": "243e39353f800014a95dfc94c77dc1e35a4c196b39ab663c53d0c720c3d1ff0f"
+        }
+      },
+      {
+        "name": "模型增长断言",
+        "before_lines": [
+          32,
+          37
+        ],
+        "entry": "计时样本已收集",
+        "state_change": "调用模型，断言旧>新且新为0",
+        "downstream_effect": "并非allocator事件观测",
+        "control_points": [],
+        "after_lines": [
+          35,
+          40
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            32,
+            37
+          ],
+          "byte_offset": 1194,
+          "byte_length": 265,
+          "sha256": "b10ae3140e294bbeb2604093b47888752e56bc9a992b764269d576ed490e9650"
+        },
+        "final_span": {
+          "lines": [
+            35,
+            40
+          ],
+          "byte_offset": 1378,
+          "byte_length": 265,
+          "sha256": "b10ae3140e294bbeb2604093b47888752e56bc9a992b764269d576ed490e9650"
+        }
+      },
+      {
+        "name": "容量样本报告",
+        "before_lines": [
+          38,
+          44
+        ],
+        "entry": "模型断言之后",
+        "state_change": "输出p95与模型计数、报告标签",
+        "downstream_effect": "没有断言实际耗时改善",
+        "control_points": [],
+        "after_lines": [
+          41,
+          47
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            38,
+            44
+          ],
+          "byte_offset": 1459,
+          "byte_length": 426,
+          "sha256": "b71d41ca0da647909a00d63d0d471b43c10a32a7b02852684df998310ebd47e9"
+        },
+        "final_span": {
+          "lines": [
+            41,
+            47
+          ],
+          "byte_offset": 1643,
+          "byte_length": 426,
+          "sha256": "b71d41ca0da647909a00d63d0d471b43c10a32a7b02852684df998310ebd47e9"
+        }
+      },
+      {
+        "name": "独立Vec填充计时",
+        "before_lines": [
+          45,
+          54
+        ],
+        "entry": "measure_growth",
+        "state_change": "申请指定容量并push，black_box保留工作",
+        "downstream_effect": "返回elapsed max1而非真实派发成本",
+        "control_points": [],
+        "after_lines": [
+          48,
+          57
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            45,
+            54
+          ],
+          "byte_offset": 1885,
+          "byte_length": 285,
+          "sha256": "266928a6f3cb75294644bdff9b639bfb4742036f8a1e0047fa94284266afdce2"
+        },
+        "final_span": {
+          "lines": [
+            48,
+            57
+          ],
+          "byte_offset": 2069,
+          "byte_length": 285,
+          "sha256": "266928a6f3cb75294644bdff9b639bfb4742036f8a1e0047fa94284266afdce2"
+        }
+      },
+      {
+        "name": "饱和倍增模型",
+        "before_lines": [
+          55,
+          67
+        ],
+        "entry": "growth_events",
+        "state_change": "已够则早返；否则从至少1倍增直到覆盖",
+        "downstream_effect": "usize边界通过饱和乘法终止",
+        "control_points": [
+          "capacity>=length",
+          "while capacity<length"
+        ],
+        "after_lines": [
+          58,
+          70
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            55,
+            67
+          ],
+          "byte_offset": 2170,
+          "byte_length": 294,
+          "sha256": "44a05bf3168eba5cec0306af3b5e8db5ab9957a4576e37db28c82f3ee99aac27"
+        },
+        "final_span": {
+          "lines": [
+            58,
+            70
+          ],
+          "byte_offset": 2354,
+          "byte_length": 294,
+          "sha256": "44a05bf3168eba5cec0306af3b5e8db5ab9957a4576e37db28c82f3ee99aac27"
+        }
+      },
+      {
+        "name": "容量分位辅助",
+        "before_lines": [
+          68,
+          73
+        ],
+        "entry": "17个样本/95调用",
+        "state_change": "复制排序并nearest rank选样",
+        "downstream_effect": "空样本/非法百分位不在当前调用域",
+        "control_points": [],
+        "after_lines": [
+          71,
+          76
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+        "before_span": {
+          "lines": [
+            68,
+            73
+          ],
+          "byte_offset": 2464,
+          "byte_length": 235,
+          "sha256": "498d2e8b1aab7b32cb714e5bdb183c25d97e607541fe6b16272b490f08745868"
+        },
+        "final_span": {
+          "lines": [
+            71,
+            76
+          ],
+          "byte_offset": 2648,
+          "byte_length": 235,
+          "sha256": "498d2e8b1aab7b32cb714e5bdb183c25d97e607541fe6b16272b490f08745868"
+        }
+      },
+      {
+        "name": "父helper与夹具类型导入",
+        "before_lines": [
+          1,
+          12
+        ],
+        "entry": "相邻测试模块载入",
+        "state_change": "super::*接入私有merge helper",
+        "downstream_effect": "没有运行Surface或宿主请求",
+        "control_points": [],
+        "after_lines": [
+          1,
+          12
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            1,
+            12
+          ],
+          "byte_offset": 0,
+          "byte_length": 452,
+          "sha256": "3273a074fdaf3959426e2faa39283b39e918473cfc1eccef818ae6d2bfa390a2"
+        },
+        "final_span": {
+          "lines": [
+            1,
+            12
+          ],
+          "byte_offset": 0,
+          "byte_length": 452,
+          "sha256": "3273a074fdaf3959426e2faa39283b39e918473cfc1eccef818ae6d2bfa390a2"
+        }
+      },
+      {
+        "name": "指针侧已应用效果夹具",
+        "before_lines": [
+          13,
+          24
+        ],
+        "entry": "普通T6",
+        "state_change": "建立release效果和index0 applied回执",
+        "downstream_effect": "作为合并偏移基点1",
+        "control_points": [],
+        "after_lines": [
+          13,
+          24
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            13,
+            24
+          ],
+          "byte_offset": 452,
+          "byte_length": 467,
+          "sha256": "c8ca8b084b00ab101a7147e80f95660a821dbe3a9d44d400f478e37a0c81f58f"
+        },
+        "final_span": {
+          "lines": [
+            13,
+            24
+          ],
+          "byte_offset": 452,
+          "byte_length": 467,
+          "sha256": "c8ca8b084b00ab101a7147e80f95660a821dbe3a9d44d400f478e37a0c81f58f"
+        }
+      },
+      {
+        "name": "文本侧效果与状态夹具",
+        "before_lines": [
+          25,
+          39
+        ],
+        "entry": "构造文本记录",
+        "state_change": "effects含focus/popup，applied0/rejected1与理由",
+        "downstream_effect": "没有真实执行或拒绝流程",
+        "control_points": [],
+        "after_lines": [
+          25,
+          39
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            25,
+            39
+          ],
+          "byte_offset": 919,
+          "byte_length": 617,
+          "sha256": "c3ce2198cb1c5142a5cd9c0ac1f4cfb0210997a48493577d5c2ec35e2ce6eb0c"
+        },
+        "final_span": {
+          "lines": [
+            25,
+            39
+          ],
+          "byte_offset": 919,
+          "byte_length": 617,
+          "sha256": "c3ce2198cb1c5142a5cd9c0ac1f4cfb0210997a48493577d5c2ec35e2ce6eb0c"
+        }
+      },
+      {
+        "name": "文本host/widget夹具",
+        "before_lines": [
+          40,
+          54
+        ],
+        "entry": "文本记录已就绪",
+        "state_change": "host index1与Activate事件加入",
+        "downstream_effect": "作为回执/事件保留断言输入",
+        "control_points": [],
+        "after_lines": [
+          40,
+          54
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            40,
+            54
+          ],
+          "byte_offset": 1536,
+          "byte_length": 544,
+          "sha256": "2f76f339e6d85f2c36550954315e4fe45d26ef3909a0a6e1d2368235110e1ed0"
+        },
+        "final_span": {
+          "lines": [
+            40,
+            54
+          ],
+          "byte_offset": 1536,
+          "byte_length": 544,
+          "sha256": "2f76f339e6d85f2c36550954315e4fe45d26ef3909a0a6e1d2368235110e1ed0"
+        }
+      },
+      {
+        "name": "合并与效果/applied顺序",
+        "before_lines": [
+          55,
+          77
+        ],
+        "entry": "调用merge",
+        "state_change": "断言旧效果在前且文本顺序保留，文本applied index变1",
+        "downstream_effect": "仅覆盖有效本地索引",
+        "control_points": [],
+        "after_lines": [
+          55,
+          77
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            55,
+            77
+          ],
+          "byte_offset": 2080,
+          "byte_length": 568,
+          "sha256": "1d251539fd142b526cc00ff347a31f06b53543ec81ec88f8c0b1ced7b5d8f6dc"
+        },
+        "final_span": {
+          "lines": [
+            55,
+            77
+          ],
+          "byte_offset": 2080,
+          "byte_length": 568,
+          "sha256": "1d251539fd142b526cc00ff347a31f06b53543ec81ec88f8c0b1ced7b5d8f6dc"
+        }
+      },
+      {
+        "name": "rejected、host与widget保留断言",
+        "before_lines": [
+          78,
+          97
+        ],
+        "entry": "已合并结果",
+        "state_change": "断言拒绝reason/effect与index2、host index2、完整widget事件",
+        "downstream_effect": "未断言Blocked头部、越界索引、notes/drag/binding分支",
+        "control_points": [],
+        "after_lines": [
+          78,
+          97
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            78,
+            97
+          ],
+          "byte_offset": 2648,
+          "byte_length": 677,
+          "sha256": "de87491c8130baf7e27e07ac200b70c1c8d78eadb34d9612083522747c8fae14"
+        },
+        "final_span": {
+          "lines": [
+            78,
+            97
+          ],
+          "byte_offset": 2648,
+          "byte_length": 677,
+          "sha256": "de87491c8130baf7e27e07ac200b70c1c8d78eadb34d9612083522747c8fae14"
+        }
+      },
+      {
+        "name": "固定指针事件夹具",
+        "before_lines": [
+          98,
+          109
+        ],
+        "entry": "创建两份测试结果",
+        "state_change": "时间/序列皆1，Up+Secondary，无precise scroll",
+        "downstream_effect": "不证明事件身份校验存在",
+        "control_points": [],
+        "after_lines": [
+          98,
+          109
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            98,
+            109
+          ],
+          "byte_offset": 3325,
+          "byte_length": 401,
+          "sha256": "ef203ac6c767386bd526ffa27b3c9ae0b276ebafed4acfd09d6e9886a663611e"
+        },
+        "final_span": {
+          "lines": [
+            98,
+            109
+          ],
+          "byte_offset": 3325,
+          "byte_length": 401,
+          "sha256": "ef203ac6c767386bd526ffa27b3c9ae0b276ebafed4acfd09d6e9886a663611e"
+        }
+      },
+      {
+        "name": "释放效果夹具",
+        "before_lines": [
+          110,
+          117
+        ],
+        "entry": "测试需要旧效果",
+        "state_change": "构造值而非更改捕获状态",
+        "downstream_effect": "传入结果向量",
+        "control_points": [],
+        "after_lines": [
+          110,
+          117
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            110,
+            117
+          ],
+          "byte_offset": 3726,
+          "byte_length": 230,
+          "sha256": "71fa3aaf7504288628df606468994a2c22b9cf84f1479de17c967b582c561ecb"
+        },
+        "final_span": {
+          "lines": [
+            110,
+            117
+          ],
+          "byte_offset": 3726,
+          "byte_length": 230,
+          "sha256": "71fa3aaf7504288628df606468994a2c22b9cf84f1479de17c967b582c561ecb"
+        }
+      },
+      {
+        "name": "焦点效果夹具",
+        "before_lines": [
+          118,
+          124
+        ],
+        "entry": "测试需要文本applied效果",
+        "state_change": "构造SetFocus/Input",
+        "downstream_effect": "传入结果向量",
+        "control_points": [],
+        "after_lines": [
+          118,
+          124
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            118,
+            124
+          ],
+          "byte_offset": 3956,
+          "byte_length": 158,
+          "sha256": "6d59c0f655f7e10fb80294937b659dfc8426e7be5e6522a1311cc9c373852831"
+        },
+        "final_span": {
+          "lines": [
+            118,
+            124
+          ],
+          "byte_offset": 3956,
+          "byte_length": 158,
+          "sha256": "6d59c0f655f7e10fb80294937b659dfc8426e7be5e6522a1311cc9c373852831"
+        }
+      },
+      {
+        "name": "popup效果夹具",
+        "before_lines": [
+          125,
+          132
+        ],
+        "entry": "测试需要文本rejected效果",
+        "state_change": "构造拥有字符串的Open/owner2/None anchor",
+        "downstream_effect": "真正owner校验不在该fixture",
+        "control_points": [],
+        "after_lines": [
+          125,
+          132
+        ],
+        "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+        "before_span": {
+          "lines": [
+            125,
+            132
+          ],
+          "byte_offset": 4114,
+          "byte_length": 257,
+          "sha256": "b3fe9a7da3c6a01f1c58fd06b915034ecf101b762be029fe3251c16e37bb09f3"
+        },
+        "final_span": {
+          "lines": [
+            125,
+            132
+          ],
+          "byte_offset": 4114,
+          "byte_length": 257,
+          "sha256": "b3fe9a7da3c6a01f1c58fd06b915034ecf101b762be029fe3251c16e37bb09f3"
+        }
+      }
+    ],
+    "counts": {
+      "objects": 39,
+      "members": 2,
+      "functions": 29,
+      "types": 1,
+      "modules": 3,
+      "constants": 6,
+      "blocks": 66,
+      "control_points": 31
+    },
+    "patch_bytes": 5948,
+    "patch_sha256": "30251901a269af624f179ce1676f3de5fa722776a25940fb168d14fb081e8bc1",
+    "scoped_diff_check_exit": 0,
+    "scoped_index_empty": true,
+    "git_lf_crlf_warning": "warning: LF will be replaced by CRLF in zircon_runtime/src/ui/surface/input/pointer_reply.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs.\nThe file will have its original line endings in your working directory\n"
+  },
+  "raw_source_contracts": {
+    "operands": [
+      {
+        "needle": "pub(super) fn pointer_reply(",
+        "before": 1,
+        "current": 1,
+        "all_insertions_contribution": 0,
+        "root_before": 1,
+        "root_after": 1,
+        "root_new": 0
+      },
+      {
+        "needle": "pub(super) fn pointer_component_handler",
+        "before": 1,
+        "current": 1,
+        "all_insertions_contribution": 0,
+        "root_before": 1,
+        "root_after": 1,
+        "root_new": 0
+      },
+      {
+        "needle": "fn scan_pointer_invocations(",
+        "before": 1,
+        "current": 1,
+        "all_insertions_contribution": 0,
+        "root_before": 1,
+        "root_after": 1,
+        "root_new": 0
+      },
+      {
+        "needle": "fn pointer_release_target",
+        "before": 1,
+        "current": 1,
+        "all_insertions_contribution": 0,
+        "root_before": 1,
+        "root_after": 1,
+        "root_new": 0
+      },
+      {
+        "needle": "scan_pointer_invocations",
+        "before": 2,
+        "current": 2,
+        "all_insertions_contribution": 0,
+        "root_before": 2,
+        "root_after": 2,
+        "root_new": 0
+      },
+      {
+        "needle": "fn pointer_reply_phase(",
+        "before": 0,
+        "current": 0,
+        "all_insertions_contribution": 0,
+        "root_before": 0,
+        "root_after": 0,
+        "root_new": 0
+      },
+      {
+        "needle": "for invocation in &routed_result.invocations",
+        "before": 1,
+        "current": 1,
+        "all_insertions_contribution": 0,
+        "root_before": 1,
+        "root_after": 1,
+        "root_new": 0
+      },
+      {
+        "needle": ".iter().rev()",
+        "before": 0,
+        "current": 0,
+        "all_insertions_contribution": 0,
+        "root_before": 0,
+        "root_after": 0,
+        "root_new": 0
+      },
+      {
+        "needle": "handler_phase",
+        "before": 3,
+        "current": 3,
+        "all_insertions_contribution": 0,
+        "root_before": 3,
+        "root_after": 3,
+        "root_new": 0
+      },
+      {
+        "needle": "redraw_phase",
+        "before": 3,
+        "current": 3,
+        "all_insertions_contribution": 0,
+        "root_before": 3,
+        "root_after": 3,
+        "root_new": 0
+      },
+      {
+        "needle": "effect_index_map",
+        "before": 0,
+        "current": 0,
+        "all_insertions_contribution": 0,
+        "root_before": 0,
+        "root_after": 0,
+        "root_new": 0
+      },
+      {
+        "needle": "remap_text_effect_index",
+        "before": 0,
+        "current": 0,
+        "all_insertions_contribution": 0,
+        "root_before": 0,
+        "root_after": 0,
+        "root_new": 0
+      },
+      {
+        "needle": "routed_result",
+        "before": 36,
+        "current": 36,
+        "all_insertions_contribution": 0,
+        "root_before": 36,
+        "root_after": 36,
+        "root_new": 0
+      },
+      {
+        "needle": "legacy",
+        "before": 0,
+        "current": 0,
+        "all_insertions_contribution": 0,
+        "root_before": 0,
+        "root_after": 0,
+        "root_new": 0
+      }
+    ],
+    "all_new_contributions": 0,
+    "single_pass_before_and_after_vector": [
+      false,
+      true,
+      1,
+      true,
+      true,
+      true
+    ],
+    "G2_ownership_reply_subset": [
+      true,
+      true
+    ],
+    "G3_legacy_reply_subset": [
+      true,
+      true
+    ],
+    "four_boundaries_unique": true,
+    "interpretation": "Staticevaluation ofliteralconsumerfunctions only;noRustrun orwholeexternaltestsuccess."
+  },
+  "context_pins": [
+    {
+      "path": "zircon_runtime/src/ui/surface/input/mod.rs",
+      "sha256": "92b77461f574bfc63206230714675f4bdb34cd9cb16132da9bac4b13db3e98a5",
+      "read_spans": [
+        [
+          35,
+          38
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer.rs",
+      "sha256": "bcf73bb8503b4a7b7ee4f9b41ba15c28687db702d6e6660d080adc66e7dd2442",
+      "read_spans": [
+        [
+          12,
+          18
+        ],
+        [
+          23,
+          49
+        ],
+        [
+          64,
+          101
+        ],
+        [
+          121,
+          141
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/dispatch.rs",
+      "sha256": "011682ab9b27cac2f3814530888648f19d3cc8a55a83a3f799ae8d24ef41d6bd",
+      "read_spans": [
+        [
+          28,
+          46
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/dispatch/input/reply.rs",
+      "sha256": "55342f3a36a6fb180e8256e4fc934869aed5d9623037cc2108bb86a51d4a9559",
+      "read_spans": [
+        [
+          53,
+          74
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/dispatch/input/result.rs",
+      "sha256": "fb21fbae7c7f63a5e93c39b1ddb25e7382032255e53faa07bc38d41f9ee8fef1",
+      "read_spans": [
+        [
+          245,
+          328
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_input_ownership.rs",
+      "sha256": "cc2e924ac0bb5de17706f0a147a5bad1f7a0c4f65c8e7d00a7d0a6597acc7dbb",
+      "read_spans": [
+        [
+          43,
+          88
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/ui_architecture/legacy_renames.rs",
+      "sha256": "1e896590478d97663d7def9263d50d10efc4d90f5242ffad57177f20a54bd6e1",
+      "read_spans": [
+        [
+          42,
+          81
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/ui_architecture/support.rs",
+      "sha256": "565bc026c67c6cebff72fd05f644846586ab06ac93217528d078faaafbfea7c3",
+      "read_spans": [
+        [
+          5,
+          20
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/mod.rs",
+      "sha256": "4b1e97d1aad576402e7b5d9c5a1c95c9b0fce94f4ae9ac1736a22e437424733b",
+      "read_spans": [
+        [
+          167,
+          168
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/ui_architecture.rs",
+      "sha256": "c1b9e1c8da11487727637d57a875d47bd8afa3c9c523c3862c901d0a854193bf",
+      "read_spans": [
+        [
+          1,
+          11
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+      "sha256": "e85516b855b09752b815f3f9e3aef9274a33dbb2cf20d90ec50485857f247576",
+      "read_spans": [
+        [
+          18,
+          33
+        ],
+        [
+          93,
+          116
+        ],
+        [
+          121,
+          144
+        ],
+        [
+          306,
+          333
+        ]
+      ],
+      "formal_coverage": false
+    }
+  ],
+  "change_guard": {
+    "command": [
+      "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\python\\python.exe",
+      "-B",
+      "-X",
+      "utf8",
+      "E:\\Git\\ZirconEngine\\.codex\\skills\\zircon-change-guard\\scripts\\change_guard.py",
+      "--json",
+      "patch",
+      "--git",
+      "--base",
+      "HEAD",
+      "--path",
+      "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+      "--path",
+      "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+      "--path",
+      "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+      "--path",
+      "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+    ],
+    "exit": 0,
+    "report": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "30251901a269af624f179ce1676f3de5fa722776a25940fb168d14fb081e8bc1",
+        "base": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+        "files": [
+          "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+          "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+          "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs"
+        ],
+        "declaredPaths": [
+          "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+          "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+          "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+          "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [
+          "CR-ZCA-R054-0001"
+        ],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": []
+    },
+    "stderr": ""
+  },
+  "formatting": {
+    "reused_receipt": "41a750 exit0 PID8200 exact4 rustfmt--check edition2021 skip_children",
+    "same_final_source_pins": true,
+    "write_back": false,
+    "typecheck_or_rustdoc_link_validation": false
+  },
+  "tests": {
+    "tests": 6,
+    "ignored": 2,
+    "assertions": 27,
+    "production_debug_assertions": 1,
+    "executed": false
+  },
+  "acceptance": {
+    "reviewed_local_files": 4,
+    "root_full_read_files": 4,
+    "formal_acceptance": false,
+    "phase_commit": false,
+    "attached_wecom_receipt": false,
+    "push": false,
+    "gates": [
+      "Exactsnapshot designatedJenkinsintake+actualscopedvalidation.",
+      "Existingindexlockownershipdiagnosticbeforefirststage/commit;nobypass.",
+      "Preserveprovedoldtestfailure;do notreportalltestspassed."
+    ]
+  },
+  "artifact_lifecycle": {
+    "registry": "E:/cargo-targets/zircon-local/reports/source-comments-20261014-01a13a81/artifacts.json",
+    "registered_before_creation": true,
+    "source_copies": false,
+    "builds": false,
+    "temporary_helpers": false,
+    "deleted_files": 0,
+    "freed_bytes": 0,
+    "retained": "Canonicaldocs,fixedchild/main/post,staticBUGevidenceandpendingmanagedreceipts;foreignartifacts/caches/Gitpreserved."
+  },
+  "created_at_utc": "2026-10-16T07:15:14.973664+00:00",
+  "record_writer": {
+    "pid": 32720,
+    "write_set": [
+      "docs/plans/source-comments/reviews/R054-main.json",
+      "docs/plans/source-comments/reviews/R054-post-validation.json"
+    ],
+    "terminal": "Actualnativeexit,notthisrecord,closeswriter."
+  }
+}

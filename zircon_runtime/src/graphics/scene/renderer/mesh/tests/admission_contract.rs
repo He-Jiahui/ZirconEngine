@@ -7,24 +7,28 @@ struct PipelineAdmissionContract<'a> {
 
 #[test]
 fn synchronous_mesh_pass_consumers_handle_typed_pipeline_admission_without_panicking() {
-    let mesh_recording = include_str!(
-        "../../context/gpu/mesh_recording.rs"
-    );
+    let mesh_recording = include_str!("../../context/gpu/mesh_recording.rs");
     let contracts = [
         PipelineAdmissionContract {
-            cache_source: include_str!("../../../../mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs"),
+            cache_source: include_str!(
+                "../../../../mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs"
+            ),
             consumer_source: mesh_recording,
             admission_api: "ensure_depth_prepass_pipeline_admission_for_variant",
             ready_pipeline_api: "depth_prepass_pipeline_for_ready_variant",
         },
         PipelineAdmissionContract {
-            cache_source: include_str!("../../../../mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs"),
+            cache_source: include_str!(
+                "../../../../mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs"
+            ),
             consumer_source: include_str!("../../shadow/shadow_map_renderer.rs"),
             admission_api: "ensure_shadow_pipeline_admission_for_variant",
             ready_pipeline_api: "shadow_pipeline_for_ready_variant",
         },
         PipelineAdmissionContract {
-            cache_source: include_str!("../../../../mesh/mesh_pipeline_cache/ensure_velocity_pipeline.rs"),
+            cache_source: include_str!(
+                "../../../../mesh/mesh_pipeline_cache/ensure_velocity_pipeline.rs"
+            ),
             consumer_source: include_str!("../../../temporal/velocity/execute_velocity_object.rs"),
             admission_api: "ensure_velocity_pipeline_admission_for_variant",
             ready_pipeline_api: "velocity_pipeline_for_ready_variant",
@@ -36,10 +40,10 @@ fn synchronous_mesh_pass_consumers_handle_typed_pipeline_admission_without_panic
             ready_pipeline_api: "taa_reactive_pipeline_for_ready_variant",
         },
         PipelineAdmissionContract {
-            cache_source: include_str!("../../../../mesh/mesh_pipeline_cache/ensure_oit_pipeline.rs"),
-            consumer_source: include_str!(
-                "../../execution/context/gpu/oit.rs"
+            cache_source: include_str!(
+                "../../../../mesh/mesh_pipeline_cache/ensure_oit_pipeline.rs"
             ),
+            consumer_source: include_str!("../../execution/context/gpu/oit.rs"),
             admission_api: "ensure_oit_pipeline_admission_for_base_variant",
             ready_pipeline_api: "oit_pipeline_for_ready_base_variant",
         },

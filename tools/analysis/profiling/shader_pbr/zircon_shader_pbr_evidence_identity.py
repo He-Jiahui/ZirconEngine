@@ -10,7 +10,15 @@ from typing import Mapping
 
 
 EVIDENCE_IDENTITY_SCHEMA = "zircon_shader_pbr_viewer_evidence_identity_v1"
-EVIDENCE_VALIDATION_POLICY = "zircon_shader_pbr_viewer_ready_frame_v18"
+EVIDENCE_VALIDATION_POLICY_V18 = "zircon_shader_pbr_viewer_ready_frame_v18"
+EVIDENCE_VALIDATION_POLICY = "zircon_shader_pbr_viewer_ready_frame_v19"
+_SCHEMA_VALIDATION_POLICIES = {
+    "zircon_shader_pbr_viewer_ready_frame_evidence_v15": "zircon_shader_pbr_viewer_ready_frame_v15",
+    "zircon_shader_pbr_viewer_ready_frame_evidence_v16": "zircon_shader_pbr_viewer_ready_frame_v16",
+    "zircon_shader_pbr_viewer_ready_frame_evidence_v17": "zircon_shader_pbr_viewer_ready_frame_v17",
+    "zircon_shader_pbr_viewer_ready_frame_evidence_v18": EVIDENCE_VALIDATION_POLICY_V18,
+    "zircon_shader_pbr_viewer_ready_frame_evidence_v19": EVIDENCE_VALIDATION_POLICY,
+}
 
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
 _RUN_ID_PATTERN = re.compile(r"[a-z][a-z0-9-]{2,159}\Z")
@@ -51,21 +59,32 @@ def validate_ready_frame_identity(
     metadata: Mapping[str, str],
     *,
     screenshot_path: Path,
-    validation_policy: str = EVIDENCE_VALIDATION_POLICY,
+    validation_policy: str | None = None,
 ) -> None:
     """Fail closed when an identity-bound sidecar cannot bind all producer inputs to bytes."""
 
     missing = [field for field in _SIDE_CAR_IDENTITY_FIELDS if field not in metadata]
     if missing:
         raise RuntimeError(
-            "ready-frame v15 provenance sidecar is missing identity fields: "
+            "ready-frame provenance sidecar is missing identity fields: "
             f"{', '.join(missing)} path={screenshot_path}"
+        )
+    schema = metadata.get("schema")
+    schema_policy = _SCHEMA_VALIDATION_POLICIES.get(schema)
+    if schema_policy is None:
+        raise RuntimeError(
+            f"ready-frame evidence schema has no identity validation policy: path={screenshot_path}"
+        )
+    expected_policy = schema_policy if validation_policy is None else validation_policy
+    if expected_policy != schema_policy:
+        raise RuntimeError(
+            f"requested evidence identity policy does not match sidecar schema: path={screenshot_path}"
         )
     _require_exact(metadata, "evidence_identity_schema", EVIDENCE_IDENTITY_SCHEMA, screenshot_path)
     _require_exact(
         metadata,
         "evidence_validation_policy",
-        validation_policy,
+        expected_policy,
         screenshot_path,
     )
     _require_run_id(metadata["evidence_run_id"], screenshot_path)
@@ -91,7 +110,7 @@ def validate_ready_frame_identity(
         raise RuntimeError(
             f"ready-frame evidence identity manifest schema does not match the sidecar policy: path={identity_path}"
         )
-    if identity["validation_policy"] != validation_policy:
+    if identity["validation_policy"] != expected_policy:
         raise RuntimeError(
             f"ready-frame evidence identity validation policy does not match the sidecar: path={identity_path}"
         )

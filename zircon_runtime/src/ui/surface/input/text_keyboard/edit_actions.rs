@@ -1,3 +1,6 @@
+//! 从键盘命令构造拥有所有权的有序编辑意图。
+//! 这里只计算源字节偏移与动作次序；文本状态机负责实际应用、边界归一和只读约束。
+
 use zircon_runtime_interface::ui::{
     dispatch::{UiKeyboardInputEvent, UiKeyboardInputState},
     surface::{UiEditableTextState, UiTextEditAction},
@@ -11,6 +14,10 @@ use crate::ui::text::{
 
 /// 键盘编辑产生的一至两个有序动作，无需为每个按键分配容器。
 /// 整词/整行删除先选择范围再删除，消费方须保持顺序并作为一条编辑意图提交。
+///
+/// # 所有权与生命周期
+/// 首项始终存在，次项可选；动作不借用输入状态，交给调用方一次消费。
+/// 构造并未修改文本；是否提交内容变化仍由后续状态机与文档事务决定。
 pub(in crate::ui::surface::input) struct KeyboardTextEditActions {
     first: UiTextEditAction,
     second: Option<UiTextEditAction>,
@@ -23,6 +30,7 @@ impl IntoIterator for KeyboardTextEditActions {
         std::option::IntoIter<UiTextEditAction>,
     >;
 
+    /// 移动动作所有权并保持首项在前、可选次项在后，不克隆或执行动作。
     fn into_iter(self) -> Self::IntoIter {
         std::iter::once(self.first).chain(self.second)
     }
@@ -30,6 +38,14 @@ impl IntoIterator for KeyboardTextEditActions {
 
 /// 把命令键转换为使用源字节边界的文字编辑意图；字符输入、历史和剪贴板已由调用方优先处理。
 /// 安全文本绕开词边界导航，避免掩码交互暴露真实词结构。
+///
+/// # 参数
+/// 借用本次事件与编辑快照；安全类别由调用方读取节点，偏移使用源文本的 UTF-8 字节单位。
+/// # 返回与调用时机
+/// 按下或重复态返回本层识别的动作序列；空值让路由继续尝试其他键盘行为。
+/// 调用方已优先处理历史、剪贴板及文字负载，并须按序将整条序列一次提交。
+/// # 约束与参考
+/// 逻辑键未匹配后才进入物理码回退；同级可编辑路由与文本状态机负责落地及错误处理。
 pub(in crate::ui::surface::input) fn keyboard_text_edit_actions(
     keyboard: &UiKeyboardInputEvent,
     state: &UiEditableTextState,
@@ -112,6 +128,8 @@ pub(in crate::ui::surface::input) fn keyboard_text_edit_actions(
     }
 }
 
+/// 复用上层已算出的选择与安全策略，仅在逻辑映射未命中后解释物理码。
+/// 未知物理码返回空值；此处仍只构造意图，不改变传入快照。
 fn keyboard_text_edit_actions_from_key_code(
     keyboard: &UiKeyboardInputEvent,
     state: &UiEditableTextState,
@@ -176,6 +194,7 @@ fn keyboard_text_edit_actions_from_key_code(
     }
 }
 
+// 已有非空选区时直接删除；否则先选择目标范围，再让删除动作消费该选区。
 fn delete_previous_word_actions(state: &UiEditableTextState) -> KeyboardTextEditActions {
     if has_active_selection(state) {
         return single_action(UiTextEditAction::Backspace);
@@ -195,6 +214,7 @@ fn delete_previous_word_actions(state: &UiEditableTextState) -> KeyboardTextEdit
     }
 }
 
+// 与向前删除保持相同次序，词边界缺失时仍交给普通删除处理文档端点。
 fn delete_next_word_actions(state: &UiEditableTextState) -> KeyboardTextEditActions {
     if has_active_selection(state) {
         return single_action(UiTextEditAction::Delete);
@@ -214,6 +234,7 @@ fn delete_next_word_actions(state: &UiEditableTextState) -> KeyboardTextEditActi
     }
 }
 
+// 安全文本使用硬行范围，不查询被掩码文本的词结构；已有选区优先。
 fn delete_to_line_start_actions(state: &UiEditableTextState) -> KeyboardTextEditActions {
     if has_active_selection(state) {
         return single_action(UiTextEditAction::Backspace);
@@ -233,6 +254,7 @@ fn delete_to_line_start_actions(state: &UiEditableTextState) -> KeyboardTextEdit
     }
 }
 
+// 保留已有选区；无选区时以当前硬行末尾生成选择与删除的有序组合。
 fn delete_to_line_end_actions(state: &UiEditableTextState) -> KeyboardTextEditActions {
     if has_active_selection(state) {
         return single_action(UiTextEditAction::Delete);
@@ -252,6 +274,7 @@ fn delete_to_line_end_actions(state: &UiEditableTextState) -> KeyboardTextEditAc
     }
 }
 
+/// 有组合态时发出取消意图，否则发出当前位置的不延伸移动意图。
 fn escape_actions(state: &UiEditableTextState) -> KeyboardTextEditActions {
     if state.composition.is_some() {
         single_action(UiTextEditAction::CancelComposition)
@@ -300,6 +323,7 @@ fn end_offset(state: &UiEditableTextState, document_navigation: bool) -> usize {
     }
 }
 
+// 普通垂直移动按字素列对齐；没有前一行时回到文档开头。
 fn previous_line_offset(state: &UiEditableTextState, document_navigation: bool) -> usize {
     if document_navigation {
         0
@@ -308,6 +332,7 @@ fn previous_line_offset(state: &UiEditableTextState, document_navigation: bool) 
     }
 }
 
+// 没有后一行时回到文档末尾，列对齐规则由共享文本边界工具决定。
 fn next_line_offset(state: &UiEditableTextState, document_navigation: bool) -> usize {
     if document_navigation {
         state.text.len()
@@ -316,12 +341,14 @@ fn next_line_offset(state: &UiEditableTextState, document_navigation: bool) -> u
     }
 }
 
+// 物理回退先匹配 A 的键码后才传入此标识，不能把任意命令键当作全选。
 fn keyboard_requests_select_all(keyboard: &UiKeyboardInputEvent, logical_key: &str) -> bool {
     (keyboard.metadata.modifiers.control || keyboard.metadata.modifiers.super_key)
         && !keyboard.metadata.modifiers.alt
         && matches!(logical_key, "a" | "A")
 }
 
+// 共享工具没有前一边界时，以文档首端保持返回值为有效的源字节偏移。
 fn previous_text_boundary(text: &str, offset: usize, word_navigation: bool) -> usize {
     if word_navigation {
         previous_word_boundary(text, offset).unwrap_or(0)
@@ -330,6 +357,7 @@ fn previous_text_boundary(text: &str, offset: usize, word_navigation: bool) -> u
     }
 }
 
+// 向后导航的缺省端点是源文本字节长度，与所有编辑意图的偏移单位一致。
 fn next_text_boundary(text: &str, offset: usize, word_navigation: bool) -> usize {
     if word_navigation {
         next_word_boundary(text, offset).unwrap_or(text.len())

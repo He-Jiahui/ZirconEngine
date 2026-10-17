@@ -1,3 +1,6 @@
+//! VM 动态组件通过生产 World 注册入口的反射访问与错误夹具。
+//! 相同元数据 upsert 用例直接检查 TypeRegistry 代数；其余用例检查 World 目录接入、字段名唯一性和声明类型写入。
+
 use serde_json::json;
 use zircon_runtime_interface::reflect::{
     ReflectEditorHint, ReflectError, ReflectFieldId, ReflectFieldInfo, ReflectObjectAddress,
@@ -131,6 +134,7 @@ fn vm_dynamic_component_write_rejects_schema_type_mismatch() {
     );
 }
 
+/// 构造插件拥有的 JSON 组件 schema；`current` 可写、`maximum` 只读，字段顺序对应本夹具槽位。
 fn vm_health_registration() -> ReflectTypeRegistration {
     ReflectTypeRegistration::new(
         ReflectTypePath::new("gameplay.Component.Health", "Health")
@@ -161,6 +165,9 @@ fn vm_health_registration() -> ReflectTypeRegistration {
     .with_script_visibility(ReflectScriptVisibility::Public)
 }
 
+/// 沿用 schema 的 `tests.vm-health` 身份键构造请求字段 ID。
+///
+/// 该键独立于完整类型路径和插件 ID，须与上方字段元数据使用的稳定键保持一致。
 fn vm_health_field_id(field_key: &str) -> ReflectFieldId {
     ReflectFieldId::from_stable_keys("tests.vm-health", field_key)
 }

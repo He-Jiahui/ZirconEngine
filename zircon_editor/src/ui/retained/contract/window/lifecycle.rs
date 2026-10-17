@@ -21,9 +21,10 @@ impl UiHostWindow {
         let font_assets = Self::load_font_assets().map_err(platform_error)?;
         let event_wake = super::event_wake::HostEventLoopWake::default();
         let visual_asset_wake = super::event_wake::HostEventLoopWake::default();
-        let attention = super::attention::HostWindowAttention::new(
-            capture_trace::wake_callback("window_attention", event_wake.callback()),
-        );
+        let attention = super::attention::HostWindowAttention::new(capture_trace::wake_callback(
+            "window_attention",
+            event_wake.callback(),
+        ));
         Ok(Self {
             _font_assets: Rc::new(font_assets),
             state: Rc::new(RefCell::new(HostContractState::new(PhysicalSize::new(
@@ -39,6 +40,9 @@ impl UiHostWindow {
             ),
             native_focus_observer: Rc::new(
                 super::focus_observer::NativeWindowFocusObserver::default(),
+            ),
+            toast_presentation_observer: Rc::new(
+                super::toast_presentation::ToastPresentationObserver::default(),
             ),
             runtime_presenter_factory: Rc::new(RefCell::new(None)),
             profile_artifact_job_owner: Rc::new(super::ProfileArtifactJobOwner::default()),
@@ -181,6 +185,7 @@ impl UiHostWindow {
     }
 
     pub(crate) fn request_exit(&self) {
+        self.toast_presentation_observer.clear();
         let mut state = self.state.borrow_mut();
         state.window_visible = false;
         state.exit_requested = true;

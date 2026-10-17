@@ -6,6 +6,7 @@ pub(crate) struct GpuMeshResource {
     pub(crate) vertex_buffer: wgpu::Buffer,
     pub(crate) index_buffer: wgpu::Buffer,
     pub(crate) index_count: u32,
+    pub(crate) source_admission: Option<crate::graphics::VirtualGeometryPrimitiveAdmission>,
     pub(super) indirect_order_signature: u64,
     pub(crate) wire_segments: Vec<[Vec3; 2]>,
     pub(crate) bounds_min: Vec3,
@@ -13,6 +14,12 @@ pub(crate) struct GpuMeshResource {
 }
 
 impl GpuMeshResource {
+    pub(crate) fn source_admission(
+        &self,
+    ) -> Option<&crate::graphics::VirtualGeometryPrimitiveAdmission> {
+        self.source_admission.as_ref()
+    }
+
     pub(crate) const fn indirect_order_signature(&self) -> u64 {
         self.indirect_order_signature
     }

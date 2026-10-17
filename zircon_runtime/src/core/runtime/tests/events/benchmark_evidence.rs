@@ -252,11 +252,12 @@ fn event_bus_runtime07_unsubscribe_teardown_evidence() {
             )
             .expect("bounded subscription");
         for sequence in 0..QUEUED_EVENTS {
-            bus.try_publish(EngineEvent {
-                topic: "runtime.teardown".to_string(),
-                payload: serde_json::json!({ "sequence": sequence }),
-            })
-            .expect("event admission");
+            let _ = bus
+                .try_publish(EngineEvent {
+                    topic: "runtime.teardown".to_string(),
+                    payload: serde_json::json!({ "sequence": sequence }),
+                })
+                .expect("event admission");
         }
         assert_eq!(bus.diagnostic_report().queued, QUEUED_EVENTS as u64);
 
@@ -307,11 +308,12 @@ fn event_bus_runtime07_receive_diagnostics_evidence() {
                 )
                 .expect("bounded subscription");
             for sample in 0..WARMUP_SAMPLES + MEASURED_SAMPLES {
-                bus.try_publish(EngineEvent {
-                    topic: "runtime.receive".to_string(),
-                    payload: serde_json::json!({ "sample": sample }),
-                })
-                .expect("event admission");
+                let _ = bus
+                    .try_publish(EngineEvent {
+                        topic: "runtime.receive".to_string(),
+                        payload: serde_json::json!({ "sample": sample }),
+                    })
+                    .expect("event admission");
                 let started = Instant::now();
                 let event = events.recv().expect("queued event must be received");
                 let elapsed = started.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64;
@@ -365,7 +367,7 @@ fn publish_samples(
             payload: serde_json::json!({ "blob": "x".repeat(payload_bytes) }),
         };
         let started = Instant::now();
-        bus.try_publish(event).expect("event admission");
+        let _ = bus.try_publish(event).expect("event admission");
         let elapsed = started.elapsed();
         let first = subscriptions[0].recv().unwrap();
         assert_eq!(
@@ -387,14 +389,15 @@ fn publish_samples(
 
 fn publish_pressure_events(bus: &EventBus, start: usize, count: usize, payload_bytes: usize) {
     for sequence in start..start + count {
-        bus.try_publish(EngineEvent {
-            topic: "runtime.pressure".to_string(),
-            payload: serde_json::json!({
-                "sequence": sequence,
-                "blob": "x".repeat(payload_bytes),
-            }),
-        })
-        .expect("event admission");
+        let _ = bus
+            .try_publish(EngineEvent {
+                topic: "runtime.pressure".to_string(),
+                payload: serde_json::json!({
+                    "sequence": sequence,
+                    "blob": "x".repeat(payload_bytes),
+                }),
+            })
+            .expect("event admission");
     }
 }
 
@@ -599,11 +602,12 @@ fn runtime02_admission_v2_contract_performance_evidence() {
             )
             .unwrap();
         let rss_before = current_process_rss_bytes();
-        bus.try_publish(EngineEvent {
-            topic: "runtime.admission.held".into(),
-            payload: serde_json::json!({"blob": "x".repeat(PAYLOAD_BYTES)}),
-        })
-        .unwrap();
+        let _ = bus
+            .try_publish(EngineEvent {
+                topic: "runtime.admission.held".into(),
+                payload: serde_json::json!({"blob": "x".repeat(PAYLOAD_BYTES)}),
+            })
+            .unwrap();
         let queued = bus.retention_snapshot();
         let event = subscription.recv().unwrap();
         let clone = event.clone();

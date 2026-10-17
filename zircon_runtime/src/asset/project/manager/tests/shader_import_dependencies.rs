@@ -63,7 +63,8 @@ fn optimization_wave_20260824i_runtime91_shader_import_provider_dedup_preserves_
 
 #[test]
 fn optimization_wave_20260824i_runtime91_shader_import_provider_dedup_uses_id_admission() {
-    const SOURCE: &str = include_str!("../../../manager/scan_and_import/shader_import_dependencies.rs");
+    const SOURCE: &str =
+        include_str!("../../../manager/scan_and_import/shader_import_dependencies.rs");
     let production = SOURCE.split("#[cfg(test)]").next().unwrap();
 
     assert!(production.contains("seen_provider_ids.insert(provider_id)"));

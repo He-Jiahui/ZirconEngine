@@ -14,27 +14,27 @@ fn runtime_15_camera_controller_output_uses_owner_name() {
         &camera_controller_dir.join("controller_output.rs"),
         "camera controller output owner should be readable",
     );
-    let runtime_15_plan = read_repo_text(
+    let _runtime_15_plan = read_repo_text(
         manifest_root,
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(
+    let _runtime_index = read_repo_text(
         manifest_root,
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let review_findings = read_repo_text(
+    let _review_findings = read_repo_text(
         manifest_root,
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
-    let structure_convention = read_repo_text(
+    let _structure_convention = read_repo_text(
         manifest_root,
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
-    let module_doc = read_repo_text(
+    let _module_doc = read_repo_text(
         manifest_root,
         "docs/zircon_runtime/structure/module-convention.md",
     );
-    let camera_controller_doc = read_repo_text(
+    let _camera_controller_doc = read_repo_text(
         manifest_root,
         "docs/zircon_runtime/core/framework/camera_controller.md",
     );

@@ -25,6 +25,7 @@ from tools.dev.jenkins_validate import (
 
 _BASE_HEAD = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
 _TEST_ID = re.compile(r"[A-Za-z_][A-Za-z0-9_:]{0,511}\Z")
+_WORKTREE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,159}\Z")
 _UNKNOWN = frozenset({"delivery_unknown", "protocol_delivery_unknown"})
 
 
@@ -61,7 +62,7 @@ def _require_source_root_capability(driver):
     checksum = driver.get("digest")
     if (not isinstance(files, dict) or type(manifest.get("schemaVersion")) is not int
             or manifest["schemaVersion"] != 1 or manifest.get("driverDigest") != checksum
-            or digest({"schemaVersion": 1, "files": files}) != checksum):
+            or digest({"schemaVersion": 1, "files": files}) != checksum or driver_root.name != checksum):
         raise EntryError("driver_integrity_failed", "Selected driver manifest identity differs")
     relative = "tools/jenkins/current_source.py"
     entry = files.get(relative)
@@ -87,8 +88,8 @@ def _require_source_root_capability(driver):
             or not isinstance(assignments[0].targets[0], ast.Name)
             or not isinstance(assignments[0].value, ast.Constant)
             or type(assignments[0].value.value) is not str
-            or assignments[0].value.value != "same-repository-worktree-v1"):
-        raise EntryError("source_root_unsupported", "Selected driver does not support same-repository worktree inputs")
+            or assignments[0].value.value != "managed-worktree-reference-v1"):
+        raise EntryError("source_root_unsupported", "Selected driver does not support verified managed worktree references")
 
 
 def _terminal_registration(args, folder, prior, intent):
@@ -160,6 +161,12 @@ def _registered_reference(root, ref, prior, intent):
             expected = {**intent, "schemaVersion": 1, "kind": "current-source", "repositoryRoot": str(root),
                         "runtimeOperationId": prior["runtimeOperationId"],
                         "authorizationSnapshot": recorded.get("authorizationSnapshot") if isinstance(recorded, dict) else None}
+            binding = _source_binding_values(intent.get("sourceRoot"), intent.get("worktreeId"), root)
+            if binding:
+                proof = recorded.get("managedWorktree") if isinstance(recorded, dict) else None
+                if not isinstance(proof, dict) or proof.get("worktreeId") != binding["worktreeId"]:
+                    raise EntryError("registration_reference_mismatch", "Registered managed source proof differs")
+                expected["managedWorktree"] = proof
             if (not isinstance(recorded, dict) or not HEX64.fullmatch(str(recorded.get("authorizationSnapshot", "")))
                     or digest(recorded) != ref or recorded != expected or source_request is None
                     or json.loads(source_request[0]) != {"currentSourceRef": ref}):
@@ -186,7 +193,22 @@ def _source_root_value(value, root):
     if not path.is_absolute():
         path = root / path
     source = path.absolute()
+    plain_path(source)
+    if source.resolve() != source:
+        raise EntryError("source_root_invalid", "Use the physical managed source root")
     return None if source == root else str(source)
+
+
+def _source_binding_values(value, worktree_id, root):
+    source = _source_root_value(value, root)
+    if source is None and worktree_id is None:
+        return {}
+    if (source is None or not isinstance(worktree_id, str)
+            or not _WORKTREE_ID.fullmatch(worktree_id) or worktree_id.endswith(".")):
+        raise EntryError("worktree_binding_required", "Pair --source-root with --worktree-id")
+    if Path(source) != root / ".jenkins/worktrees" / worktree_id:
+        raise EntryError("source_root_invalid", "Source must name the exact direct managed worktree child")
+    return {"sourceRoot": source, "worktreeId": worktree_id}
 
 
 def _path_input(args, root, name):
@@ -277,9 +299,7 @@ def intent_payload(args, root, identity):
         "coverage": {"template": "editor_product_" + (args.profile or "development"),
                      "requiredTests": sorted(tests), "noDefaultFeatures": True},
     }
-    source_root = _source_root_value(args.source_root, root)
-    if source_root is not None:
-        payload["sourceRoot"] = source_root
+    payload.update(_source_binding_values(args.source_root, args.worktree_id, root))
     return payload
 
 
@@ -314,14 +334,17 @@ def _execute_locked(args, root, driver, identity, folder, *, call):
             raise EntryError("source_build_root_mismatch", "Retain the saved physical build root")
         if args.action == "resume-registration":
             return _resume_registration(args, root, driver, folder, prior, call=call)
-        if args.source_root is not None:
-            intent_path = folder / "intent.json"
-            if not intent_path.is_file():
-                raise EntryError("source_root_binding_unknown", "Saved request intent is required to compare source-root binding")
-            saved_intent = read_json(intent_path, "saved editor intent")
-            requested_root = _source_root_value(args.source_root, root)
-            if not isinstance(saved_intent, dict) or saved_intent.get("sourceRoot") != requested_root:
-                raise EntryError("source_root_binding_conflict", "A replay cannot change the saved source-root binding")
+        intent_path = folder / "intent.json"
+        saved_intent = read_json(intent_path, "saved editor intent") if intent_path.is_file() else None
+        if args.source_root is not None or args.worktree_id is not None:
+            if not isinstance(saved_intent, dict):
+                raise EntryError("source_root_binding_unknown", "Saved intent is required to compare the managed source binding")
+            requested = _source_binding_values(args.source_root, args.worktree_id, root)
+            if {key: saved_intent[key] for key in ("sourceRoot", "worktreeId") if key in saved_intent} != requested:
+                raise EntryError("source_root_binding_conflict", "A replay cannot change the saved managed source binding")
+        if isinstance(saved_intent, dict) and (saved_intent.get("sourceRoot") or saved_intent.get("worktreeId") is not None):
+            _source_binding_values(saved_intent.get("sourceRoot"), saved_intent.get("worktreeId"), root)
+            _require_source_root_capability(driver)
         if args.current_hashes:
             save_json(folder / "intent.json", intent_payload(args, root, identity), immutable=True)
         # Replays observe the same request. They never perform a second admission.
@@ -329,7 +352,7 @@ def _execute_locked(args, root, driver, identity, folder, *, call):
     if args.action == "resume-registration":
         raise EntryError("registration_recovery_missing", "Recovery requires the existing original lifecycle and intent")
     if args.action == "query":
-        if args.source_root is not None:
+        if args.source_root is not None or args.worktree_id is not None:
             raise EntryError("source_root_action_conflict", "--source-root is a registration input and cannot be used by query")
         saved = {"identity": identity, "buildRoot": build_root(root, args.build_root),
                  "runtimeOperationId": driver["runtimeOperationId"]}
@@ -402,7 +425,7 @@ def _submit_registered(args, root, driver, folder, saved, payload, ref, *, call)
 def _resume_registration(args, root, driver, folder, prior, *, call):
     if (args.current_hashes or args.base_head or args.profile or args.required_test or args.owned_path
             or args.untracked_path or args.owned_paths or args.untracked_paths or args.external_inputs
-            or args.current_source_ref or args.source_root is not None):
+            or args.current_source_ref or args.source_root is not None or args.worktree_id is not None):
         raise EntryError("registration_recovery_input_conflict", "Recovery uses only the saved immutable intent; source, coverage and reference replacements are forbidden")
     if prior.get("phase") != "registration_unknown" or prior.get("reasonCode") not in _UNKNOWN:
         raise EntryError("registration_recovery_phase", "Only a reconciled unknown registration can be resumed")
@@ -410,7 +433,7 @@ def _resume_registration(args, root, driver, folder, prior, *, call):
     intent = read_json(folder / "intent.json", "original immutable intent")
     if not isinstance(intent, dict) or intent.get("identity") != prior["identity"] or intent.get("buildRoot") != prior["buildRoot"]:
         raise EntryError("registration_recovery_input_conflict", "Saved intent and lifecycle identity differ")
-    if intent.get("sourceRoot") not in (None, ""):
+    if _source_binding_values(intent.get("sourceRoot"), intent.get("worktreeId"), root):
         _require_source_root_capability(driver)
     terminal = _terminal_registration(args, folder, prior, intent)
     recovery_id = uuid.uuid4().hex
@@ -490,7 +513,8 @@ def parser():
     result.add_argument("--profile", choices=("development", "shipping"))
     result.add_argument("--required-test", action="append", default=[])
     result.add_argument("--build-root")
-    result.add_argument("--source-root", help="Separate same-repository worktree supplying current source bytes; defaults to the canonical checkout")
+    result.add_argument("--source-root", help="Physical managed worktree supplying source bytes; pair with --worktree-id")
+    result.add_argument("--worktree-id", help="Exact registered managed worktree ID for --source-root")
     result.add_argument("--current-source-ref")
     result.add_argument("--timeout", type=float, default=60)
     result.add_argument("--registration-timeout", type=float, help="Separate bounded registration budget, at most 900 seconds; defaults to --timeout")

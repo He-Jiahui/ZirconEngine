@@ -53,7 +53,7 @@ fn validate_post_process_construction<T>(
     // This scope runs once during renderer initialization; frame recording never waits on it.
     let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
     let resources = construct();
-    match pollster::block_on(error_scope.pop()) {
+    match crate::graphics::validation_scope::finish(device, error_scope) {
         Some(error) => Err(GraphicsError::WgpuValidation(format!(
             "post-process {operation} construction: {error}"
         ))),

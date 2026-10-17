@@ -113,7 +113,8 @@ fn shared_host_page_close_receipt_dispatches_close_view_through_runtime_dispatch
     );
     assert!(harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .iter()
         .all(|instance| instance.instance_id != opened_instance));
     assert_eq!(

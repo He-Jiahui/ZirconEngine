@@ -2,8 +2,10 @@ use super::super::super::super::data::{FrameRect, WelcomePaneLayoutData};
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_primitives::draw_rounded_box_clipped;
 use super::super::super::super::paint_theme::current_host_metrics;
+#[cfg(test)]
 use super::super::super::SEPARATOR;
 use super::super::layout::translated_welcome_frame;
+#[cfg(test)]
 use super::super::style::WELCOME_SURFACE_INSET;
 
 pub(super) fn recent_projects_list_frame(
@@ -34,8 +36,8 @@ pub(super) fn draw_recent_projects_list_surface(
         frame,
         list.clone(),
         Some(clip),
-        WELCOME_SURFACE_INSET,
-        SEPARATOR,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().surface_inset,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().border,
         metrics.border_width,
         metrics.radius_control,
     );

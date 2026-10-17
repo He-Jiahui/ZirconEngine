@@ -1,5 +1,5 @@
 use crate::service::{error::ServiceError, identity::Principal};
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{params, Connection, OptionalExtension};
 
 pub(super) fn authorize(
     connection: &Connection,

@@ -23,7 +23,8 @@ fn optimization_batch_20260828ia_editor_text_focus_borrows_target_and_moves_cont
 
 #[test]
 fn optimization_batch_20260828ia_editor_text_focus_dispatch_has_no_string_clone() {
-    let source = include_str!("../../../../../retained/contract/window/text_input/edit/dispatch.rs");
+    let source =
+        include_str!("../../../../../retained/contract/window/text_input/edit/dispatch.rs");
     let dispatch = source
         .split("pub(super) fn dispatch_text_focus_value")
         .nth(1)

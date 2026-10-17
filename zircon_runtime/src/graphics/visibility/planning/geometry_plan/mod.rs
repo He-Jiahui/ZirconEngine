@@ -8,3 +8,5 @@ mod ordering;
 mod visibility;
 
 pub(crate) use build::build_virtual_geometry_plan;
+
+pub(crate) use ordering::cluster_ids_for_stable_instance_key;

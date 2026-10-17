@@ -1,3 +1,6 @@
+//! 轨道间距、夹取查询、两种书写方向和极值平移的局部几何测试。
+//! 使用固定小预算构造指标，不覆盖完整单元布局或发布链。
+
 use super::{translate_frame, TableAxes, TrackMetrics, UiFrame};
 use crate::text::TextLayoutGeometryBudget;
 

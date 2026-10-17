@@ -49,8 +49,8 @@ children = [{ node = "filter" }, { node = "search" }]
 [nodes.filter]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchSceneFilter"
-props = { icon = "zircon_editor_shell/scene/filter.svg", label = "Filters", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
-layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { layout_min_height = "$editor.control.height.dense", icon = "zircon_editor_shell/scene/filter.svg", label = "Filters", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Stretch" } }
 events = [{ id = "Hierarchy/OpenFilter", event = "Click", route = "workbench.hierarchy.open_filter" }]
 
 [nodes.search]

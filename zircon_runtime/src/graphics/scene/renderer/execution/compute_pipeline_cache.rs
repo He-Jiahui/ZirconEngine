@@ -531,7 +531,7 @@ impl ComputePipelineCache {
                     "shader_pipeline",
                     "compute_pipeline_error_scope_pop"
                 );
-                pollster::block_on(error_scope.pop()).map(|error| error.to_string())
+                crate::graphics::validation_scope::finish(device, error_scope)
             };
             if let Some(validation_error) = validation_error {
                 let error = format!(

@@ -74,9 +74,9 @@ fn texture_asset_importer_package_manifest_declares_dist_contract() {
         dist_module.crate_name,
         TEXTURE_ASSET_IMPORTER_DIST_CRATE_NAME
     );
-    assert!(dist_module.target_modes.contains(
-        &zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime
-    ));
+    assert!(dist_module
+        .target_modes
+        .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime));
     assert!(dist_module
         .target_modes
         .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost));

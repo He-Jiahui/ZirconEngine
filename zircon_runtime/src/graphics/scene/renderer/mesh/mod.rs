@@ -24,7 +24,8 @@ pub(crate) use build_mesh_draws::{
 pub(crate) use material_pipeline_publication_coordinator::{
     coordinate_material_pipeline_publications, MaterialPipelinePublicationStats,
 };
-pub(crate) use mesh_draw::MeshDraw;
+pub(crate) use mesh_draw::indexed_plan::{INDEXED_ARGS_RESOURCE, INDEXED_CAPACITY};
+pub(crate) use mesh_draw::{MeshDraw, VirtualGeometryIndexedPlan, VirtualGeometryIndexedRunRef};
 pub(crate) use mesh_pass::{
     build_environment_capture_command_buffers, build_hit_proxy_command_list,
     build_mesh_pass_command_buffers, build_mesh_pass_command_buffers_cached,

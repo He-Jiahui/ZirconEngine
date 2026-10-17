@@ -1,6 +1,6 @@
 use super::{
     error_frame, ready_frame_evidence_metadata_path, startup_frame, write_ready_frame_evidence,
-    write_ready_frame_png, ReadyFrameEvidenceMetadata,
+    write_ready_frame_png, ReadyFrameEvidenceMetadata, ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE,
 };
 use std::time::Duration;
 use zircon_runtime::core::framework::render::{
@@ -136,8 +136,7 @@ fn ready_frame_evidence_writes_png_with_provenance_sidecar() {
             Duration::from_millis(8),
         scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization:
             Duration::from_millis(7),
-        scene_startup_renderer_environment_brdf_lut_texture_upload_submission:
-            Duration::from_millis(1),
+        scene_startup_renderer_system_texture_upload_batch_submission: Duration::from_millis(1),
         scene_startup_renderer_deferred_initialization: Duration::from_millis(1_600),
         scene_startup_renderer_deferred_standard_pipeline: Duration::from_millis(987),
         scene_startup_resource_streamer_initialization: Duration::from_millis(1_597),
@@ -166,12 +165,12 @@ fn ready_frame_evidence_writes_png_with_provenance_sidecar() {
         metadata_path,
         ready_frame_evidence_metadata_path(&path).unwrap()
     );
-    assert!(metadata_text.contains("schema=zircon_shader_pbr_viewer_ready_frame_evidence_v18"));
+    assert!(metadata_text.contains("schema=zircon_shader_pbr_viewer_ready_frame_evidence_v19"));
     assert!(metadata_text
         .contains("evidence_identity_schema=zircon_shader_pbr_viewer_evidence_identity_v1"));
     assert!(metadata_text.contains("evidence_run_id=shader-pbr-test-ready-frame"));
     assert!(metadata_text
-        .contains("evidence_validation_policy=zircon_shader_pbr_viewer_ready_frame_v18"));
+        .contains("evidence_validation_policy=zircon_shader_pbr_viewer_ready_frame_v19"));
     assert!(metadata_text.contains("material_fixture=metal-mirror"));
     assert!(
         metadata_text.contains("required_material_base_pipeline_kind=environment-only-pbr-base")
@@ -250,9 +249,8 @@ fn ready_frame_evidence_writes_png_with_provenance_sidecar() {
     assert!(metadata_text.contains(
         "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization_ns=7000000"
     ));
-    assert!(metadata_text.contains(
-        "scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns=1000000"
-    ));
+    assert!(metadata_text
+        .contains("scene_startup_renderer_system_texture_upload_batch_submission_ns=1000000"));
     assert!(metadata_text.contains("scene_startup_renderer_deferred_initialization_ns=1600000000"));
     assert!(
         metadata_text.contains("scene_startup_renderer_deferred_standard_pipeline_ns=987000000")
@@ -345,7 +343,7 @@ fn ready_frame_evidence_rejects_invalid_pixels_without_leaving_a_sidecar() {
         scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized: false,
         scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait: Duration::ZERO,
         scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization: Duration::ZERO,
-        scene_startup_renderer_environment_brdf_lut_texture_upload_submission: Duration::ZERO,
+        scene_startup_renderer_system_texture_upload_batch_submission: Duration::ZERO,
         scene_startup_renderer_deferred_initialization: Duration::ZERO,
         scene_startup_renderer_deferred_standard_pipeline: Duration::ZERO,
         scene_startup_resource_streamer_initialization: Duration::ZERO,
@@ -442,7 +440,7 @@ fn ready_frame_evidence_removes_png_when_sidecar_write_fails() {
         scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized: false,
         scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait: Duration::ZERO,
         scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization: Duration::ZERO,
-        scene_startup_renderer_environment_brdf_lut_texture_upload_submission: Duration::ZERO,
+        scene_startup_renderer_system_texture_upload_batch_submission: Duration::ZERO,
         scene_startup_renderer_deferred_initialization: Duration::ZERO,
         scene_startup_renderer_deferred_standard_pipeline: Duration::ZERO,
         scene_startup_resource_streamer_initialization: Duration::ZERO,

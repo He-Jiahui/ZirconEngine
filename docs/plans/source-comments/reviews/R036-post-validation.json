@@ -1,0 +1,874 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R036",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T15:02:07.568620+00:00",
+  "status": "scoped-static-validation-passed-with-preexisting-source-guard-failure-retained",
+  "files": {
+    "zircon_runtime_interface/src/runtime_api/frame/frame_demand.rs": {
+      "before_sha256": "5b0ad1c3bbb458f47b81407232dc6146c90583e63ec0e873bdbe4c0c9e0ce8a0",
+      "reviewed_sha256": "5b0ad1c3bbb458f47b81407232dc6146c90583e63ec0e873bdbe4c0c9e0ce8a0",
+      "bytes": 4926,
+      "lines": 115,
+      "crlf_count": 0,
+      "lf_only_count": 115
+    },
+    "zircon_runtime_interface/src/runtime_api/frame/frame_shape.rs": {
+      "before_sha256": "6e1ba7d2694eb1b06a57731edfc543ddf686350175195242f75e5e10669aeca4",
+      "reviewed_sha256": "6e1ba7d2694eb1b06a57731edfc543ddf686350175195242f75e5e10669aeca4",
+      "bytes": 4976,
+      "lines": 116,
+      "crlf_count": 0,
+      "lf_only_count": 116
+    },
+    "zircon_runtime_interface/src/runtime_api/frame/highlight_set.rs": {
+      "before_sha256": "4493c14cdd3971b0c93583c192ef478435ad43c3b640a569bf3fac97fd87f496",
+      "reviewed_sha256": "4493c14cdd3971b0c93583c192ef478435ad43c3b640a569bf3fac97fd87f496",
+      "bytes": 8142,
+      "lines": 181,
+      "crlf_count": 0,
+      "lf_only_count": 181
+    },
+    "zircon_runtime_interface/src/runtime_api/frame/mod.rs": {
+      "before_sha256": "c1926a71d8dca233939b8c8dc33bcc4c89f81d6fb42a130d05dd3fbc54bad7ac",
+      "reviewed_sha256": "c1926a71d8dca233939b8c8dc33bcc4c89f81d6fb42a130d05dd3fbc54bad7ac",
+      "bytes": 1758,
+      "lines": 38,
+      "crlf_count": 0,
+      "lf_only_count": 38
+    },
+    "zircon_runtime_interface/src/runtime_api/frame/tests/frame_shape_tests.rs": {
+      "before_sha256": "69da7606265d1728ac0b4c279b6e1a79596b7411cb67e6d497bbb75a36ce3beb",
+      "reviewed_sha256": "69da7606265d1728ac0b4c279b6e1a79596b7411cb67e6d497bbb75a36ce3beb",
+      "bytes": 2428,
+      "lines": 69,
+      "crlf_count": 0,
+      "lf_only_count": 69
+    },
+    "zircon_runtime_interface/src/runtime_api/frame/tests/highlight_set.rs": {
+      "before_sha256": "25b020087795984f99e77d80c2553c9f7bd6d0b00f55157ff11b8aaf9d86ef9c",
+      "reviewed_sha256": "25b020087795984f99e77d80c2553c9f7bd6d0b00f55157ff11b8aaf9d86ef9c",
+      "bytes": 1718,
+      "lines": 40,
+      "crlf_count": 0,
+      "lf_only_count": 40
+    },
+    "zircon_runtime_interface/src/runtime_api/frame/tests/viewport_pick.rs": {
+      "before_sha256": "00959a3df8433295e964953cb4e182ac589c89aeac3e587967c4e69dd39391c5",
+      "reviewed_sha256": "00959a3df8433295e964953cb4e182ac589c89aeac3e587967c4e69dd39391c5",
+      "bytes": 3453,
+      "lines": 108,
+      "crlf_count": 0,
+      "lf_only_count": 108
+    },
+    "zircon_runtime_interface/src/runtime_api/frame/viewport_pick.rs": {
+      "before_sha256": "e35df171ea1db2b02e8db760b2a99a4e64378c72304507b8e649c2e3701d8d4b",
+      "reviewed_sha256": "e35df171ea1db2b02e8db760b2a99a4e64378c72304507b8e649c2e3701d8d4b",
+      "bytes": 19615,
+      "lines": 490,
+      "crlf_count": 0,
+      "lf_only_count": 490
+    },
+    "zircon_runtime_interface/src/runtime_api/host/clipboard.rs": {
+      "before_sha256": "52d6fe80b1275b5943e943189b174eb0e4c3a432009dc6f01bd02358fe5ece5e",
+      "reviewed_sha256": "52d6fe80b1275b5943e943189b174eb0e4c3a432009dc6f01bd02358fe5ece5e",
+      "bytes": 4933,
+      "lines": 112,
+      "crlf_count": 0,
+      "lf_only_count": 112
+    },
+    "zircon_runtime_interface/src/runtime_api/host/host_requests.rs": {
+      "before_sha256": "4f854aeb736540877783854cae64ef05e62247ac1067bab3f28355d6aaff9cb1",
+      "reviewed_sha256": "a3f6a54446b92fe7c882d7fb1bc472ed1c9cb3c4b4c4bc26203a26c8a0f3e349",
+      "bytes": 27116,
+      "lines": 634,
+      "crlf_count": 0,
+      "lf_only_count": 634
+    },
+    "zircon_runtime_interface/src/runtime_api/host/mod.rs": {
+      "before_sha256": "27c9210bd9555a4be377a13046b7799cec3c4802dc3240a308dd678ba1fa9145",
+      "reviewed_sha256": "27c9210bd9555a4be377a13046b7799cec3c4802dc3240a308dd678ba1fa9145",
+      "bytes": 1427,
+      "lines": 28,
+      "crlf_count": 0,
+      "lf_only_count": 28
+    },
+    "zircon_runtime_interface/src/runtime_api/host/tests/clipboard.rs": {
+      "before_sha256": "586351589bbd23da305d19ad71e883da080635bf408c4c12f119aef4afa4b6fc",
+      "reviewed_sha256": "586351589bbd23da305d19ad71e883da080635bf408c4c12f119aef4afa4b6fc",
+      "bytes": 3075,
+      "lines": 80,
+      "crlf_count": 0,
+      "lf_only_count": 80
+    },
+    "zircon_runtime_interface/src/runtime_api/host/tests/host_requests.rs": {
+      "before_sha256": "c2fb76c4b06bbb10ffc090f18b2636bb9739839043bc654ef1e2ee6f3fd51cc0",
+      "reviewed_sha256": "c2fb76c4b06bbb10ffc090f18b2636bb9739839043bc654ef1e2ee6f3fd51cc0",
+      "bytes": 3319,
+      "lines": 105,
+      "crlf_count": 0,
+      "lf_only_count": 105
+    },
+    "zircon_runtime_interface/src/runtime_api/host/tests/ui_action.rs": {
+      "before_sha256": "0db8cb68621daf5d696ea6090fdf4216ac0fba98f3bf2d7c53c083aa78760635",
+      "reviewed_sha256": "0db8cb68621daf5d696ea6090fdf4216ac0fba98f3bf2d7c53c083aa78760635",
+      "bytes": 1312,
+      "lines": 36,
+      "crlf_count": 0,
+      "lf_only_count": 36
+    },
+    "zircon_runtime_interface/src/runtime_api/host/tests/ui_host_request.rs": {
+      "before_sha256": "acc269748fd8c10b513592dad1352c7d3899a43dca044d35a30b96abbd97565b",
+      "reviewed_sha256": "acc269748fd8c10b513592dad1352c7d3899a43dca044d35a30b96abbd97565b",
+      "bytes": 3504,
+      "lines": 96,
+      "crlf_count": 0,
+      "lf_only_count": 96
+    },
+    "zircon_runtime_interface/src/runtime_api/host/ui_action.rs": {
+      "before_sha256": "bce0953dec04cdd5980ab6c80790d4e2475df7aa50f3acfcab7cb06343f2435e",
+      "reviewed_sha256": "bce0953dec04cdd5980ab6c80790d4e2475df7aa50f3acfcab7cb06343f2435e",
+      "bytes": 5410,
+      "lines": 113,
+      "crlf_count": 0,
+      "lf_only_count": 113
+    },
+    "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs": {
+      "before_sha256": "7203bb4f680b8dfc902df09ce3061cff56a94de9323477b8b322b9cd1f8ce055",
+      "reviewed_sha256": "7203bb4f680b8dfc902df09ce3061cff56a94de9323477b8b322b9cd1f8ce055",
+      "bytes": 10835,
+      "lines": 252,
+      "crlf_count": 0,
+      "lf_only_count": 252
+    },
+    "zircon_runtime_interface/src/tests/surface_frame_contracts.rs": {
+      "before_sha256": "632591e4f6b9f02954e9a4e678bb2518778d6f49ee386bc84e74e9fd0a77390f",
+      "reviewed_sha256": "50e3ec21852cd471d4cf2aa89a02cd9c2fa8724ace59e46ea529fd3be55772a0",
+      "bytes": 1125,
+      "lines": 33,
+      "crlf_count": 0,
+      "lf_only_count": 33
+    }
+  },
+  "root_actual_validation": {
+    "receipt_chain": [
+      "8af0a2",
+      "native13267",
+      "e9c62e exit0"
+    ],
+    "checks": [
+      "18current pins/18exact inverse/normalized Git baseline",
+      "179 bounded declaration names/spans reconciled",
+      "raw before/after source operand count vectors equal",
+      "exact scoped change guard and git diff --check passed",
+      "scoped/global staged empty"
+    ],
+    "new_metadata_writer": "This writer creates registered main/post only after all checks; no source/Git mutation."
+  },
+  "change_guard": {
+    "tool": "zircon-change-guard",
+    "version": 2,
+    "mode": "patch",
+    "status": "passed",
+    "input": {
+      "patchDigest": "9fa6965d9fccb2c2547d7b24bb205eae44fc70b1569f239d96869aa63880733f",
+      "base": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+      "files": [
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "zircon_runtime_interface/src/tests/surface_frame_contracts.rs"
+      ],
+      "declaredPaths": [
+        "zircon_runtime_interface/src/runtime_api/frame/frame_demand.rs",
+        "zircon_runtime_interface/src/runtime_api/frame/frame_shape.rs",
+        "zircon_runtime_interface/src/runtime_api/frame/highlight_set.rs",
+        "zircon_runtime_interface/src/runtime_api/frame/mod.rs",
+        "zircon_runtime_interface/src/runtime_api/frame/tests/frame_shape_tests.rs",
+        "zircon_runtime_interface/src/runtime_api/frame/tests/highlight_set.rs",
+        "zircon_runtime_interface/src/runtime_api/frame/tests/viewport_pick.rs",
+        "zircon_runtime_interface/src/runtime_api/frame/viewport_pick.rs",
+        "zircon_runtime_interface/src/runtime_api/host/clipboard.rs",
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "zircon_runtime_interface/src/runtime_api/host/mod.rs",
+        "zircon_runtime_interface/src/runtime_api/host/tests/clipboard.rs",
+        "zircon_runtime_interface/src/runtime_api/host/tests/host_requests.rs",
+        "zircon_runtime_interface/src/runtime_api/host/tests/ui_action.rs",
+        "zircon_runtime_interface/src/runtime_api/host/tests/ui_host_request.rs",
+        "zircon_runtime_interface/src/runtime_api/host/ui_action.rs",
+        "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs",
+        "zircon_runtime_interface/src/tests/surface_frame_contracts.rs"
+      ],
+      "writeGrantCheck": true,
+      "permissionRoot": "E:/Git/ZirconEngine",
+      "contributor": false
+    },
+    "summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "markers": {
+      "closed": [],
+      "opened": [],
+      "moved": []
+    },
+    "findings": [],
+    "suppressed": []
+  },
+  "root_actual_read_receipts": {
+    "formal_source": [
+      "85affe(partial0-470)",
+      "321a9f(recoverframe_shape70-116/highlight1-60)",
+      "76da8d(tail recovery frame_shape60-69/highlight60-76)",
+      "2bcf1a(470-910)",
+      "400d8f(910-1300)",
+      "ba27e4(1300-1720)",
+      "8236fe(1720-2140)",
+      "dd9679(2140-2646)"
+    ],
+    "current_context": [
+      "7084d5",
+      "d36969",
+      "074cad",
+      "ad5ef8",
+      "76a255",
+      "45e7fc",
+      "8961c9"
+    ],
+    "read_policy": "截断读只记partial；补读缺口后才认定全源已读。76da8d的巨大metadata输出截断，不作为完整metadata人工读证明。179声明/全源索引由独立校验核对。"
+  },
+  "source_string_contracts": {
+    "host_request": [
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "operand": "pub struct ZrRuntimeHostRequestBatchV1",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "a3f6a54446b92fe7c882d7fb1bc472ed1c9cb3c4b4c4bc26203a26c8a0f3e349",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "operand": "pub enum ZrRuntimeHostRequestV1",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "a3f6a54446b92fe7c882d7fb1bc472ed1c9cb3c4b4c4bc26203a26c8a0f3e349",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "operand": "Ime(ZrRuntimeImeHostRequestV1)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "a3f6a54446b92fe7c882d7fb1bc472ed1c9cb3c4b4c4bc26203a26c8a0f3e349",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "operand": "GamepadRumble(ZrRuntimeGamepadRumbleRequestV1)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "a3f6a54446b92fe7c882d7fb1bc472ed1c9cb3c4b4c4bc26203a26c8a0f3e349",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "operand": "Cursor(ZrRuntimeCursorHostRequestV1)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "a3f6a54446b92fe7c882d7fb1bc472ed1c9cb3c4b4c4bc26203a26c8a0f3e349",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "operand": "Clipboard(ZrRuntimeClipboardHostRequestV1)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "a3f6a54446b92fe7c882d7fb1bc472ed1c9cb3c4b4c4bc26203a26c8a0f3e349",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "operand": "UiAction(ZrRuntimeUiActionHostRequestV1)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "a3f6a54446b92fe7c882d7fb1bc472ed1c9cb3c4b4c4bc26203a26c8a0f3e349",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "operand": "UiHost(ZrRuntimeUiHostRequestV1)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "a3f6a54446b92fe7c882d7fb1bc472ed1c9cb3c4b4c4bc26203a26c8a0f3e349",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "operand": "pub struct ZrRuntimeImeHostRequestV1",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "a3f6a54446b92fe7c882d7fb1bc472ed1c9cb3c4b4c4bc26203a26c8a0f3e349",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "operand": "pub struct ZrRuntimeGamepadRumbleRequestV1",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "a3f6a54446b92fe7c882d7fb1bc472ed1c9cb3c4b4c4bc26203a26c8a0f3e349",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "operand": "pub struct ZrRuntimeCursorHostRequestV1",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "a3f6a54446b92fe7c882d7fb1bc472ed1c9cb3c4b4c4bc26203a26c8a0f3e349",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/clipboard.rs",
+        "operand": "pub struct ZrRuntimeClipboardHostRequestV1",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "52d6fe80b1275b5943e943189b174eb0e4c3a432009dc6f01bd02358fe5ece5e",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/ui_action.rs",
+        "operand": "pub struct ZrRuntimeUiActionHostRequestV1",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "bce0953dec04cdd5980ab6c80790d4e2475df7aa50f3acfcab7cb06343f2435e",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs",
+        "operand": "pub struct ZrRuntimeUiHostRequestV1",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "7203bb4f680b8dfc902df09ce3061cff56a94de9323477b8b322b9cd1f8ce055",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs",
+        "operand": "pub enum ZrRuntimeUiHostRequestKindV1",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "7203bb4f680b8dfc902df09ce3061cff56a94de9323477b8b322b9cd1f8ce055",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "operand": "runtime_host_request_batch_serializes_ime_requests",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "operand": "runtime_host_request_batch_serializes_gamepad_rumble_requests",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "operand": "runtime_host_request_batch_serializes_cursor_requests",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/host_requests.rs",
+        "operand": "pub(in crate::dynamic_api) fn runtime_ime_host_request",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "cb84dd06c26cd9fe5207d0a05bc4e1fdda2de54e10f9d176b23e729631b3f30d",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/host_requests.rs",
+        "operand": "pub(in crate::dynamic_api) fn runtime_gamepad_rumble_request",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "cb84dd06c26cd9fe5207d0a05bc4e1fdda2de54e10f9d176b23e729631b3f30d",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/host_requests.rs",
+        "operand": "pub(in crate::dynamic_api) fn runtime_cursor_host_request",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "cb84dd06c26cd9fe5207d0a05bc4e1fdda2de54e10f9d176b23e729631b3f30d",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/host_requests.rs",
+        "operand": "pub(in crate::dynamic_api) fn runtime_clipboard_host_request",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "cb84dd06c26cd9fe5207d0a05bc4e1fdda2de54e10f9d176b23e729631b3f30d",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/runtime_ui/action_requests.rs",
+        "operand": "pub(super) struct RuntimeUiActionRequestQueue",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "937fffcc95c3f12cdbde8d809d1c56186d6ffd57185f6491f7eb782ddc19727c",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/runtime_ui/host_requests.rs",
+        "operand": "pub(super) struct RuntimeUiHostRequestQueue",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "fc3d38ea0fa6ecb6480f2be9a5856496a54a7f68eb8266030517e3d56e70a6f7",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "operand": ".drain_ime_host_requests()",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "operand": ".drain_gamepad_rumble_requests()",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "operand": ".drain_cursor_host_requests()",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "operand": ".drain_clipboard_host_requests_into(&mut clipboard_requests)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "operand": ".drain_action_host_requests_into(&mut action_requests)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "operand": ".drain_ui_host_requests_into(&mut ui_host_requests)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "operand": ".map(ZrRuntimeHostRequestV1::ime)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "operand": ".map(ZrRuntimeHostRequestV1::gamepad_rumble)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "operand": ".map(ZrRuntimeHostRequestV1::cursor)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "operand": "ZrRuntimeHostRequestV1::clipboard(runtime_clipboard_host_request(",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "operand": ".map(ZrRuntimeHostRequestV1::ui_action)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+        "operand": ".map(ZrRuntimeHostRequestV1::ui_host)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
+        "operand": "host_request_batch_encodes_runtime_ime_requests",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "059d87c401cd2e4b4937cd450c14809397ca5582d5e259416335e0af7eef8813",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
+        "operand": "host_request_batch_encodes_gamepad_rumble_requests",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "059d87c401cd2e4b4937cd450c14809397ca5582d5e259416335e0af7eef8813",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
+        "operand": "host_request_batch_encodes_cursor_requests",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "059d87c401cd2e4b4937cd450c14809397ca5582d5e259416335e0af7eef8813",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
+        "operand": "host_request_batch_from_bytes(&output)",
+        "before_count": 3,
+        "after_count": 3,
+        "current_sha256": "059d87c401cd2e4b4937cd450c14809397ca5582d5e259416335e0af7eef8813",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "operand": "ZrRuntimeHostRequestV1::Ime(request)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "operand": "ZrRuntimeHostRequestV1::GamepadRumble(request)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "operand": "ZrRuntimeHostRequestV1::Cursor(request)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "operand": "ZrRuntimeHostRequestV1::Clipboard(request)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "operand": "ZrRuntimeHostRequestV1::UiAction(request)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "operand": "ZrRuntimeHostRequestV1::UiHost(request)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "operand": "apply_runtime_ime_host_request(window.as_ref(), request)",
+        "before_count": 0,
+        "after_count": 0,
+        "current_sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "operand": "apply_runtime_gamepad_rumble_request(request)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "operand": "apply_runtime_cursor_host_request(window.as_ref(), request)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "operand": "apply_runtime_clipboard_host_request(app, event_loop, request)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "operand": "report_unhandled_runtime_ui_action(app, request)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "operand": "report_unhandled_runtime_ui_host_request(app, request)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "operand": "ZrRuntimeCursorHostRequestKindV1::SetVisible",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "d1ec0c1cf534b5bf7c461a703f2d87e7b5f720d86667b55de0106b1ed115c416",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "operand": "window.set_cursor_visible(request.value)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "d1ec0c1cf534b5bf7c461a703f2d87e7b5f720d86667b55de0106b1ed115c416",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "operand": "ZrRuntimeCursorHostRequestKindV1::SetGrabMode",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "d1ec0c1cf534b5bf7c461a703f2d87e7b5f720d86667b55de0106b1ed115c416",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "operand": "set_cursor_grab(CursorGrabMode::Confined)",
+        "before_count": 2,
+        "after_count": 2,
+        "current_sha256": "d1ec0c1cf534b5bf7c461a703f2d87e7b5f720d86667b55de0106b1ed115c416",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "operand": "ZrRuntimeCursorHostRequestKindV1::SetHitTest",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "d1ec0c1cf534b5bf7c461a703f2d87e7b5f720d86667b55de0106b1ed115c416",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "operand": "set_cursor_hittest(request.value)",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "d1ec0c1cf534b5bf7c461a703f2d87e7b5f720d86667b55de0106b1ed115c416",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "operand": "ZrRuntimeCursorHostRequestKindV1::SetPosition",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "d1ec0c1cf534b5bf7c461a703f2d87e7b5f720d86667b55de0106b1ed115c416",
+        "new_comment_contribution": 0
+      },
+      {
+        "path": "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "operand": "set_cursor_position",
+        "before_count": 1,
+        "after_count": 1,
+        "current_sha256": "d1ec0c1cf534b5bf7c461a703f2d87e7b5f720d86667b55de0106b1ed115c416",
+        "new_comment_contribution": 0
+      }
+    ],
+    "host_predicates_before_pass": 59,
+    "host_predicates_after_pass": 59,
+    "scene_uri": [
+      {
+        "operand": "pub struct ZrRuntimeProjectSceneTransitionRequestV1",
+        "before_count": 1,
+        "after_count": 1,
+        "new_comment_contribution": 0
+      },
+      {
+        "operand": "pub request_id: u64",
+        "before_count": 2,
+        "after_count": 2,
+        "new_comment_contribution": 0
+      },
+      {
+        "operand": "pub scene_uri: String",
+        "before_count": 2,
+        "after_count": 2,
+        "new_comment_contribution": 0
+      },
+      {
+        "operand": "pub policy: ZrRuntimeProjectSceneTransitionPolicyV1",
+        "before_count": 1,
+        "after_count": 1,
+        "new_comment_contribution": 0
+      },
+      {
+        "operand": "pub enum ZrRuntimeProjectSceneTransitionPolicyV1",
+        "before_count": 1,
+        "after_count": 1,
+        "new_comment_contribution": 0
+      },
+      {
+        "operand": "pub fn try_new(",
+        "before_count": 1,
+        "after_count": 1,
+        "new_comment_contribution": 0
+      },
+      {
+        "operand": "validate_project_scene_uri",
+        "before_count": 2,
+        "after_count": 2,
+        "new_comment_contribution": 0
+      },
+      {
+        "operand": "strip_prefix(\"res://\")",
+        "before_count": 1,
+        "after_count": 1,
+        "new_comment_contribution": 0
+      },
+      {
+        "operand": "std::path::Path",
+        "before_count": 0,
+        "after_count": 0,
+        "new_comment_contribution": 0
+      },
+      {
+        "operand": "canonicalize(",
+        "before_count": 0,
+        "after_count": 0,
+        "new_comment_contribution": 0
+      },
+      {
+        "operand": "to_absolute",
+        "before_count": 0,
+        "after_count": 0,
+        "new_comment_contribution": 0
+      }
+    ],
+    "rust_test_execution": false
+  },
+  "reused_validation": {
+    "rustfmt": {
+      "status": "passing exact18 source-pinned child check reused",
+      "receipt": "R036 child cell11/chunk3ec89d exit0",
+      "command": "rustfmt --check --edition 2021 --config skip_children=true <exact18>",
+      "all_source_pins_reconciled": true
+    },
+    "no_repeat_rustfmt_needed": "All18 current raw hashes equal the frozen child that passed; no source was amended during parent review."
+  },
+  "child_evidence_amendments": [
+    {
+      "field": "callers_traits_registration_ffi exports.rs lines[37,53,163,205]",
+      "correction": "四个数字是离散锚点，不是连续跨度。表字段37,39,51-53；submit163-168/request170-176/poll178-184/cancel186-191/tick201-206；均已独立读当前源。"
+    },
+    {
+      "field": "session/ffi.rs [409,612]",
+      "correction": "highlight409-435；request437-467；poll469-497；cancel499-512；tick600-631，成功写出624-626。tick未承诺失败时初始化out；App/Editor先初始化自己的demand。"
+    },
+    {
+      "field": "block/object census",
+      "correction": "child179项含impl、module-doc和新增field，不是179个互斥连续块，也不独立列尽字段。主审补充实际声明起点、结构成员/变体、控制断言锚点及覆盖全部2646行的连续分块。"
+    },
+    {
+      "field": "test_contract descriptions",
+      "correction": "固定布局测试实际断言needs_drop和size_of上限，没有align_of。高亮两用例未测试null/空片。双零帧用例不等于分别测单零。secure fixture只有Null payload，generic三用例不是七kind穷举。主审结论按实际断言收窄，未改旧源码或固定child。"
+    },
+    {
+      "field": "shared host source guard",
+      "correction": "60项before/after均59通过；routing68的实际IME调用有native_candidate第三参数，预存needle只有两个参数。原始计数完全不变；不得称60通过或称Rust测试执行。"
+    }
+  ],
+  "final_diff_evidence": {
+    "command": [
+      "git",
+      "--no-optional-locks",
+      "diff",
+      "--no-ext-diff",
+      "--binary",
+      "--no-color",
+      "f28ba39a5095f4964c046ecc702778627f80cfd5",
+      "--",
+      "zircon_runtime_interface/src/runtime_api/frame/frame_demand.rs",
+      "zircon_runtime_interface/src/runtime_api/frame/frame_shape.rs",
+      "zircon_runtime_interface/src/runtime_api/frame/highlight_set.rs",
+      "zircon_runtime_interface/src/runtime_api/frame/mod.rs",
+      "zircon_runtime_interface/src/runtime_api/frame/tests/frame_shape_tests.rs",
+      "zircon_runtime_interface/src/runtime_api/frame/tests/highlight_set.rs",
+      "zircon_runtime_interface/src/runtime_api/frame/tests/viewport_pick.rs",
+      "zircon_runtime_interface/src/runtime_api/frame/viewport_pick.rs",
+      "zircon_runtime_interface/src/runtime_api/host/clipboard.rs",
+      "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+      "zircon_runtime_interface/src/runtime_api/host/mod.rs",
+      "zircon_runtime_interface/src/runtime_api/host/tests/clipboard.rs",
+      "zircon_runtime_interface/src/runtime_api/host/tests/host_requests.rs",
+      "zircon_runtime_interface/src/runtime_api/host/tests/ui_action.rs",
+      "zircon_runtime_interface/src/runtime_api/host/tests/ui_host_request.rs",
+      "zircon_runtime_interface/src/runtime_api/host/ui_action.rs",
+      "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs",
+      "zircon_runtime_interface/src/tests/surface_frame_contracts.rs"
+    ],
+    "patch_sha256": "9fa6965d9fccb2c2547d7b24bb205eae44fc70b1569f239d96869aa63880733f",
+    "bytes": 1629,
+    "added_lines": 4,
+    "removed_lines": 0,
+    "added_lines_are_comments": true,
+    "stderr": "warning: LF will be replaced by CRLF in zircon_runtime_interface/src/runtime_api/host/host_requests.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime_interface/src/tests/surface_frame_contracts.rs.\nThe file will have its original line endings in your working directory\n"
+  },
+  "rejected_readonly_validator_attempts": [
+    {
+      "receipt": "658a74 exit1",
+      "phase": "planned artifact state literal assertion",
+      "effect": "before main/post/source/Git/global writes; registry uses planned-before-creation; corrected after 67b61e readback"
+    }
+  ],
+  "partial_metadata_inspection": "76da8d output truncated; not a full read or passing validator. Exact child JSON is parsed and pins/179 entries reconciled separately.",
+  "Rust_tests_or_builds_run": false,
+  "managed_coordinator_validation": "pending actual coordinator receipt; local static review is separate",
+  "formal_acceptance": false,
+  "coordinator_commit": null
+}

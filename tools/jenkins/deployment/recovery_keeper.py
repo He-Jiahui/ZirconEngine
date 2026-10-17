@@ -228,29 +228,47 @@ def _owned_upgrade_marker(state, document):
     if document.get("kind") != OWNED_UPGRADE_RELEASE_KIND:
         _require(marker is None, "Owned transfer requires its distinct reviewed release kind")
         return None
-    if isinstance(marker, dict) and marker.get("variant") == "external-native-stop":
-        _require(set(marker) == {"variant", "originalBlockedDescriptor", "committedCommand", "externalNativeStop", "keeperRetirement"}
+    from .owned_upgrade import _is_external, _transfer_keys, UNKNOWN_EXTERNAL_VARIANT
+    if isinstance(marker, dict) and _is_external(marker):
+        unknown = marker["variant"] == UNKNOWN_EXTERNAL_VARIANT
+        _, command_key, _ = _transfer_keys(marker)
+        expected = {"variant", "originalBlockedDescriptor", command_key, "externalNativeStop", "keeperRetirement"}
+        if unknown:
+            expected.add("unknownStopRecovery")
+        _require(set(marker) == expected
                  and document.get("failedOwnStart") is None and document.get("automaticRestart") is False
                  and document.get("queueReplayRequested") is False, "External transfer needs its distinct exact reviewed marker")
         descriptor = _reference(state, marker["originalBlockedDescriptor"])
-        command = _reference(state, marker["committedCommand"])
+        command = _reference(state, marker[command_key])
         binding = _reference(state, marker["externalNativeStop"])
         retirement = _reference(state, marker["keeperRetirement"])
         _require(descriptor.get("kind") == DESCRIPTOR_KIND and descriptor.get("admission") in {"idle", "blocked"}
                  and descriptor.get("runtime", {}).get("state") == "running"
-                 and command.get("kind") == COMMAND_KIND and command.get("status") == "committed"
+                 and command.get("kind") == COMMAND_KIND and command.get("status") == ("unknown" if unknown else "committed")
                  and command.get("keeper") == descriptor.get("keeper") and command.get("release") == descriptor.get("release")
                  and binding.get("kind") == "owned-stop-metadata-binding"
                  and binding.get("capturedOwner", {}).get("operation") == descriptor["runtime"].get("operation")
                  and binding.get("capturedOwner", {}).get("host") == descriptor["runtime"].get("host")
                  and retirement.get("kind") == "owned-recovery-keeper-retirement"
-                 and retirement.get("variant") == "external-native-stop" and retirement.get("keeper") == descriptor.get("keeper")
+                 and retirement.get("variant") == marker["variant"] and retirement.get("keeper") == descriptor.get("keeper")
                  and retirement.get("originalBlockedDescriptor") == marker["originalBlockedDescriptor"]
                  and retirement.get("externalNativeStop") == marker["externalNativeStop"]
                  and all(value.get(name) is False for value in (descriptor, retirement)
                      for name in ("runtimeAcceptance", "cargoAcceptance", "historicalHoldsReleased"))
                  and binding.get("nativeProofSynthesized") is False,
                  "External transfer does not preserve its genuinely issued blocked predecessor")
+        if unknown:
+            from .unknown_stop_recovery import validate_unknown_command
+            origin = _reference(state, descriptor["runtimeReceipt"])
+            validate_unknown_command(state, descriptor, origin, command)
+            outcome = _reference(state, marker["unknownStopRecovery"])
+            _require(outcome.get("kind") == "unknown-stop-native-recovery" and outcome.get("status") == "stopped"
+                     and outcome.get("variant") == marker["variant"]
+                     and outcome.get("externalNativeStop") == marker["externalNativeStop"]
+                     and outcome.get("originalBlockedDescriptor") == marker["originalBlockedDescriptor"]
+                     and outcome.get("unknownStopCommand") == marker["unknownStopCommand"]
+                     and retirement.get("unknownStopRecovery") == marker["unknownStopRecovery"],
+                     "Unknown Stop transfer lacks its separate genuine native outcome")
         return marker
     _require(isinstance(marker, dict) and set(marker) == {"stoppedDescriptor", "ownedStop", "keeperRetirement"}
              and document.get("failedOwnStart") is None and document.get("automaticRestart") is False
@@ -283,7 +301,8 @@ def _operator_path(repo, target, name, *, sealed):
 
 def _previous_stop_reference(release):
     marker = release.get("ownedUpgrade", {})
-    return marker.get("externalNativeStop") if marker.get("variant") == "external-native-stop" else marker.get("ownedStop")
+    from .owned_upgrade import _is_external
+    return marker.get("externalNativeStop") if _is_external(marker) else marker.get("ownedStop")
 
 
 def _release(manager, reference, *, current_source=True):
@@ -583,9 +602,12 @@ class RecoveryKeeper:
             command = _read(self.command_path)
             if self.upgrade_plan is not None and self.runtime is None and self.owned_handoff is None:
                 self._reviewed_owned_plan(self.upgrade_plan)
-                external = self.upgrade_plan.document.get("variant") == "external-native-stop"
-                key = "committedCommand" if external else "terminalCommand"
-                _require(command.get("kind") == COMMAND_KIND and command.get("status") == ("committed" if external else "stopped")
+                from .owned_upgrade import _is_external, _transfer_keys, UNKNOWN_EXTERNAL_VARIANT
+                planned = self.upgrade_plan.document
+                external = _is_external(planned)
+                _, key, _ = _transfer_keys(planned)
+                expected = "unknown" if planned.get("variant") == UNKNOWN_EXTERNAL_VARIANT else "committed" if external else "stopped"
+                _require(command.get("kind") == COMMAND_KIND and command.get("status") == expected
                          and _sha(self.command_path) == self.upgrade_plan.document[key]["sha256"],
                          "Only the reviewed genuine terminal command may be transferred")
                 self.upgrade_plan.revalidate(self.manager)
@@ -638,9 +660,9 @@ class RecoveryKeeper:
             from .prelaunch_upgrade_recovery import claim_prelaunch_restoration_gate
             claim_prelaunch_restoration_gate(self.manager, plan, request, self.keeper)
         artifacts = plan.original_artifacts
-        from .owned_upgrade import _transfer_keys
+        from .owned_upgrade import _transfer_keys, _is_external
         descriptor_key, command_key, stop_key = _transfer_keys(plan.document)
-        external = plan.document.get("variant") == "external-native-stop"
+        external = _is_external(plan.document)
         _require(set(artifacts) == {descriptor_key, command_key, "stoppedOperation", "stoppedHost", "previousSelector"},
                  "All original stopped ownership bytes are required")
         archives = {}
@@ -662,7 +684,9 @@ class RecoveryKeeper:
             "nativeProofSynthesized": False, "historicalHoldsReleased": False, "runtimeAcceptance": False,
             "cargoAcceptance": False, "queueReplayRequested": False, "automaticRetry": False}
         if external:
-            handoff["variant"] = "external-native-stop"
+            handoff["variant"] = plan.document["variant"]
+            if plan.document.get("unknownStopRecovery") is not None:
+                handoff["unknownStopRecovery"] = plan.document["unknownStopRecovery"]
         receipt = _archive(self.state, "owned-upgrade-handoff", handoff)
         replacement = plan.authorize_keeper_command(self.manager, keeper=self.keeper, release_ref=self.release_ref,
             request=request, descriptor_archive=archives[descriptor_key], command_archive=archives[command_key],
@@ -673,7 +697,9 @@ class RecoveryKeeper:
         self.upgrade_plan = replacement
         self.owned_handoff = {descriptor_key: archives[descriptor_key], command_key: archives[command_key], "receipt": receipt}
         if external:
-            self.owned_handoff.update(variant="external-native-stop", externalNativeStop=plan.document[stop_key])
+            self.owned_handoff.update(variant=plan.document["variant"], externalNativeStop=plan.document[stop_key])
+            if plan.document.get("unknownStopRecovery") is not None:
+                self.owned_handoff["unknownStopRecovery"] = plan.document["unknownStopRecovery"]
         return replacement
 
     def _reviewed_failed_plan(self, plan):
@@ -926,11 +952,16 @@ class RecoveryKeeper:
                            failedOwnStartInterruption=self.original_interruption["receipt"])
         if plan is not None and self.owned_handoff is not None:
             command.update(ownedUpgradeDigest=self.upgrade_digest, ownedUpgradeHandoff=self.owned_handoff["receipt"])
-            if self.owned_handoff.get("variant") == "external-native-stop":
-                command.update(variant="external-native-stop",
+            from .owned_upgrade import _is_external, _transfer_keys, UNKNOWN_EXTERNAL_VARIANT
+            if _is_external(self.owned_handoff):
+                _, command_key, _ = _transfer_keys(self.owned_handoff)
+                field = "replacesUnknownStopCommand" if self.owned_handoff["variant"] == UNKNOWN_EXTERNAL_VARIANT else "replacesCommittedCommand"
+                command.update(variant=self.owned_handoff["variant"],
                     replacesOriginalBlockedDescriptor=self.owned_handoff["originalBlockedDescriptor"],
-                    replacesCommittedCommand=self.owned_handoff["committedCommand"],
-                    externalNativeStop=self.owned_handoff["externalNativeStop"])
+                    externalNativeStop=self.owned_handoff["externalNativeStop"],
+                    **{field: self.owned_handoff[command_key]})
+                if self.owned_handoff.get("unknownStopRecovery") is not None:
+                    command["unknownStopRecovery"] = self.owned_handoff["unknownStopRecovery"]
             else:
                 command.update(replacesStoppedDescriptor=self.owned_handoff["stoppedDescriptor"],
                                replacesTerminalCommand=self.owned_handoff["terminalCommand"])
@@ -1248,12 +1279,12 @@ def _runtime_receipt(config, descriptor, release, target, *, external_native_sto
 
 
 def _owned_handoff_receipt(config, descriptor, release, *, historical_configuration=None):
-    from .owned_upgrade import _transfer_keys
+    from .owned_upgrade import _transfer_keys, _is_external, UNKNOWN_EXTERNAL_VARIANT
     state = config.paths.state.absolute()
     planned = _reference(state, descriptor.get("initialOwnedUpgrade"))
     marker = _owned_upgrade_marker(state, release)
     descriptor_key, command_key, stop_key = _transfer_keys(marker)
-    external = marker.get("variant") == "external-native-stop"
+    external = _is_external(marker)
     _require(planned.get("kind") == "formal-owned-recovery-upgrade-plan" and planned.get("outcome") == "owned-transfer"
              and digest(planned) == descriptor.get("ownedUpgradeDigest") and planned.get("successorRelease") == descriptor["release"]
              and planned.get("requestId") == release["requestId"] and planned.get("owner") == release["expectedPreviousOwner"]
@@ -1290,7 +1321,7 @@ def _owned_handoff_receipt(config, descriptor, release, *, historical_configurat
     _require(handoff[descriptor_key] == artifacts[descriptor_key]["archive"]
              and handoff[command_key] == artifacts[command_key]["archive"]
              and old_descriptor == _reference(state, marker[descriptor_key])
-             and old_command.get("status") == ("committed" if external else "stopped")
+             and old_command.get("status") == ("unknown" if marker.get("variant") == UNKNOWN_EXTERNAL_VARIANT else "committed" if external else "stopped")
              and old_command.get("keeper") == planned["previousKeeper"]
              and old_command.get("release") == planned["previousRelease"]
              and (external or old_descriptor.get("runtimeReceipt") == marker[stop_key]),
@@ -1311,21 +1342,31 @@ def _owned_handoff_receipt(config, descriptor, release, *, historical_configurat
     retirement_request_id = planned["requestId"] if reconciliation is None else reconciliation["eligibility"][
         "predecessorRetirementRequestId" if failed_start else "originalRequestId"]
     if external:
-        from .owned_upgrade import _external_native_stop, _committed_command, _retirement
+        from .owned_upgrade import _external_native_stop, _committed_command, _retirement, _predecessor_boot
         _require(handoff[descriptor_key]["sha256"] == marker[descriptor_key]["sha256"]
                  and handoff[command_key]["sha256"] == marker[command_key]["sha256"]
                  and old_command == _reference(state, marker[command_key]), "Original blocked descriptor or committed command changed")
         origin = _runtime_receipt(config, old_descriptor, previous_release, previous_target,
                                   external_native_stop_ref=marker[stop_key], **historical_kwargs)
-        _committed_command(state, old_descriptor, origin, old_command)
+        if marker.get("variant") == UNKNOWN_EXTERNAL_VARIANT:
+            from .unknown_stop_recovery import validate_completed_recovery
+            validate_completed_recovery(config, old_descriptor, old_command, marker["unknownStopRecovery"], marker[stop_key])
+            _require(handoff.get("unknownStopRecovery") == marker["unknownStopRecovery"],
+                     "Unknown Stop handoff ancestry changed")
+        else:
+            _committed_command(state, old_descriptor, origin, old_command)
         stopped = _external_native_stop(config, old_descriptor, marker[stop_key])
         _require(_reference(state, artifacts["stoppedOperation"]["archive"]) == stopped["operation"]
                  and _reference(state, artifacts["stoppedHost"]["archive"]) == stopped["host"]
                  and _reference(state, artifacts["previousSelector"]["archive"]) == old_descriptor["runtime"]["selected"],
                  "External NativeStop differs from its preserved actual terminal anchors")
+        previous_boot = _predecessor_boot(old_descriptor, planned["bootFileTime"], external=True)
+        _require(planned.get("previousBootFileTime", planned["bootFileTime"]) == previous_boot,
+                 "Owned handoff changed its verified predecessor boot")
         _retirement(config, marker["keeperRetirement"], request_id=retirement_request_id,
             descriptor={**old_descriptor, "configurationSha256": previous_release["config"]["sha256"]},
-            stopped_descriptor=marker[descriptor_key], owned_stop=marker[stop_key], boot=planned["bootFileTime"], external=True)
+            stopped_descriptor=marker[descriptor_key], owned_stop=marker[stop_key], boot=previous_boot, external=True,
+            unknown_stop_recovery_ref=marker.get("unknownStopRecovery"))
     else:
         _require(_runtime_receipt(config, old_descriptor, previous_release, previous_target, **historical_kwargs)
                  == _reference(state, marker[stop_key]), "Previous public NativeJob Stop receipt changed")

@@ -62,9 +62,72 @@ fn rumble_add_admits_before_backend_creation_and_publish() {
         .expect("rumble Add publishes the running effect after play succeeds");
 
     assert!(admission < finish && finish < play && play < publish);
+    let generation = source
+        .find("admit_rumble_generation(&self.gamepad_producer,&request)?;")
+        .expect("both Add and Stop require the captured generation");
+    let backend = source
+        .find("letSome(gamepads)=self.gamepads.as_mut()")
+        .expect("backend lookup follows generation admission");
+    let operation = source.find("matchrequest.kind{").unwrap();
+    assert!(generation < backend && backend < operation && operation < admission);
     assert!(
         source.contains("ZrRuntimeGamepadRumbleRequestKindV1::Stop=>{stop_gamepad_rumble_effects(")
     );
     assert!(source.contains("effects.retain(|effect|effect.deadline>now);"));
     assert!(source.contains("for effect in effects.drain(..){"));
+}
+
+#[test]
+fn rumble_generation_guard_rejects_queued_add_and_stop_after_reconnect() {
+    use super::super::producer::GamepadProducer;
+    use std::num::NonZeroU64;
+
+    let mut producer = GamepadProducer::default();
+    let first = producer.connect(71).unwrap().generation;
+    let queued = [
+        ZrRuntimeGamepadRumbleRequestV2::add(71, first, 0.5, 1.0, 125),
+        ZrRuntimeGamepadRumbleRequestV2::stop(71, first),
+    ];
+    for request in &queued {
+        assert_eq!(admit_rumble_generation(&producer, request), Ok(()));
+    }
+    producer.disconnect(71);
+    for request in &queued {
+        assert_eq!(
+            admit_rumble_generation(&producer, request),
+            Err("runtime_gamepad_rumble_connection_closed"),
+        );
+    }
+    let second = producer.connect(71).unwrap().generation;
+    assert!(second > first);
+    assert_eq!(producer.connect(71).unwrap().generation, second);
+    let other = producer.connect(72).unwrap().generation;
+    for request in &queued {
+        // This production guard runs before both Add backend creation and Stop effect mutation.
+        assert_eq!(
+            admit_rumble_generation(&producer, request),
+            Err("runtime_gamepad_rumble_stale_generation"),
+        );
+    }
+    for request in [
+        ZrRuntimeGamepadRumbleRequestV2::add(71, second, 0.5, 1.0, 125),
+        ZrRuntimeGamepadRumbleRequestV2::stop(71, second),
+        ZrRuntimeGamepadRumbleRequestV2::stop(72, other),
+    ] {
+        assert_eq!(admit_rumble_generation(&producer, &request), Ok(()));
+    }
+    let future = NonZeroU64::new(u64::MAX).unwrap();
+    for request in [
+        ZrRuntimeGamepadRumbleRequestV2::add(71, future, 0.5, 1.0, 125),
+        ZrRuntimeGamepadRumbleRequestV2::stop(71, future),
+    ] {
+        assert_eq!(
+            admit_rumble_generation(&producer, &request),
+            Err("runtime_gamepad_rumble_future_generation"),
+        );
+    }
+    assert_eq!(
+        admit_rumble_generation(&producer, &ZrRuntimeGamepadRumbleRequestV2::stop(99, first)),
+        Err("runtime_gamepad_rumble_connection_closed"),
+    );
 }

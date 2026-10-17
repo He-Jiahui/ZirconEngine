@@ -165,3 +165,80 @@ class SupportRegressionTests(unittest.TestCase):
                     "changedFiles": sorted([*self.document["changedFiles"], "tools/jenkins/workflow/unrelated.py"]),
                     "focusedRegression": self.save("unrelated-focus.json", focus)}
         self.reject(document)
+
+    def test_exact_expanded_full_roots_preserve_complete_baseline_checks(self):
+        roots = [str(self.repo / name) for name in ('tools/jenkins/tests', 'tools/jenkins/tray/tests', 'tools/jenkins/governance/tests.py', 'tools/jenkins-management/tests/test_checkout_validation.py', 'tools/jenkins-management/tests/test_entry_bootstrap.py', 'tools/jenkins-management/tests/test_ordinary_flow.py', 'tools/jenkins-management/tests/test_toolchain_facts.py', 'tools/tests/test_build_editor_independent.py', 'tools/tests/test_jenkins_checkout_product.py', 'tools/jenkins-management/tests/test_authorization_owner.py', 'tools/tests/test_jenkins_editor_source_root.py', 'tools/tests/test_jenkins_editor_entry.py', 'tools/tests/test_install_jenkins_management_codex_migration.py')]
+
+        base = {**self.base, "testRoots": roots}
+        doc = {**self.document, "baseRegression": self.save("expanded-base.json", base)}
+        reference = self.save("expanded-scoped.json", doc)
+        self.assertEqual(SCOPED_SCOPE, verify_support_regression(self.repo, reference, self.candidate)["scope"])
+        for changed in ("unknown", "missing", "duplicate", "failed-report"):
+            with self.subTest(changed=changed):
+                invalid = deepcopy(base)
+                if changed == "unknown":
+                    invalid["testRoots"][-1] = str(self.repo / "tools/unknown-tests")
+                elif changed == "missing":
+                    invalid["testRoots"] = invalid["testRoots"][1:]
+                elif changed == "duplicate":
+                    invalid["testRoots"][-1] = invalid["testRoots"][0]
+                else:
+                    invalid["reports"][1]["outcome"] = "failed"
+                self.reject({**doc, "baseRegression": self.save("expanded-" + changed + ".json", invalid)})
+
+    def test_runtime_role_delta_requires_its_actual_focused_module(self):
+        module = "tools/jenkins/deployment/runtime_roles.py"
+        role_test = "tools/jenkins/tests/test_runtime_roles.py"
+        (self.repo / module).write_text("VALUE = 'old role'\n", encoding="utf-8")
+        (self.repo / role_test).write_text("def test_fixture(): pass\n", encoding="utf-8")
+        before = support_sources(self.repo)
+        base = self.run_receipt(FULL_SCOPE, before)
+        base["testRoots"] = self.base["testRoots"]
+        base_ref = self.save("role-base.json", base)
+        (self.repo / module).write_text("VALUE = 'new role'\n", encoding="utf-8")
+        after = support_sources(self.repo)
+        candidate = seal_driver(self.repo)
+        original_targets = self.tests
+        for selected, accepted in (([role_test], True), ([original_targets[0]], False)):
+            self.tests = selected
+            focus = self.run_receipt(FOCUSED_SCOPE, after)
+            focus.update(collectedNodes=self.nodes, sourceFilesAfter=after,
+                         testTargets=[str(self.repo / name) for name in selected])
+            doc = {**self.document, **{key: focus[key] for key in
+                ("testsRun", "testTargets", "log", "logSha256")},
+                "baseRegression": base_ref, "focusedRegression": self.save("role-focus.json", focus),
+                "sourceFilesBefore": before, "sourceFiles": after, "changedFiles": [module]}
+            reference = self.save("role-scoped.json", doc)
+            if accepted:
+                self.assertEqual(1, verify_support_regression(self.repo, reference, candidate)["testsRun"])
+            else:
+                with self.assertRaises(JenkinsError):
+                    verify_support_regression(self.repo, reference, candidate)
+        self.tests = original_targets
+
+    def test_startup_inventory_delta_requires_its_complete_closure(self):
+        module="tools/jenkins/deployment/startup_observations.py"
+        inventory_test="tools/jenkins/tests/test_runtime_owner_inventory.py"
+        abandoned_test="tools/jenkins/tests/test_abandoned_startup.py"
+        (self.repo/module).write_text("VALUE = 'before'\n",encoding="utf-8")
+        (self.repo/abandoned_test).parent.mkdir(parents=True,exist_ok=True)
+        (self.repo/abandoned_test).write_text("def test_fixture(): pass\n",encoding="utf-8")
+        before=support_sources(self.repo);base=self.run_receipt(FULL_SCOPE,before)
+        base["testRoots"]=self.base["testRoots"];base_ref=self.save("inventory-base.json",base)
+        (self.repo/module).write_text("VALUE = 'after'\n",encoding="utf-8")
+        (self.repo/inventory_test).write_text("def test_fixture(): pass\n",encoding="utf-8")
+        after=support_sources(self.repo);candidate=seal_driver(self.repo);original_tests=self.tests
+        for selected,accepted in (([inventory_test,abandoned_test],True),([inventory_test],False),([abandoned_test],False)):
+            with self.subTest(selected=selected):
+                self.tests=selected;focus=self.run_receipt(FOCUSED_SCOPE,after)
+                focus.update(collectedNodes=self.nodes,sourceFilesAfter=after,
+                             testTargets=[str(self.repo/name) for name in selected])
+                focus_ref=self.save("inventory-focus.json",focus)
+                document={**self.document,**{key:focus[key] for key in ("testsRun","testTargets","log","logSha256")},
+                    "baseRegression":base_ref,"focusedRegression":focus_ref,"sourceFilesBefore":before,
+                    "sourceFiles":after,"changedFiles":sorted([module,inventory_test])}
+                reference=self.save("inventory-scoped.json",document)
+                if accepted:self.assertEqual(len(selected),verify_support_regression(self.repo,reference,candidate)["testsRun"])
+                else:
+                    with self.assertRaises(JenkinsError):verify_support_regression(self.repo,reference,candidate)
+        self.tests=original_tests

@@ -25,6 +25,14 @@ pub(super) fn execute_menu_action(
     controller: &EditorHostEventController,
     action: &MenuAction,
 ) -> Result<ExecutionOutcome, MenuActionExecutionError> {
+    execute_menu_action_with_save_authorization(controller, action, None)
+}
+
+pub(super) fn execute_menu_action_with_save_authorization(
+    controller: &EditorHostEventController,
+    action: &MenuAction,
+    overwrite: Option<crate::core::document::OverwriteLease>,
+) -> Result<ExecutionOutcome, MenuActionExecutionError> {
     match action {
         MenuAction::OpenProject => {
             let mut shell = controller.shell().lock();
@@ -130,28 +138,33 @@ pub(super) fn execute_menu_action(
                     )
                 })
                 .collect();
-            if let Err(source) = manager.save_active_scene_with_workspace(&path, &scene, &workspace)
-            {
-                emit_project_save_log(
-                    controller.context().logs(),
-                    LogSeverity::Error,
-                    project_save_failed_diagnostic(&path, "persist", &source),
-                );
-                return Err(source.into());
-            }
-            let save_mark = match transactions.mark_saved_if_unchanged(history_context, save_token)
+            let outcome = match manager
+                .save_scene_with_workspace_authorized(&path, &scene, &workspace, overwrite)
             {
                 Ok(outcome) => outcome,
                 Err(source) => {
                     emit_project_save_log(
                         controller.context().logs(),
                         LogSeverity::Error,
-                        project_save_failed_diagnostic(&path, "mark_saved", &source),
+                        project_save_failed_diagnostic(&path, "persist", &source),
                     );
-                    return Err(MenuActionExecutionError::Transaction {
-                        phase: "mark saved",
-                        source,
-                    });
+                    return Err(source.into());
+                }
+            };
+            let save_mark = match super::complete_scene_save_checkpoint(
+                &outcome,
+                &transactions,
+                history_context,
+                save_token,
+            ) {
+                Ok(outcome) => outcome,
+                Err(source) => {
+                    emit_project_save_log(
+                        controller.context().logs(),
+                        LogSeverity::Error,
+                        project_save_failed_diagnostic(&path, "complete_persisted_save", &source),
+                    );
+                    return Err(source);
                 }
             };
             let persisted_generation = transactions

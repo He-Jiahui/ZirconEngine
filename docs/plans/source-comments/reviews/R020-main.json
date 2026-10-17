@@ -1,0 +1,1141 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R020",
+  "reviewer": "root",
+  "reviewed_at_utc": "2026-10-15T05:53:19.979542+00:00",
+  "status": "independently-reviewed-and-scoped-static-validated",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R020.json",
+    "sha256": "16ec0762b01f096ac48f22252bf683510c41509619c8a445bea567e8d9c0c06b",
+    "immutable": true
+  },
+  "files": {
+    "zircon_runtime/src/core/framework/bridge/contract.rs": {
+      "before_sha256": "186dcb41869077a2dd11d4ddc1a696ec535535413237ac98705def47ffd64fe6",
+      "reviewed_sha256": "56d0c49b48d27a447a59228c4f1d248442d1e8a795ad531339896b30d73e508f",
+      "bytes": 9769,
+      "lines": 192,
+      "full_source_review_spans": [
+        [
+          1,
+          192
+        ]
+      ],
+      "child_object_entries_reviewed": 24,
+      "insertion_blocks": 7,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/bridge/diagnostics.rs": {
+      "before_sha256": "1dedcde55489779f3b64f35df3715254de5ef0c3e30a34310d7a107cd7a17d28",
+      "reviewed_sha256": "1dedcde55489779f3b64f35df3715254de5ef0c3e30a34310d7a107cd7a17d28",
+      "bytes": 4082,
+      "lines": 100,
+      "full_source_review_spans": [
+        [
+          1,
+          100
+        ]
+      ],
+      "child_object_entries_reviewed": 16,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/bridge/interface_slot.rs": {
+      "before_sha256": "9e4471a64e659d0e5716dc91650be964a26cb1cb9673a4ff997d824d991e1889",
+      "reviewed_sha256": "c0adeac849f11eca3f1a6b8850a98076fe7079dec8809fe2708591497f6cfb0c",
+      "bytes": 2103,
+      "lines": 47,
+      "full_source_review_spans": [
+        [
+          1,
+          47
+        ]
+      ],
+      "child_object_entries_reviewed": 7,
+      "insertion_blocks": 2,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/bridge/mod.rs": {
+      "before_sha256": "9e14f9f37e05d49a4981db3a0c55f3da0fbe297311a063268d88c59ecbc97d74",
+      "reviewed_sha256": "f8a0dbe36e164ccabe91f3b178ee705e3418ede3ce657bce6e8f014f3f22bed9",
+      "bytes": 777,
+      "lines": 21,
+      "full_source_review_spans": [
+        [
+          1,
+          21
+        ]
+      ],
+      "child_object_entries_reviewed": 8,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/bridge/strong.rs": {
+      "before_sha256": "0452be683981d2baec847592c576064be0bd33aee18cf21c37929e43c64b3ea5",
+      "reviewed_sha256": "228d2ea6b224f29a331d3f887d3bb9f0e6fe0c54c06caa9bea12af1924a397af",
+      "bytes": 1516,
+      "lines": 45,
+      "full_source_review_spans": [
+        [
+          1,
+          45
+        ]
+      ],
+      "child_object_entries_reviewed": 11,
+      "insertion_blocks": 4,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/foundation/config_manager.rs": {
+      "before_sha256": "8f7c114994cc5637a0b10f2354162717599b1c80d3f52dccccd3f32d8770c3af",
+      "reviewed_sha256": "8f7c114994cc5637a0b10f2354162717599b1c80d3f52dccccd3f32d8770c3af",
+      "bytes": 3965,
+      "lines": 93,
+      "full_source_review_spans": [
+        [
+          1,
+          93
+        ]
+      ],
+      "child_object_entries_reviewed": 7,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/foundation/config_manager_error.rs": {
+      "before_sha256": "a333b7435f812a2d1729d6aebf532141d55b2120d44eed1715ed7422577a7c10",
+      "reviewed_sha256": "a2d5ab93831662c5033eb360ba6239ee0d93d541f3df7a4697140e1b3d05ea21",
+      "bytes": 1709,
+      "lines": 34,
+      "full_source_review_spans": [
+        [
+          1,
+          34
+        ]
+      ],
+      "child_object_entries_reviewed": 10,
+      "insertion_blocks": 3,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/foundation/config_persistence_report.rs": {
+      "before_sha256": "ed4bcd78d0481f02a1645ce6e4c22dd359511bb72bd8f8b20c42ded23e25256e",
+      "reviewed_sha256": "efcc97b527fe0297ea1a033c1d098f018865daaa7ed8f05b7d89bbbcc83bc67a",
+      "bytes": 2452,
+      "lines": 43,
+      "full_source_review_spans": [
+        [
+          1,
+          43
+        ]
+      ],
+      "child_object_entries_reviewed": 13,
+      "insertion_blocks": 6,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/foundation/mod.rs": {
+      "before_sha256": "c00b864a803796abbd547b38a95cdf61d8bec8c52f7c9eef29dc0d192b6dfe27",
+      "reviewed_sha256": "c00b864a803796abbd547b38a95cdf61d8bec8c52f7c9eef29dc0d192b6dfe27",
+      "bytes": 641,
+      "lines": 16,
+      "full_source_review_spans": [
+        [
+          1,
+          16
+        ]
+      ],
+      "child_object_entries_reviewed": 9,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/core/framework/foundation/module_identity.rs": {
+      "before_sha256": "e77b9ef18162eea7895ecc5104ba4d0a0396cee0da4220bc229bf63a059196c6",
+      "reviewed_sha256": "e77b9ef18162eea7895ecc5104ba4d0a0396cee0da4220bc229bf63a059196c6",
+      "bytes": 443,
+      "lines": 11,
+      "full_source_review_spans": [
+        [
+          1,
+          11
+        ]
+      ],
+      "child_object_entries_reviewed": 2,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/plugin/bridge/tests/table.rs": {
+      "before_sha256": "ce8cbe2801c401f95b8f56065edc223be1e3bd3a036c5b956b39bcacb0007612",
+      "reviewed_sha256": "ce8cbe2801c401f95b8f56065edc223be1e3bd3a036c5b956b39bcacb0007612",
+      "bytes": 1740,
+      "lines": 58,
+      "full_source_review_spans": [
+        [
+          1,
+          58
+        ]
+      ],
+      "child_object_entries_reviewed": 11,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/plugin/bridge/tests/import.rs": {
+      "before_sha256": "772be15459fa6d7b7b7f9a920fbc160f2fc954841275b09ab3294593611cf34d",
+      "reviewed_sha256": "772be15459fa6d7b7b7f9a920fbc160f2fc954841275b09ab3294593611cf34d",
+      "bytes": 812,
+      "lines": 25,
+      "full_source_review_spans": [
+        [
+          1,
+          25
+        ]
+      ],
+      "child_object_entries_reviewed": 5,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    },
+    "zircon_runtime/src/foundation/runtime/config_manager/tests/state.rs": {
+      "before_sha256": "44e950f92ab52ebd7aab78509e36121dc607f51c282f065200985a4b9464e6d9",
+      "reviewed_sha256": "44e950f92ab52ebd7aab78509e36121dc607f51c282f065200985a4b9464e6d9",
+      "bytes": 411,
+      "lines": 12,
+      "full_source_review_spans": [
+        [
+          1,
+          12
+        ]
+      ],
+      "child_object_entries_reviewed": 2,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true
+    }
+  },
+  "all_objects_and_blocks_reviewed": true,
+  "child_object_groups_reviewed": 125,
+  "child_named_objects_reviewed": 174,
+  "continuous_block_partitions": 56,
+  "branch_groups": 11,
+  "changed_source_count": 6,
+  "unchanged_source_count": 7,
+  "insertion_blocks": 23,
+  "added_source_lines": 49,
+  "comment_lines_added": 49,
+  "blank_separator_lines_added": 0,
+  "root_actual_read_receipts": [
+    {
+      "chunk_id": "d89324",
+      "exit_code": 0,
+      "scope": "Complete all13 owned bridge/foundation contracts and three local fixture sources,697 current lines."
+    },
+    {
+      "chunk_id": "3520c6",
+      "exit_code": 0,
+      "scope": "Config manager publication, worker flush and attempt lifecycle, full generation/report state166lines, atomic writer and fence mounting."
+    },
+    {
+      "chunk_id": "95c871",
+      "exit_code": 0,
+      "scope": "Provider state/downcast, strong/weak acquisition and RCU transition paths, static ID registration, declared strong dependent guard, VM admission and native callback lease/counters."
+    },
+    {
+      "chunk_id": "194fe7",
+      "exit_code": 0,
+      "scope": "Independent raw byte reconstruction, continuous block partitions, actual9+33 predicate and50 local contribution evaluations; all34 current context pins match."
+    }
+  ],
+  "context_review": [
+    {
+      "id": "R020-E01",
+      "path": "zircon_runtime/src/plugin/bridge/table.rs",
+      "sha256": "999e28cb5c09fcdfdf5f122622c40aa1a9d94fd2ee3adafa20c75824d2e449fb",
+      "line_count": 643,
+      "read_spans": [
+        [
+          1,
+          643
+        ]
+      ],
+      "read_receipts": [
+        "050600"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/plugin/bridge/table.rs",
+        "read_sha256": "999e28cb5c09fcdfdf5f122622c40aa1a9d94fd2ee3adafa20c75824d2e449fb",
+        "current_sha256": "999e28cb5c09fcdfdf5f122622c40aa1a9d94fd2ee3adafa20c75824d2e449fb",
+        "current_lines": 643,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E02",
+      "path": "zircon_runtime/src/plugin/bridge/weak.rs",
+      "sha256": "f7f45a3da1d289d9f09907a9b4131676bd9128eb62e9cddc39c5e7c581bbe87a",
+      "line_count": 183,
+      "read_spans": [
+        [
+          1,
+          183
+        ]
+      ],
+      "read_receipts": [
+        "050600"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/plugin/bridge/weak.rs",
+        "read_sha256": "f7f45a3da1d289d9f09907a9b4131676bd9128eb62e9cddc39c5e7c581bbe87a",
+        "current_sha256": "f7f45a3da1d289d9f09907a9b4131676bd9128eb62e9cddc39c5e7c581bbe87a",
+        "current_lines": 183,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E03",
+      "path": "zircon_runtime/src/plugin/bridge/import.rs",
+      "sha256": "0abca36bba03f26858a42bbfefe2a6f8bef72764822cdaeb3b275044d9aff697",
+      "line_count": 106,
+      "read_spans": [
+        [
+          1,
+          106
+        ]
+      ],
+      "read_receipts": [
+        "050600"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/plugin/bridge/import.rs",
+        "read_sha256": "0abca36bba03f26858a42bbfefe2a6f8bef72764822cdaeb3b275044d9aff697",
+        "current_sha256": "0abca36bba03f26858a42bbfefe2a6f8bef72764822cdaeb3b275044d9aff697",
+        "current_lines": 106,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E04",
+      "path": "zircon_runtime/src/foundation/runtime/config_manager.rs",
+      "sha256": "d2dfb80e47431cc73ba25fafabd0402eca84c8f0576238d0c9f2208619fed1fa",
+      "line_count": 249,
+      "read_spans": [
+        [
+          1,
+          249
+        ]
+      ],
+      "read_receipts": [
+        "1838cb"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/foundation/runtime/config_manager.rs",
+        "read_sha256": "d2dfb80e47431cc73ba25fafabd0402eca84c8f0576238d0c9f2208619fed1fa",
+        "current_sha256": "d2dfb80e47431cc73ba25fafabd0402eca84c8f0576238d0c9f2208619fed1fa",
+        "current_lines": 249,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E05",
+      "path": "zircon_runtime/src/foundation/runtime/config_manager/worker.rs",
+      "sha256": "50c811b43af2f309692a29348a88893694e544d01bfbe075f4a700f45ece1c01",
+      "line_count": 435,
+      "read_spans": [
+        [
+          1,
+          435
+        ]
+      ],
+      "read_receipts": [
+        "1838cb",
+        "40b908"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/foundation/runtime/config_manager/worker.rs",
+        "read_sha256": "50c811b43af2f309692a29348a88893694e544d01bfbe075f4a700f45ece1c01",
+        "current_sha256": "50c811b43af2f309692a29348a88893694e544d01bfbe075f4a700f45ece1c01",
+        "current_lines": 435,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E06",
+      "path": "zircon_runtime/src/foundation/runtime/config_manager/state.rs",
+      "sha256": "54283e4fe2083f5c13572788ea7b5510a534bcc35b43038906e5697501c1180c",
+      "line_count": 166,
+      "read_spans": [
+        [
+          1,
+          166
+        ]
+      ],
+      "read_receipts": [
+        "1838cb"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/foundation/runtime/config_manager/state.rs",
+        "read_sha256": "54283e4fe2083f5c13572788ea7b5510a534bcc35b43038906e5697501c1180c",
+        "current_sha256": "54283e4fe2083f5c13572788ea7b5510a534bcc35b43038906e5697501c1180c",
+        "current_lines": 166,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E07",
+      "path": "zircon_runtime/src/foundation/module.rs",
+      "sha256": "7f5dde1dc5ec1889a96a9314e1405ea300ff05d03f614aa56da1e6a2209970f3",
+      "line_count": 121,
+      "read_spans": [
+        [
+          1,
+          121
+        ]
+      ],
+      "read_receipts": [
+        "1838cb"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/foundation/module.rs",
+        "read_sha256": "7f5dde1dc5ec1889a96a9314e1405ea300ff05d03f614aa56da1e6a2209970f3",
+        "current_sha256": "7f5dde1dc5ec1889a96a9314e1405ea300ff05d03f614aa56da1e6a2209970f3",
+        "current_lines": 121,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E08",
+      "path": "zircon_runtime/src/core/manager/service_names.rs",
+      "sha256": "352746243da7077657c5a66d3722b7c62cc6639a8b93fe38c2209b2b2252a5c8",
+      "line_count": 19,
+      "read_spans": [
+        [
+          1,
+          16
+        ]
+      ],
+      "read_receipts": [
+        "1838cb"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/core/manager/service_names.rs",
+        "read_sha256": "352746243da7077657c5a66d3722b7c62cc6639a8b93fe38c2209b2b2252a5c8",
+        "current_sha256": "352746243da7077657c5a66d3722b7c62cc6639a8b93fe38c2209b2b2252a5c8",
+        "current_lines": 19,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E09",
+      "path": "zircon_runtime/src/plugin/runtime/catalog/bridge_lifecycle.rs",
+      "sha256": "d0cf46b2c40b3a3fa43a63128cd9bda182081a8171d5821ac7617fc79b93acdf",
+      "line_count": 288,
+      "read_spans": [
+        [
+          110,
+          285
+        ]
+      ],
+      "read_receipts": [
+        "228cf8"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/plugin/runtime/catalog/bridge_lifecycle.rs",
+        "read_sha256": "d0cf46b2c40b3a3fa43a63128cd9bda182081a8171d5821ac7617fc79b93acdf",
+        "current_sha256": "d0cf46b2c40b3a3fa43a63128cd9bda182081a8171d5821ac7617fc79b93acdf",
+        "current_lines": 288,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E10",
+      "path": "zircon_runtime/src/plugin/extension_registry/register/bridge_registration.rs",
+      "sha256": "cec6460a1cad74c5b4fed4c172140b6d8c2a5f79759985ccf7dbba0430d4d8ba",
+      "line_count": 160,
+      "read_spans": [
+        [
+          1,
+          160
+        ]
+      ],
+      "read_receipts": [
+        "228cf8",
+        "a92103"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/plugin/extension_registry/register/bridge_registration.rs",
+        "read_sha256": "cec6460a1cad74c5b4fed4c172140b6d8c2a5f79759985ccf7dbba0430d4d8ba",
+        "current_sha256": "cec6460a1cad74c5b4fed4c172140b6d8c2a5f79759985ccf7dbba0430d4d8ba",
+        "current_lines": 160,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E11",
+      "path": "zircon_runtime/src/plugin/loader/host_api_adapter/bridge_scope/mod.rs",
+      "sha256": "8aa41f68a1ea2abbf0dbaa5d3a21743c94e2109772e772ffbd66ee61a8bb66b7",
+      "line_count": 480,
+      "read_spans": [
+        [
+          391,
+          480
+        ]
+      ],
+      "read_receipts": [
+        "228cf8"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/plugin/loader/host_api_adapter/bridge_scope/mod.rs",
+        "read_sha256": "8aa41f68a1ea2abbf0dbaa5d3a21743c94e2109772e772ffbd66ee61a8bb66b7",
+        "current_sha256": "8aa41f68a1ea2abbf0dbaa5d3a21743c94e2109772e772ffbd66ee61a8bb66b7",
+        "current_lines": 480,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E12",
+      "path": "zircon_runtime/src/script/vm/host/bridge_host_module.rs",
+      "sha256": "ccdc1355fe8c5c26798916fbdf345f64fbd68f24cfa5d0750b43880c8db830b0",
+      "line_count": 202,
+      "read_spans": [
+        [
+          83,
+          202
+        ]
+      ],
+      "read_receipts": [
+        "228cf8"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/script/vm/host/bridge_host_module.rs",
+        "read_sha256": "ccdc1355fe8c5c26798916fbdf345f64fbd68f24cfa5d0750b43880c8db830b0",
+        "current_sha256": "ccdc1355fe8c5c26798916fbdf345f64fbd68f24cfa5d0750b43880c8db830b0",
+        "current_lines": 202,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E13",
+      "path": "zircon_runtime/src/foundation/runtime/config_manager/writer.rs",
+      "sha256": "b9ef580550763acd22e10564a7d30152dc9c344c214e75bb818f36cd53d970b5",
+      "line_count": 49,
+      "read_spans": [
+        [
+          1,
+          49
+        ]
+      ],
+      "read_receipts": [
+        "40b908"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/foundation/runtime/config_manager/writer.rs",
+        "read_sha256": "b9ef580550763acd22e10564a7d30152dc9c344c214e75bb818f36cd53d970b5",
+        "current_sha256": "b9ef580550763acd22e10564a7d30152dc9c344c214e75bb818f36cd53d970b5",
+        "current_lines": 49,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E14",
+      "path": "zircon_runtime/src/foundation/runtime/config_manager/commit_fence.rs",
+      "sha256": "168ba66a611de6097584d17260a04d7236f7bb9405e4a4f287376a985ed846b6",
+      "line_count": 12,
+      "read_spans": [
+        [
+          1,
+          12
+        ]
+      ],
+      "read_receipts": [
+        "40b908"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/foundation/runtime/config_manager/commit_fence.rs",
+        "read_sha256": "168ba66a611de6097584d17260a04d7236f7bb9405e4a4f287376a985ed846b6",
+        "current_sha256": "168ba66a611de6097584d17260a04d7236f7bb9405e4a4f287376a985ed846b6",
+        "current_lines": 12,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E15",
+      "path": "zircon_runtime/src/plugin/bridge/table/tests/optimization_tests.rs",
+      "sha256": "617acf887b6eecf981328981877f724a3fc777be5ab449a55c03e9b0b495a768",
+      "line_count": 208,
+      "read_spans": [
+        [
+          1,
+          108
+        ]
+      ],
+      "read_receipts": [
+        "b12dc5"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/plugin/bridge/table/tests/optimization_tests.rs",
+        "read_sha256": "617acf887b6eecf981328981877f724a3fc777be5ab449a55c03e9b0b495a768",
+        "current_sha256": "617acf887b6eecf981328981877f724a3fc777be5ab449a55c03e9b0b495a768",
+        "current_lines": 208,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E16",
+      "path": "zircon_runtime/src/script/vm/tests/bridge_host.rs",
+      "sha256": "0964fc28ea04bf1f27a845480dd5ea8f48e567ad72e9b7f4465a346175239f43",
+      "line_count": 129,
+      "read_spans": [
+        [
+          1,
+          129
+        ]
+      ],
+      "read_receipts": [
+        "b12dc5"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/script/vm/tests/bridge_host.rs",
+        "read_sha256": "0964fc28ea04bf1f27a845480dd5ea8f48e567ad72e9b7f4465a346175239f43",
+        "current_sha256": "0964fc28ea04bf1f27a845480dd5ea8f48e567ad72e9b7f4465a346175239f43",
+        "current_lines": 129,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E17",
+      "path": "zircon_runtime/src/foundation/tests/cases.rs",
+      "sha256": "ac39f15117f57234e4614d7e92c08d30bdc25068d18b86fa5eaad6dfaa880f99",
+      "line_count": 357,
+      "read_spans": [
+        [
+          1,
+          75
+        ],
+        [
+          115,
+          175
+        ],
+        [
+          238,
+          357
+        ]
+      ],
+      "read_receipts": [
+        "80bf17"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/foundation/tests/cases.rs",
+        "read_sha256": "ac39f15117f57234e4614d7e92c08d30bdc25068d18b86fa5eaad6dfaa880f99",
+        "current_sha256": "ac39f15117f57234e4614d7e92c08d30bdc25068d18b86fa5eaad6dfaa880f99",
+        "current_lines": 357,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E18",
+      "path": "zircon_runtime/src/foundation/runtime/tests/config_manager_tests.rs",
+      "sha256": "a524d887dde2ec18d77e66fa39164eccd34692a17ffa1a5c9bf18c13395b1407",
+      "line_count": 950,
+      "read_spans": [
+        [
+          310,
+          330
+        ],
+        [
+          471,
+          535
+        ],
+        [
+          620,
+          710
+        ],
+        [
+          847,
+          950
+        ]
+      ],
+      "read_receipts": [
+        "80bf17"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/foundation/runtime/tests/config_manager_tests.rs",
+        "read_sha256": "a524d887dde2ec18d77e66fa39164eccd34692a17ffa1a5c9bf18c13395b1407",
+        "current_sha256": "a524d887dde2ec18d77e66fa39164eccd34692a17ffa1a5c9bf18c13395b1407",
+        "current_lines": 950,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E19",
+      "path": "zircon_runtime/src/core/framework/mod.rs",
+      "sha256": "26be3e27f5149f16b4bb2f199bc97c8b21192e0b2c8ff4a6433a797336d07153",
+      "line_count": 64,
+      "read_spans": [
+        [
+          1,
+          64
+        ]
+      ],
+      "read_receipts": [
+        "812aaa"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/core/framework/mod.rs",
+        "read_sha256": "26be3e27f5149f16b4bb2f199bc97c8b21192e0b2c8ff4a6433a797336d07153",
+        "current_sha256": "26be3e27f5149f16b4bb2f199bc97c8b21192e0b2c8ff4a6433a797336d07153",
+        "current_lines": 64,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E20",
+      "path": "zircon_runtime/src/foundation/mod.rs",
+      "sha256": "9faab4f2726e057b19570b4e7892f44b93402590e89131e49e4bf36c785f247f",
+      "line_count": 14,
+      "read_spans": [
+        [
+          1,
+          14
+        ]
+      ],
+      "read_receipts": [
+        "812aaa"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/foundation/mod.rs",
+        "read_sha256": "9faab4f2726e057b19570b4e7892f44b93402590e89131e49e4bf36c785f247f",
+        "current_sha256": "9faab4f2726e057b19570b4e7892f44b93402590e89131e49e4bf36c785f247f",
+        "current_lines": 14,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E21",
+      "path": "zircon_runtime/src/core/manager/resolver.rs",
+      "sha256": "401311de99fdbe8f33e06c48e29c7d7d1d16f1df728564aa0f87a9af055653ff",
+      "line_count": 175,
+      "read_spans": [
+        [
+          1,
+          170
+        ]
+      ],
+      "read_receipts": [
+        "812aaa"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/core/manager/resolver.rs",
+        "read_sha256": "401311de99fdbe8f33e06c48e29c7d7d1d16f1df728564aa0f87a9af055653ff",
+        "current_sha256": "401311de99fdbe8f33e06c48e29c7d7d1d16f1df728564aa0f87a9af055653ff",
+        "current_lines": 175,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E22",
+      "path": "zircon_runtime/src/plugin/bridge.rs",
+      "sha256": "d9e00f33eed412e93b858c7b82298409e72a16ad10ffb5583b013d7ea6f25c57",
+      "line_count": 16,
+      "read_spans": [
+        [
+          1,
+          16
+        ]
+      ],
+      "read_receipts": [
+        "a92103"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/plugin/bridge.rs",
+        "read_sha256": "d9e00f33eed412e93b858c7b82298409e72a16ad10ffb5583b013d7ea6f25c57",
+        "current_sha256": "d9e00f33eed412e93b858c7b82298409e72a16ad10ffb5583b013d7ea6f25c57",
+        "current_lines": 16,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E23",
+      "path": "zircon_runtime/src/core/framework/tests/cases.rs",
+      "sha256": "ed4e9bed08040d81853664e7301c1de00030c22bac2459439b851d6d85b013af",
+      "line_count": 675,
+      "read_spans": [
+        [
+          1,
+          280
+        ]
+      ],
+      "read_receipts": [
+        "d3eaaa"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/core/framework/tests/cases.rs",
+        "read_sha256": "ed4e9bed08040d81853664e7301c1de00030c22bac2459439b851d6d85b013af",
+        "current_sha256": "ed4e9bed08040d81853664e7301c1de00030c22bac2459439b851d6d85b013af",
+        "current_lines": 675,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E24",
+      "path": "zircon_runtime/src/core/runtime/handle/events.rs",
+      "sha256": "c9dccabbc70af73ef6d8dbaad8b40921fa3542e5db95f78d4af33eb22b18432a",
+      "line_count": 87,
+      "read_spans": [
+        [
+          43,
+          87
+        ]
+      ],
+      "read_receipts": [
+        "d3eaaa"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/core/runtime/handle/events.rs",
+        "read_sha256": "c9dccabbc70af73ef6d8dbaad8b40921fa3542e5db95f78d4af33eb22b18432a",
+        "current_sha256": "c9dccabbc70af73ef6d8dbaad8b40921fa3542e5db95f78d4af33eb22b18432a",
+        "current_lines": 87,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E25",
+      "path": "zircon_runtime/src/core/runtime/runtime.rs",
+      "sha256": "35add6ab63f42871c2f4199418d56494bff75378c00221d64e187368d03744d3",
+      "line_count": 508,
+      "read_spans": [
+        [
+          388,
+          430
+        ]
+      ],
+      "read_receipts": [
+        "d3eaaa"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/core/runtime/runtime.rs",
+        "read_sha256": "35add6ab63f42871c2f4199418d56494bff75378c00221d64e187368d03744d3",
+        "current_sha256": "35add6ab63f42871c2f4199418d56494bff75378c00221d64e187368d03744d3",
+        "current_lines": 508,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E26",
+      "path": "zircon_runtime/src/core/runtime/config_store.rs",
+      "sha256": "0ba1e999954fa1eb670cf0bd195cdae4a0564ba9360301a40a3e6dc40bb698f2",
+      "line_count": 165,
+      "read_spans": [
+        [
+          1,
+          165
+        ]
+      ],
+      "read_receipts": [
+        "d3eaaa"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/core/runtime/config_store.rs",
+        "read_sha256": "0ba1e999954fa1eb670cf0bd195cdae4a0564ba9360301a40a3e6dc40bb698f2",
+        "current_sha256": "0ba1e999954fa1eb670cf0bd195cdae4a0564ba9360301a40a3e6dc40bb698f2",
+        "current_lines": 165,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E27",
+      "path": "zircon_runtime/src/foundation/runtime/mod.rs",
+      "sha256": "c9ddf4acd797ace169f09380a3de2749a7f96be26ece5e1b4631cc17a0fb92ba",
+      "line_count": 11,
+      "read_spans": [
+        [
+          1,
+          11
+        ]
+      ],
+      "read_receipts": [
+        "d3eaaa"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/foundation/runtime/mod.rs",
+        "read_sha256": "c9ddf4acd797ace169f09380a3de2749a7f96be26ece5e1b4631cc17a0fb92ba",
+        "current_sha256": "c9ddf4acd797ace169f09380a3de2749a7f96be26ece5e1b4631cc17a0fb92ba",
+        "current_lines": 11,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E28",
+      "path": "zircon_runtime/tests/m1_runtime_editor_boundary_contract.rs",
+      "sha256": "49ed3078ecd0ee5f43e0a56915303053773a21cfcd897468a885462926bc9e96",
+      "line_count": 415,
+      "read_spans": [
+        [
+          1,
+          232
+        ],
+        [
+          325,
+          415
+        ]
+      ],
+      "read_receipts": [
+        "d826f3",
+        "af8bd8"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/tests/m1_runtime_editor_boundary_contract.rs",
+        "read_sha256": "49ed3078ecd0ee5f43e0a56915303053773a21cfcd897468a885462926bc9e96",
+        "current_sha256": "49ed3078ecd0ee5f43e0a56915303053773a21cfcd897468a885462926bc9e96",
+        "current_lines": 415,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E29",
+      "path": "zircon_runtime/src/plugin/register/tests/bridge_registration.rs",
+      "sha256": "0fce4d97b2135219e27e9a1aafa399f10627e4775a6899b247e9f0deb43473c9",
+      "line_count": 9,
+      "read_spans": [
+        [
+          1,
+          9
+        ]
+      ],
+      "read_receipts": [
+        "af8bd8"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/plugin/register/tests/bridge_registration.rs",
+        "read_sha256": "0fce4d97b2135219e27e9a1aafa399f10627e4775a6899b247e9f0deb43473c9",
+        "current_sha256": "0fce4d97b2135219e27e9a1aafa399f10627e4775a6899b247e9f0deb43473c9",
+        "current_lines": 9,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E30",
+      "path": "zircon_runtime/src/tests/contracts/review/plugin_importer_dx/d10_bridge_call.rs",
+      "sha256": "a663ce5ffa57fdb507b7eec4c4825692c409d433c8d325f76c584dfa9887a96f",
+      "line_count": 203,
+      "read_spans": [
+        [
+          1,
+          180
+        ]
+      ],
+      "read_receipts": [
+        "2dfd4e"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/tests/contracts/review/plugin_importer_dx/d10_bridge_call.rs",
+        "read_sha256": "a663ce5ffa57fdb507b7eec4c4825692c409d433c8d325f76c584dfa9887a96f",
+        "current_sha256": "a663ce5ffa57fdb507b7eec4c4825692c409d433c8d325f76c584dfa9887a96f",
+        "current_lines": 203,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E31",
+      "path": "zircon_runtime/src/tests/plugins/extension_registry_bridge/stable_snapshot.rs",
+      "sha256": "9fa744e1db53f4578c1e46d685c0f656903d221ac4550daabb406a5093bb4c39",
+      "line_count": 695,
+      "read_spans": [
+        [
+          1,
+          150
+        ],
+        [
+          579,
+          613
+        ]
+      ],
+      "read_receipts": [
+        "48e728",
+        "447e35"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/tests/plugins/extension_registry_bridge/stable_snapshot.rs",
+        "read_sha256": "9fa744e1db53f4578c1e46d685c0f656903d221ac4550daabb406a5093bb4c39",
+        "current_sha256": "9fa744e1db53f4578c1e46d685c0f656903d221ac4550daabb406a5093bb4c39",
+        "current_lines": 695,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "id": "R020-E32",
+      "path": "zircon_runtime/src/tests/structure/source_size/plugin_bridge_table_reports.rs",
+      "sha256": "58c3e8a806151bb4ca824d9ef72ae1465708a503fc560c4dcb24359e4407578e",
+      "line_count": 104,
+      "read_spans": [
+        [
+          1,
+          104
+        ]
+      ],
+      "read_receipts": [
+        "48e728"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/tests/structure/source_size/plugin_bridge_table_reports.rs",
+        "read_sha256": "58c3e8a806151bb4ca824d9ef72ae1465708a503fc560c4dcb24359e4407578e",
+        "current_sha256": "58c3e8a806151bb4ca824d9ef72ae1465708a503fc560c4dcb24359e4407578e",
+        "current_lines": 104,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/structure/source_size.rs",
+      "sha256": "2fe5681985c52ece0b17d81fdae2d688d24fc7f6cc1516fd20ca564f6bf8189d",
+      "line_count": 229,
+      "read_spans": [
+        [
+          1,
+          45
+        ],
+        [
+          200,
+          229
+        ]
+      ],
+      "id": "R020-E33",
+      "read_receipts": [
+        "da1d5c"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/tests/contracts/structure/source_size.rs",
+        "read_sha256": "2fe5681985c52ece0b17d81fdae2d688d24fc7f6cc1516fd20ca564f6bf8189d",
+        "current_sha256": "2fe5681985c52ece0b17d81fdae2d688d24fc7f6cc1516fd20ca564f6bf8189d",
+        "current_lines": 229,
+        "unchanged_since_read": true
+      }
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/structure/support.rs",
+      "sha256": "bbb3e8385361c8efc1fffe2b680512340b8a1947d46e1d634e2e5681e3dbac16",
+      "line_count": 63,
+      "read_spans": [
+        [
+          1,
+          63
+        ]
+      ],
+      "id": "R020-E34",
+      "read_receipts": [
+        "da1d5c"
+      ],
+      "formal_coverage": false,
+      "final_pin": {
+        "path": "zircon_runtime/src/tests/contracts/structure/support.rs",
+        "read_sha256": "bbb3e8385361c8efc1fffe2b680512340b8a1947d46e1d634e2e5681e3dbac16",
+        "current_sha256": "bbb3e8385361c8efc1fffe2b680512340b8a1947d46e1d634e2e5681e3dbac16",
+        "current_lines": 63,
+        "unchanged_since_read": true
+      }
+    }
+  ],
+  "context_files_formal_coverage": false,
+  "review_conclusions": [
+    "Static interface IDs connect typed exports, imports and slot resolution. Duplicate export checks belong to registration, while wrong Rust provider downcast may produce NotEnabled even for an entry whose published state is Enabled.",
+    "An installed entry is enabled only for an even generation with a present provider sampled from the same state. A slot only identifies a position in its originating table; constructing it does not validate membership or define a native ABI layout.",
+    "Disable retains a provider, deactivate removes it, and reload replaces matched owner exports while preserving a disabled generation. Transition modes name requested operations, and reports observe resulting entry state.",
+    "StrongBridge owns the acquired Arc; clones retain that provider and later table replacement does not retarget existing handles. Catalog disable/deactivate guard declared strong dependents before transition; handle construction does not perform that lifecycle check.",
+    "VM and native admission count before invoking the callback, so callback errors remain admitted calls. Absent slots do not count; native lease denial counts as not enabled, while missing methods do not.",
+    "DefaultConfigManager accepts an in-memory update then requests background persistence. Its weak core failure is RuntimeUnavailable; get returns None for unavailable core or absent key.",
+    "Flush captures a target generation and waits for confirmation. Timeout leaves the background operation live, and persistence errors do not imply in-memory rollback. A worker snapshot may contain newer values than the captured target it confirms.",
+    "Report attempt and byte/latency counters include completed failures. Only successful writes advance persisted generation and clear last_error; the64 sample latency window and coalesced pending indicator describe current implementation bounds.",
+    "The three owned tests assert explicit sequential entry transitions, static ID/Arc address sharing and changed-versus-unchanged notification behavior; they do not establish concurrent behavior or real disk persistence.",
+    "Existing CR-PLUGIN-BOUNDARY-0001 and0002 remain open in read-only context; no new issue markers or behavior fixes are included."
+  ],
+  "issues": [],
+  "new_issue_markers": 0,
+  "all_original_bytes_and_comments_preserved": true,
+  "builds_or_Rust_tests_executed": false,
+  "context_findings": [
+    {
+      "id": "R020-CF01",
+      "classification": "existing-external-issue-retained",
+      "evidence": [
+        "R020-E01:525-525",
+        "R020-F01:15-33"
+      ],
+      "summary": "上下文table中已有CR-PLUGIN-BOUNDARY-0001：替换provider不校验其Rust类型，状态可为Enabled而类型下转返回NotEnabled。本批原BridgeError说明已覆盖该边界，未重复新增BUG、未修行为、未关闭原问题。"
+    },
+    {
+      "id": "R020-CF02",
+      "classification": "existing-external-test-issue-retained",
+      "evidence": [
+        "R020-E15:58-106",
+        "R020-E01:177-210"
+      ],
+      "summary": "optimization_tests已有CR-PLUGIN-BOUNDARY-0002：Disable保持provider与该测试的provider_installed断言不一致。本批仅核对100–106源码字符串谓词，不把此文件或其Rust测试宣称通过。"
+    },
+    {
+      "id": "R020-CF03",
+      "classification": "scope-and-contract-limits",
+      "evidence": [
+        "R020-F11:21-58",
+        "R020-F12:14-25",
+        "R020-F13:3-12"
+      ],
+      "summary": "三个正式fixture仅覆盖其显式单线程顺序/静态ID地址/changed通知断言；不从测试名推断并发、mutex poison、真实I/O或完整导入绑定已验证。未执行这些测试。"
+    },
+    {
+      "id": "R020-CF04",
+      "classification": "lifetime-contract",
+      "evidence": [
+        "R020-F05:1-32",
+        "R020-E01:121-139,177-210,371-386",
+        "R020-E09:146-235"
+      ],
+      "summary": "StrongBridge与其clone保有取得时同一Arc；后续entry替换不改变旧句柄。目录disable/deactivate先检查声明的强依赖，activate/reload不走相同阻断。未把这些调用者条件写成构造本身的校验。"
+    },
+    {
+      "id": "R020-CF05",
+      "classification": "config-publication-and-error-boundary",
+      "evidence": [
+        "R020-E04:174-211",
+        "R020-E05:206-249,346-381",
+        "R020-E06:66-124"
+      ],
+      "summary": "set先接受内存值并推进/请求dirty；flush只等待捕获目标。Persistence和FlushTimedOut不承诺回滚或取消后台工作；报告仅确认完成尝试捕获的目标，即使快照已含更晚值。"
+    }
+  ],
+  "metadata_wording_limits": [
+    "No Cargo/build/test/generator run was required or performed for this scoped comment-only batch. Local source predicate evaluations do not claim existing Runtime test suites pass.",
+    "All34 caller/context files remain context-only coverage; their exact current pins were rechecked. Full independent coverage applies only to the13 assigned sources.",
+    "Owned files contain49 added comment lines; all original raw bytes, line endings, public APIs and assertions are preserved."
+  ],
+  "validation_record": {
+    "path": "docs/plans/source-comments/reviews/R020-post-validation.json",
+    "sha256": "8a069c875ad0bac26280c420c7ca19a9a3c6423d62769a8108f6dcaac86b6ce9"
+  },
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

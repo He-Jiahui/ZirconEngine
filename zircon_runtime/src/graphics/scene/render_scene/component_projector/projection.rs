@@ -85,6 +85,193 @@ pub(super) fn build_delta_with_geometry_replay(
     Ok(RenderSceneDelta::new(upserts, removals))
 }
 
+/// Dormant sources retain only component metadata. They own no geometry, payload or lease.
+#[derive(Clone)]
+pub(super) struct DormantGeometryPrimitive {
+    pub(super) descriptor: RenderScenePrimitiveDescriptor,
+    pub(super) revisions: RenderScenePrimitiveRevisions,
+}
+
+impl DormantGeometryPrimitive {
+    pub(super) fn from_primitive(primitive: &RenderScenePrimitive) -> Self {
+        Self { descriptor: primitive.descriptor().clone(), revisions: primitive.revisions() }
+    }
+
+    pub(super) fn key(&self) -> u64 { self.descriptor.stable_instance_key }
+}
+
+pub(super) struct GeometryRetirementDelta {
+    pub(super) delta: RenderSceneDelta,
+    pub(super) parked: Vec<DormantGeometryPrimitive>,
+    pub(super) awakened: Vec<u64>,
+    pub(super) forgotten: Vec<u64>,
+    pub(super) preserve_dependencies: HashSet<u64>,
+}
+
+/// A retirement is an explicit Resource-authority tombstone, never a resolver failure.
+/// Missing/Pending keep their existing error behavior on every route without tombstones.
+pub(super) fn build_delta_with_geometry_retirements(
+    scene: &RenderScene,
+    dormant: &std::collections::HashMap<u64, DormantGeometryPrimitive>,
+    artifact: Option<&RenderComponentChangeArtifact>,
+    targets: &[u64],
+    retired: &HashSet<crate::core::resource::UntypedResourceHandle>,
+    resolver: &mut impl RenderSceneGeometryResolver,
+) -> Result<GeometryRetirementDelta, RenderSceneComponentProjectionError> {
+    if dormant.is_empty() && retired.is_empty() {
+        let delta = match artifact {
+            Some(artifact) if targets.is_empty() => build_delta(scene, artifact, resolver)?,
+            Some(artifact) => build_delta_with_geometry_replay(scene, artifact, targets, resolver)?,
+            None => {
+                let read = scene.read();
+                let upserts = targets.iter().filter_map(|key| {
+                    read.handle_for_stable_key(*key).and_then(|handle| read.get(handle))
+                }).map(|previous| reproject_geometry(previous, resolver)).collect::<Result<Vec<_>, _>>()?;
+                RenderSceneDelta::new(upserts, Vec::new())
+            }
+        };
+        return Ok(GeometryRetirementDelta {
+            delta, parked: Vec::new(), awakened: Vec::new(), forgotten: Vec::new(),
+            preserve_dependencies: HashSet::new(),
+        });
+    }
+    let read = scene.read();
+    let mut remaining = targets.iter().copied().collect::<HashSet<_>>();
+    let mut incoming = HashSet::new();
+    let mut upserts = Vec::new();
+    let mut removals = std::collections::BTreeSet::new();
+    let mut parked = Vec::new();
+    let mut awakened = Vec::new();
+    let mut forgotten = Vec::new();
+    let mut preserve_dependencies = HashSet::new();
+    if let Some(artifact) = artifact {
+        for patch in artifact.upserts() {
+            let key = stable_instance_key(patch.entity())?;
+            incoming.insert(key);
+            let force_geometry = remaining.remove(&key);
+            let live = read.handle_for_stable_key(key).and_then(|handle| read.get(handle));
+            let prior = live.map(DormantGeometryPrimitive::from_primitive)
+                .or_else(|| dormant.get(&key).cloned());
+            let metadata = metadata_for_patch(prior.as_ref(), patch)?;
+            if source_is_retired(&metadata.descriptor.mesh_source, retired) {
+                if prior.as_ref().is_some_and(|prior| {
+                    prior.descriptor.mesh_source.geometry_eq(&metadata.descriptor.mesh_source)
+                }) { preserve_dependencies.insert(key); }
+                if live.is_some() { removals.insert(key); }
+                parked.push(metadata);
+            } else {
+                let projected = if let Some(live) = live {
+                    project_existing(live.clone(), patch, force_geometry, resolver)?
+                } else if prior.is_some() {
+                    resolve_dormant(metadata, resolver)?
+                } else {
+                    project_new(patch, resolver)?
+                };
+                awakened.push(key);
+                upserts.push(projected);
+            }
+        }
+        if matches!(artifact.mode(), RenderComponentProjectionMode::Full(_)) {
+            forgotten.extend(read.iter().map(|(_, primitive)| primitive.stable_instance_key())
+                .chain(dormant.keys().copied()).filter(|key| !incoming.contains(key)));
+        } else {
+            forgotten.extend(artifact.removals().iter().copied().map(stable_instance_key)
+                .collect::<Result<Vec<_>, _>>()?);
+        }
+    }
+    forgotten.sort_unstable();
+    forgotten.dedup();
+    for key in &forgotten {
+        remaining.remove(key);
+        if read.handle_for_stable_key(*key).is_some() { removals.insert(*key); }
+    }
+    let mut remaining = remaining.into_iter().collect::<Vec<_>>();
+    remaining.sort_unstable();
+    for key in remaining {
+        let live = read.handle_for_stable_key(key).and_then(|handle| read.get(handle));
+        let Some(metadata) = live.map(DormantGeometryPrimitive::from_primitive)
+            .or_else(|| dormant.get(&key).cloned()) else { continue; };
+        if source_is_retired(&metadata.descriptor.mesh_source, retired) {
+            preserve_dependencies.insert(key);
+            if live.is_some() { removals.insert(key); }
+            parked.push(metadata);
+        } else {
+            awakened.push(key);
+            upserts.push(resolve_dormant(metadata, resolver)?);
+        }
+    }
+    Ok(GeometryRetirementDelta {
+        delta: RenderSceneDelta::new(upserts, removals.into_iter().collect()),
+        parked, awakened, forgotten, preserve_dependencies,
+    })
+}
+
+pub(super) fn source_is_retired(
+    source: &RenderSceneMeshSource,
+    retired: &HashSet<crate::core::resource::UntypedResourceHandle>,
+) -> bool {
+    use crate::core::resource::{ResourceKind, UntypedResourceHandle};
+    std::iter::once(source.base()).chain(source.lods().iter().map(|lod| &lod.source)).any(|level| {
+        retired.contains(&match level.mesh {
+            Some(mesh) => UntypedResourceHandle::new(mesh.id(), ResourceKind::Mesh),
+            None => UntypedResourceHandle::new(level.model.id(), ResourceKind::Model),
+        }) || level.primitives.iter().any(|binding| {
+            retired.contains(&UntypedResourceHandle::new(binding.mesh.id(), ResourceKind::Mesh))
+        })
+    })
+}
+
+fn resolve_dormant(
+    dormant: DormantGeometryPrimitive,
+    resolver: &mut impl RenderSceneGeometryResolver,
+) -> Result<RenderScenePrimitive, RenderSceneComponentProjectionError> {
+    let entity = dormant.descriptor.node_id;
+    let mut revisions = dormant.revisions;
+    let bounds = resolver.resolve_geometry(entity, &dormant.descriptor.mesh_source, &dormant.descriptor.morph_weights)
+        .map_err(|issue| RenderSceneComponentProjectionError::GeometryResolution { entity, issue })?
+        .apply_to(&mut revisions);
+    RenderScenePrimitive::new(dormant.descriptor, bounds, revisions).map_err(Into::into)
+}
+
+fn metadata_for_patch(
+    previous: Option<&DormantGeometryPrimitive>,
+    patch: &RenderComponentSnapshot,
+) -> Result<DormantGeometryPrimitive, RenderSceneComponentProjectionError> {
+    let entity = patch.entity();
+    if let Some(previous) = previous {
+        let mut metadata = previous.clone();
+        apply_transform_patch(&mut metadata.descriptor, &mut metadata.revisions, patch.world_matrix(), entity)?;
+        apply_active_patch(&mut metadata.descriptor, patch.active_in_hierarchy(), entity)?;
+        apply_layer_patch(&mut metadata.descriptor, patch.render_layer_mask(), entity)?;
+        apply_mobility_patch(&mut metadata.descriptor, patch.mobility(), entity)?;
+        match patch.mesh_renderer() {
+            RenderComponentValue::Unchanged if patch.kind() == RenderComponentChangeKind::Added =>
+                return Err(missing_component(entity, RenderSceneRequiredComponent::MeshRenderer)),
+            RenderComponentValue::Unchanged => {}
+            RenderComponentValue::Removed =>
+                return Err(RenderSceneComponentProjectionError::RemovedMeshRendererInUpsert { entity }),
+            RenderComponentValue::Present(mesh) => {
+                let source = mesh_source(entity, mesh)?;
+                apply_mesh_renderer(&mut metadata.descriptor, source, mesh);
+            }
+        }
+        return Ok(metadata);
+    }
+    if patch.kind() == RenderComponentChangeKind::Updated {
+        return Err(RenderSceneComponentProjectionError::MissingPrimitive { entity });
+    }
+    let mesh = required_present(patch.mesh_renderer(), entity, RenderSceneRequiredComponent::MeshRenderer)?;
+    let matrix = *required_present(patch.world_matrix(), entity, RenderSceneRequiredComponent::WorldMatrix)?;
+    let active = required_present(patch.active_in_hierarchy(), entity, RenderSceneRequiredComponent::ActiveInHierarchy)?;
+    let layer = required_present(patch.render_layer_mask(), entity, RenderSceneRequiredComponent::RenderLayerMask)?;
+    let mobility = *required_present(patch.mobility(), entity, RenderSceneRequiredComponent::Mobility)?;
+    let source = mesh_source(entity, mesh)?;
+    Ok(DormantGeometryPrimitive {
+        descriptor: descriptor(entity, stable_instance_key(entity)?, matrix, active, layer, mobility, source, mesh),
+        revisions: RenderScenePrimitiveRevisions::new(0, 0, 0, 0, 0),
+    })
+}
+
 pub(super) fn reproject_geometry(
     previous: &RenderScenePrimitive,
     resolver: &mut impl RenderSceneGeometryResolver,

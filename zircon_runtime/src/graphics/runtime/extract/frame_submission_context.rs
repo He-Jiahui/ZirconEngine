@@ -93,15 +93,76 @@ pub(super) struct FrameSubmissionContext {
     virtual_geometry_cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
     virtual_geometry_bvh_visualization_instances:
         Vec<RenderVirtualGeometryBvhVisualizationInstance>,
+    virtual_geometry_indexed_sources: Vec<crate::graphics::VirtualGeometryIndexedSourceAdmission>,
     virtual_geometry_resident_page_payloads: Vec<RenderVirtualGeometryPagePayload>,
     virtual_geometry_page_upload_plan: Option<VisibilityVirtualGeometryPageUploadPlan>,
     virtual_geometry_feedback: Option<VisibilityVirtualGeometryFeedback>,
     environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
     environment_source_cubemap_override: Option<SourceCubemapEnvironment>,
     predicted_generation: u64,
+    virtual_geometry_readback_scope: Option<crate::graphics::scene::VirtualGeometryReadbackScope>,
+    virtual_geometry_prepared_cpu_frame:
+        Option<Arc<crate::core::framework::render::RenderVirtualGeometryPreparedCpuFrame>>,
+    virtual_geometry_execution_inputs:
+        Arc<crate::core::framework::render::RenderVirtualGeometryExecutionInputs>,
 }
 
 impl FrameSubmissionContext {
+    pub(super) fn virtual_geometry_readback_scope(
+        &self,
+    ) -> Option<crate::graphics::scene::VirtualGeometryReadbackScope> {
+        self.virtual_geometry_readback_scope.clone()
+    }
+
+    pub(super) fn set_virtual_geometry_readback_scope(
+        &mut self,
+        scope: Option<crate::graphics::scene::VirtualGeometryReadbackScope>,
+    ) {
+        self.virtual_geometry_readback_scope = scope;
+    }
+
+    pub(super) fn virtual_geometry_execution_inputs(
+        &self,
+    ) -> Arc<crate::core::framework::render::RenderVirtualGeometryExecutionInputs> {
+        Arc::clone(&self.virtual_geometry_execution_inputs)
+    }
+
+    #[cfg(feature = "test-support")]
+    pub(super) fn test_support_use_virtual_geometry_inputs(
+        &mut self,
+        inputs: crate::core::framework::render::RenderVirtualGeometryExecutionInputs,
+    ) {
+        self.virtual_geometry_execution_inputs = Arc::new(inputs);
+    }
+
+    #[cfg(feature = "test-support")]
+    pub(super) fn test_support_use_compiled_pipeline(
+        &mut self,
+        pipeline: Arc<CompiledRenderPipeline>,
+    ) {
+        let runtime_features = pipeline.runtime_feature_flags();
+        self.hybrid_gi_enabled = runtime_features.hybrid_global_illumination_enabled
+            && self
+                .advanced_runtime_plan
+                .hybrid_global_illumination_enabled();
+        self.virtual_geometry_enabled = runtime_features.virtual_geometry_enabled
+            && self.advanced_runtime_plan.virtual_geometry_enabled();
+        if !self.hybrid_gi_enabled {
+            self.hybrid_gi_extract = None;
+            self.hybrid_gi_update_plan = None;
+            self.hybrid_gi_feedback = None;
+        }
+        if !self.virtual_geometry_enabled {
+            self.virtual_geometry_extract = None;
+            self.virtual_geometry_page_upload_plan = None;
+            self.virtual_geometry_feedback = None;
+            self.virtual_geometry_resident_page_payloads.clear();
+            self.virtual_geometry_cpu_reference_instances.clear();
+            self.virtual_geometry_bvh_visualization_instances.clear();
+        }
+        self.compiled_pipeline = pipeline;
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(super) fn new(
         target_size: UVec2,
@@ -227,12 +288,16 @@ impl FrameSubmissionContext {
             virtual_geometry_payload_source,
             virtual_geometry_cpu_reference_instances,
             virtual_geometry_bvh_visualization_instances,
+            virtual_geometry_indexed_sources: Vec::new(),
             virtual_geometry_resident_page_payloads,
             virtual_geometry_page_upload_plan,
             virtual_geometry_feedback,
             environment_ibl_bake_reservation: None,
             environment_source_cubemap_override: None,
             predicted_generation,
+            virtual_geometry_execution_inputs: Default::default(),
+            virtual_geometry_readback_scope: None,
+            virtual_geometry_prepared_cpu_frame: None,
         }
     }
 
@@ -435,6 +500,21 @@ impl FrameSubmissionContext {
         &self.submission_extract.geometry.meshes
     }
 
+    pub(super) fn scene_camera(&self) -> &ViewportCameraSnapshot {
+        &self.submission_extract.view.camera
+    }
+    pub(super) fn set_virtual_geometry_prepared_cpu_frame(
+        &mut self,
+        frame: Option<Arc<crate::core::framework::render::RenderVirtualGeometryPreparedCpuFrame>>,
+    ) {
+        self.virtual_geometry_prepared_cpu_frame = frame;
+    }
+    pub(super) fn virtual_geometry_prepared_cpu_frame(
+        &self,
+    ) -> Option<Arc<crate::core::framework::render::RenderVirtualGeometryPreparedCpuFrame>> {
+        self.virtual_geometry_prepared_cpu_frame.clone()
+    }
+
     pub(super) fn scene_camera_position(&self) -> Vec3 {
         self.submission_extract.view.camera.transform.translation
     }
@@ -597,3 +677,18 @@ impl UiSubmissionStats {
 #[cfg(test)]
 #[path = "../framework/extract/tests/cases.rs"]
 mod tests;
+
+impl FrameSubmissionContext {
+    pub(super) fn with_virtual_geometry_indexed_sources(
+        mut self,
+        sources: Vec<crate::graphics::VirtualGeometryIndexedSourceAdmission>,
+    ) -> Self {
+        self.virtual_geometry_indexed_sources = sources;
+        self
+    }
+    pub(super) fn virtual_geometry_indexed_sources(
+        &self,
+    ) -> &[crate::graphics::VirtualGeometryIndexedSourceAdmission] {
+        &self.virtual_geometry_indexed_sources
+    }
+}

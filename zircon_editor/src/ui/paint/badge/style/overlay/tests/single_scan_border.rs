@@ -68,7 +68,8 @@ fn optimization_batch_20260829bx_editor296_badge_border_aliases_preserve_results
 
 #[test]
 fn optimization_batch_20260829bx_editor296_badge_border_aliases_use_one_scan() {
-    let source = include_str!("../../../../../retained/contract/paint/primitives/badge/style/overlay.rs");
+    let source =
+        include_str!("../../../../../retained/contract/paint/primitives/badge/style/overlay.rs");
     let production = source.split_once("#[cfg(test)]").expect("test boundary").0;
     assert!(production.contains("fn badge_border_is_circular"));
     assert!(production.contains(".any(|part|"));

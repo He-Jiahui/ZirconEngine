@@ -1,0 +1,286 @@
+{
+  "schema": "zircon-source-comments-chief-amendment/v2",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R038",
+  "owner": "main",
+  "created_at_utc": "2026-10-15T21:50:46.661817+00:00",
+  "head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R038.json",
+    "bytes": 345637,
+    "sha256": "cb4c5f1c171b3894f3ad01fb64fcb9a77ae784abc1fca1b4aa3d179289385a60",
+    "immutable": true
+  },
+  "preregistration_receipt": {
+    "chunk": "ddaa34",
+    "exit": 0
+  },
+  "authority": "User source-comment audit and chief independent full19-source read plus actual keyboard/popup/IME/cursor/ABI caller and callee evidence. Correct only task-added inaccurate docs;preserve every preexisting byte/comment/API/string/assertion;add checked IME contract,three SAFETY explanations and one specific cursor-unit TODO if unchanged source still warrants it. No behavior fix or new source copy.",
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/ui/window/input/platform_event.rs",
+      "child_sha256": "174b0e11a2275dd6a7dc4d389c8c11da469114665240ea3f9d97badaeda8b4af",
+      "before_sha256": "9c9d223865875ba1f809d33add187b2ff161d406b399ae3e46ba5a422297489d",
+      "after_sha256": "11659ae767304eddceb7efead12d2ae67d3b126d00f16d0566846da0ed54ac2c",
+      "before_bytes": 21125,
+      "after_bytes": 21852,
+      "before_lines": 673,
+      "after_lines": 683,
+      "root_inverse_sha256": "174b0e11a2275dd6a7dc4d389c8c11da469114665240ea3f9d97badaeda8b4af",
+      "all_original_bytes_inverse_sha256": "9c9d223865875ba1f809d33add187b2ff161d406b399ae3e46ba5a422297489d",
+      "operation_ids": [
+        "A01",
+        "A02",
+        "A04",
+        "A05",
+        "A03"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/input/context.rs",
+      "child_sha256": "2a1d6a9b32945342ea45df06fcc4b995cf6211f1516e73a54035fe5e9bac686d",
+      "before_sha256": "c66cdb209fed3dda7a4d53313986ce680eac91793347c451249ceec867ab4c61",
+      "after_sha256": "888dbebc55691184b992132e30ed9518976e4f012a7f4f1290d480a4f113de9d",
+      "before_bytes": 5334,
+      "after_bytes": 5697,
+      "before_lines": 128,
+      "after_lines": 131,
+      "root_inverse_sha256": "2a1d6a9b32945342ea45df06fcc4b995cf6211f1516e73a54035fe5e9bac686d",
+      "all_original_bytes_inverse_sha256": "c66cdb209fed3dda7a4d53313986ce680eac91793347c451249ceec867ab4c61",
+      "operation_ids": [
+        "A06"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event.rs",
+      "child_sha256": "99c07d8705fac120f4f0e28ee66ef2c7ae02485b26f1f370123bddcbcef15cea",
+      "before_sha256": "aec82080f076e4f767b0f7adbd63174231dfad246b4c68b53561b6e8714474f2",
+      "after_sha256": "9688cba399053dbc8c5ba62a1e0c71f30af469bcdaa7dfbab11de2f4841490a9",
+      "before_bytes": 4068,
+      "after_bytes": 4316,
+      "before_lines": 96,
+      "after_lines": 98,
+      "root_inverse_sha256": "99c07d8705fac120f4f0e28ee66ef2c7ae02485b26f1f370123bddcbcef15cea",
+      "all_original_bytes_inverse_sha256": "aec82080f076e4f767b0f7adbd63174231dfad246b4c68b53561b6e8714474f2",
+      "operation_ids": [
+        "A07"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event_abi.rs",
+      "child_sha256": "861206a87787149249a09ac336ab73e6abd7eb55395bcaedc24cfd2b66ab8ff9",
+      "before_sha256": "07043632c7375bc35ac83d09e581ec68ec2586c6950012e2467ea03a515c7902",
+      "after_sha256": "3a327faedb3b4b2bffc0ff576d85b4a35a94649321a347b4762e28c33379f657",
+      "before_bytes": 3132,
+      "after_bytes": 3701,
+      "before_lines": 66,
+      "after_lines": 71,
+      "root_inverse_sha256": "861206a87787149249a09ac336ab73e6abd7eb55395bcaedc24cfd2b66ab8ff9",
+      "all_original_bytes_inverse_sha256": "07043632c7375bc35ac83d09e581ec68ec2586c6950012e2467ea03a515c7902",
+      "operation_ids": [
+        "A08",
+        "A09",
+        "A10"
+      ]
+    }
+  ],
+  "operations": [
+    {
+      "id": "A01",
+      "path": "zircon_runtime_interface/src/ui/window/input/platform_event.rs",
+      "mode": "replace-task-added-comment",
+      "before_byte_offset": 6162,
+      "old_text": "    /// `repeat` 决定重复或首次按下状态；其余键代码与文本原样传递。\n",
+      "new_text": "    /// `is_repeat` 决定重复或首次按下；保留键码与键名，文本字段固定为 `None`。\n",
+      "reason": "实际函数没有text参数并传None给keyboard。",
+      "old_bytes": 93,
+      "new_bytes": 106,
+      "after_byte_offset": 6162,
+      "after_first_line": 177,
+      "after_last_line": 177
+    },
+    {
+      "id": "A02",
+      "path": "zircon_runtime_interface/src/ui/window/input/platform_event.rs",
+      "mode": "replace-task-added-comment",
+      "before_byte_offset": 6824,
+      "old_text": "    /// 生成释放状态，携带调用方提供的键名、扫描码和可选文本。\n",
+      "new_text": "    /// 生成释放状态，保留调用方提供的键名和扫描码，文本字段固定为 `None`。\n",
+      "reason": "实际函数没有text参数并传None给keyboard。",
+      "old_bytes": 90,
+      "new_bytes": 106,
+      "after_byte_offset": 6837,
+      "after_first_line": 201,
+      "after_last_line": 201
+    },
+    {
+      "id": "A04",
+      "path": "zircon_runtime_interface/src/ui/window/input/platform_event.rs",
+      "mode": "replace-task-added-comment",
+      "before_byte_offset": 10280,
+      "old_text": "    /// 校验分句的 UTF-8 边界、范围与顺序后生成预编辑事件；无效分句返回错误。\n",
+      "new_text": "    /// 接收平台分段样式，在发布预编辑事件前完成局部范围准入。\n",
+      "reason": "Original line313 is preserved;replace only the independently verified child insertion at current line314,offset10280.",
+      "old_bytes": 109,
+      "new_bytes": 90,
+      "after_byte_offset": 10309,
+      "after_first_line": 314,
+      "after_last_line": 314
+    },
+    {
+      "id": "A05",
+      "path": "zircon_runtime_interface/src/ui/window/input/platform_event.rs",
+      "mode": "insert-comment",
+      "before_byte_offset": 10389,
+      "old_text": "",
+      "new_text": "    ///\n    /// # 参数与返回\n    /// `context` 随事件移交；`text` 是预编辑文本，范围使用其 UTF-8 字节偏移。\n    /// 可选 `cursor_range` 与各子句端点须位于有效字符边界内；`preedit_clauses`\n    /// 按起点排列且互不重叠，允许零长度和间隙，不要求覆盖全文。\n    /// 返回拥有文本和子句的预编辑事件，或首个范围错误；不重排或修改输入内容。\n    ///\n    /// # 约束与参考\n    /// 此处显式调用 [`UiImeInputEvent::validate_preedit_payload`]；其他构造器和反序列化\n    /// 不会自动执行本项检查。校验不涉及字素簇、子句样式语义或实际文档，也不执行分发。\n",
+      "reason": "Root read dispatch event.rs:158-165 and editable_text.rs:67-90/126-141; constructor fixes Preedit and validates before moving owned input.",
+      "old_bytes": 0,
+      "new_bytes": 708,
+      "after_byte_offset": 10399,
+      "after_first_line": 315,
+      "after_last_line": 324
+    },
+    {
+      "id": "A03",
+      "path": "zircon_runtime_interface/src/ui/window/input/platform_event.rs",
+      "mode": "replace-task-added-comment",
+      "before_byte_offset": 16122,
+      "old_text": "    /// 构造弹窗关闭请求，不携带所有者或锚点。\n",
+      "new_text": "    /// 构造弹窗关闭请求，保留可选所有者，锚点为空。\n",
+      "reason": "实际owner参数传给popup，只有anchor固定None。",
+      "old_bytes": 66,
+      "new_bytes": 75,
+      "after_byte_offset": 16840,
+      "after_first_line": 519,
+      "after_last_line": 519
+    },
+    {
+      "id": "A06",
+      "path": "zircon_runtime_interface/src/ui/window/input/context.rs",
+      "mode": "insert-comment",
+      "before_byte_offset": 1416,
+      "old_text": "",
+      "new_text": "    // TODO: [CR-ZCA-R038-0001] 确认缓存与命中坐标的单位约定：旧说明为逻辑像素，\n    // winit 的移动位置当前仅从物理像素转为浮点；尚缺生产缓存赋值与 DPI 不为 1 的贯通证据。\n    // 下一步追踪宿主缓存写入、滚轮消费与命中测试，补充含缩放的端到端夹具再决定换算责任。\n",
+      "reason": "Root exact global rg,Runtime pointer conversion and wheel cache consumer,Editor context construction show an intent/evidence gap; no product BUG established.",
+      "old_bytes": 0,
+      "new_bytes": 363,
+      "after_byte_offset": 1416,
+      "after_first_line": 30,
+      "after_last_line": 32
+    },
+    {
+      "id": "A07",
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event.rs",
+      "mode": "insert-comment",
+      "before_byte_offset": 3674,
+      "old_text": "",
+      "new_text": "        // SAFETY: 调用方保证会被借用的非空字节位于同一有效分配、已初始化且地址范围不回绕，\n        // 并在返回视图的载荷借用期内保持可读、不变；形状和预算检查不能替代此前提。\n",
+      "reason": "Underlying buffer checked_slice:200-237 and this method's Safety contract require caller-controlled readable immutable single allocation for the chosen borrow lifetime.",
+      "old_bytes": 0,
+      "new_bytes": 248,
+      "after_byte_offset": 3674,
+      "after_first_line": 84,
+      "after_last_line": 85
+    },
+    {
+      "id": "A08",
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event_abi.rs",
+      "mode": "insert-comment",
+      "before_byte_offset": 691,
+      "old_text": "",
+      "new_text": "/// 进入非空载荷借用分支时，完整字节范围还须位于同一有效分配，地址加长度不得回绕。\n",
+      "reason": "Make the single-allocation and complete-address-range duties explicit while preserving original Safety text and early rejection branches.",
+      "old_bytes": 0,
+      "new_bytes": 122,
+      "after_byte_offset": 691,
+      "after_first_line": 18,
+      "after_last_line": 18
+    },
+    {
+      "id": "A09",
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event_abi.rs",
+      "mode": "insert-comment",
+      "before_byte_offset": 1596,
+      "old_text": "",
+      "new_text": "    // SAFETY: 调用方为非空载荷保证同一有效分配内的完整字节范围已初始化，且同步转换期间可读、不变；\n    // 转换结果拥有数据，不保留原载荷借用。ABI 与数值检查本身不证明指针有效。\n",
+      "reason": "Single wrapper inherits raw payload contract and the adapter returns only owned text/JSON/drag data.",
+      "old_bytes": 0,
+      "new_bytes": 253,
+      "after_byte_offset": 1718,
+      "after_first_line": 35,
+      "after_last_line": 36
+    },
+    {
+      "id": "A10",
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event_abi.rs",
+      "mode": "insert-comment",
+      "before_byte_offset": 3016,
+      "old_text": "",
+      "new_text": "        // SAFETY: 调用方须为当前元素分别满足单事件入口的载荷前提；\n        // 此处同步完成拥有数据的转换，局部结果不保留该元素的载荷借用。\n",
+      "reason": "Each element must meet the wrapper's payload contract only through its synchronous conversion; lazy iteration does not extend a borrowed output.",
+      "old_bytes": 0,
+      "new_bytes": 194,
+      "after_byte_offset": 3391,
+      "after_first_line": 66,
+      "after_last_line": 67
+    }
+  ],
+  "new_issue": {
+    "id": "CR-ZCA-R038-0001",
+    "kind": "TODO",
+    "path": "zircon_runtime_interface/src/ui/window/input/context.rs",
+    "scope": "cursor-cache coordinate-unit intent unresolved",
+    "evidence_gap": "Legacy logical-pixel documentation versus physical-position casts; production cache population and DPI-nonunit end-to-end hit-test behavior not established.",
+    "next_action": "Trace host cache write/wheel consumption/hit-test coordinates and add explicit nonunit-DPI fixture before choosing conversion responsibility."
+  },
+  "evidence": {
+    "root_all19_source_lines_read": 3003,
+    "source_read_receipts": [
+      "855934",
+      "ea67b8",
+      "4b3a87",
+      "b4a64d",
+      "825c02",
+      "431dc5"
+    ],
+    "root_context_receipts": [
+      "0aa0d2",
+      "f36e27",
+      "3298c3",
+      "edd698",
+      "58deb9",
+      "5dd5bd"
+    ],
+    "independent_core_readonly_receipts": [
+      "bbe93c",
+      "2fba20",
+      "c9dc0c",
+      "9e8dd3",
+      "bb627a"
+    ]
+  },
+  "proof": {
+    "only_task_added_comments_replaced": true,
+    "every_preexisting_byte_preserved": true,
+    "root_operations_inverted_to_child_sha256": true,
+    "child_insertions_inverted_to_original_grant_sha256": true,
+    "program_behavior_or_public_api_changed": false
+  },
+  "nonpassing_history": [
+    {
+      "chunk": "fba4f8",
+      "exit": 1,
+      "source_writes": 0,
+      "reason": "all-source preflight rejected replacement of original line313",
+      "nochange_readback_receipt": "c3d650"
+    }
+  ],
+  "writer": {
+    "pid": 50872,
+    "terminal_exit_collected_later_in_main_post_record": true
+  },
+  "cargo_or_tests_run": false,
+  "source_copies": false,
+  "formal_acceptance": false
+}

@@ -1,3 +1,4 @@
+//! 窗口输入的身份、时钟和修饰键元数据；类型化 ID 的构造器只包装输入值，不查重或确认实体存在。
 use serde::{Deserialize, Serialize};
 
 macro_rules! define_u64_id {
@@ -51,6 +52,7 @@ define_string_id!(UiSurfaceId);
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 输入指针来源；is_touch_like 将 Touch 与 Pen 归为触控类来源。
 pub enum UiPointerSource {
     #[default]
     Mouse,
@@ -60,17 +62,20 @@ pub enum UiPointerSource {
 }
 
 impl UiPointerSource {
+    /// 判断来源是否为 Touch 或 Pen。
     pub const fn is_touch_like(self) -> bool {
         matches!(self, Self::Touch | Self::Pen)
     }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+/// 单调时钟时间戳，单位为微秒；不是墙上时钟时间。
 pub struct UiInputTimestamp {
     pub monotonic_micros: u64,
 }
 
 impl UiInputTimestamp {
+    /// 用单调时钟微秒值构造时间戳。
     pub const fn from_micros(monotonic_micros: u64) -> Self {
         Self { monotonic_micros }
     }
@@ -78,6 +83,7 @@ impl UiInputTimestamp {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
+/// 单个输入事件采样到的修饰键与锁定键状态。
 pub struct UiInputModifiers {
     pub shift: bool,
     pub control: bool,
@@ -104,6 +110,7 @@ pub struct UiInputEventMetadata {
 }
 
 impl UiInputEventMetadata {
+    /// 初始化时序与序列，其他身份字段留空，修饰键清零，pointer source 默认 Mouse。
     pub const fn new(timestamp: UiInputTimestamp, sequence: UiInputSequence) -> Self {
         Self {
             timestamp,

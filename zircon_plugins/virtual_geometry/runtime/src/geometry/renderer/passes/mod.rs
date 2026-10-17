@@ -17,3 +17,9 @@ mod virtual_geometry_visbuffer64_pass;
 pub(in crate::virtual_geometry::renderer) use virtual_geometry_indirect_stats::VirtualGeometryIndirectStats;
 pub(in crate::virtual_geometry::renderer) use virtual_geometry_indirect_stats_store_parts::VirtualGeometryIndirectStatsStoreParts;
 pub(in crate::virtual_geometry::renderer) use virtual_geometry_node_and_cluster_cull_pass::VirtualGeometryNodeAndClusterCullPassStoreParts;
+
+pub(crate) use virtual_geometry_node_and_cluster_cull_pass::prepare_virtual_geometry_node_and_cluster_cull;
+
+pub(crate) use virtual_geometry_node_and_cluster_cull_pass::{
+    materialize_prepared_cull, MaterializedPreparedCull,
+};

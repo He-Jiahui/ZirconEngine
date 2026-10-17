@@ -5,6 +5,7 @@ use crate::scene::World;
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
 impl Component for Health {}
 
 #[test]

@@ -1,0 +1,3304 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R053",
+  "owner": "root",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "status": "reviewed-local-pending-ledger-booking-and-actual-managed-gates",
+  "formal_acceptance": false,
+  "fixed_child_record": {
+    "path": "docs/plans/source-comments/reviews/R053.json",
+    "bytes": 167873,
+    "sha256": "782cf50976331de4a0291be243859712b33907459cc34d28bd160edce8054e81"
+  },
+  "source_pins": [
+    {
+      "path": "zircon_runtime/src/ui/dispatch/pointer/mod.rs",
+      "before_sha256": "347819a203b136e909d14412a7be94da5747e26b804c79424eeabfd266d89104",
+      "after_sha256": "56fb20e092b2c0fb46d4c3b4b551ba03ba8d450ba364d387fa2fda473bb33f41",
+      "before_bytes": 84,
+      "after_bytes": 481,
+      "before_lines": 4,
+      "after_lines": 10,
+      "raw_inverse_matches_grant_and_HEAD": true,
+      "objects": 2,
+      "continuous_blocks": 2,
+      "statement_steps": 0,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 10,
+        "bom": false
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+      "before_sha256": "2e97df1d32c54b018aa6e712df7f765444f98a28e8d91f4f7279b26ef9ee602f",
+      "after_sha256": "e85516b855b09752b815f3f9e3aef9274a33dbb2cf20d90ec50485857f247576",
+      "before_bytes": 10868,
+      "after_bytes": 17377,
+      "before_lines": 327,
+      "after_lines": 412,
+      "raw_inverse_matches_grant_and_HEAD": true,
+      "objects": 15,
+      "continuous_blocks": 24,
+      "statement_steps": 64,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 412,
+        "bom": false
+      }
+    }
+  ],
+  "proof": {
+    "source_pins": [
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/mod.rs",
+        "before_sha256": "347819a203b136e909d14412a7be94da5747e26b804c79424eeabfd266d89104",
+        "after_sha256": "56fb20e092b2c0fb46d4c3b4b551ba03ba8d450ba364d387fa2fda473bb33f41",
+        "before_bytes": 84,
+        "after_bytes": 481,
+        "before_lines": 4,
+        "after_lines": 10,
+        "raw_inverse_matches_grant_and_HEAD": true,
+        "objects": 2,
+        "continuous_blocks": 2,
+        "statement_steps": 0,
+        "eol": {
+          "crlf": 0,
+          "lf_only": 10,
+          "bom": false
+        }
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "before_sha256": "2e97df1d32c54b018aa6e712df7f765444f98a28e8d91f4f7279b26ef9ee602f",
+        "after_sha256": "e85516b855b09752b815f3f9e3aef9274a33dbb2cf20d90ec50485857f247576",
+        "before_bytes": 10868,
+        "after_bytes": 17377,
+        "before_lines": 327,
+        "after_lines": 412,
+        "raw_inverse_matches_grant_and_HEAD": true,
+        "objects": 15,
+        "continuous_blocks": 24,
+        "statement_steps": 64,
+        "eol": {
+          "crlf": 0,
+          "lf_only": 412,
+          "bom": false
+        }
+      }
+    ],
+    "raw_inverse_matches_grant_and_raw_HEAD": true,
+    "all_original_bytes_preserved": true,
+    "insertions": [
+      {
+        "id": "R053-1-I001",
+        "before_line": 1,
+        "after_line": 1,
+        "before_byte_offset": 0,
+        "after_byte_offset": 0,
+        "byte_length": 397,
+        "lines": 6,
+        "inserted_bytes_sha256": "422b53469218526b1479326027bc896457fe749220f5d4c8cf5ba04b48c5093e",
+        "exact_text": "//! 将已解析的指针路由交给注册回调，并收集本次分派的效果。\n//!\n//! 表面负责命中、捕获和焦点状态；本模块接收路由，只借用树与回调注册表。\n//! 回调临时借用同一路由，结果接管路由及效果，再由表面应用状态变化。\n//! 具体阶段遍历和停止规则由子模块实现；此根只保留统一的公开入口。\n\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/mod.rs"
+      },
+      {
+        "id": "R053-2-I001",
+        "before_line": 1,
+        "after_line": 1,
+        "before_byte_offset": 0,
+        "after_byte_offset": 0,
+        "byte_length": 182,
+        "lines": 3,
+        "inserted_bytes_sha256": "e4fb1ecf1c806e0c88a65c3cc20d06158f2c5cc62e4d485256807c610ea68ab7",
+        "exact_text": "//! 指针回调注册表与单次路由分派的执行实现。\n//! 每次调用创建独立累积器；回调只借用路由，结束后路由与累积效果一起移入结果。\n\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I002",
+        "before_line": 15,
+        "after_line": 18,
+        "before_byte_offset": 610,
+        "after_byte_offset": 792,
+        "byte_length": 196,
+        "lines": 2,
+        "inserted_bytes_sha256": "2be808064cf0b5a6dd96a2b206b70d04321bc7b73fba6582fac79970dca58f74",
+        "exact_text": "/// 注册表持有的共享回调；闭包捕获须能独立存活并满足跨线程约束。\n/// 路由借用只对当前调用有效，闭包自身的静态生命周期不会延长该借用。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I003",
+        "before_line": 22,
+        "after_line": 27,
+        "before_byte_offset": 775,
+        "after_byte_offset": 1153,
+        "byte_length": 205,
+        "lines": 2,
+        "inserted_bytes_sha256": "e9a4c5c7ee982810094c204ef8b28c1032a555e684fa1bab95c76ee11920d116",
+        "exact_text": "/// 单次分派的效果累积器；遍历多个命中候选时共用，结束后被结果消费。\n/// 阻断某个候选与后来由另一个候选处理可以同时留下记录，并非互斥状态。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I004",
+        "before_line": 24,
+        "after_line": 31,
+        "before_byte_offset": 826,
+        "after_byte_offset": 1409,
+        "byte_length": 94,
+        "lines": 1,
+        "inserted_bytes_sha256": "5a1ad1355ef3464f0830674c1fd0a8b065c5027699794950e348ccd3d3548e28",
+        "exact_text": "    // 只记录非 Unhandled 回应；同一节点的多个回调可以留下多条记录。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I005",
+        "before_line": 28,
+        "after_line": 36,
+        "before_byte_offset": 977,
+        "after_byte_offset": 1654,
+        "byte_length": 86,
+        "lines": 1,
+        "inserted_bytes_sha256": "85ab0f60900dfd0a43b75956d2f89bfbf2edf3d33f691131ea7b2f276729faf7",
+        "exact_text": "    // 捕获与焦点字段是待提交请求；这里不直接改变表面状态。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I006",
+        "before_line": 32,
+        "after_line": 41,
+        "before_byte_offset": 1117,
+        "after_byte_offset": 1880,
+        "byte_length": 74,
+        "lines": 1,
+        "inserted_bytes_sha256": "586bb11c5774f2cd101e4dd5ddf67ce957e9b70b38ce60993dbeff17dd266ae7",
+        "exact_text": "    // 可继续传播的失效请求在已执行的回调之间累积。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I007",
+        "before_line": 37,
+        "after_line": 47,
+        "before_byte_offset": 1221,
+        "after_byte_offset": 2058,
+        "byte_length": 111,
+        "lines": 1,
+        "inserted_bytes_sha256": "085a6f4fd0d3238808560a7bb0a19223b8ae8f865b9ccc1a3fcdb21155fcdd9f",
+        "exact_text": "    /// 消费累积器和路由，保留结果构造器生成的基础诊断，再转移本次回调效果。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I008",
+        "before_line": 53,
+        "after_line": 64,
+        "before_byte_offset": 1887,
+        "after_byte_offset": 2835,
+        "byte_length": 758,
+        "lines": 13,
+        "inserted_bytes_sha256": "318e6c135176f31ac69479efde6312ce5042ad1e89c6045b60b4a39e64e9791b",
+        "exact_text": "/// 按节点、事件种类及可选阶段保存指针回调，并对已解析路由执行分派。\n///\n/// # 调用时机\n/// 表面生成指针路由后使用此注册表；输入管理器也可长期持有它并按需注册回调。\n/// 同一键的回调按注册顺序执行，阶段回调先于普通回调。\n///\n/// # 生命周期与约束\n/// 注册表持有回调直到分派器释放；每次分派另建效果状态，不保留路由借用。\n/// 分派只收集捕获、焦点及失效请求，表面状态由调用方随后应用。\n/// 默认实例没有回调，分派时直接生成基础结果并跳过路由遍历。\n///\n/// # 参考\n/// [`UiPointerDispatchContext`] 描述回调借用，[`UiPointerDispatchEffect`] 描述单次回应。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I009",
+        "before_line": 60,
+        "after_line": 84,
+        "before_byte_offset": 2144,
+        "after_byte_offset": 3850,
+        "byte_length": 687,
+        "lines": 10,
+        "inserted_bytes_sha256": "ef7684cf3da8c3dee987372fc0cdbb1c1eccab765bfbf8ae2418f04ef9650756",
+        "exact_text": "    /// 为指定节点和事件种类追加普通回调，在目标或冒泡阶段执行。\n    ///\n    /// # 参数\n    /// `node_id` 是路由节点标识；注册时不查询树，也不验证节点是否仍存在。\n    /// `kind` 选择指针事件种类；`handler` 借用本次上下文并返回一个分派效果。\n    ///\n    /// # 调用时机与生命周期\n    /// 在需要处理该事件前注册；同一键允许多条回调，依注册顺序尝试。\n    /// 闭包由注册表持有，捕获必须满足静态生命周期及线程约束；上下文不能随闭包保存。\n    /// 普通回调不进入预览阶段；指定阶段请使用 [`Self::register_phase`]。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I010",
+        "before_line": 73,
+        "after_line": 107,
+        "before_byte_offset": 2529,
+        "after_byte_offset": 4922,
+        "byte_length": 654,
+        "lines": 10,
+        "inserted_bytes_sha256": "13c99ade90bd0f0d270d48a15e13295c0bdb8dcb5ac202fb052765b955db41fa",
+        "exact_text": "    /// 为指定节点、事件种类和阶段追加回调，并在该阶段先于普通回调执行。\n    ///\n    /// # 参数\n    /// `node_id`、`kind` 与 `handler` 的所有权及有效期约束同 [`Self::register`]。\n    /// `phase` 选择阶段；本分派器只遍历 PreviewTunnel、Target 和 Bubble，\n    /// 其他阶段键可以被保存，但不会由本实现触发。\n    ///\n    /// # 调用时机与约束\n    /// 回调是否到达取决于路由和先前回调的停止效果；预览还受事件种类与捕获状态限制。\n    /// 同一阶段键依注册顺序执行，当前上下文只在本次回调调用期间有效。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I011",
+        "before_line": 91,
+        "after_line": 135,
+        "before_byte_offset": 3000,
+        "after_byte_offset": 6047,
+        "byte_length": 955,
+        "lines": 16,
+        "inserted_bytes_sha256": "a47c808ecb406bdefff9bfb3b93fc0f32fba242dd0456562116c5c34d56af066",
+        "exact_text": "    /// 分派调用方提供的路由，按树的父链构造各候选的目标及冒泡路径。\n    ///\n    /// # 参数\n    /// `tree` 与路由须属于同一棵树，参与查询的父链须完整且无环；此处只借用树。\n    /// `route` 按值交入，保留事件数据、预览路径和命中候选，成功时由结果接管。\n    ///\n    /// # 返回与错误\n    /// 返回原路由、回调的非 Unhandled 回应及累积请求；本方法不提交表面状态。\n    /// 需要查询的候选或祖先缺失时返回树错误；无回调时跳过查询，不据此验证路由。\n    ///\n    /// # 调用时机与约束\n    /// 适用于自行提供路由的调用方；表面同次命中后的缓存复用走内部入口。\n    /// 回调结束后不能继续持有上下文中的路由借用。\n    ///\n    /// # 参考\n    /// [`crate::ui::surface::UiSurface::dispatch_pointer_event`] 负责表面路由及后续状态应用。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I012",
+        "before_line": 99,
+        "after_line": 159,
+        "before_byte_offset": 3201,
+        "after_byte_offset": 7203,
+        "byte_length": 323,
+        "lines": 3,
+        "inserted_bytes_sha256": "5153e9d0a774965aa5ae5ac20114abe6d798f2dfc1c4acb8d444df495e7392ca",
+        "exact_text": "    /// 供表面在同次路由计算后立即分派，复用未捕获目标的已计算冒泡路径。\n    /// `tree` 与按值交入的 `route` 必须保持同次路由的一致性；捕获及其他候选仍查询树。\n    /// 返回值和树查询错误同 [`Self::dispatch`]，此入口本身不提交表面状态。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I013",
+        "before_line": 107,
+        "after_line": 170,
+        "before_byte_offset": 3422,
+        "after_byte_offset": 7747,
+        "byte_length": 198,
+        "lines": 2,
+        "inserted_bytes_sha256": "05a5245624e356731eee010e6f209025834e8ff7d8b9f778ac2baf6cd2f8cd43",
+        "exact_text": "    /// 先执行独立预览，再按捕获、命中堆栈或根回退选择候选。\n    /// 缓存可信标志只允许表面复用当前未捕获目标的路径；其他路径仍从树解析。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I014",
+        "before_line": 114,
+        "after_line": 179,
+        "before_byte_offset": 3670,
+        "after_byte_offset": 8193,
+        "byte_length": 84,
+        "lines": 1,
+        "inserted_bytes_sha256": "282daf8bfd2478e34bc610d302b1e5e4400aec3862e8c09b7e3f8484a2de0702",
+        "exact_text": "        // 空注册表不需要验证或遍历路由，直接保留基础诊断。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I015",
+        "before_line": 137,
+        "after_line": 203,
+        "before_byte_offset": 4406,
+        "after_byte_offset": 9013,
+        "byte_length": 198,
+        "lines": 2,
+        "inserted_bytes_sha256": "050380be1dbeee85d038a70381706d6224dee78f693754eeafd69273b38447e3",
+        "exact_text": "        // 捕获独占候选；普通目标只在命中堆栈未包含它时补入，避免复制候选列表。\n        // 无目标时才使用根回退列表，顺序由路由生产者决定。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I016",
+        "before_line": 153,
+        "after_line": 221,
+        "before_byte_offset": 5099,
+        "after_byte_offset": 9904,
+        "byte_length": 120,
+        "lines": 1,
+        "inserted_bytes_sha256": "0a252a42c61a85024efd1c27fc9ca52549037558e2eaea1ad389eb396a164194",
+        "exact_text": "        // 此集合只覆盖目标及冒泡，跨候选抑制共享祖先的重复调用；预览阶段独立执行。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I017",
+        "before_line": 159,
+        "after_line": 228,
+        "before_byte_offset": 5336,
+        "after_byte_offset": 10261,
+        "byte_length": 127,
+        "lines": 1,
+        "inserted_bytes_sha256": "2ed984c36e8217a59797f4824214696192094511face155dd17880b73b6773ce",
+        "exact_text": "            // 只有表面刚计算的普通目标可复用缓存；捕获或其他堆叠候选必须解析自己的父链。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I018",
+        "before_line": 187,
+        "after_line": 257,
+        "before_byte_offset": 6146,
+        "after_byte_offset": 11198,
+        "byte_length": 328,
+        "lines": 3,
+        "inserted_bytes_sha256": "03876864f46161d1896448aaa63805858a900a63f04df52417c748ea60706145",
+        "exact_text": "    /// 沿单个候选向根遍历，候选自身使用目标阶段，祖先使用冒泡阶段。\n    /// `visited` 由整次分派共享，节点无回调也会占位；返回 true 才结束全部候选。\n    /// 阻断当前候选返回 false，让外层继续尝试后续候选；父链已在进入前由调用方解析。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I019",
+        "before_line": 207,
+        "after_line": 280,
+        "before_byte_offset": 6858,
+        "after_byte_offset": 12238,
+        "byte_length": 109,
+        "lines": 1,
+        "inserted_bytes_sha256": "5e44e1a83f4a0324a63d7e4df1bdc8e194337e6bb0b9baf8a210959aba31073c",
+        "exact_text": "            // 普通阶段的阻断只结束这条候选父链，不能把它误作整次分派已处理。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I020",
+        "before_line": 214,
+        "after_line": 288,
+        "before_byte_offset": 6992,
+        "after_byte_offset": 12481,
+        "byte_length": 397,
+        "lines": 4,
+        "inserted_bytes_sha256": "2603c7e7a5f571f50a00dff04f5dce7982fb1dab2126d8987999db20b6d5e1b2",
+        "exact_text": "    /// 查询当前节点与阶段的精确键；阶段回调先于可选的普通回调。\n    /// `include_unqualified_handlers` 在预览时为 false，避免普通回调提前执行。\n    /// 上下文仅在存在回调时建立一次，并借给这一节点阶段的每个回调。\n    /// 返回 true 表示应停止整次分派；非预览阻断则通过状态由候选层截断父链。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I021",
+        "before_line": 244,
+        "after_line": 322,
+        "before_byte_offset": 8089,
+        "after_byte_offset": 13975,
+        "byte_length": 85,
+        "lines": 1,
+        "inserted_bytes_sha256": "7cc6d025efc248775d52116b3712463a048b66f4fc3c4124c8685f267b03ea1a",
+        "exact_text": "            // 未处理回应既不进入调用记录，也不改变累积状态。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I022",
+        "before_line": 263,
+        "after_line": 342,
+        "before_byte_offset": 8605,
+        "after_byte_offset": 14576,
+        "byte_length": 181,
+        "lines": 2,
+        "inserted_bytes_sha256": "647a1631b268699359176563589c1ce1ee3e3c34222cb1d1af25bba14bff009a",
+        "exact_text": "/// 只有未捕获的按下、释放及滚动事件沿非空根到叶路径执行预览。\n/// 捕获路由直接进入候选阶段；移动等其他种类也不执行此预览。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I023",
+        "before_line": 272,
+        "after_line": 353,
+        "before_byte_offset": 8898,
+        "after_byte_offset": 15050,
+        "byte_length": 276,
+        "lines": 3,
+        "inserted_bytes_sha256": "be48925f43c14ccc0b99da5df9710cc59faa0f99bde90ebe76d2ba5609395b31",
+        "exact_text": "/// 将一个回应归入当前状态，返回是否结束整次分派。\n/// 捕获、释放和焦点请求同时标记已处理；脏域及损伤帧只累积并继续传播。\n/// 阻断是否结束全部候选由阶段决定，表面状态在结果返回后另行应用。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      },
+      {
+        "id": "R053-2-I024",
+        "before_line": 312,
+        "after_line": 396,
+        "before_byte_offset": 10223,
+        "after_byte_offset": 16651,
+        "byte_length": 81,
+        "lines": 1,
+        "inserted_bytes_sha256": "6dfd484a66ac57464a3bc7c95dc6c4ce7d84e83bec4a18e94e4cc41adb98d394",
+        "exact_text": "        // 逐字段合并，保留前面回调已经请求的其他失效域。\n",
+        "kind": "Chinese documentation or explanatory comment; optional blank separator",
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+      }
+    ],
+    "inserted_blocks": 25,
+    "added_lines": 91,
+    "deleted_original_bytes": 0,
+    "final_ranged_inventory": [
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/mod.rs",
+        "name": "dispatcher module mount",
+        "kind": "module-declaration",
+        "ranges": {
+          "before": {
+            "lines": [
+              1,
+              2
+            ],
+            "byte_offset": 0,
+            "byte_length": 42,
+            "sha256": "05b60522027155c81408f8a224d1b4ce585c6637c50f5aa0a91c92c18d8edb38"
+          },
+          "current": {
+            "lines": [
+              7,
+              8
+            ],
+            "byte_offset": 397,
+            "byte_length": 42,
+            "sha256": "05b60522027155c81408f8a224d1b4ce585c6637c50f5aa0a91c92c18d8edb38"
+          }
+        },
+        "statement_ranges": [],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/mod.rs",
+        "name": "UiPointerDispatcher public reexport",
+        "kind": "reexport",
+        "ranges": {
+          "before": {
+            "lines": [
+              4,
+              4
+            ],
+            "byte_offset": 43,
+            "byte_length": 41,
+            "sha256": "b8d9467202e7f76489753a13cba6885c709de6d291dd8a4ea2ba429429679f61"
+          },
+          "current": {
+            "lines": [
+              10,
+              10
+            ],
+            "byte_offset": 440,
+            "byte_length": 41,
+            "sha256": "b8d9467202e7f76489753a13cba6885c709de6d291dd8a4ea2ba429429679f61"
+          }
+        },
+        "statement_ranges": [],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "PointerHandler",
+        "kind": "type-alias",
+        "ranges": {
+          "before": {
+            "lines": [
+              15,
+              20
+            ],
+            "byte_offset": 610,
+            "byte_length": 164,
+            "sha256": "eeb4ab29aaca0e8a982cc6c320e756b9e45cd02811abc83fa040eba667fcd259"
+          },
+          "current": {
+            "lines": [
+              20,
+              25
+            ],
+            "byte_offset": 988,
+            "byte_length": 164,
+            "sha256": "eeb4ab29aaca0e8a982cc6c320e756b9e45cd02811abc83fa040eba667fcd259"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                15,
+                20
+              ],
+              "byte_offset": 610,
+              "byte_length": 164,
+              "sha256": "eeb4ab29aaca0e8a982cc6c320e756b9e45cd02811abc83fa040eba667fcd259"
+            },
+            "current": {
+              "lines": [
+                20,
+                25
+              ],
+              "byte_offset": 988,
+              "byte_length": 164,
+              "sha256": "eeb4ab29aaca0e8a982cc6c320e756b9e45cd02811abc83fa040eba667fcd259"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "UiPointerDispatchState",
+        "kind": "private-struct",
+        "ranges": {
+          "before": {
+            "lines": [
+              22,
+              34
+            ],
+            "byte_offset": 775,
+            "byte_length": 415,
+            "sha256": "e7fdcc7401216e85162fcd678bf9a800289c16b33c13f446ea18fd0e9e385486"
+          },
+          "current": {
+            "lines": [
+              29,
+              44
+            ],
+            "byte_offset": 1358,
+            "byte_length": 669,
+            "sha256": "96d8b3b83de8fed931b56724ff14a6f335217ed69e6a05176ec0805118617267"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                22,
+                34
+              ],
+              "byte_offset": 775,
+              "byte_length": 415,
+              "sha256": "e7fdcc7401216e85162fcd678bf9a800289c16b33c13f446ea18fd0e9e385486"
+            },
+            "current": {
+              "lines": [
+                29,
+                44
+              ],
+              "byte_offset": 1358,
+              "byte_length": 669,
+              "sha256": "96d8b3b83de8fed931b56724ff14a6f335217ed69e6a05176ec0805118617267"
+            }
+          }
+        ],
+        "member_ranges": [
+          {
+            "name": "invocations",
+            "range": {
+              "before": {
+                "lines": [
+                  24,
+                  24
+                ],
+                "byte_offset": 826,
+                "byte_length": 51,
+                "sha256": "e1449b36b2a41c22413056e3a4aa63901dc1afd40362b9fe3474caf5b8287552"
+              },
+              "current": {
+                "lines": [
+                  32,
+                  32
+                ],
+                "byte_offset": 1503,
+                "byte_length": 51,
+                "sha256": "e1449b36b2a41c22413056e3a4aa63901dc1afd40362b9fe3474caf5b8287552"
+              }
+            }
+          },
+          {
+            "name": "handled_by",
+            "range": {
+              "before": {
+                "lines": [
+                  25,
+                  25
+                ],
+                "byte_offset": 877,
+                "byte_length": 34,
+                "sha256": "687a973915537a49a2d7f145b0ed117ab0b69fac3077fad6ba4d76fdc889ac4a"
+              },
+              "current": {
+                "lines": [
+                  33,
+                  33
+                ],
+                "byte_offset": 1554,
+                "byte_length": 34,
+                "sha256": "687a973915537a49a2d7f145b0ed117ab0b69fac3077fad6ba4d76fdc889ac4a"
+              }
+            }
+          },
+          {
+            "name": "blocked_by",
+            "range": {
+              "before": {
+                "lines": [
+                  26,
+                  26
+                ],
+                "byte_offset": 911,
+                "byte_length": 34,
+                "sha256": "8b22180a7bd7b562a48aeb6e87287719d179f1c57dfc51084a42d52d8565e08b"
+              },
+              "current": {
+                "lines": [
+                  34,
+                  34
+                ],
+                "byte_offset": 1588,
+                "byte_length": 34,
+                "sha256": "8b22180a7bd7b562a48aeb6e87287719d179f1c57dfc51084a42d52d8565e08b"
+              }
+            }
+          },
+          {
+            "name": "passthrough",
+            "range": {
+              "before": {
+                "lines": [
+                  27,
+                  27
+                ],
+                "byte_offset": 945,
+                "byte_length": 32,
+                "sha256": "68826aaa80fb21d7b2ae6b5ad11e2df8de1fba24f17f037409bcd1cf2a4d5054"
+              },
+              "current": {
+                "lines": [
+                  35,
+                  35
+                ],
+                "byte_offset": 1622,
+                "byte_length": 32,
+                "sha256": "68826aaa80fb21d7b2ae6b5ad11e2df8de1fba24f17f037409bcd1cf2a4d5054"
+              }
+            }
+          },
+          {
+            "name": "captured_by",
+            "range": {
+              "before": {
+                "lines": [
+                  28,
+                  28
+                ],
+                "byte_offset": 977,
+                "byte_length": 35,
+                "sha256": "ed205285a45fee7c0e16d5d0481de6f075d11e5f4b0e4d97f05eb10466227f3e"
+              },
+              "current": {
+                "lines": [
+                  37,
+                  37
+                ],
+                "byte_offset": 1740,
+                "byte_length": 35,
+                "sha256": "ed205285a45fee7c0e16d5d0481de6f075d11e5f4b0e4d97f05eb10466227f3e"
+              }
+            }
+          },
+          {
+            "name": "released_capture",
+            "range": {
+              "before": {
+                "lines": [
+                  29,
+                  29
+                ],
+                "byte_offset": 1012,
+                "byte_length": 40,
+                "sha256": "ebd9461dad1f770f16b859d7feac5003a40039a301e4a504a6417960445cba4e"
+              },
+              "current": {
+                "lines": [
+                  38,
+                  38
+                ],
+                "byte_offset": 1775,
+                "byte_length": 40,
+                "sha256": "ebd9461dad1f770f16b859d7feac5003a40039a301e4a504a6417960445cba4e"
+              }
+            }
+          },
+          {
+            "name": "focus_changed_to",
+            "range": {
+              "before": {
+                "lines": [
+                  30,
+                  30
+                ],
+                "byte_offset": 1052,
+                "byte_length": 40,
+                "sha256": "cc18a8e35ee951edbe8ea0a3604f858d9f1d613855f0e28a4ea8c5861540629d"
+              },
+              "current": {
+                "lines": [
+                  39,
+                  39
+                ],
+                "byte_offset": 1815,
+                "byte_length": 40,
+                "sha256": "cc18a8e35ee951edbe8ea0a3604f858d9f1d613855f0e28a4ea8c5861540629d"
+              }
+            }
+          },
+          {
+            "name": "focus_cleared",
+            "range": {
+              "before": {
+                "lines": [
+                  31,
+                  31
+                ],
+                "byte_offset": 1092,
+                "byte_length": 25,
+                "sha256": "9852f0e824d32b4c28dff2171699c6ac87f9c34421f30dd5d1f1a4906aee6cff"
+              },
+              "current": {
+                "lines": [
+                  40,
+                  40
+                ],
+                "byte_offset": 1855,
+                "byte_length": 25,
+                "sha256": "9852f0e824d32b4c28dff2171699c6ac87f9c34421f30dd5d1f1a4906aee6cff"
+              }
+            }
+          },
+          {
+            "name": "requested_dirty",
+            "range": {
+              "before": {
+                "lines": [
+                  32,
+                  32
+                ],
+                "byte_offset": 1117,
+                "byte_length": 35,
+                "sha256": "25a60999f9aa560d1905ad7b3df1e28f5f3038295e76771e61b0272b044616c5"
+              },
+              "current": {
+                "lines": [
+                  42,
+                  42
+                ],
+                "byte_offset": 1954,
+                "byte_length": 35,
+                "sha256": "25a60999f9aa560d1905ad7b3df1e28f5f3038295e76771e61b0272b044616c5"
+              }
+            }
+          },
+          {
+            "name": "requested_damage",
+            "range": {
+              "before": {
+                "lines": [
+                  33,
+                  33
+                ],
+                "byte_offset": 1152,
+                "byte_length": 36,
+                "sha256": "2ba7beffd0d25de453d48edb2153be1839ee3703f9d27b366d48be7409d188ca"
+              },
+              "current": {
+                "lines": [
+                  43,
+                  43
+                ],
+                "byte_offset": 1989,
+                "byte_length": 36,
+                "sha256": "2ba7beffd0d25de453d48edb2153be1839ee3703f9d27b366d48be7409d188ca"
+              }
+            }
+          }
+        ],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "impl UiPointerDispatchState",
+        "kind": "impl-block",
+        "ranges": {
+          "before": {
+            "lines": [
+              36,
+              51
+            ],
+            "byte_offset": 1191,
+            "byte_length": 695,
+            "sha256": "5e02149ff3fd035fa3d30caf4cd18cf40139818e1aaeb847da8b45d4474877fa"
+          },
+          "current": {
+            "lines": [
+              46,
+              62
+            ],
+            "byte_offset": 2028,
+            "byte_length": 806,
+            "sha256": "2d2ef1e09c045eedd29033733a53b3131c6b05a7b596163a1290d9e815987a00"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                36,
+                51
+              ],
+              "byte_offset": 1191,
+              "byte_length": 695,
+              "sha256": "5e02149ff3fd035fa3d30caf4cd18cf40139818e1aaeb847da8b45d4474877fa"
+            },
+            "current": {
+              "lines": [
+                46,
+                62
+              ],
+              "byte_offset": 2028,
+              "byte_length": 806,
+              "sha256": "2d2ef1e09c045eedd29033733a53b3131c6b05a7b596163a1290d9e815987a00"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "UiPointerDispatchState::finish",
+        "kind": "private-method",
+        "ranges": {
+          "before": {
+            "lines": [
+              37,
+              50
+            ],
+            "byte_offset": 1221,
+            "byte_length": 663,
+            "sha256": "13656bc98d2fce3a5c8b9fa909324eaa47315433db1e9278089fa1dd1dd7e5cf"
+          },
+          "current": {
+            "lines": [
+              48,
+              61
+            ],
+            "byte_offset": 2169,
+            "byte_length": 663,
+            "sha256": "13656bc98d2fce3a5c8b9fa909324eaa47315433db1e9278089fa1dd1dd7e5cf"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                37,
+                38
+              ],
+              "byte_offset": 1221,
+              "byte_length": 134,
+              "sha256": "452ce2b25ee14ee271157051bca432e43878e87783c253fc39790647324c71fa"
+            },
+            "current": {
+              "lines": [
+                48,
+                49
+              ],
+              "byte_offset": 2169,
+              "byte_length": 134,
+              "sha256": "452ce2b25ee14ee271157051bca432e43878e87783c253fc39790647324c71fa"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                39,
+                39
+              ],
+              "byte_offset": 1355,
+              "byte_length": 47,
+              "sha256": "3ef683165df10baff7a9d72449f100b46414c6222aac06b8b3e7d3d70bdf55fc"
+            },
+            "current": {
+              "lines": [
+                50,
+                50
+              ],
+              "byte_offset": 2303,
+              "byte_length": 47,
+              "sha256": "3ef683165df10baff7a9d72449f100b46414c6222aac06b8b3e7d3d70bdf55fc"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                40,
+                40
+              ],
+              "byte_offset": 1402,
+              "byte_length": 45,
+              "sha256": "0abd40374b892167442b7639cc81d2ede386a78fd10c4a887804d1955524a8da"
+            },
+            "current": {
+              "lines": [
+                51,
+                51
+              ],
+              "byte_offset": 2350,
+              "byte_length": 45,
+              "sha256": "0abd40374b892167442b7639cc81d2ede386a78fd10c4a887804d1955524a8da"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                41,
+                41
+              ],
+              "byte_offset": 1447,
+              "byte_length": 45,
+              "sha256": "f3140b529e2dc47180aa16fd8b484f50669aa91c2f26ae3730bfeb245e830e3a"
+            },
+            "current": {
+              "lines": [
+                52,
+                52
+              ],
+              "byte_offset": 2395,
+              "byte_length": 45,
+              "sha256": "f3140b529e2dc47180aa16fd8b484f50669aa91c2f26ae3730bfeb245e830e3a"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                42,
+                42
+              ],
+              "byte_offset": 1492,
+              "byte_length": 47,
+              "sha256": "72a4e134676abd060525c925e9b4a4f9b9da1f706accae4f80291d16e0abda7e"
+            },
+            "current": {
+              "lines": [
+                53,
+                53
+              ],
+              "byte_offset": 2440,
+              "byte_length": 47,
+              "sha256": "72a4e134676abd060525c925e9b4a4f9b9da1f706accae4f80291d16e0abda7e"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                43,
+                43
+              ],
+              "byte_offset": 1539,
+              "byte_length": 47,
+              "sha256": "4c3e7b72d24faf46f2bc421879d8a5237d9415a2aa2e61025c00d0bdc3b20402"
+            },
+            "current": {
+              "lines": [
+                54,
+                54
+              ],
+              "byte_offset": 2487,
+              "byte_length": 47,
+              "sha256": "4c3e7b72d24faf46f2bc421879d8a5237d9415a2aa2e61025c00d0bdc3b20402"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                44,
+                44
+              ],
+              "byte_offset": 1586,
+              "byte_length": 57,
+              "sha256": "389a19d074e0e2d76cc032365c33395ad34935bd7802704bb588b60192c6fa7b"
+            },
+            "current": {
+              "lines": [
+                55,
+                55
+              ],
+              "byte_offset": 2534,
+              "byte_length": 57,
+              "sha256": "389a19d074e0e2d76cc032365c33395ad34935bd7802704bb588b60192c6fa7b"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                45,
+                45
+              ],
+              "byte_offset": 1643,
+              "byte_length": 57,
+              "sha256": "048a2eee6d60ad3fb66b40a77fcd941bcaf236b1306d7bd320aac4f9ff988df8"
+            },
+            "current": {
+              "lines": [
+                56,
+                56
+              ],
+              "byte_offset": 2591,
+              "byte_length": 57,
+              "sha256": "048a2eee6d60ad3fb66b40a77fcd941bcaf236b1306d7bd320aac4f9ff988df8"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                46,
+                46
+              ],
+              "byte_offset": 1700,
+              "byte_length": 51,
+              "sha256": "c300a7de56cef910c82df89537a785ea7a0acef90349cde718334d41c8526366"
+            },
+            "current": {
+              "lines": [
+                57,
+                57
+              ],
+              "byte_offset": 2648,
+              "byte_length": 51,
+              "sha256": "c300a7de56cef910c82df89537a785ea7a0acef90349cde718334d41c8526366"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                47,
+                47
+              ],
+              "byte_offset": 1751,
+              "byte_length": 55,
+              "sha256": "f464122f50c4b3650571edea6a1a76c3128aa8d378737023d100c0f3114f9cfb"
+            },
+            "current": {
+              "lines": [
+                58,
+                58
+              ],
+              "byte_offset": 2699,
+              "byte_length": 55,
+              "sha256": "f464122f50c4b3650571edea6a1a76c3128aa8d378737023d100c0f3114f9cfb"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                48,
+                48
+              ],
+              "byte_offset": 1806,
+              "byte_length": 57,
+              "sha256": "3f2d87b7f013b8c335525d026ebd7b91abf0c893424918bea68ff087c794e4f4"
+            },
+            "current": {
+              "lines": [
+                59,
+                59
+              ],
+              "byte_offset": 2754,
+              "byte_length": 57,
+              "sha256": "3f2d87b7f013b8c335525d026ebd7b91abf0c893424918bea68ff087c794e4f4"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                49,
+                50
+              ],
+              "byte_offset": 1863,
+              "byte_length": 21,
+              "sha256": "75193dea9a22de081be066e68c0f3070caa210b78d9c6edf2f9e12ca42e8de8a"
+            },
+            "current": {
+              "lines": [
+                60,
+                61
+              ],
+              "byte_offset": 2811,
+              "byte_length": 21,
+              "sha256": "75193dea9a22de081be066e68c0f3070caa210b78d9c6edf2f9e12ca42e8de8a"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "UiPointerDispatcher",
+        "kind": "public-struct",
+        "ranges": {
+          "before": {
+            "lines": [
+              53,
+              57
+            ],
+            "byte_offset": 1887,
+            "byte_length": 229,
+            "sha256": "be8bab494907f8abec8a3aa56722c7b24dc31304b697139a18a6cf4fee173367"
+          },
+          "current": {
+            "lines": [
+              77,
+              81
+            ],
+            "byte_offset": 3593,
+            "byte_length": 229,
+            "sha256": "be8bab494907f8abec8a3aa56722c7b24dc31304b697139a18a6cf4fee173367"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                53,
+                57
+              ],
+              "byte_offset": 1887,
+              "byte_length": 229,
+              "sha256": "be8bab494907f8abec8a3aa56722c7b24dc31304b697139a18a6cf4fee173367"
+            },
+            "current": {
+              "lines": [
+                77,
+                81
+              ],
+              "byte_offset": 3593,
+              "byte_length": 229,
+              "sha256": "be8bab494907f8abec8a3aa56722c7b24dc31304b697139a18a6cf4fee173367"
+            }
+          }
+        ],
+        "member_ranges": [
+          {
+            "name": "handlers",
+            "range": {
+              "before": {
+                "lines": [
+                  55,
+                  55
+                ],
+                "byte_offset": 1939,
+                "byte_length": 76,
+                "sha256": "58232a85bd9fc64d8323403ae84713b9f27a259935d000a160e2c66843e92329"
+              },
+              "current": {
+                "lines": [
+                  79,
+                  79
+                ],
+                "byte_offset": 3645,
+                "byte_length": 76,
+                "sha256": "58232a85bd9fc64d8323403ae84713b9f27a259935d000a160e2c66843e92329"
+              }
+            }
+          },
+          {
+            "name": "phase_handlers",
+            "range": {
+              "before": {
+                "lines": [
+                  56,
+                  56
+                ],
+                "byte_offset": 2015,
+                "byte_length": 99,
+                "sha256": "7eefb41284d78405bd3d31b62ba6813b49af7210bffa12895764fbdf323fc156"
+              },
+              "current": {
+                "lines": [
+                  80,
+                  80
+                ],
+                "byte_offset": 3721,
+                "byte_length": 99,
+                "sha256": "7eefb41284d78405bd3d31b62ba6813b49af7210bffa12895764fbdf323fc156"
+              }
+            }
+          }
+        ],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "impl UiPointerDispatcher",
+        "kind": "impl-block",
+        "ranges": {
+          "before": {
+            "lines": [
+              59,
+              261
+            ],
+            "byte_offset": 2117,
+            "byte_length": 6487,
+            "sha256": "20a81482d7db2a1b662511dc848c91da13028d2861d8a351143e2eaa31ac59a7"
+          },
+          "current": {
+            "lines": [
+              83,
+              340
+            ],
+            "byte_offset": 3823,
+            "byte_length": 10752,
+            "sha256": "df17f4247ed462e0a707dcb927457ad6c09c129debe30f2160f217080d3724b8"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                59,
+                261
+              ],
+              "byte_offset": 2117,
+              "byte_length": 6487,
+              "sha256": "20a81482d7db2a1b662511dc848c91da13028d2861d8a351143e2eaa31ac59a7"
+            },
+            "current": {
+              "lines": [
+                83,
+                340
+              ],
+              "byte_offset": 3823,
+              "byte_length": 10752,
+              "sha256": "df17f4247ed462e0a707dcb927457ad6c09c129debe30f2160f217080d3724b8"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "UiPointerDispatcher::register",
+        "kind": "public-method",
+        "ranges": {
+          "before": {
+            "lines": [
+              60,
+              71
+            ],
+            "byte_offset": 2144,
+            "byte_length": 384,
+            "sha256": "9458ac8159299625f926bdb46efaa0adb1e257aab0164791a27950718b9830e1"
+          },
+          "current": {
+            "lines": [
+              94,
+              105
+            ],
+            "byte_offset": 4537,
+            "byte_length": 384,
+            "sha256": "9458ac8159299625f926bdb46efaa0adb1e257aab0164791a27950718b9830e1"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                60,
+                66
+              ],
+              "byte_offset": 2144,
+              "byte_length": 256,
+              "sha256": "d319c44b56f650c96031e1d62945557f619f87d0a7089d243f09dd1d067a9600"
+            },
+            "current": {
+              "lines": [
+                94,
+                100
+              ],
+              "byte_offset": 4537,
+              "byte_length": 256,
+              "sha256": "d319c44b56f650c96031e1d62945557f619f87d0a7089d243f09dd1d067a9600"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                67,
+                70
+              ],
+              "byte_offset": 2400,
+              "byte_length": 122,
+              "sha256": "3380999451f4226cae2c7365e12f0e2274ecc227ae1a222592fde2c44ff7fb1f"
+            },
+            "current": {
+              "lines": [
+                101,
+                104
+              ],
+              "byte_offset": 4793,
+              "byte_length": 122,
+              "sha256": "3380999451f4226cae2c7365e12f0e2274ecc227ae1a222592fde2c44ff7fb1f"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                71,
+                71
+              ],
+              "byte_offset": 2522,
+              "byte_length": 6,
+              "sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+            },
+            "current": {
+              "lines": [
+                105,
+                105
+              ],
+              "byte_offset": 4915,
+              "byte_length": 6,
+              "sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "UiPointerDispatcher::register_phase",
+        "kind": "public-method",
+        "ranges": {
+          "before": {
+            "lines": [
+              73,
+              89
+            ],
+            "byte_offset": 2529,
+            "byte_length": 470,
+            "sha256": "409639c28865139276fb6eb6ea8996b0f5fe84a2dc9c114c12ddd22c21ba4328"
+          },
+          "current": {
+            "lines": [
+              117,
+              133
+            ],
+            "byte_offset": 5576,
+            "byte_length": 470,
+            "sha256": "409639c28865139276fb6eb6ea8996b0f5fe84a2dc9c114c12ddd22c21ba4328"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                73,
+                84
+              ],
+              "byte_offset": 2529,
+              "byte_length": 329,
+              "sha256": "8e0847f7c1b4a9bd45bccc88fc68f3ffb39671125883a8ac695807f376abe8c7"
+            },
+            "current": {
+              "lines": [
+                117,
+                128
+              ],
+              "byte_offset": 5576,
+              "byte_length": 329,
+              "sha256": "8e0847f7c1b4a9bd45bccc88fc68f3ffb39671125883a8ac695807f376abe8c7"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                85,
+                88
+              ],
+              "byte_offset": 2858,
+              "byte_length": 135,
+              "sha256": "9d34e7d2aac4b896e7373483a9b51bf6c27d59d6378982fa676a9584f12afecc"
+            },
+            "current": {
+              "lines": [
+                129,
+                132
+              ],
+              "byte_offset": 5905,
+              "byte_length": 135,
+              "sha256": "9d34e7d2aac4b896e7373483a9b51bf6c27d59d6378982fa676a9584f12afecc"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                89,
+                89
+              ],
+              "byte_offset": 2993,
+              "byte_length": 6,
+              "sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+            },
+            "current": {
+              "lines": [
+                133,
+                133
+              ],
+              "byte_offset": 6040,
+              "byte_length": 6,
+              "sha256": "4893f40e3781eb896c82d046a08067a11e35cdf2f1dfaf26fea90b8db6676413"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "UiPointerDispatcher::dispatch",
+        "kind": "public-method",
+        "ranges": {
+          "before": {
+            "lines": [
+              91,
+              97
+            ],
+            "byte_offset": 3000,
+            "byte_length": 200,
+            "sha256": "8e8319cb45db3b4b61f98076e618394cbee8340e900e50491c82c2fc1d8e0c11"
+          },
+          "current": {
+            "lines": [
+              151,
+              157
+            ],
+            "byte_offset": 7002,
+            "byte_length": 200,
+            "sha256": "8e8319cb45db3b4b61f98076e618394cbee8340e900e50491c82c2fc1d8e0c11"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                91,
+                97
+              ],
+              "byte_offset": 3000,
+              "byte_length": 200,
+              "sha256": "8e8319cb45db3b4b61f98076e618394cbee8340e900e50491c82c2fc1d8e0c11"
+            },
+            "current": {
+              "lines": [
+                151,
+                157
+              ],
+              "byte_offset": 7002,
+              "byte_length": 200,
+              "sha256": "8e8319cb45db3b4b61f98076e618394cbee8340e900e50491c82c2fc1d8e0c11"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "UiPointerDispatcher::dispatch_surface_route",
+        "kind": "crate-method",
+        "ranges": {
+          "before": {
+            "lines": [
+              99,
+              105
+            ],
+            "byte_offset": 3201,
+            "byte_length": 220,
+            "sha256": "a2d2b293d0bdf50ee083960febe5e32e6cb57d2f5842efd0bd1daf1ebc9beb7f"
+          },
+          "current": {
+            "lines": [
+              162,
+              168
+            ],
+            "byte_offset": 7526,
+            "byte_length": 220,
+            "sha256": "a2d2b293d0bdf50ee083960febe5e32e6cb57d2f5842efd0bd1daf1ebc9beb7f"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                99,
+                105
+              ],
+              "byte_offset": 3201,
+              "byte_length": 220,
+              "sha256": "a2d2b293d0bdf50ee083960febe5e32e6cb57d2f5842efd0bd1daf1ebc9beb7f"
+            },
+            "current": {
+              "lines": [
+                162,
+                168
+              ],
+              "byte_offset": 7526,
+              "byte_length": 220,
+              "sha256": "a2d2b293d0bdf50ee083960febe5e32e6cb57d2f5842efd0bd1daf1ebc9beb7f"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "UiPointerDispatcher::dispatch_route",
+        "kind": "private-method",
+        "ranges": {
+          "before": {
+            "lines": [
+              107,
+              185
+            ],
+            "byte_offset": 3422,
+            "byte_length": 2723,
+            "sha256": "6fb3ade4127ba363e0f84cedee226d5c7863009b2dc2e2c693ad4e0aa95b18e7"
+          },
+          "current": {
+            "lines": [
+              172,
+              255
+            ],
+            "byte_offset": 7945,
+            "byte_length": 3252,
+            "sha256": "ce3765eb972476326aac233cba1948d5ad22f1ff1afa773b93f32be57ccdc4da"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                107,
+                113
+              ],
+              "byte_offset": 3422,
+              "byte_length": 248,
+              "sha256": "9a3a4a5d0cd47a4c5a379b4fab0158859b9d82d13119872828f2e7e135d9a54a"
+            },
+            "current": {
+              "lines": [
+                172,
+                178
+              ],
+              "byte_offset": 7945,
+              "byte_length": 248,
+              "sha256": "9a3a4a5d0cd47a4c5a379b4fab0158859b9d82d13119872828f2e7e135d9a54a"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                114,
+                116
+              ],
+              "byte_offset": 3670,
+              "byte_length": 126,
+              "sha256": "f6794b9bf85b3ab3fa8a80ad9662b1259e61e689775c84ff3d99f07c839b3b9b"
+            },
+            "current": {
+              "lines": [
+                180,
+                182
+              ],
+              "byte_offset": 8277,
+              "byte_length": 126,
+              "sha256": "f6794b9bf85b3ab3fa8a80ad9662b1259e61e689775c84ff3d99f07c839b3b9b"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                117,
+                118
+              ],
+              "byte_offset": 3796,
+              "byte_length": 46,
+              "sha256": "f09889e01fa1b0477fe717e0a7549efa1c04f51f27e97fa999468e5b12ed2881"
+            },
+            "current": {
+              "lines": [
+                183,
+                184
+              ],
+              "byte_offset": 8403,
+              "byte_length": 46,
+              "sha256": "f09889e01fa1b0477fe717e0a7549efa1c04f51f27e97fa999468e5b12ed2881"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                119,
+                132
+              ],
+              "byte_offset": 3842,
+              "byte_length": 476,
+              "sha256": "f1989130747d4949f4ad354bb972a61ec57be9132e0861f7d24a9a6d2ce5f5dd"
+            },
+            "current": {
+              "lines": [
+                185,
+                198
+              ],
+              "byte_offset": 8449,
+              "byte_length": 476,
+              "sha256": "f1989130747d4949f4ad354bb972a61ec57be9132e0861f7d24a9a6d2ce5f5dd"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                133,
+                136
+              ],
+              "byte_offset": 4318,
+              "byte_length": 88,
+              "sha256": "2abcf7caee382abc0dbfc365795c9f1ea792e0e48c0bf271496ff8fce6a2b147"
+            },
+            "current": {
+              "lines": [
+                199,
+                202
+              ],
+              "byte_offset": 8925,
+              "byte_length": 88,
+              "sha256": "2abcf7caee382abc0dbfc365795c9f1ea792e0e48c0bf271496ff8fce6a2b147"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                137,
+                147
+              ],
+              "byte_offset": 4406,
+              "byte_length": 478,
+              "sha256": "5dd04163af9ced624fc9a636b3d9711055d661d3555a65c0dc263c0e307e361e"
+            },
+            "current": {
+              "lines": [
+                205,
+                215
+              ],
+              "byte_offset": 9211,
+              "byte_length": 478,
+              "sha256": "5dd04163af9ced624fc9a636b3d9711055d661d3555a65c0dc263c0e307e361e"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                148,
+                154
+              ],
+              "byte_offset": 4884,
+              "byte_length": 309,
+              "sha256": "a26705c546b6adbb6de790801b681cc426b6c7c3e2925a6201d8cbe8bbbaf0f9"
+            },
+            "current": {
+              "lines": [
+                216,
+                223
+              ],
+              "byte_offset": 9689,
+              "byte_length": 429,
+              "sha256": "404a63b9ee4ddbb6bc95abfa9bc9bb7d5371b36d362d240bf40b036ac53b6ecd"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                155,
+                158
+              ],
+              "byte_offset": 5193,
+              "byte_length": 143,
+              "sha256": "2844f7aecf75963736c4fa15540a0914114b853b11dd38c7d8fa17ede3c7ee44"
+            },
+            "current": {
+              "lines": [
+                224,
+                227
+              ],
+              "byte_offset": 10118,
+              "byte_length": 143,
+              "sha256": "2844f7aecf75963736c4fa15540a0914114b853b11dd38c7d8fa17ede3c7ee44"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                159,
+                178
+              ],
+              "byte_offset": 5336,
+              "byte_length": 681,
+              "sha256": "7b97e2ef852cc3c8efe0c24ae1511d8b626eb5cfd2999f986e7e7872942d1f7f"
+            },
+            "current": {
+              "lines": [
+                229,
+                248
+              ],
+              "byte_offset": 10388,
+              "byte_length": 681,
+              "sha256": "7b97e2ef852cc3c8efe0c24ae1511d8b626eb5cfd2999f986e7e7872942d1f7f"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                179,
+                183
+              ],
+              "byte_offset": 6017,
+              "byte_length": 90,
+              "sha256": "0561fc146e762de629ade2995e3fd57f950a04f627f1c863703bce0c1cc4afa3"
+            },
+            "current": {
+              "lines": [
+                249,
+                253
+              ],
+              "byte_offset": 11069,
+              "byte_length": 90,
+              "sha256": "0561fc146e762de629ade2995e3fd57f950a04f627f1c863703bce0c1cc4afa3"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                184,
+                185
+              ],
+              "byte_offset": 6107,
+              "byte_length": 38,
+              "sha256": "08fec656a738b78bec5c2fd19b2e2cacc440414763ae0e23db788e3583ef134e"
+            },
+            "current": {
+              "lines": [
+                254,
+                255
+              ],
+              "byte_offset": 11159,
+              "byte_length": 38,
+              "sha256": "08fec656a738b78bec5c2fd19b2e2cacc440414763ae0e23db788e3583ef134e"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "UiPointerDispatcher::dispatch_candidate_route",
+        "kind": "private-method",
+        "ranges": {
+          "before": {
+            "lines": [
+              187,
+              212
+            ],
+            "byte_offset": 6146,
+            "byte_length": 845,
+            "sha256": "27c26fb9b88893b899567c074b6a641ece33ed73b3b4b699cc99076fb7fa4ec1"
+          },
+          "current": {
+            "lines": [
+              260,
+              286
+            ],
+            "byte_offset": 11526,
+            "byte_length": 954,
+            "sha256": "0818f88a6cb74c5da1396d07959a7809e9195aef1ae1b15c45186eb46a1790c5"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                187,
+                194
+              ],
+              "byte_offset": 6146,
+              "byte_length": 296,
+              "sha256": "b29602f5493591fa899b2dda7998c858364a476526bca4e0725fd01e2611767b"
+            },
+            "current": {
+              "lines": [
+                260,
+                267
+              ],
+              "byte_offset": 11526,
+              "byte_length": 296,
+              "sha256": "b29602f5493591fa899b2dda7998c858364a476526bca4e0725fd01e2611767b"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                195,
+                198
+              ],
+              "byte_offset": 6442,
+              "byte_length": 120,
+              "sha256": "0bfe7e091bcee26ff471d1862d07645b583b6b93ac8871a4cfa8d07e27a67adc"
+            },
+            "current": {
+              "lines": [
+                268,
+                271
+              ],
+              "byte_offset": 11822,
+              "byte_length": 120,
+              "sha256": "0bfe7e091bcee26ff471d1862d07645b583b6b93ac8871a4cfa8d07e27a67adc"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                199,
+                203
+              ],
+              "byte_offset": 6562,
+              "byte_length": 166,
+              "sha256": "92b4a5e7fab8059bafda8fbd477940e5ad62431ce10f994dc0f44bd20af6d45d"
+            },
+            "current": {
+              "lines": [
+                272,
+                276
+              ],
+              "byte_offset": 11942,
+              "byte_length": 166,
+              "sha256": "92b4a5e7fab8059bafda8fbd477940e5ad62431ce10f994dc0f44bd20af6d45d"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                204,
+                206
+              ],
+              "byte_offset": 6728,
+              "byte_length": 130,
+              "sha256": "9684cab7ac0cb34aae01a8fdbeb32e4f9bf78611d89afa2ece2dad44a12986d6"
+            },
+            "current": {
+              "lines": [
+                277,
+                279
+              ],
+              "byte_offset": 12108,
+              "byte_length": 130,
+              "sha256": "9684cab7ac0cb34aae01a8fdbeb32e4f9bf78611d89afa2ece2dad44a12986d6"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                207,
+                210
+              ],
+              "byte_offset": 6858,
+              "byte_length": 109,
+              "sha256": "c04c3fdcc41d7cc88599def302e54840b4e804f103392ac1511810887827a5bb"
+            },
+            "current": {
+              "lines": [
+                281,
+                284
+              ],
+              "byte_offset": 12347,
+              "byte_length": 109,
+              "sha256": "c04c3fdcc41d7cc88599def302e54840b4e804f103392ac1511810887827a5bb"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                211,
+                212
+              ],
+              "byte_offset": 6967,
+              "byte_length": 24,
+              "sha256": "ee76ec6a22630aa54227b3992682ebbc3674fa9d2b838df2ecfe3357e117af5b"
+            },
+            "current": {
+              "lines": [
+                285,
+                286
+              ],
+              "byte_offset": 12456,
+              "byte_length": 24,
+              "sha256": "ee76ec6a22630aa54227b3992682ebbc3674fa9d2b838df2ecfe3357e117af5b"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "UiPointerDispatcher::dispatch_phase_handlers",
+        "kind": "private-method",
+        "ranges": {
+          "before": {
+            "lines": [
+              214,
+              260
+            ],
+            "byte_offset": 6992,
+            "byte_length": 1610,
+            "sha256": "138eaa5bdaaa894d56b05c32c0766fe6f37cf9f94e802067d5aadcf9749d220d"
+          },
+          "current": {
+            "lines": [
+              292,
+              339
+            ],
+            "byte_offset": 12878,
+            "byte_length": 1695,
+            "sha256": "648be0e24ee626458bc6c2130737cc6c20c9182fe5ae8210347fc5dffd69a1c7"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                214,
+                225
+              ],
+              "byte_offset": 6992,
+              "byte_length": 500,
+              "sha256": "44caea10833cf7ad47cd588d7b18929fe9de60537e50c359d5ff6012add656a7"
+            },
+            "current": {
+              "lines": [
+                292,
+                303
+              ],
+              "byte_offset": 12878,
+              "byte_length": 500,
+              "sha256": "44caea10833cf7ad47cd588d7b18929fe9de60537e50c359d5ff6012add656a7"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                226,
+                230
+              ],
+              "byte_offset": 7492,
+              "byte_length": 114,
+              "sha256": "7d11ca69b10b6c2ad9b27f384d30ec422ce7276f3a28af6d4c45f83a90ecf5cb"
+            },
+            "current": {
+              "lines": [
+                304,
+                308
+              ],
+              "byte_offset": 13378,
+              "byte_length": 114,
+              "sha256": "7d11ca69b10b6c2ad9b27f384d30ec422ce7276f3a28af6d4c45f83a90ecf5cb"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                231,
+                235
+              ],
+              "byte_offset": 7606,
+              "byte_length": 119,
+              "sha256": "241b279813b6e87216db1d049259815eb2e4ede26d45e8e2683c48e3444ec25d"
+            },
+            "current": {
+              "lines": [
+                309,
+                313
+              ],
+              "byte_offset": 13492,
+              "byte_length": 119,
+              "sha256": "241b279813b6e87216db1d049259815eb2e4ede26d45e8e2683c48e3444ec25d"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                236,
+                241
+              ],
+              "byte_offset": 7725,
+              "byte_length": 252,
+              "sha256": "b01be3077305c7762d9406531ffa74866ddfb03fcd7c778c982164c3094a9648"
+            },
+            "current": {
+              "lines": [
+                314,
+                319
+              ],
+              "byte_offset": 13611,
+              "byte_length": 252,
+              "sha256": "b01be3077305c7762d9406531ffa74866ddfb03fcd7c778c982164c3094a9648"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                242,
+                246
+              ],
+              "byte_offset": 7977,
+              "byte_length": 214,
+              "sha256": "36d16ee1903fc7d5a04600d41bbc81cd69e9b80b47003fc7425a8e4679401a14"
+            },
+            "current": {
+              "lines": [
+                320,
+                325
+              ],
+              "byte_offset": 13863,
+              "byte_length": 299,
+              "sha256": "c6956ae03810d589faf10af17e15b46257caa576553cb3d013f473b68474c5ab"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                247,
+                251
+              ],
+              "byte_offset": 8191,
+              "byte_length": 153,
+              "sha256": "351064e9cd891cdce578af858c6bafe431fc2276d1d0025a0dc75f99fa668bcb"
+            },
+            "current": {
+              "lines": [
+                326,
+                330
+              ],
+              "byte_offset": 14162,
+              "byte_length": 153,
+              "sha256": "351064e9cd891cdce578af858c6bafe431fc2276d1d0025a0dc75f99fa668bcb"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                252,
+                254
+              ],
+              "byte_offset": 8344,
+              "byte_length": 116,
+              "sha256": "12d1657a27e62518f92172af86de0415006b61ebbb660392e5f6c7e3a380281a"
+            },
+            "current": {
+              "lines": [
+                331,
+                333
+              ],
+              "byte_offset": 14315,
+              "byte_length": 116,
+              "sha256": "12d1657a27e62518f92172af86de0415006b61ebbb660392e5f6c7e3a380281a"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                255,
+                258
+              ],
+              "byte_offset": 8460,
+              "byte_length": 118,
+              "sha256": "11468fbc0db2bbe36776cba711fb7e387780636e111b481ee5734d9b1defb00a"
+            },
+            "current": {
+              "lines": [
+                334,
+                337
+              ],
+              "byte_offset": 14431,
+              "byte_length": 118,
+              "sha256": "11468fbc0db2bbe36776cba711fb7e387780636e111b481ee5734d9b1defb00a"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                259,
+                260
+              ],
+              "byte_offset": 8578,
+              "byte_length": 24,
+              "sha256": "ee76ec6a22630aa54227b3992682ebbc3674fa9d2b838df2ecfe3357e117af5b"
+            },
+            "current": {
+              "lines": [
+                338,
+                339
+              ],
+              "byte_offset": 14549,
+              "byte_length": 24,
+              "sha256": "ee76ec6a22630aa54227b3992682ebbc3674fa9d2b838df2ecfe3357e117af5b"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "route_uses_preview_tunnel",
+        "kind": "private-function",
+        "ranges": {
+          "before": {
+            "lines": [
+              263,
+              270
+            ],
+            "byte_offset": 8605,
+            "byte_length": 292,
+            "sha256": "155a4696551e1933c52b2b71a42000c7e478b3460cfbffa560811df785110cf3"
+          },
+          "current": {
+            "lines": [
+              344,
+              351
+            ],
+            "byte_offset": 14757,
+            "byte_length": 292,
+            "sha256": "155a4696551e1933c52b2b71a42000c7e478b3460cfbffa560811df785110cf3"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                263,
+                270
+              ],
+              "byte_offset": 8605,
+              "byte_length": 292,
+              "sha256": "155a4696551e1933c52b2b71a42000c7e478b3460cfbffa560811df785110cf3"
+            },
+            "current": {
+              "lines": [
+                344,
+                351
+              ],
+              "byte_offset": 14757,
+              "byte_length": 292,
+              "sha256": "155a4696551e1933c52b2b71a42000c7e478b3460cfbffa560811df785110cf3"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      },
+      {
+        "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+        "name": "apply_pointer_effect",
+        "kind": "private-function",
+        "ranges": {
+          "before": {
+            "lines": [
+              272,
+              327
+            ],
+            "byte_offset": 8898,
+            "byte_length": 1970,
+            "sha256": "7019278d89b7302a08ca07900b13f725153903ad5c789897cb49de1b057d12ea"
+          },
+          "current": {
+            "lines": [
+              356,
+              412
+            ],
+            "byte_offset": 15326,
+            "byte_length": 2051,
+            "sha256": "6a2351bbc3baa99f1638eeed00f6c310ac86d1eea514ba6bfddc1c229637a2bf"
+          }
+        },
+        "statement_ranges": [
+          {
+            "before": {
+              "lines": [
+                272,
+                278
+              ],
+              "byte_offset": 8898,
+              "byte_length": 184,
+              "sha256": "a707f37792ae72a2cb0c03317f0de1e6d2dca8d5d1a61146e1cdba8d00c86639"
+            },
+            "current": {
+              "lines": [
+                356,
+                362
+              ],
+              "byte_offset": 15326,
+              "byte_length": 184,
+              "sha256": "a707f37792ae72a2cb0c03317f0de1e6d2dca8d5d1a61146e1cdba8d00c86639"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                279,
+                279
+              ],
+              "byte_offset": 9082,
+              "byte_length": 53,
+              "sha256": "678f8000a4e8d77694546de062354fb3cfb899980520391d374fcb8de5f22d25"
+            },
+            "current": {
+              "lines": [
+                363,
+                363
+              ],
+              "byte_offset": 15510,
+              "byte_length": 53,
+              "sha256": "678f8000a4e8d77694546de062354fb3cfb899980520391d374fcb8de5f22d25"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                280,
+                283
+              ],
+              "byte_offset": 9135,
+              "byte_length": 119,
+              "sha256": "846b6c3ba964451101c80c9b254ea499d06399c5026a0836f2ae19974788aa6c"
+            },
+            "current": {
+              "lines": [
+                364,
+                367
+              ],
+              "byte_offset": 15563,
+              "byte_length": 119,
+              "sha256": "846b6c3ba964451101c80c9b254ea499d06399c5026a0836f2ae19974788aa6c"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                284,
+                287
+              ],
+              "byte_offset": 9254,
+              "byte_length": 154,
+              "sha256": "0a3c5bc773f1156ffe35e9b9cc17574bc2e1fa48b4d01983c31c3e5119a07d32"
+            },
+            "current": {
+              "lines": [
+                368,
+                371
+              ],
+              "byte_offset": 15682,
+              "byte_length": 154,
+              "sha256": "0a3c5bc773f1156ffe35e9b9cc17574bc2e1fa48b4d01983c31c3e5119a07d32"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                288,
+                291
+              ],
+              "byte_offset": 9408,
+              "byte_length": 123,
+              "sha256": "add6ad1e0f4f69dc9227e517009a5416b494405ce95f0c32817759333500069e"
+            },
+            "current": {
+              "lines": [
+                372,
+                375
+              ],
+              "byte_offset": 15836,
+              "byte_length": 123,
+              "sha256": "add6ad1e0f4f69dc9227e517009a5416b494405ce95f0c32817759333500069e"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                292,
+                296
+              ],
+              "byte_offset": 9531,
+              "byte_length": 173,
+              "sha256": "8ca8c3e40a8767dec5c95d317397a02648305edd351658bc0e8a625d3c1b9ea8"
+            },
+            "current": {
+              "lines": [
+                376,
+                380
+              ],
+              "byte_offset": 15959,
+              "byte_length": 173,
+              "sha256": "8ca8c3e40a8767dec5c95d317397a02648305edd351658bc0e8a625d3c1b9ea8"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                297,
+                301
+              ],
+              "byte_offset": 9704,
+              "byte_length": 185,
+              "sha256": "003625aba29fc2d2637a6749c564e4230929d8994358b00436866999a3a06705"
+            },
+            "current": {
+              "lines": [
+                381,
+                385
+              ],
+              "byte_offset": 16132,
+              "byte_length": 185,
+              "sha256": "003625aba29fc2d2637a6749c564e4230929d8994358b00436866999a3a06705"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                302,
+                306
+              ],
+              "byte_offset": 9889,
+              "byte_length": 172,
+              "sha256": "378f34eb44ae1adf3189004e794819dd9a135ee900c573025ba4ca194c705de8"
+            },
+            "current": {
+              "lines": [
+                386,
+                390
+              ],
+              "byte_offset": 16317,
+              "byte_length": 172,
+              "sha256": "378f34eb44ae1adf3189004e794819dd9a135ee900c573025ba4ca194c705de8"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                307,
+                311
+              ],
+              "byte_offset": 10061,
+              "byte_length": 162,
+              "sha256": "3db6386c0ad2fa4e8c1fa77f10406185f3942465f2c0e8059f6f9f304025266e"
+            },
+            "current": {
+              "lines": [
+                391,
+                395
+              ],
+              "byte_offset": 16489,
+              "byte_length": 162,
+              "sha256": "3db6386c0ad2fa4e8c1fa77f10406185f3942465f2c0e8059f6f9f304025266e"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                312,
+                321
+              ],
+              "byte_offset": 10223,
+              "byte_length": 502,
+              "sha256": "bd2dada62cb1c90fbfb9708cf8ac0142861bccfea323f83bcfece834d7d36666"
+            },
+            "current": {
+              "lines": [
+                397,
+                406
+              ],
+              "byte_offset": 16732,
+              "byte_length": 502,
+              "sha256": "bd2dada62cb1c90fbfb9708cf8ac0142861bccfea323f83bcfece834d7d36666"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                322,
+                325
+              ],
+              "byte_offset": 10725,
+              "byte_length": 135,
+              "sha256": "7a898baa70ceab359cbd16c30a50c1126fcb6edf8c18fd90ca3f6deb9142cad1"
+            },
+            "current": {
+              "lines": [
+                407,
+                410
+              ],
+              "byte_offset": 17234,
+              "byte_length": 135,
+              "sha256": "7a898baa70ceab359cbd16c30a50c1126fcb6edf8c18fd90ca3f6deb9142cad1"
+            }
+          },
+          {
+            "before": {
+              "lines": [
+                326,
+                327
+              ],
+              "byte_offset": 10860,
+              "byte_length": 8,
+              "sha256": "3794d02a8121944d176d265e9bb9cc59f6ab890bcadf8aefdebdbbb4f2ea8444"
+            },
+            "current": {
+              "lines": [
+                411,
+                412
+              ],
+              "byte_offset": 17369,
+              "byte_length": 8,
+              "sha256": "3794d02a8121944d176d265e9bb9cc59f6ab890bcadf8aefdebdbbb4f2ea8444"
+            }
+          }
+        ],
+        "member_ranges": [],
+        "root_review": "Independently read definition,body,state transition andcall context;final exactranges rehashed."
+      }
+    ],
+    "verified_before_and_after_range_pairs": 252,
+    "continuous_partitions": 26,
+    "statement_ranges": 64,
+    "patch_bytes": 12732,
+    "patch_sha256": "0e8b98d33612ecd0470ea669e3c85d90029fa1dffe2a5c7a439f1a352011914d",
+    "scoped_diff_check_exit": 0,
+    "scoped_index_empty": true,
+    "git_lf_crlf_warning": "warning: LF will be replaced by CRLF in zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/dispatch/pointer/mod.rs.\nThe file will have its original line endings in your working directory\n"
+  },
+  "source_string_contracts": {
+    "predicates": [
+      {
+        "id": "P01",
+        "consumer": "C12",
+        "consumer_line": 9,
+        "operand_scope": "whole",
+        "needle": "fn dispatch_phase_handlers",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P02",
+        "consumer": "C12",
+        "consumer_line": 13,
+        "operand_scope": "whole",
+        "needle": "let context = UiPointerDispatchContext",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P03",
+        "consumer": "C12",
+        "consumer_line": 16,
+        "operand_scope": "whole",
+        "needle": "for handler in phase_handlers.chain(unqualified_handlers)",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P04",
+        "consumer": "C13",
+        "consumer_line": 27,
+        "operand_scope": "whole",
+        "needle": "if self.handlers.is_empty() && self.phase_handlers.is_empty()",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P05",
+        "consumer": "C13",
+        "consumer_line": 31,
+        "operand_scope": "whole",
+        "needle": "if phase_handlers.is_none() && unqualified_handlers.is_none()",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P06",
+        "consumer": "C14",
+        "consumer_line": 61,
+        "operand_scope": "dispatch_route",
+        "needle": "route.clone()",
+        "before_count": 0,
+        "current_count": 0,
+        "before_predicate": false,
+        "current_predicate": false,
+        "expected_presence": false,
+        "new_comment_contribution": 0,
+        "root_before_count": 0,
+        "root_after_count": 0,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P07",
+        "consumer": "C14",
+        "consumer_line": 62,
+        "operand_scope": "dispatch_route",
+        "needle": "&route,",
+        "before_count": 3,
+        "current_count": 3,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 3,
+        "root_after_count": 3,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P08",
+        "consumer": "C14",
+        "consumer_line": 63,
+        "operand_scope": "dispatch_phase_handlers",
+        "needle": "route: &UiPointerRoute",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P09",
+        "consumer": "C14",
+        "consumer_line": 64,
+        "operand_scope": "dispatch_phase_handlers",
+        "needle": "let context = UiPointerDispatchContext",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P10",
+        "consumer": "C14",
+        "consumer_line": 65,
+        "operand_scope": "dispatch_phase_handlers",
+        "needle": "route,",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P11",
+        "consumer": "C14",
+        "consumer_line": 66,
+        "operand_scope": "dispatch_phase_handlers",
+        "needle": "result.route.clone()",
+        "before_count": 0,
+        "current_count": 0,
+        "before_predicate": false,
+        "current_predicate": false,
+        "expected_presence": false,
+        "new_comment_contribution": 0,
+        "root_before_count": 0,
+        "root_after_count": 0,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P12",
+        "consumer": "C14",
+        "consumer_line": 72,
+        "operand_scope": "dispatch_route",
+        "needle": "let (injected_candidate, candidate_slice)",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P13",
+        "consumer": "C14",
+        "consumer_line": 73,
+        "operand_scope": "dispatch_route",
+        "needle": "injected_candidate\n            .into_iter()",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P14",
+        "consumer": "C14",
+        "consumer_line": 74,
+        "operand_scope": "dispatch_route",
+        "needle": ".chain(candidate_slice.iter().copied())",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P15",
+        "consumer": "C14",
+        "consumer_line": 75,
+        "operand_scope": "dispatch_route",
+        "needle": "route.stacked.clone()",
+        "before_count": 0,
+        "current_count": 0,
+        "before_predicate": false,
+        "current_predicate": false,
+        "expected_presence": false,
+        "new_comment_contribution": 0,
+        "root_before_count": 0,
+        "root_after_count": 0,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P16",
+        "consumer": "C14",
+        "consumer_line": 76,
+        "operand_scope": "dispatch_route",
+        "needle": "route.root_targets.clone()",
+        "before_count": 0,
+        "current_count": 0,
+        "before_predicate": false,
+        "current_predicate": false,
+        "expected_presence": false,
+        "new_comment_contribution": 0,
+        "root_before_count": 0,
+        "root_after_count": 0,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P17",
+        "consumer": "C14",
+        "consumer_line": 77,
+        "operand_scope": "dispatch_route",
+        "needle": "vec![captured]",
+        "before_count": 0,
+        "current_count": 0,
+        "before_predicate": false,
+        "current_predicate": false,
+        "expected_presence": false,
+        "new_comment_contribution": 0,
+        "root_before_count": 0,
+        "root_after_count": 0,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P18",
+        "consumer": "C14",
+        "consumer_line": 84,
+        "operand_scope": "dispatch_route",
+        "needle": "UiDispatchVisitedNodeSet::with_expected_len(expected_visited_len)",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P19",
+        "consumer": "C14",
+        "consumer_line": 87,
+        "operand_scope": "whole",
+        "needle": "BTreeSet",
+        "before_count": 0,
+        "current_count": 0,
+        "before_predicate": false,
+        "current_predicate": false,
+        "expected_presence": false,
+        "new_comment_contribution": 0,
+        "root_before_count": 0,
+        "root_after_count": 0,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P20",
+        "consumer": "C15",
+        "consumer_line": 52,
+        "operand_scope": "whole",
+        "needle": "for<'route> Fn(&UiPointerDispatchContext<'route>)",
+        "before_count": 3,
+        "current_count": 3,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 3,
+        "root_after_count": 3,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P21",
+        "consumer": "C15",
+        "consumer_line": 59,
+        "operand_scope": "whole",
+        "needle": "route.clone()",
+        "before_count": 0,
+        "current_count": 0,
+        "before_predicate": false,
+        "current_predicate": false,
+        "expected_presence": false,
+        "new_comment_contribution": 0,
+        "root_before_count": 0,
+        "root_after_count": 0,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P22",
+        "consumer": "C15",
+        "consumer_line": 61,
+        "operand_scope": "whole",
+        "needle": "finish(route)",
+        "before_count": 3,
+        "current_count": 3,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 3,
+        "root_after_count": 3,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P23",
+        "consumer": "C16",
+        "consumer_line": 13,
+        "operand_scope": "whole",
+        "needle": "use std::collections::HashMap;",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P24",
+        "consumer": "C16",
+        "consumer_line": 15,
+        "operand_scope": "whole",
+        "needle": "handlers: HashMap<(UiNodeId, UiPointerEventKind), Vec<PointerHandler>>",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P25",
+        "consumer": "C16",
+        "consumer_line": 19,
+        "operand_scope": "whole",
+        "needle": "phase_handlers: HashMap<",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P26",
+        "consumer": "C16",
+        "consumer_line": 22,
+        "operand_scope": "whole",
+        "needle": "self.phase_handlers.get(&(node_id, route.kind, phase))",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P27",
+        "consumer": "C16",
+        "consumer_line": 23,
+        "operand_scope": "whole",
+        "needle": "self.handlers.get(&(node_id, route.kind))",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P28",
+        "consumer": "C16",
+        "consumer_line": 62,
+        "operand_scope": "whole",
+        "needle": "#[cfg(test)]",
+        "before_count": 0,
+        "current_count": 0,
+        "before_predicate": false,
+        "current_predicate": false,
+        "expected_presence": false,
+        "new_comment_contribution": 0,
+        "root_before_count": 0,
+        "root_after_count": 0,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P29",
+        "consumer": "C16",
+        "consumer_line": 63,
+        "operand_scope": "delivery-prefix",
+        "needle": "self.handlers.iter()",
+        "before_count": 0,
+        "current_count": 0,
+        "before_predicate": false,
+        "current_predicate": false,
+        "expected_presence": false,
+        "new_comment_contribution": 0,
+        "root_before_count": 0,
+        "root_after_count": 0,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P30",
+        "consumer": "C16",
+        "consumer_line": 64,
+        "operand_scope": "delivery-prefix",
+        "needle": "self.phase_handlers.iter()",
+        "before_count": 0,
+        "current_count": 0,
+        "before_predicate": false,
+        "current_predicate": false,
+        "expected_presence": false,
+        "new_comment_contribution": 0,
+        "root_before_count": 0,
+        "root_after_count": 0,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P31",
+        "consumer": "C17",
+        "consumer_line": 187,
+        "operand_scope": "whole",
+        "needle": "UiDispatchVisitedNodeSet::with_expected_len",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P32",
+        "consumer": "C17",
+        "consumer_line": 188,
+        "operand_scope": "whole",
+        "needle": "HashSet::with_capacity",
+        "before_count": 0,
+        "current_count": 0,
+        "before_predicate": false,
+        "current_predicate": false,
+        "expected_presence": false,
+        "new_comment_contribution": 0,
+        "root_before_count": 0,
+        "root_after_count": 0,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P33",
+        "consumer": "C18",
+        "consumer_line": 322,
+        "operand_scope": "whole",
+        "needle": "UiDispatchVisitedNodeSet::with_expected_len",
+        "before_count": 1,
+        "current_count": 1,
+        "before_predicate": true,
+        "current_predicate": true,
+        "expected_presence": true,
+        "new_comment_contribution": 0,
+        "root_before_count": 1,
+        "root_after_count": 1,
+        "root_new_comment_count": 0
+      },
+      {
+        "id": "P34",
+        "consumer": "C18",
+        "consumer_line": 329,
+        "operand_scope": "whole",
+        "needle": "HashSet::with_capacity",
+        "before_count": 0,
+        "current_count": 0,
+        "before_predicate": false,
+        "current_predicate": false,
+        "expected_presence": false,
+        "new_comment_contribution": 0,
+        "root_before_count": 0,
+        "root_after_count": 0,
+        "root_new_comment_count": 0
+      }
+    ],
+    "count": 34,
+    "allbeforeafterequal": true,
+    "new_comment_contribution": 0,
+    "context_and_loop_offsets_before": [
+      592,
+      963
+    ],
+    "context_and_loop_offsets_final": [
+      592,
+      963
+    ],
+    "interpretation": "Actualrawconsumeralgorithms independentlytranscribed;no unittest/pressuremodel/Rusttest execution."
+  },
+  "context_snapshot_pins": [
+    {
+      "path": "zircon_runtime/src/lib.rs",
+      "sha256": "4db54e8d6c7a61ce33fc411fc28fcc549549e7276516c4ee72de6a7aa6d91243",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/mod.rs",
+      "sha256": "c2428bd042db5c94d637bfcaf9565872b468b6b81199a4607e33440a367f1b09",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/mod.rs",
+      "sha256": "3a4728cf7a2c6cc39b94027fbb761e252ffbc7563069f56e915c86965aeae3cd",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "sha256": "e357e4fba530a7f71a87351cfbc4907f9e9a39679006fa1138974d001ca867b3",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/surface/event_routing.rs",
+      "sha256": "7f5cdcaaa8cd96607e6b41f6de8e1d9302a2fa014895dc1958b6cb632de404ef",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/tree/node/routing.rs",
+      "sha256": "75f1b9fd29bcb2fcf8e68483521bdde74e872b585691073b635fbf54a284e14a",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/dispatch/pointer/context.rs",
+      "sha256": "8f80c8fde273704f23be2f237a02b0e275216c8ea5b9f612bebd75f7003fa6b6",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/dispatch/pointer/result.rs",
+      "sha256": "20291be4b0cd1831a742549a7d3a43781102e1655fef189342cdcad8a24a69e3",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/surface/pointer/route.rs",
+      "sha256": "a1bdc2f4e6fb334cac6600f217a58de5ecd1230672a6862b3963757113a85b19",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/dispatch/pointer/effect.rs",
+      "sha256": "4d35c49858f02d2d5e21cc6ddc5fffa85f98bbf2641cd8dd7c06c7d54856ef62",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_editor/src/scene/viewport/pointer/overlay_router/build_dispatcher.rs",
+      "sha256": "a3dca16f31e94ff2238a25f83b0b00afca2110fa4b54761f510d2ba382cc0495",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_input_manager/route_matrix.rs",
+      "sha256": "84de39c9158e4af14c52f094f7b19c6276877a09e96cabc0dd308623c17eb88d",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/event_routing/contracts.rs",
+      "sha256": "b8db820a42879faa0666ef6cb6cf2192eeb95a2e37710bbbc57fac0c3156d481",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "tools/tests/test_runtime_pointer_dispatch_input_ownership_performance_contract.py",
+      "sha256": "900d01dda377dbe210a00d623bb1f9585c0b0a6041486f2b3a42fa05d04fb6f2",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "tools/tests/test_runtime_ui_dispatch_route_sharing_performance_contract.py",
+      "sha256": "482b1b205c632fb53962506b7ac9bc3bc990c4f7e5dd17a53b9b0d3bbfd79ee3",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "tools/tests/test_runtime_ui_dispatch_hash_lookup_performance_contract.py",
+      "sha256": "63babb083e682fe8e7f866d404d7f34e28a9b5139b94e2e4ff2a7027bae80ad5",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "tools/tests/test_runtime_ui_dispatch_route_sharing_pressure.py",
+      "sha256": "8b52d8f161ecf439f3c77a8bb05f0f8c63580fa2c7de29c96a1e46636744518d",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "tools/analysis/performance/runtime/runtime_ui_dispatch_route_sharing_pressure.py",
+      "sha256": "bcdddf7e880c12288048a92a88420b118767e8f25b259d9607103f5d8c3b3558",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/visited_node_set.rs",
+      "sha256": "6171b105b0d386330765302e8a814b51696019fe92c06ef675eb3df49849c63d",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/input/pointer_bubble_routes.rs",
+      "sha256": "69036fce42ade6d3f5cbb19bc9fe5db38563b4f42cd87da338b71c37585cbd36",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_input_reply_routes.rs",
+      "sha256": "bdbc6ab383bd2c887617bf9e8d174493d6be632074f2832808a4c574c3329ab5",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_input_manager.rs",
+      "sha256": "bf824c53f479b62c2c387059ac1c9d0ff772483beb254b25d21b1f8eb164003a",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/mod.rs",
+      "sha256": "4b1e97d1aad576402e7b5d9c5a1c95c9b0fce94f4ae9ac1736a22e437424733b",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "tools/analysis/performance/runtime/runtime_ui_pointer_path_authority_pressure.py",
+      "sha256": "fedb43b61ced98979211268b88e6fdf5ca81cdc1bbdaf17e90c849f6c730eea7",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/structure/test_size/ui_event_routing.rs",
+      "sha256": "ed6a81e0a8b8e07576102389ed46906d685f4bdc96665dde5b6721fc8fd1eec4",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/Cargo.toml",
+      "sha256": "1ec1a256d36710d17b12e6c63b93e81f2e3b299940e9a1a1b9f81d3fc592f306",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "tools/analysis/validation/zircon-validation-runtime200-ui-route-performance-batch.ps1",
+      "sha256": "d99cf040c0c74ece1155a1187f1d06299f55140cf888f1fa4870091f3a850d07",
+      "matches_child_read_snapshot": true,
+      "formal_file_coverage": false
+    }
+  ],
+  "change_guard": {
+    "command": [
+      "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\python\\python.exe",
+      "-B",
+      "-X",
+      "utf8",
+      "E:\\Git\\ZirconEngine\\.codex\\skills\\zircon-change-guard\\scripts\\change_guard.py",
+      "--json",
+      "patch",
+      "--git",
+      "--base",
+      "HEAD",
+      "--path",
+      "zircon_runtime/src/ui/dispatch/pointer/mod.rs",
+      "--path",
+      "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+    ],
+    "exit": 0,
+    "report": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "0e8b98d33612ecd0470ea669e3c85d90029fa1dffe2a5c7a439f1a352011914d",
+        "base": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+        "files": [
+          "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+          "zircon_runtime/src/ui/dispatch/pointer/mod.rs"
+        ],
+        "declaredPaths": [
+          "zircon_runtime/src/ui/dispatch/pointer/mod.rs",
+          "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": []
+    },
+    "stderr": ""
+  },
+  "formatting": {
+    "reused_receipt": "71bac2 exit0 exact2 rustfmt --check --edition2021 --config skip_children=true",
+    "all_source_pins_still_match": true,
+    "initial_new_doc_indent_failure": "99470e exit1 preserved;71bac2 correctedonlytask-addedcommentindent/wording",
+    "typecheck_or_rustdoc_links": false,
+    "writeback": false
+  },
+  "tests": {
+    "owned_tests": 0,
+    "context_tests_only": true,
+    "executed": false
+  },
+  "acceptance": {
+    "reviewed_local_files": 2,
+    "root_full_read_files": 2,
+    "formal_acceptance": false,
+    "phase_commit": false,
+    "attached_wecom_receipt": false,
+    "push": false,
+    "gates": [
+      "DesignatedJenkinsowner exactsnapshot intake andactualscopedvalidation.",
+      "Existingindexlockidentitydiagnosticbeforefirststage/commit;nobypass.",
+      "No acceptance inferredfromlocalguards orreadonlymonitor."
+    ]
+  },
+  "artifact_lifecycle": {
+    "registry": "E:/cargo-targets/zircon-local/reports/source-comments-20261014-01a13a81/artifacts.json",
+    "registered_before_creation": true,
+    "source_copies": false,
+    "builds": false,
+    "temporary_helpers": false,
+    "deleted_files": 0,
+    "freed_bytes": 0,
+    "retained": "Canonicalcomments,fixedchild/main/post,failureevidenceandpendingactualmanagedreceipts;foreignartifacts/caches/Git preserved."
+  },
+  "created_at_utc": "2026-10-16T07:01:49.726874+00:00",
+  "record_writer": {
+    "pid": 33532,
+    "write_set": [
+      "docs/plans/source-comments/reviews/R053-main.json",
+      "docs/plans/source-comments/reviews/R053-post-validation.json"
+    ],
+    "terminal": "Actualnativeexit,notthisrecord,closeswriter."
+  }
+}

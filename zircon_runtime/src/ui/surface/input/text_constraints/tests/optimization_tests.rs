@@ -1,3 +1,6 @@
+//! 对照无约束字节复制与保留的完整扫描基线；普通测试检查语义，忽略项单独比较 Release 时间。
+//! 基准保留自己的旧实现，不能因生产快速路径的修改而同步缩短旧路径。
+
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -13,6 +16,7 @@ use super::{
     UiTextInputConstraintReceipt, TEXT_INPUT_GRAPHEME_AUTHORITY_COUNTER_NAMES,
 };
 
+// 以下常量限定此基准的输出身份、输入规模、预热/采样数量与 P95 比较阈值。
 const PROFILE_MARKER: &str = "RUNTIME82_UNCONSTRAINED_REPLACEMENT_BYTE_COPY_BENCH_V1";
 const PROFILE_GRAPHEMES: usize = 1_000_000;
 const WARMUP_PAIRS: usize = 5;
@@ -20,6 +24,7 @@ const SAMPLE_PAIRS: usize = 31;
 const MAX_NEW_P95_PERCENT: u128 = 80;
 
 #[test]
+// 无约束的普通替换须保留全部字节，包括换行、NUL 与多字节 grapheme，且不产生清洗回执。
 fn runtime82_unconstrained_replacement_preserves_all_utf8_bytes_and_empty_receipts() {
     let constraints = TextInputConstraints::default();
     let range = UiTextRange { start: 1, end: 4 };
@@ -45,6 +50,7 @@ fn runtime82_unconstrained_replacement_preserves_all_utf8_bytes_and_empty_receip
 }
 
 #[test]
+// 一旦配置长度约束，源码扫描与文档索引两条计数路径都不能误入原样复制分支。
 fn runtime82_unconstrained_replacement_guard_keeps_max_grapheme_limits() {
     let constraints = TextInputConstraints {
         max_graphemes: Some(3),
@@ -72,6 +78,7 @@ fn runtime82_unconstrained_replacement_guard_keeps_max_grapheme_limits() {
 }
 
 #[test]
+// 字符过滤仍按被移除的 scalar 计数，而非按 UTF-8 字节计数。
 fn runtime82_unconstrained_replacement_guard_keeps_character_filter_receipts() {
     let constraints = TextInputConstraints {
         filter: TextInputFilter::Digits,
@@ -90,6 +97,7 @@ fn runtime82_unconstrained_replacement_guard_keeps_character_filter_receipts() {
 }
 
 #[test]
+// 单行策略仍合并 CRLF 的计数，并处理其他硬换行分隔符。
 fn runtime82_unconstrained_replacement_guard_keeps_single_line_separator_receipts() {
     let constraints = TextInputConstraints {
         multiline: false,
@@ -108,6 +116,7 @@ fn runtime82_unconstrained_replacement_guard_keeps_single_line_separator_receipt
 }
 
 #[test]
+// 即使字符策略默认不变，预编辑元数据仍需走边界映射，不能只复制文本就提前返回。
 fn runtime82_unconstrained_replacement_guard_keeps_preedit_boundary_mapping() {
     let replacement = "\u{e9}a\u{0301}\u{1f469}\u{200d}\u{1f4bb}\r\nx";
     let cursor = Some(UiTextByteRange::new(5, 16));
@@ -150,6 +159,7 @@ fn runtime82_unconstrained_replacement_guard_keeps_preedit_boundary_mapping() {
 
 #[test]
 #[ignore = "managed Windows Release comparison of million-grapheme replacement sanitization"]
+/// 交替新旧执行顺序并比较两种固定输入形状的样本分位数；仅用于受管 Release 基准。
 fn runtime82_unconstrained_replacement_byte_copy_release_profile() {
     assert!(!cfg!(debug_assertions), "run this profile with --release");
     eprintln!(
@@ -193,6 +203,7 @@ fn runtime82_unconstrained_replacement_byte_copy_release_profile() {
     }
 }
 
+/// 每对保持相同输入，并按 pair 奇偶交替先后顺序；返回值始终按旧、新排列。
 fn measure_pair(pair: usize, replacement: &str) -> (u128, u128) {
     if pair % 2 == 0 {
         (
@@ -212,6 +223,7 @@ fn measure_pair(pair: usize, replacement: &str) -> (u128, u128) {
     }
 }
 
+/// 通过传入的函数指针测量一次清洗；正确性断言放在计时结束后执行。
 fn measure(
     sanitize: fn(TextInputConstraints, &str, UiTextRange, &str) -> SanitizedTextInputReplacement,
     replacement: &str,
@@ -229,12 +241,14 @@ fn measure(
     elapsed
 }
 
+/// 生产路径与旧基线共用同一字节相等和空回执判据。
 fn assert_identity(sanitized: &SanitizedTextInputReplacement, replacement: &str) {
     assert_eq!(sanitized.text.as_bytes(), replacement.as_bytes());
     assert_eq!(sanitized.receipt, UiTextInputConstraintReceipt::default());
     assert!(sanitized.receipt_if_changed().is_none());
 }
 
+/// 对非空样本使用向上取整的秩；本基准只传入已采集的固定分位数。
 fn percentile(samples: &[u128], percent: usize) -> u128 {
     let mut sorted = samples.to_vec();
     sorted.sort_unstable();
@@ -245,6 +259,7 @@ fn percentile(samples: &[u128], percent: usize) -> u128 {
 // 769de443484c2063543c7519dab8973491471dba90d64c50148e07373b25e8ba.
 // Keep the original constraint and boundary-map branches in the timed baseline.
 impl TextInputConstraints {
+    /// 保留完整旧扫描路径作为计时对照，不供生产输入调用。
     fn legacy_sanitize_replacement(
         self,
         current_text: &str,
@@ -260,6 +275,7 @@ impl TextInputConstraints {
         )
     }
 
+    // 边界记录、过滤、保留计数和截断均保持旧分支，防止基线无意采用生产快速路径。
     fn legacy_sanitize_replacement_with_boundary_map(
         self,
         current_text: &str,

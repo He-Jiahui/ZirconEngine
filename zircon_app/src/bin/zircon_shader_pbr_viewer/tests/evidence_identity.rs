@@ -61,3 +61,59 @@ fn evidence_transport_paths_do_not_leak_windows_verbatim_prefixes() {
         std::path::PathBuf::from(r"\\host\share\ready.png")
     );
 }
+
+#[cfg(windows)]
+#[test]
+fn canonical_evidence_paths_preserve_the_physical_output_root_boundary() {
+    use std::path::Path;
+
+    for path in [
+        r"D:\cargo-targets\zircon-local\evidence.json",
+        r"\\?\E:\cargo-targets\zircon-local\evidence.json",
+        r"\\?\F:\cargo-targets\zircon-local\target",
+    ] {
+        assert!(super::is_allowed_evidence_path(Path::new(path)), "{path}");
+        assert!(
+            super::is_allowed_target_directory(Path::new(path)),
+            "{path}"
+        );
+    }
+    for path in [
+        r"\\?\C:\cargo-targets\zircon-local\evidence.json",
+        r"E:\Git\ZirconEngine\target\evidence.json",
+        r"E:\nested\cargo-targets\zircon-local\evidence.json",
+        r"E:\cargo-targets-other\evidence.json",
+        r"\\?\UNC\host\share\cargo-targets\evidence.json",
+        r"\\.\E:\cargo-targets\zircon-local\evidence.json",
+    ] {
+        assert!(!super::is_allowed_evidence_path(Path::new(path)), "{path}");
+        assert!(
+            !super::is_allowed_target_directory(Path::new(path)),
+            "{path}"
+        );
+    }
+}
+
+#[cfg(windows)]
+#[test]
+fn repository_bindings_compare_physical_roots_across_windows_path_transport() {
+    let repository = std::env::current_dir()
+        .expect("the test must retain its repository working directory")
+        .canonicalize()
+        .expect("the repository working directory must exist");
+    let transported = super::evidence_transport_path(&repository);
+    for declared in [&repository, &transported] {
+        assert!(super::matches_canonical_path(
+            &declared.to_string_lossy(),
+            &repository
+        ));
+    }
+    assert!(!super::matches_canonical_path(".", &repository));
+    let other = repository
+        .parent()
+        .expect("the repository must have a parent");
+    assert!(!super::matches_canonical_path(
+        &other.to_string_lossy(),
+        &repository
+    ));
+}

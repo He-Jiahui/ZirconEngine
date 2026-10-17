@@ -19,16 +19,16 @@ impl ResourceManager {
     {
         let (payload, lease_identity) = {
             let mut authority = self.lock_authority_write();
-            let record = authority.registry.get(handle.id())?;
-            if record.kind != TMarker::KIND {
+            let active = authority.active.row(handle.id())?;
+            if active.record.kind != TMarker::KIND {
                 return None;
             }
-            let record_state = record.state;
+            let record_state = authority.registry.get(handle.id()).map(|record| record.state);
             let payload = authority.payloads.get(&handle.id())?.clone();
             let payload = Arc::downcast::<TData>(payload.into_any_arc()).ok()?;
             let slot = authority.runtime.get_mut(&handle.id())?;
             let lease_identity = Arc::clone(&slot.lease_identity);
-            if record_state == ResourceState::Ready {
+            if record_state == Some(ResourceState::Ready) {
                 slot.state = RuntimeResourceState::Loaded;
             }
             authority.refresh_readiness_many([handle.id()]);
@@ -47,26 +47,30 @@ impl ResourceManager {
     }
 
     fn release_residency(&self, id: ResourceId, lease_identity: Arc<ResourceLeaseIdentity>) {
-        let mut authority = self.lock_authority_write();
-        let preserve_last_good = authority.registry.get(id).is_some_and(|record| {
-            matches!(
-                record.state,
-                ResourceState::Reloading | ResourceState::Error
-            )
-        });
-        let Some(slot) = authority.runtime.get_mut(&id) else {
-            return;
-        };
-        if !Arc::ptr_eq(&slot.lease_identity, &lease_identity) {
-            return;
-        }
-        drop(lease_identity);
-        // 当前代只剩槽位自身时才可卸载；重载与失败时保留最后有效载荷供回退。
-        if Arc::strong_count(&slot.lease_identity) == 1 && !preserve_last_good {
+        let retired = {
+            let mut authority = self.lock_authority_write();
+            let preserve_last_good = authority.registry.get(id).is_some_and(|record| {
+                matches!(record.state, ResourceState::Reloading | ResourceState::Error)
+            });
+            let Some(slot) = authority.runtime.get_mut(&id) else { return; };
+            if !Arc::ptr_eq(&slot.lease_identity, &lease_identity) { return; }
+            drop(lease_identity);
+            if Arc::strong_count(&slot.lease_identity) != 1 { return; }
+            if let Some(reservation) = &mut slot.prepared {
+                reservation.deferred_last_release = true;
+                return;
+            }
+            if preserve_last_good || slot.retain_last_good { return; }
             slot.state = RuntimeResourceState::Unloaded;
-            authority.payloads.remove(&id);
+            let retired = authority.payloads.remove(&id);
+            authority.active = crate::ResourceActiveGeneration::updated(
+                &authority.active, vec![(id, None)], &[],
+            );
             authority.refresh_readiness_many([id]);
-        }
+            retired
+        };
+        // A payload may drop nested resource leases.
+        drop(retired);
     }
 
     /// 统计当前驻留身份的租约，不计载荷 Arc 或旧代租约；已登记但无运行槽为零，目录缺失为 None。

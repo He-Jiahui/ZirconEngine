@@ -33,7 +33,9 @@ impl RetainedEditorHost {
             self.editor_manager
                 .enter()
                 .map_err(EditorError::from)
-                .and_then(|manager| manager.toggle_ui_asset_editor_pseudo_state(instance_id, state)),
+                .and_then(|manager| {
+                    manager.toggle_ui_asset_editor_pseudo_state(instance_id, state)
+                }),
         )
     }
 }

@@ -1,20 +1,70 @@
 //! 声明输入服务的事件提交、拥有型查询、队列排空和可选录制入口。
 //!
 //! # 职责与使用时机
-//! 宿主或回放通过 InputManager 提交事件，消费方查询快照并领取事件或反向请求。15 个方法中 5 个必须由实现提供，10 个带有兼容默认体；服务工厂和解析器只注册、解析实际实现，不由此创建设备线程。
+//! 宿主或回放通过 InputManager 提交事件，消费方查询快照并领取事件或反向请求。16 个方法中 5 个必须由实现提供，11 个带有兼容默认体；服务工厂和解析器只注册、解析实际实现，不由此创建设备线程。
 //!
 //! # 边界与生命周期
 //! 本模块不持有设备或输入状态，也不规定全局调用顺序。帧边界、验证、保留及宿主执行由实现与调用方负责；查询和排空按值返回数据，多次调用不自动组成一个事务。
 //!
 //! # 参考
 //! 参见 [InputManager](super::InputManager)、[InputSnapshot](super::InputSnapshot)、[InputFrameSnapshot](super::InputFrameSnapshot)、[InputEventRecord](super::InputEventRecord)。
+use std::num::NonZeroU64;
+
 use crate::core::framework::channel::ChannelReceiver;
 
 use super::{
-    ButtonInputState, CursorHostRequest, GamepadRumbleRequest, ImeHostRequest, InputButton,
+    ButtonInputState, CursorHostRequest, GamepadId, GamepadRumbleRequest, ImeHostRequest, InputButton,
     InputEvent, InputEventQueueStatus, InputEventRecord, InputEventRecordingConfig,
     InputEventRecordingStatus, InputFrameSnapshot, InputSnapshot, MouseWheelEvent,
 };
+
+/// Result of atomically admitting an event into input state and its retained event streams.
+/// Accepted generation admission does not imply a numeric value survived existing filtering,
+/// that a recorder retained it, or that any UI/host callback has run.
+#[must_use]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum InputEventAdmission {
+    Accepted,
+    Rejected(GamepadInputRejection),
+}
+
+/// A gamepad rejection never changes samples, edges, frame events or recording buffers.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GamepadInputRejection {
+    GenerationRequired { gamepad: GamepadId },
+    /// Rumble intents can only bind to a currently observed, open connection.
+    RumbleTargetUnavailable { gamepad: GamepadId },
+    ConnectionNotObserved { gamepad: GamepadId, submitted: NonZeroU64 },
+    StaleGeneration { gamepad: GamepadId, submitted: NonZeroU64, current: NonZeroU64 },
+    FutureGeneration { gamepad: GamepadId, submitted: NonZeroU64, current: NonZeroU64 },
+    ConnectionClosed { gamepad: GamepadId, submitted: NonZeroU64, current: NonZeroU64 },
+}
+
+/// A rumble intent bound to the connection observed atomically at enqueue time.
+///
+/// This owned value must retain its generation through drains, output-page retries and host
+/// delivery. Consumers must never replace it with a generation observed at drain time.
+/// The stamp proves observed input ownership, not physical device availability or completion.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct QueuedGamepadRumbleRequest {
+    request: GamepadRumbleRequest,
+    generation: NonZeroU64,
+}
+
+impl QueuedGamepadRumbleRequest {
+    /// Construct only while the input owner admits this intent against its open connection.
+    pub const fn new(request: GamepadRumbleRequest, generation: NonZeroU64) -> Self {
+        Self { request, generation }
+    }
+
+    pub const fn request(&self) -> GamepadRumbleRequest {
+        self.request
+    }
+
+    pub const fn generation(&self) -> NonZeroU64 {
+        self.generation
+    }
+}
 
 /// 通过共享借用提供输入状态查询及事件消费的线程可共享服务契约。
 ///
@@ -22,7 +72,7 @@ use super::{
 /// 宿主提交拥有型事件；调用方在约定帧边界读取状态、消费事件或领取反向宿主请求。服务解析器借注册的实现提供同一服务，接口本身不创建设备线程或事件循环。
 ///
 /// # 约束
-/// 实现必须提供 submit_event、snapshot、drain_events、drain_event_records 和 drain_event_records_with_status 共 5 个方法。其余 10 个方法具有兼容默认体；空操作、空向量、零状态和无订阅分别表示默认适配行为，不能据此推断实现具备这些能力。Send 与 Sync 不规定调用顺序、执行线程或全局帧事务；记录与状态联合排空另有单事务要求。
+/// 实现必须提供 submit_event_with_admission、snapshot、drain_events、drain_event_records 和 drain_event_records_with_status 共 5 个方法。其余 11 个方法具有兼容默认体；空操作、空向量、零状态和无订阅分别表示默认适配行为，不能据此推断实现具备这些能力。Send 与 Sync 不规定调用顺序、执行线程或全局帧事务；记录与状态联合排空另有单事务要求。
 ///
 /// # 生命周期
 /// 各查询结果按值返回；查询与排空结果不借用本服务。事件及请求的保留期限由实现负责，跨多次查询的状态不自动属于同一时刻。
@@ -53,23 +103,31 @@ pub trait InputManager: Send + Sync {
     /// 将一个拥有型输入事件交给实现处理。
     ///
     /// # 使用时机与职责
-    /// 设备或宿主适配先构造共享事件，再同步调用本入口；这是 trait 的必需实现方法。
+    /// 设备或宿主适配先构造共享事件，再同步调用本兼容入口；默认体委托必需的有类型准入方法。
     ///
     /// # 参数
     /// event：本次提交的事件及其拥有型载荷，所有权交给实现。
     ///
     /// # 返回
-    /// 不返回值；接口没有接收成功、设备有效或宿主操作完成的回执。
+    /// 兼容入口不返回值并委托 submit_event_with_admission；需要准入结果的宿主使用有类型回执。
     ///
     /// # 约束
-    /// 本 trait 不提供数值验证、合并或保留策略。DefaultInputManager 在同一锁内更新状态，按配置录制原始提交事件，再更新可合并的即时队列；录制关闭、容量为零或容量淘汰均可能不保留记录。具体宿主适配的验证与 UI 传播顺序按事件分支执行。
+    /// 本 trait 不提供数值验证、合并或保留策略。DefaultInputManager 在同一锁内先验证手柄代际，拒绝时不改变任何输入保留器；通过后更新状态，按配置录制已准入的原始事件，再更新可合并的即时队列；录制关闭、容量为零或容量淘汰均可能不保留记录。具体宿主适配的验证与 UI 传播顺序按事件分支执行。
     ///
     /// # 生命周期
     /// 字符串等载荷由事件拥有，不借用宿主 ABI 的临时字节视图；实现可以消费或保留数据。
     ///
     /// # 参考
     /// 参见 [InputEvent](super::InputEvent)、[InputManager::drain_events()](super::InputManager::drain_events)、[InputManager::drain_event_records()](super::InputManager::drain_event_records)。
-    fn submit_event(&self, event: InputEvent);
+    fn submit_event(&self, event: InputEvent) {
+        let _ = self.submit_event_with_admission(event);
+    }
+
+    /// Admit and consume through the same implementation as the compatibility unit entry.
+    /// Implementations must check a gamepad's producer generation before any state, edge,
+    /// frame-event or recording mutation. Generic unstamped gamepad button events reject.
+    /// Closed generations remain fenced across frames, drains and focus loss.
+    fn submit_event_with_admission(&self, event: InputEvent) -> InputEventAdmission;
     /// 取得指针位置、持续按下按钮和兼容纵向滚动量的基本快照。
     ///
     /// # 使用时机与职责
@@ -169,17 +227,17 @@ pub trait InputManager: Send + Sync {
     /// 宿主按队列请求执行震动操作；帧快照中的请求是观察副本。
     ///
     /// # 返回
-    /// 拥有型震动请求向量；默认适配返回空向量。
+    /// 拥有型、带入队时连接代际的震动请求向量；默认适配返回空向量。
     ///
     /// # 约束
-    /// DefaultInputManager 取走全部待发队列并复位帧请求索引，旧帧请求仍可被领取；取走项不在下一次排空中重复返回。接口不确认设备存在、操作成功或震动已经完成；动态会话可将请求保留在有界输出页中。
+    /// DefaultInputManager 仅在同一状态锁内观察到已连接目标时接收意图，并在入队时固定其代际。排空取走全部待发队列并复位帧请求索引，旧帧请求仍可被领取；取走项不在下一次排空中重复返回。宿主必须核对原代际，不能用当前代际重标。此观察不确认物理设备存在、操作成功或震动完成；动态会话可将原值保留在有界输出页中。
     ///
     /// # 生命周期
     /// 消费方拥有结果；已生成快照与后续请求队列独立。
     ///
     /// # 参考
     /// 参见 [GamepadRumbleRequest](super::GamepadRumbleRequest)、[InputFrameSnapshot](super::InputFrameSnapshot)、[InputEvent::GamepadRumbleRequest](super::InputEvent::GamepadRumbleRequest)。
-    fn drain_gamepad_rumble_requests(&self) -> Vec<GamepadRumbleRequest> {
+    fn drain_gamepad_rumble_requests(&self) -> Vec<QueuedGamepadRumbleRequest> {
         Vec::new()
     }
 

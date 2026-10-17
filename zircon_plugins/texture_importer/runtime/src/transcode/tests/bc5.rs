@@ -132,8 +132,7 @@ fn dx_normal_container_is_rejected_before_bc5_passthrough() {
     };
     texture.descriptor = Some(descriptor);
 
-    let error =
-        transcode_normal_bc5(texture).expect_err("DX container must be normalized first");
+    let error = transcode_normal_bc5(texture).expect_err("DX container must be normalized first");
 
     assert!(error.to_string().contains("canonical tangent-space GL"));
 }

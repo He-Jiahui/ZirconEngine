@@ -12,8 +12,7 @@ const ERRORS_PER_SAMPLE: usize = 8_192;
 fn borrowed_ktx_error_arguments_preserve_dynamic_diagnostics() {
     let context = test_context();
 
-    let cubemap_error =
-        validate_cubemap_2d_square_faces(&context, "ktx2", 6, 16, 8).unwrap_err();
+    let cubemap_error = validate_cubemap_2d_square_faces(&context, "ktx2", 6, 16, 8).unwrap_err();
     let range_error =
         checked_u64_range_end(&context, "ktx2 level payload", u64::MAX, 1).unwrap_err();
 

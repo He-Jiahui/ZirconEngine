@@ -1,6 +1,7 @@
 use super::{
-    DiagnosticStoreSnapshot, FrameDiagnostics, FrameDiagnosticsStatus, RuntimeAnimationDiagnostics,
-    RuntimePhysicsDiagnostics, RuntimeRenderDiagnostics,
+    DiagnosticIdentityStoreSnapshot, DiagnosticStoreSnapshot, FrameDiagnostics,
+    FrameDiagnosticsStatus, RuntimeAnimationDiagnostics, RuntimePhysicsDiagnostics,
+    RuntimeRenderDiagnostics,
 };
 use zircon_runtime_interface::ProfileSnapshot;
 
@@ -12,6 +13,8 @@ pub struct RuntimeDiagnosticsSnapshot {
     pub physics: RuntimePhysicsDiagnostics,
     pub animation: RuntimeAnimationDiagnostics,
     pub store: DiagnosticStoreSnapshot,
+    /// Exact integer identities that must not pass through floating-point metric summaries.
+    pub identities: DiagnosticIdentityStoreSnapshot,
     pub profile: ProfileSnapshot,
 }
 

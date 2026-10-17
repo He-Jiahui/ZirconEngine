@@ -2,30 +2,15 @@
 #[test]
 fn runtime_07_virtual_geometry_debug_snapshot_owner_split_keeps_contracts_folder_backed() {
     let root = include_str!("../../../../core/framework/render/virtual_geometry_debug_snapshot.rs");
-    let bvh = include_str!(
-        "../../../../core/framework/render/debug/bvh_visualization.rs"
-    );
-    let cpu_reference = include_str!(
-        "../../../../core/framework/render/debug/cpu_reference.rs"
-    );
-    let cull_input = include_str!(
-        "../../../../core/framework/render/debug/cull_input.rs"
-    );
-    let execution = include_str!(
-        "../../../../core/framework/render/debug/execution.rs"
-    );
-    let node_and_cluster = include_str!(
-        "../../../../core/framework/render/debug/node_and_cluster_cull.rs"
-    );
-    let page_payload = include_str!(
-        "../../../../core/framework/render/debug/page_payload.rs"
-    );
-    let snapshot = include_str!(
-        "../../../../core/framework/render/debug/snapshot.rs"
-    );
-    let sources = include_str!(
-        "../../../../core/framework/render/debug/sources.rs"
-    );
+    let bvh = include_str!("../../../../core/framework/render/debug/bvh_visualization.rs");
+    let cpu_reference = include_str!("../../../../core/framework/render/debug/cpu_reference.rs");
+    let cull_input = include_str!("../../../../core/framework/render/debug/cull_input.rs");
+    let execution = include_str!("../../../../core/framework/render/debug/execution.rs");
+    let node_and_cluster =
+        include_str!("../../../../core/framework/render/debug/node_and_cluster_cull.rs");
+    let page_payload = include_str!("../../../../core/framework/render/debug/page_payload.rs");
+    let snapshot = include_str!("../../../../core/framework/render/debug/snapshot.rs");
+    let sources = include_str!("../../../../core/framework/render/debug/sources.rs");
     let module_doc = include_str!(
         "../../../../../../docs/crates/zircon_runtime/core/framework/render/virtual_geometry_debug_snapshot.md"
     );

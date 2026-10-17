@@ -1,0 +1,1699 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R047",
+  "owner": "root",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "formal_acceptance": false,
+  "companion_of": "R038",
+  "status": "reviewed-local-pending-ledger-booking-and-managed-gates",
+  "fixed_child_record": {
+    "path": "docs\\plans\\source-comments\\reviews\\R047.json",
+    "sha256": "beb39dc0c4ab6de7eafe3c8c7bf26bdc07ba104241af28f426fd515b064f64e7",
+    "bytes": 786965
+  },
+  "scope": {
+    "source_files": 6,
+    "source_lines_before": 2269,
+    "source_lines_after": 2342,
+    "added_physical_lines": 73,
+    "source_deletions": 0,
+    "files": [
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_borrowing_contracts.rs",
+        "before_sha256": "246c10533e92d3c7f4f75956acd0d4f4c16c5afe22f7635a4a672fc85f025325",
+        "after_sha256": "a141c2f929c4a7e0eae3d0c508a96e8bbc3f43003db5bf718437f1c6ad7ae941",
+        "before_bytes": 2980,
+        "after_bytes": 4038,
+        "before_lines": 78,
+        "after_lines": 89,
+        "before_eol": {
+          "crlf": 0,
+          "lf_only": 78
+        },
+        "after_eol": {
+          "crlf": 0,
+          "lf_only": 89
+        },
+        "reconstructed_before_sha256": "246c10533e92d3c7f4f75956acd0d4f4c16c5afe22f7635a4a672fc85f025325",
+        "current_sha256": "a141c2f929c4a7e0eae3d0c508a96e8bbc3f43003db5bf718437f1c6ad7ae941",
+        "bom_before": false,
+        "bom_after": false,
+        "original_bytes_preserved": true,
+        "original_comments_api_strings_assertions_preserved": true,
+        "inserted_blocks": 8,
+        "inserted_lines": 11,
+        "objects": [
+          {
+            "id": "F01-O001",
+            "name": "text_event",
+            "kind": "fn",
+            "role": "helper",
+            "before_span": [
+              11,
+              19
+            ],
+            "after_span": [
+              15,
+              23
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/0/inventory/objects/0"
+          },
+          {
+            "id": "F01-O002",
+            "name": "safe_event_uses_borrowed_bytes_and_never_reads_raw_metadata_pointer",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              22,
+              42
+            ],
+            "after_span": [
+              27,
+              49
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/0/inventory/objects/1"
+          },
+          {
+            "id": "F01-O003",
+            "name": "safe_event_is_send_and_sync_and_checks_the_payload_budget",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              45,
+              56
+            ],
+            "after_span": [
+              53,
+              64
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/0/inventory/objects/2"
+          },
+          {
+            "id": "F01-O004",
+            "name": "assert_send_sync",
+            "kind": "fn",
+            "role": "nested-helper",
+            "before_span": [
+              46,
+              46
+            ],
+            "after_span": [
+              54,
+              54
+            ],
+            "decision": "retained-clear-no-addition",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/0/inventory/objects/3"
+          },
+          {
+            "id": "F01-O005",
+            "name": "abi_event_rejects_invalid_shape_and_version_before_pointer_reads",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              59,
+              78
+            ],
+            "after_span": [
+              68,
+              89
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/0/inventory/objects/4"
+          }
+        ],
+        "tests": 3,
+        "partitions": 9,
+        "root_actual_read": {
+          "ranges": [
+            [
+              1,
+              89
+            ]
+          ],
+          "receipt": "e5fd69",
+          "exit_code": 0,
+          "native_output_complete": true
+        },
+        "root_independent_judgment": "安全入口只使用独立Rust切片，初始哨兵裸载体不参与该借用；切换原始ABI入口前用同一String的真实地址和长度替换。类型级Send/Sync约束没有启动线程。预算超限、null+len1和错误版本分别检查既有错误/提前返回，所有SAFETY限定到已核对分支。",
+        "root_declaration_count_note": "fn词法定位与31个固定对象逐名一致；不声称Rust AST或宏展开数量。",
+        "root_partitions_verified": {
+          "count": 9,
+          "before_and_after_gap_free": true,
+          "each_raw_span_hash_matches": true,
+          "receipt": "18fcb9",
+          "exit_code": 0
+        }
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+        "before_sha256": "61b9c9dcad27c05acdbfb14126fc14dcdfe5b7ec7afb53eee33e9b1526446d63",
+        "after_sha256": "80ae10826a326c0c5abf06d44ca2536a9c17e81c169462653e26122c28e4a2a4",
+        "before_bytes": 25056,
+        "after_bytes": 27844,
+        "before_lines": 758,
+        "after_lines": 791,
+        "before_eol": {
+          "crlf": 0,
+          "lf_only": 758
+        },
+        "after_eol": {
+          "crlf": 0,
+          "lf_only": 791
+        },
+        "reconstructed_before_sha256": "61b9c9dcad27c05acdbfb14126fc14dcdfe5b7ec7afb53eee33e9b1526446d63",
+        "current_sha256": "80ae10826a326c0c5abf06d44ca2536a9c17e81c169462653e26122c28e4a2a4",
+        "bom_before": false,
+        "bom_after": false,
+        "original_bytes_preserved": true,
+        "original_comments_api_strings_assertions_preserved": true,
+        "inserted_blocks": 19,
+        "inserted_lines": 33,
+        "objects": [
+          {
+            "id": "F02-O001",
+            "name": "adapter_context",
+            "kind": "fn",
+            "role": "helper",
+            "before_span": [
+              39,
+              43
+            ],
+            "after_span": [
+              42,
+              46
+            ],
+            "decision": "retained-clear-no-addition",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/1/inventory/objects/0"
+          },
+          {
+            "id": "F02-O002",
+            "name": "viewport",
+            "kind": "fn",
+            "role": "helper",
+            "before_span": [
+              45,
+              47
+            ],
+            "after_span": [
+              48,
+              50
+            ],
+            "decision": "retained-clear-no-addition",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/1/inventory/objects/1"
+          },
+          {
+            "id": "F02-O003",
+            "name": "bytes",
+            "kind": "fn",
+            "role": "helper",
+            "before_span": [
+              49,
+              54
+            ],
+            "after_span": [
+              56,
+              61
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/1/inventory/objects/2"
+          },
+          {
+            "id": "F02-O004",
+            "name": "adapt",
+            "kind": "fn",
+            "role": "helper",
+            "before_span": [
+              56,
+              58
+            ],
+            "after_span": [
+              67,
+              71
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/1/inventory/objects/3"
+          },
+          {
+            "id": "F02-O005",
+            "name": "runtime_event_adapter_maps_viewport_and_window_events_to_window_pump_facts",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              61,
+              162
+            ],
+            "after_span": [
+              75,
+              176
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/1/inventory/objects/4"
+          },
+          {
+            "id": "F02-O006",
+            "name": "runtime_event_adapter_maps_lifecycle_and_cursor_to_window_events",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              165,
+              238
+            ],
+            "after_span": [
+              180,
+              253
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/1/inventory/objects/5"
+          },
+          {
+            "id": "F02-O007",
+            "name": "runtime_event_adapter_maps_pointer_touch_and_wheel_to_shared_input_events",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              241,
+              318
+            ],
+            "after_span": [
+              257,
+              334
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/1/inventory/objects/6"
+          },
+          {
+            "id": "F02-O008",
+            "name": "runtime_event_adapter_maps_keyboard_ime_drag_gamepad_and_accessibility_inputs",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              321,
+              479
+            ],
+            "after_span": [
+              339,
+              497
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/1/inventory/objects/7"
+          },
+          {
+            "id": "F02-O009",
+            "name": "runtime_event_adapter_preserves_batch_order_and_stops_on_invalid_event",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              482,
+              522
+            ],
+            "after_span": [
+              500,
+              542
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/1/inventory/objects/8"
+          },
+          {
+            "id": "F02-O010",
+            "name": "runtime_event_adapter_rejects_unsupported_or_malformed_events",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              525,
+              610
+            ],
+            "after_span": [
+              546,
+              637
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/1/inventory/objects/9"
+          },
+          {
+            "id": "F02-O011",
+            "name": "runtime_event_adapter_maps_manual_window_event_shapes",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              613,
+              726
+            ],
+            "after_span": [
+              641,
+              754
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/1/inventory/objects/10"
+          },
+          {
+            "id": "F02-O012",
+            "name": "assert_pointer",
+            "kind": "fn",
+            "role": "assertion-helper",
+            "before_span": [
+              728,
+              758
+            ],
+            "after_span": [
+              761,
+              791
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/1/inventory/objects/11"
+          }
+        ],
+        "tests": 7,
+        "partitions": 32,
+        "root_actual_read": {
+          "ranges": [
+            [
+              1,
+              791
+            ]
+          ],
+          "receipt": "e5fd69",
+          "exit_code": 0,
+          "native_output_complete": true
+        },
+        "root_independent_judgment": "33个adapt调用只传空载荷、静态字符串或存活不变的局部JSON Vec；helper私有且同步转换为拥有输出。各映射只断言实际列出的字段；无障碍用例只查target。成功三元素批次与单元素坏bool分开，未宣称测试了晚错前缀或迭代器副作用回滚。非法UTF8数组仍是有效字节内存；空指针错误依赖形状提前拒绝。",
+        "root_declaration_count_note": "fn词法定位与31个固定对象逐名一致；不声称Rust AST或宏展开数量。",
+        "root_partitions_verified": {
+          "count": 32,
+          "before_and_after_gap_free": true,
+          "each_raw_span_hash_matches": true,
+          "receipt": "18fcb9",
+          "exit_code": 0
+        }
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts.rs",
+        "before_sha256": "fed1c421e4e83c5bf9993a1ea8c17227567eb44f2d52f22a0f8c4b7046cf7734",
+        "after_sha256": "3cc0a5b3af97a0106ed8cd3fa822b9555130ce1e8b5e02b0f5e6968e522ac4f6",
+        "before_bytes": 38182,
+        "after_bytes": 39179,
+        "before_lines": 905,
+        "after_lines": 918,
+        "before_eol": {
+          "crlf": 0,
+          "lf_only": 905
+        },
+        "after_eol": {
+          "crlf": 0,
+          "lf_only": 918
+        },
+        "reconstructed_before_sha256": "fed1c421e4e83c5bf9993a1ea8c17227567eb44f2d52f22a0f8c4b7046cf7734",
+        "current_sha256": "3cc0a5b3af97a0106ed8cd3fa822b9555130ce1e8b5e02b0f5e6968e522ac4f6",
+        "bom_before": false,
+        "bom_after": false,
+        "original_bytes_preserved": true,
+        "original_comments_api_strings_assertions_preserved": true,
+        "inserted_blocks": 6,
+        "inserted_lines": 13,
+        "objects": [
+          {
+            "id": "F03-O001",
+            "name": "sample_window_metadata",
+            "kind": "fn",
+            "role": "shared-helper",
+            "before_span": [
+              23,
+              29
+            ],
+            "after_span": [
+              27,
+              33
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/2/inventory/objects/0"
+          },
+          {
+            "id": "F03-O002",
+            "name": "sample_input_metadata",
+            "kind": "fn",
+            "role": "shared-helper",
+            "before_span": [
+              31,
+              36
+            ],
+            "after_span": [
+              36,
+              41
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/2/inventory/objects/1"
+          },
+          {
+            "id": "F03-O003",
+            "name": "round_trip",
+            "kind": "fn",
+            "role": "serde-helper",
+            "before_span": [
+              38,
+              43
+            ],
+            "after_span": [
+              48,
+              53
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/2/inventory/objects/2"
+          },
+          {
+            "id": "F03-O004",
+            "name": "ui_window_platform_input_normalizes_generic_application_style_events",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              51,
+              854
+            ],
+            "after_span": [
+              63,
+              866
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/2/inventory/objects/3"
+          },
+          {
+            "id": "F03-O005",
+            "name": "ui_window_cursor_events_can_enter_the_unified_pointer_pipeline",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              857,
+              905
+            ],
+            "after_span": [
+              870,
+              918
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/2/inventory/objects/4"
+          }
+        ],
+        "tests": 2,
+        "partitions": 64,
+        "root_actual_read": {
+          "ranges": [
+            [
+              1,
+              918
+            ]
+          ],
+          "receipt": "3cad25",
+          "exit_code": 0,
+          "native_output_complete": true
+        },
+        "root_independent_judgment": "共享窗口元数据123/7与直接输入元数据124/8保持区分。round_trip的DeserializeOwned保证不返回临时JSON借用；子模块通过super::*复用。大型构造矩阵采用显式坐标，不证明宿主DPI或真实事件循环；touch覆盖指针身份。光标取消位置来自调用方，进入通知不会投影移动事件。",
+        "root_declaration_count_note": "fn词法定位与31个固定对象逐名一致；不声称Rust AST或宏展开数量。",
+        "root_partitions_verified": {
+          "count": 64,
+          "before_and_after_gap_free": true,
+          "each_raw_span_hash_matches": true,
+          "receipt": "18fcb9",
+          "exit_code": 0
+        }
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/ime.rs",
+        "before_sha256": "9775132582b214eef33af0e8e0665802b0b22cb30a496d8125d7fd61f37b63b7",
+        "after_sha256": "d6da8379866873c14badeaef7076f54d15a64dcc4bff0c69357e5a09b5788344",
+        "before_bytes": 7709,
+        "after_bytes": 8363,
+        "before_lines": 217,
+        "after_lines": 224,
+        "before_eol": {
+          "crlf": 0,
+          "lf_only": 217
+        },
+        "after_eol": {
+          "crlf": 0,
+          "lf_only": 224
+        },
+        "reconstructed_before_sha256": "9775132582b214eef33af0e8e0665802b0b22cb30a496d8125d7fd61f37b63b7",
+        "current_sha256": "d6da8379866873c14badeaef7076f54d15a64dcc4bff0c69357e5a09b5788344",
+        "bom_before": false,
+        "bom_after": false,
+        "original_bytes_preserved": true,
+        "original_comments_api_strings_assertions_preserved": true,
+        "inserted_blocks": 6,
+        "inserted_lines": 7,
+        "objects": [
+          {
+            "id": "F04-O001",
+            "name": "ui_window_input_pump_wraps_window_and_shared_input_events_with_redraw_coalescing",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              4,
+              41
+            ],
+            "after_span": [
+              7,
+              44
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/3/inventory/objects/0"
+          },
+          {
+            "id": "F04-O002",
+            "name": "ui_window_input_pump_accepts_platform_input_events_through_normalization",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              44,
+              89
+            ],
+            "after_span": [
+              48,
+              93
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/3/inventory/objects/1"
+          },
+          {
+            "id": "F04-O003",
+            "name": "ui_window_input_pump_preserves_validated_preedit_clauses",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              92,
+              131
+            ],
+            "after_span": [
+              97,
+              136
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/3/inventory/objects/2"
+          },
+          {
+            "id": "F04-O004",
+            "name": "ui_window_input_pump_rejects_invalid_preedit_clause_ranges",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              134,
+              197
+            ],
+            "after_span": [
+              140,
+              203
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/3/inventory/objects/3"
+          },
+          {
+            "id": "F04-O005",
+            "name": "ui_ime_input_event_rejects_clauses_outside_preedit",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              200,
+              217
+            ],
+            "after_span": [
+              207,
+              224
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/3/inventory/objects/4"
+          }
+        ],
+        "tests": 5,
+        "partitions": 15,
+        "root_actual_read": {
+          "ranges": [
+            [
+              1,
+              224
+            ]
+          ],
+          "receipt": "5a36e1",
+          "exit_code": 0,
+          "native_output_complete": true
+        },
+        "root_independent_judgment": "两个相邻重绘保留首项，后续CursorLeft和IME保序。普通IME构造不隐式验证范围，checked子句构造才显式准入。非UTF8边界/越界/重叠例只查is_err，乱序例才核对具体错误。直接构造Commit+子句后显式validate，Serde往返不替代校验。",
+        "root_declaration_count_note": "fn词法定位与31个固定对象逐名一致；不声称Rust AST或宏展开数量。",
+        "root_partitions_verified": {
+          "count": 15,
+          "before_and_after_gap_free": true,
+          "each_raw_span_hash_matches": true,
+          "receipt": "18fcb9",
+          "exit_code": 0
+        }
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_input_contracts/window_events.rs",
+        "before_sha256": "5735d9b296c28a1250a265c9f177ecc8f21a28dd6583787b38e79d64c03f5585",
+        "after_sha256": "a17475d9438554041e45e85beebcaec812dd2d213909137ccb694e348c9b1236",
+        "before_bytes": 8142,
+        "after_bytes": 8437,
+        "before_lines": 207,
+        "after_lines": 211,
+        "before_eol": {
+          "crlf": 0,
+          "lf_only": 207
+        },
+        "after_eol": {
+          "crlf": 0,
+          "lf_only": 211
+        },
+        "reconstructed_before_sha256": "5735d9b296c28a1250a265c9f177ecc8f21a28dd6583787b38e79d64c03f5585",
+        "current_sha256": "a17475d9438554041e45e85beebcaec812dd2d213909137ccb694e348c9b1236",
+        "bom_before": false,
+        "bom_after": false,
+        "original_bytes_preserved": true,
+        "original_comments_api_strings_assertions_preserved": true,
+        "inserted_blocks": 2,
+        "inserted_lines": 4,
+        "objects": [
+          {
+            "id": "F05-O001",
+            "name": "ui_window_events_carry_cursor_focus_scale_redraw_and_close_contracts",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              4,
+              207
+            ],
+            "after_span": [
+              8,
+              211
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/4/inventory/objects/0"
+          }
+        ],
+        "tests": 1,
+        "partitions": 12,
+        "root_actual_read": {
+          "ranges": [
+            [
+              1,
+              211
+            ]
+          ],
+          "receipt": "5a36e1",
+          "exit_code": 0,
+          "native_output_complete": true
+        },
+        "root_independent_judgment": "便捷构造与枚举直构对照窗口度量、焦点、激活、重绘、关闭和动作的提示位。clean impact不代表没有瞬态关闭意图；投影由相邻瞬态测试单独核对。JSON往返仅覆盖列出的样例，不扩大为全部枚举或宿主动作执行。",
+        "root_declaration_count_note": "fn词法定位与31个固定对象逐名一致；不声称Rust AST或宏展开数量。",
+        "root_partitions_verified": {
+          "count": 12,
+          "before_and_after_gap_free": true,
+          "each_raw_span_hash_matches": true,
+          "receipt": "18fcb9",
+          "exit_code": 0
+        }
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/window_transient_contracts.rs",
+        "before_sha256": "03bbf8d96c306ae0fab8a456b9cb2d0a5446d83825dd6efb3eacf8b7c1646e7d",
+        "after_sha256": "610b6da46aa10f0b2e8ffd27f3d35f74ae6247c937d7a9ef4d23c6d9898d451b",
+        "before_bytes": 4012,
+        "after_bytes": 4423,
+        "before_lines": 104,
+        "after_lines": 109,
+        "before_eol": {
+          "crlf": 0,
+          "lf_only": 104
+        },
+        "after_eol": {
+          "crlf": 0,
+          "lf_only": 109
+        },
+        "reconstructed_before_sha256": "03bbf8d96c306ae0fab8a456b9cb2d0a5446d83825dd6efb3eacf8b7c1646e7d",
+        "current_sha256": "610b6da46aa10f0b2e8ffd27f3d35f74ae6247c937d7a9ef4d23c6d9898d451b",
+        "bom_before": false,
+        "bom_after": false,
+        "original_bytes_preserved": true,
+        "original_comments_api_strings_assertions_preserved": true,
+        "inserted_blocks": 3,
+        "inserted_lines": 5,
+        "objects": [
+          {
+            "id": "F06-O001",
+            "name": "sample_window_metadata",
+            "kind": "fn",
+            "role": "helper",
+            "before_span": [
+              10,
+              16
+            ],
+            "after_span": [
+              12,
+              18
+            ],
+            "decision": "retained-clear-no-addition",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/5/inventory/objects/0"
+          },
+          {
+            "id": "F06-O002",
+            "name": "ui_window_events_preserve_application_activation_and_transient_dismissal_intent",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              19,
+              65
+            ],
+            "after_span": [
+              22,
+              68
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/5/inventory/objects/1"
+          },
+          {
+            "id": "F06-O003",
+            "name": "ui_window_input_pump_projects_transient_dismissal_effects_without_mutating_events",
+            "kind": "fn",
+            "role": "test",
+            "before_span": [
+              68,
+              104
+            ],
+            "after_span": [
+              73,
+              109
+            ],
+            "decision": "necessary-comment-added",
+            "root_review": "已定位实际声明、读完函数与关联语句块，并与本文件独立判断及调用契约核对。",
+            "fixed_child_pointer": "docs/plans/source-comments/reviews/R047.json#/files/5/inventory/objects/2"
+          }
+        ],
+        "tests": 2,
+        "partitions": 8,
+        "root_actual_read": {
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "receipt": "5a36e1",
+          "exit_code": 0,
+          "native_output_complete": true
+        },
+        "root_independent_judgment": "应用停用和失焦投影All关闭，非客户区点击投影PopupStack，启用和窗口菜单无对应关闭命令。batch共享迭代产生独立命令值，并按追加顺序过滤；末尾仅比较events.len()==4，未声称逐值快照相等或真实UI关闭已执行。",
+        "root_declaration_count_note": "fn词法定位与31个固定对象逐名一致；不声称Rust AST或宏展开数量。",
+        "root_partitions_verified": {
+          "count": 8,
+          "before_and_after_gap_free": true,
+          "each_raw_span_hash_matches": true,
+          "receipt": "18fcb9",
+          "exit_code": 0
+        }
+      }
+    ]
+  },
+  "review_method": {
+    "source": "主审读取六份最终UTF-8源全文，共2342行；独立核对声明、直接调用、测试断言、unsafe进入路径及输出拥有边界。",
+    "definition_and_mounts": "lib.rs249–251的cfg(test)挂tests/mod.rs；69–74/78–79挂四个顶层测试模块；window_input_contracts.rs55–58再挂两个子模块。",
+    "macros_traits_registration_ffi": "六源无公开产品类型、自定义trait实现、动态注册或新FFI入口；测试属性与断言宏使用现有定义，round_trip泛型有Serialize/DeserializeOwned约束，嵌套空helper只施加Send/Sync。FFI原始载体/适配器为只读上下文。",
+    "object_and_block_basis": "31个实际fn定义（20测试、10顶层helper、1嵌套helper）逐名核对。140连续物理行分段逐项核对范围哈希和前后覆盖；花括号/词法计数不是AST覆盖或宏展开证明。",
+    "root_native_receipts": [
+      "e5fd69",
+      "3cad25",
+      "5a36e1",
+      "18fcb9",
+      "a543d5",
+      "721ac0",
+      "11ebec",
+      "9882f3"
+    ],
+    "root_output_recovery": "首次多结果外层显示截断后，从已存的完整native结果分别读取A/B/C，无重跑writer。ae38f9和515a38为被截断的元数据发现读，不作为完整元数据阅读证据；18fcb9已用有界字段完成核对。"
+  },
+  "readonly_context_reads": [
+    {
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event_abi.rs",
+      "id": "E01",
+      "sha256": "3a327faedb3b4b2bffc0ff576d85b4a35a94649321a347b4762e28c33379f657",
+      "bytes": 3701,
+      "lines": 71,
+      "selected_ranges": [
+        [
+          1,
+          71
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            71
+          ]
+        ],
+        "reuse_record": "docs/plans/source-comments/reviews/R038-main.json",
+        "reuse_record_sha256": "ae19d48cabeaa8eeacfa1dce821528f00c456cd76a8dae27520ba917dc586d1d",
+        "reason": "同一最终源码已由主审全文阅读并独立复核；本次11ebec再次核对该SHA。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event.rs",
+      "id": "E02",
+      "sha256": "9688cba399053dbc8c5ba62a1e0c71f30af469bcdaa7dfbab11de2f4841490a9",
+      "bytes": 4316,
+      "lines": 98,
+      "selected_ranges": [
+        [
+          1,
+          98
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            98
+          ]
+        ],
+        "reuse_record": "docs/plans/source-comments/reviews/R038-main.json",
+        "reuse_record_sha256": "ae19d48cabeaa8eeacfa1dce821528f00c456cd76a8dae27520ba917dc586d1d",
+        "reason": "同一最终源码已由主审全文阅读并独立复核；本次11ebec再次核对该SHA。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/buffer.rs",
+      "id": "E03",
+      "sha256": "4f311bf8fb2e1c436581e2f96f9b54567127644a121ac3ca6890b7ce05c4dad7",
+      "bytes": 17842,
+      "lines": 357,
+      "selected_ranges": [
+        [
+          190,
+          243
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            190,
+            278
+          ]
+        ],
+        "receipts": [
+          "0aa0d2",
+          "721ac0"
+        ],
+        "exit_codes": [
+          0,
+          0
+        ],
+        "reason": "读取精确选段；仅为调用证据，不计整文件正式覆盖。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/pump.rs",
+      "id": "E04",
+      "sha256": "63c3d22ec4b4551896df1e4f5ef4a954ffb3c119e6a4fe9bf09a5477ebfb0375",
+      "bytes": 2939,
+      "lines": 75,
+      "selected_ranges": [
+        [
+          1,
+          75
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            75
+          ]
+        ],
+        "reuse_record": "docs/plans/source-comments/reviews/R038-main.json",
+        "reuse_record_sha256": "ae19d48cabeaa8eeacfa1dce821528f00c456cd76a8dae27520ba917dc586d1d",
+        "reason": "同一最终源码已由主审全文阅读并独立复核；本次11ebec再次核对该SHA。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/input/window_event.rs",
+      "id": "E05",
+      "sha256": "7b2e0501b19a6ee316bd2e311858c7e92183eb610814c5f4d5d01640831dff53",
+      "bytes": 1908,
+      "lines": 52,
+      "selected_ranges": [
+        [
+          1,
+          52
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            52
+          ]
+        ],
+        "reuse_record": "docs/plans/source-comments/reviews/R038-main.json",
+        "reuse_record_sha256": "ae19d48cabeaa8eeacfa1dce821528f00c456cd76a8dae27520ba917dc586d1d",
+        "reason": "同一最终源码已由主审全文阅读并独立复核；本次11ebec再次核对该SHA。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/input/normalization.rs",
+      "id": "E06",
+      "sha256": "c2ffe748215a8a4e3726676214fb86b16de8597ba6adb589200de3a77707c060",
+      "bytes": 4939,
+      "lines": 135,
+      "selected_ranges": [
+        [
+          1,
+          135
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            135
+          ]
+        ],
+        "reuse_record": "docs/plans/source-comments/reviews/R038-main.json",
+        "reuse_record_sha256": "ae19d48cabeaa8eeacfa1dce821528f00c456cd76a8dae27520ba917dc586d1d",
+        "reason": "同一最终源码已由主审全文阅读并独立复核；本次11ebec再次核对该SHA。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs",
+      "id": "E07",
+      "sha256": "3b72d4b177dd7025beb392eec0f69e40084ebed1c34d8ea9e46497e43a4f68d2",
+      "bytes": 31349,
+      "lines": 783,
+      "selected_ranges": [
+        [
+          1,
+          429
+        ],
+        [
+          430,
+          590
+        ],
+        [
+          589,
+          627
+        ],
+        [
+          628,
+          645
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            783
+          ]
+        ],
+        "reuse_record": "docs/plans/source-comments/reviews/R038-main.json",
+        "reuse_record_sha256": "ae19d48cabeaa8eeacfa1dce821528f00c456cd76a8dae27520ba917dc586d1d",
+        "reason": "同一最终源码已由主审全文阅读并独立复核；本次11ebec再次核对该SHA。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/input/platform_event.rs",
+      "id": "E08",
+      "sha256": "11659ae767304eddceb7efead12d2ae67d3b126d00f16d0566846da0ed54ac2c",
+      "bytes": 21852,
+      "lines": 683,
+      "selected_ranges": [
+        [
+          1,
+          340
+        ],
+        [
+          341,
+          683
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            683
+          ]
+        ],
+        "reuse_record": "docs/plans/source-comments/reviews/R038-main.json",
+        "reuse_record_sha256": "ae19d48cabeaa8eeacfa1dce821528f00c456cd76a8dae27520ba917dc586d1d",
+        "reason": "同一最终源码已由主审全文阅读并独立复核；本次11ebec再次核对该SHA。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/input/context.rs",
+      "id": "E09",
+      "sha256": "888dbebc55691184b992132e30ed9518976e4f012a7f4f1290d480a4f113de9d",
+      "bytes": 5697,
+      "lines": 131,
+      "selected_ranges": [
+        [
+          1,
+          128
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            131
+          ]
+        ],
+        "reuse_record": "docs/plans/source-comments/reviews/R038-main.json",
+        "reuse_record_sha256": "ae19d48cabeaa8eeacfa1dce821528f00c456cd76a8dae27520ba917dc586d1d",
+        "reason": "同一最终源码已由主审全文阅读并独立复核；本次11ebec再次核对该SHA。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/input/touch.rs",
+      "id": "E10",
+      "sha256": "58c1f55f68f3e9fa22acc70ce5d8ceec9f165fcc7a4b6f6a2819a4542ad690a2",
+      "bytes": 1324,
+      "lines": 34,
+      "selected_ranges": [
+        [
+          1,
+          34
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            34
+          ]
+        ],
+        "reuse_record": "docs/plans/source-comments/reviews/R038-main.json",
+        "reuse_record_sha256": "ae19d48cabeaa8eeacfa1dce821528f00c456cd76a8dae27520ba917dc586d1d",
+        "reason": "同一最终源码已由主审全文阅读并独立复核；本次11ebec再次核对该SHA。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/event.rs",
+      "id": "E11",
+      "sha256": "f718a3e7fe98bcf44e0c1d9b3fea1b05103e0ed552be4e98b01a0977c1690d22",
+      "bytes": 9974,
+      "lines": 257,
+      "selected_ranges": [
+        [
+          1,
+          257
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            257
+          ]
+        ],
+        "reuse_record": "docs/plans/source-comments/reviews/R038-main.json",
+        "reuse_record_sha256": "ae19d48cabeaa8eeacfa1dce821528f00c456cd76a8dae27520ba917dc586d1d",
+        "reason": "同一最终源码已由主审全文阅读并独立复核；本次11ebec再次核对该SHA。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/window/impact.rs",
+      "id": "E12",
+      "sha256": "efed6fb55fecdf25395e2851b48d04f7d76f8703fc875c210778f71407c2a93f",
+      "bytes": 2798,
+      "lines": 85,
+      "selected_ranges": [
+        [
+          1,
+          85
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            85
+          ]
+        ],
+        "reuse_record": "docs/plans/source-comments/reviews/R038-main.json",
+        "reuse_record_sha256": "ae19d48cabeaa8eeacfa1dce821528f00c456cd76a8dae27520ba917dc586d1d",
+        "reason": "同一最终源码已由主审全文阅读并独立复核；本次11ebec再次核对该SHA。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/dispatch/input/event.rs",
+      "id": "E13",
+      "sha256": "081d5c2404e751385ca6f113d00e168b58c43c9acc1a73fa4b931f22cc38b69c",
+      "bytes": 8117,
+      "lines": 268,
+      "selected_ranges": [
+        [
+          125,
+          168
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            105,
+            168
+          ]
+        ],
+        "receipts": [
+          "0aa0d2",
+          "721ac0"
+        ],
+        "exit_codes": [
+          0,
+          0
+        ],
+        "reason": "读取精确选段；仅为调用证据，不计整文件正式覆盖。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/surface/render/editable_text.rs",
+      "id": "E14",
+      "sha256": "e926f940e36ba99b6090b770e62864a4d5d8c8926d281f668c049ade2cc4aaec",
+      "bytes": 7197,
+      "lines": 227,
+      "selected_ranges": [
+        [
+          1,
+          145
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            150
+          ]
+        ],
+        "receipts": [
+          "0aa0d2"
+        ],
+        "exit_codes": [
+          0
+        ],
+        "reason": "读取精确选段；仅为调用证据，不计整文件正式覆盖。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "id": "E15",
+      "sha256": "aff4edd1b0d58e5d202ab5e04a7fda6c0074acadb08f8e652a09a6fc8ed72353",
+      "bytes": 21815,
+      "lines": 691,
+      "selected_ranges": [
+        [
+          1,
+          105
+        ],
+        [
+          107,
+          122
+        ],
+        [
+          124,
+          139
+        ],
+        [
+          157,
+          171
+        ],
+        [
+          206,
+          225
+        ],
+        [
+          227,
+          233
+        ],
+        [
+          235,
+          237
+        ],
+        [
+          255,
+          269
+        ],
+        [
+          283,
+          299
+        ],
+        [
+          301,
+          319
+        ],
+        [
+          337,
+          351
+        ],
+        [
+          369,
+          381
+        ],
+        [
+          383,
+          392
+        ],
+        [
+          394,
+          406
+        ],
+        [
+          421,
+          430
+        ],
+        [
+          432,
+          447
+        ],
+        [
+          450,
+          465
+        ],
+        [
+          474,
+          479
+        ],
+        [
+          482,
+          496
+        ],
+        [
+          606,
+          619
+        ],
+        [
+          622,
+          630
+        ],
+        [
+          656,
+          675
+        ],
+        [
+          677,
+          690
+        ],
+        [
+          632,
+          655
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            1,
+            691
+          ]
+        ],
+        "receipts": [
+          "a543d5"
+        ],
+        "exit_codes": [
+          0
+        ],
+        "reason": "读取精确选段；仅为调用证据，不计整文件正式覆盖。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+      "id": "E16",
+      "sha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "bytes": 9105,
+      "lines": 208,
+      "selected_ranges": [
+        [
+          35,
+          85
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            35,
+            85
+          ]
+        ],
+        "receipts": [
+          "721ac0"
+        ],
+        "exit_codes": [
+          0
+        ],
+        "reason": "读取精确选段；仅为调用证据，不计整文件正式覆盖。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/accessibility.rs",
+      "id": "E17",
+      "sha256": "318579126115e20d84b3251529eae53e520c9fb95e88ee469d4772263d386199",
+      "bytes": 6857,
+      "lines": 237,
+      "selected_ranges": [
+        [
+          88,
+          135
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            88,
+            135
+          ]
+        ],
+        "receipts": [
+          "721ac0"
+        ],
+        "exit_codes": [
+          0
+        ],
+        "reason": "读取精确选段；仅为调用证据，不计整文件正式覆盖。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "id": "E18",
+      "sha256": "e851a09cf3b0946ce83a7723a48da45656746820bc0375b9285df9c740409078",
+      "bytes": 15930,
+      "lines": 254,
+      "selected_ranges": [
+        [
+          249,
+          254
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            249,
+            254
+          ]
+        ],
+        "receipts": [
+          "721ac0"
+        ],
+        "exit_codes": [
+          0
+        ],
+        "reason": "读取精确选段；仅为调用证据，不计整文件正式覆盖。"
+      },
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "id": "E19",
+      "sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "bytes": 2666,
+      "lines": 79,
+      "selected_ranges": [
+        [
+          64,
+          79
+        ]
+      ],
+      "matches_child_read_pin": true,
+      "actual_root_read": {
+        "ranges": [
+          [
+            64,
+            79
+          ]
+        ],
+        "receipts": [
+          "721ac0"
+        ],
+        "exit_codes": [
+          0
+        ],
+        "reason": "读取精确选段；仅为调用证据，不计整文件正式覆盖。"
+      },
+      "formal_file_coverage": false
+    }
+  ],
+  "call_and_lifecycle_findings": [
+    {
+      "id": "C01",
+      "name": "测试挂载",
+      "path": [
+        "E18:249-251",
+        "E19:69-74",
+        "E19:78-79",
+        "F03:45-48"
+      ],
+      "contract": "lib cfg(test)挂载tests/mod.rs，四顶层测试模块中F03再path挂载IME/window_events，20 #[test]均在精确六源；上下文父模块不计覆盖。"
+    },
+    {
+      "id": "C02",
+      "name": "安全视图与原始ABI",
+      "path": [
+        "F01:22-42",
+        "E02:45-71",
+        "E01:24-44",
+        "E02:83-92",
+        "E03:220-237",
+        "E07:205-267"
+      ],
+      "contract": "安全入口只借入真实Rust slice而忽略裸载体；原始入口ABI先行，再shape/size与调用方内存前提，完成owned text/JSON输出。错版本/null用例无无效地址读取。"
+    },
+    {
+      "id": "C03",
+      "name": "适配矩阵",
+      "path": [
+        "F02:39-726",
+        "E07:64-137",
+        "E07:205-267",
+        "E07:299-645",
+        "E15:1-105",
+        "E15:107-122",
+        "E15:124-139",
+        "E15:157-171",
+        "E15:206-225",
+        "E15:227-233",
+        "E15:235-237",
+        "E15:255-269",
+        "E15:283-299",
+        "E15:301-319",
+        "E15:337-351",
+        "E15:369-381",
+        "E15:383-392",
+        "E15:394-406",
+        "E15:421-430",
+        "E15:432-447",
+        "E15:450-465",
+        "E15:474-479",
+        "E15:482-496",
+        "E15:606-619",
+        "E15:622-630",
+        "E15:656-675",
+        "E15:677-690",
+        "E15:632-655"
+      ],
+      "contract": "固定上下文与fixture显式ABI字段进入各kind分支；错误分标量/无泵等价/UTF8/JSON，输出不借源payload；E15这里只读选定构造器，不声称覆盖整691行。"
+    },
+    {
+      "id": "C04",
+      "name": "批次准入",
+      "path": [
+        "F02:482-522",
+        "E01:47-71"
+      ],
+      "contract": "实现静态可证首错不交prefix；测试成功组三事件、坏组单事件，未实测晚错prefix或迭代器副作用回滚。"
+    },
+    {
+      "id": "C05",
+      "name": "平台输入规范化",
+      "path": [
+        "F03:51-854",
+        "E08:32-683",
+        "E09:51-108",
+        "E06:22-134",
+        "E10:24-32"
+      ],
+      "contract": "便捷入口保存显式输入值，normalize移交拥有DTO；touch覆写pointer id/source、Drag转Arc。此矩阵没有宿主事件循环/真实输入采样/DPI一致性证明。"
+    },
+    {
+      "id": "C06",
+      "name": "IME显式准入",
+      "path": [
+        "F04:92-217",
+        "E08:325-343",
+        "E13:129-165",
+        "E14:64-141"
+      ],
+      "contract": "checked预编辑入口调用共享byte range validator；直接literal/非checked构造和Serde不隐式调用validate。Ranges为UTF8字节边界，子句顺序/重叠按实现验证，fixture只对乱序比较具体区间错误。"
+    },
+    {
+      "id": "C07",
+      "name": "窗口影响与瞬态效果",
+      "path": [
+        "F05:4-207",
+        "F06:19-104",
+        "E11:96-129",
+        "E11:196-257",
+        "E12:26-84",
+        "E04:69-74"
+      ],
+      "contract": "impact是纯提示值；nonclient等action可clean但另投影PopupStack关闭。batch的共享filter_map产独立命令，不执行关闭，不据len断言声称原事件逐值快照已比较。"
+    },
+    {
+      "id": "C08",
+      "name": "拥有Serde与返回寿命",
+      "path": [
+        "F03:38-43",
+        "F04:40",
+        "F04:88",
+        "F04:129-130",
+        "F05:191-207",
+        "F06:60-64",
+        "E04:8-35",
+        "E11:134-192",
+        "E17:103-130"
+      ],
+      "contract": "测试用生产Serialize/Deserialize派生，round_trip的DeserializeOwned排除返回值借临时JSON；没有产品注册/外部FFI发布或真实host对象所有权。"
+    }
+  ],
+  "issue_decisions": {
+    "new_bug_ids": [],
+    "new_todo_ids": [],
+    "source_markers_in_six": [],
+    "existing_product_todos_preserved": [
+      "CR-ZCA-R038-0001",
+      "LEGACY:zircon_runtime_interface/src/ui/window/impact.rs:3:TODO"
+    ],
+    "boundary": "测试的显式坐标、len与is_err断言不补齐既有产品意图证据，不关闭或升级相邻TODO。"
+  },
+  "source_string_contracts": {
+    "raw_operand_pairs": 42,
+    "counts_equal": true,
+    "new_comment_contribution": 0,
+    "root_receipt": "11ebec",
+    "literal_tokens": 121,
+    "literal_evidence": "复用child ccefae exit0、当前六源SHA完全相同；根审另外验证全部原始字节可反演。",
+    "json_data_assertion_executed": false,
+    "note": "序列化contains是运行时数据断言，源码中的同文本出现次数保持不等于该Rust断言执行通过。"
+  },
+  "validation_reference": "docs/plans/source-comments/reviews/R047-post-validation.json",
+  "acceptance": {
+    "per_file_local_review_ready": true,
+    "R038_companion_requirement_satisfied_locally": true,
+    "managed_validation": false,
+    "phase_commit": false,
+    "notification_sent": false,
+    "pushed": false,
+    "whole_repository_complete": false,
+    "pending": [
+      "实际独立Jenkins要求的验证票据、索引锁与所有者核对",
+      "协调器按精确快照阶段提交及附带已授权企业微信通知真实终态"
+    ]
+  },
+  "artifact_lifecycle": {
+    "pre_registered": true,
+    "canonical_checkout_only": true,
+    "source_copies_created": false,
+    "builds_or_compiler_caches_created": false,
+    "temp_helpers_created": false,
+    "deleted_files": 0,
+    "actual_freed_bytes": 0,
+    "retained": "六源注释及child/main/post验证证据保留至阶段提交、验证和通知终态；其它会话产物保持原归属。",
+    "worker_source_writer": {
+      "receipt": "82047d",
+      "exit_code": 0
+    },
+    "worker_metadata_writer": {
+      "initial": "a56f24",
+      "session_id": 95751,
+      "pid": 44340,
+      "terminal": "d7b735",
+      "exit_code": 0
+    },
+    "root_known_native_sessions": [
+      {
+        "session_id": 11228,
+        "terminal": "9882f3",
+        "exit_code": 0
+      },
+      {
+        "session_id": 35477,
+        "terminal": "11ebec",
+        "exit_code": 0
+      }
+    ],
+    "unrelated_unknown_writers": "R033/R039历史GroupC/R046仍按各自原链对账，本批不证明其终态或释放。"
+  },
+  "reviewed_at_utc": "2026-10-15T23:09:27.799269+00:00",
+  "record_writer": {
+    "method": "apply_patch",
+    "expected_new_file": true,
+    "independent_readback_required": true,
+    "notes": "不通过长Windows命令行传输大JSON，不编造native PID/退出码；实际输出字节与预期SHA由后续独立只读回执固定。"
+  }
+}

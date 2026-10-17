@@ -1,4 +1,5 @@
-const EXPOSURE_RESOLVE_SHADER: &str = include_str!("../../renderer/post/shaders/exposure_resolve.wgsl");
+const EXPOSURE_RESOLVE_SHADER: &str =
+    include_str!("../../renderer/post/shaders/exposure_resolve.wgsl");
 
 #[test]
 fn exposure_resolve_shader_declares_manual_and_histogram_output() {

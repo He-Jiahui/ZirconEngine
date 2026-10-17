@@ -1,8 +1,8 @@
 # Jenkins 验证、提交与主干集成
 
-2026-10-17 用户明确授权：**任意会话都可提交 Jenkins，验证通过后由 Jenkins 自动执行任务的本地 Git commit，并将功能合入 `main`**。不再逐会话、逐提交或逐合并申请许可，不以整个工作区或旧 formal flow 验收作为普通任务的前置条件。持续授权保存在 `tools/jenkins-management/local-commit-policy.json`，适用于后续会话。
+2026-10-17 用户进一步明确：**任意会话先由 Jenkins 在自己的工作树分支提交，再由统一定时流程验证合并候选，通过后合入 `main`**。不再逐会话、逐提交或逐合并申请许可。当前流程、状态含义与入口见 [Jenkins 分支提交与统一定时合并](jenkins-branch-integration.md)。本页下方保留早期接口的对账说明；新任务不再直接在共享 main commit 或即时合并。
 
-优先使用 `tools/dev/jenkins_delivery.py` 的 `deliver-task` 路由。请求只列本任务的文件、必要依赖和实际验证步骤，例如：
+新请求使用 `tools/dev/jenkins_branch_queue.py`，必须包含原 ready 工作树的 `sourceRoot`、`sessionId` 和用于失败交接的 `ownerThreadId`。下面的旧请求字段仅用于理解历史回执，实际新请求使用上方流程文档的完整示例：
 
 ```json
 {
@@ -30,17 +30,17 @@
 
 `validation` 可选 `pytest`、`python-static`、`skills`、`cargo`。前三种使用逐项列出的 Python 文件或 `SKILL.md`；`cargo` 使用 `arguments` 数组，例如 `["test", "-p", "zircon_runtime_interface", "--lib", "--offline"]`，按公开 Cargo 参数规则执行，并使用现有 MSVC 环境入口。编译产物、临时目录和缓存只写 `E:/cargo-targets`；保留同一操作的构建以便复用，Jenkins 在原生终止后按清单清理本次临时夹具。测试范围必须适合本次修改，静态解析不能替代产品编译和定向测试。
 
-默认直接在真实 `main` checkout 验证和提交；该提交已经位于主干。已有 Jenkins 工作树可传入 `sourceRoot`，使用它原来的 `sessionId` 表明交付归属。Jenkins 只提交列出的任务文件；分叉时先合入当前 main 并验证实际候选，再将 main 快进到该候选。冲突只保留证据和已验证的功能提交，不制造未完成合并、不 stash/reset 其他会话的内容。此入口不创建源码副本或新工作树。
+旧流程曾直接验证并提交 main，或在工作树中即时验证和合并；该顺序已被用户替换。现在先精确提交任务工作树分支，保留其他改动，再排入唯一 `zircon-merge-queue`。定时流程由 Jenkins 准备和验证实际候选；只有它可以发布 main。冲突保留分支 commit 和证据，不 stash/reset 其他会话的内容。
 
 结果和原生证据保存在 `.jenkins/state/management/deliveries/<操作ID>.json`、`E:/cargo-targets/zircon-local/reports/jenkins-deliveries/<操作ID>` 和 Jenkins 构建归档。重复调用同一输入返回原提交结果。需要继续 `waiting`、`validation-failed` 或 `merge-conflict` 时先读原结果，修复原因，并对同一请求使用 `submit --resume`；只有原构建实际终止后才允许继续。提交响应不明或原生终止证据不完整时先对账，不更换操作 ID 重放。
 
 工作树归属、任务文件边界、活动 Git 锁、外部暂存内容和冲突是执行条件，不是再次向用户申请提交权限的理由。旧请求中的 `allowCommit: false` 不原地改写；通过本入口发起相应任务的已授权交付。推送、发布和外部通知仍需另行授权。
 
-## 已有的独立提交入口
+## 历史独立提交接口的对账
 
 任务清单内的 `.codex/skills/` 规范技能文件可由 Jenkins 精确加入 Git，保留其余忽略内容。
 
-用户已授权 Jenkins 对当前 checkout 的任务文件执行本地提交。此授权不再按会话领取，也不要求整树、配置或依赖的 SHA256 对账。实际策略由 `tools/jenkins-management/local-commit-policy.json` 保存并由提交入口读取。
+历史 `commit-checkout` 请求仍可查询原结果。新流程启用后，共享 main 的独立 commit 入口应返回“先提交任务工作树、由统一队列合并”，不能绕过队列。无需新的人工授权。
 
 ```powershell
 & '.jenkins/runtime/python/python.exe' -B tools/dev/jenkins_commit.py submit `
@@ -53,7 +53,7 @@
 
 请求 ID 和操作 ID 用于查询与避免重复提交。查询同一输入时加 `--query-only`；中断后继续使用同一个操作 ID，不换 ID 重放。实际结果保存在 Jenkins 构建归档及 `.jenkins/state/management/checkout-commits/<操作ID>.json`。
 
-Windows 上，超过十分钟且内容为空的 `index.lock` 只有在原生独占打开成功、文件身份再次吻合时才会恢复；原文件移动保留在 `.jenkins/state/management/recovered-index-locks` 并记录回执。仍有句柄、较新或含待写索引内容的锁继续等待，不删除锁来掩盖活动操作。
+历史空锁隔离回执保留在 `.jenkins/state/management/recovered-index-locks`。新流程先检查每棵工作树真实 Git 目录的锁；须对账原 owner、进程和操作结果后再由 Jenkins 释放。空锁、目录年龄或暂时没有句柄不能单独作为释放依据。
 
 该入口返回实际本地提交号。按需执行的定向测试保持原有职责，普通提交不再依赖旧 formal flow 的验收记录。产品、里程碑和迁移验收仍以各自实际测试为准。推送、发布和外部通知需要另外授权。
 

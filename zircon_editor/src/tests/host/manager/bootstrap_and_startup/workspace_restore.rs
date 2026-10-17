@@ -315,13 +315,15 @@ fn scene_viewport_click_focus_survives_split_workspace_reopen_without_hover_stea
     ] {
         harness
             .runtime
-            .route_scene_viewport_pointer(scene_runtime_id.clone(), event_kind).unwrap();
+            .route_scene_viewport_pointer(scene_runtime_id.clone(), event_kind)
+            .unwrap();
         assert_eq!(manager.project_workspace(), unfocused_workspace);
     }
 
     assert!(harness
         .runtime
-        .route_scene_viewport_pointer(scene_runtime_id.clone(), UiPointerEventKind::Down).unwrap());
+        .route_scene_viewport_pointer(scene_runtime_id.clone(), UiPointerEventKind::Down)
+        .unwrap());
     let saved = manager.project_workspace();
     assert_eq!(saved.focused_view, Some(scene.clone()));
     let saved_json = serde_json::to_vec(&saved).unwrap();
@@ -418,6 +420,7 @@ fn serialized_startup_split_scene_leaves_seed_before_retained_toolbar_dispatch()
         &project,
         &project.manifest().default_scene,
         &document.world,
+        document.scene_source_revision.as_ref().unwrap(),
         Some(&workspace),
     )
     .unwrap();
@@ -438,14 +441,11 @@ fn serialized_startup_split_scene_leaves_seed_before_retained_toolbar_dispatch()
             .is_some(),
         "normal ProjectManager open must decode the serialized workspace before startup"
     );
-    let state = build_startup_state(
-        &*manager,
-        &mut startup_session,
-        UVec2::new(1280, 720),
-    )
-    .unwrap();
+    let state =
+        build_startup_state(&*manager, &mut startup_session, UVec2::new(1280, 720)).unwrap();
     let startup =
-        EditorHostStartupSession::from_parts(startup_session, state, manager_handle.clone()).unwrap();
+        EditorHostStartupSession::from_parts(startup_session, state, manager_handle.clone())
+            .unwrap();
     let controller = startup.controller();
 
     let restored = controller.scene_viewport_workspace_sessions().unwrap();
@@ -483,8 +483,7 @@ fn serialized_startup_split_scene_leaves_seed_before_retained_toolbar_dispatch()
     };
     let shell_presentation_source =
         include_str!("../../../../ui/layouts/windows/window/shell_presentation.rs");
-    let host_scene_source =
-        include_str!("../../../../ui/layouts/windows/window/host_data.rs");
+    let host_scene_source = include_str!("../../../../ui/layouts/windows/window/host_data.rs");
     assert!(shell_presentation_source.contains("project_document_leaves"));
     assert!(shell_presentation_source.contains("retained_scene_data"));
     assert!(host_scene_source.contains("struct HostWindowSceneData"));
@@ -569,7 +568,10 @@ fn serialized_startup_split_scene_leaves_seed_before_retained_toolbar_dispatch()
         UiPoint::new(4.0, 4.0),
     );
     assert!(stale.unwrap_err().contains("stale"));
-    assert_eq!(controller.scene_viewport_workspace_sessions().unwrap(), before_stale);
+    assert_eq!(
+        controller.scene_viewport_workspace_sessions().unwrap(),
+        before_stale
+    );
     assert_eq!(controller.journal().records().len(), before_journal);
     assert_eq!(manager.current_focused_view(), Some(right));
 

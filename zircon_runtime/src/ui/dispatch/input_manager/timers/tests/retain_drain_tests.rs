@@ -1,3 +1,7 @@
+//! 直接检验计时状态的取出顺序、保留项与通知标识存储复用。
+//! 源码文本守卫另行约束实现形状；新增注释也属于该守卫的输入。
+//! 两个忽略入口的耗时结论需实际执行取得，不能由断言源码推断性能通过。
+
 use std::{hint::black_box, time::Instant};
 
 use zircon_runtime_interface::ui::{dispatch::UiInputTimestamp, event_ui::UiNodeId};
@@ -180,6 +184,7 @@ fn runtime824_input_timer_drain_capacity_preserves_order_and_pending_entries() {
     black_box((typeahead, submenu, tooltips, toasts));
 }
 
+/// 比较独立向量的预留与增长耗时，不调用计时状态的到期取出方法。
 #[test]
 #[ignore = "managed Windows release performance evidence"]
 fn runtime824_input_timer_drain_capacity_release_benchmark() {
@@ -224,6 +229,7 @@ fn measure_growth(length: usize, optimized: bool) -> u128 {
     started.elapsed().as_nanos().max(1)
 }
 
+/// 仅为输出提供倍增模型，不观测分配器或向量的实际扩容次数。
 fn growth_events(length: usize) -> usize {
     let mut capacity = 0usize;
     let mut events = 0usize;
@@ -240,6 +246,7 @@ fn growth_events(length: usize) -> usize {
     events
 }
 
+/// 对同一初始状态的独立副本比较旧参考与当前取出实现；计时不含调用前的状态克隆。
 #[test]
 #[ignore = "release performance evidence"]
 fn optimization_batch_20260826al_input_timer_retain_drain_p95() {
@@ -328,6 +335,7 @@ fn measure_ns(
     elapsed
 }
 
+/// 私有基准只传入非空样本和一到一百的百分位；本函数不校验这些前提。
 fn nearest_rank(samples: &[u128], percentile: usize) -> u128 {
     let mut sorted = samples.to_vec();
     sorted.sort_unstable();

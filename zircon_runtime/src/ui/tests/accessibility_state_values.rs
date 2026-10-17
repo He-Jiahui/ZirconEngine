@@ -281,6 +281,7 @@ fn secure_text_input_snapshot_redacts_value_selection_and_range_actions() {
         .expect("secure text input remains discoverable");
 
     assert_eq!(snapshot_node.role, UiA11yRole::TextInput);
+    assert_eq!(snapshot_node.name.as_deref(), Some("SecureTextInput"));
     assert_eq!(snapshot_node.state.value, None);
     assert_eq!(snapshot_node.state.text_selection, None);
     assert!(snapshot_node
@@ -296,38 +297,91 @@ fn secure_text_input_snapshot_redacts_value_selection_and_range_actions() {
 
 #[test]
 fn extraction_clamps_text_input_selection_offsets_from_component_state() {
-    let mut surface = root_surface();
-    insert_widget_node(
-        &mut surface,
-        id(2),
-        "RuntimeTextInput",
-        "value = \"a\\u0301b\"",
-        UiWidgetBehavior::TextInput,
-    );
-    surface.rebuild();
-    surface
-        .component_states
-        .set_value(id(2), "caret_offset", UiValue::Int(2));
-    surface
-        .component_states
-        .set_value(id(2), "selection_anchor", UiValue::Int(3));
-    surface
-        .component_states
-        .set_value(id(2), "selection_focus", UiValue::Int(99));
+    // Cover a byte offset inside a multibyte scalar and inside a combining
+    // grapheme. Both must floor to the corresponding user-visible boundary.
+    for (attributes, expected_caret) in [("value = \"a\\u00e9b\"", 1), ("value = \"a\\u0301b\"", 0)]
+    {
+        let mut surface = root_surface();
+        insert_widget_node(
+            &mut surface,
+            id(2),
+            "RuntimeTextInput",
+            attributes,
+            UiWidgetBehavior::TextInput,
+        );
+        surface.rebuild();
+        surface
+            .component_states
+            .set_value(id(2), "caret_offset", UiValue::Int(2));
+        surface
+            .component_states
+            .set_value(id(2), "selection_anchor", UiValue::Int(3));
+        surface
+            .component_states
+            .set_value(id(2), "selection_focus", UiValue::Int(99));
 
-    let snapshot_node = surface
-        .accessibility_snapshot()
-        .node(id(2))
-        .expect("runtime text input is exposed")
-        .clone();
+        let snapshot_node = surface
+            .accessibility_snapshot()
+            .node(id(2))
+            .expect("runtime text input is exposed")
+            .clone();
 
-    let value_len = snapshot_node.state.value.as_deref().unwrap().len();
-    assert_eq!(
-        snapshot_node.state.text_selection,
-        Some(UiA11yTextSelection {
-            caret: 1,
-            anchor: 3,
-            focus: value_len,
-        })
-    );
+        let value_len = snapshot_node.state.value.as_deref().unwrap().len();
+        assert_eq!(
+            snapshot_node.state.text_selection,
+            Some(UiA11yTextSelection {
+                caret: expected_caret,
+                anchor: 3,
+                focus: value_len,
+            })
+        );
+    }
+}
+
+#[test]
+fn secure_text_input_snapshot_does_not_use_plain_metadata_as_its_name() {
+    for key in ["text", "label", "value"] {
+        for secure in [false, true] {
+            let mut surface = root_surface();
+            let attributes = format!(
+                "{key} = 'private credential'\ninput_kind = '{}'",
+                if secure { "password" } else { "text" }
+            );
+            surface
+                .tree
+                .insert_child(
+                    id(1),
+                    UiTreeNode::new(id(2), UiNodePath::new("root/input"))
+                        .with_frame(UiFrame::new(4.0, 4.0, 120.0, 24.0))
+                        .with_state_flags(state(false, true))
+                        .with_template_metadata(UiTemplateNodeMetadata {
+                            component: "TextField".to_string(),
+                            attributes: toml::from_str(&attributes).unwrap(),
+                            widget: UiWidgetContract {
+                                behavior: UiWidgetBehavior::TextInput,
+                                ..UiWidgetContract::default()
+                            },
+                            ..UiTemplateNodeMetadata::default()
+                        }),
+                )
+                .unwrap();
+            surface.rebuild();
+            let snapshot = surface.accessibility_snapshot();
+            let node = snapshot
+                .node(id(2))
+                .expect("text input remains discoverable");
+            assert_eq!(
+                node.name.as_deref(),
+                if secure {
+                    None
+                } else {
+                    Some("private credential")
+                }
+            );
+            if secure {
+                assert_eq!(node.state.value, None);
+                assert_eq!(node.state.text_selection, None);
+            }
+        }
+    }
 }

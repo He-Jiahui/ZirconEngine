@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "P003",
+  "reviewer": "main",
+  "at_utc": "2026-10-14T18:52:16.984336+00:00",
+  "kind": "generated-source-scope-classification",
+  "child_record": {
+    "path": "docs/plans/source-comments/classification/P003-generated-code.json",
+    "sha256": "18db735467dcab9a8071d8e3c95a47742adc78eddd82d547d4b4180007e88416"
+  },
+  "decision": "Exclude only10 exact derived output files from first-party authored source audit; retain files physically. Producers and authored contracts/tests remain in source scope.",
+  "classified_paths": [
+    "examples/woc/native/crates/woc_protocol/src/generated.rs",
+    "examples/woc/scripts/woc_game/src/generated/contracts.zr",
+    "examples/woc/native/crates/woc_parity/src/generated_trace_symbols.rs",
+    "examples/woc/scripts/woc_game/src/generated/trace_symbols.zr",
+    "examples/woc/native/crates/woc_protocol/src/generated_command_payloads.rs",
+    "examples/woc/scripts/woc_game/src/protocol/command_payloads.zr",
+    "examples/woc/native/crates/woc_protocol/src/generated_commands.rs",
+    "examples/woc/scripts/woc_game/src/protocol/commands.zr",
+    "examples/woc/native/crates/woc_protocol/src/generated_talent_selection_catalog.rs",
+    "examples/woc/scripts/woc_game/src/generated/current_talent_selection_catalog.zr"
+  ],
+  "current_file_sha_reference_checks": 89,
+  "output_checks": [
+    "Initial SHA directly equals coverage initial SHA and current SHA, all64lowercase hex.",
+    "Bytes, line count and first header each match actual output.",
+    "All10 rows pending/unowned; no overlap with formal source assignments."
+  ],
+  "independent_producer_review": "Root manually read referenced spans in13 producer/CLI/test/loader files; exact output path bindings, input declarations and complete-text check code independently inspected. No generator/check/test executed.",
+  "limitations": [
+    "This proves generation provenance and scope, not that regeneration is current or passing.",
+    "Six TypeScript blob hashes are producer metadata at a pinned external reference commit; not claimed as first-party source audit.",
+    "Other135 marker candidates remain pending P004; no name/directory-wide exclusion."
+  ],
+  "child_correction": "A truncated initial SHA was rejected before any ledger mutation. Corrected child now validates initial historical fields in addition to89 current file references.",
+  "physical_deletion": {
+    "files": 0,
+    "bytes_released": 0
+  }
+}

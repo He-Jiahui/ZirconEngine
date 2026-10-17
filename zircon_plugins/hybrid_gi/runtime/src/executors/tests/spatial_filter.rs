@@ -47,8 +47,7 @@ fn resolve_spatial_filter_reduces_same_surface_noise_without_crossing_support_ed
 
 #[test]
 fn resolve_shader_declares_depth_normal_support_bilateral_spatial_filter() {
-    let source =
-        include_str!("../../gi/shaders/resolve_trace_depth_source.wgsl");
+    let source = include_str!("../../gi/shaders/resolve_trace_depth_source.wgsl");
 
     assert!(source.contains("spatially_filtered_current_gi_sample"));
     assert!(source.contains("spatial_sample_is_compatible"));

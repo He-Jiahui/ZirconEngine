@@ -1,4 +1,5 @@
 //! 着色器图的运行时公共契约；特性提供者将此处元数据提交到目录与图编译。
+use std::collections::HashSet;
 use zircon_runtime::graphics::{
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutionContext,
     RenderPassExecutorRegistration, RenderPassStage,
@@ -82,36 +83,103 @@ pub fn compile_shader_graph_to_wgsl(asset: &ShaderGraphAsset) -> ShaderGraphComp
     if asset.nodes.is_empty() {
         diagnostics.push(format!("shader graph `{}` has no nodes", asset.name));
     }
+    let graph_node_ids = asset
+        .nodes
+        .iter()
+        .filter_map(ShaderGraphNode::value_id)
+        .collect::<HashSet<_>>();
+    let mut declared_node_ids = HashSet::new();
     let mut body = Vec::new();
     for node in &asset.nodes {
         match node {
             ShaderGraphNode::ConstantFloat { id, value } => {
                 body.push(format!("    let {id}: f32 = {value};"));
+                declared_node_ids.insert(id.as_str());
             }
             ShaderGraphNode::ConstantColor { id, value } => {
                 body.push(format!(
                     "    let {id}: vec4<f32> = vec4<f32>({:.6}, {:.6}, {:.6}, {:.6});",
                     value[0], value[1], value[2], value[3]
                 ));
+                declared_node_ids.insert(id.as_str());
             }
             ShaderGraphNode::TextureSample { id, binding } => {
                 body.push(format!(
                     "    let {id}: vec4<f32> = zircon_sample_texture_{binding}();"
                 ));
+                declared_node_ids.insert(id.as_str());
             }
             ShaderGraphNode::Add { id, left, right } => {
+                diagnose_reference(
+                    asset,
+                    id,
+                    left,
+                    &graph_node_ids,
+                    &declared_node_ids,
+                    &mut diagnostics,
+                );
+                diagnose_reference(
+                    asset,
+                    id,
+                    right,
+                    &graph_node_ids,
+                    &declared_node_ids,
+                    &mut diagnostics,
+                );
                 body.push(format!("    let {id} = {left} + {right};"));
+                declared_node_ids.insert(id.as_str());
             }
             ShaderGraphNode::Multiply { id, left, right } => {
+                diagnose_reference(
+                    asset,
+                    id,
+                    left,
+                    &graph_node_ids,
+                    &declared_node_ids,
+                    &mut diagnostics,
+                );
+                diagnose_reference(
+                    asset,
+                    id,
+                    right,
+                    &graph_node_ids,
+                    &declared_node_ids,
+                    &mut diagnostics,
+                );
                 body.push(format!("    let {id} = {left} * {right};"));
+                declared_node_ids.insert(id.as_str());
             }
             ShaderGraphNode::ColorOutput { input } => {
+                diagnose_reference(
+                    asset,
+                    "ColorOutput",
+                    input,
+                    &graph_node_ids,
+                    &declared_node_ids,
+                    &mut diagnostics,
+                );
                 body.push(format!("    return {input};"));
             }
             ShaderGraphNode::MaterialOutput {
                 base_color,
                 roughness,
             } => {
+                diagnose_reference(
+                    asset,
+                    "MaterialOutput",
+                    base_color,
+                    &graph_node_ids,
+                    &declared_node_ids,
+                    &mut diagnostics,
+                );
+                diagnose_reference(
+                    asset,
+                    "MaterialOutput",
+                    roughness,
+                    &graph_node_ids,
+                    &declared_node_ids,
+                    &mut diagnostics,
+                );
                 body.push(format!(
                     "    return vec4<f32>({base_color}.rgb, clamp({roughness}, 0.0, 1.0));"
                 ));
@@ -130,10 +198,46 @@ pub fn compile_shader_graph_to_wgsl(asset: &ShaderGraphAsset) -> ShaderGraphComp
         ShaderGraphTarget::Material => "zircon_material_graph",
         ShaderGraphTarget::PostProcess => "zircon_post_process_graph",
     };
-    // BUG: [CR-PLUGIN-RENDERING-0004] 无定义的节点引用会生成无效 WGSL 且 diagnostics 为空；例如只有 Add(sum, missing, missing) 与 ColorOutput(sum) 时缺少 missing 声明；证据：匹配分支直接拼接引用，唯一诊断只检查空图和输出节点。
     ShaderGraphCompileReport {
         wgsl: format!("fn {entry}() -> vec4<f32> {{\n{}\n}}\n", body.join("\n")),
         diagnostics,
+    }
+}
+
+impl ShaderGraphNode {
+    fn value_id(&self) -> Option<&str> {
+        match self {
+            Self::ConstantFloat { id, .. }
+            | Self::ConstantColor { id, .. }
+            | Self::TextureSample { id, .. }
+            | Self::Add { id, .. }
+            | Self::Multiply { id, .. } => Some(id),
+            Self::ColorOutput { .. } | Self::MaterialOutput { .. } => None,
+        }
+    }
+}
+
+fn diagnose_reference<'a>(
+    asset: &ShaderGraphAsset,
+    consumer: &str,
+    reference: &'a str,
+    graph_node_ids: &HashSet<&'a str>,
+    declared_node_ids: &HashSet<&'a str>,
+    diagnostics: &mut Vec<String>,
+) {
+    if declared_node_ids.contains(reference) {
+        return;
+    }
+    if graph_node_ids.contains(reference) {
+        diagnostics.push(format!(
+            "shader graph `{}` node `{consumer}` references node `{reference}` before it is declared",
+            asset.name
+        ));
+    } else {
+        diagnostics.push(format!(
+            "shader graph `{}` node `{consumer}` references missing node `{reference}`",
+            asset.name
+        ));
     }
 }
 

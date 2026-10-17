@@ -241,7 +241,11 @@ fn editor57_hundred_thousand_asset_backend_plan_release_benchmark() {
     let measure = |retired: bool| {
         let started = Instant::now();
         let plan = black_box(if retired {
-            let selected_uuid = runtime.editor_snapshot().unwrap().asset_activity.selected_asset_uuid;
+            let selected_uuid = runtime
+                .editor_snapshot()
+                .unwrap()
+                .asset_activity
+                .selected_asset_uuid;
             retired_plan(
                 selected_uuid.as_deref(),
                 black_box(None),

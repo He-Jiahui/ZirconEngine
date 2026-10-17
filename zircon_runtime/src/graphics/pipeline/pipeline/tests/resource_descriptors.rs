@@ -313,3 +313,106 @@ fn builtin_texture_allocation_extent_fails_closed_without_production_panic() {
     assert!(!production.contains("view-family texture resource `{name}` has no pipeline-phase"));
     assert!(!production.contains("view-family scene phase must always be enabled"));
 }
+
+#[test]
+fn scene_light_external_contract_tracks_packed_record_count() {
+    use crate::core::framework::render::{
+        GpuLightData, RenderLayerSet, RenderPointLightSnapshot, DEFAULT_RENDER_LAYER_MASK,
+    };
+    use crate::core::math::Vec3;
+    use crate::graphics::scene::lighting::light_buffer::pack_lighting_extract;
+    use crate::rhi::BufferUsage;
+
+    for (point_count, lighting_enabled) in [(0, false), (12, false), (0, true), (12, true)] {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(1),
+            World::new().to_render_snapshot(),
+        );
+        extract.post_process.preview.lighting_enabled = lighting_enabled;
+        extract.lighting.point_lights = (0..point_count)
+            .map(|slot| RenderPointLightSnapshot {
+                node_id: slot,
+                light_id: slot + 100,
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
+                position: Vec3::new(slot as f32, 1.0, -2.0),
+                color: Vec3::new(1.0, 0.5, 0.25),
+                intensity: 2.0,
+                range: 3.0,
+                mobility: crate::core::framework::scene::Mobility::Dynamic,
+                shadow: None,
+            })
+            .collect();
+        let packed = pack_lighting_extract(&extract.lighting, lighting_enabled);
+        let producer_bytes =
+            std::mem::size_of_val(packed.lights.as_slice()).max(GpuLightData::STRIDE);
+        let desc = super::builtin_external_buffer_desc_for(
+            PostProcessGraphResourceNames::SCENE_LIGHT_DATA,
+            &extract,
+            None,
+        )
+        .expect("scene-light layout must resolve")
+        .expect("scene-light is a catalog-owned external buffer");
+
+        assert_eq!(
+            desc.size_bytes,
+            u64::try_from(producer_bytes).expect("test light data fits the RHI buffer size"),
+            "point lights={point_count}, lighting={lighting_enabled}"
+        );
+        assert_eq!(
+            desc.usage,
+            BufferUsage::STORAGE | BufferUsage::COPY_SRC | BufferUsage::COPY_DST
+        );
+    }
+}
+
+#[test]
+fn scene_light_external_contract_preserves_explicit_schema_validation() {
+    use super::super::resource_schema_catalog::RenderResourceSchemaCatalog;
+    use crate::graphics::{RenderBufferSchema, RenderResourceSchema, RenderTextureSchema};
+    use crate::rhi::{BufferUsage, TextureUsage};
+
+    let extract = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(1),
+        World::new().to_render_snapshot(),
+    );
+    let options = RenderPipelineCompileOptions::default();
+    let catalog = RenderResourceSchemaCatalog::new(&extract, &options);
+    let name = PostProcessGraphResourceNames::SCENE_LIGHT_DATA;
+    let schema = RenderResourceSchema::buffer(RenderBufferSchema::new(256, BufferUsage::STORAGE));
+    let explicit = catalog
+        .external_buffer_desc(name, Some(schema), Some(512))
+        .expect("valid explicit buffer schema")
+        .expect("explicit external buffer descriptor");
+    assert_eq!(explicit.size_bytes, 512);
+    assert_eq!(explicit.usage, BufferUsage::STORAGE);
+    assert!(
+        catalog
+            .external_buffer_desc(
+                name,
+                Some(RenderResourceSchema::buffer(RenderBufferSchema::new(
+                    0,
+                    BufferUsage::STORAGE
+                ))),
+                None,
+            )
+            .is_err(),
+        "an invalid explicit schema must not fall back to the builtin descriptor"
+    );
+    assert!(
+        catalog
+            .external_buffer_desc(
+                name,
+                Some(RenderResourceSchema::texture(RenderTextureSchema::new(
+                    TextureFormat::Rgba8Unorm,
+                    TextureUsage::SAMPLED
+                ))),
+                None,
+            )
+            .is_err(),
+        "a texture schema cannot satisfy an external buffer contract"
+    );
+    assert!(catalog
+        .external_buffer_desc("plugin-owned-unknown-buffer", None, None)
+        .expect("unknown external buffers remain unresolved")
+        .is_none());
+}

@@ -103,7 +103,7 @@ impl MeshPipelineCache {
         let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
         if let Some(source) = validated_source {
             let validation_key = source.validation_key;
-            let creation_started = std::time::Instant::now();
+            let creation_started = web_time::Instant::now();
             let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("zircon-depth-prepass-mesh-shader"),
                 source: wgpu::ShaderSource::Wgsl(source.wgsl_source.into()),
@@ -122,7 +122,7 @@ impl MeshPipelineCache {
                 .shader_modules
                 .get(&shader_key)
                 .expect("depth prepass mesh shader module cached");
-            let creation_started = std::time::Instant::now();
+            let creation_started = web_time::Instant::now();
             let pipeline = create_depth_prepass_mesh_pipeline(
                 device,
                 &self.mesh_pipeline_layout,

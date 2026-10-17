@@ -3,17 +3,17 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use zircon_runtime::core::math::{Transform, Vec3};
-use zircon_runtime::scene::{NodeKind, World};
+use zircon_runtime::scene::{EntityId, NodeKind, World};
 
-use super::PoseTargetBindings;
+use super::{PoseTargetBinding, PoseTargetBindings};
 
 #[test]
 fn pose_target_bindings_reuse_runtime_indices_until_the_target_root_changes() {
     let mut world = World::empty();
-    let actor = world.spawn_node(NodeKind::Empty);
-    let arm = world.spawn_node(NodeKind::Mesh);
-    let unrelated_root = world.spawn_node(NodeKind::Empty);
-    let unrelated_child = world.spawn_node(NodeKind::Mesh);
+    let actor = world.spawn_node(NodeKind::Empty).unwrap();
+    let arm = world.spawn_node(NodeKind::Mesh).unwrap();
+    let unrelated_root = world.spawn_node(NodeKind::Empty).unwrap();
+    let unrelated_child = world.spawn_node(NodeKind::Mesh).unwrap();
     world.rename_node(arm, "Node2:arm-right").unwrap();
     world.set_parent_checked(arm, Some(actor)).unwrap();
     world
@@ -41,8 +41,8 @@ fn pose_target_bindings_reuse_runtime_indices_until_the_target_root_changes() {
 #[test]
 fn optimization_batch_20260830ce_plain_names_do_not_allocate_redundant_aliases() {
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Empty);
-    let hand = world.spawn_node(NodeKind::Mesh);
+    let root = world.spawn_node(NodeKind::Empty).unwrap();
+    let hand = world.spawn_node(NodeKind::Mesh).unwrap();
     world.rename_node(hand, "Hand").unwrap();
     world.set_parent_checked(hand, Some(root)).unwrap();
     let index = world.compile_descendant_name_index(root).unwrap();
@@ -69,6 +69,54 @@ fn optimization_batch_20260830ce_plain_name_alias_static_contract() {
     let constructor = &production[constructor_start..constructor_end];
 
     assert!(constructor.contains("if alias != entry.name()"));
+}
+
+#[test]
+fn pose_target_binding_rejects_ambiguous_short_names_but_preserves_qualified_names() {
+    let (binding, entities) = named_binding(&["Arm:Limb", "Leg:Limb"]);
+
+    assert_eq!(binding.resolve("Limb"), None);
+    assert_eq!(binding.resolve("Arm:Limb"), Some(entities[0]));
+    assert_eq!(binding.resolve("Leg:Limb"), Some(entities[1]));
+    assert_eq!(binding.resolve("Rig/Arm:Limb"), Some(entities[0]));
+    assert_eq!(binding.resolve("Missing"), None);
+}
+
+#[test]
+fn pose_target_binding_rejects_duplicate_exact_names() {
+    for names in [["Limb", "Limb"], ["Arm:Limb", "Arm:Limb"]] {
+        let (binding, _) = named_binding(&names);
+        assert_eq!(binding.resolve(names[0]), None);
+        assert_eq!(binding.resolve("Limb"), None);
+    }
+}
+
+#[test]
+fn pose_target_binding_rejects_plain_name_collision_with_qualified_alias() {
+    for names in [["Limb", "Arm:Limb"], ["Arm:Limb", "Limb"]] {
+        let (binding, entities) = named_binding(&names);
+        assert_eq!(binding.resolve("Limb"), None);
+        let qualified = names.iter().position(|name| *name == "Arm:Limb").unwrap();
+        assert_eq!(binding.resolve("Arm:Limb"), Some(entities[qualified]));
+    }
+}
+
+fn named_binding(names: &[&str]) -> (PoseTargetBinding, Vec<EntityId>) {
+    let mut world = World::empty();
+    let root = world.spawn_node(NodeKind::Empty).unwrap();
+    let entities = names
+        .iter()
+        .map(|name| {
+            let entity = world.spawn_node(NodeKind::Mesh).unwrap();
+            world.rename_node(entity, *name).unwrap();
+            world.set_parent_checked(entity, Some(root)).unwrap();
+            entity
+        })
+        .collect();
+    (
+        PoseTargetBinding::from(world.compile_descendant_name_index(root).unwrap()),
+        entities,
+    )
 }
 
 #[test]

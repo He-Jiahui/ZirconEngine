@@ -2,7 +2,7 @@ use crate::core::framework::render::{
     render_mesh_stable_instance_key, RenderVirtualGeometryExtract, RenderVirtualGeometryInstance,
 };
 
-pub(in crate::graphics::visibility::planning::build_virtual_geometry_plan) fn cluster_ids_for_stable_instance_key(
+pub(crate) fn cluster_ids_for_stable_instance_key(
     extract: &RenderVirtualGeometryExtract,
     stable_instance_key: u64,
 ) -> Vec<u32> {

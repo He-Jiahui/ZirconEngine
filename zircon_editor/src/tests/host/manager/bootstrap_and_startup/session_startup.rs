@@ -3,6 +3,7 @@ use super::*;
 #[derive(Debug, PartialEq, Eq)]
 struct StartupWorldSentinel(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(StartupWorldSentinel { 0 });
 impl zircon_runtime::scene::ecs::Component for StartupWorldSentinel {}
 
 #[test]

@@ -11,7 +11,7 @@ from pathlib import Path
 from ..contracts import JenkinsError, digest
 from .driver import _plain, verify_driver
 from .live_observations import observe_endpoint_owner, observe_live_identity
-from .recovery import has_terminal_lifecycle_proofs, previous_boot_deployment_evidence
+from .recovery import has_terminal_deployment_proofs, has_terminal_lifecycle_proofs, previous_boot_deployment_evidence
 from .startup_observations import observe_departed_identity
 
 TERMINAL_EXECUTIONS = {"passed", "failed", "cancelled"}
@@ -238,6 +238,33 @@ def _cancelled_before_launch(manager, owner, bundle, rows):
             "recordsDigest": digest({"execution": execution, "relatedRecords": related})}
 
 
+def _stopped_owner_after_boot(manager, owner, boot):
+    """A later observation may retain a genuinely completed predecessor Stop."""
+    paths = (manager.journal, manager.paths.state / "deployment/host.json",
+             manager.paths.state / "deployment/driver.json")
+    for path in paths:
+        _plain(path)
+        if not path.is_file():
+            return False
+    operation, host, selected = (_json(path) for path in paths)
+    if (operation.get("state") != "stopped" or host.get("status") != "stopped"
+            or operation.get("component") != "lifecycle-host"
+            or operation.get("operationId") != owner["operationId"]
+            or operation.get("generation") != owner["generation"]
+            or selected.get("runtimeOperationId") != owner["operationId"]
+            or selected.get("driverDigest") != owner["driverDigest"]
+            or not has_terminal_deployment_proofs(operation, host, owner["homePath"])):
+        return False
+    identities = (_identity(operation), _identity(host.get("controllerIdentity") or host.get("identity")),
+                  _identity(host.get("agentIdentity")))
+    if (identities != tuple(owner[key] for key in ("supervisor", "controller", "agent"))
+            or any(int(value["creationTime"]) >= int(boot) for value in identities)
+            or any(operation.get(key) != host.get(key) for key in ("nativeTerminationProof", "agentTerminationProof"))):
+        return False
+    observations = [observe_departed_identity(value) for value in identities]
+    return has_terminal_lifecycle_proofs(operation, host, owner["homePath"], observations[0])
+
+
 def _historical_lifecycle(manager, owner, bundle):
     runtime, checksum, launcher = _bound_execution(bundle)
     _require(runtime != owner["operationId"], "Current work cannot use historical provenance")
@@ -302,7 +329,9 @@ def _historical_lifecycle(manager, owner, bundle):
         actual_boot = observed.get("bootFileTime") if isinstance(observed, dict) else None
         _require(isinstance(actual_boot, str) and actual_boot.isascii() and actual_boot.isdecimal()
                  and actual_boot == str(int(actual_boot))
-                 and int(boot["bootFileTime"]) <= int(actual_boot) < int(owner["supervisor"]["creationTime"])
+                 and int(boot["bootFileTime"]) <= int(actual_boot)
+                 and (int(actual_boot) < int(owner["supervisor"]["creationTime"])
+                      or _stopped_owner_after_boot(manager, owner, actual_boot))
                  and {k: v for k, v in observed.items() if k != "observedAt"} == {
                      "kind": "windows-boot-boundary", "operationId": runtime, "homePath": owner["homePath"],
                      "bootFileTime": actual_boot, "identities": identities, "hostRecordDigest": digest(host),

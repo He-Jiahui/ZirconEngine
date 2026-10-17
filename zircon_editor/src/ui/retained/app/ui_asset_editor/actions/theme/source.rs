@@ -22,7 +22,9 @@ impl RetainedEditorHost {
                     .enter()
                     .map_err(EditorError::from)
                     .and_then(|manager| {
-                        manager.promote_ui_asset_editor_local_theme_to_external_style_asset(instance_id)
+                        manager.promote_ui_asset_editor_local_theme_to_external_style_asset(
+                            instance_id,
+                        )
                     }),
             ),
             "theme.source.detach_local" => UiAssetActionDispatch::handled(

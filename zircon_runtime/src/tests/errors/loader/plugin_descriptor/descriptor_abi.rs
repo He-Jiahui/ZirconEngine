@@ -1,12 +1,9 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_native_plugin_descriptor_abi_uses_typed_error() {
-    let native_plugin_abi =
-        include_str!("../../../../plugin/loader/native_plugin_abi.rs");
-    let plugin_load_error =
-        include_str!("../../../../plugin/loader/plugin_load_error.rs");
-    let load_discovered =
-        include_str!("../../../../plugin/loader/load_discovered.rs");
+    let native_plugin_abi = include_str!("../../../../plugin/loader/native_plugin_abi.rs");
+    let plugin_load_error = include_str!("../../../../plugin/loader/plugin_load_error.rs");
+    let load_discovered = include_str!("../../../../plugin/loader/load_discovered.rs");
     let native_boundary =
         include_str!("../../../../../../docs/architecture/native-plugin-boundary.md");
 

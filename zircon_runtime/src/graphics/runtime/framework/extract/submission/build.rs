@@ -88,6 +88,10 @@ fn build_frame_submission_context_from_source(
         resolve_subsurface_material_profiles(&*asset_manager, &submission_extract);
     let material_features =
         resolve_advanced_pbr_material_usage(&*asset_manager, &submission_extract);
+    submission_extract
+        .lighting
+        .advanced_lighting
+        .subsurface_profiles = subsurface_profiles.clone();
     let advanced_lighting_inputs = AdvancedLightingCompileInputs::new(
         material_features,
         subsurface_profiles,
@@ -179,17 +183,37 @@ fn build_frame_submission_context_from_source(
         sized_extract.geometry.virtual_geometry_debug,
     );
     let authored_virtual_geometry_present = authored_virtual_geometry_extract.is_some();
-    let automatic_virtual_geometry_output =
-        if virtual_geometry_enabled && !authored_virtual_geometry_present {
-            build_automatic_virtual_geometry_extract(framework, sized_extract)
-        } else {
-            None
-        };
+    let automatic_virtual_geometry_output = if virtual_geometry_enabled {
+        build_automatic_virtual_geometry_extract(framework, sized_extract)
+            .map_err(|error| RenderFrameworkError::Backend(error.to_string()))?
+    } else {
+        None
+    };
+    let automatic_virtual_geometry_output = match (
+        authored_virtual_geometry_extract.as_ref(),
+        automatic_virtual_geometry_output,
+    ) {
+        (Some(authored), Some(output)) => Some(
+            output
+                .bind_authored_indexed_topology(authored)
+                .map_err(RenderFrameworkError::Backend)?,
+        ),
+        (Some(authored), None) if virtual_geometry_enabled && !authored.clusters.is_empty() => {
+            return Err(RenderFrameworkError::Backend(
+                "authored VG has no actual cooked source admission".into(),
+            ))
+        }
+        (_, output) => output,
+    };
     let virtual_geometry_payload_source = virtual_geometry_payload_source_for_extract(
         virtual_geometry_enabled,
         authored_virtual_geometry_present,
         automatic_virtual_geometry_output.is_some(),
     );
+    let virtual_geometry_indexed_sources = automatic_virtual_geometry_output
+        .as_ref()
+        .map(|output| output.indexed_sources().to_vec())
+        .unwrap_or_default();
     let (
         automatic_virtual_geometry_extract,
         virtual_geometry_cpu_reference_instances,
@@ -454,6 +478,7 @@ fn build_frame_submission_context_from_source(
         virtual_geometry_feedback,
         viewport_state.predicted_generation(),
     )
+    .with_virtual_geometry_indexed_sources(virtual_geometry_indexed_sources)
     .with_global_material_mip_bias(
         f32::from(quality_profile_texture_mip_bias)
             + budget_degrade_settings.global_mip_bias as f32,
@@ -478,23 +503,43 @@ fn apply_virtual_geometry_debug_override(
 fn build_automatic_virtual_geometry_extract(
     framework: &dyn WgpuRenderFrameworkAccess,
     extract: &RenderFrameExtract,
-) -> Option<VirtualGeometryRuntimeExtractOutput> {
-    let (provider, asset_manager) = {
+) -> Result<Option<VirtualGeometryRuntimeExtractOutput>, crate::graphics::GraphicsError> {
+    let provider = {
         let state = framework.lock_state();
-        (
-            state
-                .virtual_geometry_runtime_provider
-                .as_ref()?
-                .provider_arc(),
-            state.renderer.asset_manager_for_runtime_extract().ok()?,
-        )
+        state
+            .virtual_geometry_runtime_provider
+            .as_ref()
+            .map(|registration| registration.provider_arc())
     };
-    let mut load_model = |model_id| asset_manager.load_model_asset(model_id).ok();
-    provider.build_extract_from_meshes(
+    let Some(provider) = provider else {
+        return Ok(None);
+    };
+    let mut admit = |mesh: &crate::core::framework::render::RenderMeshSnapshot| {
+        let mut state = framework.lock_state();
+        state
+            .renderer
+            .admit_virtual_geometry_sources(mesh)
+            .map_err(|error| error.to_string())
+    };
+    crate::graphics::virtual_geometry_runtime_provider::build_admitted_or_owned_extract(
+        provider.as_ref(),
         &extract.geometry.meshes,
         extract.geometry.virtual_geometry_debug,
-        &mut load_model,
+        &mut admit,
+        || {
+            let asset_manager = {
+                let state = framework.lock_state();
+                state.renderer.asset_manager_for_runtime_extract().ok()?
+            };
+            let mut load_model = |model_id| asset_manager.load_model_asset(model_id).ok();
+            provider.build_extract_from_meshes(
+                &extract.geometry.meshes,
+                extract.geometry.virtual_geometry_debug,
+                &mut load_model,
+            )
+        },
     )
+    .map_err(crate::graphics::GraphicsError::Asset)
 }
 
 fn hybrid_gi_payload_source_for_frame(

@@ -3,8 +3,7 @@ use std::fs;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zircon_runtime::asset::artifact::{
-    IblBakeArtifactBlob, IblBakeArtifactCacheError, IblBakeArtifactCacheRead,
-    IblBakeArtifactCacheStore,
+    IblBakeArtifactCacheError, IblBakeArtifactCacheRead, IblBakeArtifactCacheStore,
 };
 use zircon_runtime::asset::assets::{
     encode_source_cubemap_zcube_rgba16f_mips_owned, texture_asset_from_ibl_bake_artifact_pmrem,
@@ -13,7 +12,7 @@ use zircon_runtime::asset::assets::{
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::render::{
-    ProbeInfluenceShape, ReflectionProbeData, ReflectionProbeValidationError,
+    IblBakeArtifactBlob, ProbeInfluenceShape, ReflectionProbeData, ReflectionProbeValidationError,
     RenderEnvironmentCaptureSourcePayload, RenderLayerSet,
 };
 use zircon_runtime::core::math::{Quat, Vec3};
@@ -289,7 +288,7 @@ fn register_captured_reflection_probe_blob(
             ResourceRecord::new(texture_id, ResourceKind::Texture, uri),
             texture,
         )
-        .ok_or(CapturedReflectionProbeConsumeError::RegisterTexture)?;
+        .map_err(|_| CapturedReflectionProbeConsumeError::RegisterTexture)?;
     let probe = placement.runtime_probe(Vec3::from_array(request.position), Some(texture_id))?;
     Ok(CapturedReflectionProbeAsset { texture_id, probe })
 }

@@ -116,7 +116,8 @@ fn native_case_requires_fingerprinted_host_theme() {
 fn native_component_host_loads_actual_editor_theme() {
     let repo = super::batch::repo_root();
     let theme = repo.join("zircon_editor/assets/ui/editor/theme/editor_tokens.zui");
-    let source = repo.join("zircon_editor/assets/ui/editor/workbench/primitives/inputs/checkbox.zui");
+    let source =
+        repo.join("zircon_editor/assets/ui/editor/workbench/primitives/inputs/checkbox.zui");
     let metrics = zircon_runtime_interface::ui::window::UiWindowMetrics::new(
         zircon_runtime_interface::ui::layout::UiSize::new(360.0, 520.0),
         zircon_runtime_interface::ui::window::UiWindowPixelSize::new(360, 520),

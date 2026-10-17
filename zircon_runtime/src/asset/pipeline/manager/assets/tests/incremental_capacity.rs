@@ -3,6 +3,22 @@ use std::time::{Duration, Instant};
 
 const ENTRY_COUNT: usize = 65_536;
 const SAMPLE_COUNT: usize = 17;
+const INCREMENTAL_PREPARE_SIGNATURE: &str =
+    "pub(super) fn prepare_incremental_project_resource_sync(";
+const INCREMENTAL_COMMIT_SIGNATURE: &str =
+    "pub(super) fn commit_incremental_project_resource_sync<T>";
+const CAPACITY_RESERVATIONS: [&str; 4] = [
+    "HashMap::with_capacity(updated_records.len())",
+    "Vec::with_capacity(previous_source_records.len())",
+    "HashMap::with_capacity(records_by_id.len())",
+    "HashSet::with_capacity(previous_source_records.len())",
+];
+const PROJECTION_CONTRACT: [&str; 4] = [
+    "records_by_id.insert(record.id(), record)",
+    "record_updates: records_by_id.into_values().collect()",
+    "source_path_updates: source_path_updates.into_iter().collect()",
+    "source_path_removals.into_iter().collect::<Vec<_>>()",
+];
 
 fn geometric_growth_events(len: usize) -> usize {
     if len == 0 {
@@ -26,21 +42,106 @@ fn percentile_95(samples: &mut [Duration]) -> Duration {
     samples[(samples.len() - 1) * 95 / 100]
 }
 
+fn incremental_projection_body(source: &str) -> Option<&str> {
+    if source.matches(INCREMENTAL_PREPARE_SIGNATURE).count() != 1
+        || source.matches(INCREMENTAL_COMMIT_SIGNATURE).count() != 1
+    {
+        return None;
+    }
+    let (_, preparation) = source.split_once(INCREMENTAL_PREPARE_SIGNATURE)?;
+    let (preparation, _) = preparation.split_once(INCREMENTAL_COMMIT_SIGNATURE)?;
+    let opening = preparation.find('{')?;
+    let mut depth = 0usize;
+    for (offset, character) in preparation.char_indices() {
+        if offset < opening {
+            continue;
+        }
+        match character {
+            '{' => depth += 1,
+            '}' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    return Some(&preparation[opening + 1..offset]);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+fn incremental_capacity_source_contract(source: &str) -> Result<(), &'static str> {
+    let body = incremental_projection_body(source)
+        .ok_or("missing or unterminated incremental preparation body")?;
+    for expression in CAPACITY_RESERVATIONS.into_iter().chain(PROJECTION_CONTRACT) {
+        if !body.contains(expression) {
+            return Err(expression);
+        }
+    }
+    for unreserved in ["HashMap::new()", "HashSet::new()"] {
+        if body.contains(unreserved) {
+            return Err(unreserved);
+        }
+    }
+    Ok(())
+}
+
 #[test]
 fn optimization_batch_20260915_runtime786_incremental_publication_capacity_source_shape() {
     let source = include_str!("../resource_publication.rs");
     let production = source.split("#[cfg(test)]").next().expect("production");
-    for expression in [
-        "HashMap::with_capacity(updated_records.len())",
-        "Vec::with_capacity(previous_source_records.len())",
-        "HashMap::with_capacity(records_by_id.len())",
-        "HashSet::with_capacity(previous_source_records.len())",
-    ] {
-        assert!(production.contains(expression), "missing {expression}");
+    // Runtime206 reserves the four slice-bounded incremental projections. Sibling
+    // publication methods have their own allocation contracts.
+    assert_eq!(incremental_capacity_source_contract(production), Ok(()));
+
+    let body = CAPACITY_RESERVATIONS
+        .into_iter()
+        .chain(PROJECTION_CONTRACT)
+        .collect::<Vec<_>>()
+        .join(";\n");
+    let preparation = format!("{INCREMENTAL_PREPARE_SIGNATURE}) {{\n{body}\n}}");
+    let commit = format!("{INCREMENTAL_COMMIT_SIGNATURE}() {{}}");
+    let sibling = "fn sibling() { let _ = HashMap::new(); let _ = HashSet::new(); }";
+    let fixture = format!("{preparation}\n{sibling}\n{commit}");
+    assert_eq!(incremental_capacity_source_contract(&fixture), Ok(()));
+
+    for (expression, unreserved) in CAPACITY_RESERVATIONS.into_iter().zip([
+        "HashMap::new()",
+        "Vec::new()",
+        "HashMap::new()",
+        "HashSet::new()",
+    ]) {
+        let regressed = preparation.replacen(expression, unreserved, 1);
+        let fixture = format!("{regressed}\n{sibling}\n{commit}");
+        assert_eq!(
+            incremental_capacity_source_contract(&fixture),
+            Err(expression)
+        );
     }
-    // BUG: [CR-ASSET-PIPELINE-SOURCE-GUARD-0001] 当前全文件禁令必失败：resource_publication.rs 的 compound 准备路径仍含 HashMap::new()/HashSet::new()，首个否定断言即触发。
-    assert!(!production.contains("HashMap::new()"));
-    assert!(!production.contains("HashSet::new()"));
+    for expression in CAPACITY_RESERVATIONS.into_iter().chain(PROJECTION_CONTRACT) {
+        let relocated = preparation.replacen(expression, "", 1);
+        let fixture = format!("{relocated}\nfn sibling() {{ {expression}; }}\n{commit}");
+        assert_eq!(
+            incremental_capacity_source_contract(&fixture),
+            Err(expression)
+        );
+    }
+    for unreserved in ["HashMap::new()", "HashSet::new()"] {
+        let regressed = preparation.replacen('{', &format!("{{ let _ = {unreserved};"), 1);
+        let fixture = format!("{regressed}\n{sibling}\n{commit}");
+        assert_eq!(
+            incremental_capacity_source_contract(&fixture),
+            Err(unreserved)
+        );
+    }
+    for signature in [INCREMENTAL_PREPARE_SIGNATURE, INCREMENTAL_COMMIT_SIGNATURE] {
+        let missing = fixture.replacen(signature, "fn other", 1);
+        assert!(incremental_capacity_source_contract(&missing).is_err());
+        let duplicated = format!("{fixture}\n{signature}");
+        assert!(incremental_capacity_source_contract(&duplicated).is_err());
+    }
+    let unterminated = format!("{INCREMENTAL_PREPARE_SIGNATURE}) {{\n{body}\n{commit}");
+    assert!(incremental_capacity_source_contract(&unterminated).is_err());
 }
 
 #[test]

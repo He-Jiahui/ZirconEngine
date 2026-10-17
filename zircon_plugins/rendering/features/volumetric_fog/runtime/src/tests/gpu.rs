@@ -35,6 +35,8 @@ use super::{
 
 #[path = "evidence.rs"]
 mod evidence;
+#[path = "../../../../../test_support/project.rs"]
+mod product_project;
 #[cfg(windows)]
 #[path = "capture.rs"]
 mod renderdoc_capture;
@@ -48,6 +50,7 @@ const VIEWPORT_SIZE: UVec2 = UVec2::new(192, 128);
 const EXPECTED_HIGH_QUALITY_DISPATCHES: usize = 3;
 const EXPECTED_HIGH_QUALITY_DISPATCH_GROUPS: usize = 44_400;
 const EXPECTED_FRAME_UPLOAD_BYTES: u64 = 624;
+const EXPECTED_CACHED_FRAME_UPLOAD_BYTES: u64 = 576;
 const PNG_NAME: &str = "plan18_volumetric_compiled_scene_window_light_shaft_perf_wgpu_20260711.png";
 const REPORT_NAME: &str =
     "plan18_volumetric_compiled_scene_window_light_shaft_perf_wgpu_20260711.txt";
@@ -63,6 +66,7 @@ struct ProjectAssetTestRuntime {
 
 impl ProjectAssetTestRuntime {
     fn new(manager: Arc<ProjectAssetManager>) -> Self {
+        product_project::open_smoke_project(manager.as_ref(), "volumetric_fog_product");
         let runtime = CoreRuntime::new();
         runtime
             .register_module(
@@ -137,19 +141,61 @@ fn smoke_volumetric_fog_executes_a_product_frame() {
     )
     .expect("volumetric smoke WGPU framework");
 
-    let (frame, stats) = render_frame(
-        &framework,
-        "volumetric-product-smoke",
-        window_light_shaft_extract(room_material, frame_material, true, true),
-        false,
-    );
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(VIEWPORT_SIZE))
+        .expect("volumetric product viewport");
+    framework
+        .set_quality_profile(viewport, quality_profile("volumetric-product-smoke"))
+        .expect("volumetric product quality profile");
+    let extract = window_light_shaft_extract(room_material, frame_material, true, true);
+    framework
+        .submit_frame_extract(viewport, extract.clone())
+        .expect("volumetric cold product frame");
+    let frame = framework
+        .capture_frame(viewport)
+        .expect("volumetric cold product capture")
+        .expect("volumetric cold product frame should be capturable");
+    let stats = framework
+        .query_stats()
+        .expect("volumetric cold product stats");
 
     assert_volumetric_stats(&stats);
-    assert_eq!((frame.width, frame.height), (VIEWPORT_SIZE.x, VIEWPORT_SIZE.y));
+    assert_eq!(
+        (frame.width, frame.height),
+        (VIEWPORT_SIZE.x, VIEWPORT_SIZE.y)
+    );
     assert!(
-        frame.rgba.chunks_exact(4).any(|pixel| pixel[0..3] != [0, 0, 0]),
+        frame
+            .rgba
+            .chunks_exact(4)
+            .any(|pixel| pixel[0..3] != [0, 0, 0]),
         "volumetric product frame should contain rendered scene pixels"
     );
+    framework
+        .submit_frame_extract(viewport, extract)
+        .expect("volumetric cached product frame");
+    let cached_frame = framework
+        .capture_frame(viewport)
+        .expect("volumetric cached product capture")
+        .expect("volumetric cached product frame should be capturable");
+    let cached_stats = framework
+        .query_stats()
+        .expect("volumetric cached product stats");
+    assert_cached_volumetric_stats(&cached_stats);
+    assert_eq!(
+        (cached_frame.width, cached_frame.height),
+        (VIEWPORT_SIZE.x, VIEWPORT_SIZE.y)
+    );
+    assert!(
+        cached_frame
+            .rgba
+            .chunks_exact(4)
+            .any(|pixel| pixel[0..3] != [0, 0, 0]),
+        "cached volumetric product frame should contain rendered scene pixels"
+    );
+    framework
+        .destroy_viewport(viewport)
+        .expect("volumetric product viewport destroy");
 }
 
 #[test]
@@ -206,7 +252,7 @@ fn export_volumetric_compiled_scene_window_light_shaft_perf_wgpu_png() {
     );
 
     assert_baseline_stats(&baseline_stats);
-    assert_volumetric_stats(&volumetric_stats);
+    assert_cached_volumetric_stats(&volumetric_stats);
     let unshadowed_metrics = compare_frames(&baseline_frame, &unshadowed_frame);
     assert!(
         volumetric_scattering_gate_passed(unshadowed_metrics),
@@ -284,7 +330,7 @@ fn capture_volumetric_compiled_scene_window_light_shaft_renderdoc() {
         })
         .expect("RenderDoc should capture the offscreen volumetric frame");
 
-    assert_volumetric_stats(&stats);
+    assert_cached_volumetric_stats(&stats);
     assert!(
         capture_path.is_file(),
         "missing RenderDoc capture {capture_path:?}"
@@ -428,6 +474,7 @@ fn window_light_shaft_extract(
                 ambient_lights: vec![RenderAmbientLightSnapshot {
                     color: Vec3::new(0.10, 0.13, 0.18),
                     intensity: 0.08,
+                    affects_lightmapped_meshes: true,
                     renderer_degraded: false,
                     degradation_reason: None,
                 }],
@@ -553,6 +600,22 @@ fn assert_baseline_stats(stats: &RenderStats) {
 
 // 产品统计同时约束三通道 dispatch、上传、光栅和阴影准备，避免只凭帧色差通过。
 fn assert_volumetric_stats(stats: &RenderStats) {
+    assert_volumetric_execution_stats(stats);
+    assert_eq!(
+        stats.last_volumetric_fog_uploaded_bytes,
+        EXPECTED_FRAME_UPLOAD_BYTES
+    );
+}
+
+fn assert_cached_volumetric_stats(stats: &RenderStats) {
+    assert_volumetric_execution_stats(stats);
+    assert_eq!(
+        stats.last_volumetric_fog_uploaded_bytes,
+        EXPECTED_CACHED_FRAME_UPLOAD_BYTES
+    );
+}
+
+fn assert_volumetric_execution_stats(stats: &RenderStats) {
     assert!(
         stats
             .last_effective_features
@@ -587,10 +650,6 @@ fn assert_volumetric_stats(stats: &RenderStats) {
     assert_eq!(
         stats.last_volumetric_fog_compute_dispatch_group_count,
         EXPECTED_HIGH_QUALITY_DISPATCH_GROUPS
-    );
-    assert_eq!(
-        stats.last_volumetric_fog_uploaded_bytes,
-        EXPECTED_FRAME_UPLOAD_BYTES
     );
     assert!(stats.last_graph_compute_matched_workload_count >= 3);
     assert_eq!(stats.last_graph_compute_missing_dispatch_count, 0);

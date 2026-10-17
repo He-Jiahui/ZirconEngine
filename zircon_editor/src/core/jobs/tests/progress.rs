@@ -9,6 +9,81 @@ use super::super::{EditorJobSpec, JobCategory, JobEventKind, JobId, JobPriority}
 use super::{EditorJobProgressSnapshot, EditorJobProgressSource};
 
 #[test]
+fn hidden_primary_progress_preserves_lifecycle_without_disturbing_user_exports() {
+    let progress = EditorJobProgressSource::default();
+    let initial = progress.primary_snapshot_if_changed(None).unwrap();
+    let hidden = JobId::new(1);
+    let user_export = JobId::new(2);
+    progress.register(
+        hidden,
+        &EditorJobSpec::new("profile artifacts", JobCategory::Export)
+            .with_primary_progress_visible(false),
+    );
+    assert!(progress
+        .primary_snapshot_if_changed(Some(initial.generation()))
+        .is_none());
+    assert_eq!(progress.snapshot_for_ids([hidden])[0].id(), hidden);
+    assert!(progress.request_cancel(hidden));
+
+    progress.register(
+        user_export,
+        &EditorJobSpec::new("Export scene", JobCategory::Export),
+    );
+    let visible = progress.primary_snapshot_if_changed(None).unwrap();
+    assert_eq!(visible.primary().unwrap().id(), user_export);
+    let late_hidden = JobId::new(3);
+    progress.register(
+        late_hidden,
+        &EditorJobSpec::new("later profile artifacts", JobCategory::Export)
+            .with_primary_progress_visible(false),
+    );
+    assert!(progress
+        .primary_snapshot_if_changed(Some(visible.generation()))
+        .is_none());
+    assert_eq!(progress.primary_snapshot().unwrap().id(), user_export);
+    for hidden in [hidden, late_hidden] {
+        progress.apply_event(
+            hidden,
+            &JobEventKind::Progress {
+                completed: 1,
+                total: 2,
+                message: "writing".to_owned(),
+            },
+        );
+        progress.apply_event(hidden, &JobEventKind::Completed);
+        progress.complete(hidden);
+    }
+    assert!(progress
+        .primary_snapshot_if_changed(Some(visible.generation()))
+        .is_none());
+    assert_eq!(progress.primary_snapshot().unwrap().label(), "Export scene");
+}
+
+#[test]
+fn hiding_a_primary_replaces_its_generation_and_hidden_jobs_never_resume_it() {
+    let progress = EditorJobProgressSource::default();
+    let id = JobId::new(10);
+    progress.register(id, &EditorJobSpec::new("task", JobCategory::Export));
+    let visible = progress.primary_snapshot_if_changed(None).unwrap();
+    progress.register(
+        id,
+        &EditorJobSpec::new("task", JobCategory::Export).with_primary_progress_visible(false),
+    );
+    let hidden = progress
+        .primary_snapshot_if_changed(Some(visible.generation()))
+        .unwrap();
+    assert!(hidden.primary().is_none());
+    assert_eq!(progress.snapshot().len(), 1);
+
+    let user_job = JobId::new(11);
+    progress.register(user_job, &EditorJobSpec::new("Import", JobCategory::Import));
+    progress.apply_event(user_job, &JobEventKind::Completed);
+    assert!(progress.primary_snapshot().is_none());
+    assert!(progress.has_active());
+    assert_eq!(progress.snapshot_for_ids([id])[0].id(), id);
+}
+
+#[test]
 fn terminal_visibility_hides_ui_before_lifecycle_completion_removes_the_entry() {
     let progress = EditorJobProgressSource::default();
     let id = JobId::new(7);

@@ -1,6 +1,7 @@
 use super::ComponentTypeRegistry;
 use crate::core::framework::scene::ComponentTypeDescriptor;
 
+/// 同内容刷新及其它类型登记不改变已有类型代数，字段声明改变才推进该类型和总目录代数。
 #[test]
 fn schema_generation_changes_only_for_updated_component_type() {
     let mut registry = ComponentTypeRegistry::default();

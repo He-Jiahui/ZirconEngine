@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use serde::Serialize;
 use zircon_runtime_interface::ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1;

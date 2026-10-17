@@ -6,12 +6,16 @@ use std::time::Duration;
 use tokio::runtime::Runtime;
 use zircon_runtime::core::framework::net::{
     NetConnectionId, NetDiagnostics, NetHttpRequestDescriptor, NetHttpResponseDescriptor,
-    NetRouteId, NetWebSocketConnectDescriptor, NetWebSocketFrame, NetWebSocketListenerDescriptor,
+    NetRequestId, NetRouteId, NetWebSocketConnectDescriptor, NetWebSocketFrame,
+    NetWebSocketListenerDescriptor,
 };
 use zircon_runtime::core::framework::net::{
     NetEndpoint, NetError, NetEvent, NetManager, NetRuntimeMode,
 };
-use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::core::{CoreRuntime, TasksModule, TimeModule};
+use zircon_runtime::engine_module::EngineModule;
+use zircon_runtime::plugin::RuntimePluginRegistrationReport;
+use zircon_runtime::scene::create_default_level;
 
 use crate::record_net_diagnostics;
 use crate::{
@@ -20,6 +24,7 @@ use crate::{
     NET_DIAGNOSTIC_INBOUND_BYTES, NET_DIAGNOSTIC_LAST_LATENCY_MS,
     NET_DIAGNOSTIC_OPEN_TCP_CONNECTIONS, NET_DIAGNOSTIC_OPEN_WEBSOCKET_CONNECTIONS,
     NET_DIAGNOSTIC_OUTBOUND_BYTES, NET_DIAGNOSTIC_PATHS, NET_DIAGNOSTIC_QUEUED_EVENTS,
+    NET_POLL_INGRESS_SYSTEM,
 };
 
 #[test]
@@ -122,6 +127,68 @@ fn diagnostic_paths_registered() {
 }
 
 #[test]
+fn net_poll_ingress_records_outer_frame_indices_in_diagnostic_history() {
+    let runtime = CoreRuntime::new();
+    for descriptor in [
+        TasksModule.descriptor(),
+        TimeModule.descriptor(),
+        zircon_runtime::asset::module_descriptor(),
+        zircon_runtime::scene::module_descriptor(),
+        crate::module_descriptor(),
+    ] {
+        runtime.register_module(descriptor).unwrap();
+    }
+    runtime.activate_registered_modules().unwrap();
+    let core = runtime.handle();
+    let level = create_default_level(&core).unwrap();
+
+    let report = RuntimePluginRegistrationReport::from_plugin(&crate::runtime_plugin());
+    assert!(report.is_success(), "{:?}", report.diagnostics);
+    assert!(report
+        .extensions
+        .plugin_runtime_systems()
+        .any(|(_, system)| system.id == NET_POLL_INGRESS_SYSTEM));
+    let mut extensions = report.extensions;
+    level
+        .with_world_mut(|world| extensions.apply_to_world(world))
+        .expect("net runtime systems should install into the level schedule");
+
+    for frame_index in 1..=72 {
+        let snapshot = runtime.advance_time_by(Duration::ZERO, 0);
+        assert_eq!(snapshot.outer_frame_index(), frame_index);
+    }
+    for frame_index in [73, 74] {
+        let snapshot = runtime.advance_time_by(Duration::ZERO, 0);
+        assert_eq!(snapshot.outer_frame_index(), frame_index);
+        level.tick(&core, snapshot).unwrap();
+    }
+
+    let snapshot = runtime.diagnostic_store_snapshot();
+    for path in [
+        NET_DIAGNOSTIC_OUTBOUND_BYTES,
+        NET_DIAGNOSTIC_INBOUND_BYTES,
+        NET_DIAGNOSTIC_OPEN_TCP_CONNECTIONS,
+        NET_DIAGNOSTIC_OPEN_WEBSOCKET_CONNECTIONS,
+        NET_DIAGNOSTIC_QUEUED_EVENTS,
+    ] {
+        let series = snapshot
+            .series
+            .iter()
+            .find(|series| series.path.as_str() == path)
+            .unwrap_or_else(|| panic!("expected diagnostics series {path}"));
+        assert_eq!(
+            series
+                .history
+                .iter()
+                .map(|measurement| measurement.frame_index)
+                .collect::<Vec<_>>(),
+            vec![73, 74],
+            "diagnostics history should retain outer frame coordinates for {path}"
+        );
+    }
+}
+
+#[test]
 fn net_runtime_diagnostics_records_bandwidth_counters() {
     let net = DefaultNetManager::for_mode(NetRuntimeMode::Client);
     let (sender, receiver) = net.open_websocket_loopback().unwrap();
@@ -172,22 +239,53 @@ fn net_runtime_diagnostics_count_listeners_by_transport() {
 }
 
 #[test]
-fn event_ingress_preserves_large_backlogs_and_bounds_manager_queue() {
+fn event_ingress_rejects_full_route_admission_without_state_change_and_recovers_fifo() {
     let net = DefaultNetManager::default();
     const EVENT_COUNT: usize = 5_000;
+    let mut accepted_count = 0;
+    let mut rejected_count = 0;
     for index in 0..EVENT_COUNT {
-        net.register_http_route(
+        let result = net.register_http_route(
             zircon_runtime::core::framework::net::NetHttpRouteDescriptor::new(
                 format!("/event-{index}"),
                 [zircon_runtime::core::framework::net::NetHttpMethod::Get],
             ),
             NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, Vec::new()),
-        )
-        .unwrap();
+        );
+        match result {
+            Ok(route) => {
+                assert_eq!(route, NetRouteId::new(accepted_count as u64 + 1));
+                accepted_count += 1;
+            }
+            Err(NetError::EventQueueFull { capacity }) => {
+                assert_eq!(capacity, 4_096);
+                rejected_count += 1;
+            }
+            Err(error) => panic!("unexpected route admission error: {error:?}"),
+        }
     }
+    assert_eq!(accepted_count, 4_096);
+    assert_eq!(rejected_count, EVENT_COUNT - 4_096);
+
+    let handler_result = net.register_http_route_handler(
+        zircon_runtime::core::framework::net::NetHttpRouteDescriptor::new(
+            "/handler-rejected",
+            [zircon_runtime::core::framework::net::NetHttpMethod::Get],
+        ),
+        |request| NetHttpResponseDescriptor::new(request.request, 200, Vec::new()),
+    );
+    assert_eq!(
+        handler_result.unwrap_err(),
+        NetError::EventQueueFull { capacity: 4_096 }
+    );
+    assert_eq!(
+        net.unregister_http_route(NetRouteId::new(1)).unwrap_err(),
+        NetError::EventQueueFull { capacity: 4_096 }
+    );
 
     for _ in 0..20 {
-        assert_eq!(net.diagnostics().queued_events, EVENT_COUNT);
+        assert_eq!(net.diagnostics().queued_events, 4_096);
+        assert_eq!(net.diagnostics().open_http_routes, 4_096);
     }
     assert_eq!(net.manager_event_queue_len_for_test(), 4_096);
 
@@ -199,7 +297,36 @@ fn event_ingress_preserves_large_backlogs_and_bounds_manager_queue() {
         }
         delivered.extend(batch);
     }
-    assert_eq!(delivered.len(), EVENT_COUNT);
+    assert_eq!(delivered.len(), 4_096);
+    for (index, event) in delivered.into_iter().enumerate() {
+        match event {
+            NetEvent::HttpRouteRegistered { path, route, .. } => {
+                assert_eq!(route, NetRouteId::new(index as u64 + 1));
+                assert_eq!(path, format!("/event-{index}"));
+            }
+            other => panic!("unexpected event in accepted route FIFO: {other:?}"),
+        }
+    }
+
+    let recovered = net
+        .register_http_route(
+            zircon_runtime::core::framework::net::NetHttpRouteDescriptor::new(
+                "/after-drain",
+                [zircon_runtime::core::framework::net::NetHttpMethod::Get],
+            ),
+            NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, Vec::new()),
+        )
+        .unwrap();
+    assert_eq!(recovered, NetRouteId::new(4_097));
+    net.unregister_http_route(NetRouteId::new(1)).unwrap();
+    let recovered_events = net.drain_events(2);
+    assert!(matches!(
+        recovered_events.as_slice(),
+        [
+            NetEvent::HttpRouteRegistered { route, path, .. },
+            NetEvent::HttpRouteUnregistered { route: removed },
+        ] if *route == recovered && path == "/after-drain" && *removed == NetRouteId::new(1)
+    ));
     assert_eq!(net.diagnostics().queued_events, 0);
 }
 

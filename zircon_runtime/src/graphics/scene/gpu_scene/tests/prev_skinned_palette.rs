@@ -15,7 +15,7 @@ fn render_gpu_scene_rolls_current_skinned_palette_after_success() {
     let first = test_palette(1.0);
     let second = test_palette(2.0);
 
-    scene.stage_current_skinned_joint_palette(TEST_STABLE_INSTANCE_KEY, Some(first));
+    scene.stage_current_skinned_joint_palette(TEST_STABLE_INSTANCE_KEY, Some(first.clone()));
     let first_report = scene.roll_prev_skinned_palettes_after_success();
 
     assert_eq!(first_report.current_palette_count, 1);
@@ -25,15 +25,15 @@ fn render_gpu_scene_rolls_current_skinned_palette_after_success() {
         scene
             .previous_skinned_joint_palette_state(TEST_STABLE_INSTANCE_KEY)
             .map(|state| state.storage),
-        Some(first.storage)
+        Some(first.storage.clone())
     );
 
-    scene.stage_current_skinned_joint_palette(TEST_STABLE_INSTANCE_KEY, Some(second));
+    scene.stage_current_skinned_joint_palette(TEST_STABLE_INSTANCE_KEY, Some(second.clone()));
     assert_eq!(
         scene
             .previous_skinned_joint_palette_state(TEST_STABLE_INSTANCE_KEY)
             .map(|state| state.storage),
-        Some(first.storage)
+        Some(first.storage.clone())
     );
 
     let second_report = scene.roll_prev_skinned_palettes_after_success();
@@ -42,7 +42,7 @@ fn render_gpu_scene_rolls_current_skinned_palette_after_success() {
         scene
             .previous_skinned_joint_palette_state(TEST_STABLE_INSTANCE_KEY)
             .map(|state| state.storage),
-        Some(second.storage)
+        Some(second.storage.clone())
     );
 }
 
@@ -88,7 +88,7 @@ fn palette_arena_exposes_previous_span_only_after_successful_scene_roll() {
         false,
     );
     assert_eq!(first_params, [0, 1, 0, 0]);
-    scene.stage_current_skinned_joint_palette(TEST_STABLE_INSTANCE_KEY, Some(first));
+    scene.stage_current_skinned_joint_palette(TEST_STABLE_INSTANCE_KEY, Some(first.clone()));
     let _ = scene.roll_prev_skinned_palettes_after_success();
 
     scene.begin_skinned_joint_palette_frame();
@@ -100,6 +100,34 @@ fn palette_arena_exposes_previous_span_only_after_successful_scene_roll() {
         true,
     );
     assert_eq!(second_params, [0, 1, 0, 1]);
+}
+
+#[test]
+fn uncommitted_pose_preserves_history_and_unregister_releases_both_snapshots() {
+    let Some(backend) = test_backend() else {
+        return;
+    };
+    let mut scene = test_gpu_scene(&backend.device);
+    scene.register(&backend.device, TEST_STABLE_INSTANCE_KEY, 1);
+    let committed = test_palette(1.0);
+    let previous = std::sync::Arc::downgrade(&committed.storage);
+    scene.stage_current_skinned_joint_palette(TEST_STABLE_INSTANCE_KEY, Some(committed));
+    scene.roll_prev_skinned_palettes_after_success();
+
+    let candidate = test_palette(2.0);
+    let current = std::sync::Arc::downgrade(&candidate.storage);
+    scene.stage_current_skinned_joint_palette(TEST_STABLE_INSTANCE_KEY, Some(candidate));
+    // A failed frame does not call the successful-submission roll.
+    assert!(std::sync::Arc::ptr_eq(
+        &scene
+            .previous_skinned_joint_palette_state(TEST_STABLE_INSTANCE_KEY)
+            .unwrap()
+            .storage,
+        &previous.upgrade().unwrap(),
+    ));
+    assert!(scene.unregister(TEST_STABLE_INSTANCE_KEY).is_some());
+    assert!(previous.upgrade().is_none());
+    assert!(current.upgrade().is_none());
 }
 
 fn test_backend() -> Option<crate::graphics::backend::RenderBackend> {
@@ -136,6 +164,7 @@ fn test_palette(translate_x: f32) -> GpuSceneSkinnedJointPaletteState {
         storage: SkinnedMeshJointPaletteStorage::from_matrices(&[Mat4::from_translation(
             crate::core::math::Vec3::new(translate_x, 0.0, 0.0),
         )])
-        .expect("test palette fits fixed CPU storage"),
+        .map(std::sync::Arc::new)
+        .expect("test palette fits compact CPU storage"),
     }
 }

@@ -728,7 +728,7 @@ fn native_component(
             "confirmdialog" => NativeComponent::ConfirmDialog,
             "commandpalette" | "commandpalettepopup" => NativeComponent::CommandPalette,
             "notificationcenter" => NativeComponent::NotificationCenter,
-            "popup" => NativeComponent::Popup,
+            "popup" | "popupmenu" => NativeComponent::Popup,
             "popover" => NativeComponent::Popover,
             "modal" => NativeComponent::Modal,
             "contextmenu" => NativeComponent::ContextMenu,
@@ -1018,7 +1018,7 @@ fn apply_focus_to_popup_anchor(
     popup_node_id: UiNodeId,
     state: &str,
 ) -> Result<(), String> {
-    let (control_id, source_path, instance_path) = {
+    let control_id = {
         let metadata = surface
             .tree
             .node(popup_node_id)
@@ -1037,46 +1037,21 @@ fn apply_focus_to_popup_anchor(
                 return Err("Editor focus-return popup has no authored invoking control".into());
             }
         };
-        let source_path = metadata
+        metadata
             .source_path
             .as_deref()
-            .ok_or("Editor focus-return popup has no authored source path")?
-            .to_owned();
-        let instance_path = metadata
+            .ok_or("Editor focus-return popup has no authored source path")?;
+        metadata
             .instance_path
-            .clone()
+            .as_ref()
             .ok_or("Editor focus-return popup has no authored instance path")?;
-        (control_id, source_path, instance_path)
+        control_id
     };
-    let anchors = surface
-        .tree
-        .nodes
-        .iter()
-        .filter_map(|(node_id, node)| {
-            node.template_metadata
-                .as_ref()
-                .filter(|metadata| {
-                    metadata.control_id.as_deref() == Some(control_id.as_str())
-                        && metadata.source_path.as_deref() == Some(source_path.as_str())
-                        && metadata.instance_path.as_ref() == Some(&instance_path)
-                })
-                .map(|_| *node_id)
-        })
-        .collect::<Vec<_>>();
-    let anchor_node_id = match anchors.as_slice() {
-        [node_id] => *node_id,
-        [] => {
-            return Err(format!(
-                "Editor focus-return invoking control {control_id} is not mounted"
-            ));
-        }
-        _ => {
-            return Err(format!(
-                "Editor focus-return invoking control {control_id} matched {} mounted nodes",
-                anchors.len()
-            ));
-        }
-    };
+    // The runtime anchor contract resolves across sibling components in this surface.
+    // Keep the popup case identity exact, while rejecting every ambiguous invoker.
+    let anchor_node_id = surface.unique_control_node_id(&control_id).ok_or_else(|| {
+        format!("Editor focus-return invoking control {control_id} is not uniquely mounted")
+    })?;
     set_property(
         surface,
         anchor_node_id,

@@ -26,8 +26,13 @@ impl ProjectWatcherActivation {
             if state.lifecycle == ProjectWatcherLifecycle::Retired {
                 return;
             }
+            let (abandoned, timer) = cancel_retry_for_ingress(&mut state);
             merge_batch(&mut state, batch);
-            should_schedule_worker(&mut state)
+            let schedule = should_schedule_worker(&mut state);
+            drop(state);
+            drop(abandoned);
+            finish_cancelled_timer(self, timer);
+            schedule
         };
         if should_schedule {
             self.spawn_worker(manager.clone());
@@ -44,10 +49,15 @@ impl ProjectWatcherActivation {
             if state.lifecycle == ProjectWatcherLifecycle::Retired {
                 return;
             }
+            let (abandoned, timer) = cancel_retry_for_ingress(&mut state);
             if push_bounded_error(&mut state.errors, error, WATCH_ACTIVATION_ERROR_CAPACITY) {
                 mark_reconciliation_required(&mut state);
             }
-            should_schedule_worker(&mut state)
+            let schedule = should_schedule_worker(&mut state);
+            drop(state);
+            drop(abandoned);
+            finish_cancelled_timer(self, timer);
+            schedule
         };
         if should_schedule {
             self.spawn_worker(manager.clone());
@@ -68,29 +78,72 @@ impl ProjectWatcherActivation {
         }
     }
 
-    fn spawn_worker(self: &Arc<Self>, manager: ProjectAssetManager) {
+    pub(super) fn spawn_worker(self: &Arc<Self>, manager: ProjectAssetManager) {
         let activation = self.clone();
         manager.worker_task_pool().clone().spawn(move || {
             activation.run_worker(manager);
         });
     }
 
-    fn run_worker(&self, manager: ProjectAssetManager) {
+    fn run_worker(self: &Arc<Self>, manager: ProjectAssetManager) {
         loop {
-            let Some((batch, errors)) = self.take_work() else {
+            let Some((work, errors, ingress)) = self.take_worker_item() else {
                 return;
             };
             for error in errors {
                 manager.broadcast_watch_error(error);
             }
-            if !batch.is_empty() {
-                manager.process_watch_batch_in_generation(batch);
+            if let Some(deferred) = manager.process_watch_retry_work(work, self, &ingress) {
+                self.defer_watch_work_at(&manager, deferred, ingress);
             }
         }
     }
 
     fn take_work(&self) -> Option<(AssetWatchBatch, std::collections::VecDeque<AssetWatchError>)> {
+        take_queued_work(&mut self.lock_state())
+    }
+
+    fn take_worker_item(&self) -> Option<(super::runtime::WatchRetryWork, std::collections::VecDeque<AssetWatchError>, Arc<()>)> {
         let mut state = self.lock_state();
+        if state.lifecycle == ProjectWatcherLifecycle::Retired {
+            state.worker_scheduled = false;
+            return None;
+        }
+        let ingress = Arc::clone(&state.ingress_epoch);
+        if state.retry_ready {
+            state.retry_ready = false;
+            if let Some(work) = state.retry_work.take() {
+                return Some((work, std::mem::take(&mut state.errors), ingress));
+            }
+        }
+        take_queued_work(&mut state).map(|(batch, errors)| (super::runtime::WatchRetryWork::Reprepare(batch), errors, ingress))
+    }
+
+}
+
+fn cancel_retry_for_ingress(state: &mut ProjectWatcherActivationState) -> (
+    Option<super::runtime::WatchRetryWork>, Option<Arc<super::watch_retry::WatchRetryTimer>>,
+) {
+    state.ingress_epoch = Arc::new(());
+    state.retry_ready = false;
+    let mut abandoned = state.retry_work.take();
+    if let Some(work) = &mut abandoned { merge_batch(state, work.take_batch()); }
+    (abandoned, state.retry_timer.clone())
+}
+
+fn finish_cancelled_timer(activation: &ProjectWatcherActivation, timer: Option<Arc<super::watch_retry::WatchRetryTimer>>) {
+    if let Some(timer) = timer {
+        timer.cancel();
+        if timer.join(true) {
+            let mut state = activation.lock_state();
+            if state.retry_timer.as_ref().is_some_and(|current| Arc::ptr_eq(current, &timer)) {
+                state.retry_timer = None;
+            }
+        }
+    }
+}
+
+fn take_queued_work(state: &mut ProjectWatcherActivationState) -> Option<(AssetWatchBatch, std::collections::VecDeque<AssetWatchError>)> {
         if state.lifecycle == ProjectWatcherLifecycle::Retired {
             state.worker_scheduled = false;
             return None;
@@ -110,12 +163,11 @@ impl ProjectWatcherActivation {
         state.coalescible_change_indices.clear();
         state.queued_change_bytes = 0;
         Some(work)
-    }
 }
 
-fn should_schedule_worker(state: &mut ProjectWatcherActivationState) -> bool {
+pub(super) fn should_schedule_worker(state: &mut ProjectWatcherActivationState) -> bool {
     let has_work =
-        !state.changes.is_empty() || !state.errors.is_empty() || state.requires_reconciliation;
+        !state.changes.is_empty() || !state.errors.is_empty() || state.requires_reconciliation || state.retry_ready;
     if state.lifecycle == ProjectWatcherLifecycle::Active && has_work && !state.worker_scheduled {
         state.worker_scheduled = true;
         true
@@ -124,7 +176,7 @@ fn should_schedule_worker(state: &mut ProjectWatcherActivationState) -> bool {
     }
 }
 
-fn merge_batch(state: &mut ProjectWatcherActivationState, batch: AssetWatchBatch) {
+pub(super) fn merge_batch(state: &mut ProjectWatcherActivationState, batch: AssetWatchBatch) {
     merge_diagnostics(&mut state.diagnostics, batch.diagnostics);
     if state.requires_reconciliation || batch.requires_reconciliation {
         state.changes.clear();

@@ -11,8 +11,7 @@ fn review_f5_dynamic_component_errors_preserve_scene_error_sources() {
         include_str!("../../../../scene/dynamic/scene/spawn/resource.rs"),
         include_str!("../../../../scene/dynamic/scene/spawn/transaction.rs")
     );
-    let reflect_dynamic_component =
-        include_str!("../../../../scene/reflect/dynamic_component.rs");
+    let reflect_dynamic_component = include_str!("../../../../scene/reflect/dynamic_component.rs");
     let plugin_component_registry =
         include_str!("../../../../plugin/extension_registry/apply_to_world/component.rs");
     let ecs_typed_tests = include_str!("../../../../scene/tests/ecs_typed_api.rs");

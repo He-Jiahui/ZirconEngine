@@ -13,17 +13,12 @@ fn runtime09a_frame_submission_metrics_keep_backend_mapping_and_receipt_owners_s
         include_str!("../../../../core/framework/render/frame_submission_receipt/tests/cases.rs");
     let transaction =
         include_str!("../../../../core/framework/render/frame_submission_transaction.rs");
-    let transaction_tests = include_str!(
-        "../../../../core/framework/render/tests/cases.rs"
-    );
-    let backend =
-        include_str!("../../../../graphics/backend/backend/render_backend_submission.rs");
-    let direct_frame = include_str!(
-        "../../../../graphics/scene/core/scene_renderer_render/render_frame.rs"
-    );
-    let compiled_frame = include_str!(
-        "../../../../graphics/scene/core/pipeline/frame_submission_owner.rs"
-    );
+    let transaction_tests = include_str!("../../../../core/framework/render/tests/cases.rs");
+    let backend = include_str!("../../../../graphics/backend/backend/render_backend_submission.rs");
+    let direct_frame =
+        include_str!("../../../../graphics/scene/core/scene_renderer_render/render_frame.rs");
+    let compiled_frame =
+        include_str!("../../../../graphics/scene/core/pipeline/frame_submission_owner.rs");
 
     assert!(boundary_reason.contains("TextureMipPreservationBeforeUpload"));
     assert!(!boundary_reason.contains("wgpu::"));

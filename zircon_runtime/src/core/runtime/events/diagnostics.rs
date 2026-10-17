@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::core::framework::events::{EventBusDiagnosticsMode, EventBusDiagnosticsSnapshot};
 

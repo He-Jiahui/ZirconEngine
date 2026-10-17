@@ -133,7 +133,11 @@ impl UiAssetEditorSourceReplay {
     }
 
     fn neutral() -> Self {
-        Self { replace_start: 0, replace_len: 0, insert: String::new() }
+        Self {
+            replace_start: 0,
+            replace_len: 0,
+            insert: String::new(),
+        }
     }
 
     fn is_neutral(&self) -> bool {
@@ -141,7 +145,9 @@ impl UiAssetEditorSourceReplay {
     }
 
     fn valid_range(&self, source: &str) -> Result<std::ops::Range<usize>, &'static str> {
-        let replace_end = self.replace_start.checked_add(self.replace_len)
+        let replace_end = self
+            .replace_start
+            .checked_add(self.replace_len)
             .ok_or("invalid source replay")?;
         if replace_end > source.len()
             || !source.is_char_boundary(self.replace_start)
@@ -199,7 +205,10 @@ pub(super) struct UiAssetEditorSourceCheckpoint {
 }
 
 struct SourceCheckpointSide {
-    neutral_cursors: Vec<(UiAssetEditorSourceCursorSnapshot, UiAssetEditorSourceCursorSnapshot)>,
+    neutral_cursors: Vec<(
+        UiAssetEditorSourceCursorSnapshot,
+        UiAssetEditorSourceCursorSnapshot,
+    )>,
     boundary: Option<SourceCheckpointEdge>,
 }
 
@@ -257,9 +266,11 @@ impl SourceCheckpointSide {
         canonical: &str,
         remap: &impl Fn(usize) -> usize,
     ) -> Result<Self, &'static str> {
-        let neutral_count = entries.iter().rev().take_while(|entry| {
-            entry.undo.source.is_neutral() && entry.redo.source.is_neutral()
-        }).count();
+        let neutral_count = entries
+            .iter()
+            .rev()
+            .take_while(|entry| entry.undo.source.is_neutral() && entry.redo.source.is_neutral())
+            .count();
         let mut neutral_cursors = Vec::with_capacity(neutral_count);
         for entry in entries.iter().rev().take(neutral_count) {
             entry.undo.source.valid_range(current)?;
@@ -270,13 +281,23 @@ impl SourceCheckpointSide {
             redo_cursor.byte_offset = remap(redo_cursor.byte_offset);
             neutral_cursors.push((undo_cursor, redo_cursor));
         }
-        let boundary = entries.len().checked_sub(neutral_count + 1)
+        let boundary = entries
+            .len()
+            .checked_sub(neutral_count + 1)
             .map(|index| {
                 let entry = &entries[index];
-                let (outgoing, incoming) = if undo { (&entry.undo, &entry.redo) } else { (&entry.redo, &entry.undo) };
+                let (outgoing, incoming) = if undo {
+                    (&entry.undo, &entry.redo)
+                } else {
+                    (&entry.redo, &entry.undo)
+                };
                 SourceCheckpointEdge::prepare(outgoing, incoming, current, canonical, remap)
-            }).transpose()?;
-        Ok(Self { neutral_cursors, boundary })
+            })
+            .transpose()?;
+        Ok(Self {
+            neutral_cursors,
+            boundary,
+        })
     }
 
     fn commit(self, entries: &mut [SourceEditEntry], undo: bool) {
@@ -291,7 +312,11 @@ impl SourceCheckpointSide {
         }
         if let Some(edge) = self.boundary {
             let entry = &mut entries[len - neutral_count - 1];
-            let (outgoing, incoming) = if undo { (&mut entry.undo, &mut entry.redo) } else { (&mut entry.redo, &mut entry.undo) };
+            let (outgoing, incoming) = if undo {
+                (&mut entry.undo, &mut entry.redo)
+            } else {
+                (&mut entry.redo, &mut entry.undo)
+            };
             outgoing.source = edge.outgoing;
             incoming.source = edge.incoming;
             incoming.source_cursor = edge.current_cursor;
@@ -479,17 +504,21 @@ impl UiAssetEditorUndoStack {
     }
 
     pub(super) fn peek_undo_record(&self) -> Option<UiAssetEditorUndoReplayRecord> {
-        self.undo_stack.last().map(|entry| UiAssetEditorUndoReplayRecord {
-            label: entry.label.clone(),
-            transition: entry.undo.clone(),
-        })
+        self.undo_stack
+            .last()
+            .map(|entry| UiAssetEditorUndoReplayRecord {
+                label: entry.label.clone(),
+                transition: entry.undo.clone(),
+            })
     }
 
     pub(super) fn peek_redo_record(&self) -> Option<UiAssetEditorUndoReplayRecord> {
-        self.redo_stack.last().map(|entry| UiAssetEditorUndoReplayRecord {
-            label: entry.label.clone(),
-            transition: entry.redo.clone(),
-        })
+        self.redo_stack
+            .last()
+            .map(|entry| UiAssetEditorUndoReplayRecord {
+                label: entry.label.clone(),
+                transition: entry.redo.clone(),
+            })
     }
 
     pub(super) fn commit_undo(&mut self) {
@@ -511,9 +540,15 @@ impl UiAssetEditorUndoStack {
         // run and only its first source-changing edge on each side.
         let cursor_remap = SourceCursorRemap::new(current, canonical);
         let remap = |offset| cursor_remap.map(current, canonical, offset);
-        let undo = SourceCheckpointSide::prepare(&self.undo_stack, true, current, canonical, &remap)?;
-        let redo = SourceCheckpointSide::prepare(&self.redo_stack, false, current, canonical, &remap)?;
-        Ok(UiAssetEditorSourceCheckpoint { undo, redo, cursor_remap })
+        let undo =
+            SourceCheckpointSide::prepare(&self.undo_stack, true, current, canonical, &remap)?;
+        let redo =
+            SourceCheckpointSide::prepare(&self.redo_stack, false, current, canonical, &remap)?;
+        Ok(UiAssetEditorSourceCheckpoint {
+            undo,
+            redo,
+            cursor_remap,
+        })
     }
 
     pub(super) fn commit_source_checkpoint(&mut self, checkpoint: UiAssetEditorSourceCheckpoint) {

@@ -15,6 +15,9 @@ pub enum CoreError {
     DeadlineOutOfRange,
     #[error("thread spawn failed: {0}")]
     ThreadSpawn(String),
+    /// Direct config construction reports this type; service activation wraps it in Initialization.
+    #[error("config owner conflict for {path} (same runtime: {same_runtime})")]
+    ConfigOwnerConflict { path: String, same_runtime: bool },
     #[error("invalid registry name: {0}")]
     InvalidRegistryName(String),
     #[error("invalid module name: {0}")]

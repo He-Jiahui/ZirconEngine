@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R070",
+  "reviewer": "root",
+  "model": "root-primary",
+  "kind": "independent-source-and-evidence-review",
+  "reviewed_at_utc": "2026-10-16T20:52:21.931221+00:00",
+  "status": "independently-reviewed-local-awaiting-ledger-and-managed-phase",
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false,
+  "source_read_complete": true,
+  "source_files": [
+    {
+      "path": "zircon_runtime_interface/src/ui/binding/model/binding_value.rs",
+      "sha256": "533a2c9ff45c8ac4d5b76b0ce657ebd22e3a6bf50b3ef0cdc0c5c092f8a6b461",
+      "bytes": 8710,
+      "lines": 188,
+      "before_sha256": "325efc99d3efa0deb33713d28ef6bf649740a625e8062063d1122b5cbb146dd1",
+      "before_bytes": 4820,
+      "before_lines": 136,
+      "changed": true,
+      "added_lines": 52,
+      "insertion_groups": 26,
+      "byte_inverse_verified": true,
+      "eol_preserved": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/binding/model/binding_value/projection.rs",
+      "sha256": "4812baa02d539865ed559fccd3a3504e68e39b4a44ce5b957ae5a906334f1f1f",
+      "bytes": 9318,
+      "lines": 219,
+      "before_sha256": "bec1a3c37e55ab35e1ea51e752c9a9e8a391d125bc55e67f77dd9cacf6330671",
+      "before_bytes": 7676,
+      "before_lines": 193,
+      "changed": true,
+      "added_lines": 26,
+      "insertion_groups": 4,
+      "byte_inverse_verified": true,
+      "eol_preserved": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/binding/model/binding_value/types.rs",
+      "sha256": "58e17fc9741110b7f354481b69ac0d203eb92454807e7595f72245df536175f9",
+      "bytes": 25204,
+      "lines": 641,
+      "before_sha256": "c2a53bc1ce97ffb39aa5d319e14049718b9603ab838835dd2126565b7d0bdea0",
+      "before_bytes": 15580,
+      "before_lines": 515,
+      "changed": true,
+      "added_lines": 126,
+      "insertion_groups": 80,
+      "byte_inverse_verified": true,
+      "eol_preserved": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/binding/model/binding_value/validation.rs",
+      "sha256": "bfc471419870571b7700cd6ddcd0705cfd897d78ae66e595b162b577fd8f2a51",
+      "bytes": 7725,
+      "lines": 182,
+      "before_sha256": "b963d28523a67ee885ddd663bc943f94681a123e1bb69f63fc6ae91ffde25913",
+      "before_bytes": 5802,
+      "before_lines": 158,
+      "changed": true,
+      "added_lines": 24,
+      "insertion_groups": 10,
+      "byte_inverse_verified": true,
+      "eol_preserved": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/binding/model/tests/native_repr_perf.rs",
+      "sha256": "05e03ebc349cff6dae582ec15c4b3d448ad5d2029d7a932926e6eb39077d1f0e",
+      "bytes": 8534,
+      "lines": 229,
+      "before_sha256": "7d5bc3ce75e2fc0237ed58455754d4b3fb11e045240fe11af36c55851336ccbe",
+      "before_bytes": 7570,
+      "before_lines": 217,
+      "changed": true,
+      "added_lines": 12,
+      "insertion_groups": 8,
+      "byte_inverse_verified": true,
+      "eol_preserved": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/binding/model/types/tests/map_serialize_perf.rs",
+      "sha256": "38a9c60a5faffe6ee97c12e01167e39d0f5c1bff371e1c26e3928e4d6bc3f1a4",
+      "bytes": 4906,
+      "lines": 134,
+      "before_sha256": "cdffce3325c2b128a5cb7045f44e45d7292ebe109ce282e4750e3af4df07a98f",
+      "before_bytes": 3912,
+      "before_lines": 122,
+      "changed": true,
+      "added_lines": 12,
+      "insertion_groups": 8,
+      "byte_inverse_verified": true,
+      "eol_preserved": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/binding_value_contracts.rs",
+      "sha256": "20bfc646e485f122b2f395afa4694972ae561fb0186c386bc5d615115b6c4b49",
+      "bytes": 9692,
+      "lines": 255,
+      "before_sha256": "9d52a72627060981e233f30c99e4568c6fff59ea45830d8eab2b2f583ca5f1b7",
+      "before_bytes": 8446,
+      "before_lines": 242,
+      "changed": true,
+      "added_lines": 13,
+      "insertion_groups": 9,
+      "byte_inverse_verified": true,
+      "eol_preserved": true
+    }
+  ],
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R070.json",
+    "sha256": "ac834ccb7eba3d6cbcbd8c311822e38e2d43ce266aa3cf7c6f13e39da211edae",
+    "bytes": 402709
+  },
+  "validation_record": {
+    "path": "docs/plans/source-comments/reviews/R070-post-validation.json",
+    "sha256": "31a7eb2cafb8636c3e663773054e34f9fac5d8bd936d6d5f461538b62cbd03f1",
+    "bytes": 244607
+  },
+  "review": {
+    "summary": "独立审查绑定拥有值、Serde桥、两类投影、局部身份与整树预算，以及3个直接测试文件。7源原53806字节/1583行逐字节保留，145组新增注释与分隔空行共265物理行，现74089字节/1848行；未改代码、公共API、原注释、断言、宏和字符串。",
+    "responsibility_and_entry": "公共枚举可直接构造，string/unsigned/array只组装拥有数据，record/map构造后验证完整根。as_str借用受self限制，as_u32仅可无损缩窄的整型成功。模型经父mod重导出，三个子模块显式挂载；exact7内无手工extern/unsafe/动态注册入口。",
+    "wire_lifecycle": "UiBindingValueWire与各局部wire先拥有化；From逐变体移动，无准入检查。自定义UiBindingValue Deserialize在wire成功后校验完整根，嵌套公共值有各自局部入口。Enum wire unbox后再交构造器box，不能承诺全路径无分配。固定身份非空/UTF8字节上限、实体代际非零、集合窗口约束不等于模式注册或资源存在性。",
+    "whole_tree_budget": "标准根深度从1起，四预算可显式替换为调用方给定值；身份字节与集合固定行数上限独立。每节点递归访问，共享一次根调用的局部计数；每映射键另计节点并按键类别累计字符串字节。每个容器按自身len先准入，字符串按累计UTF8字节统计。饱和加法报告首错；临时状态可保留失败前计数但不逃逸，不修改值树。解析或Serde在预算拒绝前可能已经分配。",
+    "json_projection": "to_json_value为回调生成独立拥有JSON，和Serde枚举wire不同。数组/记录递归，Map保持异构键值条目序列；扩展类别使用固定标签。Optional(Some)投影内值、None投影null；非有限float投影null。三个Editor包装体直接调用该方法；投影不查询资源/实体/集合，不保证可从JSON恢复原类别。",
+    "native_projection": "UiEventBinding native_binding→UiBindingCall native_repr_into→UiBindingValue追加→mapkey/quoted_into，递归共享调用方可变String，不清前缀、不保留借用。符号与路径原样写入的语法约束仍在上层契约。转义仅反斜杠/双引号/n/r/t，已对照parser实际解码。正Signed与Unsigned文本词法同形，parser无负号且无小数/指数时生成Unsigned；不能承诺任意值类别无损。浮点文本补.0用于维持有限浮点的词法类别。",
+    "map_serde": "UiBindingMap私有BTreeMap按完整枚举键类别及内容判重并排序。try_from_entries负责去重，不代替外层整树预算。Serialize只借用条目，用serialize_seq逐项交序列化器，避免该impl的临时条目Vec；不表示编码器或嵌套值完全零分配。Deserialize先拥有Vec再移入去重构造器。",
+    "references_and_windows": "实体引用只保存id/非零generation，不保活实体。Asset只拥有经局部身份检查的定位文本，不证明URI存在。CollectionView拥有provider/schema键及修订和范围，不包含集合行；revision非零、length固定上限、checked_add终点不得超过total，零长窗口起点仍受检查。不查询外部注册表或证明修订最新。",
+    "tests": "6个普通测试、2个显式忽略微基准及27处断言均按具体夹具审读，执行数0。丰富值用例覆盖固定Serde JSON/二进制/原生文本往返；不能扩展成任意值类别往返。流式映射普通测试只比较固定映射新旧编码字节。忽略的map基准仅遍历/条目视图收集和校验和，不计真正编码；native基准计固定夹具文本生成且未执行。控制集合95%比较只针对固定物化窗口与描述编码字节，总百万行仅字段。",
+    "raw_consumers": "独立按Python真实通用换行、完整selector端点、字面量和首失败顺序重算4方法19谓词；11静态满足，8在两条旧BENCH缺失读取后未到达。没有以正确挂载的新测试替换原BENCH输入。所有新增注释操作数贡献0。公共类型检测复用Rust trim_start/pub前缀/struct或enum/ASCII名称算法，10个公共类型集合不变；未复用已失效的过度转义正则。",
+    "existing_issue": "CR-UITREE-0004原两行TODO逐字保留在binding_value.rs110-111。Serde与native parser在构造后校验的证据已独立读取，当前仅确认解析期预算缺口，未执行恶意大输入或宣称已修复。两个外部Python错误路径为待所属批次审查的观察，本批不在正确Rust挂载处新增误导BUG。",
+    "decision": "新增注释的职责、调用时机、所有权、错误和生命周期限制均与实码相符，无需R070主审修订；CR-ZCA-R070-0001保留未用。所有7源逐对象/成员/语义区域完成审查，外部只读上下文不计本批覆盖。"
+  },
+  "object_member_region_counts": {
+    "types": 18,
+    "members": 84,
+    "nested_error_fields": 18,
+    "functions": 76,
+    "semantic_regions": 143,
+    "impls": 22,
+    "constants": 13,
+    "assertions": 27
+  },
+  "canonical_ranges": 401,
+  "canonical_range_digest": "fe2d6ce73e5a89340b37a9118a846e15cb76a84dd969f0e933ca38ca76946321",
+  "source_read_evidence": [
+    {
+      "receipt": "476/240a83 native54864->200e6d exit0/PID18448",
+      "scope": "binding_value.rs188/projection219/validation182全文"
+    },
+    {
+      "receipt": "478/367c19 native27295->eba2b6 exit0/PID21836",
+      "scope": "types.rs1-409；native输出被截断，不作为其尾部或完整模型读取"
+    },
+    {
+      "receipt": "484 native98636 terminal exit0/PID35992",
+      "scope": "types.rs400-641及3测试全文229/134/255行，完整输出19709tokens保留"
+    },
+    {
+      "receipt": "495 terminal exit0/PID15252",
+      "scope": "12实际caller/mount/codec/parser上下文和完整child原文模型；当前SHA全部匹配child"
+    },
+    {
+      "receipt": "505 native43339 terminal exit0/PID9920",
+      "scope": "parser构造器分支、两Python检查器全文、旁支消费者20行；401范围和全部19谓词/10公共类型静态复核"
+    }
+  ],
+  "core_readonly_advice": {
+    "reviewer": "core_timer_sol",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "max",
+    "mode": "readonly-advice-not-root-review-or-formal-coverage",
+    "exact7_source_lines": 1848,
+    "source_pins_equal_fixed_child": true,
+    "conclusion": "No necessary added-doc correction/new issue found; preserves existing CR-UITREE-0004. Ownership/Serde cumulative vs local budgets/JSON projection/signed native text loss/two ignored measurement domains accurately documented.",
+    "actual_native_terminals": [
+      "ddebd4 exit0",
+      "1d5016 exit0",
+      "4abcf3 exit0",
+      "eaa8d6 exit0",
+      "d3b99f exit0",
+      "ecc2d3 exit0",
+      "105049 exit0"
+    ],
+    "PID_not_exposed": true,
+    "tests_and_Cargo_run": false,
+    "writes": [],
+    "scope_limits": "Child402709B targeted field read only, not full record coverage. BorrowedNativeView not matched in bounded actual Rust searches; no lifetime guarantee invented. Both Python old BENCH first reads block actual later assertions.",
+    "root_review_still_pending": true
+  },
+  "validation_summary": {
+    "actual_commands": 13,
+    "all_actual_commands_exit_zero": true,
+    "guard": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "format_actual_evidence_reused": {
+      "reused_actual_receipt": "06aa20/native93508->872e1c exit0/PID20072",
+      "actual_command": {
+        "kind": "R070_exact7_rustfmt",
+        "args": [
+          "rustfmt",
+          "--check",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true",
+          "zircon_runtime_interface/src/ui/binding/model/binding_value.rs",
+          "zircon_runtime_interface/src/ui/binding/model/binding_value/projection.rs",
+          "zircon_runtime_interface/src/ui/binding/model/binding_value/types.rs",
+          "zircon_runtime_interface/src/ui/binding/model/binding_value/validation.rs",
+          "zircon_runtime_interface/src/ui/binding/model/tests/native_repr_perf.rs",
+          "zircon_runtime_interface/src/ui/binding/model/types/tests/map_serialize_perf.rs",
+          "zircon_runtime_interface/src/tests/binding_value_contracts.rs"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "exact_current_source_pins_equal_checked_child": true,
+      "rerun": false,
+      "reason": "相同精确7源和配置的已完成格式/解析证据复用，未有代码变化。"
+    },
+    "raw": {
+      "predicates": 19,
+      "reached_static_true": 11,
+      "blocked_after_missing_read": 8,
+      "missing_reads": 2,
+      "new_comment_contribution": 0,
+      "tests_executed": false
+    },
+    "patch_sha256": "3b3a566b0480ff8f7f5d2865037791f436d26e3b950d60c071671ce3212d7af7",
+    "patch_bytes": 44132,
+    "tests_executed": 0,
+    "Cargo_or_build": false
+  },
+  "issues": {
+    "added": [],
+    "existing_preserved": [
+      {
+        "id": "CR-UITREE-0004",
+        "path": "zircon_runtime_interface/src/ui/binding/model/binding_value.rs",
+        "before_lines": [
+          79,
+          80
+        ],
+        "current_lines": [
+          110,
+          111
+        ],
+        "exact_text": "// TODO: [CR-UITREE-0004] serde 与原生绑定解析目前先构造复合值再校验预算；\n// 若入口接收不可信的大输入，需在解析期间限制深度、元素数与字节数，避免拒绝前大量分配。",
+        "disposition": "只解释已有分配前置边界，不关闭、不修改"
+      }
+    ],
+    "reserved_unused": [
+      "CR-ZCA-R070-0001"
+    ],
+    "root_cross_scope_observations": [
+      {
+        "kind": "source_guard_missing_fixture",
+        "root_action": "复用R067/本批准确路径与先读失败证据，请主审归并；未新贴BUG到正确挂载处",
+        "paths": [
+          "zircon_runtime_interface/src/ui/binding/model/binding_value/projection/tests/native_repr_performance_tests.rs",
+          "zircon_runtime_interface/src/ui/binding/model/binding_value/types/tests/map_serialize_performance_tests.rs"
+        ]
+      }
+    ]
+  },
+  "scope_limits": [
+    "外部调用上下文只读，不计本批7源之外正式覆盖。",
+    "两个旧BENCH文件确证缺失；保留8条后续断言未到达，未以新位置替换原操作数。",
+    "原文AST逐操作数求值是静态检查，未运行Python测试方法、Rust普通测试或忽略的性能基准。",
+    "无Cargo构建或宽泛测试，未作性能/类型检查/全仓接受承诺。",
+    "child历史未知writer/旧创建前拒绝及只读失败保持原记录。"
+  ],
+  "process_lifecycle": {
+    "post_writer_actual_terminal": "512 native27638->76a54e exit0/PID2132",
+    "root_readonly_complete": "505 native43339 terminal exit0/PID9920",
+    "this_metadata_writer_pid": 34196,
+    "this_invocation_terminal_known_at_creation": false,
+    "historical_unknowns_preserved": true
+  },
+  "index_observation_at_post": {
+    "index_exists": true,
+    "index_sha256": "8ae41eb940729cf4f1ea1468d72fdbe257581bc1fc38ace9dce024c481400893",
+    "index_bytes": 7478958,
+    "lock_exists": false,
+    "lock_bytes": null,
+    "remover_and_owner_not_inferred": true,
+    "git_metadata_writes": false
+  },
+  "phase_handoff": {
+    "snapshot_source_candidates": 7,
+    "record_candidates": 3,
+    "stage_candidates": 10,
+    "approved_actor": "designated Jenkins chat 01a0f6e1-e9a8-7b92-aed8-5220c71a9c43",
+    "commit": false,
+    "push": false,
+    "notification": false,
+    "note": "精确10快照与本地覆盖登记仍待生成，实际Jenkins验证/提交/附带授权企业微信通知收据另行核对；不将控制器健康、锁缺失或本地静态检查当接受。"
+  },
+  "artifact_lifecycle": {
+    "preregistered": true,
+    "source_copies": false,
+    "temporary_helpers": false,
+    "deleted_files": 0,
+    "freed_bytes": 0,
+    "retain": "7源、child/main/post、必要失败证据与指定Jenkins收据。"
+  }
+}

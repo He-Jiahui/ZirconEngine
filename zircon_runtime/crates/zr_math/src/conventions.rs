@@ -42,6 +42,7 @@ pub enum FrontFaceWinding {
 }
 
 /// Semantic location of coordinates at a cross-module boundary.
+/// 供模块边界标注局部、父级、世界及渲染阶段坐标；标签只分类，不执行空间变换。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SpaceKind {
     Local,
@@ -54,6 +55,7 @@ pub enum SpaceKind {
 }
 
 impl SpaceKind {
+    /// 判断标签是否属于视图相对、视图、裁剪或屏幕空间，不转换坐标值。
     pub const fn is_render_space(self) -> bool {
         matches!(
             self,

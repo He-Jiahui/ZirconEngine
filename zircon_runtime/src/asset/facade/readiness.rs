@@ -4,7 +4,9 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use super::{Asset, AssetLoadState, AssetLoadStates, Handle};
-use crate::asset::{AssetId, AssetKind, AssetUri, ProjectAssetManager};
+#[cfg(any(feature = "native-host", feature = "cooked-assets"))]
+use crate::asset::ProjectAssetManager;
+use crate::asset::{AssetId, AssetKind, AssetUri};
 use crate::core::resource::{
     ResourceDiagnostic, ResourceMarker, ResourceReadinessGeneration,
     ResourceReadinessGenerationAssemblyExt, ResourceReadinessRow,
@@ -53,6 +55,7 @@ pub struct AssetDependencyReadiness {
     pub diagnostics: Vec<ResourceDiagnostic>,
 }
 
+#[cfg(any(feature = "native-host", feature = "cooked-assets"))]
 impl ProjectAssetManager {
     pub fn readiness_report<TAsset: Asset>(&self, handle: Handle<TAsset>) -> AssetReadinessReport {
         let generation = self.resource_manager().readiness_generation();

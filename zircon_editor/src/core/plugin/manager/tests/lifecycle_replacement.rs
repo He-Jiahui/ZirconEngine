@@ -203,7 +203,7 @@ fn replacing_an_active_package_retires_the_old_instance_before_hot_reload() {
 }
 
 #[test]
-// BUG: [CR-EDITOR-SERVICES-0003] 此测试最后期待第二次 Disabled；首次退役已成功 Disabled、失败 Unloaded，重试会跳过 Disabled 而再次调用 Unloaded，断言与清理路径不符。
+// Retry the failed unload without repeating the successful Disabled callback.
 fn replacement_retries_failed_unload_before_activating_candidate() {
     let package_id = "plugin.lifecycle.unload-failure";
     let first_plugin = Arc::new(FailOnceLifecyclePlugin {
@@ -291,7 +291,7 @@ fn replacement_retries_failed_unload_before_activating_candidate() {
             EditorPluginLifecycleStage::Loaded,
             EditorPluginLifecycleStage::Enabled,
             EditorPluginLifecycleStage::Disabled,
-            EditorPluginLifecycleStage::Disabled,
+            EditorPluginLifecycleStage::Unloaded,
             EditorPluginLifecycleStage::Unloaded,
         ]
     );

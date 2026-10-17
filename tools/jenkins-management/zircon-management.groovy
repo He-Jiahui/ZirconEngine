@@ -26,7 +26,7 @@ def codex = '@@CODEX@@'
 def capsule = '@@CAPSULE@@'
 def driver = '@@DRIVER@@'
 def runtime = '@@RUNTIME@@'
-def allowed = ['create-branch', 'create-worktree', 'prepare-merge', 'apply-patch', 'commit-worktree', 'release-worktree', 'validate', 'generate', 'submit-flow']
+def allowed = ['create-branch', 'create-worktree', 'prepare-merge', 'apply-patch', 'commit-worktree', 'release-worktree', 'recover-worktree', 'validate', 'generate', 'prepare-flow', 'submit-flow', 'prepare-worktree', 'inspect-worktree', 'retire-worktree-reader', 'preview-current-editor-r34']
 if (!(params.ACTION in allowed)) error('Unsupported management action')
 for (String name : ['SESSION_ID', 'REQUEST_ID', 'OPERATION_ID']) {
     if (!(params[name] ==~ /[A-Za-z0-9][A-Za-z0-9_.-]{0,79}/)) error("Invalid ${name}")
@@ -52,7 +52,7 @@ for (int poll = 0; poll < 240; poll++) {
             writeFile(file: inputPath, text: JsonOutput.toJson(input), encoding: 'UTF-8')
             def status
             // The exact request lives in the control file, not the child environment.
-            withEnv(['INPUT_JSON=']) {
+            withEnv(['INPUT_JSON=', 'XDG_CONFIG_HOME=E:/Git/ZirconEngine/.jenkins']) {
                 status = bat(returnStatus: true, script:
                     "\"${python}\" -B -X utf8 \"${capsule}/runner.py\" --capsule \"${capsule}\" " +
                     "--input-file \"${inputPath}\" --output-file \"${outputPath}\"")

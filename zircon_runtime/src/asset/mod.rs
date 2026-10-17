@@ -194,6 +194,7 @@ pub use registry::{
 };
 pub use runtime_asset_path::{
     runtime_asset_path, runtime_asset_path_with_dev_asset_root, runtime_asset_root,
+    AssetRelativePath, AssetRelativePathError,
 };
 pub use virtual_geometry_cook::{
     cook_virtual_geometry_from_mesh, encode_virtual_geometry_cook_binary_dump,
@@ -217,3 +218,10 @@ mod tests;
 #[cfg(test)]
 #[path = "tests/mod_test_support.rs"]
 pub(crate) mod test_support;
+
+#[path = "runtime/mod.rs"]
+pub mod runtime;
+pub use runtime::{runtime_asset_manager_handle, RuntimeAssetManager, RuntimeAssetManagerAccess};
+#[path = "codec_error.rs"]
+mod codec_error;
+pub(crate) use codec_error::AssetCodecError;

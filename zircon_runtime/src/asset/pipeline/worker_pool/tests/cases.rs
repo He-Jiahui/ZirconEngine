@@ -3,6 +3,7 @@ use std::hint::black_box;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 #[cfg(windows)]
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc, Barrier};
 
 use crate::asset::types::{CpuTexturePayload, TextureSource};
@@ -44,10 +45,169 @@ impl AssetWorkerPool {
         options: AssetWorkerPoolOptions,
         test_execution_gate: AssetWorkerTestExecutionGate,
     ) -> Self {
-        let mut pool = Self::new(task_pool, options);
+        let timer =
+            TaskTimer::new(1).expect("independent execution-gate expiry timer should start");
+        let mut pool = Self::with_expiry_timer(task_pool, options, timer);
         pool.test_execution_gate = Some(test_execution_gate);
         pool
     }
+}
+
+#[test]
+fn closed_runtime_io_rejects_new_asset_requests_without_retaining_admission() {
+    let (io_pool, release) = occupied_io_pool();
+    let timer = TaskTimer::new(1).expect("independent expiry timer should start");
+    let pool = AssetWorkerPool::with_expiry_timer(
+        io_pool.clone(),
+        AssetWorkerPoolOptions::new().with_queue_depth(0),
+        timer,
+    );
+    let before = pool.diagnostics();
+    let closing_with_active_work = !io_pool.shutdown_until(Instant::now());
+    let checker = AssetRequest::Texture(TextureSource::BuiltinChecker);
+    let outcomes = [
+        checker.clone(),
+        checker,
+        AssetRequest::Texture(TextureSource::BuiltinGrid),
+    ]
+    .map(|request| catch_unwind(AssertUnwindSafe(|| pool.request(request))));
+    let retained = {
+        let state = lock_completion_registry(&pool.completions);
+        (
+            state.in_flight.len(),
+            state.scheduled_jobs,
+            state.completed.len(),
+            state.completed_bytes,
+        )
+    };
+    let diagnostics = pool.diagnostics();
+
+    let released = release.send(());
+    let joined = io_pool.shutdown_until(Instant::now() + Duration::from_secs(2));
+    drop(pool);
+
+    assert!(closing_with_active_work);
+    assert!(released.is_ok(), "the occupied IO worker must be released");
+    assert!(joined, "the closed IO pool must drain and join");
+    for outcome in outcomes {
+        assert!(
+            matches!(
+                outcome,
+                Ok(Err(CoreError::ChannelSend(message)))
+                    if message.contains("runtime IO task pool is closing admission")
+            ),
+            "each request must reach IO refusal with the independent timer still accepting registrations"
+        );
+    }
+    assert_eq!(retained, (0, 0, 0, 0));
+    assert_eq!(diagnostics, before);
+}
+
+#[test]
+fn admitted_asset_request_drains_after_runtime_io_admission_closes() {
+    let (io_pool, release) = occupied_io_pool();
+    let timer = TaskTimer::new(2).expect("independent expiry timer should start");
+    let pool = AssetWorkerPool::with_expiry_timer(
+        io_pool.clone(),
+        AssetWorkerPoolOptions::new().with_queue_depth(0),
+        timer,
+    );
+    let request = AssetRequest::Texture(TextureSource::BuiltinChecker);
+    let owner = catch_unwind(AssertUnwindSafe(|| pool.request(request.clone())));
+    let closing_with_active_work = !io_pool.shutdown_until(Instant::now());
+    let merged = catch_unwind(AssertUnwindSafe(|| pool.request(request.clone())));
+    let queued_diagnostics = pool.diagnostics();
+
+    let released = release.send(());
+    let owner_payload = match &owner {
+        Ok(Ok(ticket)) => ticket.wait_timeout(Duration::from_secs(2)).ok(),
+        _ => None,
+    };
+    let merged_payload = match &merged {
+        Ok(Ok(ticket)) => ticket.wait_timeout(Duration::from_secs(2)).ok(),
+        _ => None,
+    };
+    let joined = io_pool.shutdown_until(Instant::now() + Duration::from_secs(2));
+    let cached = catch_unwind(AssertUnwindSafe(|| pool.request(request)));
+    let cached_payload = match &cached {
+        Ok(Ok(ticket)) => ticket.wait_timeout(Duration::from_secs(2)).ok(),
+        _ => None,
+    };
+    let diagnostics = pool.diagnostics();
+    let scheduled_jobs = lock_completion_registry(&pool.completions).scheduled_jobs;
+    drop(pool);
+
+    assert!(closing_with_active_work);
+    assert!(released.is_ok(), "the occupied IO worker must be released");
+    assert!(joined, "accepted IO work must drain before workers join");
+    let (Some(owner_payload), Some(merged_payload), Some(cached_payload)) =
+        (owner_payload, merged_payload, cached_payload)
+    else {
+        panic!("accepted, merged, and cached tickets must observe the real decoded payload");
+    };
+    assert!(matches!(&*owner_payload, CpuAssetPayload::Texture(_)));
+    assert!(Arc::ptr_eq(&owner_payload, &merged_payload));
+    assert!(Arc::ptr_eq(&owner_payload, &cached_payload));
+    assert_eq!(queued_diagnostics.in_flight, 1);
+    assert_eq!(queued_diagnostics.in_flight_waiters, 2);
+    assert_eq!(scheduled_jobs, 0);
+    assert_eq!(diagnostics.in_flight, 0);
+    assert_eq!(diagnostics.in_flight_waiters, 0);
+    assert_eq!(diagnostics.completed, 1);
+    assert_eq!(diagnostics.merged, 2);
+    assert_eq!(diagnostics.queue_age_samples, 1);
+    assert_eq!(diagnostics.failed, 0);
+    assert_eq!(diagnostics.rejected, 0);
+    assert_eq!(diagnostics.expired, 0);
+    assert_eq!(diagnostics.cancelled, 0);
+}
+
+#[test]
+fn rejected_task_pool_submission_preserves_job_until_after_registry_unlock() {
+    struct RegistryDropProbe {
+        completions: Arc<CompletionRegistry>,
+        dropped: Arc<AtomicBool>,
+        registry_unlocked: Arc<AtomicBool>,
+    }
+
+    impl Drop for RegistryDropProbe {
+        fn drop(&mut self) {
+            self.registry_unlocked
+                .store(self.completions.state.try_lock().is_ok(), Ordering::Release);
+            self.dropped.store(true, Ordering::Release);
+        }
+    }
+
+    let io_pool = TaskPool::new(TaskPoolDescriptor::io().with_worker_threads(1));
+    let joined_before = io_pool.shutdown_until(Instant::now() + Duration::from_secs(2));
+    let pool = AssetWorkerPool::new(io_pool.clone(), AssetWorkerPoolOptions::new());
+    let dropped = Arc::new(AtomicBool::new(false));
+    let registry_unlocked = Arc::new(AtomicBool::new(false));
+    let executed = Arc::new(AtomicBool::new(false));
+    let probe = RegistryDropProbe {
+        completions: Arc::clone(&pool.completions),
+        dropped: Arc::clone(&dropped),
+        registry_unlocked: Arc::clone(&registry_unlocked),
+    };
+    let task_executed = Arc::clone(&executed);
+    let state = lock_completion_registry(&pool.completions);
+    let submission = io_pool.try_spawn(move || {
+        task_executed.store(true, Ordering::Release);
+        drop(probe);
+    });
+    let refused = submission.is_err();
+    let dropped_before_unlock = dropped.load(Ordering::Acquire);
+    drop(state);
+    drop(submission);
+    let joined_after = io_pool.shutdown_until(Instant::now() + Duration::from_secs(2));
+    drop(pool);
+
+    assert!(joined_before && joined_after);
+    assert!(refused);
+    assert!(!executed.load(Ordering::Acquire));
+    assert!(!dropped_before_unlock);
+    assert!(dropped.load(Ordering::Acquire));
+    assert!(registry_unlocked.load(Ordering::Acquire));
 }
 
 #[test]
@@ -130,21 +290,34 @@ fn cancelling_a_running_entry_wakes_its_ticket_and_releases_admission() {
         .expect("request should be admitted before its IO closure starts");
 
     gate.wait_for_worker_start();
+    let observation = catch_unwind(AssertUnwindSafe(|| {
+        let was_running = ticket.entry.is_running();
+        let cancelled = pool.cancel(&request);
+        let completion = ticket.wait_timeout(Duration::from_secs(1));
+        (was_running, cancelled, completion, pool.diagnostics())
+    }));
+
+    gate.release_worker();
+    let joined = pool
+        .task_pool()
+        .shutdown_until(Instant::now() + Duration::from_secs(2));
+    drop(pool);
+
+    assert!(joined, "the released IO worker must drain and join");
+    let (was_running, cancelled, completion, diagnostics) =
+        observation.expect("cancellation observations must not panic");
     assert!(
-        ticket.entry.is_running(),
+        was_running,
         "the spawned IO closure must be in its running phase before cancellation"
     );
-    assert!(pool.cancel(&request));
+    assert!(cancelled);
     assert!(matches!(
-        ticket.wait_timeout(Duration::from_secs(1)),
+        completion,
         Err(AssetWorkerCompletionError::Cancelled)
     ));
-    let diagnostics = pool.diagnostics();
     assert_eq!(diagnostics.in_flight, 0);
     assert_eq!(diagnostics.in_flight_waiters, 0);
     assert_eq!(diagnostics.cancelled, 1);
-
-    gate.release_worker();
 }
 
 #[test]
@@ -531,19 +704,20 @@ fn optimization_batch_fl_runtime468_full_waiter_lookup_preserves_rejection_seman
         .expect("the first observer should own the in-flight request");
     gate.wait_for_worker_start();
 
-    let rejection = match pool.request(request) {
-        Ok(_) => panic!("a full observer budget must reject the duplicate request"),
-        Err(error) => error,
-    };
+    let rejection = catch_unwind(AssertUnwindSafe(|| pool.request(request)));
+    gate.release_worker();
+    let completion = first.wait_timeout(Duration::from_secs(2));
+    let joined = pool
+        .task_pool()
+        .shutdown_until(Instant::now() + Duration::from_secs(2));
+    drop(pool);
 
+    assert!(joined, "the released IO worker must drain and join");
     assert!(matches!(
         rejection,
-        CoreError::ChannelSend(message) if message.contains("observer budget full")
+        Ok(Err(CoreError::ChannelSend(message))) if message.contains("observer budget full")
     ));
-    gate.release_worker();
-    first
-        .wait_timeout(Duration::from_secs(2))
-        .expect("the original observer should still receive the completion");
+    completion.expect("the original observer should still receive the completion");
 }
 
 #[test]

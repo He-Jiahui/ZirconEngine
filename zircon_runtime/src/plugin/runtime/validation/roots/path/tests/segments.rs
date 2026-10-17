@@ -9,14 +9,7 @@ fn optimization_batch_gh_runtime491_root_segments_preserves_path_rules() {
         assert!(diagnostics.is_empty(), "unexpected diagnostic for {root}");
     }
 
-    let invalid = [
-        "",
-        "/assets",
-        "assets/",
-        "assets//main",
-        "assets/.",
-        ".",
-    ];
+    let invalid = ["", "/assets", "assets/", "assets//main", "assets/.", "."];
     for root in invalid {
         let mut diagnostics = Vec::new();
         validate_runtime_plugin_package_root_segments("root", root, &mut diagnostics);

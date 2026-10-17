@@ -29,6 +29,8 @@ fn optimization_batch_20260826da_runtime144_mobility_parser_avoids_owned_lowerca
     assert!(!parser.contains("to_ascii_lowercase()"));
 }
 
+/// 交替采样旧版与借用解析器耗时，默认忽略；分配列依据旧版转换次数固定填写。
+/// 本基准未安装分配计数器，不能把打印列当作实测分配统计。
 #[test]
 #[ignore = "release-only mobility enum parse performance gate"]
 fn optimization_batch_20260826da_runtime144_mobility_parse_performance_evidence() {

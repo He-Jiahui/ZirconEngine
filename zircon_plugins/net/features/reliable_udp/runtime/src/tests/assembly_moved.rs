@@ -1,8 +1,6 @@
 use std::{hint::black_box, time::Instant};
 
-use zircon_runtime::core::framework::net::{
-    ReliableDatagramPacket, ReliableDatagramReceiveStatus,
-};
+use zircon_runtime::core::framework::net::{ReliableDatagramPacket, ReliableDatagramReceiveStatus};
 
 use super::InboundFragmentAssembly;
 

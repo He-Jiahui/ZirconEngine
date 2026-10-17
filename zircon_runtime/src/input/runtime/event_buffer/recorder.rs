@@ -11,7 +11,7 @@
 //! # 参考
 //! [`InputEventRecord`]、[`InputEventRecordingConfig`]、[`InputEventRecordingStatus`]
 use std::collections::VecDeque;
-use std::time::{SystemTime, UNIX_EPOCH};
+use web_time::{SystemTime, UNIX_EPOCH};
 
 use crate::input::{
     InputEvent, InputEventRecord, InputEventRecordingConfig, InputEventRecordingStatus,

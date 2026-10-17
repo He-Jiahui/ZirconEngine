@@ -17,6 +17,7 @@ fn transaction_record(sequence: u64) -> TransactionRecord {
         selection_before: SelectionSnapshot::default(),
         selection_after: SelectionSnapshot::default(),
         significant: true,
+        retention: None,
     }
 }
 

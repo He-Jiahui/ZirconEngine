@@ -63,8 +63,9 @@ fn runtime_fixture_loader_stays_on_asset_paths() {
     for required in [
         "fn relative_asset_path",
         "fn asset_path",
-        "use crate::asset::runtime_asset_path",
-        "runtime_asset_path(self.relative_asset_path())",
+        "use crate::asset::{runtime_asset_path, AssetRelativePath}",
+        "AssetRelativePath::parse(self.relative_asset_path())",
+        "runtime_asset_path(&relative)",
     ] {
         assert!(
             fixture_source.contains(required),

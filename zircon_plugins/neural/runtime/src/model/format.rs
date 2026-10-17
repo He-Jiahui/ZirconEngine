@@ -67,15 +67,22 @@ impl NnModelAsset {
     // BUG: [CR-neural_model_clean-0001] 通过 validate 的手工模型可写出超过 v1 解码器计数上限的文件；同一文件随后无法由 from_znn_bytes 解码。
     /// 将结构有效的模型编码为 ZRNN v1 小端字节序列。
     pub fn to_znn_bytes(&self) -> Result<Vec<u8>, NnModelFormatError> {
+        enforce_resource_limit("tensor_count", self.tensors.len(), ZNN_MAX_TENSOR_COUNT)?;
+        enforce_resource_limit("op_count", self.ops.len(), ZNN_MAX_OP_COUNT)?;
+        enforce_resource_limit(
+            "weight_blob_bytes",
+            self.weights.len(),
+            ZNN_MAX_WEIGHT_BLOB_BYTES,
+        )?;
         self.validate().map_err(NnModelFormatError::Validation)?;
 
         let tensor_count =
             u32::try_from(self.tensors.len()).map_err(|_| NnModelFormatError::CountTooLarge)?;
         let op_count =
             u32::try_from(self.ops.len()).map_err(|_| NnModelFormatError::CountTooLarge)?;
-        let op_table = encode_ops(&self.ops)?;
+        let encoded_op_bytes = encoded_ops_size(&self.ops)?;
         let op_table_size =
-            u32::try_from(op_table.len()).map_err(|_| NnModelFormatError::CountTooLarge)?;
+            u32::try_from(encoded_op_bytes).map_err(|_| NnModelFormatError::CountTooLarge)?;
         let tensor_table_size = self
             .tensors
             .len()
@@ -83,17 +90,19 @@ impl NnModelAsset {
             .ok_or(NnModelFormatError::ArithmeticOverflow)?;
         let data_end = ZNN_HEADER_BYTES
             .checked_add(tensor_table_size)
-            .and_then(|offset| offset.checked_add(op_table.len()))
+            .and_then(|offset| offset.checked_add(encoded_op_bytes))
             .ok_or(NnModelFormatError::ArithmeticOverflow)?;
         let weight_blob_offset = align_up(data_end, NN_WEIGHT_ALIGNMENT as usize)?;
         let weight_blob_size =
             u64::try_from(self.weights.len()).map_err(|_| NnModelFormatError::CountTooLarge)?;
 
-        let mut bytes = Vec::with_capacity(
-            weight_blob_offset
-                .checked_add(self.weights.len())
-                .ok_or(NnModelFormatError::ArithmeticOverflow)?,
-        );
+        let artifact_bytes = weight_blob_offset
+            .checked_add(self.weights.len())
+            .ok_or(NnModelFormatError::ArithmeticOverflow)?;
+        enforce_resource_limit("artifact_bytes", artifact_bytes, ZNN_MAX_ARTIFACT_BYTES)?;
+        let op_table = encode_ops(&self.ops, encoded_op_bytes)?;
+        let mut bytes = Vec::new();
+        try_reserve_exact(&mut bytes, artifact_bytes, "artifact_bytes")?;
         bytes.extend_from_slice(&ZNN_MAGIC);
         write_u32(&mut bytes, ZNN_VERSION);
         write_u32(
@@ -242,8 +251,37 @@ fn decode_tensor(record: &[u8]) -> Result<NnTensorDesc, NnModelFormatError> {
     })
 }
 
-fn encode_ops(ops: &[NnOp]) -> Result<Vec<u8>, NnModelFormatError> {
+fn encoded_ops_size(ops: &[NnOp]) -> Result<usize, NnModelFormatError> {
+    let mut total = 0usize;
+    for op in ops {
+        u8::try_from(op.inputs.len()).map_err(|_| NnModelFormatError::CountTooLarge)?;
+        u8::try_from(op.outputs.len()).map_err(|_| NnModelFormatError::CountTooLarge)?;
+        let attrs = op
+            .attrs
+            .encode(op.code)
+            .map_err(NnModelFormatError::InvalidOpAttrs)?;
+        u16::try_from(attrs.len()).map_err(|_| NnModelFormatError::CountTooLarge)?;
+        let tensor_ids = op
+            .inputs
+            .len()
+            .checked_add(op.outputs.len())
+            .and_then(|count| count.checked_mul(size_of::<u16>()))
+            .ok_or(NnModelFormatError::ArithmeticOverflow)?;
+        let record_bytes = ZNN_MIN_OP_RECORD_BYTES
+            .checked_add(tensor_ids)
+            .and_then(|count| count.checked_add(attrs.len()))
+            .ok_or(NnModelFormatError::ArithmeticOverflow)?;
+        total = total
+            .checked_add(align_up(record_bytes, 4)?)
+            .ok_or(NnModelFormatError::ArithmeticOverflow)?;
+        enforce_resource_limit("op_table_bytes", total, ZNN_MAX_OP_TABLE_BYTES)?;
+    }
+    Ok(total)
+}
+
+fn encode_ops(ops: &[NnOp], encoded_size: usize) -> Result<Vec<u8>, NnModelFormatError> {
     let mut bytes = Vec::new();
+    try_reserve_exact(&mut bytes, encoded_size, "op_table_bytes")?;
     for op in ops {
         let inputs =
             u8::try_from(op.inputs.len()).map_err(|_| NnModelFormatError::CountTooLarge)?;

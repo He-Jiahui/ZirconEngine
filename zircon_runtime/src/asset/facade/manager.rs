@@ -139,13 +139,13 @@ impl ProjectAssetManager {
         }
     }
 
-    fn ensure_loaded<TAsset: Asset>(&self, id: AssetId) -> Result<TAsset, CoreError> {
+    fn ensure_loaded<TAsset: Asset>(&self, id: AssetId) -> Result<(), CoreError> {
         let handle = ResourceHandle::<TAsset::Marker>::new(id);
         if let Some(asset) = self
             .resource_manager()
             .get::<TAsset::Marker, TAsset>(handle)
         {
-            return Ok(asset.as_ref().clone());
+            return Ok(());
         }
 
         let record = self
@@ -173,7 +173,7 @@ impl ProjectAssetManager {
         self.ensure_resident(id)?;
         self.resource_manager()
             .get::<TAsset::Marker, TAsset>(handle)
-            .map(|asset| asset.as_ref().clone())
+            .map(|_| ())
             .ok_or_else(|| {
                 asset_error_message(format!(
                     "asset {id} was not a ready typed facade payload {}",

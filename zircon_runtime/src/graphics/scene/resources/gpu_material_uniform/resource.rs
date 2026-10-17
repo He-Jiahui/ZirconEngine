@@ -47,11 +47,12 @@ impl GpuMaterialUniformResource {
         device: &wgpu::Device,
         payload: &RenderMaterialPropertyUniformPayload,
     ) -> Self {
-        let contents = padded_uniform_contents(payload);
+        let mut padding = [0_u8; GPU_MATERIAL_UNIFORM_MIN_SIZE];
+        let contents = padded_uniform_contents(&payload.bytes, &mut padding);
         Self::from_contents(
             device,
             "zircon-material-property-uniform-buffer",
-            &contents,
+            contents,
             payload.bytes.len() as u64,
         )
     }
@@ -99,10 +100,17 @@ impl GpuMaterialUniformResource {
     }
 }
 
-fn padded_uniform_contents(payload: &RenderMaterialPropertyUniformPayload) -> Vec<u8> {
-    let mut contents = payload.bytes.clone();
-    contents.resize(contents.len().max(GPU_MATERIAL_UNIFORM_MIN_SIZE), 0);
-    contents
+fn padded_uniform_contents<'a>(
+    bytes: &'a [u8],
+    padding: &'a mut [u8; GPU_MATERIAL_UNIFORM_MIN_SIZE],
+) -> &'a [u8] {
+    if bytes.len() >= GPU_MATERIAL_UNIFORM_MIN_SIZE {
+        return bytes;
+    }
+    let (contents, zeroes) = padding.split_at_mut(bytes.len());
+    contents.copy_from_slice(bytes);
+    zeroes.fill(0);
+    padding
 }
 
 pub(crate) fn standard_material_uniform_contents(

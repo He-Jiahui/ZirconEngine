@@ -44,7 +44,7 @@ mod rhi_wgpu_lock_poison;
 #[path = "structure/runtime_dead_code/mod.rs"]
 mod runtime_dead_code;
 #[path = "structure/rust_source_view.rs"]
-mod rust_source_view;
+pub(crate) mod rust_source_view;
 #[path = "structure/script_vm_lock_poison.rs"]
 mod script_vm_lock_poison;
 #[path = "structure/shader_prewarm_asset_inventory.rs"]

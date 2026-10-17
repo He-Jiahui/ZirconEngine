@@ -5,6 +5,11 @@ use zircon_runtime_interface::ui::tree::UiTreeError;
 use zircon_runtime_interface::ui::v2::UiV2AssetError;
 use zircon_runtime_interface::ui::window::UiRuntimeEventAdapterError;
 
+/// 测试宿主的资产、树与 ABI 适配错误，以及附带原输入位置的批次错误。
+///
+/// # 批次约束
+/// `index` 是输入迭代顺序的零基位置；首错返回且不携带成功前缀的结果向量。
+/// 此类型只描述错误，不执行回滚；前序输入已提交的状态仍由管理器持有。
 #[derive(Debug, Error)]
 pub(crate) enum RuntimeUiManagerError {
     #[error(transparent)]

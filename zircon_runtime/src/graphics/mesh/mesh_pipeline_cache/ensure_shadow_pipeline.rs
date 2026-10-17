@@ -99,7 +99,7 @@ impl MeshPipelineCache {
         let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
         if let Some(source) = validated_source {
             let validation_key = source.validation_key;
-            let creation_started = std::time::Instant::now();
+            let creation_started = web_time::Instant::now();
             let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("zircon-shadow-mesh-shader"),
                 source: wgpu::ShaderSource::Wgsl(source.wgsl_source.into()),
@@ -118,7 +118,7 @@ impl MeshPipelineCache {
                 .shader_modules
                 .get(&shader_key)
                 .expect("shadow mesh shader module cached");
-            let creation_started = std::time::Instant::now();
+            let creation_started = web_time::Instant::now();
             let pipeline = create_shadow_mesh_pipeline(
                 device,
                 &self.mesh_pipeline_layout,
@@ -167,7 +167,7 @@ impl MeshPipelineCache {
         let Some(target) = shadow_pipeline_target(expected_kind) else {
             return PipelineAdmission::unavailable(
                 PipelineAdmissionReason::WrongPass,
-                std::time::Duration::ZERO,
+                web_time::Duration::ZERO,
             );
         };
         if self.shadow_mesh_pipelines.contains_key(&variant_id) {

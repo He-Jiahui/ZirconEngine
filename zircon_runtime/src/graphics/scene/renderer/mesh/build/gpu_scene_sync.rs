@@ -65,7 +65,7 @@ pub(super) fn sync_gpu_scene_pending_draws(
         );
         let skinning_palette_params = gpu_scene.stage_skinned_joint_palette_arena(
             stable_instance_key,
-            pending_draw.skinned_joint_palette.as_ref(),
+            pending_draw.skinned_joint_palette.as_deref(),
             skinned_gpu_skinning_enabled,
             skinned_gpu_skinning_enabled && pending_draw.previous_skinned_joint_palette.is_some(),
         );
@@ -422,7 +422,7 @@ fn resolve_skinned_gpu_source_mesh(
     match source {
         PendingSkinnedGpuSource::Prepared(mesh) => mesh.clone(),
         PendingSkinnedGpuSource::CpuMorphed { primitive, .. } => {
-            std::sync::Arc::new(GpuMeshResource::from_asset(device, primitive.clone()))
+            std::sync::Arc::new(GpuMeshResource::from_asset(device, primitive))
         }
     }
 }

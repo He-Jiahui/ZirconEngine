@@ -10,7 +10,10 @@
 //! 参见 [`InputState`]、[`InputFrameSnapshot`] 与 [`InputManagerFacade::submit_event`]。
 use std::sync::{Mutex, MutexGuard};
 
-use crate::core::framework::input::InputManager as InputManagerFacade;
+use crate::core::framework::input::{
+    GamepadInputRejection, InputEventAdmission, InputManager as InputManagerFacade,
+    QueuedGamepadRumbleRequest,
+};
 
 use crate::input::{
     CursorHostRequest, GamepadAxisSettings, GamepadButtonAxisSettings, GamepadButtonSettings,
@@ -101,18 +104,22 @@ impl InputManagerFacade for DefaultInputManager {
     /// 同步消费一个输入事件，更新本实例的状态与事件保留器。
     ///
     /// # 参数
-    /// `event` 按值传入；状态更新先借用其内容，必要时复制字符串或请求，随后原事件移入瞬时缓冲。普通坐标、滚轮、触摸及 IME 内容在这里不做统一有限性、文本边界或阶段历史验证；手柄幅值另经默认处理设置筛选。手柄事件不要求设备已有连接记录。
+    /// `event` 按值传入；状态更新先借用其内容，必要时复制字符串或请求，随后原事件移入瞬时缓冲。普通坐标、滚轮、触摸及 IME 内容在这里不做统一有限性、文本边界或阶段历史验证；手柄幅值另经默认处理设置筛选。手柄样本必须携带生产端捕获的代际并匹配已打开的连接；旧的未连接样本行为已显式迁移。
     ///
     /// # 顺序与生命周期
     /// 整次调用持有一个状态锁：先更新持久或帧状态，再尝试记录未合并原事件，最后进入可合并相邻指针样本的瞬时缓冲。默认构造后即可调用；事件进入哪个窗口由调用方的帧边界决定。焦点丢失与断连在各自分支同步清理状态。
     ///
     /// # 返回与边界
-    /// 返回 `()`；没有输入拒绝或保留成功回执。手柄幅值被过滤时可能不改变相应状态，原事件仍经过录制尝试与瞬时缓冲。请求只入队，窗口通知只保存，均不执行宿主动作；本调用也不表明 UI 已处理事件。
+    /// 返回代际准入回执；拒绝发生在任何状态、边沿、帧事件或录制变更之前。手柄幅值被过滤时可能不改变相应状态，原事件仍经过录制尝试与瞬时缓冲。请求只入队，窗口通知只保存，均不执行宿主动作；本调用也不表明 UI 已处理事件。
     ///
     /// # 参考
     /// 参见 [`InputEvent`]、[`GamepadAxisSettings::process_value`]、[`GamepadButtonAxisSettings::process_value`] 与 [`InputManagerFacade::drain_events`]。
-    fn submit_event(&self, event: InputEvent) {
+    fn submit_event_with_admission(&self, event: InputEvent) -> InputEventAdmission {
         let mut state = self.lock_state();
+        let admission = gamepad_input_admission(&state, &event);
+        if matches!(admission, InputEventAdmission::Rejected(_)) {
+            return admission;
+        }
         match &event {
             InputEvent::CursorMoved { x, y } => {
                 state.cursor_position = [*x, *y];
@@ -225,9 +232,9 @@ impl InputManagerFacade for DefaultInputManager {
                 }
             },
             InputEvent::GamepadConnection(info) => {
-                if info.connected {
-                    state.connected_gamepads.insert(info.gamepad);
-                } else {
+                let supersedes = state.gamepad_generations.get(&info.gamepad)
+                    .map_or(false, |(generation, _)| info.generation > *generation);
+                if !info.connected || supersedes {
                     // 先从断连前的轴缓存追加归零记录，再删除该设备样本；直接追加可与本帧既有记录重复。
                     state.connected_gamepads.remove(&info.gamepad);
                     state.append_disconnected_axis_transitions(info.gamepad);
@@ -240,13 +247,19 @@ impl InputManagerFacade for DefaultInputManager {
                     state.buttons.release_where(|button| {
                         matches!(button, InputButton::Gamepad { gamepad, .. } if gamepad == &info.gamepad)
                     });
+                    state.forget_gamepad_axis_transition_indices(info.gamepad);
                 }
+                if info.connected {
+                    state.connected_gamepads.insert(info.gamepad);
+                }
+                state.gamepad_generations.insert(info.gamepad, (info.generation, info.connected));
             }
             InputEvent::GamepadButton {
                 gamepad,
                 button,
                 value,
                 pressed,
+                ..
             } => {
                 let input_button = InputButton::Gamepad {
                     gamepad: *gamepad,
@@ -274,6 +287,7 @@ impl InputManagerFacade for DefaultInputManager {
                 gamepad,
                 axis,
                 value,
+                ..
             } => {
                 let previous_value = state.gamepad_axes.get(&(*gamepad, *axis)).copied();
                 if let Some(value) =
@@ -293,12 +307,24 @@ impl InputManagerFacade for DefaultInputManager {
                 }
             }
             InputEvent::GamepadRumbleRequest(request) => {
-                state.gamepad_rumble_requests.push(*request);
+                let gamepad = request.gamepad();
+                let Some(&(generation, true)) = state.gamepad_generations.get(&gamepad) else {
+                    return InputEventAdmission::Rejected(
+                        GamepadInputRejection::RumbleTargetUnavailable { gamepad },
+                    );
+                };
+                // Admission and capture share this state lock. No queue/event/recorder mutation
+                // occurs on rejection; later disconnects must not relabel accepted commands.
+                state.gamepad_rumble_requests.push(QueuedGamepadRumbleRequest::new(
+                    *request,
+                    generation,
+                ));
             }
         }
         // 先尝试保存未合并的原事件，再移入可合并的瞬时缓冲；状态过滤不等于丢弃这次事件。
         state.event_recorder.record(&event);
         state.frame_events.push(event);
+        InputEventAdmission::Accepted
     }
 
     /// 在一次状态锁内复制旧式输入视图。
@@ -368,7 +394,9 @@ impl InputManagerFacade for DefaultInputManager {
             gamepad_button_values: state.gamepad_button_value_states(),
             gamepad_rumble_requests: state.gamepad_rumble_requests
                 [state.gamepad_rumble_requests_frame_start..]
-                .to_vec(),
+                .iter()
+                .map(QueuedGamepadRumbleRequest::request)
+                .collect(),
             ime_enabled: state.ime_enabled,
             ime_preedit: state.ime_preedit.clone(),
             ime_commits: state.ime_commits.clone(),
@@ -406,7 +434,7 @@ impl InputManagerFacade for DefaultInputManager {
     ///
     /// # 参考
     /// 参见 [`InputManagerFacade::drain_gamepad_rumble_requests`] 与 [`InputFrameSnapshot`]。
-    fn drain_gamepad_rumble_requests(&self) -> Vec<crate::input::GamepadRumbleRequest> {
+    fn drain_gamepad_rumble_requests(&self) -> Vec<QueuedGamepadRumbleRequest> {
         let mut state = self.lock_state();
         state.gamepad_rumble_requests_frame_start = 0;
         std::mem::take(&mut state.gamepad_rumble_requests)
@@ -521,6 +549,38 @@ impl InputManagerFacade for DefaultInputManager {
         self.lock_state().frame_events.status()
     }
 }
+
+fn gamepad_input_admission(state: &InputState, event: &InputEvent) -> InputEventAdmission {
+    use GamepadInputRejection as Rejection;
+    let (gamepad, submitted, lifecycle) = match event {
+        InputEvent::ButtonPressed(InputButton::Gamepad { gamepad, .. })
+        | InputEvent::ButtonReleased(InputButton::Gamepad { gamepad, .. }) => {
+            return InputEventAdmission::Rejected(Rejection::GenerationRequired { gamepad: *gamepad });
+        }
+        InputEvent::GamepadConnection(info) => (info.gamepad, info.generation, Some(info.connected)),
+        InputEvent::GamepadButton { gamepad, generation, .. }
+        | InputEvent::GamepadAxis { gamepad, generation, .. } => (*gamepad, *generation, None),
+        _ => return InputEventAdmission::Accepted,
+    };
+    let Some(&(current, connected)) = state.gamepad_generations.get(&gamepad) else {
+        return if lifecycle.is_some() {
+            InputEventAdmission::Accepted
+        } else {
+            InputEventAdmission::Rejected(Rejection::ConnectionNotObserved { gamepad, submitted })
+        };
+    };
+    let rejection = if submitted < current {
+        Some(Rejection::StaleGeneration { gamepad, submitted, current })
+    } else if submitted > current && lifecycle.is_none() {
+        Some(Rejection::FutureGeneration { gamepad, submitted, current })
+    } else if submitted == current && !connected && lifecycle != Some(false) {
+        Some(Rejection::ConnectionClosed { gamepad, submitted, current })
+    } else {
+        None
+    };
+    rejection.map_or(InputEventAdmission::Accepted, InputEventAdmission::Rejected)
+}
+
 
 /// 判断已接受幅值是否允许进入按钮按下分支。
 ///

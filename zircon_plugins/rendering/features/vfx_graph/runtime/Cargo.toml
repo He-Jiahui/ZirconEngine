@@ -5,5 +5,8 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+wgpu = "29.0.1"
+zircon_plugin_particles_runtime = { path = "../../../../particles/runtime" }
+zircon_plugin_rendering_shader_graph_runtime = { path = "../../shader_graph/runtime" }
 zircon_plugin_rendering_runtime = { path = "../../../runtime" }
 zircon_runtime = { workspace = true, features = ["graphics"] }

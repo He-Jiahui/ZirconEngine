@@ -10,12 +10,17 @@ impl ResourceStreamer {
     /// 不应强迫每个实例重新加载源资产。
     pub(crate) fn load_model_asset(&self, id: ResourceId) -> Option<Arc<ModelAsset>> {
         let asset_manager = self.asset_manager().ok()?;
+        asset_manager.ensure_resident(id).ok()?;
+        let resource_manager = asset_manager.resource_manager();
+        let projection = resource_manager.projection_snapshot();
+        let active = projection.active().row(id)?;
+        let handle = crate::core::resource::ResourceHandle::<crate::core::resource::ModelMarker>::new(id);
         load_model_asset_with_cache(
-            self.models
-                .get(&id)
+            self.models.get(&id).filter(|prepared| prepared.source_key == active.key)
                 .map(|prepared| (&prepared.asset, prepared.source_revision)),
-            self.resource_revision(id).ok(),
-            || asset_manager.load_model_asset(id).ok().map(Arc::new),
+            Some(active.record.revision),
+            || resource_manager.snapshot_expected::<_, ModelAsset>(handle, &active.key)
+                .ok().map(|snapshot| Arc::clone(snapshot.resource())),
         )
     }
 }

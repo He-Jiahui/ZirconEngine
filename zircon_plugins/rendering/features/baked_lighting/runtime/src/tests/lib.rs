@@ -23,7 +23,7 @@ fn baked_lighting_feature_executes_in_nonempty_wgpu_product_frame() {
     );
 
     assert!(
-        !frame.rgba8.is_empty(),
+        !frame.rgba.is_empty(),
         "the WGPU product capture should contain pixels"
     );
     assert!(

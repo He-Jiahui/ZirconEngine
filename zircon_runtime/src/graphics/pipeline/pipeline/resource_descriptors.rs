@@ -106,6 +106,49 @@ pub(super) fn builtin_texture_desc_for(
     )
 }
 
+pub(super) fn builtin_external_buffer_desc_for(
+    name: &str,
+    extract: &RenderFrameExtract,
+    minimum_size_bytes: Option<u64>,
+) -> Result<Option<BufferDesc>, String> {
+    if name != PostProcessGraphResourceNames::SCENE_LIGHT_DATA {
+        return Ok(None);
+    }
+    use crate::core::framework::render::GpuLightData;
+
+    let record_count = if extract.post_process.preview.lighting_enabled {
+        [
+            extract.lighting.directional_lights.len(),
+            extract.lighting.point_lights.len(),
+            extract.lighting.spot_lights.len(),
+            extract.lighting.rect_lights.len(),
+        ]
+        .into_iter()
+        .try_fold(0_u64, |count, len| {
+            let len = u64::try_from(len).map_err(|_| {
+                format!("external scene-light resource {name} exceeds u64 capacity")
+            })?;
+            count
+                .checked_add(len)
+                .ok_or_else(|| format!("external scene-light resource {name} exceeds u64 capacity"))
+        })?
+    } else {
+        0
+    };
+    // The producer uploads one record per non-ambient light and keeps one
+    // physical record even when lighting is disabled or the scene is empty.
+    let size_bytes = record_count
+        .max(1)
+        .checked_mul(GpuLightData::STRIDE as u64)
+        .ok_or_else(|| format!("external scene-light resource {name} exceeds u64 capacity"))?
+        .max(minimum_size_bytes.unwrap_or(0));
+    Ok(Some(BufferDesc::new(
+        name,
+        size_bytes,
+        BufferUsage::STORAGE | BufferUsage::COPY_SRC | BufferUsage::COPY_DST,
+    )))
+}
+
 pub(super) fn builtin_external_texture_desc_for(
     name: &str,
     extract: &RenderFrameExtract,

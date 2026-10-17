@@ -9,7 +9,8 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::select_workbench_status_chip_style;
 use super::super::template_node_labels::template_node_label;
 use super::super::template_status_control_geometry::{
-    frame_is_within, status_chip_radius, status_control_offset_rect, workbench_status_metrics,
+    has_paintable_status_control_extent, status_chip_radius, status_control_offset_rect,
+    workbench_status_metrics,
 };
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
@@ -25,7 +26,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
     let control_rect = status_control_offset_rect(node, parent_rect);
     // BUG: [CR-EDITOR-PAINT-CONTROLSTYLE-0003] 状态栏右侧继承非零视觉偏移时，等尺寸的 control_rect 无法仍在 parent_rect 内；
     // 本分支会丢弃整个 chip。证据：unreal/components/host_status_bar.zui 的 status_right_offset_y=-0.5 传入 Grid/Snap/Zoom。
-    if !frame_is_within(parent_rect, &control_rect) || intersect(&control_rect, clip).is_none() {
+    if !has_paintable_status_control_extent(&control_rect)
+        || intersect(&control_rect, clip).is_none()
+    {
         return;
     }
     let style = select_workbench_status_chip_style(node);
@@ -96,4 +99,36 @@ fn push_status_chip_surface(
 
 fn visible_color(color: [u8; 4]) -> Option<[u8; 4]> {
     (color[3] > 0).then_some(color)
+}
+
+#[cfg(test)]
+mod finite_p2_regression_tests {
+    use super::*;
+    #[test]
+    fn shifted_status_chip_paints_inside_host_clip() {
+        let mut node = TemplatePaneNodeData::default();
+        node.text = "Grid: 4".into();
+        node.checked = true;
+        node.selected = true;
+        node.layout_offset_y = -0.5;
+        let parent = FrameRect {
+            x: 10.0,
+            y: 10.0,
+            width: 120.0,
+            height: 36.0,
+        };
+        let clip = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 200.0,
+            height: 80.0,
+        };
+        let mut commands = Vec::new();
+        push_status_chip(&mut commands, &node, &parent, &clip, 0, 1.0);
+        assert!(
+            !commands.is_empty(),
+            "a declared visual offset must not discard the chip"
+        );
+        assert!(commands.iter().any(|c| c.frame.y < parent.y));
+    }
 }

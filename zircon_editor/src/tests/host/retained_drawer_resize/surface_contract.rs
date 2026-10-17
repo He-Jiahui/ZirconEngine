@@ -8,10 +8,8 @@ fn shared_resize_surface_uses_rust_owned_pointer_event_contract() {
     let globals = source("src/ui/retained/contract/globals/ui_context.rs");
     let wiring = source("src/ui/retained/app/callback_wiring/host_shell/drag_resize.rs");
     let docking = source("src/ui/retained/app/workspace_docking.rs");
-    let resize_capture =
-        source("src/ui/retained/app/workspace_docking/drawer_resize/capture.rs");
-    let resize_movement =
-        source("src/ui/retained/app/workspace_docking/drawer_resize/movement.rs");
+    let resize_capture = source("src/ui/retained/app/workspace_docking/drawer_resize/capture.rs");
+    let resize_movement = source("src/ui/retained/app/workspace_docking/drawer_resize/movement.rs");
     let resize_surface = source("src/ui/retained/shell_pointer/resize_surface.rs");
     let shell_pointer_bridge = source("src/ui/retained/shell_pointer/bridge.rs");
 

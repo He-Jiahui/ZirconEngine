@@ -42,9 +42,9 @@ impl EnvironmentOnlyPbrBasePipelineWarmupMode {
 pub(crate) struct EnvironmentOnlyPbrBasePipelinePrewarmReport {
     pipeline_ready: bool,
     cache_hit: bool,
-    shader_source_resolution: std::time::Duration,
-    pipeline_creation: std::time::Duration,
-    elapsed: std::time::Duration,
+    shader_source_resolution: web_time::Duration,
+    pipeline_creation: web_time::Duration,
+    elapsed: web_time::Duration,
 }
 
 impl EnvironmentOnlyPbrBasePipelinePrewarmReport {
@@ -60,15 +60,15 @@ impl EnvironmentOnlyPbrBasePipelinePrewarmReport {
         self.pipeline_ready && !self.cache_hit
     }
 
-    pub(crate) const fn shader_source_resolution(self) -> std::time::Duration {
+    pub(crate) const fn shader_source_resolution(self) -> web_time::Duration {
         self.shader_source_resolution
     }
 
-    pub(crate) const fn pipeline_creation(self) -> std::time::Duration {
+    pub(crate) const fn pipeline_creation(self) -> web_time::Duration {
         self.pipeline_creation
     }
 
-    pub(crate) const fn elapsed(self) -> std::time::Duration {
+    pub(crate) const fn elapsed(self) -> web_time::Duration {
         self.elapsed
     }
 }
@@ -320,7 +320,7 @@ impl MeshPipelineCache {
                     let async_compiled_source = async_compiled_source.clone();
                     let async_runtime_pipeline_cache = async_runtime_pipeline_cache.clone();
                     let pipeline_creation_metrics = pipeline_creation_metrics.clone();
-                    let queued_at = std::time::Instant::now();
+                    let queued_at = web_time::Instant::now();
                     move || {
                         pipeline_creation_metrics
                             .record_async_base_pipeline_queue_wait(queued_at.elapsed());
@@ -331,7 +331,7 @@ impl MeshPipelineCache {
                                 let validated_source =
                                     async_compiled_source.expect("uncached async shader source");
                                 let validation_key = validated_source.validation_key;
-                                let creation_started = std::time::Instant::now();
+                                let creation_started = web_time::Instant::now();
                                 let module =
                                     device.create_shader_module(wgpu::ShaderModuleDescriptor {
                                         label: Some("zircon-mesh-shader"),
@@ -352,7 +352,7 @@ impl MeshPipelineCache {
                                 )
                             }
                         };
-                        let render_pipeline_creation_started = std::time::Instant::now();
+                        let render_pipeline_creation_started = web_time::Instant::now();
                         let pipeline = create_mesh_pipeline(
                             &device,
                             &layout,
@@ -365,7 +365,9 @@ impl MeshPipelineCache {
                             BASE_PIPELINE_TARGET,
                             render_pipeline_creation_started.elapsed(),
                         );
-                        if let Some(error) = pollster::block_on(error_scope.pop()) {
+                        if let Some(error) =
+                            crate::graphics::validation_scope::finish(&device, error_scope)
+                        {
                             return Err(error.to_string());
                         }
                         Ok(AsyncBasePipelineProduct {
@@ -433,7 +435,7 @@ impl MeshPipelineCache {
         if !self.shader_modules.contains_key(&shader_key) {
             let validated_source = compiled_source.expect("uncached synchronous shader source");
             let validation_key = validated_source.validation_key;
-            let creation_started = std::time::Instant::now();
+            let creation_started = web_time::Instant::now();
             let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("zircon-mesh-shader"),
                 source: wgpu::ShaderSource::Wgsl(validated_source.wgsl_source.into()),
@@ -452,7 +454,7 @@ impl MeshPipelineCache {
                 .shader_modules
                 .get(&shader_key)
                 .expect("shader module cached");
-            let creation_started = std::time::Instant::now();
+            let creation_started = web_time::Instant::now();
             let pipeline = create_mesh_pipeline(
                 device,
                 &base_pipeline_layout,
@@ -551,7 +553,7 @@ impl MeshPipelineCache {
         variant_id: MeshPipelineVariantId,
         reason: PipelineAdmissionReason,
     ) -> PipelineAdmission<T> {
-        let now = std::time::Instant::now();
+        let now = web_time::Instant::now();
         let admission_key = PipelineAdmissionKey::new(target, variant_id);
         let state = self
             .pipeline_unavailable_states
@@ -825,9 +827,9 @@ impl MeshPipelineCache {
         mode: EnvironmentOnlyPbrBasePipelineWarmupMode,
         pbr_ior_override: bool,
     ) -> Result<EnvironmentOnlyPbrBasePipelinePrewarmReport, GraphicsError> {
-        let started = std::time::Instant::now();
+        let started = web_time::Instant::now();
         let mut pipeline_key = default_pipeline_key();
-        let shader_source_started = std::time::Instant::now();
+        let shader_source_started = web_time::Instant::now();
         let (shader_id, shader_revision, shader_dependency_identity, _) =
             streamer.ensure_shader_source(&AssetReference::from_locator(fallback_shader_uri()))?;
         let shader_source_resolution = shader_source_started.elapsed();
@@ -875,7 +877,7 @@ impl MeshPipelineCache {
             .pipeline_and_shader_key_for_variant(variant_id)
             .expect("resolved environment-only PBR variant must have a shader key")
             .2;
-        let pipeline_creation_started = std::time::Instant::now();
+        let pipeline_creation_started = web_time::Instant::now();
         let cache_hit = if self.mesh_variant_pipelines.contains_key(&variant_id) {
             true
         } else if mode.waits_for_pipeline() && self.async_base_pipeline_is_pending(variant_id) {

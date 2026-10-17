@@ -1,3 +1,7 @@
+//! 对照范围候选行选择与无序行回退，使用合成的单字节水平行。
+//! 显式忽略的计时用例不包含夹具构造，忽略属性不强制构建模式。
+//! 线性分支收集结果向量，优化分支只返回下标范围，计时包含这一输出差别。
+
 use std::{hint::black_box, time::Instant};
 
 use crate::ui::{
@@ -15,6 +19,7 @@ const LINE_COUNT: usize = 65_536;
 const LOOKUP_COUNT: usize = 64;
 const SAMPLE_COUNT: usize = 11;
 
+/// 返回拥有文本与运行数据的单字节行；源范围按行号递增，视觉范围从行内零点开始。
 fn line(index: usize) -> UiResolvedTextLine {
     UiResolvedTextLine {
         text: "x".to_string(),
@@ -43,6 +48,7 @@ fn line(index: usize) -> UiResolvedTextLine {
     }
 }
 
+/// 逐行用相交谓词收集下标向量，作为本文件有限夹具的对照。
 fn linear_intersections(lines: &[UiResolvedTextLine], range: UiTextRange) -> Vec<usize> {
     lines
         .iter()
@@ -54,6 +60,7 @@ fn linear_intersections(lines: &[UiResolvedTextLine], range: UiTextRange) -> Vec
         .collect()
 }
 
+/// 交换两行后，核选区仍生成一次、范围保留且只构造一个映射。
 #[test]
 fn unsorted_line_ranges_fall_back_without_losing_a_decoration() {
     let mut lines = (0..8).map(line).collect::<Vec<_>>();
@@ -84,6 +91,7 @@ fn unsorted_line_ranges_fall_back_without_losing_a_decoration() {
     assert_eq!(source_maps.initialized_count(), 1);
 }
 
+/// 用六个范围对照有序行的候选区间，包含空范围与行尾外位置。
 #[test]
 fn runtime_interface03_batch12_binary_decoration_line_range_preserves_intersections() {
     let lines = (0..8).map(line).collect::<Vec<_>>();
@@ -104,6 +112,8 @@ fn runtime_interface03_batch12_binary_decoration_line_range_preserves_intersecti
     }
 }
 
+/// 在行尾附近固定查询；每样本六十四次，交替两路径并排除夹具构造。
+/// 此处比较完整调用成本，线性结果向量的构造也在计时内。
 #[test]
 #[ignore = "release-only binary decoration-line range benchmark"]
 fn runtime_interface03_batch12_binary_decoration_line_range_release_benchmark() {
@@ -141,6 +151,7 @@ fn runtime_interface03_batch12_binary_decoration_line_range_release_benchmark() 
 
     linear_samples.sort_unstable();
     binary_samples.sort_unstable();
+    // 十一个样本排序后取末项，即这批样本的最大观测值。
     let p95 = SAMPLE_COUNT - 1;
     eprintln!(
         "RUNTIME_INTERFACE03_BINARY_DECORATION_LINE_RANGE_BENCH_V1 lines={LINE_COUNT} lookups={LOOKUP_COUNT} samples={SAMPLE_COUNT} linear_p95_ns={} binary_p95_ns={}",

@@ -1,3 +1,9 @@
+//! 将 Surface 当前树、布局和运行时状态投影为拥有自身数据的辅助功能快照。
+//!
+//! 先建立隐藏状态索引并纳入节点，再解析文本、整理关系/子项，最后校验诊断与焦点。
+//! 输出集合在本地形成，本模块不回写树或焦点状态；动作执行与平台发布有各自 owner。
+//! 有界入口复用调用方预算，并在返回前重新测量完整载荷。
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::surface::{editable_text_input_is_secure, UiSurface};
@@ -31,12 +37,25 @@ mod state;
 #[path = "extract/visibility.rs"]
 mod visibility;
 
+/// 用内部无限制预算读取 Surface 当前的辅助功能投影。
+///
+/// # 参数与返回
+/// `surface` 只在构建期间借用；返回快照拥有节点、文本和诊断，可独立保存。
+/// 对外编码路径应使用有界入口，以便在保留输出前拒绝超限载荷。
 pub(crate) fn accessibility_snapshot(surface: &UiSurface) -> UiAccessibilityTreeSnapshot {
     let mut budget = AccessibilityBuildBudget::unbounded();
     build_accessibility_snapshot(surface, &mut budget)
         .expect("unbounded accessibility extraction cannot exhaust its budget")
 }
 
+/// 在调用方共享预算内构建一次 Surface 快照。
+///
+/// # 参数
+/// `surface` 提供当前树、布局和组件状态；`budget` 沿用已有计数与起始时刻，不在此重置。
+///
+/// # 返回与错误
+/// 成功返回拥有型快照及其诊断；任一预算或序列化错误都中止本次输出。
+/// 失败不返回局部快照，已经写入预算的累计量仍由调用方持有。
 pub(crate) fn accessibility_snapshot_bounded(
     surface: &UiSurface,
     budget: &mut AccessibilityBuildBudget,
@@ -44,6 +63,7 @@ pub(crate) fn accessibility_snapshot_bounded(
     build_accessibility_snapshot(surface, budget)
 }
 
+/// 在局部集合中完成各抽取阶段；预算失败时不发布中间节点或半成品快照。
 fn build_accessibility_snapshot(
     surface: &UiSurface,
     budget: &mut AccessibilityBuildBudget,
@@ -217,6 +237,8 @@ fn collect_relation_targets(
     }
 }
 
+/// 隐藏节点只有在允许的名称/描述来源集合中才可纳入。
+/// 其余节点按根、显式契约、交互能力与文本等证据决定是否形成快照节点。
 fn include_node(
     surface: &UiSurface,
     node: &UiTreeNode,
@@ -262,6 +284,8 @@ fn has_explicit_widget(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
     metadata.is_some_and(|metadata| metadata.widget != UiWidgetContract::default())
 }
 
+/// 为已纳入节点复制基础 DTO 和局部诊断；名称回退与子项关系稍后统一解析。
+/// `effectively_hidden` 已包含祖先隐藏状态，返回值只描述当前节点，不执行动作。
 fn build_node(
     surface: &UiSurface,
     node: &UiTreeNode,
@@ -413,6 +437,8 @@ fn role_for_widget_behavior(metadata: &UiTemplateNodeMetadata) -> Option<UiA11yR
     }
 }
 
+/// 汇总显式/默认动作并排序去重；安全文本移除文本选区相关动作，禁用节点仅保留焦点动作。
+/// 返回新动作列表与禁用诊断，不执行动作或写入组件状态。
 fn actions_for(
     surface: &UiSurface,
     node: &UiTreeNode,

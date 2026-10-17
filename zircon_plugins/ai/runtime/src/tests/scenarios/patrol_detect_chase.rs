@@ -57,7 +57,9 @@ fn patrol_detect_chase_scenario() {
             ))
             .expect("register neutral navigation agent descriptor");
         let agent = spawn_nav_agent(world);
-        let target = world.spawn_node(NodeKind::Empty);
+        let target = world
+            .spawn_node(NodeKind::Empty)
+            .expect("spawn patrol/detect/chase target");
         world
             .update_transform(target, Transform::from_translation(vec3(CHASE_TARGET)))
             .expect("position chase target");

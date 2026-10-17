@@ -3,6 +3,7 @@ use std::fmt;
 use std::path::PathBuf;
 use std::time::Instant;
 
+use zircon_runtime::asset::project::ProjectActivationIdentity;
 use zircon_runtime::asset::ProjectImportReceipt;
 
 use crate::core::jobs::{JobError, JobId, JobTicket};
@@ -10,14 +11,24 @@ use crate::core::jobs::{JobError, JobId, JobTicket};
 pub struct EditorModelImportTicket {
     ticket: JobTicket<ProjectImportReceipt>,
     source_path: PathBuf,
+    activation_identity: ProjectActivationIdentity,
 }
 
 impl EditorModelImportTicket {
-    pub(super) fn new(ticket: JobTicket<ProjectImportReceipt>, source_path: PathBuf) -> Self {
+    pub(super) fn new(
+        ticket: JobTicket<ProjectImportReceipt>,
+        source_path: PathBuf,
+        activation_identity: ProjectActivationIdentity,
+    ) -> Self {
         Self {
             ticket,
             source_path,
+            activation_identity,
         }
+    }
+
+    pub fn project_activation_identity(&self) -> &ProjectActivationIdentity {
+        &self.activation_identity
     }
 
     pub fn id(&self) -> JobId {

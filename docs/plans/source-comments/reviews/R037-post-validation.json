@@ -1,0 +1,526 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R037",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T17:03:02.581Z",
+  "status": "local-static-evidence-complete-with-preexisting-format-difference",
+  "files": {
+    "zircon_runtime_interface/src/tests/world_sync_contracts.rs": {
+      "before_sha256": "8558499247941d83dfe0e1503d82f8b0668035cbe79ccfecb32fe5eb8a4abe2a",
+      "reviewed_sha256": "8558499247941d83dfe0e1503d82f8b0668035cbe79ccfecb32fe5eb8a4abe2a",
+      "bytes": 11226,
+      "before_lines": 348,
+      "lines": 348,
+      "changed": false,
+      "original_eol": {
+        "crlf": 348,
+        "bare_lf": 0,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "raw_identity": true,
+      "normalized_head_identity": true
+    },
+    "zircon_runtime_interface/src/world_sync/invalidation.rs": {
+      "before_sha256": "b7b9c57066d1d3c22f3c082064a4593c1eaac60662ad026c6dbbcfc0a3f2f2de",
+      "reviewed_sha256": "b7b9c57066d1d3c22f3c082064a4593c1eaac60662ad026c6dbbcfc0a3f2f2de",
+      "bytes": 5326,
+      "before_lines": 120,
+      "lines": 120,
+      "changed": false,
+      "original_eol": {
+        "crlf": 120,
+        "bare_lf": 0,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "raw_identity": true,
+      "normalized_head_identity": true
+    },
+    "zircon_runtime_interface/src/world_sync/lifecycle_target_change.rs": {
+      "before_sha256": "e14152fdc083ae9b2b44ff0d34941b0b37a2e1b11d1b165c94a43da7b6b8246a",
+      "reviewed_sha256": "e14152fdc083ae9b2b44ff0d34941b0b37a2e1b11d1b165c94a43da7b6b8246a",
+      "bytes": 1760,
+      "before_lines": 39,
+      "lines": 39,
+      "changed": false,
+      "original_eol": {
+        "crlf": 39,
+        "bare_lf": 0,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "raw_identity": true,
+      "normalized_head_identity": true
+    },
+    "zircon_runtime_interface/src/world_sync/mod.rs": {
+      "before_sha256": "18d2c9fd14e9b51c57eba49297fb1d32e89081a347e7166ac3c8821672142e7c",
+      "reviewed_sha256": "18d2c9fd14e9b51c57eba49297fb1d32e89081a347e7166ac3c8821672142e7c",
+      "bytes": 1876,
+      "before_lines": 40,
+      "lines": 40,
+      "changed": false,
+      "original_eol": {
+        "crlf": 40,
+        "bare_lf": 0,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "raw_identity": true,
+      "normalized_head_identity": true
+    },
+    "zircon_runtime_interface/src/world_sync/query.rs": {
+      "before_sha256": "2c24eeab23dc497197ac9b0d6a2d570d45762ea76fec5d3cf64353244c525ae7",
+      "reviewed_sha256": "2c24eeab23dc497197ac9b0d6a2d570d45762ea76fec5d3cf64353244c525ae7",
+      "bytes": 22632,
+      "before_lines": 534,
+      "lines": 534,
+      "changed": false,
+      "original_eol": {
+        "crlf": 534,
+        "bare_lf": 0,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "raw_identity": true,
+      "normalized_head_identity": true
+    },
+    "zircon_runtime_interface/src/world_sync/watch.rs": {
+      "before_sha256": "35f771ab3caa0e86033f26be59570346e87da6742dc2f735e0d9285f63d76029",
+      "reviewed_sha256": "35f771ab3caa0e86033f26be59570346e87da6742dc2f735e0d9285f63d76029",
+      "bytes": 3740,
+      "before_lines": 93,
+      "lines": 93,
+      "changed": false,
+      "original_eol": {
+        "crlf": 93,
+        "bare_lf": 0,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "raw_identity": true,
+      "normalized_head_identity": true
+    }
+  },
+  "root_actual_validation": {
+    "receipt": "370899",
+    "validated_at_utc": "2026-10-15T16:39:04.645071+00:00",
+    "checks": [
+      {
+        "command": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--check",
+          "f28ba39a5095f4964c046ecc702778627f80cfd5",
+          "--",
+          "zircon_runtime_interface/src/tests/world_sync_contracts.rs",
+          "zircon_runtime_interface/src/world_sync/invalidation.rs",
+          "zircon_runtime_interface/src/world_sync/lifecycle_target_change.rs",
+          "zircon_runtime_interface/src/world_sync/mod.rs",
+          "zircon_runtime_interface/src/world_sync/query.rs",
+          "zircon_runtime_interface/src/world_sync/watch.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "zircon_runtime_interface/src/tests/world_sync_contracts.rs",
+          "zircon_runtime_interface/src/world_sync/invalidation.rs",
+          "zircon_runtime_interface/src/world_sync/lifecycle_target_change.rs",
+          "zircon_runtime_interface/src/world_sync/mod.rs",
+          "zircon_runtime_interface/src/world_sync/query.rs",
+          "zircon_runtime_interface/src/world_sync/watch.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--no-ext-diff",
+          "--text",
+          "--unified=0",
+          "f28ba39a5095f4964c046ecc702778627f80cfd5",
+          "--",
+          "zircon_runtime_interface/src/tests/world_sync_contracts.rs",
+          "zircon_runtime_interface/src/world_sync/invalidation.rs",
+          "zircon_runtime_interface/src/world_sync/lifecycle_target_change.rs",
+          "zircon_runtime_interface/src/world_sync/mod.rs",
+          "zircon_runtime_interface/src/world_sync/query.rs",
+          "zircon_runtime_interface/src/world_sync/watch.rs"
+        ],
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "all_before_after_pins_equal": true,
+    "all_normalized_HEAD_blobs_equal": true,
+    "scoped_staged_empty": true,
+    "unified_zero_patch_bytes": 0,
+    "root_declaration_field_control_counts": {
+      "sources": 6,
+      "lines": 1174,
+      "root_declaration_anchors": 82,
+      "root_field_variant_anchors": 83,
+      "root_control_assertion_anchors": 51,
+      "semantic_groups": 44,
+      "partitions": 29,
+      "placeholder_block_rows": 29
+    }
+  },
+  "change_guard": {
+    "status": "not-applicable-empty-source-patch",
+    "passed": false,
+    "process": {
+      "command": [
+        "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\python\\python.exe",
+        "-B",
+        "E:\\Git\\ZirconEngine\\.codex\\skills\\zircon-change-guard\\scripts\\change_guard.py",
+        "--json",
+        "patch",
+        "--git",
+        "--base",
+        "f28ba39a5095f4964c046ecc702778627f80cfd5",
+        "--path",
+        "zircon_runtime_interface/src/tests/world_sync_contracts.rs",
+        "--path",
+        "zircon_runtime_interface/src/world_sync/invalidation.rs",
+        "--path",
+        "zircon_runtime_interface/src/world_sync/lifecycle_target_change.rs",
+        "--path",
+        "zircon_runtime_interface/src/world_sync/mod.rs",
+        "--path",
+        "zircon_runtime_interface/src/world_sync/query.rs",
+        "--path",
+        "zircon_runtime_interface/src/world_sync/watch.rs"
+      ],
+      "exit": 2,
+      "stdout": "",
+      "stderr": "zircon-change-guard: patch contains no file changes\r\n"
+    },
+    "interpretation": "实际exit2，stderr为patch contains no file changes；不是通过票据，不伪造JSON。六源无改动，由raw identity及精确diff验证；后续有真实合并补丁时另跑combined guard。"
+  },
+  "source_string_contracts": {
+    "source_paths": [
+      "zircon_runtime_interface/src/world_sync/query.rs",
+      "zircon_runtime_interface/src/world_sync/watch.rs",
+      "zircon_runtime_interface/src/world_sync/invalidation.rs"
+    ],
+    "matrix": [
+      {
+        "needle": "zircon_runtime::",
+        "counts": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "needle": "zircon_editor::",
+        "counts": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "needle": "ViewInstanceId",
+        "counts": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "needle": "std::net",
+        "counts": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "needle": "std::fs",
+        "counts": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "root_anchor": true,
+    "before_after_equal": true,
+    "new_comment_contribution": 0,
+    "Rust_execution": false
+  },
+  "reused_validation": {
+    "rustfmt": {
+      "receipt": "child functions.exec cell39/native fc397a",
+      "command": "rustfmt --check --edition 2021 --config skip_children=true <exact six granted paths>",
+      "exit_code": 1,
+      "status": "preexisting-doc-indentation-difference",
+      "details": "query.rs原337–338及342–344的///缩进差异；六源raw SHA相同，复用既有结果，不改原注释。这不是格式通过。",
+      "source_pins_identical": true
+    },
+    "child_diff_check": {
+      "receipt": "abbb11",
+      "exit_code": 0,
+      "superseded_by_root_scoped_check": "370899"
+    }
+  },
+  "root_actual_read_receipts": {
+    "formal_source": [
+      {
+        "receipt": "99c261/native58656 completed via9008af",
+        "span_in_concatenated_sources": [
+          0,
+          400
+        ]
+      },
+      {
+        "receipt": "e944bf",
+        "span_in_concatenated_sources": [
+          400,
+          800
+        ]
+      },
+      {
+        "receipt": "da558ce",
+        "span_in_concatenated_sources": [
+          800,
+          1174
+        ]
+      }
+    ],
+    "current_context": [
+      {
+        "receipt": "8e10e7",
+        "ranges": {
+          "zircon_runtime/src/scene/inspection/snapshot.rs": [
+            [
+              1,
+              184
+            ]
+          ],
+          "zircon_runtime/src/scene/inspection/subscription.rs": [
+            [
+              157,
+              240
+            ],
+            [
+              242,
+              332
+            ]
+          ],
+          "zircon_runtime/src/scene/ecs/schedule_execution.rs": [
+            [
+              25,
+              42
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "d54d24",
+        "ranges": {
+          "zircon_runtime/src/dynamic_api/session/world_sync.rs": [
+            [
+              1,
+              200
+            ]
+          ],
+          "zircon_runtime/src/dynamic_api/session/ffi.rs": [
+            [
+              771,
+              870
+            ]
+          ],
+          "zircon_runtime/src/dynamic_api/exports.rs": [
+            [
+              262,
+              283
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "e59834",
+        "ranges": {
+          "zircon_editor/src/core/gateway/session/world_sync.rs": [
+            [
+              1,
+              110
+            ]
+          ],
+          "zircon_editor/src/core/sync/watch_map.rs": [
+            [
+              154,
+              205
+            ],
+            [
+              243,
+              300
+            ]
+          ],
+          "zircon_editor/src/core/sync/pump.rs": [
+            [
+              305,
+              358
+            ],
+            [
+              421,
+              439
+            ],
+            [
+              452,
+              529
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "13aa3b",
+        "ranges": {
+          "zircon_runtime/src/scene/inspection/snapshot.rs": [
+            [
+              625,
+              688
+            ],
+            [
+              888,
+              920
+            ]
+          ],
+          "zircon_runtime/src/scene/inspection/subscription.rs": [
+            [
+              332,
+              385
+            ]
+          ],
+          "zircon_runtime/src/dynamic_api/session/tests/world_sync.rs": [
+            [
+              1,
+              116
+            ]
+          ],
+          "zircon_runtime/src/scene/dynamic/error.rs": [
+            [
+              85,
+              101
+            ],
+            [
+              120,
+              139
+            ]
+          ],
+          "zircon_editor/src/ui/host/play_gizmo.rs": [
+            [
+              617,
+              659
+            ]
+          ]
+        }
+      },
+      {
+        "receipt": "637b35",
+        "ranges": {
+          "zircon_runtime/src/dynamic_api/session/world_sync.rs": [
+            [
+              330,
+              386
+            ]
+          ],
+          "zircon_editor/src/core/sync/pump.rs": [
+            [
+              440,
+              451
+            ]
+          ],
+          "zircon_runtime/src/dynamic_api/exports.rs": [
+            [
+              43,
+              51
+            ]
+          ],
+          "zircon_runtime_interface/src/tests/mod.rs": [
+            [
+              1,
+              79
+            ]
+          ],
+          "zircon_runtime_interface/src/lib.rs": [
+            [
+              48,
+              55
+            ]
+          ]
+        }
+      }
+    ],
+    "read_policy": "主审完整读取六个正式源1174物理行；跨树上下文只把上述实际显示的选定行段计入主审阅读。17个上下文哈希一致不等于主审读完这些文件，也不构成其正式覆盖。"
+  },
+  "metadata_preflight": {
+    "receipt": "0a2ba4",
+    "head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+    "global_pins": {
+      "coverage": {
+        "bytes": 17478905,
+        "sha256": "5c8e17a6458d22b21b72b8116238a1b5592bce7a3b0321258f1322b4430d3ba2"
+      },
+      "issues": {
+        "bytes": 697248,
+        "sha256": "3c435f4169438f80a0543fc5402ce290006b907634c112ad489431b6323e67d7"
+      },
+      "assignments": {
+        "bytes": 181158,
+        "sha256": "440e551e8f2e490654ef190486eeb5ba4e498eb60b494e66e7d44b84b2256c45"
+      },
+      "registry": {
+        "bytes": 184627,
+        "sha256": "bade8dc8ddfa1a164d88e17798625b371169ff9d5189900a9d307488f038ee32"
+      }
+    },
+    "child_sha256": "33fb393d448af92898f68aa2757c6dd5eb83073577f16627bcbc57dd97b6a48b",
+    "parent_records_absent": true,
+    "three_metadata_artifacts_registered_before_creation": true,
+    "all_six_source_pins_unchanged": true,
+    "context_pin_mismatches": []
+  },
+  "historical_nonpassing_or_partial_reads": [
+    {
+      "receipt": "e9f4a5",
+      "limitation": "child对象/上下文小摘要截断，未作完整源读取；正式1174源行另完整读取。",
+      "passing_validation": false
+    },
+    {
+      "receipt": "R037 child Windows206",
+      "limitation": "命令未启动，不是验证通过；最终child writer87386已exit0。",
+      "passing_validation": false
+    }
+  ],
+  "Rust_tests_or_builds_run": false,
+  "managed_coordinator_validation": "pending actual receipt;local evidence is not Jenkins acceptance",
+  "formal_acceptance": false,
+  "coordinator_commit": "pending",
+  "cleanup": {
+    "owned_temporary_files_created": 0,
+    "owned_source_copies_created": 0,
+    "physical_bytes_released": 0,
+    "retained": "固定child/main/post及实际失败/待协调证据，直至验收、阶段提交和通知对账。",
+    "foreign_or_unknown_artifacts": "preserved"
+  }
+}

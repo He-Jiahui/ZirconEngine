@@ -1,10 +1,11 @@
 use std::num::NonZeroU64;
 
 use zircon_runtime::asset::project::ProjectPaths;
+use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
+use crate::entry::runtime_entry_app::{RuntimeEntryApp, RuntimeProductProofPolicy};
 
 use super::{
     presented_frame_exit_diagnostic, should_capture_first_presented_frame,
-    should_emit_first_frame_product_diagnostics,
 };
 
 #[test]
@@ -25,12 +26,26 @@ fn presented_frame_exit_waits_for_the_configured_successful_present_count() {
         Some("runtime_presented_frame_limit_reached limit=120 count=120".to_string())
     );
     assert_eq!(presented_frame_exit_diagnostic(120, None), None);
-    assert!(should_emit_first_frame_product_diagnostics(false));
 }
 
 #[test]
-fn product_frame_diagnostics_are_not_repeated_after_the_first_present() {
-    assert!(!should_emit_first_frame_product_diagnostics(true));
+fn disabled_product_diagnostics_complete_the_present_without_requesting_a_snapshot() {
+    let mut emitted = false;
+    let mut count = 0;
+    let exit = RuntimeEntryApp::complete_presented_frame_with_diagnostics(
+        RuntimeProductProofPolicy::Disabled,
+        ZrRuntimeViewportSizeV1::new(1280, 720),
+        (&mut emitted, &mut count),
+        Some(NonZeroU64::MIN),
+        false,
+        || panic!("a no-project frame must not request project diagnostics"),
+        |_| panic!("disabled project diagnostics must not emit a proof marker"),
+    )
+    .unwrap();
+
+    assert!(!emitted);
+    assert_eq!(count, 1);
+    assert_eq!(exit.as_deref(), Some("runtime_first_frame_presented"));
 }
 
 #[test]

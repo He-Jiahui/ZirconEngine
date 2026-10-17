@@ -37,6 +37,10 @@ last_refined: 2026-07-24
 
 **Architecture:** `Stage-MvpProducts.ps1` 是唯一产品执行器，负责 source-bound staging、项目创建、子进程次序与 timeout；`Invoke-MvpAcceptance.ps1` 是不可变证据验证/归档器，消费 staging 与 build/profile summaries，校验 identity/hash/schema 后发布 evidence root。两者都调用正常产品入口，不复制 engine/editor 行为。Windows CI 复用同一最小 smoke contract，防止后续回归。
 
+F5 执行器必须显式传入 `Stage-MvpProducts.ps1 -RuntimeProductProof f2-lit-mesh`，并使用 `-CreateProject` 或已冻结的 `-ProjectRoot`。该参数覆盖初始两次 Runtime 及 authoring/reopen 后的 Runtime，Editor 不接收 Runtime proof 参数。Windows MVP 工作流使用同一选择方式。普通项目启动采用默认 `none`，不能据项目路径、截图或正数 draw/light 将它升级成 F2 证明。
+
+`-RequireProductEvidence`（也由 `-RequireF5Evidence` 启用）要求 Runtime summary 与实际哈希绑定诊断日志都包含 `proof_policy=f2-lit-mesh`，并继续验证原有资源身份、渲染/输入阈值、journal、PNG、退出与重复运行一致性。旧 receipt 或缺 policy 的旧产品日志必须重新生成；本次消费者迁移不表示 F0–F5 产品门槛已通过。
+
 **Tech Stack:** Windows coordinator validation copy、PowerShell acceptance driver、Cargo workspace/profile gates、staged runtime/editor、PNG/window capture、GitHub Actions Windows runner。
 
 ---

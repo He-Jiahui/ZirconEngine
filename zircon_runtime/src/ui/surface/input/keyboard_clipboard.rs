@@ -1,3 +1,8 @@
+//! 将键盘剪贴板意图转为宿主请求，并处理带传输身份的异步完成事件。
+//!
+//! 待处理身份与编辑版本由 Surface 的 clipboard_transfers 保存；这里不直接访问系统剪贴板。
+//! 成功的 Cut/Paste 仍委托 editable_text 的统一文本事务，约束、事件与安全文本遮蔽沿原输入链完成。
+
 use zircon_runtime_interface::ui::{
     dispatch::{
         UiClipboardInputEvent, UiClipboardTransferIntent, UiClipboardTransferOutcome,
@@ -27,6 +32,14 @@ use super::{
 };
 
 // secure 文本禁用 Copy/Cut，只读文本禁用 Cut/Paste；Copy/Cut 还需非空选区。通过所有权与属性检查的异步请求携带 edit revision，供回执拒绝过期编辑。
+/// 在已识别键盘快捷键后发起异步传输；此时不会提前删除 Cut 的选区。
+///
+/// # 参数与返回
+/// `target` 与拥有的 `editable` 是当前路由目标及文本快照，`action` 决定读写方向。
+/// 返回拥有的派发结果；只有通过检查并被效应层接纳的请求才留给宿主执行。
+///
+/// # 生命周期
+/// 后续完成事件经 `dispatch_clipboard_input` 重新校验；不能把发起成功当作编辑已提交。
 pub(super) fn dispatch_keyboard_clipboard(
     surface: &mut UiSurface,
     keyboard: UiKeyboardInputEvent,
@@ -137,6 +150,15 @@ pub(super) fn dispatch_keyboard_clipboard(
 }
 
 // 宿主回执必须先取出一次性 pending transfer，并匹配 owner、焦点、属性、编辑 revision 与 secure 标志；任一快照过期都拒绝应用，成功的 Cut/Paste 才进入统一文本事务。
+/// 由 Clipboard 事件分支消费宿主完成结果，返回协议回执及可能产生的文本效应。
+///
+/// # 参数与生命周期
+/// `clipboard` 拥有宿主回传值；可选文档会话只在本次同步与事务提交期间借用。
+/// 传输记录先被取出再校验，故拒绝结果也不能再次使用同一个传输身份。
+///
+/// # 返回与参考
+/// 状态为 Applied 表示接受该回执，不保证文本发生变化；Copy 本来就不改文本。
+/// 参考 Surface 的 clipboard_transfers 与同级 editable_text 的提交入口。
 pub(super) fn dispatch_clipboard_input(
     surface: &mut UiSurface,
     clipboard: UiClipboardInputEvent,
@@ -285,6 +307,7 @@ pub(super) fn dispatch_clipboard_input(
     )
 }
 
+/// 从规范化的选择范围复制文本；无选择、空范围、越界或非 UTF-8 边界均返回 None。
 fn selected_clipboard_text(state: &UiEditableTextState) -> Option<String> {
     let range = state.selection.as_ref()?.range();
     if range.start == range.end || range.end > state.text.len() {
@@ -296,6 +319,8 @@ fn selected_clipboard_text(state: &UiEditableTextState) -> Option<String> {
         .map(ToString::to_string)
 }
 
+/// 写出文本先受宿主桥接的字节上限约束；Paste 的读请求不携带文本。
+/// 创建的传输若未形成宿主请求就立即取消，避免留下永远收不到完成事件的身份。
 fn begin_clipboard_request(
     surface: &mut UiSurface,
     result: &mut UiInputDispatchResult,
@@ -334,6 +359,7 @@ fn begin_clipboard_request(
     }
 }
 
+/// 汇合各拒绝/完成分支的传输诊断，再按最终事件补齐策略与路由步骤。
 fn finish_clipboard_result(
     surface: &UiSurface,
     mut result: UiInputDispatchResult,

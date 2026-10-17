@@ -21,8 +21,7 @@ use zircon_runtime::core::resource::ResourceId;
 
 use super::cpu_reference::{
     VirtualGeometryCpuReferenceAssetValidationIssue, VirtualGeometryCpuReferenceConfig,
-    VirtualGeometryCpuReferenceFrame,
-    VirtualGeometryCpuReferenceLeafCluster,
+    VirtualGeometryCpuReferenceFrame, VirtualGeometryCpuReferenceLeafCluster,
 };
 use super::page_payload::render_page_payloads_for_asset;
 
@@ -37,7 +36,7 @@ pub(crate) struct VirtualGeometryAutomaticExtractInstance {
     stable_instance_key: u64,
     source_model: Option<ResourceId>,
     transform: Transform,
-    asset: VirtualGeometryAsset,
+    asset: AutomaticGeometryAsset,
     vertices: Vec<MeshVertex>,
     indices: Vec<u32>,
 }
@@ -54,7 +53,7 @@ impl VirtualGeometryAutomaticExtractInstance {
             stable_instance_key: render_mesh_stable_instance_key(entity, 0),
             source_model,
             transform,
-            asset,
+            asset: AutomaticGeometryAsset::Owned(asset),
             vertices: Vec::new(),
             indices: Vec::new(),
         }
@@ -75,13 +74,98 @@ impl VirtualGeometryAutomaticExtractInstance {
             transform,
             vertices: primitive.vertices,
             indices: primitive.indices,
-            asset,
+            asset: AutomaticGeometryAsset::Owned(asset),
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
+enum AutomaticGeometryAsset {
+    Owned(VirtualGeometryAsset),
+    Admitted(zircon_runtime::graphics::VirtualGeometryPrimitiveAdmission),
+}
+
+impl VirtualGeometryAutomaticExtractInstance {
+    fn asset(&self) -> &VirtualGeometryAsset {
+        match &self.asset {
+            AutomaticGeometryAsset::Owned(asset) => asset,
+            AutomaticGeometryAsset::Admitted(source) => source
+                .primitive()
+                .virtual_geometry
+                .as_ref()
+                .expect("admitted automatic instance requires virtual geometry"),
+        }
+    }
+
+    fn vertices(&self) -> &[MeshVertex] {
+        match &self.asset {
+            AutomaticGeometryAsset::Owned(_) => &self.vertices,
+            AutomaticGeometryAsset::Admitted(source) => &source.primitive().vertices,
+        }
+    }
+
+    fn indices(&self) -> &[u32] {
+        match &self.asset {
+            AutomaticGeometryAsset::Owned(_) => &self.indices,
+            AutomaticGeometryAsset::Admitted(source) => &source.primitive().indices,
+        }
+    }
+
+    fn from_admitted_primitive(
+        entity: EntityId,
+        stable_instance_key: u64,
+        source_model: Option<ResourceId>,
+        transform: Transform,
+        source: zircon_runtime::graphics::VirtualGeometryPrimitiveAdmission,
+    ) -> Option<Self> {
+        source.primitive().virtual_geometry.as_ref()?;
+        Some(Self {
+            entity,
+            stable_instance_key,
+            source_model,
+            transform,
+            asset: AutomaticGeometryAsset::Admitted(source),
+            vertices: Vec::new(),
+            indices: Vec::new(),
+        })
+    }
+}
+
+pub(crate) fn build_virtual_geometry_automatic_extract_from_admitted_sources(
+    meshes: &[RenderMeshSnapshot],
+    debug: zircon_runtime::core::framework::render::RenderVirtualGeometryDebugState,
+    admit: &mut zircon_runtime::graphics::VirtualGeometrySourceLoader<'_>,
+) -> Result<Option<VirtualGeometryAutomaticExtractOutput>, String> {
+    let mut automatic_instances = Vec::new();
+    for mesh in meshes {
+        for (ordinal, source) in admit(mesh)?.into_iter().enumerate() {
+            let ordinal = u32::try_from(ordinal)
+                .map_err(|_| "admitted primitive ordinal exceeds u32".to_string())?;
+            let stable_instance_key = if mesh.mesh.is_some() {
+                mesh.stable_instance_key
+            } else {
+                render_mesh_stable_instance_key(mesh.node_id, ordinal)
+            };
+            if let Some(instance) = VirtualGeometryAutomaticExtractInstance::from_admitted_primitive(
+                mesh.node_id,
+                stable_instance_key,
+                Some(mesh.model.id()),
+                mesh.transform,
+                source,
+            ) {
+                automatic_instances.push(instance);
+            }
+        }
+    }
+    Ok(build_virtual_geometry_automatic_extract_with_config(
+        &automatic_instances,
+        cpu_reference_config_for_debug(debug),
+    ))
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct VirtualGeometryAutomaticExtractOutput {
+    indexed_sources: Vec<zircon_runtime::graphics::VirtualGeometryIndexedSourceAdmission>,
     extract: RenderVirtualGeometryExtract,
     cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
     bvh_visualization_instances: Vec<RenderVirtualGeometryBvhVisualizationInstance>,
@@ -100,6 +184,7 @@ impl VirtualGeometryAutomaticExtractOutput {
         hierarchy_cycle_node_ids: Vec<(EntityId, u32)>,
     ) -> Self {
         Self {
+            indexed_sources: Vec::new(),
             extract,
             cpu_reference_instances,
             bvh_visualization_instances,
@@ -252,21 +337,22 @@ fn build_virtual_geometry_automatic_extract_with_config(
     let mut bvh_visualization_instances = Vec::new();
     let mut cluster_budget = 0_u32;
     let mut page_budget = 0_u32;
+    let mut indexed_sources = Vec::new();
     let mut next_cluster_id = 1_u32;
     let mut next_page_id = 1_u32;
 
     for instance in automatic_instances {
-        if instance.asset.cluster_headers.is_empty()
-            && instance.asset.cluster_page_headers.is_empty()
+        if instance.asset().cluster_headers.is_empty()
+            && instance.asset().cluster_page_headers.is_empty()
         {
             continue;
         }
 
-        let resident_local_pages = initial_resident_page_ids(&instance.asset);
+        let resident_local_pages = initial_resident_page_ids(instance.asset());
         let resident_page_list = resident_local_pages.iter().copied().collect::<Vec<_>>();
         let cpu_reference = VirtualGeometryCpuReferenceFrame::from_asset(
             instance.entity,
-            &instance.asset,
+            instance.asset(),
             &resident_page_list,
             config,
         );
@@ -294,18 +380,18 @@ fn build_virtual_geometry_automatic_extract_with_config(
             &mut bvh_visualization_instances,
             extract_debug.visualize_bvh,
             cpu_reference_instance_index,
-            &instance.asset,
+            instance.asset(),
             &cpu_reference,
         );
-        let root_cluster_count = root_cluster_count(&instance.asset);
+        let root_cluster_count = root_cluster_count(instance.asset());
         let per_instance_cluster_budget = cpu_reference
             .selected_clusters()
             .len()
             .max(root_cluster_count)
-            .max(usize::from(!instance.asset.cluster_headers.is_empty()));
+            .max(usize::from(!instance.asset().cluster_headers.is_empty()));
         let per_instance_page_budget = resident_local_pages.len().max(usize::from(
-            !instance.asset.cluster_page_headers.is_empty()
-                || !instance.asset.cluster_headers.is_empty(),
+            !instance.asset().cluster_page_headers.is_empty()
+                || !instance.asset().cluster_headers.is_empty(),
         ));
         cluster_budget = cluster_budget
             .saturating_add(u32::try_from(per_instance_cluster_budget).unwrap_or(u32::MAX));
@@ -315,7 +401,7 @@ fn build_virtual_geometry_automatic_extract_with_config(
         let instance_cluster_offset = u32::try_from(clusters.len()).unwrap_or(u32::MAX);
         let instance_index = u32::try_from(instances.len()).unwrap_or(u32::MAX);
 
-        let local_pages = ordered_local_pages(&instance.asset);
+        let local_pages = ordered_local_pages(instance.asset());
         let mut page_remap = BTreeMap::new();
         for (local_page_id, size_bytes) in local_pages {
             let global_page_id = next_page_id;
@@ -328,19 +414,37 @@ fn build_virtual_geometry_automatic_extract_with_config(
             });
         }
         let mut cluster_remap = BTreeMap::new();
-        for cluster in &instance.asset.cluster_headers {
+        for cluster in &instance.asset().cluster_headers {
             let global_cluster_id = next_cluster_id;
             next_cluster_id = next_cluster_id.saturating_add(1);
             cluster_remap.insert(cluster.cluster_id, global_cluster_id);
         }
+
+        if let AutomaticGeometryAsset::Admitted(source) = &instance.asset {
+            indexed_sources.push(
+                zircon_runtime::graphics::VirtualGeometryIndexedSourceAdmission::new(
+                    instance.stable_instance_key,
+                    source.clone(),
+                    page_remap
+                        .iter()
+                        .map(|(local, global)| (*local, *global))
+                        .collect(),
+                    cluster_remap
+                        .iter()
+                        .map(|(local, global)| (*local, *global))
+                        .collect(),
+                ),
+            );
+        }
+
         page_dependencies.extend(render_extract_page_dependencies_for_asset(
-            &instance.asset,
+            instance.asset(),
             &page_remap,
         ));
         resident_page_payloads.extend(render_page_payloads_for_asset(
-            &instance.asset,
-            &instance.vertices,
-            &instance.indices,
+            instance.asset(),
+            instance.vertices(),
+            instance.indices(),
             &page_remap,
             &cluster_remap,
         ));
@@ -349,13 +453,13 @@ fn build_virtual_geometry_automatic_extract_with_config(
         let bounds_scale = instance.transform.scale.abs().max_element();
         let (instance_hierarchy_nodes, instance_hierarchy_child_ids) = render_hierarchy_for_asset(
             instance_index,
-            &instance.asset,
+            instance.asset(),
             instance_cluster_offset,
             u32::try_from(hierarchy_child_ids.len()).unwrap_or(u32::MAX),
         );
         hierarchy_nodes.extend(instance_hierarchy_nodes);
         hierarchy_child_ids.extend(instance_hierarchy_child_ids);
-        for cluster in &instance.asset.cluster_headers {
+        for cluster in &instance.asset().cluster_headers {
             let Some(&global_cluster_id) = cluster_remap.get(&cluster.cluster_id) else {
                 continue;
             };
@@ -395,8 +499,8 @@ fn build_virtual_geometry_automatic_extract_with_config(
             cluster_count: instance_cluster_count,
             page_offset: instance_page_offset,
             page_count: instance_page_count,
-            mesh_name: instance.asset.debug.mesh_name.clone(),
-            source_hint: instance.asset.debug.source_hint.clone(),
+            mesh_name: instance.asset().debug.mesh_name.clone(),
+            source_hint: instance.asset().debug.source_hint.clone(),
         });
     }
 
@@ -404,24 +508,27 @@ fn build_virtual_geometry_automatic_extract_with_config(
         return None;
     }
 
-    Some(VirtualGeometryAutomaticExtractOutput::new(
-        RenderVirtualGeometryExtract {
-            cluster_budget,
-            page_budget,
-            clusters,
-            hierarchy_nodes,
-            hierarchy_child_ids,
-            pages,
-            page_dependencies,
-            instances,
-            debug: extract_debug,
-        },
-        cpu_reference_instances,
-        bvh_visualization_instances,
-        resident_page_payloads,
-        asset_validation_issues,
-        hierarchy_cycle_node_ids,
-    ))
+    Some(
+        VirtualGeometryAutomaticExtractOutput::new(
+            RenderVirtualGeometryExtract {
+                cluster_budget,
+                page_budget,
+                clusters,
+                hierarchy_nodes,
+                hierarchy_child_ids,
+                pages,
+                page_dependencies,
+                instances,
+                debug: extract_debug,
+            },
+            cpu_reference_instances,
+            bvh_visualization_instances,
+            resident_page_payloads,
+            asset_validation_issues,
+            hierarchy_cycle_node_ids,
+        )
+        .with_indexed_sources(indexed_sources),
+    )
 }
 
 fn render_extract_page_dependencies_for_asset(
@@ -924,5 +1031,20 @@ fn root_cluster_count(asset: &VirtualGeometryAsset) -> usize {
         1
     } else {
         root_cluster_count
+    }
+}
+
+impl VirtualGeometryAutomaticExtractOutput {
+    fn with_indexed_sources(
+        mut self,
+        sources: Vec<zircon_runtime::graphics::VirtualGeometryIndexedSourceAdmission>,
+    ) -> Self {
+        self.indexed_sources = sources;
+        self
+    }
+    pub(crate) fn indexed_sources(
+        &self,
+    ) -> &[zircon_runtime::graphics::VirtualGeometryIndexedSourceAdmission] {
+        &self.indexed_sources
     }
 }

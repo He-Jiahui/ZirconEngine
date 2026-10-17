@@ -191,10 +191,11 @@ fn mesh_indirect_prepare_has_no_queue_or_direct_write_authority() {
         .split("#[cfg(test)]")
         .next()
         .expect("range upload production source");
-    let compaction_source = include_str!("../../../mesh/mesh_pass/indirect_compaction_resources.rs")
-        .split("#[cfg(test)]")
-        .next()
-        .expect("compaction production source");
+    let compaction_source =
+        include_str!("../../../mesh/mesh_pass/indirect_compaction_resources.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("compaction production source");
 
     for source in [workspace_source, range_upload_source, compaction_source] {
         assert!(!source.contains("wgpu::Queue"));

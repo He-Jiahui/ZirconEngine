@@ -15,7 +15,10 @@ use crate::asset::artifact::{
     RenderArtifactManifestLoader, RenderArtifactManifestLoaderInitError,
     RenderArtifactManifestLoaderLimits, RenderArtifactStore,
 };
-use crate::asset::pipeline::manager::{ProjectAssetGenerationToken, ProjectGenerationMatch};
+use crate::asset::runtime::{
+    RuntimeAssetGenerationToken as ProjectAssetGenerationToken,
+    RuntimeGenerationMatch as ProjectGenerationMatch,
+};
 use crate::asset::ProjectAssetManagerAccess;
 use crate::core::CoreError;
 
@@ -106,12 +109,9 @@ impl RenderAssetSemanticExecutorOwner {
         config: &RenderAssetSemanticExecutorOwnerConfig,
     ) -> Result<Self, RenderAssetSemanticExecutorOwnerInitError> {
         let (core, project) = asset_manager.resolve_with_core()?;
-        let snapshot = project
-            .current_project_generation_snapshot()
+        let (store, generation) = project
+            .render_artifact_generation_snapshot()
             .ok_or(RenderAssetSemanticExecutorOwnerInitError::NoActiveProject)?;
-        let (project_snapshot, generation) = snapshot.into_parts();
-        let store =
-            RenderArtifactStore::new(project_snapshot.paths().asset_artifact_root().to_path_buf());
         let runtime = core.task_graph();
         let manifest_loader =
             RenderArtifactManifestLoader::new(store.clone(), config.manifest_loader, runtime)?;
@@ -142,7 +142,7 @@ impl RenderAssetSemanticExecutorOwner {
         &mut self,
         ticket: RenderAssetResidencyTicket,
         priority: crate::asset::artifact::RenderArtifactIoPriority,
-        deadline: Option<std::time::Instant>,
+        deadline: Option<web_time::Instant>,
         residency: &mut RenderAssetResidencyManager,
     ) -> Result<(), RenderAssetSemanticExecutorOwnerAdmissionError> {
         self.ensure_current_admission()?;
@@ -196,7 +196,7 @@ impl RenderAssetSemanticExecutorOwner {
                 return Err(error.into());
             }
         };
-        match project.check_project_generation(&self.generation) {
+        match project.check_runtime_generation(&self.generation) {
             ProjectGenerationMatch::Current => Ok(()),
             ProjectGenerationMatch::Superseded {
                 newer_same_project_generation,
@@ -220,7 +220,7 @@ impl RenderAssetSemanticExecutorOwner {
                 return Err(error.into());
             }
         };
-        match project.check_project_generation(&self.generation) {
+        match project.check_runtime_generation(&self.generation) {
             ProjectGenerationMatch::Current => Ok(()),
             ProjectGenerationMatch::Superseded {
                 newer_same_project_generation,

@@ -49,6 +49,10 @@ fn has_scalar_text(value: &Value) -> bool {
         )
 }
 
+/// 按 `keys` 顺序取第一个可转为朗读文本的标量，返回拥有型字符串。
+///
+/// # 参数与返回
+/// 元数据只在调用内借用，缺少元数据时返回无值；逐键跳过空字符串与不支持类型，全部未命中时返回无值。
 pub(super) fn first_string_attribute(
     metadata: Option<&UiTemplateNodeMetadata>,
     keys: &[&str],

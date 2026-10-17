@@ -336,18 +336,37 @@ fn input_manager_indexes_interleaved_gamepad_axis_transitions_per_frame() {
     let first_gamepad = GamepadId(1);
     let second_gamepad = GamepadId(2);
 
+    input.submit_event(InputEvent::GamepadConnection(crate::input::GamepadConnectionInfo {
+        gamepad: first_gamepad,
+        generation: std::num::NonZeroU64::MIN,
+        connected: true,
+        name: None,
+        vendor_id: None,
+        product_id: None,
+    }));
+    input.submit_event(InputEvent::GamepadConnection(crate::input::GamepadConnectionInfo {
+        gamepad: second_gamepad,
+        generation: std::num::NonZeroU64::MIN,
+        connected: true,
+        name: None,
+        vendor_id: None,
+        product_id: None,
+    }));
     input.begin_frame();
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad: first_gamepad,
         axis: GamepadAxis::LeftStickX,
         value: 0.25,
     });
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad: second_gamepad,
         axis: GamepadAxis::RightStickY,
         value: -0.5,
     });
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad: first_gamepad,
         axis: GamepadAxis::LeftStickX,
         value: 0.75,
@@ -380,6 +399,7 @@ fn input_manager_indexes_interleaved_gamepad_axis_transitions_per_frame() {
     assert!(input.frame_snapshot().gamepad_axis_transitions.is_empty());
 
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad: first_gamepad,
         axis: GamepadAxis::LeftStickX,
         value: -0.25,
@@ -426,6 +446,7 @@ fn focus_loss_releases_active_input_without_disconnect() {
     });
     input.submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));
     input.submit_event(InputEvent::GamepadConnection(GamepadConnectionInfo {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         connected: true,
         name: None,
@@ -433,12 +454,14 @@ fn focus_loss_releases_active_input_without_disconnect() {
         product_id: None,
     }));
     input.submit_event(InputEvent::GamepadButton {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         button: GamepadButton::South,
         value: 1.0,
         pressed: true,
     });
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         axis: GamepadAxis::LeftStickX,
         value: 1.0,
@@ -544,7 +567,16 @@ fn focus_loss_deactivates_held_button_and_axis_actions() {
         pressed: true,
         repeat: false,
     });
+    input.submit_event(InputEvent::GamepadConnection(crate::input::GamepadConnectionInfo {
+        gamepad: gamepad,
+        generation: std::num::NonZeroU64::MIN,
+        connected: true,
+        name: None,
+        vendor_id: None,
+        product_id: None,
+    }));
     input.submit_event(InputEvent::GamepadAxis {
+        generation: std::num::NonZeroU64::MIN,
         gamepad,
         axis: GamepadAxis::LeftStickX,
         value: 1.0,
@@ -756,4 +788,62 @@ fn input_manager_tracks_ime_preedit_and_frame_commits() {
 
     assert!(!disabled_frame.ime_enabled);
     assert_eq!(disabled_frame.ime_preedit, None);
+}
+
+#[test]
+fn gamepad_same_frame_reconnect_preserves_raw_generations_and_routing_axis_aggregates() {
+    use crate::core::framework::input::InputEventAdmission;
+    use crate::input::{GamepadAxisTransition, InputAction, InputActionEvaluator, InputActionMap,
+        InputAxisBinding, InputBinding, InputEventRecordingConfig};
+    let input = DefaultInputManager::default();
+    let first = GamepadId(201);
+    let other = GamepadId(202);
+    let axis = GamepadAxis::LeftStickX;
+    let lifecycle = |gamepad, generation, connected| {
+        InputEvent::GamepadConnection(GamepadConnectionInfo {
+            gamepad, generation: std::num::NonZeroU64::new(generation).unwrap(), connected,
+            name: None, vendor_id: None, product_id: None,
+        })
+    };
+    let sample = |gamepad, generation, value| InputEvent::GamepadAxis {
+        gamepad, generation: std::num::NonZeroU64::new(generation).unwrap(), axis, value,
+    };
+    input.set_event_recording_config(InputEventRecordingConfig::enabled(64));
+    input.submit_event(lifecycle(first, 1, true));
+    input.submit_event(lifecycle(other, 1, true));
+    input.begin_frame();
+    input.drain_event_records();
+    let events = vec![
+        sample(first, 1, 0.25), sample(other, 1, 0.5),
+        lifecycle(first, 1, false), lifecycle(first, 2, true),
+        sample(first, 2, -0.75), sample(other, 1, 0.8),
+    ];
+    for event in &events {
+        assert_eq!(input.submit_event_with_admission(event.clone()), InputEventAdmission::Accepted);
+    }
+    let frame = input.frame_snapshot();
+    let scale = |value| GamepadAxisSettings::default().scaled_value(value);
+    assert_eq!(frame.gamepad_axis_transitions, vec![
+        GamepadAxisTransition { gamepad: first, axis, previous_value: 0.0, value: scale(0.25) },
+        GamepadAxisTransition { gamepad: other, axis, previous_value: 0.0, value: scale(0.8) },
+        GamepadAxisTransition { gamepad: first, axis, previous_value: scale(0.25), value: 0.0 },
+        GamepadAxisTransition { gamepad: first, axis, previous_value: 0.0, value: scale(-0.75) },
+    ]);
+    assert_eq!(frame.gamepad_axes.iter().find(|state| state.gamepad == first).unwrap().value, scale(-0.75));
+    // Actions retain their established routing-ID/last-source-item aggregate contract.
+    let mut map = InputActionMap::new();
+    map.add_action(InputAction::new("gamepad.reconnected"));
+    map.bind(InputBinding::axis("gamepad.reconnected", InputAxisBinding::new(first, axis)));
+    let evaluator = InputActionEvaluator::new(map);
+    let evaluated = evaluator.evaluate(&frame);
+    assert_eq!(evaluated.value("gamepad.reconnected"), scale(-0.75));
+    assert!(evaluated.pressed("gamepad.reconnected"));
+    assert!(evaluated.just_activated("gamepad.reconnected"));
+    assert!(!evaluated.just_deactivated("gamepad.reconnected"));
+
+    assert!(matches!(input.submit_event_with_admission(sample(first, 1, 1.0)), InputEventAdmission::Rejected(_)));
+    assert_eq!(input.frame_snapshot().gamepad_axis_transitions, frame.gamepad_axis_transitions);
+    // Raw frame events and recorded events, rather than the lossy aggregate DTO, carry exact incarnation identity.
+    assert_eq!(input.drain_events(), events);
+    assert_eq!(input.drain_event_records().into_iter().map(|record| record.event).collect::<Vec<_>>(), events);
 }

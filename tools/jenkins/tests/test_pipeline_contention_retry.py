@@ -22,7 +22,8 @@ import groovy.json.JsonSlurper
 class PipelineFixture {
     File root
     Binding binding
-    GroovyShell shell
+    private static final GroovyClassLoader compiler = new GroovyClassLoader(PipelineFixture.class.classLoader)
+    private static final Map compiledScripts = [:]
     def driver
     List plan
     List calls = []
@@ -88,15 +89,27 @@ class PipelineFixture {
             if (current.missing) throw new IllegalStateException('missing control response')
             return current.containsKey('raw') ? current.raw : JsonOutput.toJson(current.response)
         })
-        shell = new GroovyShell(getClass().classLoader, binding)
-        driver = shell.parse(new File(root, '.jenkins/pipeline/steps.groovy'))
+        driver = freshScript(new File(root, '.jenkins/pipeline/steps.groovy'), 'canonical_steps.groovy')
+    }
+
+    def freshScript(File path, String logicalName) {
+        // Compile the canonical bytes once, then give each invocation its own
+        // Script and Binding. Retrying still exercises every real control path.
+        def source = path.getText('UTF-8')
+        def key = [path.absolutePath, source]
+        def scriptClass = compiledScripts[key]
+        if (scriptClass == null) {
+            scriptClass = compiler.parseClass(source, logicalName)
+            compiledScripts[key] = scriptClass
+        }
+        def script = scriptClass.newInstance()
+        script.binding = binding
+        return script
     }
 
     def jobScript(String job) {
-        def source = new File(root, ".jenkins/pipeline/zircon-${job}.groovy").getText('UTF-8')
-        // Jenkins assigns a script class name when loading Pipeline code. The
-        // plain runner needs a legal logical name for these hyphenated files.
-        return shell.parse(source, "zircon_${job}.groovy")
+        // Use a legal logical name for Jenkins' hyphenated Pipeline filenames.
+        return freshScript(new File(root, ".jenkins/pipeline/zircon-${job}.groovy"), "zircon_${job}.groovy")
     }
 
     def invoke(String job, String action, Map payload) {
@@ -344,7 +357,8 @@ def flowParameters = [REPOSITORY_ID:'repo', SESSION_ID:'session', REQUEST_ID:'re
     ALLOW_COMMIT:'false', ALLOW_NOTIFY:'false']
 def successfulLight = [
     [exitCode:0,response:[status:'pending',executionId:'light']],
-    [exitCode:0,response:[status:'ready',template:'comments_only']],
+    [exitCode:0,response:[status:'ready',template:'comments_only',
+        stages:['patch','syntax','format','acceptance','commit']]],
     [exitCode:0,response:[status:'ready']],
     [exitCode:0,response:[status:'ready']],
     [exitCode:0,response:[status:'ready']],
@@ -364,6 +378,10 @@ for (cacheCase in [
     flowFixture.binding.getVariable('params').putAll(flowParameters)
     flowFixture.jobScript('flow').run()
     assert flowFixture.position == responses.size() && flowFixture.nodeDepth == 0
+    assert flowFixture.calls.findAll { it.label == 'Jenkins control flow/run-stage' }*.payload*.stage ==
+        ['patch','syntax','format','acceptance']
+    assert !flowFixture.calls.any { it.label in ['Jenkins control flow/submit-execution',
+        'Jenkins control flow/ensure-execution-job', 'Jenkins control integration/commit-flow'] }
     def maintenanceCalls = flowFixture.calls.findAll { it.label == 'Jenkins control maintenance/post-task-cache' }
     assert maintenanceCalls.size() == (cacheCase.gc ? 2 : 1)
     assert maintenanceCalls.first().payload.phase == 'assess'
@@ -384,6 +402,53 @@ def originalFailure = rejected { failedSyntax.jobScript('flow').run() }
 assert originalFailure.message.contains('original_syntax_failure')
 assert failedSyntax.position == failedSyntaxResponses.size() && failedSyntax.nodeDepth == 0
 assert failedSyntax.calls.last().payload.phase == 'assess'
+
+// A pending native guard is nonterminal. Reconcile the original execution;
+// do not launch it again or retain an executor while waiting for proof.
+def guardParameters = flowParameters + [EXECUTION_ID:'guard-execution', RECIPE_REF:'guard-recipe']
+def pendingGuard = [exitCode:0, response:[status:'reconciling', executionId:'guard-execution']]
+def passedGuard = [exitCode:0, response:[status:'passed', executionId:'guard-execution',
+    terminalProof:[complete:true, activeProcesses:0, childrenGone:true]]]
+def guardReady = new PipelineFixture(root, [pendingGuard, pendingGuard, passedGuard, passedGuard])
+guardReady.binding.getVariable('params').putAll(guardParameters)
+guardReady.jobScript('execution').run()
+assert guardReady.position == 4 && guardReady.sleeps == [2] && guardReady.nodeDepth == 0
+assert guardReady.stages == ['Managed execution', 'Finalize execution']
+assert guardReady.calls*.label == ['Jenkins control execution/run-execution',
+    'Jenkins control execution/reconcile-execution', 'Jenkins control execution/observe-execution',
+    'Jenkins control execution/finalize-execution']
+assert guardReady.calls.every { it.payload == guardReady.calls.first().payload }
+assert guardReady.calls.first().payload.identity == [sessionId:'session', requestId:'request',
+    repositoryId:'repo', attemptId:'attempt', generation:7, sourceInputDigest:'a' * 64,
+    coverageDigest:'c' * 64, stageImplementationDigest:'d' * 64]
+assert guardReady.calls.every { it.payload.executionId == 'guard-execution' && it.payload.recipeRef == 'guard-recipe' }
+
+// Failed and unknown outcomes still fail immediately; finalization cannot
+// turn either outcome into success or authorize a second run.
+for (status in ['failed', 'unknown']) {
+    def terminalGuard = new PipelineFixture(root,
+        [[exitCode:0, response:[status:status, executionId:'guard-execution']], passedGuard])
+    terminalGuard.binding.getVariable('params').putAll(guardParameters)
+    def failure = rejected { terminalGuard.jobScript('execution').run() }
+    assert failure.message.contains(status == 'failed' ? 'authoritative control operation run-execution failed' : 'execution did not complete') && failure.message.contains(status)
+    assert terminalGuard.position == 2 && terminalGuard.sleeps.empty && terminalGuard.nodeDepth == 0
+    assert terminalGuard.calls*.label == ['Jenkins control execution/run-execution',
+        'Jenkins control execution/finalize-execution']
+}
+
+def guardBudgetPlan = [pendingGuard]
+120.times { guardBudgetPlan.addAll([pendingGuard, pendingGuard]) }
+guardBudgetPlan << passedGuard
+def guardBudget = new PipelineFixture(root, guardBudgetPlan)
+guardBudget.binding.getVariable('params').putAll(guardParameters)
+def guardExhaustion = rejected { guardBudget.jobScript('execution').run() }
+assert guardExhaustion.message.contains('execution did not complete') &&
+    guardExhaustion.message.contains('reconciling')
+assert guardBudget.position == 242 && guardBudget.sleeps.size() == 120 && guardBudget.nodeDepth == 0
+assert guardBudget.calls.count { it.label == 'Jenkins control execution/run-execution' } == 1
+assert guardBudget.calls.count { it.label == 'Jenkins control execution/reconcile-execution' } == 120
+assert guardBudget.calls.count { it.label == 'Jenkins control execution/observe-execution' } == 120
+assert guardBudget.calls.last().label == 'Jenkins control execution/finalize-execution'
 println 'PASS canonical Pipeline contention, exit, identity, executor and fence contracts'
 '''
 
@@ -452,10 +517,195 @@ println 'PASS actual cleanup scope parser'
             self.skipTest("Local Jenkins Java/Groovy runtime unavailable; behavioral acceptance remains pending")
         completed = subprocess.run(
             [str(java), "-cp", classpath, "groovy.ui.GroovyMain", "-e", GROOVY_HARNESS, str(root)],
-            cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
+            cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180,
         )
         self.assertEqual(0, completed.returncode, completed.stdout + completed.stderr)
         self.assertIn("PASS canonical Pipeline contention", completed.stdout)
+
+
+    def test_prepared_flow_pipeline_repairs_only_the_proved_dispatch_mismatch(self):
+        import hashlib
+        root = Path(__file__).resolve().parents[3]
+        bridge = root / "tools/dev/resume_jenkins_flow.py"
+        self.assertIn(hashlib.sha256(bridge.read_bytes()).hexdigest(),
+                      (root / ".jenkins/pipeline/zircon-flow.groovy").read_text(encoding="utf-8"))
+        java = Path(os.environ.get("JENKINS_GROOVY_JAVA", str(root / ".jenkins/runtime/jdk/bin/java.exe")))
+        jars = sorted((root / ".jenkins/cache/war/WEB-INF/lib").glob("groovy-all-*.jar"))
+        classpath = os.environ.get("JENKINS_GROOVY_CLASSPATH") or (str(jars[-1]) if jars else None)
+        if not java.is_file() or not classpath:
+            self.skipTest("Jenkins Java/Groovy runtime unavailable; Pipeline acceptance remains pending")
+        harness = GROOVY_HARNESS.split("def root = new File(args[0])", 1)[0] + r'''
+def root = new File(args[0])
+def identity = [sessionId:'session', requestId:'request', repositoryId:'repo', attemptId:'attempt',
+    generation:7, sourceInputDigest:'a' * 64, coverageDigest:'c' * 64, stageImplementationDigest:'d' * 64]
+def parameters = [REPOSITORY_ID:'repo', SESSION_ID:'session', REQUEST_ID:'request',
+    ATTEMPT_ID:'attempt', GENERATION:'7', CURRENT_SOURCE_REF:'b' * 64,
+    BUILD_ROOT:'E:/cargo-targets', ALLOW_COMMIT:'false', ALLOW_NOTIFY:'false']
+def response = { Map value, int exitCode = 0 -> [exitCode:exitCode, response:value] }
+def prefix = [response([status:'prepared', identity:identity, sealedInputRef:'a' * 64,
+        sourcePreparationRef:'current-source-' + ('b' * 64)]),
+    response([status:'pending', executionId:'registration-only']),
+    response([status:'ready', template:'editor_product_development', stages:['source','build','acceptance']]),
+    response([status:'ready'])]
+def actual = 'e' * 32
+def recipe = 'f' * 64
+def cache = response([status:'observed', result:[cleanupRequired:false, gcAuthorized:false, scratch:[status:'protected']]])
+for (mode in ['mismatch', 'normal', 'other-failure', 'unknown']) {
+    def responses = new ArrayList(prefix)
+    responses << (mode == 'normal' ? response([status:'ready',executionId:actual,recipeRef:recipe]) :
+        response([status:'failed', reasonCode:mode == 'other-failure' ? 'recipe_unproven' : 'submission_identity_mismatch'],2))
+    if (mode == 'normal') responses << response([status:'submitted',executionId:actual,recipeRef:recipe])
+    if (mode in ['mismatch','normal']) responses.addAll([
+        response([status:'ready',executionId:actual]), response([status:'accepted']),
+        response([status:'accepted',notifyEligible:false])])
+    if (mode == 'other-failure') responses << response([status:'cancelled'])
+    responses << cache
+    def fixture = new PipelineFixture(root, responses)
+    fixture.binding.getVariable('params').putAll(parameters)
+    fixture.binding.getVariable('env').JENKINS_PYTHON = 'managed-python'
+    def bridgeCalls = []
+    def originalBat = fixture.binding.getVariable('bat')
+    fixture.binding.setVariable('withEnv', { List values, Closure body ->
+        values = values*.toString()
+        assert fixture.nodeDepth == 1
+        assert values.contains('ZIRCON_JENKINS_SESSION_ID=session') && values.contains('INPUT_JSON=')
+        assert values.any { it.startsWith('XDG_CONFIG_HOME=') }
+        body()
+    })
+    fixture.binding.setVariable('bat', { Map options ->
+        if (!options.script.contains('resume_jenkins_flow.py')) return originalBat(options)
+        assert fixture.nodeDepth == 1 && options.returnStatus == true
+        assert options.script.contains('--expected-bridge-sha256 ')
+        def control = new JsonSlurper().parseText(fixture.writes.last().text)
+        assert control == [identity:identity, currentSourceRef:'b' * 64]
+        bridgeCalls << [query:options.script.contains(' --query-only'),
+                       file:fixture.writes.last().file, payload:control]
+        fixture.current = mode == 'unknown' ? response([status:'unknown', reasonCode:'delivery_unknown'],2) :
+            bridgeCalls.size() == 1 ? response([status:'pending',executionId:actual,recipeRef:recipe]) :
+                response([status:'complete',executionId:actual,recipeRef:recipe])
+        return fixture.current.exitCode
+    })
+    if (mode in ['mismatch','normal']) {
+        fixture.jobScript('flow').run()
+        assert fixture.stages.contains('Await execution receipts') && fixture.stages.contains('Acceptance')
+        assert fixture.calls.findAll { it.label == 'Jenkins control flow/observe-flow' }*.payload*.executionId == [actual]
+        assert fixture.calls.findAll { it.label == 'Jenkins control flow/run-stage' }*.payload*.stage == ['source','acceptance']
+        assert !fixture.calls.any { it.label == 'Jenkins control flow/reconcile-flow' }
+        if (mode == 'mismatch') {
+            assert bridgeCalls*.query == [false,true] && bridgeCalls[0].file == bridgeCalls[1].file
+            assert fixture.sleeps == [2]
+            assert !fixture.calls.any { it.label == 'Jenkins control flow/ensure-execution-job' }
+        } else {
+            assert bridgeCalls.empty && fixture.sleeps.empty
+            assert fixture.calls.count { it.label == 'Jenkins control flow/ensure-execution-job' } == 1
+        }
+    } else {
+        def failure = rejected { fixture.jobScript('flow').run() }
+        assert !fixture.stages.contains('Acceptance')
+        if (mode == 'unknown') {
+            assert failure.message.contains('requires reconciliation')
+            assert bridgeCalls*.query == [false] && fixture.sleeps.empty
+            assert !fixture.calls.any { it.label == 'Jenkins control flow/reconcile-flow' }
+        } else {
+            assert failure.message.contains('recipe_unproven') && bridgeCalls.empty
+            assert fixture.calls.count { it.label == 'Jenkins control flow/reconcile-flow' } == 1
+        }
+    }
+    assert fixture.position == responses.size() && fixture.nodeDepth == 0
+    assert fixture.calls.last().label == 'Jenkins control maintenance/post-task-cache'
+}
+println 'PASS prepared Flow bridge cases=4'
+'''
+        completed = subprocess.run([str(java), "-cp", classpath, "groovy.ui.GroovyMain",
+            "-e", harness, str(root)], cwd=root, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=120)
+        self.assertEqual(0, completed.returncode, completed.stdout + completed.stderr)
+        self.assertIn("PASS prepared Flow bridge cases=4", completed.stdout)
+
+    @unittest.skipUnless(os.name == "nt", "Real prepared worktree authority requires Windows")
+    def test_public_flow_bridge_uses_real_claim_and_preserves_idempotent_delivery(self):
+        import copy
+        import importlib.util
+        from types import SimpleNamespace
+        from tools.jenkins.contracts import JenkinsError
+        root = Path(__file__).resolve().parents[3]
+        def module(name, path):
+            spec = importlib.util.spec_from_file_location(name, root / path)
+            value = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(value)
+            return value
+        fixtures = module("default_flow_prepared_fixture",
+                          "tools/jenkins-management/tests/test_prepared_worktree_flow.py")
+        bridge = module("default_flow_public_bridge", "tools/dev/resume_jenkins_flow.py")
+        fixture = fixtures.PreparedWorktreeFlowTests(methodName="runTest")
+        with fixture.claimed_prepared_flow() as value:
+            f, actor = value.f, value.actor
+            posts, calls = [], []
+            def transport(path, **arguments):
+                posts.append((path, arguments["data"]))
+                return 201, b"", {"Location":"http://127.0.0.1:18080/queue/item/21/"}
+            actor.manager = SimpleNamespace(base_url="http://127.0.0.1:18080", _request_with_headers=transport)
+            context = {"config":actor.config, "module":SimpleNamespace(source_helper=lambda:fixtures.helper)}
+            def dispatch(repo, payload, *, query_only):
+                self.assertEqual(f.repo, repo)
+                calls.append((copy.deepcopy(payload), query_only))
+                if query_only:
+                    return {"status":"pending", "reasonCode":"original_operation_missing", "resubmitted":False}
+                actor.payload = payload
+                return {"phase":"complete", "status":"observed", "result":actor._dispatch()}
+            entry = SimpleNamespace(capability=lambda repo:context, dispatch=dispatch)
+            supplied = {"identity":copy.deepcopy(value.identity), "currentSourceRef":value.reference}
+            original = f.state.get_request(f.repo_id, actor.session, value.identity["requestId"])
+            typed = f.state.get_operation(value.result["sourcePreparationRef"])
+            execution = f.state.get("execution", value.execution)
+            intent = f.state.get("current_source_intent", value.reference)["payload"]
+            first = bridge.resume_flow(f.repo, supplied, entry_module=entry)
+            self.assertEqual("complete", first["status"])
+            self.assertEqual(value.execution, first["executionId"])
+            self.assertEqual(value.recipe, first["recipeRef"])
+            self.assertFalse(first["formalAcceptance"])
+            self.assertEqual(intent["identity"], calls[0][0]["flowPayload"]["identity"])
+            self.assertEqual(value.value.owned, calls[0][0]["ownedPaths"])
+            self.assertEqual(25, len(calls[0][0]["ownedPaths"]))
+            self.assertEqual(1, len(posts))
+            management_identity = first["managementIdentity"]
+            saved_marker = f.state.get("jenkins_submission", value.marker)
+            for status in ("submitted", "accepted", "completed"):
+                with self.subTest(delivery=status):
+                    f.state.put("jenkins_submission", value.marker,
+                                {**saved_marker["payload"], "delivery":status})
+                    replay = bridge.resume_flow(f.repo, supplied, entry_module=entry)
+                    self.assertEqual("complete", replay["status"])
+                    self.assertEqual(status, replay["originalDeliveryState"])
+                    self.assertEqual(management_identity, replay["managementIdentity"])
+                    self.assertFalse(calls[-1][1])
+                    self.assertEqual(1, len(posts))
+            for status in ("dispatching", "unknown"):
+                with self.subTest(delivery=status):
+                    f.state.put("jenkins_submission", value.marker,
+                                {**saved_marker["payload"], "delivery":status})
+                    before = {domain:f.state.get(domain, key) for domain,key in
+                        (("workflow",value.key),("execution",value.execution),("jenkins_submission",value.marker))}
+                    observed = bridge.resume_flow(f.repo, supplied, entry_module=entry)
+                    self.assertEqual("unknown", observed["status"])
+                    self.assertEqual(status, observed["originalDeliveryState"])
+                    self.assertTrue(calls[-1][1])
+                    self.assertEqual(1, len(posts))
+                    self.assertEqual(before, {domain:f.state.get(domain, key) for domain,key in
+                        (("workflow",value.key),("execution",value.execution),("jenkins_submission",value.marker))})
+            for field in ("attemptId", "sourceInputDigest"):
+                with self.subTest(identity=field):
+                    wrong = copy.deepcopy(supplied)
+                    wrong["identity"][field] = "f" * 64
+                    count = len(calls)
+                    with self.assertRaises(JenkinsError):
+                        bridge.resume_flow(f.repo, wrong, entry_module=entry)
+                    self.assertEqual(count, len(calls))
+            self.assertEqual(original, f.state.get_request(f.repo_id, actor.session, value.identity["requestId"]))
+            self.assertEqual(typed, f.state.get_operation(value.result["sourcePreparationRef"]))
+            self.assertEqual(execution, f.state.get("execution", value.execution))
+            self.assertEqual(1, len(f.state.list("execution_consumer")))
+            self.assertEqual(1, len(posts))
 
 
 if __name__ == "__main__":

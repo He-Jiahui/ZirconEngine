@@ -66,6 +66,7 @@ impl RenderPassExecutor for VolumetricMediaInjectExecutor {
                 RenderGraphResourceAccessKind::Write,
             )?
             .clone();
+        let mut initial_uploaded_bytes = 0;
         let outcome = {
             let mut native = gpu.native_context();
             let mut pipeline_cache = self
@@ -73,7 +74,9 @@ impl RenderPassExecutor for VolumetricMediaInjectExecutor {
                 .lock()
                 .map_err(|_| "volumetric media inject pipeline cache lock poisoned".to_string())?;
             let pipeline = pipeline_cache.get_or_try_insert_with(device_epoch, (), || {
-                Ok(FroxelMediaInjectPipeline::new(native.resource_factory()))
+                let pipeline = FroxelMediaInjectPipeline::new(native.resource_factory());
+                initial_uploaded_bytes = FroxelMediaInjectPipeline::initial_upload_bytes();
+                Ok(pipeline)
             })?;
             pipeline.encode_prepared(&mut native, &output, prepared)
         }?;
@@ -83,7 +86,9 @@ impl RenderPassExecutor for VolumetricMediaInjectExecutor {
             VOLUMETRIC_MEDIA_INJECT_PIPELINE_LABEL,
             VOLUMETRIC_MEDIA_INJECT_WORKGROUP_SIZE,
             outcome.dispatch,
-            outcome.uploaded_bytes,
+            outcome
+                .uploaded_bytes
+                .saturating_add(initial_uploaded_bytes),
             vec![PostProcessGraphResourceNames::VOLUMETRIC_MEDIA.to_string()],
         );
         Ok(())

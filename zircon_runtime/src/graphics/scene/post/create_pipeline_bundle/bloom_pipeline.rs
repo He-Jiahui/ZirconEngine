@@ -5,7 +5,9 @@ pub(super) fn bloom_pipeline(
 ) -> wgpu::RenderPipeline {
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("zircon-bloom-shader"),
-        source: wgpu::ShaderSource::Wgsl(include_str!("../../renderer/post/shaders/bloom.wgsl").into()),
+        source: wgpu::ShaderSource::Wgsl(
+            include_str!("../../renderer/post/shaders/bloom.wgsl").into(),
+        ),
     });
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("zircon-bloom-pipeline-layout"),

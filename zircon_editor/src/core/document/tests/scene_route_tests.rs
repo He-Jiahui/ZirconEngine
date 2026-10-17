@@ -210,7 +210,7 @@ fn scene_route_reserves_lifecycle_before_installing_and_commits_afterward() {
     assert!(
         source.contains("prepare_scene_activation_while_routed")
             && install.contains("installer.install_scene(&document)")
-            && install.contains("commit_scene_activation_while_routed(reservation)"),
+            && install.contains("commit_scene_activation_while_routed(reservation, Some(document.source_revision().clone()))"),
         "scene route must reserve lifecycle identity before replacing the authoring world and only commit it after installation"
     );
 }

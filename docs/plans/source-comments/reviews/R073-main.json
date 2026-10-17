@@ -1,0 +1,845 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R073",
+  "kind": "root-independent-source-comment-review",
+  "owner": "root",
+  "status": "independently-reviewed-and-scoped-static-validated-awaiting-managed-phase",
+  "standard": {
+    "path": "docs/plans/source-comments/01-standard.md",
+    "sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3",
+    "bytes": 4088,
+    "lines": 25
+  },
+  "base_HEAD": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R073.json",
+    "sha256": "2613994e663611c2478b54e70375761fba88987099a7949caa5fe7f6a1445dd5",
+    "bytes": 356534,
+    "lines": 9462
+  },
+  "root_amendment": {
+    "path": "docs/plans/source-comments/reviews/R073-root-amendments.json",
+    "sha256": "3d0c1a06ea15882a8949b47e916598e3afe3cd353fef3cb9dd94246d8d973e29",
+    "bytes": 2374,
+    "lines": 43
+  },
+  "summary": {
+    "source_files": 6,
+    "changed_sources": 6,
+    "objects": 19,
+    "semantic_blocks": 60,
+    "module_members": 6,
+    "normal_tests": 14,
+    "ignored_tests": 0,
+    "tests_run": 0,
+    "original_bytes": 18823,
+    "final_bytes": 22017,
+    "original_lines": 515,
+    "final_lines": 569,
+    "insert_groups": 10,
+    "insert_lines": 54,
+    "canonical_ranges": 172,
+    "assertion_sites": 38,
+    "expanded_assertions": 119,
+    "raw_expressions": 104,
+    "raw_atoms": 109,
+    "distinct_raw_needles": 101,
+    "nontext_unexecuted": 15,
+    "new_issues": 0,
+    "formal_acceptance": false
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/src/tests/ui_boundary/mod.rs",
+      "before": {
+        "sha256": "ae648bca478a3857f1c8b92fad14d0721dc2c904a19d025d3cfe7383a46eaba7",
+        "bytes": 467,
+        "lines": 13
+      },
+      "after": {
+        "sha256": "ac0e446653f22bca48fb59b6c050ce5e48dcdd7dbbc8277945c835db0149ba83",
+        "bytes": 722,
+        "lines": 17
+      },
+      "raw_HEAD_equal_before": true,
+      "original_bytes_preserved": true,
+      "new_lines": 4,
+      "test_budget_before": true,
+      "test_budget_after": true,
+      "UI_MODULE_NAME_before_count": 0,
+      "UI_MODULE_NAME_after_count": 0
+    },
+    {
+      "path": "zircon_runtime/src/tests/ui_boundary/assets.rs",
+      "before": {
+        "sha256": "374bb660dc7b952e8c0c63fdc62fdf2e1140befa808ba446ab6da74d5a8af517",
+        "bytes": 5564,
+        "lines": 158
+      },
+      "after": {
+        "sha256": "e2759d518d97b8ec5703c82c7ce45322fa5d5057ed9cebf1fec20c09b6e5e57d",
+        "bytes": 7327,
+        "lines": 189
+      },
+      "raw_HEAD_equal_before": true,
+      "original_bytes_preserved": true,
+      "new_lines": 31,
+      "test_budget_before": true,
+      "test_budget_after": true,
+      "UI_MODULE_NAME_before_count": 0,
+      "UI_MODULE_NAME_after_count": 0
+    },
+    {
+      "path": "zircon_runtime/src/tests/ui_boundary/binding_event_namespaces.rs",
+      "before": {
+        "sha256": "4e2965916cf044e8f26d4a322fc0d8f486ec5fbe611de596934400523eb6bc33",
+        "bytes": 2367,
+        "lines": 78
+      },
+      "after": {
+        "sha256": "8af50d3418e3b8a3cee2c1b7050bcb80af4c52ce8b2ad0b2dcdceb679a5fa37c",
+        "bytes": 2688,
+        "lines": 84
+      },
+      "raw_HEAD_equal_before": true,
+      "original_bytes_preserved": true,
+      "new_lines": 6,
+      "test_budget_before": true,
+      "test_budget_after": true,
+      "UI_MODULE_NAME_before_count": 0,
+      "UI_MODULE_NAME_after_count": 0
+    },
+    {
+      "path": "zircon_runtime/src/tests/ui_boundary/module_absorption.rs",
+      "before": {
+        "sha256": "7b328b94a5716fc09adc63a6173fa98723788a73a1f8eea185e16d5c9256710c",
+        "bytes": 1684,
+        "lines": 38
+      },
+      "after": {
+        "sha256": "732140fdc37cb3b45e84d0ba3b888df7757026134b27f15c9bb29592b18e6239",
+        "bytes": 1955,
+        "lines": 42
+      },
+      "raw_HEAD_equal_before": true,
+      "original_bytes_preserved": true,
+      "new_lines": 4,
+      "test_budget_before": true,
+      "test_budget_after": true,
+      "UI_MODULE_NAME_before_count": 0,
+      "UI_MODULE_NAME_after_count": 0
+    },
+    {
+      "path": "zircon_runtime/src/tests/ui_boundary/surface_dispatch_namespaces.rs",
+      "before": {
+        "sha256": "c4629084721650976356ccf12ec4c19f3071d7735e8b3618899e222f03fedde2",
+        "bytes": 2564,
+        "lines": 69
+      },
+      "after": {
+        "sha256": "52e9c0e8c669fddb1bfcdfda2619cda93f091b96e9b5a38e33f22c43b838dad5",
+        "bytes": 2912,
+        "lines": 75
+      },
+      "raw_HEAD_equal_before": true,
+      "original_bytes_preserved": true,
+      "new_lines": 6,
+      "test_budget_before": true,
+      "test_budget_after": true,
+      "UI_MODULE_NAME_before_count": 0,
+      "UI_MODULE_NAME_after_count": 0
+    },
+    {
+      "path": "zircon_runtime/src/tests/ui_boundary/template_namespaces.rs",
+      "before": {
+        "sha256": "5b8794c7a4641687cc89eadcfc109884dd8886fcc0afa0ce48455a4ae71125f8",
+        "bytes": 6177,
+        "lines": 159
+      },
+      "after": {
+        "sha256": "fef478f825b7ed86263e151b13b1b09e7baa3e5e45c5e731b3267ea1e720f1c4",
+        "bytes": 6413,
+        "lines": 162
+      },
+      "raw_HEAD_equal_before": true,
+      "original_bytes_preserved": true,
+      "new_lines": 3,
+      "test_budget_before": true,
+      "test_budget_after": true,
+      "UI_MODULE_NAME_before_count": 0,
+      "UI_MODULE_NAME_after_count": 0
+    }
+  ],
+  "object_review": [
+    {
+      "id": "R073-OBJ-01",
+      "path": "zircon_runtime/src/tests/ui_boundary/assets.rs",
+      "name": "production_ui_entry_assets_live_under_crate_assets_not_src",
+      "before_lines": [
+        3,
+        45
+      ],
+      "current_lines": [
+        3,
+        45
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-01",
+      "semantic_blocks": 4,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-02",
+      "path": "zircon_runtime/src/tests/ui_boundary/assets.rs",
+      "name": "runtime_ui_asset_root_contains_only_zui_entries",
+      "before_lines": [
+        48,
+        66
+      ],
+      "current_lines": [
+        48,
+        66
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-02",
+      "semantic_blocks": 3,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-03",
+      "path": "zircon_runtime/src/tests/ui_boundary/assets.rs",
+      "name": "default_runtime_font_manifest_stays_inside_runtime_assets",
+      "before_lines": [
+        69,
+        96
+      ],
+      "current_lines": [
+        69,
+        96
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-03",
+      "semantic_blocks": 3,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-04",
+      "path": "zircon_runtime/src/tests/ui_boundary/assets.rs",
+      "name": "collect_ui_toml_files",
+      "before_lines": [
+        98,
+        100
+      ],
+      "current_lines": [
+        99,
+        101
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-04",
+      "semantic_blocks": 1,
+      "documentation_decision": {
+        "action": "added_declaration_doc",
+        "reason": "补充扫描输入/拥有返回、错误跳过、递归约束与借用生命周期；复杂helper使用Markdown节，薄包装保留简洁说明。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-05",
+      "path": "zircon_runtime/src/tests/ui_boundary/assets.rs",
+      "name": "collect_zui_files",
+      "before_lines": [
+        102,
+        104
+      ],
+      "current_lines": [
+        104,
+        106
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-05",
+      "semantic_blocks": 1,
+      "documentation_decision": {
+        "action": "added_declaration_doc",
+        "reason": "补充扫描输入/拥有返回、错误跳过、递归约束与借用生命周期；复杂helper使用Markdown节，薄包装保留简洁说明。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-06",
+      "path": "zircon_runtime/src/tests/ui_boundary/assets.rs",
+      "name": "collect_files_with_suffixes",
+      "before_lines": [
+        106,
+        125
+      ],
+      "current_lines": [
+        120,
+        139
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-06",
+      "semantic_blocks": 4,
+      "documentation_decision": {
+        "action": "added_declaration_doc",
+        "reason": "补充扫描输入/拥有返回、错误跳过、递归约束与借用生命周期；复杂helper使用Markdown节，薄包装保留简洁说明。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-07",
+      "path": "zircon_runtime/src/tests/ui_boundary/assets.rs",
+      "name": "collect_production_ui_document_files",
+      "before_lines": [
+        127,
+        146
+      ],
+      "current_lines": [
+        150,
+        169
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-07",
+      "semantic_blocks": 5,
+      "documentation_decision": {
+        "action": "added_declaration_doc",
+        "reason": "补充扫描输入/拥有返回、错误跳过、递归约束与借用生命周期；复杂helper使用Markdown节，薄包装保留简洁说明。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-08",
+      "path": "zircon_runtime/src/tests/ui_boundary/assets.rs",
+      "name": "is_test_fixture_path",
+      "before_lines": [
+        148,
+        158
+      ],
+      "current_lines": [
+        179,
+        189
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-08",
+      "semantic_blocks": 3,
+      "documentation_decision": {
+        "action": "added_declaration_doc",
+        "reason": "补充扫描输入/拥有返回、错误跳过、递归约束与借用生命周期；复杂helper使用Markdown节，薄包装保留简洁说明。"
+      },
+      "exception": "Only task-added helper doc line177 clarified by root amendment; Path components normalization contract governs wording."
+    },
+    {
+      "id": "R073-OBJ-09",
+      "path": "zircon_runtime/src/tests/ui_boundary/binding_event_namespaces.rs",
+      "name": "runtime_ui_surface_keeps_binding_under_namespace",
+      "before_lines": [
+        2,
+        30
+      ],
+      "current_lines": [
+        8,
+        36
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-09",
+      "semantic_blocks": 3,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-10",
+      "path": "zircon_runtime/src/tests/ui_boundary/binding_event_namespaces.rs",
+      "name": "runtime_ui_surface_keeps_event_ui_under_namespace",
+      "before_lines": [
+        33,
+        78
+      ],
+      "current_lines": [
+        39,
+        84
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-10",
+      "semantic_blocks": 3,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-11",
+      "path": "zircon_runtime/src/tests/ui_boundary/module_absorption.rs",
+      "name": "ui_module_registration_is_absorbed_into_runtime_ui_surface",
+      "before_lines": [
+        3,
+        38
+      ],
+      "current_lines": [
+        7,
+        42
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-11",
+      "semantic_blocks": 4,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-12",
+      "path": "zircon_runtime/src/tests/ui_boundary/surface_dispatch_namespaces.rs",
+      "name": "runtime_ui_surface_keeps_surface_state_under_namespace",
+      "before_lines": [
+        2,
+        18
+      ],
+      "current_lines": [
+        8,
+        24
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-12",
+      "semantic_blocks": 3,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-13",
+      "path": "zircon_runtime/src/tests/ui_boundary/surface_dispatch_namespaces.rs",
+      "name": "runtime_ui_surface_keeps_input_policy_under_tree_namespace",
+      "before_lines": [
+        21,
+        35
+      ],
+      "current_lines": [
+        27,
+        41
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-13",
+      "semantic_blocks": 3,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-14",
+      "path": "zircon_runtime/src/tests/ui_boundary/surface_dispatch_namespaces.rs",
+      "name": "runtime_ui_surface_keeps_dispatch_under_namespace",
+      "before_lines": [
+        38,
+        69
+      ],
+      "current_lines": [
+        44,
+        75
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-14",
+      "semantic_blocks": 3,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-15",
+      "path": "zircon_runtime/src/tests/ui_boundary/template_namespaces.rs",
+      "name": "runtime_ui_template_builders_live_under_build_namespace_without_bridge_folder",
+      "before_lines": [
+        3,
+        25
+      ],
+      "current_lines": [
+        6,
+        28
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-15",
+      "semantic_blocks": 3,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-16",
+      "path": "zircon_runtime/src/tests/ui_boundary/template_namespaces.rs",
+      "name": "runtime_ui_template_surface_removes_legacy_asset_migration_entrypoints",
+      "before_lines": [
+        28,
+        60
+      ],
+      "current_lines": [
+        31,
+        63
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-16",
+      "semantic_blocks": 5,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-17",
+      "path": "zircon_runtime/src/tests/ui_boundary/template_namespaces.rs",
+      "name": "runtime_ui_surface_keeps_template_and_layout_specialists_under_namespaces",
+      "before_lines": [
+        63,
+        119
+      ],
+      "current_lines": [
+        66,
+        122
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-17",
+      "semantic_blocks": 3,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-18",
+      "path": "zircon_runtime/src/tests/ui_boundary/template_namespaces.rs",
+      "name": "runtime_ui_surface_keeps_layout_constraint_models_under_namespace",
+      "before_lines": [
+        122,
+        142
+      ],
+      "current_lines": [
+        125,
+        145
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-18",
+      "semantic_blocks": 3,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    },
+    {
+      "id": "R073-OBJ-19",
+      "path": "zircon_runtime/src/tests/ui_boundary/template_namespaces.rs",
+      "name": "runtime_ui_surface_keeps_asset_document_under_template_namespace",
+      "before_lines": [
+        145,
+        159
+      ],
+      "current_lines": [
+        148,
+        162
+      ],
+      "root_decision": "Reviewed complete original/final source, direct callers and semantic block state/effects; accepted with immutable child detailed model reference.",
+      "child_section": "object_review/R073-OBJ-19",
+      "semantic_blocks": 3,
+      "documentation_decision": {
+        "action": "no_per_test_comment",
+        "reason": "已有/本次补齐的模块文档说明结构性断言的职责、读取失败及局限；具体条件保留原断言和本记录逐项表，无参测试无需机械参数/返回节。"
+      },
+      "exception": null
+    }
+  ],
+  "module_members_review": {
+    "count": 6,
+    "child_section": "module_members",
+    "root_decision": "All path attributes, declarations, gates and ownership reviewed; runtime_host body excluded."
+  },
+  "root_findings": [
+    {
+      "paths": [
+        "zircon_runtime/src/tests/ui_boundary/mod.rs"
+      ],
+      "finding": "Only declaration/mount of runtime_host belongs here; body is R072. Parent all(test,native-host) and feature ui jointly gate this suite. Parent source has current foreign96-lineCRLF pin; old97-line spans rejected and recovered, not rewritten.",
+      "boundary": "No module service activation or resource lifecycle runs in owned namespace entry."
+    },
+    {
+      "paths": [
+        "zircon_runtime/src/tests/ui_boundary/assets.rs"
+      ],
+      "finding": "Three asset checks read fixture text, scan suffixes or canonicalize font source. Five helpers return owned paths / bool, skip read-dir and entry errors, preserve enumeration order without sorting/dedup, exclude fixture before recursion. Non-directory suffix candidates are not proven regular files, and empty scan is not completeness evidence.",
+      "parameters_returns_lifecycle": "Borrowed path/suffix inputs do not escape; recursive owned Vec results append, iterators drop locally. Font source borrows local TOML value until join; read/parse/get/parent/canonicalize expect may stop before starts_with.",
+      "amendment": "One added doc line distinguishes lexically iterated components from disk canonicalization; no original line changed."
+    },
+    {
+      "paths": [
+        "zircon_runtime/src/tests/ui_boundary/binding_event_namespaces.rs",
+        "zircon_runtime/src/tests/ui_boundary/surface_dispatch_namespaces.rs"
+      ],
+      "finding": "Each method reads UI root independently with unwrap_or_default, checks positive namespace before forbidden substrings; actual pointers/layout constraint needles include their separators. Types in needles are not calls, registration or trait implementations.",
+      "boundary": "Missing raw text becoming empty does not let the first positive check pass; negative predicates alone are not harness success."
+    },
+    {
+      "paths": [
+        "zircon_runtime/src/tests/ui_boundary/module_absorption.rs",
+        "zircon_runtime/src/tests/ui_boundary/template_namespaces.rs"
+      ],
+      "finding": "Retired physical src/ui.rs currently missing and handled as empty only at its original fallback; module root UiModule positive text precedes negative checks. Template negative && operands retain original left-to-right short circuit and original namespace/legacy path assertions.",
+      "boundary": "No loading, compiler, bridge construction, layout or lifecycle call is executed."
+    }
+  ],
+  "raw_text_review": {
+    "original_conditions": 38,
+    "fixed_loop_expansions": 119,
+    "raw_complete_expressions": 104,
+    "raw_atoms": 109,
+    "distinct_actual_needles": 101,
+    "same_pinned_text_static_true": 104,
+    "unexecuted_nontext_conditions": 15,
+    "actual_harness_reachability_not_asserted": true,
+    "same_read_inputs_before_and_after": true,
+    "new_comment_operand_contribution": 0,
+    "conditional_evaluation": "Whole 104 text conditions independently reconstructed from exact original contains operators and actual environment literals, including &&; all true on same pinned read-time inputs. Unknown preceding disk/scan/font conditions remain null; no Rust test or file scan function executed.",
+    "raw_inputs": [
+      {
+        "path": "zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs",
+        "sha256": "9618ef30ed13ad622b8e108dc582b92700f6e19aaea4b262f6fd0c1f9d365226",
+        "bytes": 1773,
+        "lines": 46,
+        "fallback_to_empty": false
+      },
+      {
+        "path": "zircon_runtime/src/ui.rs",
+        "exists": false,
+        "fallback_to_empty": true,
+        "exception_handled_by_original_unwrap_or_default": true
+      },
+      {
+        "path": "zircon_runtime/src/ui/mod.rs",
+        "sha256": "c2428bd042db5c94d637bfcaf9565872b468b6b81199a4607e33440a367f1b09",
+        "bytes": 1557,
+        "lines": 60,
+        "fallback_to_empty": false
+      },
+      {
+        "path": "zircon_runtime/src/ui/module.rs",
+        "sha256": "f98397e6ca05452f5eb73d6e04cd2eb7de46e97f1f21a3baf86e1d9b120c9624",
+        "bytes": 3685,
+        "lines": 90,
+        "fallback_to_empty": false
+      },
+      {
+        "path": "zircon_runtime/src/ui/template/mod.rs",
+        "sha256": "f5d9645d5cff336599485d0ff80b88625f89bee2d524a90cbb770de8233febe8",
+        "bytes": 2994,
+        "lines": 44,
+        "fallback_to_empty": false
+      },
+      {
+        "path": "zircon_runtime/src/ui/template/asset/mod.rs",
+        "sha256": "fd22be5c104dada0e41c666386cfd321d74adf550f995994bfef8e7934fc79c3",
+        "bytes": 4188,
+        "lines": 94,
+        "fallback_to_empty": false
+      },
+      {
+        "path": "zircon_runtime/src/ui/template/asset/loader.rs",
+        "sha256": "576689adb49887accba085fc6d67bff3ed69fb7ecfed008a2405d965ef895fdb",
+        "bytes": 2127,
+        "lines": 53,
+        "fallback_to_empty": false
+      }
+    ],
+    "child_details": "guard_and_assertion_review/assertions and unexecuted_nontext_conditions",
+    "root_read_receipt": "402/688d14 native4534->558b4f exit0/PID12704 all38 guards and6 fullraw context JSON intact; one large summary line truncated. Bounded recovery404/757b52 exit0/PID18072 recovers summary/digest/38compactconditions, no formatter/guard rerun."
+  },
+  "context_pins": [
+    {
+      "path": "zircon_runtime/src/lib.rs",
+      "sha256": "1f10ff3edd33820fc1f4f12a59393e41eb759afcad4e90d0d92d2745170053d8",
+      "bytes": 2983,
+      "lines": 96
+    },
+    {
+      "path": "zircon_runtime/src/tests/mod.rs",
+      "sha256": "03c721b676e2938efd07f77ae543892d2b31d1d7cd65bb038ec5d1706e66d14f",
+      "bytes": 907,
+      "lines": 32
+    },
+    {
+      "path": "tools/tests/frameworks_05_module_identity.py",
+      "sha256": "bf1743539d8facf1ef831de62dcfc97c7c2c0b3613b119a2168360035c0f624f",
+      "bytes": 24675,
+      "lines": 613
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/structure/source_size/global_budget.rs",
+      "sha256": "bdd262431a277db4b50675feb41472fce7e24d2f901be7cee5dd9ec7b6e510f5",
+      "bytes": 4440,
+      "lines": 123
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/structure/test_size/mod.rs",
+      "sha256": "db0d265328fea6a046155c585f40af720def66d1488dd0c199f9f701d38df09b",
+      "bytes": 18806,
+      "lines": 402
+    },
+    {
+      "path": "zircon_runtime/assets/fonts/default.font.toml",
+      "sha256": "e2543d1de7d6982bbc17636f8f7ad445a12e29167d7b4021beb303d17e81cc44",
+      "bytes": 2473,
+      "lines": 102
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/structure/test_size/global_budget.rs",
+      "sha256": "987fe0523a3a8c85fb2b6cd98fb80ed4cc6aa58c02a0c8fd87fd6ca7cd1740ce",
+      "bytes": 4085,
+      "lines": 115
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs",
+      "sha256": "9618ef30ed13ad622b8e108dc582b92700f6e19aaea4b262f6fd0c1f9d365226",
+      "bytes": 1773,
+      "lines": 46,
+      "fallback_to_empty": false
+    },
+    {
+      "path": "zircon_runtime/src/ui.rs",
+      "exists": false,
+      "fallback_to_empty": true,
+      "exception_handled_by_original_unwrap_or_default": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/mod.rs",
+      "sha256": "c2428bd042db5c94d637bfcaf9565872b468b6b81199a4607e33440a367f1b09",
+      "bytes": 1557,
+      "lines": 60,
+      "fallback_to_empty": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "sha256": "f98397e6ca05452f5eb73d6e04cd2eb7de46e97f1f21a3baf86e1d9b120c9624",
+      "bytes": 3685,
+      "lines": 90,
+      "fallback_to_empty": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/template/mod.rs",
+      "sha256": "f5d9645d5cff336599485d0ff80b88625f89bee2d524a90cbb770de8233febe8",
+      "bytes": 2994,
+      "lines": 44,
+      "fallback_to_empty": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/template/asset/mod.rs",
+      "sha256": "fd22be5c104dada0e41c666386cfd321d74adf550f995994bfef8e7934fc79c3",
+      "bytes": 4188,
+      "lines": 94,
+      "fallback_to_empty": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/template/asset/loader.rs",
+      "sha256": "576689adb49887accba085fc6d67bff3ed69fb7ecfed008a2405d965ef895fdb",
+      "bytes": 2127,
+      "lines": 53,
+      "fallback_to_empty": false
+    }
+  ],
+  "context_coverage_is_formal": false,
+  "issue_review": [],
+  "reserved_issue_unused": "CR-ZCA-R073-0001",
+  "scoped_validation": {
+    "rustfmt_exact6": 0,
+    "diff_check": 0,
+    "numstat_added": 54,
+    "numstat_deleted": 0,
+    "cached_exact6_empty": true,
+    "change_guard": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "patch": {
+      "sha256": "b6ebfe4fe32389aebeb9b25f0b33094a057df971dfbb0c948be57c62bfc6aa36",
+      "bytes": 7082
+    },
+    "canonical_ranges": 172,
+    "canonical_ranges_digest": "b16c076db92acf890109c3df9f58672db038e91a14f1820b344fdd171ffe2d3f",
+    "full_original_byte_inverse_equals_grant_and_rawHEAD": true,
+    "actual_source_EOL_all_LF": true,
+    "local_test_file_budget_under800_all6": true,
+    "production_source_budget_excludes_tests_component": true,
+    "UI_identity_token_count_before_after_zero": true,
+    "broad_Cargo_or_tests_run": false
+  },
+  "process_evidence": {
+    "agent_source": "7116b2 exit0/PID20080",
+    "agent_fixed_child_independent": "f33679/native31976->5ae066 exit0/PID12404",
+    "root_source_patch": "cell400 apply_patch actual {}; no native/session/PID exposed, none inferred",
+    "root_amendment_writer": "401/fc3169 exit0/PID21728",
+    "root_preflight_grant": "397/0cf311 native32433->38fcd1 exit0/PID6300",
+    "root_independent_grant": "399/19972d exit0/PID16640",
+    "root_validation": "402/688d14 native4534->558b4f exit0/PID12704",
+    "bounded_recovery": "404/757b52 exit0/PID18072",
+    "source_and_fixed_child_frozen": true,
+    "known_source_writers_terminal": true,
+    "historical_unknown_receipts_preserved": [
+      {
+        "scope": "R039 Group C original source writer",
+        "state": "original nested native/session/exit/EOF evidence unavailable here; outer170completion and stablepins do not close it; no replay/PID guess"
+      },
+      {
+        "scope": "R042 historical readonly reader",
+        "state": "original terminal unavailable; later reread does not close old lifecycle"
+      },
+      {
+        "scope": "R048 historical old child writer",
+        "state": "original terminal unknown; root retained landed old child; never replayed"
+      }
+    ],
+    "record_creation_actual_terminal": "Reconcile actual returned receipt plus next independent readback; no predicted PID."
+  },
+  "limits": {
+    "tests_run": 0,
+    "TOML_parse_or_font_payload_read": false,
+    "canonicalize_not_executed": true,
+    "directory_scan_tests_not_executed": true,
+    "source_or_API_behavior_changed": false,
+    "foreign_fixture_or_boundary_test_edited": false,
+    "index_lock_owner": "unknown-preserved",
+    "formal_acceptance": false,
+    "module_phase_handoff_ready": false
+  },
+  "artifacts": {
+    "temporary_helpers_or_source_copies": 0,
+    "builds_or_caches": 0,
+    "deleted_files": 0,
+    "bytes_released": 0,
+    "retention": "Pinned child/amendment/main/post plus necessary actual failure and pending Jenkins evidence."
+  },
+  "reviewed_at_utc": "2026-10-16T17:37:41.497547+00:00",
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false
+}

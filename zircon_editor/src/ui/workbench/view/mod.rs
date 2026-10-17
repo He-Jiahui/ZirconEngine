@@ -36,12 +36,8 @@ mod view_registry_descriptor_mutation;
 mod view_registry_instance_access;
 #[path = "view_registry_instance_mutation.rs"]
 mod view_registry_instance_mutation;
-#[path = "view_registry_open_descriptor.rs"]
-mod view_registry_open_descriptor;
 #[path = "view_registry_register_view.rs"]
 mod view_registry_register_view;
-#[path = "view_registry_restore_instance.rs"]
-mod view_registry_restore_instance;
 #[path = "workbench_slot_to_view_host.rs"]
 mod workbench_slot_to_view_host;
 

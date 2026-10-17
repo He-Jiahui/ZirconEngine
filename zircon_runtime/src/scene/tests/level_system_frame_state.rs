@@ -635,9 +635,17 @@ fn transactional_world_replacement_preserves_staged_lifecycle_callback_events() 
     let mut subscription = level.with_world_mut(|world| {
         let mut subscription = world.register_dormant_event_subscription::<RetiredWorldEvent>();
         assert!(world.connect_event_subscription(&mut subscription));
-        world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, |world, _| {
-            world.send_event(RetiredWorldEvent(99));
-        });
+        world.observe_component_lifecycle::<Name>(
+            LifecycleEventKind::Add,
+            // SAFETY: Only the transient event queue receives a fixed scalar event; NodeRecord
+            // and dynamic JSON are untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(|world, _| {
+                    world.send_event(RetiredWorldEvent(99));
+                })
+            },
+        );
         subscription
     });
     let (mut staged, _) = level.with_world_mut(|world| {
@@ -770,4 +778,108 @@ fn level_world_replacement_and_pose_publication_share_an_epoch_commit_order() {
     assert!(publication.contains("replacement_epoch: u64"));
     assert!(publication.contains("world_replacement_epoch.load(Ordering::Acquire)"));
     assert!(publication.contains("let world_generation = world.world_generation();"));
+}
+
+#[test]
+#[cfg(feature = "animation")]
+fn animation_frame_demand_commits_producer_or_without_erasing_manual_or_event_demand() {
+    let level = DefaultLevelManager::default().create_default_level();
+    let other = DefaultLevelManager::default().create_default_level();
+    let frame = level.begin_animation_evaluation_frame();
+    let (epoch, token) = level.capture_animation_evaluation_frame().unwrap();
+    assert!(level.stage_animation_evaluation_frame(epoch, token, true));
+    assert!(level.stage_animation_evaluation_frame(epoch, token, false));
+    assert!(!level.animation_requires_continuous_frame());
+    frame.commit();
+    assert!(level.animation_requires_continuous_frame());
+    assert!(!other.animation_requires_continuous_frame());
+
+    let idle = level.begin_animation_evaluation_frame();
+    assert!(level.animation_requires_continuous_frame());
+    idle.commit();
+    assert!(!level.animation_requires_continuous_frame());
+
+    level.record_animation_requires_continuous_frame(true);
+    level.begin_animation_evaluation_frame().commit();
+    assert!(level.animation_requires_continuous_frame());
+    level.record_animation_requires_continuous_frame(false);
+    assert!(!level.animation_requires_continuous_frame());
+
+    level.enqueue_animation_clip_event_range_batches(epoch, vec![vec![clip_event_range(17)]]);
+    level.begin_animation_evaluation_frame().commit();
+    assert!(level.animation_requires_continuous_frame());
+    level
+        .drain_animation_clip_events(epoch, &CompleteClipEventSampler)
+        .unwrap();
+    assert!(!level.animation_requires_continuous_frame());
+}
+
+#[test]
+#[cfg(feature = "animation")]
+fn animation_frame_demand_rejects_late_frames_and_replaced_worlds() {
+    let level = DefaultLevelManager::default().create_default_level();
+    let old = level.begin_animation_evaluation_frame();
+    let (old_epoch, old_token) = level.capture_animation_evaluation_frame().unwrap();
+    let current = level.begin_animation_evaluation_frame();
+    let (epoch, token) = level.capture_animation_evaluation_frame().unwrap();
+    assert_eq!(old_epoch, epoch);
+    assert!(token > old_token);
+    assert!(!level.stage_animation_evaluation_frame(old_epoch, old_token, true));
+    assert!(level.stage_animation_evaluation_frame(epoch, token, true));
+    current.commit();
+    drop(old);
+    assert!(!level.stage_animation_evaluation_frame(epoch, token, true));
+    assert!(level.animation_requires_continuous_frame());
+
+    let retired = level.begin_animation_evaluation_frame();
+    let retired_identity = level.capture_animation_evaluation_frame().unwrap();
+    level.replace_world_and_reset_runtime_state(World::empty());
+    assert!(!level.stage_animation_evaluation_frame(retired_identity.0, retired_identity.1, true,));
+    drop(retired);
+    assert!(!level.animation_requires_continuous_frame());
+
+    let replacement = level.begin_animation_evaluation_frame();
+    let replacement_identity = level.capture_animation_evaluation_frame().unwrap();
+    assert_ne!(replacement_identity.0, retired_identity.0);
+    assert!(replacement_identity.1 > retired_identity.1);
+    assert!(level.stage_animation_evaluation_frame(
+        replacement_identity.0,
+        replacement_identity.1,
+        true,
+    ));
+    replacement.commit();
+    assert!(level.animation_requires_continuous_frame());
+}
+
+#[test]
+#[cfg(feature = "animation")]
+fn animation_frame_demand_cancels_failed_and_unwinding_evaluations() {
+    let level = DefaultLevelManager::default().create_default_level();
+    let publish = || {
+        let frame = level.begin_animation_evaluation_frame();
+        let (epoch, token) = level.capture_animation_evaluation_frame().unwrap();
+        assert!(level.stage_animation_evaluation_frame(epoch, token, true));
+        frame.commit();
+    };
+    publish();
+    assert!(level.animation_requires_continuous_frame());
+
+    {
+        let _failed = level.begin_animation_evaluation_frame();
+        let (epoch, token) = level.capture_animation_evaluation_frame().unwrap();
+        assert!(level.stage_animation_evaluation_frame(epoch, token, true));
+    }
+    assert!(!level.animation_requires_continuous_frame());
+    publish();
+    let failure = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _unwinding = level.begin_animation_evaluation_frame();
+        let (epoch, token) = level.capture_animation_evaluation_frame().unwrap();
+        assert!(level.stage_animation_evaluation_frame(epoch, token, true));
+        panic!("frame evaluation failed after staging demand");
+    }));
+    assert!(failure.is_err());
+    assert!(level.capture_animation_evaluation_frame().is_none());
+    assert!(!level.animation_requires_continuous_frame());
+    publish();
+    assert!(level.animation_requires_continuous_frame());
 }

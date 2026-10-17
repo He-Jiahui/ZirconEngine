@@ -5,8 +5,7 @@ pub(super) fn assert_sdk_builder_mirrors_capabilities() {
     let feature_bundle_builder = include_str!(
         "../../../../../zircon_plugins/plugin_sdk/src/manifest/feature_bundle_builder.rs"
     );
-    let manifest_mod =
-        include_str!("../../../../../zircon_plugins/plugin_sdk/src/manifest/mod.rs");
+    let manifest_mod = include_str!("../../../../../zircon_plugins/plugin_sdk/src/manifest/mod.rs");
     let plugin_sdk_lib = include_str!("../../../../../zircon_plugins/plugin_sdk/src/lib.rs");
     let plugin_sdk_prelude =
         include_str!("../../../../../zircon_plugins/plugin_sdk/src/prelude.rs");

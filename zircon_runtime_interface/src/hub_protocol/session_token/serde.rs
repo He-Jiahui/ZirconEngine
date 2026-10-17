@@ -2,6 +2,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::HubSessionToken;
 
+/// Serde 使用与 Display 相同的规范 UUID 字符串，不暴露内部表示。
 impl Serialize for HubSessionToken {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

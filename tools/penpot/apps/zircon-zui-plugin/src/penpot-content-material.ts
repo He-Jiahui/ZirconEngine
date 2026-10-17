@@ -1,6 +1,7 @@
 import type { ZuiDocument, ZuiNode } from './bridge/zui-document';
 import { resolveDesignNumber } from './bridge/zui-prefab-system';
 import type { LinearDesiredSize } from './penpot-weighted-flex';
+import { MATERIAL_LAYOUT_STYLE_KEYS } from './bridge/zui-style-projection';
 
 // Keep this contract aligned with runtime ui/layout/pass/material.rs.
 const MATERIAL_COMPONENTS = new Set([
@@ -12,6 +13,7 @@ const MATERIAL_COMPONENTS = new Set([
   'TextField',
   'ListRow',
   'ComboBox',
+  'Dropdown',
   'RangeField',
   'NumberField',
   'Progress',
@@ -43,19 +45,24 @@ const MATERIAL_COMPONENTS = new Set([
   'Vector4Field',
   'Label',
 ]);
-const MATERIAL_METRICS = [
-  'layout_padding_left',
-  'layout_padding_right',
-  'layout_padding_top',
-  'layout_padding_bottom',
-  'layout_spacing',
-  'layout_min_width',
-  'layout_min_height',
-  'layout_icon_size',
-  'layout_leading_slot_width',
-  'layout_trailing_slot_width',
-] as const;
+const MATERIAL_METRICS = MATERIAL_LAYOUT_STYLE_KEYS;
 const BUTTON_CONTENT_PADDING = { width: 18, height: 8 };
+
+/** Defaults match EditorDesignTokens::workbench_dark and the native Dropdown painter. */
+function dropdownAdornmentWidth(document: ZuiDocument, node: ZuiNode): number {
+  const metric = (key: string, fallback: number, positive = false) => {
+    const value = resolveDesignNumber(document, node.props?.[key]);
+    return value !== null && (positive ? value > 0 : value >= 0)
+      ? value
+      : fallback;
+  };
+  return (
+    metric('horizontal_inset', 8) +
+    metric('caret_right_inset', 12) +
+    metric('caret_size', 12, true) +
+    metric('caret_gap', 4)
+  );
+}
 
 /** Skin metrics contribute to native desired size before authored box constraints. */
 export function measureNativeMaterialContent(
@@ -64,18 +71,20 @@ export function measureNativeMaterialContent(
   content: LinearDesiredSize,
 ): LinearDesiredSize | undefined {
   const props = node.props ?? {};
+  const isDropdown = node.component === 'Dropdown';
   if (
     !MATERIAL_COMPONENTS.has(node.component) ||
-    !MATERIAL_METRICS.some((key) => Object.hasOwn(props, key))
+    (!isDropdown && !MATERIAL_METRICS.some((key) => Object.hasOwn(props, key)))
   )
     return undefined;
   const metric = (key: (typeof MATERIAL_METRICS)[number]) =>
     Math.max(0, resolveDesignNumber(document, props[key]) ?? 0);
   const hasIcon =
-    ['icon', 'image', 'media', 'source'].some(
+    !isDropdown &&
+    (['icon', 'image', 'media', 'source'].some(
       (key) => typeof props[key] === 'string' && props[key] !== '',
     ) ||
-    (node.component === 'IconButton' && metric('layout_icon_size') > 0);
+      (node.component === 'IconButton' && metric('layout_icon_size') > 0));
   const icon = hasIcon ? metric('layout_icon_size') : 0;
   return {
     width: Math.max(
@@ -86,7 +95,8 @@ export function measureNativeMaterialContent(
         metric('layout_leading_slot_width') +
         metric('layout_trailing_slot_width') +
         metric('layout_padding_left') +
-        metric('layout_padding_right'),
+        metric('layout_padding_right') +
+        (isDropdown ? dropdownAdornmentWidth(document, node) : 0),
     ),
     height: Math.max(
       metric('layout_min_height'),

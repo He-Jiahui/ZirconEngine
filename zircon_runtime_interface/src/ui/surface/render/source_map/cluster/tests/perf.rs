@@ -1,3 +1,8 @@
+//! 固定密集单行夹具的视觉簇投影对照与计时。
+//!
+//! 普通测试以线性实现对照顺序及逆序 run；带忽略标记的基准需显式选择执行。
+//! “release-only” 是该基准的预期运行方式，忽略属性本身不检查编译配置。
+
 use std::{hint::black_box, time::Instant};
 
 use crate::ui::{
@@ -11,6 +16,10 @@ const RUN_COUNT: usize = 2_048;
 const ITERATION_COUNT: usize = 4;
 const SAMPLE_COUNT: usize = 11;
 
+/// 构造每个 ASCII 字节独占一个 run 的左到右行，源与视觉范围一一对应。
+///
+/// # 返回
+/// 返回独立拥有文本、run 和等宽 advance 的合成夹具，供对照与计时复用。
 fn dense_line() -> UiResolvedTextLine {
     let text = "x".repeat(RUN_COUNT);
     let runs = (0..RUN_COUNT)
@@ -49,6 +58,7 @@ fn dense_line() -> UiResolvedTextLine {
     }
 }
 
+/// 对照同一 ASCII 夹具的顺序与逆序 run，检查两条路径返回的完整簇序列相等。
 #[test]
 fn runtime_interface03_batch13_visual_cluster_cursor_preserves_projection() {
     let ordered = dense_line();
@@ -65,6 +75,9 @@ fn runtime_interface03_batch13_visual_cluster_cursor_preserves_projection() {
     );
 }
 
+/// 测量每次完整生成簇序列的成本；夹具构造在计时外，每个样本包含多次完整投影。
+///
+/// 每组测量交替两路径先后顺序，比较排序后的最大样本。
 #[test]
 #[ignore = "release-only visual-cluster run-cursor benchmark"]
 fn runtime_interface03_batch13_visual_cluster_run_cursor_release_benchmark() {
@@ -98,6 +111,7 @@ fn runtime_interface03_batch13_visual_cluster_run_cursor_release_benchmark() {
 
     linear_samples.sort_unstable();
     cursor_samples.sort_unstable();
+    // 排序后固定取最后一项，阈值比较的是本轮观测到的最大耗时。
     let p95 = SAMPLE_COUNT - 1;
     eprintln!(
         "RUNTIME_INTERFACE03_VISUAL_CLUSTER_RUN_CURSOR_BENCH_V1 runs={RUN_COUNT} iterations={ITERATION_COUNT} samples={SAMPLE_COUNT} linear_p95_ns={} cursor_p95_ns={}",

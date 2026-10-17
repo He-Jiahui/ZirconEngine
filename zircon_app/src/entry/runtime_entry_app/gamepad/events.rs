@@ -3,19 +3,21 @@
 
 use gilrs::{Axis, Button};
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeViewportHandle, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeGamepadGenerationV2, ZrRuntimeViewportHandle,
+    ZIRCON_RUNTIME_ABI_VERSION_V1,
     ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_BUTTON_STATE_RELEASED_V1,
     ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1,
 };
 
 use super::codes::{axis_code, button_code};
+use super::producer::CapturedGamepadStamp;
 use crate::entry::runtime_library::{RuntimeLibraryError, RuntimeSession};
 
 /// 同步发送连接清单；名称只在调用期间有效，接收端必须在返回前读取或复制。
 pub(super) fn send_connection(
     session: &RuntimeSession,
     viewport: ZrRuntimeViewportHandle,
-    gamepad: u64,
+    stamp: CapturedGamepadStamp,
     connected: bool,
     name: &str,
     vendor_id: Option<u16>,
@@ -26,14 +28,16 @@ pub(super) fn send_connection(
     } else {
         ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1
     };
-    let event = ZrRuntimeEventV1::gamepad_connection_with_ids(
+    let payload = ZrRuntimeGamepadGenerationV2::encode_connection(stamp.generation, Some(name))
+        .map_err(|error| RuntimeLibraryError::new(format!("encode gamepad V2 connection: {error:?}")))?;
+    let event = ZrRuntimeEventV1::gamepad_connection_v2(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         viewport,
-        gamepad,
+        stamp.gamepad,
         state,
         vendor_id.map(u32::from).unwrap_or_default(),
         product_id.map(u32::from).unwrap_or_default(),
-        byte_slice(name),
+        byte_slice(&payload),
     );
     session.handle_event(event)
 }
@@ -41,7 +45,7 @@ pub(super) fn send_connection(
 pub(super) fn send_button(
     session: &RuntimeSession,
     viewport: ZrRuntimeViewportHandle,
-    gamepad: u64,
+    stamp: CapturedGamepadStamp,
     button: Button,
     value: f32,
     pressed: bool,
@@ -51,13 +55,15 @@ pub(super) fn send_button(
     } else {
         ZR_RUNTIME_BUTTON_STATE_RELEASED_V1
     };
-    let event = ZrRuntimeEventV1::gamepad_button(
+    let payload = ZrRuntimeGamepadGenerationV2::encode_sample(stamp.generation);
+    let event = ZrRuntimeEventV1::gamepad_button_v2(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         viewport,
-        gamepad,
+        stamp.gamepad,
         button_code(button),
         state,
         value,
+        byte_slice(&payload),
     );
     session.handle_event(event)
 }
@@ -67,17 +73,19 @@ pub(super) fn send_button(
 pub(super) fn send_raw_button(
     session: &RuntimeSession,
     viewport: ZrRuntimeViewportHandle,
-    gamepad: u64,
+    stamp: CapturedGamepadStamp,
     button: Button,
     value: f32,
 ) -> Result<(), RuntimeLibraryError> {
-    let event = ZrRuntimeEventV1::gamepad_button(
+    let payload = ZrRuntimeGamepadGenerationV2::encode_sample(stamp.generation);
+    let event = ZrRuntimeEventV1::gamepad_button_v2(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         viewport,
-        gamepad,
+        stamp.gamepad,
         button_code(button),
         ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
         value,
+        byte_slice(&payload),
     );
     session.handle_event(event)
 }
@@ -85,16 +93,18 @@ pub(super) fn send_raw_button(
 pub(super) fn send_axis(
     session: &RuntimeSession,
     viewport: ZrRuntimeViewportHandle,
-    gamepad: u64,
+    stamp: CapturedGamepadStamp,
     axis: Axis,
     value: f32,
 ) -> Result<(), RuntimeLibraryError> {
-    let event = ZrRuntimeEventV1::gamepad_axis(
+    let payload = ZrRuntimeGamepadGenerationV2::encode_sample(stamp.generation);
+    let event = ZrRuntimeEventV1::gamepad_axis_v2(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         viewport,
-        gamepad,
+        stamp.gamepad,
         axis_code(axis),
         value,
+        byte_slice(&payload),
     );
     session.handle_event(event)
 }
@@ -104,9 +114,9 @@ pub(super) fn gamepad_id(id: gilrs::GamepadId) -> u64 {
     id as u64
 }
 
-fn byte_slice(value: &str) -> ZrByteSlice {
+fn byte_slice(value: &[u8]) -> ZrByteSlice {
     ZrByteSlice {
-        data: value.as_bytes().as_ptr(),
+        data: value.as_ptr(),
         len: value.len(),
     }
 }

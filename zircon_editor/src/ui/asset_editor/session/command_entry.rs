@@ -326,8 +326,8 @@ impl UiAssetEditorSession {
             || self.source_cursor_snapshot() != transition.source_cursor
             || self.selected_theme_source_key != transition.selected_theme_source_key
             || self.selected_style_rule_id != transition.selected_style_rule_id;
-        let replay_document_changed = document_changed
-            && self.source_schema == UiAssetSourceSchema::LayoutDocument;
+        let replay_document_changed =
+            document_changed && self.source_schema == UiAssetSourceSchema::LayoutDocument;
         let prepared = if replay_document_changed {
             self.prepare_valid_document(replay_document, true)?
         } else {

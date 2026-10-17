@@ -1,6 +1,6 @@
 use super::*;
 use crate::service::{catalog, organization, storage::Database};
-use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
+use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 
 fn principal(subject: &str) -> Principal {
     Principal {

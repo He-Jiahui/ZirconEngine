@@ -1,3 +1,5 @@
+//! UiSurfaceWindowState 的 Serde 往返和空对象缺省值契约测试。
+//! 测试只检查数据编解码，不创建原生窗口或验证平台生命周期事件顺序。
 use crate::ui::surface::UiSurfaceWindowState;
 
 fn round_trip<T>(value: &T) -> T

@@ -1,7 +1,7 @@
-#[path = "../../project/asset_workspace_state/inspector_resource_labels.rs"]
-mod inspector_resource_labels;
 #[path = "../../project/asset_workspace_state/content_browser_sync.rs"]
 mod content_browser_sync;
+#[path = "../../project/asset_workspace_state/inspector_resource_labels.rs"]
+mod inspector_resource_labels;
 
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeSet, HashMap};
@@ -161,7 +161,8 @@ impl AssetWorkspaceState {
     fn reconcile_catalog_selection(&mut self) {
         let catalog = self.catalog.as_ref();
         let previous_count = self.synced_asset_uuids.len();
-        self.synced_asset_uuids.retain(|uuid| catalog.is_some_and(|catalog| catalog.asset(uuid).is_some()));
+        self.synced_asset_uuids
+            .retain(|uuid| catalog.is_some_and(|catalog| catalog.asset(uuid).is_some()));
         if self.synced_asset_uuids.len() != previous_count {
             self.item_generation_cache.borrow_mut().take();
         }
@@ -220,7 +221,10 @@ impl AssetWorkspaceState {
             .selected_asset_uuid
             .as_ref()
             .is_some_and(|uuid| !self.asset_belongs_to_folder(uuid, &folder_id));
-        if self.selected_folder_id == folder_id && !clears_selection && self.synced_asset_uuids.is_empty() {
+        if self.selected_folder_id == folder_id
+            && !clears_selection
+            && self.synced_asset_uuids.is_empty()
+        {
             return false;
         }
         self.selected_folder_id = folder_id;

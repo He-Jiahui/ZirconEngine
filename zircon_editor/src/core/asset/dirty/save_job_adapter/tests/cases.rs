@@ -601,6 +601,14 @@ impl EditContext for FixtureContext {
         Ok(())
     }
 
+    fn selection_retention_bound_v1(
+        &self,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<u64, EditCommandError> {
+        SelectionSnapshot::scalar_retention_bound_v1(model, limit)
+    }
+
     fn selection_snapshot(&self) -> SelectionSnapshot {
         SelectionSnapshot::default()
     }

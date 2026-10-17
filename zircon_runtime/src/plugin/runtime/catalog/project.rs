@@ -2,7 +2,10 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::core::framework::platform::RuntimeTargetMode;
-use crate::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
+use crate::core::framework::project::{
+    ProjectPluginManifest, ProjectPluginSelection, RuntimeProfileId,
+};
+use crate::plugin::{PluginMaturity, RuntimeProfileDescriptor};
 
 #[path = "project/cache.rs"]
 mod cache;
@@ -51,6 +54,7 @@ pub struct CompiledProjectPluginPlan {
     catalog_generation: PluginCatalogGeneration,
     source_manifest_fingerprint: u64,
     target_mode: RuntimeTargetMode,
+    runtime_profile_admission: Option<(RuntimeProfileId, PluginMaturity)>,
     pub(super) completed_manifest: Arc<ProjectPluginManifest>,
     pub(super) feature_report: Arc<RuntimePluginFeatureDependencyReport>,
     pub(super) extension_report: Arc<RuntimeExtensionCatalogReport>,
@@ -71,6 +75,11 @@ impl CompiledProjectPluginPlan {
     /// Runtime target whose feature and extension policy was applied.
     pub fn target_mode(&self) -> RuntimeTargetMode {
         self.target_mode
+    }
+
+    /// Exact profile identity and maturity policy applied before executable selection.
+    pub fn runtime_profile_admission(&self) -> Option<(RuntimeProfileId, PluginMaturity)> {
+        self.runtime_profile_admission
     }
 
     /// Completed project manifest retained by this plan generation.
@@ -180,20 +189,59 @@ impl RuntimePluginCatalog {
         manifest: &ProjectPluginManifest,
         target: RuntimeTargetMode,
     ) -> Arc<CompiledProjectPluginPlan> {
+        self.compiled_project_plan_with_admission(manifest, target, None)
+    }
+
+    /// Applies profile identity, target and maturity to one executable plugin plan.
+    /// Custom required/default/optional requests must be supplied in `manifest`;
+    /// those descriptor lists are not consumed by this admission API.
+    pub fn compiled_project_plan_for_runtime_profile(
+        &self,
+        manifest: &ProjectPluginManifest,
+        profile: &RuntimeProfileDescriptor,
+    ) -> Arc<CompiledProjectPluginPlan> {
+        self.compiled_project_plan_with_admission(
+            manifest,
+            profile.target_mode,
+            Some((profile.id, profile.minimum_maturity)),
+        )
+    }
+
+    fn compiled_project_plan_with_admission(
+        &self,
+        manifest: &ProjectPluginManifest,
+        target: RuntimeTargetMode,
+        admission: Option<(RuntimeProfileId, PluginMaturity)>,
+    ) -> Arc<CompiledProjectPluginPlan> {
         let fingerprint = project_manifest_fingerprint(manifest);
         let cache_entry = {
             let mut project_plans = self
                 .project_plans
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
-            project_plans.lookup(self.catalog_generation, fingerprint, manifest, target)
+            if admission.is_none() {
+                project_plans.lookup(self.catalog_generation, fingerprint, manifest, target)
+            } else {
+                project_plans.lookup_with_admission(
+                    self.catalog_generation,
+                    fingerprint,
+                    manifest,
+                    target,
+                    admission,
+                )
+            }
         };
         let cache_entry = cache_entry.unwrap_or_else(|| {
-            let candidate = Arc::new(ProjectPlanCacheEntry::new(
-                self.catalog_generation,
-                fingerprint,
-                manifest.clone(),
-            ));
+            let candidate = Arc::new(if admission.is_none() {
+                ProjectPlanCacheEntry::new(self.catalog_generation, fingerprint, manifest.clone())
+            } else {
+                ProjectPlanCacheEntry::new_with_admission(
+                    self.catalog_generation,
+                    fingerprint,
+                    manifest.clone(),
+                    admission,
+                )
+            });
             self.project_plans
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -208,17 +256,25 @@ impl RuntimePluginCatalog {
                 &self.projection,
                 &cache_entry.source_manifest,
             ));
+            // Keep raw request intent; one admitted snapshot drives all executable consumers.
+            let (admitted_manifest, maturity_diagnostics) =
+                selection::manifest_admitted_for_maturity(
+                    &self.registrations,
+                    completed_manifest.as_ref(),
+                    target,
+                    admission.map(|(_, minimum)| minimum),
+                );
             let mut base_selection = CompiledRuntimePluginBaseSelection::compile(
                 &self.registrations,
                 &self.feature_registrations,
-                &completed_manifest,
+                &admitted_manifest,
                 target,
             );
             let (effective_enabled_plugins, available_capabilities) =
                 base_selection.take_feature_dependency_inputs();
             let feature_report = Arc::new(feature_dependency_report_for_effective_base(
                 &self.projection,
-                &completed_manifest,
+                &admitted_manifest,
                 target,
                 effective_enabled_plugins,
                 available_capabilities,
@@ -227,21 +283,29 @@ impl RuntimePluginCatalog {
                 &self.registrations,
                 &self.feature_registrations,
                 &self.projection,
-                &completed_manifest,
+                &admitted_manifest,
                 target,
                 &feature_report,
             );
-            let extension_report = Arc::new(runtime_extension_report_for_project(
+            let mut extension_report = runtime_extension_report_for_project(
                 &self.registrations,
                 &self.feature_registrations,
                 target,
                 &feature_report,
                 &selection,
-            ));
+            );
+            extension_report
+                .diagnostics
+                .extend(maturity_diagnostics.iter().cloned());
+            extension_report
+                .fatal_diagnostics
+                .extend(maturity_diagnostics);
+            let extension_report = Arc::new(extension_report);
             let plan = Arc::new(CompiledProjectPluginPlan {
                 catalog_generation: self.catalog_generation,
                 source_manifest_fingerprint: fingerprint,
                 target_mode: target,
+                runtime_profile_admission: admission,
                 completed_manifest,
                 feature_report,
                 extension_report,

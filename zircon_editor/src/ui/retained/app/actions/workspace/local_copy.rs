@@ -12,7 +12,8 @@ impl RetainedEditorHost {
             return UiAssetActionDispatch::Unhandled;
         }
 
-        match self.editor_manager
+        match self
+            .editor_manager
             .enter()
             .map_err(EditorError::from)
             .and_then(|manager| manager.save_ui_asset_editor_local_copy_next_to_source(instance_id))

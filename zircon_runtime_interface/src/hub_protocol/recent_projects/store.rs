@@ -1,3 +1,4 @@
+//! 使用有界平台锁执行最近项目文件的读取、校验、合并和原子替换。
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
@@ -8,10 +9,10 @@ use std::time::{Duration, Instant};
 use thiserror::Error;
 use uuid::Uuid;
 
-#[cfg(windows)]
-use super::windows_hub_recent_projects_mutex_name;
 #[cfg(unix)]
 use super::hub_recent_projects_lock_path;
+#[cfg(windows)]
+use super::windows_hub_recent_projects_mutex_name;
 use super::{HubRecentProjectsError, HubRecentProjectsV1};
 
 /// The shared history has at most eight entries and is only a rebuildable UI projection.
@@ -19,6 +20,7 @@ pub const HUB_RECENT_PROJECTS_MAX_ENCODED_BYTES_V1: usize = 256 * 1024;
 const LEASE_POLL_INTERVAL: Duration = Duration::from_millis(5);
 
 /// A bounded write attempt for the rebuildable shared recent-project projection.
+/// 一次写事务的等待期限及可选取消探针；try-now 策略不排队。
 pub struct HubRecentProjectsWritePolicy<'a> {
     deadline: Instant,
     cancellation: Option<&'a dyn Fn() -> bool>,
@@ -107,6 +109,7 @@ impl HubRecentProjectsMutation {
 
 /// The one shared file transaction owner used by Hub and Editor recent-project projections.
 #[derive(Clone, Debug)]
+/// Hub 与 Editor 共用的文件事务入口；闭包只修改锁内临时 DTO。
 pub struct HubRecentProjectsStore {
     registry_path: PathBuf,
 }
@@ -124,6 +127,7 @@ impl HubRecentProjectsStore {
 
     /// Reads only a bounded projection. Malformed and oversized history is intentionally treated
     /// as an empty rebuildable projection so it cannot block canonical project open.
+    /// 读取并校验可重建投影，损坏或缺失状态通过 disposition 返回给宿主。
     pub fn load_projection(&self) -> Result<HubRecentProjectsLoad, HubRecentProjectsStoreError> {
         match read_registry(&self.registry_path) {
             Ok(registry) => Ok(HubRecentProjectsLoad {
@@ -164,6 +168,7 @@ impl HubRecentProjectsStore {
     /// Applies a compare-and-update only to a clean projection read under the writer lease.
     /// A rebuildable projection is left untouched, including its quarantine state, so callers
     /// cannot mistake a corruption fallback at revision zero for an empty authoritative registry.
+    /// 仅当磁盘 revision 仍匹配读取版本且来源干净时执行比较更新。
     pub fn compare_and_update_if_clean(
         &self,
         policy: HubRecentProjectsWritePolicy<'_>,
@@ -174,6 +179,7 @@ impl HubRecentProjectsStore {
     }
 
     // 将跨进程互斥、读取/恢复、revision 比较、校验和原子写回放在同一临界区，避免两个 Hub 基于旧投影互相覆盖。
+    /// 在锁内修改临时副本；仅闭包成功且校验通过后才编码并原子替换。
     fn update_at_revision(
         &self,
         policy: HubRecentProjectsWritePolicy<'_>,
@@ -626,6 +632,7 @@ impl Drop for HubRecentProjectsWriteLease {
 }
 
 #[derive(Debug, Error)]
+/// 文件事务错误区分锁、读写、校验、取消与 revision 冲突。
 pub enum HubRecentProjectsStoreError {
     #[error("failed to {operation} `{path}`: {source}")]
     Io {

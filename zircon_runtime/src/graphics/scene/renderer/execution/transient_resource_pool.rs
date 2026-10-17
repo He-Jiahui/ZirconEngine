@@ -16,7 +16,7 @@ use super::RenderPassDeviceEpoch;
 mod allocation;
 
 pub(in crate::graphics::scene::scene_renderer) use allocation::{
-    TransientBufferAllocation, TransientTextureAllocation,
+    TransientBufferAllocation, TransientBufferProbeLease, TransientTextureAllocation,
 };
 
 pub(in crate::graphics::scene::scene_renderer) const TRANSIENT_RESOURCE_POOL_KEEP_FRAMES: u64 = 8;
@@ -252,7 +252,12 @@ impl TransientResourcePool {
             .active_device_epoch
             .ok_or(TransientResourcePoolError::MissingActiveDeviceEpoch)?;
         let key = TransientBufferKey::from(desc);
-        if let Some(mut allocation) = self.buffers.get_mut(&key).and_then(|entries| entries.pop()) {
+        if let Some(mut allocation) = self.buffers.get_mut(&key).and_then(|entries| {
+            let index = entries
+                .iter()
+                .rposition(|entry| !entry.has_probe_leases())?;
+            Some(entries.swap_remove(index))
+        }) {
             if allocation.epoch() != epoch {
                 return Err(TransientResourcePoolError::WrongDeviceEpoch {
                     expected: epoch,
@@ -367,6 +372,9 @@ impl TransientResourcePool {
                 .completion_buffer_status_query_count
                 .saturating_add(1);
             match status_for(ticket) {
+                Ok(SubmissionStatus::Completed) if allocation.has_probe_leases() => {
+                    self.pending_buffers.push(allocation);
+                }
                 Ok(SubmissionStatus::Completed) => {
                     allocation.make_reusable();
                     self.buffers

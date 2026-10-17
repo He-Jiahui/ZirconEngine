@@ -19,6 +19,8 @@ mod runtime_state;
 mod runtime_stats;
 #[path = "runtime_update.rs"]
 mod runtime_update;
+#[path = "source_admission.rs"]
+mod source_admission;
 
 pub use extract_output::VirtualGeometryRuntimeExtractOutput;
 pub use gpu_completion::VirtualGeometryGpuCompletion;
@@ -30,3 +32,11 @@ pub use runtime_feedback::VirtualGeometryRuntimeFeedback;
 pub use runtime_state::VirtualGeometryRuntimeState;
 pub use runtime_stats::VirtualGeometryRuntimeStats;
 pub use runtime_update::VirtualGeometryRuntimeUpdate;
+
+pub(crate) use source_admission::build_admitted_or_owned_extract;
+pub use source_admission::{
+    virtual_geometry_indexed_source_rows, VirtualGeometryAdmittedExtract,
+    VirtualGeometryIndexedAuthorRun, VirtualGeometryIndexedSourceAdmission,
+    VirtualGeometryIndexedSourceRow, VirtualGeometryPrimitiveAdmission,
+    VirtualGeometrySourceAdmission, VirtualGeometrySourceDependency, VirtualGeometrySourceLoader,
+};

@@ -46,11 +46,19 @@ impl RetainedEditorHost {
             .workbench_window_bridge
             .binding_id_for_action_id(binding_id)
             .unwrap_or_else(|| binding_id.to_string());
-        match self.workbench_window_bridge.content_drawer_search_binding(control_id, binding_id.as_str(), value) {
-            Ok(Some(binding)) => return Some(callback_dispatch::dispatch_template_binding_with_arguments(
-                &self.runtime, binding, vec![UiBindingValue::string(value)],
-            )),
-            Ok(None) => {},
+        match self.workbench_window_bridge.content_drawer_search_binding(
+            control_id,
+            binding_id.as_str(),
+            value,
+        ) {
+            Ok(Some(binding)) => {
+                return Some(callback_dispatch::dispatch_template_binding_with_arguments(
+                    &self.runtime,
+                    binding,
+                    vec![UiBindingValue::string(value)],
+                ))
+            }
+            Ok(None) => {}
             Err(error) => return Some(Err(error.to_string())),
         }
         if let Some(result) = self.dispatch_workbench_scene_picker_window_requested(

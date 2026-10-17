@@ -606,25 +606,20 @@ fn console_template_body_projects_source_filter_and_typed_jump_action_tokens() {
 
 #[test]
 fn console_payload_builder_preserves_the_generation_owned_output_snapshot() {
-    let source = include_str!(
-        "../../ui/layouts/windows/window/payloads/console.rs"
-    );
+    let source = include_str!("../../ui/layouts/windows/window/payloads/console.rs");
 
     assert!(source.contains("output: context.chrome.console_output.clone()"));
     assert!(!source.contains("console_output.text_arc()"));
     assert!(!source.contains("console_output.to_string()"));
 
-    let pane_projection =
-        include_str!("../../ui/layouts/windows/window/pane_projection.rs");
+    let pane_projection = include_str!("../../ui/layouts/windows/window/pane_projection.rs");
     assert!(pane_projection.contains("output: chrome.console_output.clone()"));
     assert!(!pane_projection.contains("chrome.console_output.text_arc()"));
 
-    let scene_projection =
-        include_str!("../../ui/layouts/windows/window/scene_projection.rs");
+    let scene_projection = include_str!("../../ui/layouts/windows/window/scene_projection.rs");
     assert!(!scene_projection.contains("console_pane_nodes("));
 
-    let retained_projection =
-        include_str!("../../ui/retained/ui/data/console_projection.rs");
+    let retained_projection = include_str!("../../ui/retained/ui/data/console_projection.rs");
     assert!(retained_projection.contains("unwrap_or_else"));
     assert!(retained_projection.contains("new_virtualized_snapshot"));
     assert!(!retained_projection.contains("console_payload.output.as_ref()"));

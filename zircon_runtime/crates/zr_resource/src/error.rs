@@ -45,6 +45,10 @@ pub enum ResourceRegistryError {
         expected_revision: u64,
         actual_revision: Option<u64>,
     },
+    #[error("resource {id} active version changed before source publication")]
+    ActiveVersionConflict { id: String },
+    #[error("source {owner} has an incomplete or conflicting member {id}")]
+    InvalidSourcePublication { owner: String, id: String },
     #[error("resource {id} revision {current_revision} is exhausted")]
     RevisionExhausted { id: String, current_revision: u64 },
     #[error("resource event sequence is exhausted; rejected {requested_event_count} events")]

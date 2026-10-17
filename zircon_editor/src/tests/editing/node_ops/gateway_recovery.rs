@@ -233,7 +233,10 @@ fn install_gateway_target_change(
         .create_default_level()
         .with_world_mut(std::mem::take);
     let replacement = Mutex::new(Some(replacement));
-    scene.observe_component_lifecycle::<Name>(kind, move |world, event| {
+    // SAFETY: this fixture only retires World/schedule ownership; native lifecycle
+    // cancellation prevents adoption of any replacement owner's snapshot.
+    scene.observe_component_lifecycle::<Name>(kind, unsafe {
+        zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
         if entity.is_some_and(|entity| entity != event.entity()) {
             return;
         }
@@ -242,7 +245,7 @@ fn install_gateway_target_change(
             LifecycleTargetChange::World => *world = replacement.lock().unwrap().take().unwrap(),
             LifecycleTargetChange::Schedule => *world.schedule_mut() = Default::default(),
         }
-    });
+    }) });
 }
 
 fn interrupted_gateway_primary(error: &CommandExecutionError) -> &EditCommandError {
@@ -566,4 +569,534 @@ fn real_lifecycle_cancellation_keeps_two_gateway_diagnostics_and_stops_fault_dro
         assert_eq!(callback_attempts.load(Ordering::SeqCst), 2);
         assert_eq!(observer_calls.load(Ordering::SeqCst), 1);
     }
+}
+
+fn create_history_context_v1(level: zircon_runtime::scene::LevelSystem) -> CoreEditContext {
+    let mut context = CoreEditContext::new(EditorRuntimeGatewayHandle::detached());
+    context
+        .bind_scene(level, SceneSelection::new(Vec::new(), None))
+        .unwrap();
+    context
+}
+
+type CreateCallbackStateV1 = (String, Arc<AtomicUsize>);
+
+fn create_callback_extra_v1(
+    _: &CreateCallbackStateV1,
+    _: &Scene,
+    _: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+    Ok(())
+}
+
+fn first_create_name_v1(
+    state: &CreateCallbackStateV1,
+    world: &mut Scene,
+    event: &zircon_runtime::scene::ecs::ComponentLifecycleEvent,
+) {
+    if state.1.fetch_add(1, Ordering::SeqCst) == 0 {
+        world.insert(event.entity(), Name(state.0.clone())).unwrap();
+    }
+}
+
+#[test]
+fn create_history_retains_first_callback_payload_on_undo_redo() {
+    use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+    let level = DefaultLevelManager::default().create_default_level();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let name = "first callback payload".repeat(128);
+    level.with_world_mut(|world| {
+        world.observe_component_lifecycle::<Name>(
+            LifecycleEventKind::Add,
+            RetainedLifecycleObserverV1::new(
+                (name.clone(), calls.clone()),
+                create_callback_extra_v1,
+                first_create_name_v1,
+            ),
+        );
+    });
+    let engine = EditorTransactionEngine::new(create_history_context_v1(level.clone()));
+    let mut scope = engine
+        .begin("bounded callback create", HistoryContextId::Global)
+        .unwrap();
+    scope
+        .push(EditorCommand::create_node(NodeKind::Cube))
+        .unwrap();
+    scope.commit().unwrap();
+    let id = level.with_world(|world| {
+        world
+            .nodes()
+            .iter()
+            .find(|node| node.name == name)
+            .unwrap()
+            .id
+    });
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    engine.undo(HistoryContextId::Global).unwrap();
+    assert!(!level.with_world(|world| world.contains_entity(id)));
+    engine.redo(HistoryContextId::Global).unwrap();
+    assert_eq!(
+        level.with_world(|world| world.get::<Name>(id).unwrap().0.clone()),
+        name
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn create_history_refuses_callback_snapshot_budget_before_spawn_or_callback() {
+    use crate::core::editing::engine::{HistoryRetentionBudgetV1, HistoryRetentionDomainV1};
+    use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+    use zircon_runtime::scene::components::MeshRenderer;
+    use zircon_runtime_interface::retained_memory::RetentionContractError;
+
+    let domain = HistoryRetentionDomainV1::try_new(HistoryRetentionBudgetV1 {
+        record_bytes: 32 * 1024,
+        history_bytes: 1024 * 1024,
+        committed_bytes: 4 * 1024 * 1024,
+        staging_bytes: 1024 * 1024,
+    })
+    .unwrap();
+    // A proof survives moves, but not clone, replacement, registration or removal.
+    let mut world = Scene::empty();
+    let quote = world
+        .create_history_quote_v1(NodeKind::Cube, domain.model(), 32 * 1024)
+        .unwrap();
+    let mut moved = std::mem::take(&mut world);
+    moved.validate_create_history_quote_v1(&quote).unwrap();
+    assert!(matches!(
+        world.validate_create_history_quote_v1(&quote),
+        Err(RetentionContractError::Stale)
+    ));
+    assert!(matches!(
+        moved.clone().validate_create_history_quote_v1(&quote),
+        Err(RetentionContractError::Stale)
+    ));
+    let observer = moved.observe_component_lifecycle::<Name>(
+        LifecycleEventKind::Add,
+        RetainedLifecycleObserverV1::read_only_v1(|_, _| {}),
+    );
+    assert!(matches!(
+        moved.validate_create_history_quote_v1(&quote),
+        Err(RetentionContractError::Stale)
+    ));
+    let before_remove = moved
+        .create_history_quote_v1(NodeKind::Cube, domain.model(), 32 * 1024)
+        .unwrap();
+    moved.remove_observer(observer).unwrap();
+    assert!(matches!(
+        moved.validate_create_history_quote_v1(&before_remove),
+        Err(RetentionContractError::Stale)
+    ));
+
+    for mesh in [false, true] {
+        let level = DefaultLevelManager::default().create_default_level();
+        let engine = EditorTransactionEngine::with_retention_domain_v1(
+            create_history_context_v1(level.clone()),
+            128,
+            domain.clone(),
+        )
+        .unwrap();
+        let mut seed = engine
+            .begin("existing history", HistoryContextId::Global)
+            .unwrap();
+        seed.push(EditorCommand::create_node(NodeKind::Cube))
+            .unwrap();
+        seed.commit().unwrap();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let bad = level.with_world_mut(|world| {
+            let observer = RetainedLifecycleObserverV1::new(
+                ("large-callback".repeat(16 * 1024), calls.clone()),
+                create_callback_extra_v1,
+                first_create_name_v1,
+            );
+            if mesh {
+                // Quote the complete MeshImport entry, including its Replace tail.
+                world.observe_component_lifecycle::<MeshRenderer>(
+                    LifecycleEventKind::Replace,
+                    observer,
+                )
+            } else {
+                world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, observer)
+            }
+        });
+        let command = || {
+            if mesh {
+                let renderer = MeshRenderer::default();
+                EditorCommand::import_mesh(renderer.model, renderer.material)
+            } else {
+                EditorCommand::create_node(NodeKind::Cube)
+            }
+        };
+        let before = level.with_world(|world| (world.nodes().len(), world.world_generation()));
+        let charges = domain.snapshot().unwrap();
+        let mut refused = engine
+            .begin("refused callback", HistoryContextId::Global)
+            .unwrap();
+        let error = refused.push(command()).unwrap_err();
+        assert!(matches!(error, EditCommandError::Retention(_)));
+        drop(refused);
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        assert_eq!(
+            level.with_world(|world| (world.nodes().len(), world.world_generation())),
+            before
+        );
+        assert_eq!(domain.snapshot().unwrap(), charges);
+        assert!(
+            engine
+                .history_status(HistoryContextId::Global)
+                .unwrap()
+                .can_undo
+        );
+        engine.undo(HistoryContextId::Global).unwrap();
+        assert_eq!(level.with_world(|world| world.nodes().len()), before.0 - 1);
+
+        // Removing the bad producer must leave this same owner usable.
+        let legal_name = if mesh {
+            "legal mesh tail"
+        } else {
+            "legal cube callback"
+        }
+        .repeat(16);
+        level.with_world_mut(|world| {
+            world.remove_observer(bad).unwrap();
+            let observer = RetainedLifecycleObserverV1::new(
+                (legal_name.clone(), calls.clone()),
+                create_callback_extra_v1,
+                first_create_name_v1,
+            );
+            if mesh {
+                world.observe_component_lifecycle::<MeshRenderer>(
+                    LifecycleEventKind::Replace,
+                    observer,
+                );
+            } else {
+                world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, observer);
+            }
+        });
+        let mut retry = engine
+            .begin("legal callback retry", HistoryContextId::Global)
+            .unwrap();
+        retry.push(command()).unwrap();
+        retry.commit().unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        let id = level.with_world(|world| {
+            let id = world
+                .nodes()
+                .iter()
+                .find(|node| node.name == legal_name)
+                .unwrap()
+                .id;
+            if mesh {
+                let actual = world.get::<MeshRenderer>(id).unwrap();
+                let expected = MeshRenderer::default();
+                assert_eq!(actual.model, expected.model);
+                assert_eq!(actual.material, expected.material);
+            }
+            id
+        });
+        engine.undo(HistoryContextId::Global).unwrap();
+        assert!(!level.with_world(|world| world.contains_entity(id)));
+        engine.redo(HistoryContextId::Global).unwrap();
+        assert_eq!(
+            level.with_world(|world| world.get::<Name>(id).unwrap().0.clone()),
+            legal_name
+        );
+    }
+}
+
+#[derive(Debug)]
+struct CreateCallbackExtraV1(u32);
+zircon_runtime_interface::impl_retained_owner_v1!(CreateCallbackExtraV1 {});
+impl zircon_runtime::scene::ecs::Component for CreateCallbackExtraV1 {}
+
+fn child_create_extra_v1(
+    state: &CreateCallbackStateV1,
+    _: &Scene,
+    m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+    // Parent replacement and child authored Name coexist. The child label is
+    // allocated with this exact requested capacity, before any snapshot clone.
+    m.owned(state)?;
+    m.array::<u8>(
+        state
+            .0
+            .len()
+            .checked_add(" child".len())
+            .ok_or(zircon_runtime_interface::retained_memory::RetentionContractError::Overflow)?,
+    )
+}
+
+fn child_create_callback_v1(
+    state: &CreateCallbackStateV1,
+    world: &mut Scene,
+    event: &zircon_runtime::scene::ecs::ComponentLifecycleEvent,
+) {
+    if state.1.fetch_add(1, Ordering::SeqCst) != 0 {
+        return;
+    }
+    world.insert(event.entity(), Name(state.0.clone())).unwrap();
+    world
+        .insert(event.entity(), CreateCallbackExtraV1(71))
+        .unwrap();
+    let mut name = String::with_capacity(state.0.len() + " child".len());
+    name.push_str(&state.0);
+    name.push_str(" child");
+    world.spawn((Name(name),)).unwrap();
+}
+
+#[test]
+fn create_history_preserves_callback_child_and_custom_component_semantics() {
+    use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+    let level = DefaultLevelManager::default().create_default_level();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let name = "created parent".repeat(16);
+    level.with_world_mut(|world| {
+        world.observe_component_lifecycle::<Name>(
+            LifecycleEventKind::Add,
+            RetainedLifecycleObserverV1::new(
+                (name.clone(), calls.clone()),
+                child_create_extra_v1,
+                child_create_callback_v1,
+            ),
+        );
+    });
+    let engine = EditorTransactionEngine::new(create_history_context_v1(level.clone()));
+    let mut scope = engine
+        .begin("callback side effects", HistoryContextId::Global)
+        .unwrap();
+    scope
+        .push(EditorCommand::create_node(NodeKind::Cube))
+        .unwrap();
+    scope.commit().unwrap();
+    let child_name = format!("{name} child");
+    let (parent, child) = level.with_world(|world| {
+        let parent = world
+            .nodes()
+            .iter()
+            .find(|node| node.name == name)
+            .unwrap()
+            .id;
+        let child = world
+            .nodes()
+            .iter()
+            .find(|node| node.name == child_name)
+            .unwrap()
+            .id;
+        assert_eq!(world.get::<CreateCallbackExtraV1>(parent).unwrap().0, 71);
+        (parent, child)
+    });
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+    engine.undo(HistoryContextId::Global).unwrap();
+    assert!(!level.with_world(|world| world.contains_entity(parent)));
+    assert!(level.with_world(|world| world.contains_entity(child)));
+    engine.redo(HistoryContextId::Global).unwrap();
+    level.with_world(|world| {
+        assert_eq!(world.get::<Name>(parent).unwrap().0, name);
+        assert!(world.contains_entity(child));
+        // Existing Create replay restores NodeRecord's fixed fields. Opaque
+        // callback-only components and independent children are not replayed.
+        assert!(!world.contains_component::<CreateCallbackExtraV1>(parent));
+    });
+    assert_eq!(calls.load(Ordering::SeqCst), 3);
+}
+
+#[test]
+fn create_history_lifecycle_provider_breach_is_applied_not_admission_refusal() {
+    use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+    let level = DefaultLevelManager::default().create_default_level();
+    level.with_world_mut(|world| {
+        world.observe_component_lifecycle::<Name>(
+            LifecycleEventKind::Add,
+            RetainedLifecycleObserverV1::new(
+                (),
+                |_, _, _| Ok(()),
+                |_, world, event| {
+                    // Deliberately dishonest producer: the post-write borrowed
+                    // check must reject before cloning this unreserved payload.
+                    world
+                        .insert(event.entity(), Name("breach".repeat(4096)))
+                        .unwrap();
+                },
+            ),
+        );
+    });
+    let count = level.with_world(|world| world.nodes().len());
+    let mut context = create_history_context_v1(level.clone());
+    let mut command = EditorCommand::create_node(NodeKind::Cube);
+    let error = command.apply(&mut context).unwrap_err();
+    assert_eq!(error.effect, CommandEffect::Applied);
+    assert!(matches!(error.source, EditCommandError::Retention(_)));
+    assert_eq!(level.with_world(|world| world.nodes().len()), count + 1);
+    assert!(level.with_world(|world| {
+        world
+            .nodes()
+            .iter()
+            .any(|node| node.name.starts_with("breachbreach"))
+    }));
+}
+
+fn reentrant_create_extra_v1(
+    state: &CreateCallbackStateV1,
+    _: &Scene,
+    m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+    // A owns B's immutable source before B exists. Cover B's state clone,
+    // callback-owner header/function fields, and B's eventual Name replacement
+    // across the complete operation rather than summing only initial buckets.
+    m.owned(state)?;
+    m.array::<usize>(4)?;
+    m.owned(state)
+}
+
+fn reentrant_mesh_callback_v1(
+    state: &CreateCallbackStateV1,
+    world: &mut Scene,
+    event: &zircon_runtime::scene::ecs::ComponentLifecycleEvent,
+) {
+    state.1.fetch_add(1, Ordering::SeqCst);
+    world.insert(event.entity(), Name(state.0.clone())).unwrap();
+}
+
+fn reentrant_name_callback_v1(
+    state: &CreateCallbackStateV1,
+    world: &mut Scene,
+    _: &zircon_runtime::scene::ecs::ComponentLifecycleEvent,
+) {
+    use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+    use zircon_runtime::scene::components::MeshRenderer;
+    if state.1.fetch_add(1, Ordering::SeqCst) != 0 {
+        return;
+    }
+    world.observe_component_lifecycle::<MeshRenderer>(
+        LifecycleEventKind::Add,
+        RetainedLifecycleObserverV1::new(
+            (state.0.clone(), state.1.clone()),
+            create_callback_extra_v1,
+            reentrant_mesh_callback_v1,
+        ),
+    );
+}
+
+#[test]
+fn create_history_reserves_reentrant_lifecycle_producer_before_first_dispatch() {
+    use zircon_runtime::core::framework::retained_memory::RetainedLifecycleObserverV1;
+    let level = DefaultLevelManager::default().create_default_level();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let name = "late mesh observer".repeat(128);
+    level.with_world_mut(|world| {
+        world.observe_component_lifecycle::<Name>(
+            LifecycleEventKind::Add,
+            RetainedLifecycleObserverV1::new(
+                (name.clone(), calls.clone()),
+                reentrant_create_extra_v1,
+                reentrant_name_callback_v1,
+            ),
+        );
+    });
+    let engine = EditorTransactionEngine::new(create_history_context_v1(level.clone()));
+    let mut scope = engine
+        .begin("reentrant bounded create", HistoryContextId::Global)
+        .unwrap();
+    scope
+        .push(EditorCommand::create_node(NodeKind::Cube))
+        .unwrap();
+    scope.commit().unwrap();
+    let id = level.with_world(|world| {
+        world
+            .nodes()
+            .iter()
+            .find(|node| node.name == name)
+            .unwrap()
+            .id
+    });
+    assert_eq!(
+        calls.load(Ordering::SeqCst),
+        2,
+        "new B must run in this same Create"
+    );
+    engine.undo(HistoryContextId::Global).unwrap();
+    engine.redo(HistoryContextId::Global).unwrap();
+    assert_eq!(
+        level.with_world(|world| world.get::<Name>(id).unwrap().0.clone()),
+        name
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 4);
+
+    use crate::core::editing::engine::{HistoryRetentionBudgetV1, HistoryRetentionDomainV1};
+    let domain = HistoryRetentionDomainV1::try_new(HistoryRetentionBudgetV1 {
+        record_bytes: 32 * 1024,
+        history_bytes: 1024 * 1024,
+        committed_bytes: 4 * 1024 * 1024,
+        staging_bytes: 1024 * 1024,
+    })
+    .unwrap();
+    let level = DefaultLevelManager::default().create_default_level();
+    let engine = EditorTransactionEngine::with_retention_domain_v1(
+        create_history_context_v1(level.clone()),
+        128,
+        domain.clone(),
+    )
+    .unwrap();
+    let mut seed = engine
+        .begin(
+            "history before cumulative refusal",
+            HistoryContextId::Global,
+        )
+        .unwrap();
+    seed.push(EditorCommand::create_node(NodeKind::Cube))
+        .unwrap();
+    seed.commit().unwrap();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let state = ("q".repeat(12 * 1024), calls.clone());
+    level.with_world_mut(|world| {
+        // A alone fits; its registered producer must also cover future B.
+        let alone = world.observe_component_lifecycle::<Name>(
+            LifecycleEventKind::Add,
+            RetainedLifecycleObserverV1::new(
+                state.clone(),
+                create_callback_extra_v1,
+                first_create_name_v1,
+            ),
+        );
+        assert!(world
+            .create_history_quote_v1(NodeKind::Cube, domain.model(), 32 * 1024)
+            .is_ok());
+        world.remove_observer(alone).unwrap();
+        world.observe_component_lifecycle::<Name>(
+            LifecycleEventKind::Add,
+            RetainedLifecycleObserverV1::new(
+                state,
+                reentrant_create_extra_v1,
+                reentrant_name_callback_v1,
+            ),
+        );
+    });
+    let before = level.with_world(|world| (world.nodes().len(), world.world_generation()));
+    let charges = domain.snapshot().unwrap();
+    let mut refused = engine
+        .begin("cumulative A and B refusal", HistoryContextId::Global)
+        .unwrap();
+    assert!(matches!(
+        refused.push(EditorCommand::create_node(NodeKind::Cube)),
+        Err(EditCommandError::Retention(_))
+    ));
+    drop(refused);
+    assert_eq!(
+        calls.load(Ordering::SeqCst),
+        0,
+        "neither A nor late B may run before reservation"
+    );
+    assert_eq!(
+        level.with_world(|world| (world.nodes().len(), world.world_generation())),
+        before
+    );
+    assert_eq!(domain.snapshot().unwrap(), charges);
+    assert!(
+        engine
+            .history_status(HistoryContextId::Global)
+            .unwrap()
+            .can_undo
+    );
+    engine.undo(HistoryContextId::Global).unwrap();
+    assert_eq!(level.with_world(|world| world.nodes().len()), before.0 - 1);
 }

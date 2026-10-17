@@ -35,6 +35,19 @@ def _m8_enforced(repo_root: str | Path) -> bool:
         return False
 
 
+def _resolve_job(job: str | None, *, ordinary: bool) -> str:
+    """Resolve an omitted job without conflating ordinary validation and Flow."""
+    if job is not None:
+        return job
+    return "zircon-management" if ordinary else "zircon-flow"
+
+
+def _require_ordinary_job(job: str) -> None:
+    if job == "zircon-flow":
+        raise JenkinsError("functional_scope_required",
+                           "Flow requires explicit functional validation, an exact runtime fence, and prepared current source")
+
+
 def _ordinary_dispatch(repo_root, identity, parameters=None) -> dict:
     if not isinstance(identity, Mapping):
         raise JenkinsError("ordinary_identity_pending", "Original management identity and action input are required")
@@ -324,7 +337,7 @@ def _require_functional_runtime(state: State, payload: dict, identity: dict, rep
 
 def submit_entry(state: State, *, identity: Mapping[str, object] | None,
                  parameters: Mapping[str, object] | None = None,
-                 repo_root: str | Path, job: str = "zircon-flow",
+                 repo_root: str | Path, job: str | None = None,
                  base_url: str | None = None, token: str | None = None,
                  transport=None, manager=None, functional: bool = False,
                  expected_driver_digest: str | None = None,
@@ -336,13 +349,16 @@ def submit_entry(state: State, *, identity: Mapping[str, object] | None,
     """
     if type(functional) is not bool:
         raise JenkinsError("functional_scope_invalid", "Functional entry must be explicitly selected")
+    ordinary = not functional and not _m8_enforced(repo_root)
+    job = _resolve_job(job, ordinary=ordinary)
     if functional and (job != "zircon-flow" or not expected_driver_digest or not expected_runtime_operation_id):
         raise JenkinsError("functional_scope_invalid", "Functional entry permits only bounded zircon-flow validation with an exact runtime fence")
-    if not functional and not _m8_enforced(repo_root):
+    if ordinary:
+        _require_ordinary_job(job)
         if (base_url is not None or token is not None or transport is not None or manager is not None
                 or expected_driver_digest is not None or expected_runtime_operation_id is not None):
             raise JenkinsError("ordinary_runtime_override", "Ordinary entry uses its verified installed runtime and credentials")
-        if job not in {"zircon-flow", "zircon-management"}:
+        if job != "zircon-management":
             raise JenkinsError("ordinary_recipe_unsupported", "Ordinary entry accepts the pinned management validation job")
         return _ordinary_dispatch(repo_root, identity, parameters)
     registered, normalized = _registered_entry(state, identity, repo_root)
@@ -400,13 +416,16 @@ def dispatch_or_local(*, repo_root: str | Path, state: State | None,
                                     repo_root=repo_root, **kwargs)}
 
 
-def entry_from_environment(repo_root: str | Path, *, job: str = "zircon-flow",
+def entry_from_environment(repo_root: str | Path, *, job: str | None = None,
                            parameters: Mapping[str, object] | None = None,
                            transport=None, manager=None, functional: bool = False,
                            expected_driver_digest: str | None = None,
                            expected_runtime_operation_id: str | None = None) -> dict | None:
     """Dispatch a known entry using the caller's immutable State identity."""
     ordinary = not functional and not _m8_enforced(repo_root)
+    job = _resolve_job(job, ordinary=ordinary)
+    if ordinary:
+        _require_ordinary_job(job)
     raw = __import__("os").environ.get("ZIRCON_JENKINS_IDENTITY_FILE", "")
     path = Path(raw)
     if not path.is_file():
@@ -433,7 +452,11 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("gate", "dispatch", "capability"))
     parser.add_argument("--repo-root", default=".")
-    parser.add_argument("--job", default="zircon-flow")
+    parser.add_argument("--job")
+    parser.add_argument("--functional", action="store_true",
+                        help="Use the bounded validation-only Flow route; this does not enable M8")
+    parser.add_argument("--expected-driver-digest")
+    parser.add_argument("--expected-runtime-operation-id")
     args = parser.parse_args(argv)
     if args.action == "gate":
         print("true" if sole_entry_enforced(args.repo_root) else "false")
@@ -446,7 +469,15 @@ def main(argv=None) -> int:
                       "runtimeOperationId": context["config"]["runtimeOperationId"],
                       "formalAcceptance": False, "m8Accepted": False}
         else:
-            result = entry_from_environment(args.repo_root, job=args.job)
+            if args.functional and (not args.expected_driver_digest or not args.expected_runtime_operation_id):
+                raise JenkinsError("functional_scope_invalid", "Functional dispatch requires exact driver and runtime fences")
+            if not args.functional and (args.expected_driver_digest is not None
+                                        or args.expected_runtime_operation_id is not None):
+                raise JenkinsError("functional_scope_invalid", "Runtime fences are accepted only with explicit --functional")
+            result = entry_from_environment(
+                args.repo_root, job=args.job, functional=args.functional,
+                expected_driver_digest=args.expected_driver_digest,
+                expected_runtime_operation_id=args.expected_runtime_operation_id)
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
         return 2 if result.get("status") == "pending" else 0
     except Exception as error:

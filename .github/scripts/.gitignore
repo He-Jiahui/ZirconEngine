@@ -1,0 +1,4 @@
+!zig-cc-x86_64-unknown-linux-gnu.cmd
+!zig-cxx-x86_64-unknown-linux-gnu.cmd
+!zig-ar-x86_64-unknown-linux-gnu.cmd
+!zig-ranlib-x86_64-unknown-linux-gnu.cmd

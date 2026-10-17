@@ -3,6 +3,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 /// 类型是否可投影给脚本宿主；该标记独立于 Editor 与远程 schema 可见性。
+///
+/// # serde 线格式
+///
+/// JSON 使用小写变体名 `private` 与 `public`；`Private` 是默认变体。
 pub enum ReflectScriptVisibility {
     /// 不加入脚本可见的类型投影。
     #[default]

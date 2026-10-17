@@ -897,3 +897,117 @@ fn proto_message(field: u8, payload: &[u8]) -> Vec<u8> {
     bytes.extend_from_slice(payload);
     bytes
 }
+
+#[test]
+fn neural_import_budget_refusal_preserves_output_and_rechecks_redo() {
+    use zircon_editor::core::editing::engine::{
+        EditCommandError, EditContext, EditWorldRoute, EditorTransactionEngine, HistoryContextId,
+        HistoryRetentionBudgetV1, HistoryRetentionDomainV1, MergeMode, SelectionSnapshot,
+    };
+    use zircon_editor::core::play::WorldDomain;
+
+    struct FileEditContextV1;
+    impl EditContext for FileEditContextV1 {
+        fn capture_world_route(
+            &self,
+            domain: WorldDomain,
+        ) -> Result<EditWorldRoute, EditCommandError> {
+            Ok(EditWorldRoute::logical(domain))
+        }
+        fn activate_world_route(&mut self, _: &EditWorldRoute) -> Result<(), EditCommandError> {
+            Ok(())
+        }
+        fn retire_world_route(&mut self, _: WorldDomain) -> Result<(), EditCommandError> {
+            Ok(())
+        }
+        fn selection_retention_bound_v1(
+            &self,
+            model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+            limit: u64,
+        ) -> Result<u64, EditCommandError> {
+            SelectionSnapshot::scalar_retention_bound_v1(model, limit)
+        }
+        fn selection_snapshot(&self) -> SelectionSnapshot {
+            SelectionSnapshot::default()
+        }
+        fn restore_selection(&mut self, _: &SelectionSnapshot) -> Result<(), EditCommandError> {
+            Ok(())
+        }
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+        fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+            self
+        }
+    }
+
+    let root = create_test_project("history-retention");
+    let source = root.join("assets/fixtures/model.onnx");
+    let output = root.join("assets/model.znn");
+    fs::write(&source, minimal_onnx_model()).unwrap();
+    fs::write(&output, vec![7u8; 64 * 1024]).unwrap();
+    let domain = HistoryRetentionDomainV1::try_new(HistoryRetentionBudgetV1 {
+        record_bytes: 32 * 1024,
+        history_bytes: 256 * 1024,
+        committed_bytes: 4 * 1024 * 1024,
+        staging_bytes: 512 * 1024,
+    })
+    .unwrap();
+    let engine =
+        EditorTransactionEngine::with_retention_domain_v1(FileEditContextV1, 8, domain.clone())
+            .unwrap();
+    let history = HistoryContextId::Global;
+    let before = engine.history_status(history).unwrap();
+    let refused = engine.execute_operation(
+        "large inverse",
+        history,
+        None,
+        MergeMode::Disable,
+        Box::new(NeuralModelImportCommand::new(
+            source.clone(),
+            output.clone(),
+        )),
+    );
+    let unchanged_output = fs::read(&output).unwrap();
+    let unchanged_history = engine.history_status(history).unwrap();
+    assert!(matches!(refused, Err(EditCommandError::Retention(_))));
+    assert_eq!(unchanged_output, vec![7u8; 64 * 1024]);
+    assert_eq!(unchanged_history, before);
+
+    fs::write(&output, b"original-output").unwrap();
+    engine
+        .execute_operation(
+            "bounded neural import",
+            history,
+            None,
+            MergeMode::Disable,
+            Box::new(NeuralModelImportCommand::new(
+                source.clone(),
+                output.clone(),
+            )),
+        )
+        .unwrap();
+    let imported = fs::read(&output).unwrap();
+    assert_ne!(imported, b"original-output");
+    assert!(engine.undo(history).unwrap());
+    assert_eq!(fs::read(&output).unwrap(), b"original-output");
+
+    // Redo must inspect the current ONNX owner, rather than replay bytes
+    // converted before undo. Its refusal preserves both cursor and file.
+    fs::write(&source, b"invalid-current-onnx").unwrap();
+    let before_redo = engine.history_status(history).unwrap();
+    let before_charge = domain.snapshot().unwrap();
+    let refused = engine.redo(history);
+    let refused_output = fs::read(&output).unwrap();
+    assert!(refused.is_err());
+    assert_eq!(engine.history_status(history).unwrap(), before_redo);
+    assert_eq!(domain.snapshot().unwrap(), before_charge);
+    assert_eq!(refused_output, b"original-output");
+    fs::write(&source, minimal_onnx_model()).unwrap();
+    assert!(engine.redo(history).unwrap());
+    assert_eq!(fs::read(&output).unwrap(), imported);
+    assert!(engine.undo(history).unwrap());
+    assert_eq!(fs::read(&output).unwrap(), b"original-output");
+    drop(engine);
+    fs::remove_dir_all(root).unwrap();
+}

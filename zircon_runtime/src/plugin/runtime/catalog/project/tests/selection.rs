@@ -156,3 +156,118 @@ fn required_carrier_role_is_not_a_product_catalog_provider() {
         .is_some_and(|diagnostic| diagnostic.contains("has no provider for target")));
     assert!(selection.ordered_plugin_registration_indices.is_empty());
 }
+
+fn maturity_feature_catalog() -> crate::plugin::RuntimePluginCatalog {
+    use crate::plugin::{
+        PluginFeatureBundleManifest, PluginFeatureDependency, PluginMaturity, PluginModuleManifest,
+        RuntimePluginFeatureRegistrationReport,
+    };
+    let feature = PluginFeatureBundleManifest::new("sound.maturity_fixture", "Maturity", "sound")
+        .with_capability("runtime.plugin.sound")
+        .with_dependency(PluginFeatureDependency::primary(
+            "sound",
+            "runtime.plugin.sound",
+        ));
+    let package = PluginPackageManifest::new("sound", "Sound")
+        .with_maturity(PluginMaturity::Experimental)
+        .with_supported_targets([RuntimeTargetMode::ClientRuntime])
+        .with_capabilities(["runtime.plugin.sound"])
+        .with_runtime_module(
+            PluginModuleManifest::runtime("sound.runtime", "zircon_plugin_sound_runtime")
+                .with_target_modes([RuntimeTargetMode::ClientRuntime])
+                .with_capabilities(["runtime.plugin.sound"]),
+        )
+        .with_optional_feature(feature.clone());
+    crate::plugin::RuntimePluginCatalog::from_registration_reports(
+        [RuntimePluginRegistrationReport::from_native_package_manifest(package)],
+        [RuntimePluginFeatureRegistrationReport::from_native_feature_manifest(feature, None)],
+    )
+}
+
+fn maturity_required_feature_manifest(enabled: bool) -> ProjectPluginManifest {
+    let mut feature = crate::core::framework::project::ProjectPluginFeatureSelection::new(
+        "sound.maturity_fixture",
+    );
+    feature.enabled = true;
+    feature.required = true;
+    ProjectPluginManifest {
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin("sound", enabled, false).with_feature(feature),
+        ],
+    }
+}
+
+#[test]
+fn profile_maturity_rejects_an_active_required_feature_through_the_real_catalog() {
+    let catalog = maturity_feature_catalog();
+    let manifest = maturity_required_feature_manifest(true);
+    let target_only = catalog.compiled_project_plan(&manifest, RuntimeTargetMode::ClientRuntime);
+    assert!(
+        target_only
+            .runtime_extensions()
+            .fatal_diagnostics
+            .is_empty(),
+        "{:?}",
+        target_only.runtime_extensions().fatal_diagnostics
+    );
+    let profile = crate::plugin::RuntimeProfileDescriptor::for_id(
+        crate::core::framework::project::RuntimeProfileId::Client3d,
+    );
+    let admitted = catalog.compiled_project_plan_for_runtime_profile(&manifest, &profile);
+    assert!(admitted
+        .runtime_extensions()
+        .fatal_diagnostics
+        .iter()
+        .any(
+            |message| message.contains("required feature `sound.maturity_fixture`")
+                && message.contains("blocked by maturity")
+        ));
+    assert!(admitted.linked_provider_package_ids().is_empty());
+    assert!(admitted.module_proposals().is_empty());
+    assert!(admitted
+        .completed_manifest()
+        .selections
+        .iter()
+        .any(|row| row.id == "sound"
+            && row.enabled
+            && row
+                .features
+                .iter()
+                .any(|feature| feature.required && feature.enabled)));
+}
+
+#[test]
+fn profile_maturity_preserves_inactive_owner_required_feature_diagnostics() {
+    let catalog = maturity_feature_catalog();
+    let manifest = maturity_required_feature_manifest(false);
+    let target_only = catalog.compiled_project_plan(&manifest, RuntimeTargetMode::ClientRuntime);
+    assert!(!target_only
+        .runtime_extensions()
+        .fatal_diagnostics
+        .is_empty());
+    let profile = crate::plugin::RuntimeProfileDescriptor::for_id(
+        crate::core::framework::project::RuntimeProfileId::Client3d,
+    );
+    let admitted = catalog.compiled_project_plan_for_runtime_profile(&manifest, &profile);
+    assert_eq!(
+        admitted.feature_dependency_report().blocked_features,
+        target_only.feature_dependency_report().blocked_features
+    );
+    assert_eq!(
+        admitted.feature_dependency_report().diagnostics,
+        target_only.feature_dependency_report().diagnostics
+    );
+    assert_eq!(
+        admitted.runtime_extensions().fatal_diagnostics,
+        target_only.runtime_extensions().fatal_diagnostics
+    );
+    assert!(!admitted
+        .runtime_extensions()
+        .fatal_diagnostics
+        .iter()
+        .any(|message| message.contains("blocked by maturity")));
+    assert_eq!(
+        admitted.completed_manifest(),
+        target_only.completed_manifest()
+    );
+}

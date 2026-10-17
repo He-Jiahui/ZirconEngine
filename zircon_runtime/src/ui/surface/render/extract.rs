@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::ui::surface::{
     arranged_node_indexed, arranged_node_indices, component_state::UiSurfaceComponentStateStore,

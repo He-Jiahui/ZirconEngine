@@ -9,7 +9,9 @@ use zircon_runtime::scene::{AnimationStateTransitionRuntime, EntityId};
 use super::machine_instance_key::MachineInstanceKey;
 use super::pose_blend::blend_weighted_poses;
 use super::requests::{PendingClipEventSample, StateMachineParameterProjection};
-use super::state_graph_sample::{normalized_state_time, sample_state_events, sample_state_pose};
+use super::state_graph_sample::{
+    normalized_state_time, sample_state_events, sample_state_pose_with_demand,
+};
 use super::state_machine_cache::resolve_sub_machine_id;
 use super::AnimationEvaluationPipeline;
 use crate::{
@@ -69,6 +71,33 @@ pub(super) fn sample_machine_state_pose(
     skeleton_id: zircon_runtime::asset::AssetId,
     time_seconds: Real,
 ) -> Option<(EntityId, AnimationPoseOutput)> {
+    sample_machine_state_pose_with_demand(
+        pipeline,
+        asset_manager,
+        instance,
+        machine,
+        state_name,
+        parameters,
+        entity,
+        skeleton_id,
+        time_seconds,
+        false,
+    )
+    .map(|(entity, pose, _)| (entity, pose))
+}
+
+pub(super) fn sample_machine_state_pose_with_demand(
+    pipeline: &mut AnimationEvaluationPipeline,
+    asset_manager: &ProjectAssetManager,
+    instance: &MachineInstanceKey,
+    machine: &CompiledAnimationStateMachine,
+    state_name: &str,
+    parameters: StateMachineParameterProjection<'_>,
+    entity: EntityId,
+    skeleton_id: zircon_runtime::asset::AssetId,
+    time_seconds: Real,
+    playing: bool,
+) -> Option<(EntityId, AnimationPoseOutput, bool)> {
     let Some((child_instance, child, child_state)) = resolve_child_state(
         pipeline,
         asset_manager,
@@ -77,7 +106,7 @@ pub(super) fn sample_machine_state_pose(
         state_name,
         parameters,
     ) else {
-        return sample_state_pose(
+        return sample_state_pose_with_demand(
             pipeline,
             asset_manager,
             instance,
@@ -87,6 +116,7 @@ pub(super) fn sample_machine_state_pose(
             entity,
             skeleton_id,
             time_seconds,
+            playing,
         );
     };
     let transition = pipeline
@@ -94,7 +124,7 @@ pub(super) fn sample_machine_state_pose(
         .get(&child_instance)
         .cloned();
     if let Some(transition) = transition {
-        return sample_machine_transition_pose(
+        return sample_machine_transition_pose_with_demand(
             pipeline,
             asset_manager,
             &child_instance,
@@ -104,9 +134,10 @@ pub(super) fn sample_machine_state_pose(
             skeleton_id,
             &transition,
             None,
+            playing,
         );
     }
-    sample_machine_state_pose(
+    sample_machine_state_pose_with_demand(
         pipeline,
         asset_manager,
         &child_instance,
@@ -116,6 +147,7 @@ pub(super) fn sample_machine_state_pose(
         entity,
         skeleton_id,
         time_seconds,
+        playing,
     )
 }
 
@@ -130,21 +162,52 @@ pub(super) fn sample_machine_transition_pose(
     transition: &AnimationStateTransitionRuntime,
     interrupted_source: Option<&AnimationPoseOutput>,
 ) -> Option<(EntityId, AnimationPoseOutput)> {
-    let from_pose = interrupted_source.cloned().or_else(|| {
-        sample_machine_state_pose(
-            pipeline,
-            asset_manager,
-            instance,
-            machine,
-            &transition.from_state,
-            parameters,
-            entity,
-            skeleton_id,
-            transition.from_time_seconds,
-        )
-        .map(|(_, pose)| pose)
-    })?;
-    let (_, to_pose) = sample_machine_state_pose(
+    sample_machine_transition_pose_with_demand(
+        pipeline,
+        asset_manager,
+        instance,
+        machine,
+        parameters,
+        entity,
+        skeleton_id,
+        transition,
+        interrupted_source,
+        false,
+    )
+    .map(|(entity, pose, _)| (entity, pose))
+}
+
+pub(super) fn sample_machine_transition_pose_with_demand(
+    pipeline: &mut AnimationEvaluationPipeline,
+    asset_manager: &ProjectAssetManager,
+    instance: &MachineInstanceKey,
+    machine: &CompiledAnimationStateMachine,
+    parameters: StateMachineParameterProjection<'_>,
+    entity: EntityId,
+    skeleton_id: zircon_runtime::asset::AssetId,
+    transition: &AnimationStateTransitionRuntime,
+    interrupted_source: Option<&AnimationPoseOutput>,
+    playing: bool,
+) -> Option<(EntityId, AnimationPoseOutput, bool)> {
+    let (from_pose, from_requires_frame) = interrupted_source
+        .cloned()
+        .map(|pose| (pose, false))
+        .or_else(|| {
+            sample_machine_state_pose_with_demand(
+                pipeline,
+                asset_manager,
+                instance,
+                machine,
+                &transition.from_state,
+                parameters,
+                entity,
+                skeleton_id,
+                transition.from_time_seconds,
+                playing,
+            )
+            .map(|(_, pose, requires_frame)| (pose, requires_frame))
+        })?;
+    let (_, to_pose, to_requires_frame) = sample_machine_state_pose_with_demand(
         pipeline,
         asset_manager,
         instance,
@@ -154,8 +217,13 @@ pub(super) fn sample_machine_transition_pose(
         entity,
         skeleton_id,
         transition.to_time_seconds,
+        playing,
     )?;
     let progress = transition_progress(transition);
+    let transition_requires_frame = playing
+        && transition.elapsed_seconds.is_finite()
+        && transition.duration_seconds.is_finite()
+        && transition.elapsed_seconds < transition.duration_seconds;
     blend_weighted_poses(
         vec![(from_pose, 1.0 - progress), (to_pose, progress)],
         AnimationPoseSource::StateMachine,
@@ -165,7 +233,13 @@ pub(super) fn sample_machine_transition_pose(
             transition.from_state.clone()
         }),
     )
-    .map(|pose| (entity, pose))
+    .map(|pose| {
+        let requires_frame = !pose.bones.is_empty()
+            && (transition_requires_frame
+                || (from_requires_frame && progress < 1.0)
+                || (to_requires_frame && progress > 0.0));
+        (entity, pose, requires_frame)
+    })
 }
 
 pub(super) fn sample_machine_state_events(

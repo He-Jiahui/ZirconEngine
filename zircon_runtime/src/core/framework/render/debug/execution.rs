@@ -47,6 +47,39 @@ pub struct RenderVirtualGeometryExecutionSegment {
     pub frontier_rank: u32,
 }
 
+/// Exact per-draw identity copied from its original execution segment in this frame.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct RenderVirtualGeometryExecutionIdentity {
+    pub original_index: u32,
+    pub draw_ref_index: u32,
+    pub stable_instance_key: u64,
+    pub instance_index: Option<u32>,
+    pub entity: u64,
+    pub page_id: u32,
+    pub submission_index: Option<u32>,
+    pub draw_ref_rank: Option<u32>,
+    pub cluster_start_ordinal: u32,
+    pub cluster_span_count: u32,
+    pub submission_slot: Option<u32>,
+}
+impl RenderVirtualGeometryExecutionIdentity {
+    pub fn from_segment(segment: &RenderVirtualGeometryExecutionSegment) -> Self {
+        Self {
+            original_index: segment.original_index,
+            draw_ref_index: segment.draw_ref_index,
+            stable_instance_key: segment.stable_instance_key,
+            instance_index: segment.instance_index,
+            entity: segment.entity,
+            page_id: segment.page_id,
+            submission_index: segment.submission_index,
+            draw_ref_rank: segment.draw_ref_rank,
+            cluster_start_ordinal: segment.cluster_start_ordinal,
+            cluster_span_count: segment.cluster_span_count,
+            submission_slot: segment.submission_slot,
+        }
+    }
+}
+
 impl RenderVirtualGeometryExecutionSegment {
     /// Preserves execution snapshots produced before virtual geometry carried the render key.
     pub fn stable_instance_key_or_legacy(&self) -> u64 {
@@ -298,6 +331,184 @@ impl RenderVirtualGeometryVisBuffer64Entry {
             page_id: cluster.page_id,
             lod_level: cluster.lod_level,
             state: cluster.state,
+        }
+    }
+}
+
+/// Exact graph execution input, independent of optional diagnostic snapshots.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RenderVirtualGeometryExecutionInputs {
+    pub selections: Option<Vec<RenderVirtualGeometryClusterSelectionInput>>,
+    pub prepare: Option<RenderVirtualGeometryPrepareFrameInput>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderVirtualGeometryClusterSelectionInput {
+    pub submission_index: u32,
+    pub instance_index: Option<u32>,
+    pub entity: u64,
+    pub cluster_id: u32,
+    pub cluster_ordinal: u32,
+    pub page_id: u32,
+    pub lod_level: u8,
+    pub submission_page_id: u32,
+    pub submission_lod_level: u8,
+    pub entity_cluster_start_ordinal: usize,
+    pub entity_cluster_span_count: usize,
+    pub entity_cluster_total_count: usize,
+    pub lineage_depth: u32,
+    pub frontier_rank: u32,
+    pub resident_slot: Option<u32>,
+    pub submission_slot: Option<u32>,
+    pub state: RenderVirtualGeometryExecutionState,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RenderVirtualGeometryPrepareFrameInput {
+    pub visible_entities: Vec<u64>,
+    pub visible_clusters: Vec<RenderVirtualGeometryPrepareClusterInput>,
+    pub cluster_draw_segments: Vec<RenderVirtualGeometryPrepareDrawSegmentInput>,
+    pub resident_pages: Vec<RenderVirtualGeometryPreparePageInput>,
+    pub pending_page_requests: Vec<RenderVirtualGeometryPrepareRequestInput>,
+    pub available_slots: Vec<u32>,
+    pub evictable_pages: Vec<RenderVirtualGeometryPreparePageInput>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderVirtualGeometryPrepareClusterInput {
+    pub entity: u64,
+    pub cluster_id: u32,
+    pub page_id: u32,
+    pub lod_level: u8,
+    pub resident_slot: Option<u32>,
+    pub state: RenderVirtualGeometryExecutionState,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderVirtualGeometryPrepareDrawSegmentInput {
+    pub entity: u64,
+    pub cluster_id: u32,
+    pub page_id: u32,
+    pub resident_slot: Option<u32>,
+    pub cluster_ordinal: u32,
+    pub cluster_span_count: u32,
+    pub cluster_count: u32,
+    pub lineage_depth: u32,
+    pub lod_level: u8,
+    pub state: RenderVirtualGeometryExecutionState,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderVirtualGeometryPreparePageInput {
+    pub page_id: u32,
+    pub slot: u32,
+    pub size_bytes: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderVirtualGeometryPrepareRequestInput {
+    pub page_id: u32,
+    pub size_bytes: u64,
+    pub generation: u64,
+    pub frontier_rank: u32,
+    pub assigned_slot: Option<u32>,
+    pub recycled_page_id: Option<u32>,
+}
+
+/// Normal frame-owned VG execution facts. Debug display can be disabled independently.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RenderVirtualGeometryExecutionData {
+    pub instances: Vec<super::super::scene_extract::RenderVirtualGeometryInstance>,
+    pub resident_page_payloads: Vec<super::page_payload::RenderVirtualGeometryPagePayload>,
+    pub debug: super::super::scene_extract::RenderVirtualGeometryDebugState,
+    pub cull_input: super::cull_input::RenderVirtualGeometryCullInputSnapshot,
+    pub selected_clusters: Vec<RenderVirtualGeometrySelectedCluster>,
+    pub execution_segments: Vec<RenderVirtualGeometryExecutionSegment>,
+    pub prepared_cpu_frame: Option<std::sync::Arc<RenderVirtualGeometryPreparedCpuFrame>>,
+    /// CPU author/asset attributes only; selection and completion remain GPU-owned.
+    pub author_cluster_catalog: Vec<crate::core::framework::render::RenderVirtualGeometryCluster>,
+    /// Per GPU upload row: (instance, original array index, normal policy total).
+    pub candidate_author_indices: Vec<(u32, u32, u32)>,
+}
+
+/// CPU policy output from the real provider prepare owner; never a mapped GPU result.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderVirtualGeometryPreparedCpuInspection {
+    pub source: super::sources::RenderVirtualGeometryNodeAndClusterCullSource,
+    pub record_count: u32,
+    pub cull_input: Option<super::cull_input::RenderVirtualGeometryCullInputSnapshot>,
+    pub global_state: Option<
+        super::node_and_cluster_cull::RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+    >,
+    pub dispatch_setup: Option<
+        super::node_and_cluster_cull::RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
+    >,
+    pub launch_worklist: Option<
+        super::node_and_cluster_cull::RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot,
+    >,
+    pub instance_seeds:
+        Vec<super::node_and_cluster_cull::RenderVirtualGeometryNodeAndClusterCullInstanceSeed>,
+    pub instance_work_items:
+        Vec<super::node_and_cluster_cull::RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem>,
+    pub cluster_work_items:
+        Vec<super::node_and_cluster_cull::RenderVirtualGeometryNodeAndClusterCullClusterWorkItem>,
+    pub hierarchy_child_ids: Vec<u32>,
+    pub child_work_items:
+        Vec<super::node_and_cluster_cull::RenderVirtualGeometryNodeAndClusterCullChildWorkItem>,
+    pub traversal_records:
+        Vec<super::node_and_cluster_cull::RenderVirtualGeometryNodeAndClusterCullTraversalRecord>,
+    pub page_request_ids: Vec<u32>,
+}
+impl RenderVirtualGeometryPreparedCpuInspection {
+    pub fn empty(source: super::sources::RenderVirtualGeometryNodeAndClusterCullSource) -> Self {
+        Self {
+            source,
+            record_count: 0,
+            cull_input: None,
+            global_state: None,
+            dispatch_setup: None,
+            launch_worklist: None,
+            instance_seeds: Vec::new(),
+            instance_work_items: Vec::new(),
+            cluster_work_items: Vec::new(),
+            hierarchy_child_ids: Vec::new(),
+            child_work_items: Vec::new(),
+            traversal_records: Vec::new(),
+            page_request_ids: Vec::new(),
+        }
+    }
+}
+
+/// Only the successful current-frame feedback may acknowledge this exact preparation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RenderVirtualGeometryCpuPrepareToken {
+    pub generation: u64,
+    pub revision: u64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderVirtualGeometryPreparedCpuFrame {
+    pub inspection: RenderVirtualGeometryPreparedCpuInspection,
+    pub commit_token: Option<RenderVirtualGeometryCpuPrepareToken>,
+    pub execution_inputs: RenderVirtualGeometryExecutionInputs,
+    /// Original page-owner facts, independent of paired input overrides.
+    pub author_resident_page_slots: Vec<(u32, u32)>,
+    /// (page_id, frontier_rank, assigned_slot, recycled_page_id), original order.
+    pub author_pending_page_requests: Vec<(u32, u32, Option<u32>, Option<u32>)>,
+    /// Author declarations from the paired input; actual visibility stays GPU-owned.
+    pub paired_execution_segments: Option<Vec<RenderVirtualGeometryExecutionSegment>>,
+}
+impl RenderVirtualGeometryPreparedCpuFrame {
+    pub fn unavailable() -> Self {
+        Self {
+            inspection: RenderVirtualGeometryPreparedCpuInspection::empty(
+                super::sources::RenderVirtualGeometryNodeAndClusterCullSource::Unavailable,
+            ),
+            commit_token: None,
+            execution_inputs: RenderVirtualGeometryExecutionInputs::default(),
+            author_resident_page_slots: Vec::new(),
+            author_pending_page_requests: Vec::new(),
+            paired_execution_segments: None,
         }
     }
 }

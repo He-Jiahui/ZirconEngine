@@ -1,3 +1,8 @@
+//! 平台无关的窗口事件、输入规范化和有序泵批次契约。
+//!
+//! 宿主提供窗口身份与时间序号，平台事件经规范化进入共享分发器；本模块只构造数据，
+//! 不拥有窗口、事件循环或分发状态。固定 ABI 载荷须先建立有效借用，转换结果拥有其文本。
+//! 参见 [`UiWindowInputContext`]、[`UiWindowInputPumpBatch`] 与 [`UiRuntimeEvent`]。
 #[path = "event.rs"]
 mod event;
 #[path = "impact.rs"]

@@ -65,9 +65,8 @@ fn review_f8_runtime_plugin_descriptor_test_fixtures_use_builder() {
         "F8 RuntimePluginDescriptor fixture migration should enumerate every plugin extension test file that used the old constructor"
     );
 
-    let lifecycle_fixture_source = include_str!(
-        "../../../plugins/runtime_plugin_lifecycle/lifecycle_fixtures.rs"
-    );
+    let lifecycle_fixture_source =
+        include_str!("../../../plugins/runtime_plugin_lifecycle/lifecycle_fixtures.rs");
     let builder_count: usize = fixture_sources
         .iter()
         .map(|(_, source)| {

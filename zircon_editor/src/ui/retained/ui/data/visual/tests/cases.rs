@@ -93,7 +93,120 @@ fn workbench_state_selector_is_restricted_to_editor_cases() {
 }
 
 #[test]
-fn focus_return_uses_the_popup_invocation_path_for_repeated_anchors() {
+fn focus_return_targets_the_authored_unreal_menu_invoker_across_components() {
+    let mut runtime = crate::ui::template_runtime::EditorUiHostRuntime::default();
+    runtime.load_builtin_host_templates().unwrap();
+    let mut surface = runtime
+        .build_shared_surface("res://ui/editor/unreal/level_editor_window.zui")
+        .unwrap();
+    let popup = surface
+        .unique_control_node_id("UnrealWindowMenuPopup")
+        .unwrap();
+    let invoker = surface.unique_control_node_id("MenuSlot2").unwrap();
+    let popup_metadata = surface
+        .tree
+        .node(popup)
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap();
+    let invoker_metadata = surface
+        .tree
+        .node(invoker)
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap();
+    let popup_source = popup_metadata.source_path.clone().unwrap();
+    let popup_source_node = popup_metadata.source_node_id.clone().unwrap();
+    let popup_instance = popup_metadata.instance_path.clone().unwrap();
+    assert!(popup_source.ends_with("components/menu_popups.zui"));
+    assert!(invoker_metadata
+        .source_path
+        .as_deref()
+        .unwrap()
+        .ends_with("components/menus.zui"));
+    assert_ne!(popup_metadata.source_path, invoker_metadata.source_path);
+    assert_ne!(popup_metadata.instance_path, invoker_metadata.instance_path);
+    assert_eq!(popup_instance.last().unwrap().source_node_id, "menu_popups");
+    assert_eq!(
+        invoker_metadata
+            .instance_path
+            .as_ref()
+            .unwrap()
+            .last()
+            .unwrap()
+            .source_node_id,
+        "menu_bar"
+    );
+    let source_path = "zircon_editor/assets/ui/editor/unreal/level_editor_window.zui";
+    let mut case: ReviewCase = serde_json::from_value(serde_json::json!({
+        "id": "unreal-menu-open-then-focus-return",
+        "sourcePath": source_path,
+        "host": "editor",
+        "viewport": {"width": 800, "height": 560},
+        "dpi": 1.25,
+        "locale": "en-US",
+        "state": "open",
+        "data": {
+            "workbenchState": {
+                "sourcePath": popup_source,
+                "controlId": "UnrealWindowMenuPopup",
+                "sourceNodeId": popup_source_node,
+                "instancePath": serde_json::to_string(&popup_instance).unwrap()
+            }
+        }
+    }))
+    .unwrap();
+    case.validate(source_path).unwrap();
+    super::state::apply_case(&mut surface, &case).unwrap();
+    assert_eq!(
+        surface
+            .tree
+            .node(popup)
+            .unwrap()
+            .template_metadata
+            .as_ref()
+            .unwrap()
+            .attributes["popup_open"]
+            .as_bool(),
+        Some(true)
+    );
+
+    case.state = "focus-return".into();
+    super::state::apply_case(&mut surface, &case).unwrap();
+    let popup_metadata = surface
+        .tree
+        .node(popup)
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap();
+    assert_eq!(
+        popup_metadata.attributes["popup_open"].as_bool(),
+        Some(false)
+    );
+    assert_eq!(
+        popup_metadata.source_path.as_deref(),
+        Some(popup_source.as_str())
+    );
+    assert_eq!(popup_metadata.instance_path.as_ref(), Some(&popup_instance));
+    let invoker_metadata = surface
+        .tree
+        .node(invoker)
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap();
+    assert_eq!(invoker_metadata.attributes["focused"].as_bool(), Some(true));
+    assert_eq!(
+        invoker_metadata.attributes["focus_visible"].as_bool(),
+        Some(true)
+    );
+}
+
+#[test]
+fn focus_return_rejects_repeated_anchors_across_component_instances() {
     use zircon_runtime::ui::v2::{UiV2SurfaceBuilder, UiZuiAssetLoader};
     use zircon_runtime_interface::ui::event_ui::UiTreeId;
     use zircon_runtime_interface::ui::v2::UiTemplateNodeInstancePathStep;
@@ -181,7 +294,8 @@ props = { open = true, popup_open = true }
     }))
     .unwrap();
     case.validate("main.zui").unwrap();
-    super::state::apply_case(&mut surface, &case).unwrap();
+    let error = super::state::apply_case(&mut surface, &case).unwrap_err();
+    assert!(error.contains("Invoker is not uniquely mounted"));
 
     let buttons = surface
         .tree
@@ -203,8 +317,7 @@ props = { open = true, popup_open = true }
         })
         .collect::<Vec<_>>();
     assert_eq!(buttons.len(), 2);
-    assert!(buttons.contains(&("First", Some(true))));
-    assert!(buttons.contains(&("Second", Some(false))));
+    assert!(!buttons.iter().any(|(_, focused)| *focused == Some(true)));
 }
 
 #[test]

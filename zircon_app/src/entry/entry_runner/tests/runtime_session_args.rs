@@ -3,8 +3,73 @@ use std::path::Path;
 
 use super::{
     invalid_runtime_project_root_error, missing_runtime_project_manifest_error,
-    parse_runtime_session_startup_args, RuntimeSessionProfile,
+    parse_runtime_session_startup_args, RuntimeProductProofPolicy, RuntimeSessionProfile,
 };
+
+#[test]
+fn runtime_session_args_require_explicit_f2_product_proof() {
+    for proof in [
+        vec!["--runtime-product-proof", "f2-lit-mesh"],
+        vec!["--runtime-product-proof=f2-lit-mesh"],
+    ] {
+        let mut args = vec!["--project=fixture".to_owned()];
+        args.extend(proof.into_iter().map(str::to_owned));
+        let parsed = parse_runtime_session_startup_args(args).unwrap();
+
+        assert_eq!(parsed.product_proof_policy, RuntimeProductProofPolicy::F2LitMesh);
+        assert!(parsed.remaining_args.is_empty());
+    }
+}
+
+#[test]
+fn runtime_session_args_reject_missing_unknown_and_duplicate_product_proofs() {
+    for args in [
+        vec!["--runtime-product-proof"],
+        vec!["--runtime-product-proof="],
+        vec!["--runtime-product-proof", "  "],
+        vec!["--runtime-product-proof=general-project"],
+        vec!["--runtime-product-proof=disabled"],
+        vec!["--runtime-product-proof=unknown"],
+        vec![
+            "--project=fixture",
+            "--runtime-product-proof=f2-lit-mesh",
+            "--runtime-product-proof",
+            "f2-lit-mesh",
+        ],
+    ] {
+        let error = parse_runtime_session_startup_args(args).unwrap_err();
+        assert!(error.to_string().contains("argument=--runtime-product-proof"));
+    }
+}
+
+#[test]
+fn runtime_session_args_reject_f2_without_project_before_nonpresenting_profiles() {
+    for profile in ["runtime", "minimal", "headless"] {
+        let error = parse_runtime_session_startup_args([
+            format!("--runtime-session-profile={profile}"),
+            "--runtime-product-proof=f2-lit-mesh".to_owned(),
+        ])
+        .unwrap_err();
+
+        assert!(error.to_string().contains("cause=F2 runtime product proof requires --project"));
+    }
+}
+
+#[test]
+fn runtime_session_args_reject_f2_with_nonpresenting_profiles() {
+    for profile in ["minimal", "headless"] {
+        let error = parse_runtime_session_startup_args([
+            "--project=fixture".to_owned(),
+            format!("--runtime-session-profile={profile}"),
+            "--runtime-product-proof=f2-lit-mesh".to_owned(),
+        ])
+        .unwrap_err();
+
+        assert!(error.to_string().contains(
+            "cause=F2 runtime product proof requires a profile with a primary window"
+        ));
+    }
+}
 
 #[cfg(windows)]
 #[test]
@@ -24,6 +89,7 @@ fn runtime_session_args_default_to_runtime_profile() {
     let parsed = parse_runtime_session_startup_args(["--log-level=debug".to_string()]).unwrap();
 
     assert_eq!(parsed.profile, RuntimeSessionProfile::Runtime);
+    assert_eq!(parsed.product_proof_policy, RuntimeProductProofPolicy::Disabled);
     assert_eq!(parsed.profile.as_bytes(), b"runtime");
     assert_eq!(parsed.project_root, None);
     assert_eq!(parsed.play_scene, None);
@@ -110,6 +176,7 @@ fn runtime_session_args_strip_space_separated_project_root() {
         parsed.project_root.as_deref(),
         Some(std::path::Path::new("examples/vampire"))
     );
+    assert_eq!(parsed.product_proof_policy, RuntimeProductProofPolicy::GeneralProject);
     assert!(parsed.remaining_args.is_empty());
 }
 
@@ -173,6 +240,8 @@ fn runtime_session_help_lists_profiles_and_diagnostic_inputs() {
         "headless",
         "--project",
         "--reference-cpu-presenter",
+        "--runtime-product-proof",
+        "f2-lit-mesh",
         "--log-level",
         "--log-filter",
         "ZIRCON_RUNTIME_LIBRARY",

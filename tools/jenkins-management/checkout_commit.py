@@ -337,6 +337,9 @@ def commit_request(repo, payload, *, policy=None, grants=None):
         grants = config["permissions"]["zircon-strict"]["filesystem"]
     if payload.get("action") != "commit-checkout":
         raise ValueError("Unsupported commit action")
+    if (policy.get("integration", {}).get("mode") == "branch-commit-then-scheduled-merge"
+            and repo == physical(ROOT)):
+        raise ValueError("Commit the task worktree branch first; only zircon-merge-queue publishes validated main integration")
     for field in ("sessionId", "requestId", "operationId"):
         if not isinstance(payload.get(field), str) or not ID.fullmatch(payload[field]):
             raise ValueError("Invalid " + field)

@@ -1,5 +1,5 @@
 use crossbeam_channel::unbounded;
-use notify::event::{DataChange, ModifyKind};
+use notify::event::{DataChange, ModifyKind, RenameMode};
 use notify::{Event, EventKind};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -289,4 +289,255 @@ fn watcher_ingress_overflow_wakes_the_loop_and_emits_reconciliation() {
 fn modified_event(path: &Path) -> Event {
     Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Content)))
         .add_path(path.to_path_buf())
+}
+
+struct MappingWatchLoopGuard {
+    stop_tx: crossbeam_channel::Sender<()>,
+    join: Option<std::thread::JoinHandle<()>>,
+}
+
+impl Drop for MappingWatchLoopGuard {
+    fn drop(&mut self) {
+        let _ = self.stop_tx.send(());
+        if let Some(join) = self.join.take() {
+            let result = join.join();
+            if !std::thread::panicking() {
+                result.unwrap();
+            }
+        }
+    }
+}
+
+#[test]
+fn watcher_mapping_uncertainty_flushes_reconciliation_and_resets_the_next_batch() {
+    let root = PathBuf::from("sandbox/assets");
+    let material = root.join("materials/grid.zmaterial");
+    let invalid = root.join("../../escape.zasset");
+    assert!(watched_asset_uri_for_path(&root, &invalid).is_err());
+    let options = AssetWatcherOptions {
+        debounce: Duration::from_millis(1),
+        max_batch_latency: Duration::from_millis(100),
+        ..AssetWatcherOptions::default()
+    };
+    let (stop_tx, stop_rx) = unbounded();
+    let (event_tx, event_rx) = watch_ingress(options);
+    let (batch_tx, batch_rx) = unbounded::<AssetWatchBatch>();
+    let (error_tx, error_rx) = unbounded::<AssetWatchError>();
+    let loop_root = root.clone();
+    let join = std::thread::spawn(move || {
+        watch_loop_for_test(
+            loop_root,
+            options,
+            stop_rx,
+            event_rx,
+            Arc::new(move |batch| {
+                let _ = batch_tx.send(batch);
+            }),
+            Arc::new(move |error| {
+                let _ = error_tx.send(error);
+            }),
+        );
+    });
+    let guard = MappingWatchLoopGuard {
+        stop_tx,
+        join: Some(join),
+    };
+
+    let uncertainties = [
+        Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::Both))),
+        Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::Both)))
+            .add_path(material.clone()),
+        Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::Both)))
+            .add_path(material.clone())
+            .add_path(PathBuf::from("sandbox/other/moved.zmaterial")),
+        Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::Both)))
+            .add_path(material.clone())
+            .add_path(root.join("materials/grid.zmaterial.zmeta")),
+        Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::Both)))
+            .add_path(material.clone())
+            .add_path(invalid.clone()),
+        Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::From)))
+            .add_path(material.clone()),
+        Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::To))).add_path(material.clone()),
+        Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::Any))).add_path(material.clone()),
+        Event::new(EventKind::Create(notify::event::CreateKind::Any)).add_path(invalid.clone()),
+        modified_event(&invalid),
+        Event::new(EventKind::Remove(notify::event::RemoveKind::Any)).add_path(invalid),
+    ];
+    for event in uncertainties {
+        event_tx.try_send(Ok(event));
+        let batch = batch_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert!(batch.requires_reconciliation);
+        assert!(batch.changes.is_empty());
+        assert_eq!(batch.diagnostics.raw_event_count, 0);
+        assert_eq!(batch.diagnostics.coalesced_event_count, 0);
+        assert_eq!(batch.diagnostics.approximate_bytes, 0);
+        assert_eq!(batch.diagnostics.ingress_overflow_count, 0);
+        assert_eq!(batch.diagnostics.pending_overflow_count, 0);
+        assert!(batch.diagnostics.oldest_age >= options.debounce);
+        assert!(error_rx.try_recv().is_err());
+
+        event_tx.try_send(Ok(modified_event(&material)));
+        let next = batch_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert!(!next.requires_reconciliation);
+        assert_eq!(next.diagnostics.raw_event_count, 1);
+        assert_eq!(next.diagnostics.coalesced_event_count, 0);
+        assert_eq!(next.diagnostics.ingress_overflow_count, 0);
+        assert_eq!(next.diagnostics.pending_overflow_count, 0);
+        assert!(next.diagnostics.approximate_bytes > 0);
+        assert_eq!(
+            next.changes,
+            vec![AssetChange::new(
+                AssetChangeKind::Modified,
+                AssetUri::parse("res://materials/grid.zmaterial").unwrap(),
+                None,
+            )]
+        );
+    }
+    drop(guard);
+    assert!(batch_rx.try_recv().is_err());
+    assert!(error_rx.try_recv().is_err());
+}
+
+#[test]
+fn watcher_ignored_and_outside_root_events_keep_incremental_batches_clean() {
+    let root = PathBuf::from("sandbox/assets");
+    let outside = PathBuf::from("sandbox/other/outside.zasset");
+    let policy = root.join("ignored.zasset.zmeta");
+    let atomic = root.join(".ignored.zasset.zr-staging-1-2");
+    let project = root.join(format!(
+        ".{}.zr-project-stage-{}-42-3",
+        "a".repeat(64),
+        "b".repeat(64)
+    ));
+    let options = AssetWatcherOptions {
+        debounce: Duration::from_millis(1),
+        max_batch_latency: Duration::from_millis(100),
+        ..AssetWatcherOptions::default()
+    };
+    let (stop_tx, stop_rx) = unbounded();
+    let (event_tx, event_rx) = watch_ingress(options);
+    let (batch_tx, batch_rx) = unbounded::<AssetWatchBatch>();
+    let (error_tx, error_rx) = unbounded::<AssetWatchError>();
+    for path in [&outside, &policy, &atomic, &project] {
+        for kind in [
+            EventKind::Create(notify::event::CreateKind::Any),
+            EventKind::Modify(ModifyKind::Data(DataChange::Content)),
+            EventKind::Remove(notify::event::RemoveKind::Any),
+            EventKind::Modify(ModifyKind::Name(RenameMode::From)),
+            EventKind::Modify(ModifyKind::Name(RenameMode::To)),
+            EventKind::Modify(ModifyKind::Name(RenameMode::Any)),
+        ] {
+            event_tx.try_send(Ok(Event::new(kind).add_path(path.clone())));
+        }
+    }
+    for paths in [
+        vec![
+            outside.clone(),
+            PathBuf::from("sandbox/other/second.zasset"),
+        ],
+        vec![policy.clone(), atomic],
+        vec![outside, project],
+    ] {
+        let mut event = Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::Both)));
+        event.paths = paths;
+        event_tx.try_send(Ok(event));
+    }
+    event_tx.try_send(Ok(modified_event(&root.join("visible.zasset"))));
+    let join = std::thread::spawn(move || {
+        watch_loop_for_test(
+            root,
+            options,
+            stop_rx,
+            event_rx,
+            Arc::new(move |batch| {
+                let _ = batch_tx.send(batch);
+            }),
+            Arc::new(move |error| {
+                let _ = error_tx.send(error);
+            }),
+        );
+    });
+    let guard = MappingWatchLoopGuard {
+        stop_tx,
+        join: Some(join),
+    };
+    let batch = batch_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+    assert!(!batch.requires_reconciliation);
+    assert_eq!(batch.diagnostics.raw_event_count, 1);
+    assert_eq!(batch.diagnostics.coalesced_event_count, 0);
+    assert_eq!(batch.diagnostics.ingress_overflow_count, 0);
+    assert_eq!(batch.diagnostics.pending_overflow_count, 0);
+    assert_eq!(
+        batch.changes,
+        vec![AssetChange::new(
+            AssetChangeKind::Modified,
+            AssetUri::parse("res://visible.zasset").unwrap(),
+            None,
+        )]
+    );
+    drop(guard);
+    assert!(batch_rx.try_recv().is_err());
+    assert!(error_rx.try_recv().is_err());
+}
+
+#[test]
+fn watcher_mapping_uncertainty_flushes_on_stop_and_ingress_disconnect() {
+    for disconnect in [false, true] {
+        let root = PathBuf::from("sandbox/assets");
+        let options = AssetWatcherOptions {
+            debounce: Duration::from_secs(60),
+            max_batch_latency: Duration::from_secs(60),
+            ..AssetWatcherOptions::default()
+        };
+        let (stop_tx, stop_rx) = unbounded();
+        let (event_tx, event_rx) = watch_ingress(options);
+        let (batch_tx, batch_rx) = unbounded::<AssetWatchBatch>();
+        let (error_tx, error_rx) = unbounded::<AssetWatchError>();
+        event_tx.try_send(Ok(Event::new(EventKind::Modify(ModifyKind::Name(
+            RenameMode::To,
+        )))
+        .add_path(root.join("moved.zasset"))));
+        let loop_root = root.clone();
+        let join = std::thread::spawn(move || {
+            watch_loop_for_test(
+                loop_root,
+                options,
+                stop_rx,
+                event_rx,
+                Arc::new(move |batch| {
+                    let _ = batch_tx.send(batch);
+                }),
+                Arc::new(move |error| {
+                    let _ = error_tx.send(error);
+                }),
+            );
+        });
+        let mut guard = MappingWatchLoopGuard {
+            stop_tx,
+            join: Some(join),
+        };
+        if disconnect {
+            drop(event_tx);
+            guard.join.take().unwrap().join().unwrap();
+        } else {
+            // The existing notify-error callback acknowledges FIFO processing before stop.
+            event_tx.try_send(Err(notify::Error::path_not_found().add_path(root.clone())));
+            let error = error_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+            assert_eq!(error.assets_root, root);
+            assert!(error.message.contains("path") || error.message.contains("not found"));
+        }
+        drop(guard);
+        let batches = batch_rx.try_iter().collect::<Vec<_>>();
+        assert_eq!(batches.len(), 1);
+        let batch = &batches[0];
+        assert!(batch.requires_reconciliation);
+        assert!(batch.changes.is_empty());
+        assert_eq!(batch.diagnostics.raw_event_count, 0);
+        assert_eq!(batch.diagnostics.coalesced_event_count, 0);
+        assert_eq!(batch.diagnostics.approximate_bytes, 0);
+        assert_eq!(batch.diagnostics.ingress_overflow_count, 0);
+        assert_eq!(batch.diagnostics.pending_overflow_count, 0);
+        assert!(error_rx.try_recv().is_err());
+    }
 }

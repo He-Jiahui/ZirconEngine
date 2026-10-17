@@ -9,8 +9,7 @@ const MIGRATION_DOC: &str = "docs/ui-and-layout/slint-material-retained-editor-m
 const THEME: &str = "zircon_editor/assets/ui/theme/editor_material.zui";
 const BUTTONS_ZUI: &str =
     "zircon_editor/assets/ui/editor/material_components/inputs/material_buttons.zui";
-const FAB_ZUI: &str =
-    "zircon_editor/assets/ui/editor/inputs/floating_action_button.zui";
+const FAB_ZUI: &str = "zircon_editor/assets/ui/editor/inputs/floating_action_button.zui";
 
 const M3_SOURCE_FILES: &[&str] = &[
     "dev/material-rust-template/material-1.0/ui/components/base_button.slint",

@@ -13,9 +13,7 @@ const OUTPUT_REPORT: &str = "plan18_hybrid_gi_m4_source_ledger_wgpu_20260713.txt
 const POST_PROCESS_SHADER: &str = concat!(
     include_str!("../src/graphics/scene/renderer/post/shaders/post.wgsl"),
     "\n",
-    include_str!(
-        "../src/graphics/post/shaders/process_screen_space_reflection.wgsl"
-    )
+    include_str!("../src/graphics/post/shaders/process_screen_space_reflection.wgsl")
 );
 
 const SOURCE_FULL_DYNAMIC: u32 = 1;

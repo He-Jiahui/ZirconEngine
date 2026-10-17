@@ -138,6 +138,7 @@ impl HeadlessSession for RuntimeSession {
             return Err(HeadlessHostError::UnsupportedHostRequest(match request {
                 ZrRuntimeHostRequestV1::Ime(_) => "ime",
                 ZrRuntimeHostRequestV1::GamepadRumble(_) => "gamepad-rumble",
+                ZrRuntimeHostRequestV1::GamepadRumbleV2(_) => "gamepad-rumble-v2",
                 ZrRuntimeHostRequestV1::Cursor(_) => "cursor",
                 ZrRuntimeHostRequestV1::Clipboard(_) => "clipboard",
                 ZrRuntimeHostRequestV1::UiAction(_) => "ui-action",

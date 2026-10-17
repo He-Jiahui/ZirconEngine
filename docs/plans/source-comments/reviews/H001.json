@@ -1,0 +1,711 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "historical_task_id": "source-comment-audit-20261012",
+  "batch_id": "H001",
+  "owner": "/root/contracts_luna",
+  "checkout": "E:/Git/ZirconEngine",
+  "assignment_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "record_kind": "historical_evidence_classification_only",
+  "status": "classified_for_possible_reuse_pending_chief_review_and_owner_reconciliation",
+  "scope_note": "H001 is a new historical-evidence classification record; it does not edit or review source files and does not mark any source reviewed, verified, accepted, or released. It classifies prior evidence pins and records unresolved formal acceptance and ownership. The historical_task_id preserves the old source-comment-audit-20261012 evidence identity; this metadata correction does not change any old formal request, attempt, or session identity.",
+  "inputPins": [
+    {
+      "path": "docs/plans/03-whole-source-comment-review-continuation.md",
+      "sha256": "44de36f373daf2fc6b8141ae5bdba67562100e649a96de2042812cdddf6db2e0"
+    },
+    {
+      "path": "docs/tests/source-comment-review-coverage-03.json",
+      "sha256": "7b5bfa8e09e827294fa40724610b97e6a32c0b015a6ba4bfc2b8952458a29342"
+    },
+    {
+      "path": "docs/tests/source-comment-review-issues-03.json",
+      "sha256": "ecc5a5709ee09b06cd56ff5ecff51a0ad08fb3e712c060572dc3910c99230df4"
+    },
+    {
+      "path": "docs/tests/source-comment-review-standard.md",
+      "sha256": "fd4665076c529273a59ef74b08f83a2d572099a438c5d20ac81e6b14a7047b73"
+    },
+    {
+      "path": "docs/plans/source-comments/reviews/C001.json",
+      "sha256": "96dbddfebab869b6a8c827c033bf55a96fba0e926d0af41638686dd43e46ba48"
+    },
+    {
+      "path": "docs/plans/source-comments/reviews/R001.json",
+      "sha256": "4ab147db579dc6bf4e325ad4070562ec1b5aa258b366787f7e2ba42ca6f8cd1c"
+    },
+    {
+      "path": "docs/plans/source-comments/reviews/M001.json",
+      "sha256": "93dbbe87d59de37d959197ac8e27718e13e7aedfa0f540ed5a764b1f8306cc0e"
+    }
+  ],
+  "currentAssignmentExclusions": [
+    {
+      "batchId": "C001",
+      "assignedFileCount": 6,
+      "reviewPath": "docs/plans/source-comments/reviews/C001.json",
+      "reason": "currently allocated; excluded from H001"
+    },
+    {
+      "batchId": "R001",
+      "assignedFileCount": 4,
+      "reviewPath": "docs/plans/source-comments/reviews/R001.json",
+      "reason": "currently allocated; excluded from H001"
+    },
+    {
+      "batchId": "M001",
+      "assignedFileCount": 7,
+      "reviewPath": "docs/plans/source-comments/reviews/M001.json",
+      "reason": "currently allocated; excluded from H001"
+    }
+  ],
+  "candidateCounts": {
+    "sourceRowsInCoverage03": 129,
+    "actualSourceFilesFound": 129,
+    "actualMatchesCoverageCurrentSha": 100,
+    "actualDiffersFromCoverageCurrentSha": 29,
+    "rowsWithNonNullReviewedShaAndObjectCallerIndependentEvidence": 83,
+    "exactCurrentMatchesAmongCompleteHistoricalReviewRows": 83,
+    "reviewedShaMismatchesAmongCompleteRows": 0,
+    "completeExactRowsOutsideCurrent17": 81,
+    "rowsWithoutCompleteHistoricalReviewEvidence": 46,
+    "selectedNonCurrentCoreOrInterfacePaths": 11,
+    "selectedLimit": 12,
+    "matchDefinition": "actual SHA256 equals both coverage-03 currentSha256 and reviewedSha256, and the row pins manual object evidence, direct caller evidence, and an independent-review record",
+    "nonmatchDefinition": "coverage-03 row lacks a complete historical review record or actual SHA differs from its current pin; the 29 current-pin differences are not counted as eligible history"
+  },
+  "evidenceSets": [
+    {
+      "id": "plugin-core-005",
+      "sources": [
+        "zircon_runtime_interface/src/plugin_api.rs",
+        "zircon_runtime_interface/src/plugin_events.rs",
+        "zircon_runtime_interface/src/plugin_diagnostics.rs",
+        "zircon_runtime_interface/src/tests/plugin_api_contracts.rs",
+        "zircon_runtime_interface/src/tests/plugin_diagnostics.rs"
+      ],
+      "historicalOwner": "/root/core_review",
+      "sourceEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+        "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+        "sections": "files/plugin_api.rs PCG-01..15; plugin_events.rs PCG-16..17; plugin_diagnostics.rs PCG-18..19; interface tests PCG-20..21",
+        "quality": "逐文件列出声明/成员/语句块及 contractGroups；scope 中三接口源与两测试均有精确 reviewed SHA 和对象清单。"
+      },
+      "callerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+        "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+        "section": "callerEvidence",
+        "quality": "以稳定 ID 将接口声明映射到 lib re-export、Runtime native plugin loader/Host adapter、sound 动态事件调用链、Editor catalog/capability report 和接口/Editor 测试；每个对象组按 relationshipRef 选择具体调用方。"
+      },
+      "independentReview": {
+        "path": "docs/tests/source-comment-review-independent-plugin-core-005.json",
+        "sha256": "7756bb82992ad2d0f4df44b5920f1499c5de0f3f3331b61c62646aa3db1caaf9",
+        "status": "independently-reviewed-awaiting-coordinator",
+        "formalAcceptance": false,
+        "quality": "为五个文件列 reviewed SHA 与 PCG 组；独立复核记录仍待正式协调器验收。"
+      },
+      "formatPins": [
+        {
+          "paths": [
+            "zircon_runtime_interface/src/plugin_api.rs"
+          ],
+          "sourcePins": {
+            "zircon_runtime_interface/src/plugin_api.rs": "a8f5c3b60af26d2abdc119757e9a82fd6bd1f879b87a8b2f40c5693fcf41e01f"
+          },
+          "command": "rustfmt --check --edition 2021 --config skip_children=true plugin_api.rs",
+          "recordedExitCode": 0
+        },
+        {
+          "paths": [
+            "zircon_runtime_interface/src/plugin_events.rs"
+          ],
+          "sourcePins": {
+            "zircon_runtime_interface/src/plugin_events.rs": "9f42b6b36e40c651e212772724e630840b10f9fd646d966adb5f1fb65f66bf79"
+          },
+          "command": "rustfmt --check --edition 2021 --config skip_children=true plugin_events.rs",
+          "recordedExitCode": 0
+        },
+        {
+          "paths": [
+            "zircon_runtime_interface/src/plugin_diagnostics.rs",
+            "zircon_runtime_interface/src/tests/plugin_api_contracts.rs",
+            "zircon_runtime_interface/src/tests/plugin_diagnostics.rs"
+          ],
+          "sourcePins": {
+            "zircon_runtime_interface/src/plugin_diagnostics.rs": "b561dde2445f5575dc0c25f962350b46f8da5251d69bfac18e1209d1994cfff5",
+            "zircon_runtime_interface/src/tests/plugin_api_contracts.rs": "9b97d60eb3b4aff610c9aa40ec97e06e093ad764cc3b3699a58e493557d30502",
+            "zircon_runtime_interface/src/tests/plugin_diagnostics.rs": "58361f056cec670bb9d49cf16478d8806003bd634671210fcb686949c3882b72"
+          },
+          "command": "rustfmt --check --edition 2021 --config skip_children=true each path",
+          "recordedExitCodes": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "staticValidation": {
+        "status": "历史本地记录通过",
+        "details": "精确源 pin 的 git diff --check、非文档 token/物理行尾守卫及 change-guard 记录存在。编译器可见文档属性的 rustdoc/macro validation 与正式 Jenkins 验收仍 pending；Cargo 未运行。"
+      },
+      "issueLedger": {
+        "issueIds": [],
+        "existingTags": []
+      },
+      "commitRecord": {
+        "recordedSha": null,
+        "status": "pending",
+        "formalAcceptance": false
+      },
+      "ownerRelease": {
+        "proven": false,
+        "reason": "旧 owner 字段保留，未找到该 owner 的当前释放/正式协调器 closeout 回执。"
+      }
+    },
+    {
+      "id": "legacy-core-transfer-006",
+      "sources": [
+        "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+        "zircon_runtime_interface/src/runtime_api/session/session.rs",
+        "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+        "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+        "zircon_runtime_interface/src/runtime_api/session/mod.rs"
+      ],
+      "historicalOwner": "/root",
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=<source>].objectEvidence",
+        "quality": "五个源码各有 3/8/8/10/15 条 SES-OBJ 人工条目；旧源审查标记为 awaiting-independent-review，现 transfer 仅复用这些精确历史对象证据。"
+      },
+      "directCallerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+        "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f",
+        "selector": "callerReconciliation",
+        "quality": "当前 caller reconciliation 对 core 37 个调用方逐项做物理 SHA pin；覆盖 camera/event 路由、App create/destroy 与 runtime ownership、handle/resource/trait 使用、surface/binding/wire/UI adapter、API facade。对五个源的具体 caller ID 见逐文件条目。"
+      },
+      "oldIndependentReview": {
+        "path": "docs/tests/source-comment-review-independent-core-session-003.json",
+        "sha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+        "status": "source-independently-reviewed-awaiting-coordinator",
+        "formatPin": "rustfmt 1.8.0-stable; skip_children=true; six files all exit 0; scoped diff check exit 0"
+      },
+      "currentTransferReview": {
+        "path": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "status": "independently-reconciled-transfer-awaiting-coordinator",
+        "formalAcceptance": false,
+        "quality": "确认 current SHA 等于 historical after SHA，调用方 pin 与转移边界已复核；不是五文件新的完整人工源码审查。"
+      },
+      "staticValidation": {
+        "status": "same-hash receipts reused",
+        "details": "旧独立源审查中的 rustfmt 六文件/差异检查均成功；转移记录确认源哈希相同并复用。Cargo、Rustdoc、Jenkins 均未通过本 transfer 声明为已验收。"
+      },
+      "issueLedger": {
+        "issueIds": [],
+        "existingTags": []
+      },
+      "commitRecord": {
+        "recordedSha": null,
+        "status": "pending Jenkins",
+        "formalAcceptance": false
+      },
+      "ownerRelease": {
+        "proven": false,
+        "reason": "旧 owner 字段为 /root，未附现行源路径归属释放或 Jenkins closeout。"
+      },
+      "nativeLifecycleGap": "transfer record 保留旧 cell10 wait-aborted/no native terminal 的 schema-append 记录；它不证明这五个路径仍有活动写进程，但也不授权据此关闭原任务。源 writer cells 22/27 有退出证据。"
+    },
+    {
+      "id": "reflect-budget-002-transfer-006",
+      "sources": [
+        "zircon_runtime_interface/src/reflect/value_budget.rs"
+      ],
+      "historicalOwner": "/root",
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+        "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+        "selector": "files[path=zircon_runtime_interface/src/reflect/value_budget.rs].objectEvidence",
+        "quality": "31 个对象/成员条目覆盖模块、预算字段和构造器、float kind、维度及错误 variants。"
+      },
+      "directCallerEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+        "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f",
+        "selector": "callerReconciliation budget callers",
+        "quality": "当前 transfer 对 10 个 budget callers 重核 pin 与调用锚；原始命名关系涵盖 crate re-export、Runtime admission、JSON 读写、VM state/migration 和接口测试，并注明图预算不约束解析前输入字节/分配、schema 或权限。"
+      },
+      "oldIndependentReview": {
+        "path": "docs/tests/source-comment-review-independent-reflect-budget-002.json",
+        "sha256": "e96648c83cdd56b2fc8769aa79898d42bc10ccba54620f6a6fb3d9eadacb9864",
+        "status": "source-independently-reviewed-awaiting-coordinator",
+        "formatPin": "rustfmt --edition 2021 --config skip_children=true --check; three source pins exact; exit 0; git diff --check exit 0"
+      },
+      "currentTransferReview": {
+        "path": "docs/tests/source-comment-review-independent-legacy-core-transfer-006.json",
+        "sha256": "95f4f8fa6ab5c21d29f23e7cea01cfa0e8dae36194f2eba9f98c3a8e8f093f55",
+        "status": "independently-reconciled-transfer-awaiting-coordinator",
+        "formalAcceptance": false,
+        "quality": "历史 source pin 与本地 caller 锚点对齐；只迁移证据，不等同当前完整源审查。"
+      },
+      "staticValidation": {
+        "status": "same-hash receipts reused",
+        "details": "精确 pin 的 rustfmt 与 diff-whitespace 历史回执成功；Cargo 未运行，正式 coordinator pending。旧记录同时保留 inherited read-only rg 没有 terminal receipt。"
+      },
+      "issueLedger": {
+        "issueIds": [],
+        "existingTags": []
+      },
+      "commitRecord": {
+        "recordedSha": null,
+        "status": "pending Jenkins",
+        "formalAcceptance": false
+      },
+      "ownerRelease": {
+        "proven": false,
+        "reason": "旧 owner 字段为 /root，未附现行源路径归属释放或 Jenkins closeout。"
+      },
+      "nativeLifecycleGap": "旧 reflect record 说明一个继承的只读 rg 进程未验证 terminal；这不证明本源码仍被写入，也不证明旧请求已关闭。"
+    }
+  ],
+  "sources": [
+    {
+      "path": "zircon_runtime_interface/src/plugin_api.rs",
+      "actualSha256": "a8f5c3b60af26d2abdc119757e9a82fd6bd1f879b87a8b2f40c5693fcf41e01f",
+      "coverage03CurrentSha256": "a8f5c3b60af26d2abdc119757e9a82fd6bd1f879b87a8b2f40c5693fcf41e01f",
+      "coverage03ReviewedSha256": "a8f5c3b60af26d2abdc119757e9a82fd6bd1f879b87a8b2f40c5693fcf41e01f",
+      "sourceHashRelation": "exact physical-byte SHA match to historical current and reviewed pins",
+      "historicalState": "reviewed-awaiting-coordinator",
+      "historicalOwner": "/root/core_review",
+      "h001SourceReviewStatus": "not reviewed by H001",
+      "h001VerificationStatus": "not verified by H001",
+      "evidenceSet": "plugin-core-005",
+      "historicalObjectEvidence": {
+        "groups": "PCG-01..15",
+        "count": 15,
+        "refs": null
+      },
+      "directCallerEvidence": {
+        "ids": [
+          "ROOT",
+          "HARNESS",
+          "REGSCOPE",
+          "REGISTER",
+          "DECODE",
+          "CTX",
+          "CTXLEASE",
+          "BRIDGE",
+          "LIVEBRIDGE",
+          "SDKLOADER",
+          "SDKLAYOUT",
+          "CONTRACT",
+          "EDITORCAT",
+          "EDITORREPORT",
+          "EDITORTEST",
+          "LAYOUTTEST"
+        ],
+        "coverage03CallerEvidence": "present; exact source-to-caller references are in the pinned evidence set"
+      },
+      "historicalIssueIds": [],
+      "sourceOwnerReleaseProven": false,
+      "nextChiefReview": "主审逐对象复核 PCG-01..15 与对应关系引用；特别核对插件入口、Host 表、注册和调用方契约是否仍被当前代码引用，并检查编译器可见 doc 属性的正式验证回执。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/plugin_events.rs",
+      "actualSha256": "9f42b6b36e40c651e212772724e630840b10f9fd646d966adb5f1fb65f66bf79",
+      "coverage03CurrentSha256": "9f42b6b36e40c651e212772724e630840b10f9fd646d966adb5f1fb65f66bf79",
+      "coverage03ReviewedSha256": "9f42b6b36e40c651e212772724e630840b10f9fd646d966adb5f1fb65f66bf79",
+      "sourceHashRelation": "exact physical-byte SHA match to historical current and reviewed pins",
+      "historicalState": "reviewed-awaiting-coordinator",
+      "historicalOwner": "/root/core_review",
+      "h001SourceReviewStatus": "not reviewed by H001",
+      "h001VerificationStatus": "not verified by H001",
+      "evidenceSet": "plugin-core-005",
+      "historicalObjectEvidence": {
+        "groups": "PCG-16..17",
+        "count": 2,
+        "refs": null
+      },
+      "directCallerEvidence": {
+        "ids": [
+          "SOUNDREQUEST",
+          "SOUNDCALL",
+          "SOUNDREGISTER",
+          "SOUNDSTATUS",
+          "SOUNDTESTOK",
+          "SOUNDTESTFAIL",
+          "CAPTURE",
+          "FAILCALL",
+          "EDITORTEST"
+        ],
+        "coverage03CallerEvidence": "present; exact source-to-caller references are in the pinned evidence set"
+      },
+      "historicalIssueIds": [],
+      "sourceOwnerReleaseProven": false,
+      "nextChiefReview": "主审核对 PCG-16..17、事件回调注册/调用边界及相关 success/failure 测试的实际关系；正式格式与文档接受仍需按当前授权流程核验。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/plugin_diagnostics.rs",
+      "actualSha256": "b561dde2445f5575dc0c25f962350b46f8da5251d69bfac18e1209d1994cfff5",
+      "coverage03CurrentSha256": "b561dde2445f5575dc0c25f962350b46f8da5251d69bfac18e1209d1994cfff5",
+      "coverage03ReviewedSha256": "b561dde2445f5575dc0c25f962350b46f8da5251d69bfac18e1209d1994cfff5",
+      "sourceHashRelation": "exact physical-byte SHA match to historical current and reviewed pins",
+      "historicalState": "reviewed-awaiting-coordinator",
+      "historicalOwner": "/root/core_review",
+      "h001SourceReviewStatus": "not reviewed by H001",
+      "h001VerificationStatus": "not verified by H001",
+      "evidenceSet": "plugin-core-005",
+      "historicalObjectEvidence": {
+        "groups": "PCG-18..19",
+        "count": 2,
+        "refs": null
+      },
+      "directCallerEvidence": {
+        "ids": [
+          "EDITORCAT",
+          "EDITORREPORT",
+          "DIAGTEST",
+          "EDITORTEST"
+        ],
+        "coverage03CallerEvidence": "present; exact source-to-caller references are in the pinned evidence set"
+      },
+      "historicalIssueIds": [],
+      "sourceOwnerReleaseProven": false,
+      "nextChiefReview": "主审核对 PCG-18..19 的诊断字段、编辑器能力报告调用和测试证据；忽略的性能测试只属静态说明，不能算作执行结果。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/plugin_api_contracts.rs",
+      "actualSha256": "9b97d60eb3b4aff610c9aa40ec97e06e093ad764cc3b3699a58e493557d30502",
+      "coverage03CurrentSha256": "9b97d60eb3b4aff610c9aa40ec97e06e093ad764cc3b3699a58e493557d30502",
+      "coverage03ReviewedSha256": "9b97d60eb3b4aff610c9aa40ec97e06e093ad764cc3b3699a58e493557d30502",
+      "sourceHashRelation": "exact physical-byte SHA match to historical current and reviewed pins",
+      "historicalState": "reviewed-awaiting-coordinator",
+      "historicalOwner": "/root/core_review",
+      "h001SourceReviewStatus": "not reviewed by H001",
+      "h001VerificationStatus": "not verified by H001",
+      "evidenceSet": "plugin-core-005",
+      "historicalObjectEvidence": {
+        "groups": "PCG-20",
+        "count": 1,
+        "refs": null
+      },
+      "directCallerEvidence": {
+        "ids": [
+          "LAYOUTTEST",
+          "CONTRACT",
+          "HARNESS"
+        ],
+        "coverage03CallerEvidence": "present; exact source-to-caller references are in the pinned evidence set"
+      },
+      "historicalIssueIds": [],
+      "sourceOwnerReleaseProven": false,
+      "nextChiefReview": "主审核对 PCG-20 的断言与当前插件 ABI 声明、InterfaceSpec 槽位关系；旧记录没有执行 Cargo 测试。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/plugin_diagnostics.rs",
+      "actualSha256": "58361f056cec670bb9d49cf16478d8806003bd634671210fcb686949c3882b72",
+      "coverage03CurrentSha256": "58361f056cec670bb9d49cf16478d8806003bd634671210fcb686949c3882b72",
+      "coverage03ReviewedSha256": "58361f056cec670bb9d49cf16478d8806003bd634671210fcb686949c3882b72",
+      "sourceHashRelation": "exact physical-byte SHA match to historical current and reviewed pins",
+      "historicalState": "reviewed-awaiting-coordinator",
+      "historicalOwner": "/root/core_review",
+      "h001SourceReviewStatus": "not reviewed by H001",
+      "h001VerificationStatus": "not verified by H001",
+      "evidenceSet": "plugin-core-005",
+      "historicalObjectEvidence": {
+        "groups": "PCG-21",
+        "count": 10,
+        "refs": null
+      },
+      "directCallerEvidence": {
+        "ids": [
+          "DIAGTEST",
+          "EDITORCAT",
+          "EDITORTEST"
+        ],
+        "coverage03CallerEvidence": "present; exact source-to-caller references are in the pinned evidence set"
+      },
+      "historicalIssueIds": [],
+      "sourceOwnerReleaseProven": false,
+      "nextChiefReview": "主审核对 PCG-21 功能断言、调用证据及计时块边界；ignored 性能样本未执行，不作性能结论。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+      "actualSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "coverage03CurrentSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "coverage03ReviewedSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "sourceHashRelation": "exact physical-byte SHA match to historical current and reviewed pins",
+      "historicalState": "reviewed-awaiting-coordinator",
+      "historicalOwner": "/root",
+      "h001SourceReviewStatus": "not reviewed by H001",
+      "h001VerificationStatus": "not verified by H001",
+      "evidenceSet": "legacy-core-transfer-006",
+      "historicalObjectEvidence": {
+        "groups": null,
+        "count": 3,
+        "refs": [
+          "SES-OBJ-001",
+          "SES-OBJ-007",
+          "SES-OBJ-015"
+        ]
+      },
+      "directCallerEvidence": {
+        "ids": [
+          "CAM",
+          "EVENT",
+          "SIM",
+          "ROUTE"
+        ],
+        "coverage03CallerEvidence": "present; exact source-to-caller references are in the pinned evidence set"
+      },
+      "historicalIssueIds": [],
+      "sourceOwnerReleaseProven": false,
+      "nextChiefReview": "主审逐项重读 camera DTO 与构造/更新路径，核对当前 CAM/EVENT/SIM/ROUTE 物理 pin 和投影/数值边界；旧 transfer 是证据迁移，不替代本批新的全文件复核。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+      "actualSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "coverage03CurrentSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "coverage03ReviewedSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "sourceHashRelation": "exact physical-byte SHA match to historical current and reviewed pins",
+      "historicalState": "reviewed-awaiting-coordinator",
+      "historicalOwner": "/root",
+      "h001SourceReviewStatus": "not reviewed by H001",
+      "h001VerificationStatus": "not verified by H001",
+      "evidenceSet": "legacy-core-transfer-006",
+      "historicalObjectEvidence": {
+        "groups": null,
+        "count": 8,
+        "refs": [
+          "SES-OBJ-002",
+          "SES-OBJ-008",
+          "SES-OBJ-009",
+          "SES-OBJ-016",
+          "SES-OBJ-017",
+          "SES-OBJ-018",
+          "SES-OBJ-019",
+          "SES-OBJ-020"
+        ]
+      },
+      "directCallerEvidence": {
+        "ids": [
+          "APP",
+          "FFI",
+          "WAKE",
+          "HOSTWAKE",
+          "DESTROY"
+        ],
+        "coverage03CallerEvidence": "present; exact source-to-caller references are in the pinned evidence set"
+      },
+      "historicalIssueIds": [],
+      "sourceOwnerReleaseProven": false,
+      "nextChiefReview": "主审重核会话创建、wake 回调有效期、FFI 调用及销毁失败保留资源的调用链；明确同步回调/动态库生命周期前提，保持未完成 native request 与 owner release 状态开放。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+      "actualSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "coverage03CurrentSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "coverage03ReviewedSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "sourceHashRelation": "exact physical-byte SHA match to historical current and reviewed pins",
+      "historicalState": "reviewed-awaiting-coordinator",
+      "historicalOwner": "/root",
+      "h001SourceReviewStatus": "not reviewed by H001",
+      "h001VerificationStatus": "not verified by H001",
+      "evidenceSet": "legacy-core-transfer-006",
+      "historicalObjectEvidence": {
+        "groups": null,
+        "count": 8,
+        "refs": [
+          "SES-OBJ-003",
+          "SES-OBJ-010",
+          "SES-OBJ-021",
+          "SES-OBJ-022",
+          "SES-OBJ-023",
+          "SES-OBJ-024",
+          "SES-OBJ-025",
+          "SES-OBJ-026"
+        ]
+      },
+      "directCallerEvidence": {
+        "ids": [
+          "APP",
+          "HANDLE",
+          "RESOURCE",
+          "TRAIT"
+        ],
+        "coverage03CallerEvidence": "present; exact source-to-caller references are in the pinned evidence set"
+      },
+      "historicalIssueIds": [],
+      "sourceOwnerReleaseProven": false,
+      "nextChiefReview": "主审核对身份/资源/trait 的逐项对象证据与当前调用方；只保留证据能证明的身份稳定性和资源归属说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+      "actualSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "coverage03CurrentSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "coverage03ReviewedSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "sourceHashRelation": "exact physical-byte SHA match to historical current and reviewed pins",
+      "historicalState": "reviewed-awaiting-coordinator",
+      "historicalOwner": "/root",
+      "h001SourceReviewStatus": "not reviewed by H001",
+      "h001VerificationStatus": "not verified by H001",
+      "evidenceSet": "legacy-core-transfer-006",
+      "historicalObjectEvidence": {
+        "groups": null,
+        "count": 10,
+        "refs": [
+          "SES-OBJ-004",
+          "SES-OBJ-011",
+          "SES-OBJ-012",
+          "SES-OBJ-013",
+          "SES-OBJ-014",
+          "SES-OBJ-027",
+          "SES-OBJ-028",
+          "SES-OBJ-029",
+          "SES-OBJ-030",
+          "SES-OBJ-031"
+        ]
+      },
+      "directCallerEvidence": {
+        "ids": [
+          "SURFACE",
+          "BIND",
+          "WIRE",
+          "UIADAPTER"
+        ],
+        "coverage03CallerEvidence": "present; exact source-to-caller references are in the pinned evidence set"
+      },
+      "historicalIssueIds": [],
+      "sourceOwnerReleaseProven": false,
+      "nextChiefReview": "主审复核 viewport 输入、Surface 绑定/解绑和 wire 转换的具体关系；检查被复用调用方 pin 是否仍覆盖当前声明，不将 shape 校验解释为平台句柄存活证明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+      "actualSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "coverage03CurrentSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "coverage03ReviewedSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "sourceHashRelation": "exact physical-byte SHA match to historical current and reviewed pins",
+      "historicalState": "reviewed-awaiting-coordinator",
+      "historicalOwner": "/root",
+      "h001SourceReviewStatus": "not reviewed by H001",
+      "h001VerificationStatus": "not verified by H001",
+      "evidenceSet": "legacy-core-transfer-006",
+      "historicalObjectEvidence": {
+        "groups": null,
+        "count": 15,
+        "refs": [
+          "SES-OBJ-005",
+          "SES-OBJ-033",
+          "SES-OBJ-034",
+          "SES-OBJ-035",
+          "SES-OBJ-036",
+          "SES-OBJ-037",
+          "SES-OBJ-038",
+          "SES-OBJ-039",
+          "SES-OBJ-040",
+          "SES-OBJ-041",
+          "SES-OBJ-042",
+          "SES-OBJ-043",
+          "SES-OBJ-044",
+          "SES-OBJ-045",
+          "SES-OBJ-046"
+        ]
+      },
+      "directCallerEvidence": {
+        "ids": [
+          "APIFACADE",
+          "ROOTFACADE"
+        ],
+        "coverage03CallerEvidence": "present; exact source-to-caller references are in the pinned evidence set"
+      },
+      "historicalIssueIds": [],
+      "sourceOwnerReleaseProven": false,
+      "nextChiefReview": "主审核对模块声明、重导出及 facade 路径与实物一致；明确 public surface 不代表内部 API 布局稳定。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/value_budget.rs",
+      "actualSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "coverage03CurrentSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "coverage03ReviewedSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "sourceHashRelation": "exact physical-byte SHA match to historical current and reviewed pins",
+      "historicalState": "reviewed-awaiting-coordinator",
+      "historicalOwner": "/root",
+      "h001SourceReviewStatus": "not reviewed by H001",
+      "h001VerificationStatus": "not verified by H001",
+      "evidenceSet": "reflect-budget-002-transfer-006",
+      "historicalObjectEvidence": {
+        "groups": null,
+        "count": 31,
+        "refs": null
+      },
+      "directCallerEvidence": {
+        "ids": [
+          "reflect/mod.rs re-export",
+          "Runtime value_admission",
+          "Runtime JSON read/write",
+          "VM state blob/migration",
+          "interface contract tests"
+        ],
+        "coverage03CallerEvidence": "present; exact source-to-caller references are in the pinned evidence set"
+      },
+      "historicalIssueIds": [],
+      "sourceOwnerReleaseProven": false,
+      "nextChiefReview": "主审逐对象重核预算字段、溢出/限额错误、Runtime 与 JSON/VM 调用边界；保留解析前字节/分配预算、schema 与权限的既有证据限制。"
+    }
+  ],
+  "repositoryCommitObservation": {
+    "commitSha": "1de7f1af1f86b124645acdb2743bfe9064f6da8b",
+    "parentSha": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+    "author": "He-Jiahui",
+    "authoredAt": "2026-10-13T21:18:26+08:00",
+    "subject": "feat(jenkins): connect management and flow chains, add review stage",
+    "currentHead": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+    "ancestorOfCurrentHead": true,
+    "selectedPathsChangedByCommit": [
+      "zircon_runtime_interface/src/plugin_api.rs",
+      "zircon_runtime_interface/src/plugin_events.rs",
+      "zircon_runtime_interface/src/plugin_diagnostics.rs",
+      "zircon_runtime_interface/src/tests/plugin_api_contracts.rs",
+      "zircon_runtime_interface/src/tests/plugin_diagnostics.rs",
+      "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+      "zircon_runtime_interface/src/runtime_api/session/session.rs",
+      "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+      "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+      "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+      "zircon_runtime_interface/src/reflect/value_budget.rs"
+    ],
+    "numstatInsertionsOnly": {
+      "zircon_runtime_interface/src/plugin_api.rs": 225,
+      "zircon_runtime_interface/src/plugin_diagnostics.rs": 23,
+      "zircon_runtime_interface/src/plugin_events.rs": 37,
+      "zircon_runtime_interface/src/reflect/value_budget.rs": 77,
+      "zircon_runtime_interface/src/runtime_api/session/camera.rs": 38,
+      "zircon_runtime_interface/src/runtime_api/session/mod.rs": 10,
+      "zircon_runtime_interface/src/runtime_api/session/session.rs": 77,
+      "zircon_runtime_interface/src/runtime_api/session/session_identity.rs": 71,
+      "zircon_runtime_interface/src/runtime_api/session/viewport.rs": 111,
+      "zircon_runtime_interface/src/tests/plugin_api_contracts.rs": 9,
+      "zircon_runtime_interface/src/tests/plugin_diagnostics.rs": 12
+    },
+    "numstatDeletionsForSelectedPaths": 0,
+    "selectedPathsUnchangedFromCommitToHead": true,
+    "recordedBatchCommitSha": null,
+    "recordedFormalCoordinatorAcceptance": false,
+    "interpretation": "A real Git commit affecting all 11 selected paths exists and is an ancestor of HEAD; the pinned old review/transfer records still report commit.sha=null and Jenkins/formal acceptance pending. The Git commit is recorded as repository history, not upgraded into a formal source-audit acceptance or owner release.",
+    "sourcePathStatus": "No selected-path status lines were returned; Git emitted a global ignore-file permission warning. No ownership release is inferred from the clean path status."
+  },
+  "ownershipAndProcessGaps": [
+    "Historical owner fields remain /root/core_review or /root; H001 found no explicit current owner-release/closeout receipt.",
+    "Session transfer records old cell10 wait-aborted without native terminal receipt; old source-writing cells 22 and 27 have terminal evidence. This does not prove an active writer on the selected source files.",
+    "Reflect historical record retains an inherited read-only rg request with no verified terminal receipt; this does not prove a source writer or task completion.",
+    "Formal coordinator, Jenkins acceptance, Rustdoc/compiler-facing documentation validation, and source-audit closeout remain unproven."
+  ],
+  "artifactLifecycle": {
+    "sourceWrites": 0,
+    "otherWrites": 0,
+    "generatedFiles": 0,
+    "builds": 0,
+    "testsRun": 0,
+    "onlyAuthorizedWrite": "docs/plans/source-comments/reviews/H001.json"
+  }
+}
+

@@ -1,6 +1,6 @@
 //! A bounded diagnostic hold owned by the actual normal GPU presenter.
-use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use super::super::data::HostPresentationGenerationCursor;
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -238,7 +238,10 @@ impl NormalCaptureController {
         }
         let hwnd = self.native_hwnd?;
         capture_trace::record("capture_prepare_readback", || {
-            format!("hwnd={hwnd} nonce={} cursor={cursor:?} size={size:?}", request.nonce)
+            format!(
+                "hwnd={hwnd} nonce={} cursor={cursor:?} size={size:?}",
+                request.nonce
+            )
         });
         self.attempted_readback_nonce = Some(request.nonce.clone());
         self.readback_pending = Some(PendingReadback {
@@ -430,7 +433,10 @@ impl NormalCaptureController {
             "acquiredAtUnixMs":unix_ms(),
             "authority":"normal-successful-gpu-present","pixelFrameVerified":false});
         capture_trace::record("capture_held", || {
-            format!("hwnd={:?} nonce={} frame={frame} cursor={cursor:?} size={size:?}", self.native_hwnd, request.nonce)
+            format!(
+                "hwnd={:?} nonce={} frame={frame} cursor={cursor:?} size={size:?}",
+                self.native_hwnd, request.nonce
+            )
         });
         profile["normalWindowEvidence"]["captureHold"] = evidence.clone();
         self.consumed_nonce = Some(request.nonce.clone());

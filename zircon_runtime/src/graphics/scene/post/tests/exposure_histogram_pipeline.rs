@@ -1,4 +1,5 @@
-const EXPOSURE_HISTOGRAM_SHADER: &str = include_str!("../../renderer/post/shaders/exposure_histogram.wgsl");
+const EXPOSURE_HISTOGRAM_SHADER: &str =
+    include_str!("../../renderer/post/shaders/exposure_histogram.wgsl");
 
 #[test]
 fn exposure_histogram_shader_declares_compute_entry_and_atomic_bins() {

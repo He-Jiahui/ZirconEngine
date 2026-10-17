@@ -277,7 +277,7 @@ fn rejects_reopened_activation(mutation: Mutation) {
         published_resources
     );
     assert_eq!(committed_files(&fixture.root), published_files);
-    let published_changes = changes.try_iter().collect::<Vec<_>>();
+    let published_changes = changes.try_iter().collect::<Result<Vec<_>, _>>().unwrap();
     assert_eq!(published_changes.len(), expected_uris.len());
     assert!(published_changes.iter().all(|change| {
         change.kind == AssetChangeKind::Added && expected_uris.contains(&change.uri.to_string())

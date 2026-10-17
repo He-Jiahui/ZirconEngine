@@ -449,8 +449,8 @@ fn shutdown_waits_for_accepted_terminal_observers_before_worker_quit() {
         .expect_err("active terminal callback must keep its execution lease visible");
     let workers = timeout
         .report
-        .worker_shutdown(TaskPoolKind::Compute)
-        .expect("callback compute domain should remain visible");
+        .worker_shutdown(TaskPoolKind::AsyncCompute)
+        .expect("callback async-compute domain should remain visible");
     assert_eq!(workers.active_submission_count, 1);
     assert!(!workers.termination_signalled);
 
@@ -461,8 +461,8 @@ fn shutdown_waits_for_accepted_terminal_observers_before_worker_quit() {
         .shutdown(Duration::from_secs(1))
         .expect("shutdown retry should wait for callback completion and join");
     let workers = retry
-        .worker_shutdown(TaskPoolKind::Compute)
-        .expect("compute retry census should remain visible");
+        .worker_shutdown(TaskPoolKind::AsyncCompute)
+        .expect("async-compute retry census should remain visible");
     assert_eq!(workers.active_submission_count, 0);
     assert!(workers.all_joined());
 }

@@ -36,7 +36,8 @@ fn optimization_batch_20260826dv_runtime165_avatar_media_borrows_value() {
     let borrowed = borrowed_media_attribute_from_attributes(&attributes, MEDIA_NAMES).unwrap();
     assert_eq!(borrowed.as_ptr(), stored.as_ptr().wrapping_add(2));
 
-    let source = include_str!("../../../../asset/compiler/style_apply/mui_display_surface_classes.rs");
+    let source =
+        include_str!("../../../../asset/compiler/style_apply/mui_display_surface_classes.rs");
     let avatar_start = source.find("fn append_avatar_classes").unwrap();
     let avatar_end = source[avatar_start..]
         .find("fn append_card_action_area_classes")

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+from contextlib import nullcontext
 import importlib.util
 from pathlib import Path
 from types import SimpleNamespace
@@ -109,6 +110,25 @@ class CheckoutValidationTests(unittest.TestCase):
         ))
         self.assertTrue(runner.validation_inputs_verified(result))
         self.assertTrue(runner.validation_inputs_verified(result, request))
+
+        actor = runner.Management.__new__(runner.Management)
+        engine_files = {"src/owned.rs": "a" * 64}
+        external_files = {f"dep/{index}.rs": "b" * 64 for index in range(128)}
+        declared_dependencies = {
+            **engine_files,
+            **{f"external-zr_vm/{path}": checksum for path, checksum in external_files.items()},
+        }
+        captured = {
+            "source": {"files": engine_files},
+            "externalRoots": [{"source": {"files": external_files}}],
+        }
+        declarations = {
+            "ownedPaths": ["src/owned.rs"],
+            "sourceHashes": engine_files,
+            "dependencyHashes": declared_dependencies,
+        }
+        self.assertEqual(len(declared_dependencies), 129)
+        self.assertIsNone(actor.verify_declared_inputs(captured, declarations))
 
     def test_actual_checkout_rejects_incomplete_or_mismatched_proof(self):
         result, request = self.actual_proof()
@@ -221,6 +241,110 @@ class CheckoutValidationTests(unittest.TestCase):
         legacy_request["validationInputPolicy"] = "actual-checkout"
         legacy_request["payload"] = {"sourceView": "checkout"}
         self.assertFalse(runner.validation_inputs_verified(legacy_result, legacy_request))
+
+    def test_checkout_input_identity_conflict_records_both_observations(self):
+        files, folded = {}, {}
+        first = r"E:\Git\ZirconEngine\docs\plans\source-comments\assignments.json"
+        second = first.lower()
+        runner._record_checkout_input_identity(files, folded, first, "a" * 64)
+
+        with self.assertRaises(runner.CheckoutInputIdentityConflict) as caught:
+            runner._record_checkout_input_identity(files, folded, second, "b" * 64)
+
+        error = caught.exception
+        self.assertEqual(error.code, "checkout_input_identity_conflict")
+        self.assertEqual(error.path, second)
+        self.assertEqual(error.previous_path, first)
+        self.assertEqual(error.before_sha256, "a" * 64)
+        self.assertEqual(error.after_sha256, "b" * 64)
+
+    def test_checkout_input_conflict_is_prelaunch_only_without_claims(self):
+        owner = "management-" + "a" * 64
+        writer = "management-pool-" + "b" * 64
+        error = runner.CheckoutInputIdentityConflict(
+            r"E:\repo\docs\source.json", r"E:\repo\docs\source.json",
+            "c" * 64, "d" * 64)
+
+        class MemoryState:
+            def __init__(self, rows=None):
+                self.rows = dict(rows or {})
+
+            def connect(self):
+                return nullcontext(self)
+
+            def get(self, domain, key, *, connection=None):
+                return self.rows.get((domain, key))
+
+            def list(self, domain, *, connection=None):
+                return [{"domain": name, "key": key, **row}
+                        for (name, key), row in self.rows.items() if name == domain]
+
+            def put(self, *args, **kwargs):
+                raise AssertionError("prelaunch conflict classification must not write State")
+
+        actor = runner.Management.__new__(runner.Management)
+        actor._checkout_context = None
+        actor._validation_admission = None
+        actor.state = MemoryState()
+        guard = Mock()
+
+        result = actor.checkout_input_conflict_result(
+            error, owner=owner, writer=writer, guard=guard, admitted=None)
+
+        self.assertEqual(result["status"], "conflict")
+        self.assertEqual(result["reasonCode"], "checkout_input_identity_conflict")
+        self.assertEqual(result["conflictingInput"], {
+            "path": error.path,
+            "previousPath": error.previous_path,
+            "beforeSha256": "c" * 64,
+            "afterSha256": "d" * 64,
+        })
+        self.assertFalse(result["compileStarted"])
+        self.assertFalse(result["formalAcceptance"])
+        self.assertEqual(actor.state.rows, {})
+        guard.close.assert_called_once_with()
+
+    def test_checkout_input_conflict_does_not_downgrade_existing_claims(self):
+        owner = "management-" + "a" * 64
+        writer = "management-pool-" + "b" * 64
+        error = runner.CheckoutInputIdentityConflict(
+            r"E:\repo\docs\source.json", r"E:\repo\docs\source.json",
+            "c" * 64, "d" * 64)
+        claims = [
+            ("management_checkout_read", owner, {"payload": {"status": "active"}}),
+            ("execution_launch", owner, {"payload": {"status": "claimed"}}),
+            ("execution_host", owner, {"payload": {"status": "active"}}),
+            ("resource_reservation", owner + ":" + owner, {"payload": {"status": "active"}}),
+            ("native_job", owner + "-native", {"payload": {"owner": owner, "executionId": owner}}),
+        ]
+
+        class MemoryState:
+            def __init__(self, row):
+                self.rows = {(row[0], row[1]): row[2]}
+
+            def connect(self):
+                return nullcontext(self)
+
+            def get(self, domain, key, *, connection=None):
+                return self.rows.get((domain, key))
+
+            def list(self, domain, *, connection=None):
+                return [{"domain": name, "key": key, **row}
+                        for (name, key), row in self.rows.items() if name == domain]
+
+        for domain, key, row in claims:
+            with self.subTest(domain=domain):
+                actor = runner.Management.__new__(runner.Management)
+                actor._checkout_context = None
+                actor._validation_admission = None
+                actor.state = MemoryState((domain, key, row))
+                guard = Mock()
+
+                result = actor.checkout_input_conflict_result(
+                    error, owner=owner, writer=writer, guard=guard, admitted=None)
+
+                self.assertIsNone(result)
+                guard.close.assert_not_called()
 
     def test_unknown_checkout_preserves_reader_and_writer_reservation(self):
         owner = "management-" + "a" * 64

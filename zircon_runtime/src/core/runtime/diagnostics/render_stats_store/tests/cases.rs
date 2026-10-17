@@ -10,7 +10,10 @@ fn render_stats_helpers_use_static_metadata_recording() {
 #[test]
 fn render_stats_product_leaves_use_static_metadata_recording() {
     for (name, source) in [
-        ("effect_stack", include_str!("../../product/effect_stack.rs")),
+        (
+            "effect_stack",
+            include_str!("../../product/effect_stack.rs"),
+        ),
         ("light_grid", include_str!("../../product/light_grid.rs")),
     ] {
         assert!(

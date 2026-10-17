@@ -197,14 +197,31 @@ fn vm_registration_rejects_malformed_declared_value_type_grammar() {
             vec![schema_field("value", malformed, ReflectEditorHint::None)],
         );
 
-        assert!(
+        let error = World::empty()
+            .register_vm_type(registration, VmTypeBacking::DynamicComponent)
+            .expect_err("malformed VM declared value types must fail at registration");
+        let expected_error = if matches!(malformed, "List" | "Map") {
             matches!(
-                World::empty()
-                    .register_vm_type(registration, VmTypeBacking::DynamicComponent)
-                    .expect_err("malformed VM declared value types must fail at registration"),
-                SceneError::Reflect(ReflectError::InvalidRegistration { .. })
-            ),
-            "malformed type `{malformed}` was accepted"
+                &error,
+                SceneError::Reflect(ReflectError::InvalidRegistration { type_path, reason })
+                    if type_path == "gameplay.Component.Malformed"
+                        && reason.contains("reflected field `value`")
+            )
+        } else {
+            matches!(
+                &error,
+                SceneError::Reflect(ReflectError::InvalidFieldRegistration {
+                    type_path,
+                    field_name,
+                    reason,
+                }) if type_path == "gameplay.Component.Malformed"
+                    && field_name == "value"
+                    && !reason.is_empty()
+            )
+        };
+        assert!(
+            expected_error,
+            "malformed type `{malformed}` returned an unexpected rejection: {error:?}"
         );
     }
 

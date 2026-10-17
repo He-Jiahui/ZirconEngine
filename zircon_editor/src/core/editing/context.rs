@@ -426,6 +426,17 @@ impl EditContext for CoreEditContext {
         .map_err(gateway_failure)
     }
 
+    fn selection_retention_bound_v1(
+        &self,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<u64, EditCommandError> {
+        use zircon_runtime_interface::retained_memory::{RetainedBoundBuilderV1, RetainedBytesV1};
+        let mut meter = RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(limit));
+        meter.owned(self.current_selection())?;
+        Ok(meter.bytes().get())
+    }
+
     fn selection_snapshot(&self) -> SelectionSnapshot {
         self.current_selection().clone()
     }

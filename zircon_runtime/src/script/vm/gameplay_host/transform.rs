@@ -311,7 +311,7 @@ fn update_world_position(
 ) -> GameplayHostResult<bool> {
     let mut world_matrix = world
         .world_matrix(entity)
-        .ok_or_else(|| GameplayHostError::missing_entity("update position for", entity))?;
+        .ok_or_else(|| GameplayHostError::missing_entity("update transform for", entity))?;
     world_matrix.w_axis = position.extend(1.0);
     update_world_matrix(world, entity, world_matrix)
 }

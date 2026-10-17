@@ -16,7 +16,9 @@ fn split_post_pipelines_share_one_shader_module() {
         include_str!("../../../../../post/create_pipeline_bundle/post_process_pipeline.rs"),
         include_str!("../../../../../create_pipeline_bundle/scene_composite_pipeline.rs"),
         include_str!("../../../../../../screen_space_reflection_reflection_pyramid_pipeline.rs"),
-        include_str!("../../../../../../screen_space_reflection_reflection_pyramid_coarse_pipeline.rs"),
+        include_str!(
+            "../../../../../../screen_space_reflection_reflection_pyramid_coarse_pipeline.rs"
+        ),
         include_str!("../../../../../screen_space_reflection_resolve_pipeline.rs"),
         include_str!("../../../../../../screen_space_reflection_specular_occlusion_pipeline.rs"),
     ];

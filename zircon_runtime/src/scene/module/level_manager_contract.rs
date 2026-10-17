@@ -1,13 +1,18 @@
+#[cfg(feature = "native-host")]
 use std::path::Path;
 use std::sync::Arc;
 
+#[cfg(feature = "native-host")]
 use crate::asset::project::ProjectManager;
+#[cfg(feature = "native-host")]
 use crate::asset::{asset_manager_handle, AssetManager};
 use crate::core::framework::scene::{
     LevelManager as LevelManagerContract, LevelManagerError, LevelSummary, SceneArtifactTicket,
     WorldHandle,
 };
+#[cfg(feature = "native-host")]
 use crate::core::manager::resolve_manager_service;
+#[cfg(feature = "native-host")]
 use crate::core::resource::ResourceLocator;
 use crate::core::CoreError;
 
@@ -34,6 +39,7 @@ impl LevelManagerContract for DefaultLevelManager {
         })
     }
 
+    #[cfg(feature = "native-host")]
     fn load_level_asset(
         &self,
         project_root: &str,
@@ -54,6 +60,7 @@ impl LevelManagerContract for DefaultLevelManager {
             })
     }
 
+    #[cfg(feature = "native-host")]
     fn save_level_asset(
         &self,
         handle: WorldHandle,
@@ -74,8 +81,26 @@ impl LevelManagerContract for DefaultLevelManager {
                 reason: error.to_string(),
             })
     }
+    #[cfg(not(feature = "native-host"))]
+    fn load_level_asset(
+        &self,
+        _project_root: &str,
+        _uri: &str,
+    ) -> Result<WorldHandle, LevelManagerError> {
+        Err(LevelManagerError::DesktopProjectIoUnavailable)
+    }
+    #[cfg(not(feature = "native-host"))]
+    fn save_level_asset(
+        &self,
+        _handle: WorldHandle,
+        _project_root: &str,
+        _uri: &str,
+    ) -> Result<Arc<dyn SceneArtifactTicket>, LevelManagerError> {
+        Err(LevelManagerError::DesktopProjectIoUnavailable)
+    }
 }
 
+#[cfg(feature = "native-host")]
 impl DefaultLevelManager {
     fn active_project_snapshot(
         &self,

@@ -20,6 +20,8 @@ mod meta_write_authority;
 mod package_asset_registry;
 #[path = "paths.rs"]
 mod paths;
+#[path = "plugin_apply.rs"]
+pub mod plugin_apply;
 #[path = "reference_diagnostics.rs"]
 mod reference_diagnostics;
 #[path = "script_manifest.rs"]
@@ -39,11 +41,11 @@ pub(crate) use generation_observation::{ProjectGenerationObservation, ProjectGen
 pub use import_receipt::ProjectImportReceipt;
 pub(crate) use manager::{
     mint_meta_for_migration, ImportSourceWatchEcho, PreparedProjectSourceDeletion,
-    PreparedProjectSourceRelocation,
+    PreparedProjectSourceRelocation, PreparedWatchFileGeneration, WatchSourceCandidate,
 };
 pub use manager::{
-    EditorDocumentCommitFault, EditorDocumentScope, ProjectActivationIdentity, ProjectManager,
-    ScopedRuntimeProjectManager,
+    EditorDocumentCommitFault, EditorDocumentCommitOutcome, EditorDocumentScope,
+    ProjectActivationIdentity, ProjectManager, ScopedRuntimeProjectManager,
 };
 pub use manifest::{ProjectManifest, ProjectManifestError};
 pub use meta::{

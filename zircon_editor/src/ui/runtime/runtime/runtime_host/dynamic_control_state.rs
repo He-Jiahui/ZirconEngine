@@ -8,11 +8,34 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::pane_payload_projection::{
-    inject_pane_projection_attributes, template_v2_component_patch_attributes,
+    inject_pane_projection_attributes, pane_component_patch_attributes,
 };
 use super::{EditorUiHostRuntime, EditorUiHostRuntimeError};
 
 impl EditorUiHostRuntime {
+    pub(crate) fn apply_module_plugin_detail_layout(
+        &self,
+        document_id: &str,
+        projection: &mut crate::ui::template_runtime::RetainedUiNodeProjection,
+        surface: &mut UiSurface,
+        mut controls: BTreeMap<String, BTreeMap<String, toml::Value>>,
+    ) -> Result<(), EditorUiHostRuntimeError> {
+        apply_template_control_attributes_to_surface(document_id, surface, &controls)?;
+        fn apply(
+            node: &mut crate::ui::template_runtime::RetainedUiNodeProjection,
+            controls: &mut BTreeMap<String, BTreeMap<String, toml::Value>>,
+        ) {
+            if let Some(values) = node.control_id.as_ref().and_then(|id| controls.remove(id)) {
+                node.attributes.extend(values);
+            }
+            for child in &mut node.children {
+                apply(child, controls);
+            }
+        }
+        apply(projection, &mut controls);
+        Ok(())
+    }
+
     pub(crate) fn project_pane_body(
         &self,
         body: &PaneBodyPresentation,
@@ -30,7 +53,7 @@ impl EditorUiHostRuntime {
         apply_template_control_attributes_to_surface(
             &body.document_id,
             surface,
-            &template_v2_component_patch_attributes(body),
+            &pane_component_patch_attributes(body),
         )
     }
 
@@ -47,6 +70,15 @@ impl EditorUiHostRuntime {
             .template_action_registry
             .lock()
             .expect("template action registry mutex should not be poisoned");
+        // Feature identity is qualified by the selected owner/project in the host.
+        // The generic registry restores selection by row ID only; retire it here
+        // so an equally named feature from another owner cannot inherit that row.
+        if control_attributes
+            .get("ModulePluginFeatureRows")
+            .is_some_and(|attributes| attributes.contains_key("detail_generation"))
+        {
+            registry.remove_pane(pane_id);
+        }
         let control_attributes = registry.rebind_pane(
             pane_id,
             &document_id,

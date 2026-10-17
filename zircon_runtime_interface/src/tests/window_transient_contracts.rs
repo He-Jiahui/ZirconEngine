@@ -1,3 +1,5 @@
+//! 核对窗口事件投影出的瞬态关闭命令，以及批次迭代的顺序与借用边界。
+
 use crate::ui::{
     dispatch::{
         UiDispatchEffect, UiInputSequence, UiInputTimestamp, UiTransientDismissalReason,
@@ -15,6 +17,7 @@ fn sample_window_metadata() -> UiWindowEventMetadata {
     )
 }
 
+/// 区分应用停用、窗口失焦的全部关闭与非客户区点击的弹窗栈关闭，并核对无效果分支。
 #[test]
 fn ui_window_events_preserve_application_activation_and_transient_dismissal_intent() {
     let metadata = sample_window_metadata();
@@ -64,6 +67,8 @@ fn ui_window_events_preserve_application_activation_and_transient_dismissal_inte
     );
 }
 
+/// 按追加顺序投影三项瞬态关闭效果，忽略没有对应效果的窗口菜单动作。
+/// 收集结果拥有独立命令值，遍历期间批次由迭代器共享借用。
 #[test]
 fn ui_window_input_pump_projects_transient_dismissal_effects_without_mutating_events() {
     let metadata = sample_window_metadata();

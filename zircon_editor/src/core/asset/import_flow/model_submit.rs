@@ -26,6 +26,7 @@ impl EditorAssetImportFlow {
         let source = self.model_source.as_ref().cloned().ok_or_else(|| {
             CoreError::ServiceUnavailable("EditorAssetImportFlow model backend".to_owned())
         })?;
+        let activation_identity = source.activation_identity.clone();
         let diagnostics = std::sync::Arc::new(EditorModelImportDiagnostics::new(
             source_path.clone(),
             self.diagnostics.clone(),
@@ -40,7 +41,7 @@ impl EditorAssetImportFlow {
         match submission {
             Ok(ticket) => {
                 diagnostics.arm();
-                Ok(EditorModelImportTicket::new(ticket, source_path))
+                Ok(EditorModelImportTicket::new(ticket, source_path, activation_identity))
             }
             Err(error) => {
                 let detail = error.to_string();

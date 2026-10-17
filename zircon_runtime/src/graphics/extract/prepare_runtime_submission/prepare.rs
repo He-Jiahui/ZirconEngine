@@ -18,8 +18,18 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prep
         prepare_hybrid_gi_runtime(state, viewport, context)?
             .map(crate::graphics::HybridGiRuntimePrepareOutput::into_parts)
             .unwrap_or_default();
+    let virtual_geometry_output = prepare_virtual_geometry_runtime(state, viewport, context)?;
+    let virtual_geometry_prepared_cpu_frame = virtual_geometry_output
+        .as_ref()
+        .and_then(crate::graphics::VirtualGeometryRuntimePrepareOutput::prepared_cpu_frame)
+        .or_else(|| {
+            Some(std::sync::Arc::new(
+                crate::core::framework::render::RenderVirtualGeometryPreparedCpuFrame::unavailable(
+                ),
+            ))
+        });
     let (virtual_geometry_evictable_page_ids, virtual_geometry_renderer_outputs) =
-        prepare_virtual_geometry_runtime(state, viewport, context)?
+        virtual_geometry_output
             .map(crate::graphics::VirtualGeometryRuntimePrepareOutput::into_parts)
             .unwrap_or_default();
     let plugin_renderer_outputs = merge_prepare_plugin_renderer_outputs(
@@ -32,7 +42,8 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prep
         hybrid_gi_prepared_frame,
         virtual_geometry_evictable_page_ids,
         plugin_renderer_outputs,
-    ))
+    )
+    .with_virtual_geometry_prepared_cpu_frame(virtual_geometry_prepared_cpu_frame))
 }
 
 fn merge_prepare_plugin_renderer_outputs(
@@ -117,12 +128,21 @@ fn prepare_virtual_geometry_runtime(
     let record =
         viewport_record_mut_after_generation_check_in(&mut state.viewports, viewport, context)?;
     let visibility_context = context.visibility_context();
+    let execution_inputs = context.virtual_geometry_execution_inputs();
+    let cull_input = context.virtual_geometry_cull_input();
+    let size = context.size();
     let input = VirtualGeometryRuntimePrepareInput::new(
         context.virtual_geometry_extract(),
         context.virtual_geometry_page_upload_plan(),
         &visibility_context.virtual_geometry_visible_clusters,
         &visibility_context.virtual_geometry_draw_segments,
         context.predicted_generation(),
+    )
+    .with_cpu_frame_context(
+        context.scene_camera(),
+        [size.x, size.y],
+        cull_input,
+        &execution_inputs,
     );
     Ok(Some(
         record

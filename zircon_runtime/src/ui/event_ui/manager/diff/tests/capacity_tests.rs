@@ -1,3 +1,6 @@
+//! 反射差异的数量、端点顺序及预留源码形状契约。
+//! 计时用例显式忽略，只隔离 Vec 预留成本；端到端替换性能须另测。
+
 use std::hint::black_box;
 use std::time::Instant;
 

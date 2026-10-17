@@ -36,13 +36,15 @@ mod source_write_watch_echo;
 mod watch_diagnostics;
 #[path = "watch_dispatch.rs"]
 mod watch_dispatch;
+#[path = "watch_retry.rs"]
+mod watch_retry;
 #[path = "watcher_lifecycle.rs"]
 mod watcher_lifecycle;
 
 pub use access::ProjectAssetManagerAccess;
 pub use generated_source::ProjectGeneratedSourceReceipt;
 pub use handle::project_asset_manager_handle;
-pub(crate) use management_generation::ProjectAssetManagementGeneration;
+pub use management_generation::ProjectAssetManagementGeneration;
 pub use project_asset_manager::ProjectAssetManager;
 pub use runtime::{
     ProjectAssetGenerationSnapshot, ProjectAssetGenerationToken, ProjectGenerationCommitOutcome,

@@ -14,7 +14,7 @@ use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry, PendingSkin
 pub(super) enum PendingMeshSourceSelection {
     Prepared(Arc<GpuMeshResource>),
     Dynamic {
-        primitive: ModelPrimitiveAsset,
+        primitive: Arc<ModelPrimitiveAsset>,
         geometry_source: MeshDrawGeometrySource,
     },
     GpuMorphed {

@@ -113,6 +113,13 @@ pub use runtime_prepare_mesh_geometry_seed::{
     RuntimePrepareMeshSdfSeed,
 };
 
+// Asset pipeline regression tests enter residency through this test facade.
+#[cfg(test)]
+pub(crate) use scene::resources::{
+    RenderAssetDemandGeneration, RenderAssetDeviceEpoch, RenderAssetResidencyManager,
+    RenderAssetResidencyState, RenderAssetResidencyTransitionError,
+};
+
 // Test-only access for graphics surface assertions.
 #[cfg(test)]
 pub(crate) use scene::ViewportOverlayRenderer;
@@ -142,11 +149,12 @@ pub use scene::{
 };
 pub use shader::{
     assemble_shader_ide_surface_preview, builtin_shader_ide_module_sources,
-    parse_shader_ide_wgsl_module, validate_shader_ide_wgsl_module,
-    write_shader_ide_env_for_project, MaterialGraphAsset, ShaderGraphAsset, ShaderIdeEnvReport,
-    ShaderIdePreviewError, ShaderIdePreviewVariant, ShaderIdeSurfacePreview,
+    parse_shader_ide_wgsl_module, validate_shader_ide_wgsl_module, MaterialGraphAsset,
+    ShaderGraphAsset, ShaderIdePreviewError, ShaderIdePreviewVariant, ShaderIdeSurfacePreview,
     ShaderIdeWgslCheckError, ShaderIdeWgslModuleValidation, ShaderProgramAsset, ShaderVariantKey,
 };
+#[cfg(feature = "native-host")]
+pub use shader::{write_shader_ide_env_for_project, ShaderIdeEnvReport};
 pub use solari_runtime_provider::{SolariRuntimeProvider, SolariRuntimeProviderRegistration};
 pub use types::{
     GpuResourceHandle, GraphicsError, ViewportFrame, ViewportFrameTextureHandle,
@@ -157,11 +165,15 @@ pub(crate) use types::{
     ViewportRenderOutputTarget,
 };
 pub use virtual_geometry_runtime_provider::{
-    VirtualGeometryGpuCompletion, VirtualGeometryRuntimeExtractOutput,
+    virtual_geometry_indexed_source_rows, VirtualGeometryAdmittedExtract,
+    VirtualGeometryGpuCompletion, VirtualGeometryIndexedAuthorRun,
+    VirtualGeometryIndexedSourceAdmission, VirtualGeometryIndexedSourceRow,
+    VirtualGeometryPrimitiveAdmission, VirtualGeometryRuntimeExtractOutput,
     VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,
     VirtualGeometryRuntimePrepareOutput, VirtualGeometryRuntimeProvider,
     VirtualGeometryRuntimeProviderRegistration, VirtualGeometryRuntimeState,
-    VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate,
+    VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate, VirtualGeometrySourceAdmission,
+    VirtualGeometrySourceDependency, VirtualGeometrySourceLoader,
 };
 pub use visibility::{
     FrameVisibility, HzbBuildPlan, HzbBuilder, ViewCullingStats, ViewVisibilityContext,
@@ -179,3 +191,7 @@ pub(crate) mod resource_identity;
 #[cfg(test)]
 #[path = "tests/mod.rs"]
 mod tests;
+
+mod validation_scope;
+
+pub use scene::RenderPassGpuRecordingContext;

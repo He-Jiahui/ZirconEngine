@@ -5,6 +5,9 @@ use crate::core::framework::render::RenderPluginRendererOutputs;
 pub struct VirtualGeometryRuntimePrepareOutput {
     evictable_page_ids: Vec<u32>,
     renderer_outputs: RenderPluginRendererOutputs,
+    prepared_cpu_frame: Option<
+        std::sync::Arc<crate::core::framework::render::RenderVirtualGeometryPreparedCpuFrame>,
+    >,
 }
 
 impl VirtualGeometryRuntimePrepareOutput {
@@ -12,12 +15,29 @@ impl VirtualGeometryRuntimePrepareOutput {
         Self {
             evictable_page_ids,
             renderer_outputs: RenderPluginRendererOutputs::default(),
+            prepared_cpu_frame: None,
         }
     }
 
     pub fn with_renderer_outputs(mut self, renderer_outputs: RenderPluginRendererOutputs) -> Self {
         self.renderer_outputs = renderer_outputs;
         self
+    }
+
+    pub fn with_prepared_cpu_frame(
+        mut self,
+        frame: std::sync::Arc<
+            crate::core::framework::render::RenderVirtualGeometryPreparedCpuFrame,
+        >,
+    ) -> Self {
+        self.prepared_cpu_frame = Some(frame);
+        self
+    }
+    pub fn prepared_cpu_frame(
+        &self,
+    ) -> Option<std::sync::Arc<crate::core::framework::render::RenderVirtualGeometryPreparedCpuFrame>>
+    {
+        self.prepared_cpu_frame.clone()
     }
 
     pub fn renderer_outputs(&self) -> &RenderPluginRendererOutputs {

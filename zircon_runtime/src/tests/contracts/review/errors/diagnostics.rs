@@ -4,16 +4,16 @@ fn review_f5_profile_export_uses_typed_error() {
     let export = include_str!("../../../../core/runtime/diagnostics/profiling/export.rs");
     let profiling_mod = include_str!("../../../../core/runtime/diagnostics/profiling/mod.rs");
     let diagnostics_mod = include_str!("../../../../core/runtime/diagnostics/mod.rs");
-    let review_findings =
+    let _review_findings =
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let profiling_doc =
+    let _profiling_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/core/diagnostics/profiling.md");
 
     for required in [

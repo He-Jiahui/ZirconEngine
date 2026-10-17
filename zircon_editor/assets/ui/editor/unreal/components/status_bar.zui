@@ -24,25 +24,25 @@ children = [{ node = "drawer_toggle" }, { node = "ready" }, { node = "errors" },
 component = "Label"
 classes = ["unreal-status-label"]
 control_id = "WorkbenchStatusReady"
-props = { foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "Ready", component_variant = "semantic_status_signal", text_tone = "primary" }
-layout = { width = { min = 100.0, preferred = 160.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "Ready", component_variant = "semantic_status_signal", text_tone = "primary", overflow = "elide" }
+layout = { width = { min = 40.0, preferred = 160.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.errors]
 component = "Label"
 classes = ["unreal-status-label"]
 control_id = "WorkbenchStatusErrors"
-props = { foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "No Errors", component_variant = "semantic_status_signal", text_tone = "muted" }
+props = { responsive_min_tier = "narrow", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "No Errors", component_variant = "semantic_status_signal", text_tone = "muted" }
 layout = { width = { min = 80.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.warnings]
 component = "Label"
 classes = ["unreal-status-label"]
 control_id = "WorkbenchStatusWarnings"
-props = { foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "0 Warnings", component_variant = "semantic_status_signal", text_tone = "muted" }
+props = { responsive_min_tier = "regular", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "0 Warnings", component_variant = "semantic_status_signal", text_tone = "muted" }
 layout = { width = { min = 80.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.messages]
 component = "Label"
 classes = ["unreal-status-label"]
 control_id = "WorkbenchStatusMessages"
-props = { foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "0 Messages", component_variant = "semantic_status_signal", text_tone = "muted" }
+props = { responsive_min_tier = "regular", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "0 Messages", component_variant = "semantic_status_signal", text_tone = "muted" }
 layout = { width = { min = 80.0, preferred = 100.0, max = 100.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.fill]
 component = "Space"
@@ -52,39 +52,39 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "Button"
 classes = ["unreal-control", "unreal-status-control"]
 control_id = "WorkbenchStatusGrid"
-props = { input_hoverable = false, input_clickable = false, input_focusable = false, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "Grid: 10 cm", button_variant = "text", input_interactive = false }
+props = { responsive_min_tier = "wide", input_hoverable = false, input_clickable = false, input_focusable = false, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "Grid: 10 cm", button_variant = "text", input_interactive = false }
 layout = { width = { min = 90.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.snap]
 component = "Button"
 classes = ["unreal-control", "unreal-status-control"]
 control_id = "WorkbenchStatusSnap"
-props = { input_hoverable = false, input_clickable = false, input_focusable = false, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "Snap: On", button_variant = "text", input_interactive = false }
+props = { responsive_min_tier = "wide", input_hoverable = false, input_clickable = false, input_focusable = false, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "Snap: On", button_variant = "text", input_interactive = false }
 layout = { width = { min = 76.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.snap_toggle]
 component = "IconButton"
 classes = ["unreal-control", "unreal-status-control", "unreal-icon-control"]
 control_id = "WorkbenchStatusSnapToggle"
-props = { input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", label = "Snap", icon = "zircon_editor_shell/viewport/magnet.svg", icon_placement = "icon_only" }
+props = { responsive_min_tier = "regular", input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", label = "Snap", icon = "zircon_editor_shell/viewport/magnet.svg", icon_placement = "icon_only" }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "Workbench/ToggleSnapFromStatus", event = "Click", route = "workbench.status.toggle_snap" }]
 [nodes.world]
 component = "IconButton"
 classes = ["unreal-control", "unreal-status-control", "unreal-icon-control"]
 control_id = "WorkbenchStatusWorld"
-props = { input_hoverable = false, input_clickable = false, input_focusable = false, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", label = "World", icon = "zircon_editor_shell/viewport/globe.svg", icon_placement = "icon_only", input_interactive = false }
+props = { responsive_min_tier = "wide", input_hoverable = false, input_clickable = false, input_focusable = false, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", label = "World", icon = "zircon_editor_shell/viewport/globe.svg", icon_placement = "icon_only", input_interactive = false }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.target]
 component = "IconButton"
 classes = ["unreal-control", "unreal-status-control", "unreal-icon-control"]
 control_id = "WorkbenchStatusTarget"
-props = { input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", label = "Target", icon = "zircon_editor_shell/viewport/crosshair.svg", icon_placement = "icon_only" }
+props = { responsive_min_tier = "regular", input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", label = "Target", icon = "zircon_editor_shell/viewport/crosshair.svg", icon_placement = "icon_only" }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "Workbench/FrameSelectionFromStatus", event = "Click", route = "workbench.status.frame_selection" }]
 [nodes.zoom]
 component = "Button"
 classes = ["unreal-control", "unreal-status-control"]
 control_id = "WorkbenchStatusZoom"
-props = { input_hoverable = false, input_clickable = false, input_focusable = false, input_interactive = false, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "100%", button_variant = "text" }
+props = { responsive_min_tier = "wide", input_hoverable = false, input_clickable = false, input_focusable = false, input_interactive = false, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "100%", button_variant = "text" }
 layout = { width = { min = 52.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.drawer_toggle]
 component = "Button"
@@ -96,14 +96,14 @@ events = [{ id = "Unreal/ToggleContentDrawer", event = "Click", route = "workben
 [nodes.task]
 component = "HorizontalGroup"
 control_id = "WorkbenchStatusTaskProgress"
-props = { text = "", value_text = "", value = 0.0, min = 0.0, max = 100.0, variant = "linear", visibility = "collapsed", visible = false }
+props = { visibility = "collapsed", visible = false }
 layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { min = 160.0, preferred = 224.0, max = 224.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "task_label" }, { node = "task_bar" }]
 [nodes.task_label]
 component = "Label"
 classes = ["unreal-status-label"]
 control_id = "WorkbenchStatusTaskLabel"
-props = { foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "" }
+props = { foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "", overflow = "elide" }
 layout = { width = { min = 100.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.task_bar]
 component = "ProgressBar"

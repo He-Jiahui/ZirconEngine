@@ -29,7 +29,10 @@ pub fn is_project_transaction_sibling_path(path: &std::path::Path) -> bool {
     pathing::is_project_transaction_sibling_path(path)
 }
 
-pub use engine::{commit_prepared_files, DurableCommitDisposition, PreparedFileWrite};
+pub use engine::{
+    commit_prepared_files, commit_prepared_files_with_revisions, DurableCommitDisposition,
+    DurableCommitReceipt, PreparedFileWrite,
+};
 pub use error::{DurableTransactionError, TransactionPhase};
 pub use observation::{DurableCommitReport, DurableRecoveryReport};
 pub use recovery::{

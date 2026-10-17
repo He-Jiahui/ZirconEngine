@@ -131,3 +131,41 @@ fn render_gpu_scene_remap_params_carry_active_virtual_geometry_counts() {
         [1, 3, 5, 7]
     );
 }
+
+#[test]
+fn portable_scene_storage_visibility_fits_baseline_webgpu_without_changing_palette_abi() {
+    let mut entries = gpu_scene_bind_group_layout_entries(test_joint_palette_min_binding_size());
+    let palette_bindings = [entries[3], entries[4]];
+    restrict_portable_scene_visibility(&mut entries);
+    assert_eq!([entries[3], entries[4]], palette_bindings);
+    for stage in [
+        wgpu::ShaderStages::VERTEX,
+        wgpu::ShaderStages::FRAGMENT,
+        wgpu::ShaderStages::COMPUTE,
+    ] {
+        let storage = entries
+            .iter()
+            .filter(|entry| {
+                entry.visibility.contains(stage)
+                    && matches!(
+                        entry.ty,
+                        wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { .. },
+                            ..
+                        }
+                    )
+            })
+            .count();
+        // The forward lighting group reserves another five storage buffers,
+        // all fragment-only; the portable vertex and compute paths use none.
+        let forward_lighting = if stage == wgpu::ShaderStages::FRAGMENT {
+            5
+        } else {
+            0
+        };
+        assert!(
+            storage + forward_lighting
+                <= wgpu::Limits::default().max_storage_buffers_per_shader_stage as usize
+        );
+    }
+}

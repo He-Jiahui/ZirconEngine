@@ -294,22 +294,8 @@ def main(argv=None):
         _release(manager, release_ref, current_source=False)
         with process_lock(manager.paths.state / "deployment-start.lock", reason="deployment_start_busy"):
             if release.get("kind") == "formal-owned-recovery-upgrade-release":
-                marker = release["ownedUpgrade"]
-                if marker.get("variant") == "external-native-stop":
-                    from tools.jenkins.deployment.owned_upgrade import prepare_external_native_stop_upgrade_start
-                    plan = prepare_external_native_stop_upgrade_start(manager,
-                        request_id=release["requestId"], successor_release_ref=release_ref,
-                        original_blocked_descriptor_ref=marker["originalBlockedDescriptor"],
-                        committed_command_ref=marker["committedCommand"],
-                        external_native_stop_ref=marker["externalNativeStop"],
-                        keeper_retirement_ref=marker["keeperRetirement"])
-                elif marker.get("variant") is None:
-                    from tools.jenkins.deployment.owned_upgrade import prepare_owned_upgrade_start
-                    plan = prepare_owned_upgrade_start(manager, request_id=release["requestId"],
-                        successor_release_ref=release_ref, stopped_descriptor_ref=marker["stoppedDescriptor"],
-                        owned_stop_ref=marker["ownedStop"], keeper_retirement_ref=marker["keeperRetirement"])
-                else:
-                    raise JenkinsError("owned_recovery_upgrade_unproven", "Unknown owned transfer variant")
+                from tools.jenkins.deployment.owned_upgrade import prepare_owned_upgrade_from_release
+                plan = prepare_owned_upgrade_from_release(manager, release_ref, release)
             elif release.get("lostRecoveryRuntime") is not None:
                 from tools.jenkins.deployment.lost_recovery_runtime import prepare_lost_recovery_runtime
                 from tools.jenkins.deployment.recovery_keeper import _reference

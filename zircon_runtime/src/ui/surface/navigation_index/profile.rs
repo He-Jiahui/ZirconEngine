@@ -1,6 +1,6 @@
 //! 仅在 profiling 构建中记录导航索引重建成本与规模；不把逐次导航查询算作重建。
 
-use std::time::Instant;
+use web_time::Instant;
 
 use super::UiSurfaceNavigationIndex;
 

@@ -78,8 +78,7 @@ fn depth_prepass_binds_forward_shadow_receiver_layout_slot() {
 fn deferred_lighting_uses_compiler_proven_buffer_binding_windows() {
     let lookup = include_str!("../../../../context/gpu/resource_lookup.rs");
     let deferred = include_str!("../deferred.rs");
-    let lighting =
-        include_str!("../../../../../deferred/resources/execute_lighting.rs");
+    let lighting = include_str!("../../../../../deferred/resources/execute_lighting.rs");
 
     assert!(lookup.contains("require_buffer_binding_by_name"));
     assert!(lookup.contains("transient_buffer_binding_for_access(access_id)"));
@@ -97,8 +96,7 @@ fn graph_buffer_consumers_cannot_drop_compiler_proven_windows() {
     let lookup = include_str!("../../../../context/gpu/resource_lookup.rs");
     let product_resources =
         include_str!("../../../../../../builtin_postprocess_executors/graph_resources.rs");
-    let froxel_executor =
-        include_str!("../../../../froxel/executors/light_scatter.rs");
+    let froxel_executor = include_str!("../../../../froxel/executors/light_scatter.rs");
     let froxel_pipeline = include_str!("../../../../froxel/light_scatter.rs");
 
     assert!(!context.contains("fn require_buffer_by_name("));
@@ -136,9 +134,7 @@ fn ibl_graph_storage_buffer_output_uses_exact_binding_window() {
     let dispatch = include_str!("../../../../environment/ibl_bake_wgpu_dispatch.rs");
     let binding = include_str!("../../../../environment/ibl_bake_wgpu_binding.rs");
     let readback = include_str!("../../../../environment/ibl_bake_wgpu_readback.rs");
-    let staging = include_str!(
-        "../../../../../../backend/backend/tests/staging.rs"
-    );
+    let staging = include_str!("../../../../../../backend/backend/tests/staging.rs");
     let backend_readback =
         include_str!("../../../../../../backend/backend/read_ibl_bake_artifact_sections.rs");
 
@@ -165,20 +161,16 @@ fn ibl_graph_storage_buffer_output_uses_exact_binding_window() {
 fn post_process_cluster_binding_preserves_compiler_proven_buffer_windows() {
     let post_process = include_str!("../post.rs");
     let computed_resources = include_str!("../../../../../context/gpu/post/computed_resources.rs");
-    let screen_space_reflection = include_str!("../../../../../context/gpu/post/screen_space_reflection.rs");
-    let execute = include_str!(
-        "../../../../post/resources/execute/run/execute.rs"
-    );
-    let bind_group_entries = include_str!(
-        "../../../../../post/create_bind_group/bind_group_entries.rs"
-    );
-    let clustered_lighting = include_str!(
-        "../../../../../post/execute_clustered_lighting/lighting.rs"
-    );
+    let screen_space_reflection =
+        include_str!("../../../../../context/gpu/post/screen_space_reflection.rs");
+    let execute = include_str!("../../../../post/resources/execute/run/execute.rs");
+    let bind_group_entries =
+        include_str!("../../../../../post/create_bind_group/bind_group_entries.rs");
+    let clustered_lighting =
+        include_str!("../../../../../post/execute_clustered_lighting/lighting.rs");
     let light_grid_pass = include_str!("../../../../lighting/light_grid_pass.rs");
     let froxel = include_str!("../../../../froxel/light_scatter.rs");
-    let froxel_executor =
-        include_str!("../../../../froxel/executors/light_scatter.rs");
+    let froxel_executor = include_str!("../../../../froxel/executors/light_scatter.rs");
 
     assert!(post_process.contains("Self::require_buffer_binding_by_name("));
     assert!(post_process.contains("PostProcessGraphResourceNames::LIGHT_LIST"));
@@ -210,29 +202,23 @@ fn post_process_cluster_binding_preserves_compiler_proven_buffer_windows() {
     assert!(froxel_executor.contains("require_buffer_binding("));
     assert!(froxel_executor.contains("get_or_try_insert_with(device_epoch"));
     assert!(!froxel_executor.contains("pipeline.as_ref().unwrap()"));
-    let froxel_integrate_executor =
-        include_str!("../../../../froxel/executors/integrate.rs");
-    let froxel_media_executor =
-        include_str!("../../../../froxel/executors/media_inject.rs");
+    let froxel_integrate_executor = include_str!("../../../../froxel/executors/integrate.rs");
+    let froxel_media_executor = include_str!("../../../../froxel/executors/media_inject.rs");
     assert!(froxel_integrate_executor.contains("get_or_try_insert_with(device_epoch"));
     assert!(froxel_media_executor.contains("get_or_try_insert_with(device_epoch"));
     assert!(!froxel_integrate_executor.contains("pipeline.as_ref().unwrap()"));
     assert!(!froxel_media_executor.contains("pipeline.as_ref().unwrap()"));
     assert!(!froxel.contains("[..3].try_into().unwrap()"));
-    let planar_filter_executor =
-        include_str!("../../../../planar_filter/executor.rs");
+    let planar_filter_executor = include_str!("../../../../planar_filter/executor.rs");
     assert!(planar_filter_executor.contains("get_or_try_insert_with(device_epoch"));
     assert!(!planar_filter_executor.contains("pipeline.as_ref().unwrap()"));
-    let subsurface_executors =
-        include_str!("../../../../subsurface_pass/executors.rs");
+    let subsurface_executors = include_str!("../../../../subsurface_pass/executors.rs");
     assert!(subsurface_executors.contains("get_or_try_insert_with("));
     assert!(!subsurface_executors.contains("pipelines.as_ref().unwrap()"));
-    let subsurface_prepared =
-        include_str!("../../../../subsurface_pass/prepared_frame.rs");
+    let subsurface_prepared = include_str!("../../../../subsurface_pass/prepared_frame.rs");
     assert!(subsurface_prepared.contains("u32::try_from(table.profiles.len())"));
     assert!(!subsurface_prepared.contains("expect(\"SSS upload payload size must fit usize\")"));
-    let subsurface_pipelines =
-        include_str!("../../../../subsurface_pass/pipelines.rs");
+    let subsurface_pipelines = include_str!("../../../../subsurface_pass/pipelines.rs");
     assert!(subsurface_pipelines.contains("tile_list: wgpu::BufferBinding<'_>"));
     assert!(subsurface_pipelines.contains("indirect_args: wgpu::BufferBinding<'_>"));
     assert!(subsurface_pipelines.contains("dispatch_workgroups_indirect"));
@@ -241,8 +227,7 @@ fn post_process_cluster_binding_preserves_compiler_proven_buffer_windows() {
     assert!(subsurface_pipelines.contains("indirect_args.size.map(NonZeroU64::get)"));
     assert!(subsurface_pipelines.contains("wgpu::BindingResource::Buffer(buffer)"));
     assert!(!subsurface_pipelines.contains("buffer.as_entire_binding()"));
-    let irradiance_resources =
-        include_str!("../../../../irradiance_volume/resources.rs");
+    let irradiance_resources = include_str!("../../../../irradiance_volume/resources.rs");
     assert!(irradiance_resources.contains("-> Result<(), String>"));
     assert!(irradiance_resources.contains("WgpuBufferUpload::new("));
     assert!(!irradiance_resources
@@ -255,12 +240,9 @@ fn post_process_cluster_binding_preserves_compiler_proven_buffer_windows() {
 #[test]
 fn core_advanced_pipeline_caches_are_device_epoch_qualified() {
     let cache = include_str!("../../../../../execution/render_pass_device_epoch_cache.rs");
-    let froxel_integrate =
-        include_str!("../../../../froxel/executors/integrate.rs");
-    let froxel_scatter =
-        include_str!("../../../../froxel/executors/light_scatter.rs");
-    let froxel_media =
-        include_str!("../../../../froxel/executors/media_inject.rs");
+    let froxel_integrate = include_str!("../../../../froxel/executors/integrate.rs");
+    let froxel_scatter = include_str!("../../../../froxel/executors/light_scatter.rs");
+    let froxel_media = include_str!("../../../../froxel/executors/media_inject.rs");
     let oit = include_str!("../../../../oit_buffers/executors.rs");
     let planar = include_str!("../../../../planar_filter/executor.rs");
     let subsurface = include_str!("../../../../subsurface_pass/executors.rs");
@@ -368,13 +350,10 @@ fn core_advanced_pipeline_caches_are_device_epoch_qualified() {
 #[test]
 fn exposure_and_color_lut_consumers_preserve_compiler_buffer_windows() {
     let computed_resources = include_str!("../../../../../context/gpu/post/computed_resources.rs");
-    let exposure =
-        include_str!("../../../../../post/execute_exposure/execute_exposure.rs");
-    let color_lut =
-        include_str!("../../../../post/execute_color_lut_bake/mod.rs");
-    let bind_group_entries = include_str!(
-        "../../../../../post/create_bind_group/bind_group_entries.rs"
-    );
+    let exposure = include_str!("../../../../../post/execute_exposure/execute_exposure.rs");
+    let color_lut = include_str!("../../../../post/execute_color_lut_bake/mod.rs");
+    let bind_group_entries =
+        include_str!("../../../../../post/create_bind_group/bind_group_entries.rs");
     let effects = include_str!("../post/effects.rs");
 
     assert!(computed_resources.contains("Self::require_buffer_binding_by_name("));
@@ -406,7 +385,8 @@ fn forward_mesh_consumers_preserve_compiler_proven_light_grid_windows() {
     let lookup = include_str!("../../../../context/gpu/resource_lookup.rs");
     let mesh_recording = include_str!("../../../../context/gpu/mesh_recording.rs");
     let oit = include_str!("../oit.rs");
-    let receiver = include_str!("../../../../../../mesh/mesh_pipeline_cache/forward_shadow_receiver.rs");
+    let receiver =
+        include_str!("../../../../../../mesh/mesh_pipeline_cache/forward_shadow_receiver.rs");
     let base_scene = include_str!("../../../../overlay/passes/base_scene_pass.rs");
 
     assert!(lookup.contains("optional_buffer_binding_by_name"));
@@ -436,8 +416,7 @@ fn forward_mesh_consumers_preserve_compiler_proven_light_grid_windows() {
 #[test]
 fn oit_buffers_preserve_compiler_proven_binding_windows() {
     let executors = include_str!("../../../../oit_buffers/executors.rs");
-    let fragment_store =
-        include_str!("../../../../../oit_buffers/fragment_store_pipeline.rs");
+    let fragment_store = include_str!("../../../../../oit_buffers/fragment_store_pipeline.rs");
     let resolve = include_str!("../../../../oit_buffers/resolve_pipeline.rs");
     let oit_context = include_str!("../oit.rs");
 
@@ -461,7 +440,8 @@ fn oit_buffers_preserve_compiler_proven_binding_windows() {
 
 #[test]
 fn disabled_forward_volumetric_params_buffer_is_cache_owned() {
-    let cache_source = include_str!("../../../../../../mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs");
+    let cache_source =
+        include_str!("../../../../../../mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs");
     let construct_source = include_str!("../../../../mesh/mesh_pipeline_cache/construct.rs");
     let binding_source =
         include_str!("../../../../../../mesh/mesh_pipeline_cache/forward_shadow_receiver.rs");
@@ -505,9 +485,8 @@ fn taa_reactive_mask_uses_one_clear_and_draw_pass_only_when_commands_exist() {
     assert!(reactive_mask_recording.contains("drop(pass);"));
     assert!(reactive_mask_recording.contains("record_taa_reactive_mask_encoding"));
 
-    let resource_binding = include_str!(
-        "../../../../../../core/render/bind_taa_reactive_mask_graph_resource.rs"
-    );
+    let resource_binding =
+        include_str!("../../../../../../core/render/bind_taa_reactive_mask_graph_resource.rs");
     assert!(resource_binding.contains("taa_reactive_mask_stream().is_empty()"));
     assert!(resource_binding.contains("black_texture_view()"));
     assert!(

@@ -1,3 +1,5 @@
+//! 按父节点保留 Taffy 树与子节点相对帧：`Full` 可更新拓扑，`Exact` 只接受匹配的子顺序版本。
+//! 更新失败时已取出的旧产品不会重新放回缓存；调用方据错误走布局后端回退。
 use std::collections::BTreeMap;
 
 use taffy::prelude::{AvailableSpace, NodeId, Size as TaffySize, Style, TaffyTree};
@@ -46,6 +48,10 @@ struct TaffyRetainedChild {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 一次成功父产品更新的诊断；分别计数契约访问、样式写入、布局读取和帧发布。
+///
+/// `exact_contract_delta` 记录请求范围；`compute_reused` 记录求解复用，两者不能互相替代。
+/// `tree_build` 只在建树或拓扑更新被报告时给出统计；这些计数不代表整帧耗时或所有内存分配。
 pub(crate) struct TaffyParentProductUpdate {
     pub tree_build: Option<UiLayoutEngineTaffyTreeBuildStats>,
     pub exact_contract_delta: bool,
@@ -69,6 +75,20 @@ pub(crate) enum TaffyParentProductErrorKind {
 }
 
 impl TaffyParentProductCache {
+    /// 更新单个父产品并把本次应发布的子帧写入调用方缓冲。
+    ///
+    /// # 参数与约束
+    /// `parent_id` 是产品键；`parent_style`、`frame` 和 `inherited_clip` 提供本次父状态。
+    /// `child_node_ids` 与 `child_styles` 等长；Full 提供完整有序集合，Exact 提供已有子项的变更子集。
+    /// `ordered_children_revision` 必须在 Exact 路径匹配已有拓扑；`output` 先清空并复用容量。
+    ///
+    /// # 返回与生命周期
+    /// 成功返回更新计数并放回产品。等长检查失败发生在取出旧产品之前，旧缓存与测试快照仍保留；
+    /// 取出后的版本、更新或计算错误会丢弃该产品。调用方只在成功后消费输出。
+    /// 计算可复用时仍可能因父框架或裁剪变化而发布全部保留子帧。
+    ///
+    /// # 参考
+    /// 上层通过 `super::compute::compute_taffy_child_frames` 投影样式并处理后端回退。
     #[allow(clippy::too_many_arguments)]
     pub(super) fn compute_child_frames(
         &mut self,

@@ -21,6 +21,31 @@ static LOCAL_PROJECT_LAUNCH_OPERATION_IDS: OnceLock<ProjectActivationOperationId
     OnceLock::new();
 
 impl EditorManager {
+    fn preflight_project_launch_with_plugin_recovery(
+        &self,
+        intent: ProjectLaunchIntent,
+    ) -> Result<ProjectLaunchPreflight, EditorError> {
+        match ProjectAuthority::default().preflight_project_launch(intent.clone()) {
+            Ok(preflight) => Ok(preflight),
+            Err(primary) => {
+                if let crate::core::project::ProjectAuthorityError::PluginEnablementRecovery {
+                    root,
+                    ..
+                } = &primary
+                {
+                    // Do not put missing BuildSet/admission/inspection errors ahead of preflight.
+                    if let Ok(admission) = self.session_admission_request(&intent) {
+                        let _ = self.inspect_plugin_enablement_recovery(
+                            root,
+                            Some(super::PluginEnablementAdmission::new(admission)),
+                        );
+                    }
+                }
+                Err(primary.into())
+            }
+        }
+    }
+
     /// Accepts only the BuildSet that App authenticated before this Editor host was composed.
     pub(crate) fn configure_project_runtime_build_set(
         &self,
@@ -49,7 +74,7 @@ impl EditorManager {
         &self,
         intent: ProjectLaunchIntent,
     ) -> Result<EditorStartupSessionDocument, EditorError> {
-        let preflight = ProjectAuthority::default().preflight_project_launch(intent)?;
+        let preflight = self.preflight_project_launch_with_plugin_recovery(intent)?;
         self.execute_project_launch_preflight(preflight)
     }
 
@@ -79,7 +104,7 @@ impl EditorManager {
         intent: &ProjectLaunchIntent,
         _requested_path: &Path,
     ) -> Result<crate::core::project::ProjectPreflightReceipt, EditorError> {
-        let preflight = ProjectAuthority::default().preflight_project_launch(intent.clone())?;
+        let preflight = self.preflight_project_launch_with_plugin_recovery(intent.clone())?;
         let (_, target) = preflight.into_parts();
         match target {
             ProjectLaunchPreflightTarget::Existing(receipt) => Ok(receipt),

@@ -166,15 +166,26 @@ mod tests {
         let mut bridge = crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge::new_with_runtime(
             std::sync::Arc::clone(&runtime), UiSize::new(1280.0, 800.0),
         ).unwrap();
-        let entries = crate::ui::workbench::snapshot::SceneEntries::from_hierarchy_rows_at_generation(
-            vec![zircon_runtime::scene::WorldInspectionHierarchyRow {
-                entity: 1, parent: None, depth: 0, display_name: "Camera".into(),
-                kind: "Entity".into(), subtree_hash: 0, active_in_hierarchy: true,
-                has_children: false,
-            }], [1], 1,
-        );
+        let entries =
+            crate::ui::workbench::snapshot::SceneEntries::from_hierarchy_rows_at_generation(
+                vec![zircon_runtime::scene::WorldInspectionHierarchyRow {
+                    entity: 1,
+                    parent: None,
+                    depth: 0,
+                    display_name: "Camera".into(),
+                    kind: "Entity".into(),
+                    subtree_hash: 0,
+                    active_in_hierarchy: true,
+                    has_children: false,
+                }],
+                [1],
+                1,
+            );
         bridge.resync_scene_hierarchy(&entries).unwrap();
-        assert_eq!(bridge.scene_entity_for_control("WorkbenchSceneRootItem"), Some(1));
+        assert_eq!(
+            bridge.scene_entity_for_control("WorkbenchSceneRootItem"),
+            Some(1)
+        );
         let mut surface = bridge.surface().clone();
         let owner = surface
             .tree

@@ -1,6 +1,6 @@
 use super::{super::BlobStore, GC_BATCH, GC_BATCH_BYTES};
 use crate::service::error::ServiceError;
-use rusqlite::{Connection, Transaction, TransactionBehavior, params};
+use rusqlite::{params, Connection, Transaction, TransactionBehavior};
 
 pub(super) fn stage(
     transaction: &Transaction<'_>,

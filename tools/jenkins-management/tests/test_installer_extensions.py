@@ -13,16 +13,18 @@ ROOT = Path(__file__).resolve().parents[3]
 INSTALLER = ROOT / "tools/dev/install-jenkins-management.ps1"
 ADDON = ROOT / "tools/jenkins-management/checkout-commit.groovy"
 DELIVERY_ADDON = ROOT / "tools/jenkins-management/delivery.groovy"
+BRANCH_ADDON = ROOT / "tools/jenkins-management/branch-integration.groovy"
 MARKER = "ZR_INSTALLER_EXTENSION_RESULTS:"
 OLD_CORE = "// pinned old core\n"
 NEW_CORE = "// pinned new core\n"
 
 
-def _command(cases, raw, delivery_raw):
+def _command(cases, raw, delivery_raw, branch_raw=b""):
     path = base64.b64encode(str(INSTALLER).encode()).decode()
     payload = base64.b64encode(json.dumps(cases, separators=(",", ":")).encode()).decode()
     addon = base64.b64encode(raw).decode()
     delivery_addon = base64.b64encode(delivery_raw).decode()
+    branch_addon = base64.b64encode(branch_raw).decode()
     return r"""
 $ErrorActionPreference = 'Stop'
 if ($PSVersionTable.PSEdition -ne 'Desktop') { throw 'Windows PowerShell Desktop is required' }
@@ -52,6 +54,8 @@ function New-ExtensionCaseJob([string]$Script) {
     $escaped = [Security.SecurityElement]::Escape($Script)
     return [xml]"<flow-definition><actions/><description>Bounded Jenkins management MVP; no M8 acceptance</description><keepDependencies>false</keepDependencies><properties><hudson.model.ParametersDefinitionProperty><parameterDefinitions>$parameters</parameterDefinitions></hudson.model.ParametersDefinitionProperty></properties><definition class='org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition' plugin='workflow-cps'><script>$escaped</script><sandbox>true</sandbox></definition><triggers/><disabled>false</disabled></flow-definition>"
 }
+$branchBaseBytes = [Convert]::FromBase64String('__BRANCH__')
+$branchBaseText = [Text.Encoding]::UTF8.GetString($branchBaseBytes).TrimStart([char]0xfeff).Replace(([string][char]13 + [char]10), [string][char]10)
 $deliveryBaseBytes = [Convert]::FromBase64String('__DELIVERY__')
 $deliveryBaseText = [Text.Encoding]::UTF8.GetString($deliveryBaseBytes).TrimStart([char]0xfeff).Replace(([string][char]13 + [char]10), [string][char]10)
 $baseBytes = [Convert]::FromBase64String('__ADDON__')
@@ -74,6 +78,7 @@ foreach ($case in $cases) {
             'invalid-utf8' { $bytes = [byte[]]@(255) }
         }
         $pin = [string]$case.pin
+        if ($case.branch -eq $true -and $null -eq $case.pin) { $pin = Hash-Bytes $baseBytes }
         if ($case.pinMode -ceq 'actual') { $pin = Hash-Bytes $bytes }
         $prefix = ''
         if ($case.addon -eq $true) {
@@ -90,13 +95,31 @@ foreach ($case in $cases) {
                 'crlf' { $deliveryBytes = [Text.Encoding]::UTF8.GetBytes($deliveryBaseText.Replace([string][char]10, ([string][char]13 + [char]10))) }
             }
             $deliveryPin = [string]$case.deliveryPin
+            if ($case.branch -eq $true -and $null -eq $case.deliveryPin) { $deliveryPin = Hash-Bytes $deliveryBaseBytes }
             if ($case.deliveryPinMode -ceq 'actual') { $deliveryPin = Hash-Bytes $deliveryBytes }
             $deliveryPrefix = Get-ManagementJobExtensionPrefix -AddonBytes $deliveryBytes -ExpectedSha256 $deliveryPin -Kind 'delivery'
             $prefix = $deliveryPrefix + $checkoutPrefix
         }
+        $branchPrefix = ''
+        if ($case.branch -eq $true) {
+            [byte[]]$branchBytes = $branchBaseBytes
+            switch ([string]$case.branchBytes) {
+                'changed' { $branchBytes = [Text.Encoding]::UTF8.GetBytes($branchBaseText + '// drift') }
+                'duplicate' { $branchBytes = [Text.Encoding]::UTF8.GetBytes($branchBaseText + $branchBaseText) }
+                'missing-end' { $branchBytes = [Text.Encoding]::UTF8.GetBytes($branchBaseText.Replace('// END ZIRCON BRANCH QUEUE','')) }
+            }
+            $branchPin = [string]$case.branchPin
+            if ($null -eq $case.branchPin) { $branchPin = Hash-Bytes $branchBaseBytes }
+            if ($case.branchPinMode -ceq 'actual') { $branchPin = Hash-Bytes $branchBytes }
+            $branchPrefix = Get-ManagementJobExtensionPrefix -AddonBytes $branchBytes -ExpectedSha256 $branchPin -Kind 'branch-integration'
+            $prefix = $branchPrefix + $deliveryPrefix + $checkoutPrefix
+        }
         $expected = Join-ManagementJobExtension -Core ([string]$case.core) -Prefix $prefix
         $actual = $expected
         switch ([string]$case.actual) {
+            'missing-branch' { $actual = $deliveryPrefix + $checkoutPrefix + [string]$case.core }
+            'duplicate-branch' { $actual = $branchPrefix + $expected }
+            'moved-branch' { $actual = $deliveryPrefix + $branchPrefix + $checkoutPrefix + [string]$case.core }
             'missing-delivery' { $actual = $checkoutPrefix + [string]$case.core }
             'duplicate-delivery' { $actual = $deliveryPrefix + $expected }
             'moved-delivery' { $actual = $checkoutPrefix + $deliveryPrefix + [string]$case.core }
@@ -118,6 +141,7 @@ foreach ($case in $cases) {
             $archive = New-ExtensionCaseJob $old
             if ($case.archive -ceq 'bare') { $archive = New-ExtensionCaseJob ('// pinned old core' + [char]10) }
             if ($case.archive -ceq 'missing-delivery') { $archive = New-ExtensionCaseJob ($checkoutPrefix + '// pinned old core' + [char]10) }
+            if ($case.archive -ceq 'missing-branch') { $archive = New-ExtensionCaseJob ($deliveryPrefix + $checkoutPrefix + '// pinned old core' + [char]10) }
             Assert-ManagementJob $archive $old 'driver-fixture' 'runtime-fixture'
         }
         $rows.Add([ordered]@{id=[string]$case.id;status='accepted';value=$expected;error=$null}) | Out-Null
@@ -126,7 +150,7 @@ foreach ($case in $cases) {
     }
 }
 [Console]::Out.WriteLine('ZR_INSTALLER_EXTENSION_RESULTS:' + (ConvertTo-Json -InputObject @($rows.ToArray()) -Depth 5 -Compress))
-""".replace("__PATH__", path).replace("__ADDON__", addon).replace("__DELIVERY__", delivery_addon).replace("__CASES__", payload)
+""".replace("__PATH__", path).replace("__ADDON__", addon).replace("__DELIVERY__", delivery_addon).replace("__BRANCH__", branch_addon).replace("__CASES__", payload)
 
 
 class InstallerExtensionTests(unittest.TestCase):
@@ -134,7 +158,10 @@ class InstallerExtensionTests(unittest.TestCase):
     def setUpClass(cls):
         raw = ADDON.read_bytes()
         pin = hashlib.sha256(raw).hexdigest()
-        delivery_raw = DELIVERY_ADDON.read_bytes() if getattr(cls, "delivery_only", False) else b""
+        delivery_raw = DELIVERY_ADDON.read_bytes() if getattr(cls, "delivery_only", False) or getattr(cls, "branch_only", False) else b""
+        branch_raw = BRANCH_ADDON.read_bytes() if getattr(cls, "branch_only", False) else b""
+        branch_pin = hashlib.sha256(branch_raw).hexdigest()
+        cls.branch_prefix = branch_raw.decode("utf-8-sig").replace("\r\n", "\n").rstrip("\r\n") + "\n\n"
         delivery_pin = hashlib.sha256(delivery_raw).hexdigest()
         cls.delivery_prefix = delivery_raw.decode("utf-8-sig").replace("\r\n", "\n").rstrip("\r\n") + "\n\n"
         cls.prefix = raw.decode("utf-8-sig").replace("\r\n", "\n").rstrip("\r\n") + "\n\n"
@@ -188,14 +215,36 @@ class InstallerExtensionTests(unittest.TestCase):
             delivery("delivery-nested-core", core=cls.delivery_prefix + OLD_CORE),
             delivery("delivery-resume-wrong-archive", core=NEW_CORE, resume=True, archive="missing-delivery"),
         ]
-        if getattr(cls, "delivery_only", False):
+        if getattr(cls, "branch_only", False):
+            def branch(identifier, **overrides):
+                value = dict(branch=True, branchPin=branch_pin)
+                value.update(overrides)
+                row = delivery(identifier, **value)
+                for field in ("pin", "deliveryPin", "branchPin"):
+                    row.pop(field, None)
+                return row
+            cases = [
+                branch("branch-old"),
+                branch("branch-new", core=NEW_CORE),
+                branch("branch-resume", core=NEW_CORE, resume=True),
+                branch("branch-missing", actual="missing-branch"),
+                branch("branch-duplicate", actual="duplicate-branch"),
+                branch("branch-moved", actual="moved-branch"),
+                branch("branch-source-drift", branchBytes="changed"),
+                branch("branch-incomplete", branchBytes="missing-end", branchPinMode="actual"),
+                branch("branch-duplicate-template", branchBytes="duplicate", branchPinMode="actual"),
+                branch("branch-nested-core", core=cls.branch_prefix + OLD_CORE),
+                branch("branch-api-drift", actual="changed-core"),
+                branch("branch-resume-wrong-archive", core=NEW_CORE, resume=True, archive="missing-branch"),
+            ]
+        elif getattr(cls, "delivery_only", False):
             cases = [row for row in cases if row.get("delivery") is True]
         else:
             cases = [row for row in cases if row.get("delivery") is not True]
         powershell = shutil.which("powershell.exe") or shutil.which("powershell")
         if powershell is None:
             raise RuntimeError("Windows PowerShell Desktop is required; this is not a passing skip")
-        command = _command(cases, raw, delivery_raw)
+        command = _command(cases, raw, delivery_raw, branch_raw)
         if len(command) > 24000:
             raise RuntimeError("Installer extension fixture exceeded the bounded native command")
         completed = subprocess.run(
@@ -267,6 +316,24 @@ class DeliveryInstallerExtensionTests(unittest.TestCase):
             "delivery-source-drift", "delivery-wrong-pin", "delivery-incomplete",
             "delivery-duplicate-template", "delivery-nested-core",
             "delivery-resume-wrong-archive",
+        )
+
+
+class BranchIntegrationInstallerExtensionTests(unittest.TestCase):
+    branch_only = True
+    setUpClass = classmethod(InstallerExtensionTests.setUpClass.__func__)
+    accepted = InstallerExtensionTests.accepted
+    rejected = InstallerExtensionTests.rejected
+
+    def test_branch_delivery_checkout_preserve_old_new_resume_and_reject_drift(self):
+        prefix = self.branch_prefix + self.delivery_prefix + self.prefix
+        self.accepted("branch-old", prefix + OLD_CORE)
+        self.accepted("branch-new", prefix + NEW_CORE)
+        self.accepted("branch-resume", prefix + NEW_CORE)
+        self.rejected(
+            "branch-missing", "branch-duplicate", "branch-moved", "branch-source-drift",
+            "branch-incomplete", "branch-duplicate-template", "branch-nested-core",
+            "branch-api-drift", "branch-resume-wrong-archive",
         )
 
 

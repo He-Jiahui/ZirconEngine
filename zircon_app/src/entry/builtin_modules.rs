@@ -2,10 +2,12 @@ use std::sync::Arc;
 
 use zircon_runtime::builtin::RuntimePluginId;
 use zircon_runtime::builtin::{
-    manifest_with_mode_baseline, RuntimeModuleCompositionCompiler, RuntimeModuleCompositionPlan,
-    RuntimeModuleCompositionRejection,
+    default_manifest_for_target, manifest_with_mode_baseline, RuntimeModuleCompositionCompiler,
+    RuntimeModuleCompositionPlan, RuntimeModuleCompositionRejection,
 };
-use zircon_runtime::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
+use zircon_runtime::core::framework::project::{
+    ProjectPluginManifest, ProjectPluginSelection, RuntimeProfileId,
+};
 use zircon_runtime::core::framework::render::{RenderProductFeature, RenderProfileBundle};
 use zircon_runtime::core::{framework::platform::RuntimeTargetMode, CoreError};
 use zircon_runtime::engine_module::EngineModule;
@@ -57,7 +59,7 @@ pub(super) fn builtin_modules_for_config_with_effective_manifest_and_runtime_plu
         registrations.iter().cloned(),
         feature_registrations,
     );
-    let plan = catalog.compiled_project_plan(effective_manifest, config.target_mode());
+    let plan = compiled_plugin_plan_for_config(config, &catalog, effective_manifest)?;
     builtin_modules_for_config_with_compiled_project_plugin_plan(
         config,
         catalog,
@@ -76,7 +78,7 @@ pub(super) fn builtin_modules_for_config_with_runtime_plugin_and_feature_registr
         registrations.iter().cloned(),
         feature_registrations.iter().cloned(),
     );
-    let plan = catalog.compiled_project_plan(&effective_manifest, config.target_mode());
+    let plan = compiled_plugin_plan_for_config(config, &catalog, &effective_manifest)?;
     builtin_modules_for_config_with_compiled_project_plugin_plan(
         config,
         catalog,
@@ -85,17 +87,35 @@ pub(super) fn builtin_modules_for_config_with_runtime_plugin_and_feature_registr
     )
 }
 
+fn compiled_plugin_plan_for_config(
+    config: &ResolvedProductHostConfig,
+    catalog: &RuntimePluginCatalog,
+    manifest: &ProjectPluginManifest,
+) -> Result<Arc<CompiledProjectPluginPlan>, CoreError> {
+    if let Some(id) = config.runtime_profile() {
+        let mut profile = zircon_runtime::plugin::RuntimeProfileDescriptor::for_id(id);
+        if let Some(minimum) = config.runtime_plugin_minimum_maturity() {
+            profile = profile.with_minimum_maturity(minimum);
+        }
+        Ok(catalog.compiled_project_plan_for_runtime_profile(manifest, &profile))
+    } else if config.runtime_plugin_minimum_maturity().is_some() {
+        Err(CoreError::Initialization(
+            "zircon_app runtime plugin maturity policy".to_owned(),
+            "a minimum maturity override requires an explicit Runtime profile".to_owned(),
+        ))
+    } else {
+        Ok(catalog.compiled_project_plan(manifest, config.target_mode()))
+    }
+}
+
 fn builtin_modules_for_config_with_compiled_project_plugin_plan(
     config: &ResolvedProductHostConfig,
     catalog: RuntimePluginCatalog,
     plan: Arc<CompiledProjectPluginPlan>,
     context: &str,
 ) -> Result<BuiltinModuleSelection, CoreError> {
-    let mut compiler = RuntimeModuleCompositionCompiler::new(&plan);
-    if let Some(runtime_profile) = config.runtime_profile() {
-        compiler = compiler.for_runtime_profile(runtime_profile);
-    }
-    compiler = compiler.with_host_modules(host_modules_for_config(config)?);
+    let compiler = RuntimeModuleCompositionCompiler::new(&plan)
+        .with_host_modules(host_modules_for_config(config)?);
     let composition = compiler
         .compile()
         .map_err(|rejection| composition_rejection_core_error(context, rejection))?;
@@ -148,10 +168,11 @@ fn composition_rejection_core_error(
 pub(super) fn effective_project_plugin_manifest(
     config: &ResolvedProductHostConfig,
 ) -> ProjectPluginManifest {
-    effective_project_plugin_manifest_with_render_profile(
+    effective_project_plugin_manifest_for_profile(
         config.target_mode(),
         config.project_plugin_manifest(),
         config.render_profile(),
+        config.runtime_profile(),
     )
 }
 
@@ -160,13 +181,71 @@ pub(super) fn effective_project_plugin_manifest_with_render_profile(
     manifest: Option<&ProjectPluginManifest>,
     render_profile: &RenderProfileBundle,
 ) -> ProjectPluginManifest {
-    let mut effective_manifest = manifest_with_mode_baseline(target_mode, manifest);
+    effective_project_plugin_manifest_for_profile(target_mode, manifest, render_profile, None)
+}
+
+fn effective_project_plugin_manifest_for_profile(
+    target_mode: RuntimeTargetMode,
+    manifest: Option<&ProjectPluginManifest>,
+    render_profile: &RenderProfileBundle,
+    runtime_profile: Option<RuntimeProfileId>,
+) -> ProjectPluginManifest {
+    let mut effective_manifest = if runtime_profile == Some(RuntimeProfileId::Minimal) {
+        minimal_runtime_plugin_manifest(target_mode, manifest)
+    } else {
+        manifest_with_mode_baseline(target_mode, manifest)
+    };
     let render_profile_overlay =
         render_profile_runtime_plugin_overlay(&effective_manifest, target_mode, render_profile);
     for selection in render_profile_overlay.selections {
         effective_manifest.set_enabled(selection);
     }
+    admit_builtin_runtime_ui_selection(&mut effective_manifest);
     effective_manifest
+}
+
+fn minimal_runtime_plugin_manifest(
+    target_mode: RuntimeTargetMode,
+    manifest_override: Option<&ProjectPluginManifest>,
+) -> ProjectPluginManifest {
+    let mut manifest = default_manifest_for_target(target_mode);
+    let baseline_runtime_ids = manifest
+        .selections
+        .iter()
+        .filter_map(|selection| RuntimePluginId::parse_key(&selection.id))
+        .collect::<Vec<_>>();
+    manifest.selections.retain(|selection| {
+        !RuntimePluginId::parse_key(&selection.id).is_some_and(|runtime_id| {
+            runtime_id == RuntimePluginId::Ui || runtime_id == RuntimePluginId::UiDocumentImporter
+        })
+    });
+
+    if let Some(manifest_override) = manifest_override {
+        for selection in &manifest_override.selections {
+            let mut selection = selection.clone();
+            if let Some(runtime_id) = RuntimePluginId::parse_key(&selection.id)
+                .filter(|runtime_id| baseline_runtime_ids.contains(runtime_id))
+            {
+                selection.id = runtime_id.key().to_owned();
+            }
+            manifest.set_enabled(selection);
+        }
+    }
+
+    manifest
+}
+
+fn admit_builtin_runtime_ui_selection(manifest: &mut ProjectPluginManifest) {
+    if let Some(selection) = manifest
+        .selections
+        .iter_mut()
+        .find(|selection| selection.id == RuntimePluginId::Ui.key())
+    {
+        if selection.is_runtime_builtin_domain() {
+            // UI is composed as a built-in runtime module, not a first-party plugin provider.
+            selection.required = false;
+        }
+    }
 }
 
 pub(super) fn render_profile_runtime_plugin_overlay(

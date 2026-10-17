@@ -197,7 +197,13 @@ fn watch_loop_inner(
                     ingress.finish_receive(&message);
                     match message.result {
                         Ok(event) => {
-                            for event in map_notify_event(&assets_root, event) {
+                            let mapped = map_notify_event(&assets_root, event);
+                            if mapped.requires_reconciliation {
+                                requires_reconciliation = true;
+                                started_at.get_or_insert(message.received_at);
+                                last_event_at = Some(Instant::now());
+                            }
+                            for event in mapped.events {
                                 raw_event_count = raw_event_count.saturating_add(1);
                                 started_at.get_or_insert(message.received_at);
                                 last_event_at = Some(Instant::now());

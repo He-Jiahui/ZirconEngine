@@ -5,18 +5,24 @@ fn scene_asset_save_reopens_with_exact_transform_and_asset_references() {
     let root = unique_temp_project_root("scene_asset_save_reopen");
     let project = create_test_project(&root);
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
-    let mut world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
+    let (mut world, source_revision) = World::load_scene_document(&project, &scene_uri)
+        .unwrap()
+        .into_parts();
     let expected_transform = Transform::from_translation(Vec3::new(3.5, 0.0, -1.25));
 
     assert!(world.update_transform(2, expected_transform).unwrap());
     let expected_scene = world.to_scene_asset(&project).unwrap();
 
-    world.save_scene_to_project(&project, &scene_uri).unwrap();
+    let receipt = world
+        .save_scene_to_project(&project, &scene_uri, &source_revision)
+        .unwrap();
     let scene_path = project
         .existing_or_primary_project_source_path_for_uri(&scene_uri)
         .unwrap();
     let first_save = fs::read_to_string(&scene_path).unwrap();
-    world.save_scene_to_project(&project, &scene_uri).unwrap();
+    world
+        .save_scene_to_project(&project, &scene_uri, receipt.source_revision())
+        .unwrap();
     assert_eq!(fs::read_to_string(&scene_path).unwrap(), first_save);
 
     drop(project);

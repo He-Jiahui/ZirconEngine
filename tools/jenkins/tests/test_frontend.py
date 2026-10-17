@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import hashlib
+import io
 from unittest import mock
 from urllib.parse import parse_qs
 import tempfile
@@ -11,7 +12,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from urllib.error import URLError
 
-from tools.jenkins.frontend import dispatch_or_local, entry_from_environment, sole_entry_enforced, submit_entry
+from tools.jenkins.frontend import dispatch_or_local, entry_from_environment, main as frontend_main, sole_entry_enforced, submit_entry
 from tools.jenkins.state import State
 from tools.jenkins.contracts import JenkinsError, digest
 
@@ -68,6 +69,45 @@ class FrontendTests(unittest.TestCase):
         with self.assertRaises(JenkinsError) as raised:
             dispatch_or_local(repo_root=root, state=None, identity=None)
         self.assertEqual("ordinary_identity_pending", raised.exception.code)
+
+    def test_ordinary_default_preserves_management_validation_route(self):
+        root = self._root(False)
+        identity = self._identity()
+        with mock.patch("tools.jenkins.frontend._ordinary_dispatch", return_value={"status": "management"}) as dispatch:
+            result = submit_entry(None, identity=identity, repo_root=root)
+        self.assertEqual({"status": "management"}, result)
+        dispatch.assert_called_once_with(root, identity, None)
+
+    def test_ordinary_explicit_flow_requires_functional_route(self):
+        root = self._root(False)
+        with mock.patch("tools.jenkins.frontend._ordinary_dispatch") as ordinary:
+            with mock.patch("tools.jenkins.frontend.submit") as submit:
+                with self.assertRaises(JenkinsError) as raised:
+                    submit_entry(None, identity=self._identity(), repo_root=root, job="zircon-flow")
+        self.assertEqual("functional_scope_required", raised.exception.code)
+        ordinary.assert_not_called()
+        submit.assert_not_called()
+
+    def test_cli_forwards_functional_only_when_explicit_and_with_exact_fences(self):
+        expected_driver = "d" * 64
+        expected_runtime = "start-fixture"
+        output = io.StringIO()
+        with mock.patch("tools.jenkins.frontend.entry_from_environment",
+                        side_effect=[{"status": "pending"}, {"status": "submitted"}]) as dispatch:
+            with mock.patch("sys.stdout", output):
+                ordinary_code = frontend_main(["dispatch", "--job", "zircon-flow"])
+                functional_code = frontend_main([
+                    "dispatch", "--job", "zircon-flow", "--functional",
+                    "--expected-driver-digest", expected_driver,
+                    "--expected-runtime-operation-id", expected_runtime])
+        self.assertEqual(2, ordinary_code)
+        self.assertEqual(0, functional_code)
+        ordinary_call, functional_call = dispatch.call_args_list
+        self.assertFalse(ordinary_call.kwargs["functional"])
+        self.assertEqual("zircon-flow", ordinary_call.kwargs["job"])
+        self.assertTrue(functional_call.kwargs["functional"])
+        self.assertEqual(expected_driver, functional_call.kwargs["expected_driver_digest"])
+        self.assertEqual(expected_runtime, functional_call.kwargs["expected_runtime_operation_id"])
 
     def test_active_gate_requires_identity(self):
         root = self._root(True)

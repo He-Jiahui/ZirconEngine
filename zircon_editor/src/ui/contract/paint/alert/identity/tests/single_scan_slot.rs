@@ -83,7 +83,8 @@ fn optimization_batch_20260829bi_editor281_single_scan_slots_preserve_results() 
 
 #[test]
 fn optimization_batch_20260829bi_editor281_alert_slot_uses_one_token_scan() {
-    let source = include_str!("../../../../../retained/contract/paint/primitives/alert/identity.rs");
+    let source =
+        include_str!("../../../../../retained/contract/paint/primitives/alert/identity.rs");
     let production = source.split_once("#[cfg(test)]").expect("test boundary").0;
     let slot = production
         .split_once("fn is_alert_slot_node")

@@ -199,9 +199,8 @@ fn editor_project_document_requires_an_explicit_project_generation() {
 
 #[test]
 fn welcome_pane_projection_does_not_probe_the_filesystem() {
-    let source = include_str!(
-        "../../../ui/editor_startup_session_document_welcome_pane_snapshot.rs"
-    );
+    let source =
+        include_str!("../../../ui/editor_startup_session_document_welcome_pane_snapshot.rs");
     let retired_authority = ["Project", "Authority"].concat();
     let retired_probe = ["probe", "_draft"].concat();
     let retired_creation_validation = ["validate", "_for_creation"].concat();

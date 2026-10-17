@@ -1,3 +1,6 @@
+//! 控制字符判定的等价性、源码约束与受管性能夹具。
+//! 正确性样例覆盖 ASCII 控制符与非 ASCII 文本，性能样本固定为无控制符 ASCII。
+
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -11,6 +14,7 @@ fn legacy_contains_control(text: &str) -> bool {
     text.chars().any(char::is_control)
 }
 
+// 对同一借用文本重复判定并折入校验和；计时单位为纳秒，最小记为一。
 fn measure(text: &str, optimized: bool) -> (u128, usize) {
     let started = Instant::now();
     let mut checksum = 0_usize;
@@ -25,6 +29,7 @@ fn measure(text: &str, optimized: bool) -> (u128, usize) {
     (started.elapsed().as_nanos().max(1), black_box(checksum))
 }
 
+// 调用方以非空样本求第 50/95 百分位；排序副本保留原采样次序。
 fn nearest_rank(samples: &[u128], percentile: usize) -> u128 {
     let mut sorted = samples.to_vec();
     sorted.sort_unstable();
@@ -65,6 +70,7 @@ fn runtime82_batch_keyboard_payload_uses_ascii_bytes_with_unicode_fallback() {
 
 #[test]
 #[ignore = "managed Windows release performance evidence"]
+// 固定负载交替两种实现的先后顺序；门槛只约束该受管性能夹具。
 fn runtime82_batch_keyboard_payload_byte_control_scan_p95() {
     let mut text = String::with_capacity(BYTES_PER_TEXT);
     while text.len() < BYTES_PER_TEXT {
@@ -101,6 +107,7 @@ fn runtime82_batch_keyboard_payload_byte_control_scan_p95() {
     let legacy_p95_ns = nearest_rank(&legacy_samples, 95);
     let byte_p50_ns = nearest_rank(&byte_samples, 50);
     let byte_p95_ns = nearest_rank(&byte_samples, 95);
+    // 扫描次数与回退变化数由本夹具的循环和输入推导，不是对底层扫描器的插桩计数。
     println!(
         "RUNTIME82_KEYBOARD_PAYLOAD_BYTE_CONTROL_SCAN_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
          bytes_per_text={BYTES_PER_TEXT} checks_per_sample={CHECKS_PER_SAMPLE} \

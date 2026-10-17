@@ -7,6 +7,23 @@ use syn::ItemMod;
 use crate::args::HostModuleArgs;
 use crate::attrs::{host_attr_function_ident, script_type_ident};
 
+/// 汇总内联模块的直接类型和函数子项，生成描述与注册 helper。
+///
+/// ## 参数
+///
+/// `args` 提供必填宿主模块名及可选版本、能力声明和文档；`item` 借其内容读取直接子项，并保留原属性、可见性和模块内容。版本缺省为 `0.1.0`。
+///
+/// ## 返回
+///
+/// 成功返回带两个公共 helper 的模块 token；缺少名称或外置模块声明返回 `syn::Error`。描述 helper 返回 `Result<ScriptHostModuleDescriptor, VmError>`；注册 helper 接收 `&HostExportRegistry` 并返回 `Result<HostHandle, VmError>`。
+///
+/// ## 约束与生命周期
+///
+/// 选择器按宏路径末段识别直接宿主函数与派生结构/枚举，收集结果用于对应的函数描述和导出工厂。描述 helper 被调用时求取各类型的 descriptor；反射错误映射为 Operation 并立即返回。注册 helper 先求描述，成功后创建回调数组并调用注册表接纳；描述成功仍需通过名称、capability 声明和回调匹配检查。registry 引用仅在本次同步注册使用，接纳后注册表拥有描述与 Arc 回调，调用方取得注册句柄。
+///
+/// ## 参考
+///
+/// 参阅 `attrs::host_attr_function_ident`、`attrs::script_type_ident`、Runtime 的 `ZirconScriptType::script_host_type_descriptor` 和 `HostExportRegistry::register_module`。
 pub(crate) fn host_module_impl(args: HostModuleArgs, item: ItemMod) -> syn::Result<TokenStream2> {
     let attrs = &item.attrs;
     let vis = &item.vis;

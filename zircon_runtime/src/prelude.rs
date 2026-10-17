@@ -1,6 +1,6 @@
 //! Stable convenience imports for runtime-facing Zircon applications and modules.
 
-#[cfg(feature = "native-host")]
+#[cfg(any(feature = "native-host", feature = "asset-types"))]
 pub use crate::asset::prelude::*;
 #[cfg(feature = "native-host")]
 pub use crate::builtin::{

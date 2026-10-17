@@ -362,6 +362,7 @@ fn runtime_prelude_exports_platform_window_and_input_contracts() {
 fn runtime_prelude_exports_asset_scene_ui_and_graphics_contracts() {
     #[derive(Clone, Debug)]
     struct PreludeComponent;
+    zircon_runtime_interface::impl_retained_owner_v1!(PreludeComponent {});
     impl Component for PreludeComponent {}
 
     #[derive(Debug)]
@@ -438,4 +439,75 @@ fn runtime_prelude_exports_state_contracts() {
     assert_eq!(current.get(), &PreludeState::Running);
     assert_eq!(next, NextState::Unchanged);
     assert_eq!(*events.lock().unwrap(), vec!["running"]);
+}
+
+// This fixture exposes read access and checked append only: no mutable Vec can
+// escape the lifetime cap used by retained entity-observer ownership.
+pub(crate) struct RetainedObserverLogV1<T> {
+    values: std::sync::Mutex<Vec<T>>,
+    maximum: u64,
+    model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+}
+pub(crate) struct RetainedObserverLogGuardV1<'a, T> {
+    values: std::sync::MutexGuard<'a, Vec<T>>,
+    maximum: u64,
+    model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+}
+impl<T: zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1>
+    RetainedObserverLogV1<T>
+{
+    pub(crate) fn new() -> Self {
+        Self {
+            values: std::sync::Mutex::new(Vec::with_capacity(32)),
+            maximum: 16384,
+            model: zircon_runtime_interface::retained_memory::verified_std_model_v1()
+                .expect("ordinary fixture model"),
+        }
+    }
+    pub(crate) fn lock(&self) -> Result<RetainedObserverLogGuardV1<'_, T>, &'static str> {
+        Ok(RetainedObserverLogGuardV1 {
+            values: self.values.lock().map_err(|_| "poisoned observer log")?,
+            maximum: self.maximum,
+            model: self.model,
+        })
+    }
+}
+impl<T> std::ops::Deref for RetainedObserverLogGuardV1<'_, T> {
+    type Target = Vec<T>;
+    fn deref(&self) -> &Self::Target {
+        &self.values
+    }
+}
+impl<T: zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1>
+    RetainedObserverLogGuardV1<'_, T>
+{
+    pub(crate) fn push(&mut self, value: T) {
+        use zircon_runtime_interface::retained_memory::*;
+        assert!(
+            self.values.len() < self.values.capacity(),
+            "bounded fixture log slots exhausted"
+        );
+        let mut meter =
+            RetainedBoundBuilderV1::with_limit(self.model, RetainedBytesV1::new(self.maximum));
+        meter.owned(&*self.values).unwrap();
+        value
+            .retained_bound_v1(&mut meter)
+            .expect("bounded fixture log payload");
+        self.values.push(value);
+    }
+}
+impl<T: zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1>
+    zircon_runtime_interface::retained_memory::RetainedOwnerV1 for RetainedObserverLogV1<T>
+{
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        m.add(self.maximum)
+    }
+}
+unsafe impl<T: zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1>
+    zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1
+    for RetainedObserverLogV1<T>
+{
 }

@@ -31,3 +31,7 @@ pub(in crate::graphics::scene) use material_texture_set::{
 pub(crate) use mesh_draw::MeshDraw;
 pub(crate) use queue_profile::{MeshDrawBatchKey, MeshDrawQueuePhase, MeshDrawQueueProfile};
 pub(super) use virtual_geometry_submission_detail::VirtualGeometrySubmissionDetail;
+
+#[path = "indexed_plan.rs"]
+pub(crate) mod indexed_plan;
+pub(crate) use indexed_plan::{VirtualGeometryIndexedPlan, VirtualGeometryIndexedRunRef};

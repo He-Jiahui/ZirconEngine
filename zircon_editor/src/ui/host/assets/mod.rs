@@ -17,7 +17,7 @@ mod preview;
 #[path = "records.rs"]
 mod records;
 
-pub use api::EditorAssetManager;
+pub use api::{EditorAssetManager, EditorModelImportProjection};
 pub use catalog::AssetCatalogRecord;
 pub(crate) use change_stream::EditorAssetChangeHub;
 pub use change_stream::{EditorAssetChangeDelivery, EditorAssetChangeSubscription};

@@ -1,3 +1,6 @@
+//! 派生组件的元数据、字段读写与选择性预检暂存夹具。
+//! 暂存测试先恢复目标实体身份，并分别检查元数据缺少组件表、表缺少暂存回调的错误边界。
+
 use zircon_runtime_interface::reflect::{
     ReflectError, ReflectScriptVisibility, ReflectTypeKind, ReflectedValue,
 };
@@ -7,6 +10,7 @@ use crate::scene::{NodeKind, RuntimeTypeRegistration, World};
 
 use super::{derived_component_registration, ZrReflect};
 
+/// 同时含可写字段和只读字段的派生组件，用来核对元数据与生成访问器共用的字段声明。
 #[derive(Clone, Debug, PartialEq, zircon_reflect_derive::ZrReflect)]
 #[zr_reflect(component, script_visibility = "public", display_name = "Health")]
 struct Health {
@@ -16,11 +20,14 @@ struct Health {
     maximum: f32,
 }
 
+zircon_runtime_interface::impl_retained_owner_v1!(Health { current, maximum });
 impl Component for Health {}
 
+/// 未纳入暂存选择集的源组件，用来检查预检 World 没有复制无关组件。
 #[derive(Clone, Debug, PartialEq)]
 struct UnselectedStagingSentinel;
 
+zircon_runtime_interface::impl_retained_owner_v1!(UnselectedStagingSentinel {});
 impl Component for UnselectedStagingSentinel {}
 
 #[test]

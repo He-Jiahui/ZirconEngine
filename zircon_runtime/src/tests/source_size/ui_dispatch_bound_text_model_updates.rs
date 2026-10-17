@@ -1,3 +1,8 @@
+//! 按源码文本检查绑定文本更新的归属、接口形态和历史文档锚点。
+//!
+//! 完整文本的注释也参与字面匹配与行数预算；只有 profile 字段检查使用生产视图预处理。
+//! 命中名称不等同于执行对应行为、验证清零效果或证明内存安全。
+
 use super::super::rust_source_view::production_section;
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
@@ -5,6 +10,8 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 fn runtime_text_bound_model_updates_are_bounded_child_owner() {
     let manager = read_runtime_src("ui/dispatch/input_manager/manager.rs");
     let owner = read_runtime_src("ui/dispatch/input_manager/bound_text_model_updates.rs");
+    // BUG: [CR-ZCA-R059-0003] 此处事务输入及后续用例输入的旧路径当前不存在；生产模块的 path 挂载指向实际文件。
+    // read_runtime_src 会先在此处读取错误时 panic，后续用例输入及断言尚不可达。
     let transaction =
         read_runtime_src("ui/dispatch/input_manager/bound_text_model_updates/transaction.rs");
     let profile = read_runtime_src("ui/dispatch/input_manager/bound_text_model_updates/profile.rs");
@@ -61,6 +68,8 @@ fn runtime_text_bound_model_updates_are_bounded_child_owner() {
             "pub(in crate::ui) fn pending_secure_text_model_update_store_handle(",
         ],
     );
+    // BUG: [CR-ZCA-R059-0004] 当前清单以带 optional 的表形式声明同版本依赖，下列精确简写字串不存在；
+    // 若前置输入可读，此字面包含检查会失败；这不表示依赖缺失或清零机制失效。
     assert_contains_all(
         "pending secure text uses the audited zeroization dependency directly",
         &runtime_manifest,

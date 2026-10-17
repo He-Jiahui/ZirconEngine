@@ -15,12 +15,14 @@ const FALLBACK_ASCENDER_EM: f32 = 0.8;
 const MIN_VISIBLE_TEXT_DECORATION_PX: f32 = 1.0;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
+/// 单种装饰线的显示像素度量；位置符号保留到基线坐标换算阶段。
 pub(crate) struct TextDecorationLineMetrics {
     pub(crate) position_px: f32,
     pub(crate) thickness_px: f32,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
+/// 主字体的升部与两类装饰线度量，作为后续帧生成的值快照。
 pub(crate) struct TextDecorationMetrics {
     pub(crate) ascender_px: f32,
     pub(crate) underline: TextDecorationLineMetrics,
@@ -36,10 +38,20 @@ pub(crate) enum TextDecorationKind {
 /// 由 SDF bake 持有、按 face 与显示字号复用；字体代际变化时 owner 必须丢弃本缓存。
 #[derive(Default)]
 pub(crate) struct TextDecorationMetricsCache {
+    // 身份键不包含数据库或字体代次；失效由持有本缓存的 SDF owner 处理。
     entries: HashMap<(FontFaceId, u32), TextDecorationMetrics>,
 }
 
 impl TextDecorationMetrics {
+    /// 将字体单位指标换算成指定显示字号下的装饰度量。
+    ///
+    /// # 参数与返回
+    /// `metrics` 是字体指标，`display_px` 是显示字号；字号先归一为至少 `1`，非有限值用 `1`。
+    /// 返回升部及装饰线位置、厚度；缺失的线指标使用对应的 em 兜底值。
+    ///
+    /// # 约束
+    /// UPEM 为零时仅升部改用兜底；已有线指标仍按 `max(UPEM, 1)` 缩放。
+    /// 即使显示字号有限，后续浮点乘积也不保证有限。
     pub(crate) fn from_font_units(metrics: FontAssetFaceMetrics, display_px: f32) -> Self {
         let display_px = normalized_display_px(display_px);
         let units_per_em = f32::from(metrics.units_per_em.max(1));
@@ -65,11 +77,13 @@ impl TextDecorationMetrics {
         }
     }
 
+    /// 从空字体指标取得兜底度量；字号归一规则与 [`Self::from_font_units`] 相同。
     pub(crate) fn fallback(display_px: f32) -> Self {
         Self::from_font_units(FontAssetFaceMetrics::default(), display_px)
     }
 
     /// 一行混用回退字体时取较粗的装饰线，避免字符跨字体后线条忽粗忽细。
+    /// 只增大两类厚度，不改主字体的升部或装饰位置；空迭代器保留原值。
     pub(crate) fn aggregate_fallback_thicknesses(
         mut self,
         fallback_metrics: impl IntoIterator<Item = Self>,
@@ -96,6 +110,14 @@ impl TextDecorationMetrics {
 }
 
 impl TextDecorationMetricsCache {
+    /// 按字体面与归一显示字号复用本缓存中的度量值。
+    ///
+    /// # 参数与返回
+    /// `font_database` 提供 `face` 的指标；`display_px` 归一后以浮点位模式参与键。
+    /// 命中时复制返回；查询报错或没有指标时返回并缓存兜底度量。
+    ///
+    /// # 生命周期与约束
+    /// 缓存不持有数据库，键也不区分数据库或字体代次；owner 必须在身份语境改变时失效缓存。
     pub(crate) fn resolve(
         &mut self,
         font_database: &FontDatabase,
@@ -118,6 +140,13 @@ impl TextDecorationMetricsCache {
     }
 }
 
+/// 由基线坐标和装饰度量组装一条装饰线的帧。
+///
+/// # 参数与返回
+/// `run_frame` 提供文字行在主轴的跨度，`baseline_coordinate` 是该坐标系内的基线。
+/// `writing_mode` 选择横排或竖排轴，`kind` 从 `metrics` 选择位置和厚度。
+/// 返回以基线减去指标位置为中心、厚度至少 `1` 的帧；不执行视口裁剪或变换。
+/// 输入帧和基线沿用调用方坐标系，本函数不校验所有浮点值或修复负跨度。
 pub(crate) fn text_decoration_frame(
     run_frame: TextFrame,
     baseline_coordinate: f32,
@@ -145,6 +174,7 @@ pub(crate) fn text_decoration_frame(
     }
 }
 
+// 有指标时保留位置符号并对字体厚度取绝对值；只有 None 使用两项兜底值。
 fn scaled_line_metrics(
     metrics: Option<FontAssetLineMetrics>,
     unit_scale: f32,
@@ -163,6 +193,7 @@ fn scaled_line_metrics(
     )
 }
 
+// 归一只约束字号本身，不能据此推导调用方全部几何运算均为有限值。
 fn normalized_display_px(display_px: f32) -> f32 {
     if display_px.is_finite() {
         display_px.max(1.0)

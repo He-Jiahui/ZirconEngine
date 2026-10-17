@@ -33,6 +33,7 @@ pub(super) struct ResourceAuthority {
     pub(super) payloads: ResourcePayloadMap,
     pub(super) runtime: ResourceRuntimeMap,
     pub(super) readiness: ResourceReadinessProjection,
+    pub(super) active: Arc<crate::ResourceActiveGeneration>,
 }
 
 impl ResourceAuthority {
@@ -193,17 +194,24 @@ impl Deref for ResourceRegistryReadGuard<'_> {
 pub struct ResourceProjectionSnapshot {
     management: Arc<ResourceManagementGeneration>,
     readiness: Arc<ResourceReadinessGeneration>,
+    active: Arc<crate::ResourceActiveGeneration>,
 }
 
 impl ResourceProjectionSnapshot {
     pub(super) fn new(
         management: Arc<ResourceManagementGeneration>,
         readiness: Arc<ResourceReadinessGeneration>,
+        active: Arc<crate::ResourceActiveGeneration>,
     ) -> Self {
         Self {
             management,
             readiness,
+            active,
         }
+    }
+
+    pub fn active(&self) -> &Arc<crate::ResourceActiveGeneration> {
+        &self.active
     }
 
     pub fn management(&self) -> &Arc<ResourceManagementGeneration> {
@@ -253,6 +261,7 @@ impl ResourceManager {
         ResourceProjectionSnapshot::new(
             authority.management.generation(),
             authority.readiness.generation(),
+            Arc::clone(&authority.active),
         )
     }
 

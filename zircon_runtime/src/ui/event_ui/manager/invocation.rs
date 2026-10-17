@@ -8,6 +8,10 @@ use zircon_runtime_interface::ui::event_ui::{
 impl UiEventManager {
     /// 供可信宿主按 route_id 调用；空参数沿用注册绑定的默认参数，而不是显式清空参数。
     /// 此入口不进行节点动作的远程可调用性检查；远程节点动作应通过 call_action。
+    ///
+    /// # 参数与返回
+    /// `route_id` 定位已登记记录；参数向量移入本次调用，返回拥有的成功值或定位/处理器错误。
+    /// 处理器返回后广播调用结果；缺失路由或缺失执行处理器的早退不广播。
     pub fn invoke_route(
         &self,
         route_id: UiRouteId,
@@ -16,6 +20,14 @@ impl UiEventManager {
         self.invoke_route_internal(route_id, arguments, UiInvocationSource::Route)
     }
 
+    /// 按传入绑定的原生路由键定位路由，并消费本次绑定中的参数。
+    ///
+    /// # 参数与返回
+    /// `binding` 由本次调用拥有；查找成功后参数向量转交调用上下文。
+    /// 找不到键时返回带原绑定的失败；成功定位后返回同一路由执行入口的结果。
+    ///
+    /// # 约束
+    /// 传入参数为空时沿用注册绑定的默认参数；此入口不查询节点的远程动作权限。
     pub fn invoke_binding(&self, mut binding: UiEventBinding) -> UiInvocationResult {
         let key = binding.native_binding();
         let Some(route_id) = self.routes_by_binding.get(&key).copied() else {
@@ -30,6 +42,11 @@ impl UiEventManager {
     }
 
     /// 先验证反射节点动作的远程权限和路由，再进入同一处理器；只有已发布的可调用动作能走此路径。
+    ///
+    /// # 参数与返回
+    /// `node_path` 和 `action_id` 定位快照中已发布的动作；参数向量移入后续调用。
+    /// 节点、动作、权限或路由描述缺失时返回失败，均不会执行处理器。
+    /// 空参数仍沿用注册绑定的默认值；通过前置检查不保证处理器本身成功。
     pub fn call_action(
         &self,
         node_path: UiNodePath,
@@ -83,6 +100,11 @@ impl UiEventManager {
         )
     }
 
+    /// 消费一个控制请求，返回对应的查询、调用、确认或订阅编号应答。
+    ///
+    /// 查询和属性设置作用于管理器保存的快照；处理器调用沿用各入口的检查。
+    /// 注册为宿主动作的路由须由宿主请求层接管；本方法不会找到该宿主的分派器。
+    /// 通知接收端应通过 [`Self::subscribe`] 交付并持有；这里的订阅应答只含编号。
     pub fn handle_request(&mut self, request: UiControlRequest) -> UiControlResponse {
         match request {
             UiControlRequest::InvokeBinding { binding } => {
@@ -134,6 +156,7 @@ impl UiEventManager {
         }
     }
 
+    // 统一选择默认参数和调用来源；只有实际处理器返回后的路径才形成广播结果。
     fn invoke_route_internal(
         &self,
         route_id: UiRouteId,
@@ -187,6 +210,7 @@ impl UiEventManager {
     }
 }
 
+// 转交参数向量的原分配并清空原槽；无动作时返回空向量，由调用入口决定默认参数。
 fn take_binding_arguments(binding: &mut UiEventBinding) -> Vec<UiBindingValue> {
     binding
         .action

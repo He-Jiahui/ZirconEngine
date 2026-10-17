@@ -130,8 +130,7 @@ fn mesh_pipeline_cache_hits_precede_variant_and_shader_projection() {
 #[test]
 fn gbuffer_pipeline_consumer_uses_typed_admission_without_frame_path_expect() {
     let cache = include_str!("../../../../mesh/mesh_pipeline_cache/ensure_gbuffer_pipeline.rs");
-    let consumer =
-        include_str!("../../../deferred/resources/record_gbuffer_geometry.rs");
+    let consumer = include_str!("../../../deferred/resources/record_gbuffer_geometry.rs");
 
     assert!(cache.contains("gbuffer_variant_admission_for_command_variant"));
     assert!(cache.contains("ensure_gbuffer_pipeline_admission_for_variant"));

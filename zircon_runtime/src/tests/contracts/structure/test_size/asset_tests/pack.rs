@@ -10,12 +10,12 @@ fn runtime_15_asset_pack_tests_are_folder_backed() {
     let delta_pack = read_runtime_src("asset/tests/pack/delta_pack.rs");
     let delta_installer = read_runtime_src("asset/tests/pack/delta_installer.rs");
     let trim = read_runtime_src("asset/tests/pack/trim.rs");
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert_contains_all(
         "asset pack parent test module mounts",
@@ -159,11 +159,11 @@ fn runtime_15_asset_pack_tests_are_folder_backed() {
 fn runtime_15_asset_pack_header_readers_are_panic_free() {
     let reader = read_runtime_src("asset/pack/reader.rs");
     let delta = read_runtime_src("asset/pack/delta.rs");
-    let pack_doc = read_repo("docs/zircon_runtime/asset/pack.md");
-    let runtime_15_plan =
+    let _pack_doc = read_repo("docs/zircon_runtime/asset/pack.md");
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
 
     assert_contains_all(
         "asset pack reader owns typed header helpers",

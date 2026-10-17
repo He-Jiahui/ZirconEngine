@@ -1,9 +1,8 @@
 //! 通知弹层尺寸消费共享density定义，避免私有像素边界。
 const EDITOR_TOKENS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
-const NOTIFICATION_CENTER_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/workbench/feedback/notification_center.zui"
-);
+const NOTIFICATION_CENTER_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/workbench/feedback/notification_center.zui");
 
 #[test]
 /// 消费端引用和主题端定义同时成立；此处不创建通知或验证消息生命周期。

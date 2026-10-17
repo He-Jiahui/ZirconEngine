@@ -17,6 +17,8 @@ use super::ObserverId;
 #[derive(Default)]
 pub struct ObserverStore {
     next_id: u64,
+    retention_owner_v1: Arc<()>,
+    retention_epoch_v1: u64,
     lifecycle_buckets: HashMap<LifecycleObserverKey, Arc<Vec<LifecycleObserver>>>,
     event_buckets: HashMap<TypeId, Arc<Vec<EventObserver>>>,
     entity_event_buckets: HashMap<EntityEventObserverKey, Arc<Vec<EntityEventObserver>>>,
@@ -26,7 +28,7 @@ pub struct ObserverStore {
 
 pub(crate) struct DetachedEntityObservers {
     entity: EntityId,
-    event_types: HashSet<TypeId>,
+    event_types: Vec<TypeId>,
     buckets: Vec<(EntityEventObserverKey, Arc<Vec<EntityEventObserver>>)>,
 }
 
@@ -35,13 +37,13 @@ impl ObserverStore {
         &mut self,
         kind: LifecycleEventKind,
         component_id: ComponentId,
-        callback: impl Fn(&mut World, &ComponentLifecycleEvent) + Send + Sync + 'static,
+        callback: crate::core::framework::retained_memory::RetainedLifecycleObserverV1,
     ) -> ObserverId {
         let id = self.allocate_id();
         let key = (kind, component_id);
         let observer = LifecycleObserver {
             id,
-            callback: Arc::new(callback),
+            callback: callback.into_owner(),
         };
         insert_observer_into_bucket(self.lifecycle_buckets.entry(key).or_default(), id, observer);
         self.observer_locations
@@ -79,7 +81,7 @@ impl ObserverStore {
     pub fn observe_entity_event<E>(
         &mut self,
         entity: EntityId,
-        callback: impl Fn(&mut World, EntityId, &E) + Send + Sync + 'static,
+        callback: crate::core::framework::retained_memory::RetainedEntityObserverV1<E>,
     ) -> ObserverId
     where
         E: 'static + Send + Sync,
@@ -88,11 +90,7 @@ impl ObserverStore {
         let key = (TypeId::of::<E>(), entity);
         let observer = EntityEventObserver {
             id,
-            callback: Arc::new(move |world, entity, event| {
-                if let Some(event) = event.downcast_ref::<E>() {
-                    callback(world, entity, event);
-                }
-            }),
+            callback: callback.into_owner(),
         };
         insert_observer_into_bucket(
             self.entity_event_buckets.entry(key).or_default(),
@@ -112,6 +110,7 @@ impl ObserverStore {
         let Some(location) = self.observer_locations.get(&id).copied() else {
             return Err(SceneError::MissingObserver { observer: id });
         };
+        self.bump_retention_epoch_v1();
         let removed = match location {
             ObserverBucket::Lifecycle(key) => self.remove_lifecycle_observer(key, id),
             ObserverBucket::Event(event_type) => self.remove_event_observer(event_type, id),
@@ -155,6 +154,9 @@ impl ObserverStore {
     }
 
     pub(crate) fn remove_entity_observers(&mut self, entity: EntityId) {
+        if self.entity_event_types_by_entity.contains_key(&entity) {
+            self.bump_retention_epoch_v1();
+        }
         let Some(event_types) = self.entity_event_types_by_entity.remove(&entity) else {
             return;
         };
@@ -170,10 +172,16 @@ impl ObserverStore {
     }
 
     pub(crate) fn detach_entity_observers(&mut self, entity: EntityId) -> DetachedEntityObservers {
+        if self.entity_event_types_by_entity.contains_key(&entity) {
+            self.bump_retention_epoch_v1();
+        }
         let event_types = self
             .entity_event_types_by_entity
             .remove(&entity)
             .unwrap_or_default();
+        let mut retained_types = Vec::with_capacity(event_types.len());
+        retained_types.extend(event_types);
+        let event_types = retained_types;
         let mut buckets = Vec::with_capacity(event_types.len());
         for event_type in &event_types {
             let key = (*event_type, entity);
@@ -199,9 +207,10 @@ impl ObserverStore {
         if detached.event_types.is_empty() {
             return;
         }
+        self.bump_retention_epoch_v1();
         let previous = self
             .entity_event_types_by_entity
-            .insert(detached.entity, detached.event_types);
+            .insert(detached.entity, detached.event_types.into_iter().collect());
         debug_assert!(previous.is_none());
         for (key, bucket) in detached.buckets {
             for observer in bucket.iter() {
@@ -270,9 +279,21 @@ impl ObserverStore {
         }
     }
 
+    fn bump_retention_epoch_v1(&mut self) {
+        self.retention_epoch_v1 = self
+            .retention_epoch_v1
+            .checked_add(1)
+            .expect("observer registry epoch exhausted before mutation");
+    }
+
     fn allocate_id(&mut self) -> ObserverId {
+        let next = self
+            .next_id
+            .checked_add(1)
+            .expect("observer identity exhausted before mutation");
+        self.bump_retention_epoch_v1();
         let id = ObserverId::new(self.next_id);
-        self.next_id += 1;
+        self.next_id = next;
         id
     }
 }
@@ -306,5 +327,68 @@ impl Clone for ObserverStore {
 impl PartialEq for ObserverStore {
     fn eq(&self, _other: &Self) -> bool {
         true
+    }
+}
+
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for DetachedEntityObservers {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        use zircon_runtime_interface::retained_memory::RetainedOwnerV1;
+        m.array::<TypeId>(self.event_types.capacity())?;
+        m.array::<(EntityEventObserverKey, Arc<Vec<EntityEventObserver>>)>(
+            self.buckets.capacity(),
+        )?;
+        m.items(self.buckets.len())?;
+        for (_, bucket) in &self.buckets {
+            bucket.retained_bound_v1(m)?;
+        }
+        Ok(())
+    }
+}
+impl ObserverStore {
+    pub(crate) fn retained_entity_bound_v1(
+        &self,
+        entity: EntityId,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        use zircon_runtime_interface::retained_memory::RetainedOwnerV1;
+        let types = self.entity_event_types_by_entity.get(&entity);
+        let len = types.map_or(0, HashSet::len);
+        m.array::<TypeId>(len)?;
+        m.array::<(EntityEventObserverKey, Arc<Vec<EntityEventObserver>>)>(len)?;
+        m.items(len)?;
+        if let Some(types) = types {
+            for event_type in types {
+                if let Some(bucket) = self.entity_event_buckets.get(&(*event_type, entity)) {
+                    bucket.retained_bound_v1(m)?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+impl ObserverStore {
+    pub(crate) fn create_owner_v1(&self) -> &Arc<()> {
+        &self.retention_owner_v1
+    }
+    pub(crate) fn create_epoch_v1(&self) -> u64 {
+        self.retention_epoch_v1
+    }
+    pub(crate) fn create_effects_v1(
+        &self,
+        world: &World,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        m.items(self.lifecycle_buckets.len())?;
+        for bucket in self.lifecycle_buckets.values() {
+            m.items(bucket.len())?;
+            for observer in bucket.iter() {
+                observer.callback.effects(world, m)?;
+            }
+        }
+        Ok(())
     }
 }

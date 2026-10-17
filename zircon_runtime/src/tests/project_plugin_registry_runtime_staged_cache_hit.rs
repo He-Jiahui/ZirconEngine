@@ -6,9 +6,8 @@ const STATUS: &str =
 
 #[test]
 fn runtime_15_shader_prewarm_project_plugin_registry_runtime_staged_cache_hit_is_wired() {
-    let ensure_pipeline = read_repo(
-        "zircon_runtime/src/graphics/scene/renderer/mesh/ensure_pipeline/tests/cases.rs",
-    );
+    let ensure_pipeline =
+        read_repo("zircon_runtime/src/graphics/scene/renderer/mesh/ensure_pipeline/tests/cases.rs");
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );

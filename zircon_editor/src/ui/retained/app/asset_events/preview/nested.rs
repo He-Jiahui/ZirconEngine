@@ -13,14 +13,19 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "preview.mock.nested.value.set" => self.editor_manager
+            "preview.mock.nested.value.set" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
-                    manager.set_ui_asset_editor_selected_preview_mock_nested_value(&instance_id, nested_key)
+                    manager.set_ui_asset_editor_selected_preview_mock_nested_value(
+                        &instance_id,
+                        nested_key,
+                    )
                 })
                 .map(|_| ()),
-            "preview.mock.nested.upsert" => self.editor_manager
+            "preview.mock.nested.upsert" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
@@ -31,7 +36,8 @@ impl RetainedEditorHost {
                     )
                 })
                 .map(|_| ()),
-            "preview.mock.nested.delete" => self.editor_manager
+            "preview.mock.nested.delete" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {

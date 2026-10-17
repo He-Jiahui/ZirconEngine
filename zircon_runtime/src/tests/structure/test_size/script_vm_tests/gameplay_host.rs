@@ -8,13 +8,13 @@ pub(super) fn assert_gameplay_host_tests_are_folder_backed() {
     let combat_lifecycle = read_runtime_src("script/vm/gameplay_host/tests/combat_lifecycle.rs");
     let property_animation =
         read_runtime_src("script/vm/gameplay_host/tests/property_animation.rs");
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let gameplay_doc = read_repo("docs/zircon_runtime/script/vm/gameplay_host.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _gameplay_doc = read_repo("docs/zircon_runtime/script/vm/gameplay_host.md");
 
     assert_contains_all(
         "gameplay host parent test module mounts child owners",

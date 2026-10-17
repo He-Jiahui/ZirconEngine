@@ -39,7 +39,8 @@ fn animation_sequence_binding_marks_active_sequence_editor_dirty_and_updates_ses
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")
@@ -105,7 +106,8 @@ fn animation_sequence_ignores_timeline_selection_for_missing_track() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")
@@ -187,7 +189,8 @@ fn animation_sequence_removing_selected_track_clears_selection_summary() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")

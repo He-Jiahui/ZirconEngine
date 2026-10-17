@@ -17,16 +17,23 @@ pub enum UiScrollbarVisibility {
     Auto,
 }
 
+/// Runtime 布局更新使用的滚动几何值；更新计划会把偏移限制在内容可滚范围内，此类型本身只保存数据。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiScrollState {
+    /// 沿配置滚动轴的当前内容起点；更新时按内容与视口范围钳制。
     pub offset: f32,
+    /// 视口沿滚动轴可显示的长度。
     pub viewport_extent: f32,
+    /// 滚动内容沿滚动轴的总长度。
     pub content_extent: f32,
 }
 
+/// 固定尺寸虚拟列表配置；Runtime 将 item_extent 与容器 gap 合成步长，并按 overscan 扩展逻辑窗口。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiVirtualListConfig {
+    /// 每个逻辑项沿滚动轴的固定长度。
     pub item_extent: f32,
+    /// 可视窗口前后额外保留的逻辑项数量。
     pub overscan: usize,
 }
 

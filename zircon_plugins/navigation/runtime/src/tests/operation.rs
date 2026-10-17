@@ -307,3 +307,66 @@ fn run_operation(
         .unwrap()
         .clone()
 }
+
+#[test]
+fn budgeted_navigation_refuses_oversize_before_owner_publication() {
+    use zircon_runtime::core::framework::navigation::{
+        NavigationHistoryBudgetV1, NavigationHistoryRequestV1, NAVIGATION_HISTORY_BAKE_SCENE_V1,
+    };
+    let runtime = CoreRuntime::new();
+    runtime.register_module(TasksModule.descriptor()).unwrap();
+    runtime.register_module(AssetModule.descriptor()).unwrap();
+    runtime.activate_module(ASSET_MODULE_NAME).unwrap();
+    runtime.register_module(module_descriptor()).unwrap();
+    let core = runtime.handle();
+    let manager = core
+        .resolve_driver::<DefaultNavigationManager>(crate::DEFAULT_NAVIGATION_RUNTIME_DRIVER_NAME)
+        .unwrap();
+    let mut service = RuntimeOperationService::new();
+    register_navigation_operation_handlers(&mut service).unwrap();
+    let mut world = World::empty();
+    for descriptor in navigation_component_descriptors() {
+        world.register_component_type(descriptor).unwrap();
+    }
+    let surface = world.spawn_node(NodeKind::Empty).unwrap();
+    world.spawn_node(NodeKind::Cube).unwrap();
+    world
+        .set_dynamic_component(
+            surface,
+            NAV_MESH_SURFACE_COMPONENT_TYPE,
+            json!({"volume_size":[8.0,4.0,8.0]}),
+        )
+        .unwrap();
+    let level =
+        zircon_runtime::scene::create_level(&core, world, LevelMetadata::default()).unwrap();
+    let before = manager.generated_bake_snapshot(Some(surface));
+    let loaded = manager.loaded_assets();
+    let epoch = manager.generated_bake_mutation_epoch(Some(surface));
+    let output = run_operation(
+        &service,
+        &core,
+        &level,
+        ZrRuntimeOperationSubmitRequestV1::new(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            NAVIGATION_HISTORY_BAKE_SCENE_V1,
+            serde_json::to_value(NavigationHistoryRequestV1 {
+                budget: NavigationHistoryBudgetV1 {
+                    version: 1,
+                    retained_bytes: 1,
+                    peak_bytes: 8,
+                },
+                payload: serde_json::to_value(NavMeshBakeRequest::default()).unwrap(),
+            })
+            .unwrap(),
+        ),
+    );
+    assert_eq!(output["_history_retention_v1"]["version"], 1);
+    assert_eq!(output["_history_retention_v1"]["accepted"], false);
+    assert_eq!(
+        output["_history_retention_v1"]["reason"],
+        "prepublication_admission"
+    );
+    assert_eq!(manager.generated_bake_snapshot(Some(surface)), before);
+    assert_eq!(manager.loaded_assets(), loaded);
+    assert_eq!(manager.generated_bake_mutation_epoch(Some(surface)), epoch);
+}

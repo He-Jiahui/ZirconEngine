@@ -14,7 +14,7 @@ impl DefaultEditorAssetManager {
     /// Runtime remains responsible for import and registry publication. This method only makes
     /// current editor rows stale immediately, then the ordinary Runtime refresh replaces those
     /// rows with the committed authoritative generation.
-    pub fn project_runtime_asset_changes(&self, changes: &[AssetChange]) {
+    pub fn project_runtime_asset_changes(&self, changes: &[std::sync::Arc<AssetChange>]) {
         zircon_runtime::profile_scope!("editor", "asset_catalog", "watch_projection");
         let watch_events = asset_watch_events(changes);
         if watch_events.is_empty() {
@@ -90,20 +90,23 @@ impl DefaultEditorAssetManager {
     }
 }
 
-fn asset_watch_events(changes: &[AssetChange]) -> Vec<AssetWatchEvent> {
+fn asset_watch_events<T: std::borrow::Borrow<AssetChange>>(changes: &[T]) -> Vec<AssetWatchEvent> {
     changes
         .iter()
-        .map(|change| match &change.kind {
-            AssetChangeKind::Added => AssetWatchEvent::Added(change.uri.clone()),
-            AssetChangeKind::Modified => AssetWatchEvent::Modified(change.uri.clone()),
-            AssetChangeKind::Removed => AssetWatchEvent::Removed(change.uri.clone()),
-            AssetChangeKind::Renamed => match change.previous_uri.as_ref() {
-                Some(previous_uri) => AssetWatchEvent::Renamed {
-                    from: previous_uri.clone(),
-                    to: change.uri.clone(),
+        .map(|change| {
+            let change = change.borrow();
+            match &change.kind {
+                AssetChangeKind::Added => AssetWatchEvent::Added(change.uri.clone()),
+                AssetChangeKind::Modified => AssetWatchEvent::Modified(change.uri.clone()),
+                AssetChangeKind::Removed => AssetWatchEvent::Removed(change.uri.clone()),
+                AssetChangeKind::Renamed => match change.previous_uri.as_ref() {
+                    Some(previous_uri) => AssetWatchEvent::Renamed {
+                        from: previous_uri.clone(),
+                        to: change.uri.clone(),
+                    },
+                    None => AssetWatchEvent::Added(change.uri.clone()),
                 },
-                None => AssetWatchEvent::Added(change.uri.clone()),
-            },
+            }
         })
         .collect()
 }

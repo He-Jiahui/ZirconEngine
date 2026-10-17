@@ -260,3 +260,27 @@ impl RenderFeatureDescriptor {
 #[cfg(test)]
 #[path = "tests/construct.rs"]
 mod tests;
+
+impl RenderFeatureDescriptor {
+    /// Extends the enabled graphics executors with an indirect read and an
+    /// ordered storage journal. The compiler resolves the actual pass names
+    /// and versions; absent optional executors do not manufacture passes.
+    pub fn with_ordered_buffer_replay(
+        mut self,
+        target_executor_ids: Vec<String>,
+        initial_producer: impl Into<String>,
+        terminal_consumer: impl Into<String>,
+        indirect: RenderFeatureResourceDescriptor,
+        journal: RenderFeatureResourceDescriptor,
+    ) -> Self {
+        self.pass_resource_extensions
+            .push(RenderFeatureGraphMutation::OrderedBufferReplay {
+                target_executor_ids,
+                initial_producer: initial_producer.into(),
+                terminal_consumer: terminal_consumer.into(),
+                indirect,
+                journal,
+            });
+        self
+    }
+}

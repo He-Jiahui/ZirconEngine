@@ -72,7 +72,7 @@ fn persistent_entity_core_components_use_generic_storage_across_clone_serde_and_
         .iter(&world)
         .map(|(entity, _, _, _, _)| entity)
         .collect::<Vec<_>>();
-    assert_eq!(rows, vec![entity]);
+    assert_eq!(rows, vec![parent, entity]);
 }
 
 #[test]
@@ -85,7 +85,8 @@ fn persistent_entity_core_components_do_not_retain_world_map_owners() {
             .join("world")
             .join("world.rs"),
     )
-    .expect("read World storage owner source");
+    .expect("read World storage owner source")
+    .replace("\r\n", "\n");
     let fixed_components_source = std::fs::read_to_string(
         manifest_root
             .join("src")
@@ -96,6 +97,17 @@ fn persistent_entity_core_components_do_not_retain_world_map_owners() {
     )
     .expect("read fixed component adapter source");
 
+    let world_owner = world_source
+        .split_once("pub struct World {")
+        .and_then(|(_, text)| text.split_once("\n}"))
+        .map(|(fields, _)| fields)
+        .expect("read live World owner fields");
+    let persistent_state = world_source
+        .split_once("pub(super) struct WorldPersistentState {")
+        .and_then(|(_, text)| text.split_once("\n}"))
+        .map(|(fields, _)| fields)
+        .expect("read persisted compatibility state");
+
     for retired_owner in [
         "pub(super) names:",
         "pub(super) hierarchy:",
@@ -103,8 +115,14 @@ fn persistent_entity_core_components_do_not_retain_world_map_owners() {
         "pub(super) active_self:",
     ] {
         assert!(
-            !world_source.contains(retired_owner),
+            !world_owner.contains(retired_owner),
             "World must not retain the retired entity-core map owner: {retired_owner}"
+        );
+    }
+    for persisted_field in ["names:", "hierarchy:", "local_transforms:", "active_self:"] {
+        assert!(
+            persistent_state.contains(persisted_field),
+            "serialized compatibility state must retain its persisted entity-core field: {persisted_field}"
         );
     }
     for retired_adapter in [
@@ -119,7 +137,7 @@ fn persistent_entity_core_components_do_not_retain_world_map_owners() {
         );
     }
     assert!(
-        world_source.contains("persistent_entity_core_component_snapshot"),
+        fixed_components_source.contains("persistent_entity_core_component_snapshot"),
         "World persistence must project entity-core values from generic component storage"
     );
 }

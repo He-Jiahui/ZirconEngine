@@ -26,6 +26,7 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     let load_report_source = include_str!("../../load_report.rs");
     let load_report_diagnostics_source = include_str!("../../load_report/diagnostics.rs");
     let load_report_report_source = include_str!("../../load_report/report.rs");
+    let composition_outcome_source = include_str!("../../composition/outcome.rs");
     let target_mode_source =
         include_str!("../../../../core/framework/platform/runtime_target_mode.rs");
     let target_modules_source = include_str!("../../assembly/target_modules.rs");
@@ -210,7 +211,7 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(!load_report_report_source.contains("pub warnings: Vec<String>"));
     assert!(!load_report_report_source.contains("pub errors: Vec<String>"));
     assert!(!load_report_report_source.contains("required_missing:"));
-    assert!(load_report_diagnostics_source.contains("required_missing_summary"));
+    assert!(composition_outcome_source.contains("required_missing_summary"));
     assert!(load_report_diagnostics_source.contains("fatal_messages"));
     assert!(load_report_diagnostics_source.contains("warning_messages"));
     assert!(!load_report_diagnostics_source.contains("effective_required_missing"));
@@ -259,11 +260,22 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(!assembly_source.contains("minimal_profile_runtime_modules"));
     assert!(!assembly_source.contains("runtime_profile_availability"));
     assert!(!assembly_source.contains("runtime_profile_manifest_availability"));
-    assert!(!assembly_source.contains("RuntimeProfileDescriptor"));
+    assert!(assembly_source.contains("RuntimeProfileDescriptor::for_id(profile_id).target_mode"));
     assert!(!assembly_source.contains("RuntimeModuleRegistrationInputs::empty"));
     assert!(!registration_inputs_source.contains("RuntimeTargetMode"));
     assert!(!registration_inputs_source.contains("project_selection.supports_target"));
-    assert!(!registration_inputs_source.contains("RuntimeExtensionRegistry"));
+    let extension_registry_adapter = registration_inputs_source
+        .split_once("pub(super) fn registration_inputs_for_extension_registry(")
+        .and_then(|(_, source)| {
+            source.split_once("pub(super) fn registration_inputs_for_plugin_and_feature_reports(")
+        })
+        .map(|(adapter, _)| adapter)
+        .expect("read extension-registry registration adapter");
+    assert!(extension_registry_adapter.contains("registry: &RuntimeExtensionRegistry"));
+    assert!(extension_registry_adapter
+        .contains("RuntimeModuleRegistrationInputs::from_extension_inputs("));
+    assert!(extension_registry_adapter
+        .contains("extension_inputs_from_extension_registries([registry])"));
     assert!(!registration_inputs_source.contains("asset_importers_from_extension_registries"));
     assert!(!registration_inputs_source.contains("collect_render_features"));
     assert!(!registration_inputs_source.contains("collect_shading_models"));

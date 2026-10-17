@@ -1,11 +1,15 @@
+#[cfg(feature = "native-host")]
 use std::fs::File;
+#[cfg(feature = "native-host")]
 use std::io::Read;
 use std::mem::size_of;
 use std::path::{Path, PathBuf};
 
 use zr_rhi::{RenderAdapterFacts, RenderBackendKind};
 
+#[cfg(feature = "native-host")]
 use crate::core::resource::io::atomic_write;
+#[cfg(feature = "native-host")]
 use crate::graphics::shader::ShaderVariantCacheDisk;
 
 const PIPELINE_CACHE_MAGIC: &[u8; 8] = b"ZRPSOC01";
@@ -44,6 +48,7 @@ pub(crate) const fn pipeline_cache_gate(
 /// adapter-specific key. A missing seed creates a cold cache for the next run.
 pub(crate) struct RuntimePipelineCache {
     cache: Option<wgpu::PipelineCache>,
+    #[cfg(feature = "native-host")]
     path: Option<PathBuf>,
 }
 
@@ -51,10 +56,12 @@ impl RuntimePipelineCache {
     pub(crate) const fn disabled() -> Self {
         Self {
             cache: None,
+            #[cfg(feature = "native-host")]
             path: None,
         }
     }
 
+    #[cfg(feature = "native-host")]
     pub(crate) fn new(
         device: &wgpu::Device,
         adapter_facts: &RenderAdapterFacts,
@@ -99,6 +106,7 @@ impl RuntimePipelineCache {
         self.cache.as_ref()
     }
 
+    #[cfg(feature = "native-host")]
     fn persist(&self) -> std::io::Result<()> {
         let (Some(cache), Some(path)) = (&self.cache, &self.path) else {
             return Ok(());
@@ -126,6 +134,7 @@ fn pipeline_cache_key_from_ids(
         .then(|| format!("wgpu_pipeline_cache_vulkan_{vendor_id}_{device_id}"))
 }
 
+#[cfg(feature = "native-host")]
 impl Drop for RuntimePipelineCache {
     fn drop(&mut self) {
         let _ = self.persist();
@@ -141,10 +150,12 @@ fn encode_pipeline_cache_seed(data: &[u8]) -> Vec<u8> {
     encoded
 }
 
+#[cfg(feature = "native-host")]
 fn read_pipeline_cache_seed(path: &Path) -> Option<Vec<u8>> {
     read_pipeline_cache_seed_with_limit(path, MAX_PIPELINE_CACHE_SEED_BYTES)
 }
 
+#[cfg(feature = "native-host")]
 fn read_pipeline_cache_seed_with_limit(path: &Path, max_seed_bytes: usize) -> Option<Vec<u8>> {
     let max_encoded_bytes = PIPELINE_CACHE_HEADER_BYTES.checked_add(max_seed_bytes)?;
     let read_limit = max_encoded_bytes.checked_add(1)?;

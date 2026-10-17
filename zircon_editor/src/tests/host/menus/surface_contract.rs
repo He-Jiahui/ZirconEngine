@@ -6,8 +6,7 @@ fn source(relative: &str) -> String {
 #[test]
 fn shared_menu_pointer_layout_sync_replaces_direct_menu_button_frame_getters() {
     let pointer_layout = source("src/ui/retained/app/pointer_layout/menu.rs");
-    let pointer_builder =
-        source("src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs");
+    let pointer_builder = source("src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs");
     let menu_sync = pointer_layout
         .split("fn sync_menu_pointer_layout")
         .nth(1)
@@ -37,10 +36,8 @@ fn shared_menu_pointer_layout_sync_replaces_direct_menu_button_frame_getters() {
 #[test]
 fn shared_menu_pointer_layout_keeps_outer_shell_owner_contract() {
     let pointer_layout = source("src/ui/retained/app/pointer_layout/menu.rs");
-    let pointer_builder =
-        source("src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs");
-    let workbench_bridge =
-        source("src/ui/retained/dispatch/templates/workbench/bridge.rs");
+    let pointer_builder = source("src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs");
+    let workbench_bridge = source("src/ui/retained/dispatch/templates/workbench/bridge.rs");
     let workbench_layout_frames =
         source("src/ui/retained/dispatch/templates/workbench/layout_frames.rs");
     let menu_sync = pointer_layout
@@ -63,19 +60,12 @@ fn shared_menu_pointer_layout_keeps_outer_shell_owner_contract() {
 
 #[test]
 fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
-    let host_components =
-        source("src/ui/retained/contract/data/host_components/menus.rs");
-    let host_interaction =
-        source("src/ui/retained/contract/data/host_interaction/menu.rs");
-    let pointer_builder =
-        source("src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs");
-    let chrome_projection =
-        source("src/ui/layouts/windows/window/projection.rs");
-    let menu_chrome = source(
-        "src/ui/layouts/windows/window/projection/menu_chrome.rs",
-    );
-    let scene_projection =
-        source("src/ui/layouts/windows/window/scene_projection.rs");
+    let host_components = source("src/ui/retained/contract/data/host_components/menus.rs");
+    let host_interaction = source("src/ui/retained/contract/data/host_interaction/menu.rs");
+    let pointer_builder = source("src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs");
+    let chrome_projection = source("src/ui/layouts/windows/window/projection.rs");
+    let menu_chrome = source("src/ui/layouts/windows/window/projection/menu_chrome.rs");
+    let scene_projection = source("src/ui/layouts/windows/window/scene_projection.rs");
     let menu_asset = source("assets/ui/editor/unreal/components/host_menu_bar.zui");
     let popup_asset = source("assets/ui/editor/workbench_menu_popup.zui");
 
@@ -112,11 +102,8 @@ fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
 
 #[test]
 fn menu_popup_projection_mutes_disabled_item_labels() {
-    let chrome_projection =
-        source("src/ui/layouts/windows/window/projection.rs");
-    let menu_chrome = source(
-        "src/ui/layouts/windows/window/projection/menu_chrome.rs",
-    );
+    let chrome_projection = source("src/ui/layouts/windows/window/projection.rs");
+    let menu_chrome = source("src/ui/layouts/windows/window/projection/menu_chrome.rs");
 
     assert!(chrome_projection.contains("mod menu_chrome;"));
 
@@ -135,12 +122,9 @@ fn menu_popup_projection_mutes_disabled_item_labels() {
 #[test]
 fn menu_pointer_bridge_uses_route_intent_only() {
     let bridge = source("src/ui/retained/menu_pointer/host_menu_pointer_bridge.rs");
-    let rebuild =
-        source("src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs");
-    let dispatch =
-        source("src/ui/menu_pointer/host_menu_pointer_bridge_dispatch_event.rs");
-    let route_payload =
-        source("src/ui/retained/menu_pointer/host_menu_pointer_route_intent.rs");
+    let rebuild = source("src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs");
+    let dispatch = source("src/ui/menu_pointer/host_menu_pointer_bridge_dispatch_event.rs");
+    let route_payload = source("src/ui/retained/menu_pointer/host_menu_pointer_route_intent.rs");
 
     assert!(bridge.contains("route_intents: EditorRouteIntentMap"));
     assert!(rebuild.contains("EditorRouteIntent::Menu"));
@@ -165,8 +149,7 @@ fn menu_pointer_bridge_uses_route_intent_only() {
 #[test]
 fn menu_pointer_reuses_the_committed_item_tree() {
     let items = source("src/ui/retained/menu_pointer/menu_items_for_layout.rs");
-    let rebuild =
-        source("src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs");
+    let rebuild = source("src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs");
 
     assert!(items.contains("Cow<'a, [MenuItemSpec]>"));
     for forbidden in ["root_items.clone()", "branch_item.children.clone()"] {
@@ -179,12 +162,9 @@ fn menu_pointer_reuses_the_committed_item_tree() {
 
 #[test]
 fn menu_popup_routes_use_one_surface_per_layer_and_published_item_indices() {
-    let rebuild =
-        source("src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs");
-    let popup_items =
-        source("src/ui/menu_pointer/host_menu_pointer_bridge_popup_items.rs");
-    let route_projection =
-        source("src/ui/menu_pointer/host_menu_pointer_bridge_project_route.rs");
+    let rebuild = source("src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs");
+    let popup_items = source("src/ui/menu_pointer/host_menu_pointer_bridge_popup_items.rs");
+    let route_projection = source("src/ui/menu_pointer/host_menu_pointer_bridge_project_route.rs");
     let item_tree = source("src/ui/retained/menu_pointer/menu_item_tree.rs");
     let behavior = source("src/tests/host/menus/pointer_bridge.rs");
 
@@ -213,8 +193,7 @@ fn menu_popup_routes_use_one_surface_per_layer_and_published_item_indices() {
 
 #[test]
 fn menu_scroll_does_not_clone_the_owned_route_payload() {
-    let scroll =
-        source("src/ui/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs");
+    let scroll = source("src/ui/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs");
 
     assert!(!scroll.contains("route.clone()"));
 }

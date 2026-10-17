@@ -72,7 +72,10 @@ impl RenderPassExecutor for VolumetricLightScatterExecutor {
             viewport_size,
             grid,
             temporal_enabled,
-            temporal_enabled && history.is_some() && previous_camera.is_some(),
+            temporal_enabled
+                && gpu.history_available(SceneHistoryDomain::VolumetricScattering)
+                && history.is_some()
+                && previous_camera.is_some(),
         );
         let output = gpu
             .require_texture_view(

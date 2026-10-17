@@ -24,7 +24,10 @@ fn authored_chrome_assets_use_unreal_starship_typography_baseline() {
     for (source, resource_id) in [
         (menu, "res://ui/editor/unreal/components/host_menu_bar.zui"),
         (page, "res://ui/editor/unreal/components/host_page_tabs.zui"),
-        (status, "res://ui/editor/unreal/components/host_status_bar.zui"),
+        (
+            status,
+            "res://ui/editor/unreal/components/host_status_bar.zui",
+        ),
     ] {
         assert!(source.contains(resource_id));
         assert!(source.contains("res://ui/editor/unreal/starship.zui"));
@@ -35,7 +38,11 @@ fn authored_chrome_assets_use_unreal_starship_typography_baseline() {
     assert_eq!(page.matches(BODY).count(), 3);
     assert_eq!(page.matches(CAPTION).count(), 1);
     assert_eq!(dock.matches("font_size = \"$unreal_font_size\"").count(), 3);
-    assert_eq!(dock.matches("font_size = \"$unreal_font_small_size\"").count(), 1);
+    assert_eq!(
+        dock.matches("font_size = \"$unreal_font_small_size\"")
+            .count(),
+        1
+    );
     assert_eq!(status.matches(CAPTION).count(), 3);
     assert!(status.contains("height = { min = 16.0, preferred = 16.0, max = 16.0"));
 }
@@ -825,7 +832,10 @@ fn authored_unreal_dock_header_measures_captions_and_restores_source_slots() {
         let source = projection.source_frame().expect("real source frame");
         for node in projection.iter() {
             let id = node.surface_node_id.expect("authored native node ID");
-            assert!(source.arranged_tree.get(id).is_some(), "source node must exist");
+            assert!(
+                source.arranged_tree.get(id).is_some(),
+                "source node must exist"
+            );
             let reference = node
                 .surface_render_command_ref
                 .expect("real render command ref");
@@ -877,12 +887,20 @@ fn authored_unreal_dock_header_measures_captions_and_restores_source_slots() {
         "DockTabGroup1",
         "DockTabGroup2",
     ] {
-        assert!(restored.iter().any(|node| node.control_id.as_str() == expected));
+        assert!(restored
+            .iter()
+            .any(|node| node.control_id.as_str() == expected));
     }
     for row in 0..3 {
         let id = format!("DockTabGroup{row}");
-        let before = rows.iter().find(|node| node.control_id.as_str() == id).unwrap();
-        let after = restored.iter().find(|node| node.control_id.as_str() == id).unwrap();
+        let before = rows
+            .iter()
+            .find(|node| node.control_id.as_str() == id)
+            .unwrap();
+        let after = restored
+            .iter()
+            .find(|node| node.control_id.as_str() == id)
+            .unwrap();
         assert_eq!(before.frame, after.frame);
     }
     let native = bottom_dock_header_nodes(&three, &"fyrox_panel".into(), 1000.0, 31.0);

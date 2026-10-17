@@ -30,7 +30,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
     }
 }
 
-fn alert_tone(node: &TemplatePaneNodeData) -> Option<AlertTone> {
+pub(super) fn alert_tone(node: &TemplatePaneNodeData) -> Option<AlertTone> {
     tone_from_key(node.validation_level.as_str())
         .or_else(|| tone_from_key(node.component_variant.as_str()))
         .or_else(|| tone_from_key(node.icon_name.as_str()))

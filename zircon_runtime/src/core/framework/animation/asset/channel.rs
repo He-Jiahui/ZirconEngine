@@ -10,6 +10,12 @@ use crate::core::math::Real;
 #[serde(rename_all = "snake_case")]
 pub enum AnimationInterpolationAsset {
     Step,
+    /// Component-wise cubic Hermite interpolation. Tangents are component derivatives
+    /// per second, scaled by the selected key interval's duration; missing tangents are zero.
+    ///
+    /// Quaternion keys and tangents keep their authored signs and magnitudes. Interpolate
+    /// all four components, then validate and normalize the result. There is no shortest-path
+    /// sign adjustment, unlike quaternion Linear interpolation.
     Hermite,
     Linear,
 }
@@ -22,6 +28,7 @@ pub enum AnimationChannelValueAsset {
     Vec2([Real; 2]),
     Vec3([Real; 3]),
     Vec4([Real; 4]),
+    /// Quaternion components; Hermite tangents hold derivatives, not orientations.
     Quaternion([Real; 4]),
 }
 
@@ -135,7 +142,9 @@ impl<'de> Deserialize<'de> for AnimationChannelValueAsset {
 pub struct AnimationChannelKeyAsset {
     pub time_seconds: Real,
     pub value: AnimationChannelValueAsset,
+    /// Incoming Hermite component derivative per second; None means zero.
     pub in_tangent: Option<AnimationChannelValueAsset>,
+    /// Outgoing Hermite component derivative per second; None means zero.
     pub out_tangent: Option<AnimationChannelValueAsset>,
 }
 

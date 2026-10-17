@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
 use crate::scene::components::{MeshRenderer, Name};
 use crate::scene::ecs::{
     EventReader, EventReaderParam, Local, LocalParam, Query, QueryState, Res, ResParam, Resource,
@@ -251,28 +252,49 @@ fn retained_commit_lifecycle_replacement_cancels_remaining_replay_and_level_publ
         let old_later_calls = Arc::new(AtomicUsize::new(0));
         let fresh_calls = Arc::new(AtomicUsize::new(0));
         let fresh_for_observer = Arc::clone(&fresh_calls);
-        world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |world, _| {
-            first_for_observer.fetch_add(1, Ordering::SeqCst);
-            let mut replacement = World::empty();
-            let fresh = Arc::clone(&fresh_for_observer);
-            replacement.observe_component_lifecycle::<Name>(
-                LifecycleEventKind::Add,
-                move |_, _| {
-                    fresh.fetch_add(1, Ordering::SeqCst);
-                },
-            );
-            replacement.commands().queue_fn(|world| {
-                world.spawn_node(NodeKind::Empty).unwrap();
-            });
-            *retained_for_observer.lock().unwrap() = Some(std::mem::replace(world, replacement));
-            if panic_after_replacement {
-                panic!("original retained lifecycle panic");
-            }
-        });
+        world.observe_component_lifecycle::<Name>(
+            LifecycleEventKind::Add,
+            // SAFETY: This callback retires the original World. Its fresh observer and
+            // queued spawn belong to the replacement owner; replay is interrupted before
+            // any replacement payload can be adopted by the original history operation.
+            unsafe {
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, _| {
+                    first_for_observer.fetch_add(1, Ordering::SeqCst);
+                    let mut replacement = World::empty();
+                    let fresh = Arc::clone(&fresh_for_observer);
+                    replacement.observe_component_lifecycle::<Name>(
+                        LifecycleEventKind::Add,
+                        // SAFETY: Only a World-external atomic counter changes; no component,
+                        // dynamic presence, recursive dispatch or producer is added.
+                        unsafe {
+                            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                                move |_, _| {
+                                    fresh.fetch_add(1, Ordering::SeqCst);
+                                },
+                            )
+                        },
+                    );
+                    replacement.commands().queue_fn(|world| {
+                        world.spawn_node(NodeKind::Empty).unwrap();
+                    });
+                    *retained_for_observer.lock().unwrap() =
+                        Some(std::mem::replace(world, replacement));
+                    if panic_after_replacement {
+                        panic!("original retained lifecycle panic");
+                    }
+                })
+            },
+        );
         let later = Arc::clone(&old_later_calls);
-        world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |_, _| {
-            later.fetch_add(1, Ordering::SeqCst);
-        });
+        world.observe_component_lifecycle::<Name>(
+            LifecycleEventKind::Add,
+            // SAFETY: This only records an external atomic observation, with no World writes.
+            unsafe {
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                    later.fetch_add(1, Ordering::SeqCst);
+                })
+            },
+        );
         let level =
             crate::scene::DefaultLevelManager::default().create_level(world, Default::default());
         let _watch = level.watch_world(WatchRegistration::new(WatchKey::WorldStructure));
@@ -336,10 +358,12 @@ fn retained_commit_lifecycle_replacement_cancels_remaining_replay_and_level_publ
 
 #[derive(Debug)]
 struct ReplayFirstComponent;
+zircon_runtime_interface::impl_retained_owner_v1!(ReplayFirstComponent {});
 impl crate::scene::ecs::Component for ReplayFirstComponent {}
 
 #[derive(Debug)]
 struct ReplaySecondComponent;
+zircon_runtime_interface::impl_retained_owner_v1!(ReplaySecondComponent {});
 impl crate::scene::ecs::Component for ReplaySecondComponent {}
 
 #[test]
@@ -356,17 +380,29 @@ fn direct_spawn_lifecycle_replay_keeps_valid_registration_pending_through_later_
         let plan = Arc::clone(&original_plan);
         let observed = Arc::clone(&observer_calls);
         let new_calls = Arc::clone(&system_calls);
-        move |world: &mut World, _: &ComponentLifecycleEvent| {
-            assert!(Arc::ptr_eq(&plan, &world.schedule().stage_plan()));
-            if observed.fetch_add(1, Ordering::SeqCst) == 0 {
-                let calls = Arc::clone(&new_calls);
-                world
-                    .register_native_system::<(), _>(SYSTEM_ID, SystemStage::Update, 0, move |()| {
-                        calls.fetch_add(1, Ordering::SeqCst);
-                    })
-                    .unwrap();
-            }
-            assert!(Arc::ptr_eq(&plan, &world.schedule().stage_plan()));
+        // SAFETY: Every invocation only checks the plan and increments external counters.
+        // The first registers a schedule system whose body also only increments a counter;
+        // neither dispatch nor that future producer changes a NodeRecord/dynamic payload.
+        unsafe {
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                move |world: &mut World, _: &ComponentLifecycleEvent| {
+                    assert!(Arc::ptr_eq(&plan, &world.schedule().stage_plan()));
+                    if observed.fetch_add(1, Ordering::SeqCst) == 0 {
+                        let calls = Arc::clone(&new_calls);
+                        world
+                            .register_native_system::<(), _>(
+                                SYSTEM_ID,
+                                SystemStage::Update,
+                                0,
+                                move |()| {
+                                    calls.fetch_add(1, Ordering::SeqCst);
+                                },
+                            )
+                            .unwrap();
+                    }
+                    assert!(Arc::ptr_eq(&plan, &world.schedule().stage_plan()));
+                },
+            )
         }
     };
     world.observe_component_lifecycle::<ReplayFirstComponent>(LifecycleEventKind::Add, callback());
@@ -402,17 +438,29 @@ fn direct_despawn_lifecycle_replay_keeps_valid_registration_pending_through_rema
         let plan = Arc::clone(&original_plan);
         let observed = Arc::clone(&observer_calls);
         let new_calls = Arc::clone(&system_calls);
-        move |world: &mut World, _: &ComponentLifecycleEvent| {
-            assert!(Arc::ptr_eq(&plan, &world.schedule().stage_plan()));
-            if observed.fetch_add(1, Ordering::SeqCst) == 0 {
-                let calls = Arc::clone(&new_calls);
-                world
-                    .register_native_system::<(), _>(SYSTEM_ID, SystemStage::Update, 0, move |()| {
-                        calls.fetch_add(1, Ordering::SeqCst);
-                    })
-                    .unwrap();
-            }
-            assert!(Arc::ptr_eq(&plan, &world.schedule().stage_plan()));
+        // SAFETY: Every invocation only checks the plan and increments external counters.
+        // The first registers a schedule system whose body also only increments a counter;
+        // neither dispatch nor that future producer changes a NodeRecord/dynamic payload.
+        unsafe {
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                move |world: &mut World, _: &ComponentLifecycleEvent| {
+                    assert!(Arc::ptr_eq(&plan, &world.schedule().stage_plan()));
+                    if observed.fetch_add(1, Ordering::SeqCst) == 0 {
+                        let calls = Arc::clone(&new_calls);
+                        world
+                            .register_native_system::<(), _>(
+                                SYSTEM_ID,
+                                SystemStage::Update,
+                                0,
+                                move |()| {
+                                    calls.fetch_add(1, Ordering::SeqCst);
+                                },
+                            )
+                            .unwrap();
+                    }
+                    assert!(Arc::ptr_eq(&plan, &world.schedule().stage_plan()));
+                },
+            )
         }
     };
     world.observe_component_lifecycle::<ReplayFirstComponent>(

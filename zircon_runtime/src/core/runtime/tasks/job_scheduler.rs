@@ -5,7 +5,7 @@ mod pending;
 
 use std::fmt;
 use std::sync::{Arc, Mutex, Weak};
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::core::diagnostics::DiagnosticStore;
 

@@ -240,7 +240,8 @@ fn workbench_command_palette_commit_dispatches_editor_command() {
     assert_eq!(
         harness
             .runtime
-            .command_palette_mru().unwrap()
+            .command_palette_mru()
+            .unwrap()
             .entries()
             .first()
             .map(|command| command.as_str()),

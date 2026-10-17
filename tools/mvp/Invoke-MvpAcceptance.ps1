@@ -528,7 +528,7 @@ function Get-MvpRuntimeProductDiagnosticsFromLog {
     }
     $fields = [ordered]@{ render_adapter = $adapterMatch.Groups[1].Value.Trim() }
     foreach ($name in @(
-        'frame_index', 'viewport', 'project_identity', 'scene_uri', 'selected_model_resource_id',
+        'proof_policy', 'frame_index', 'viewport', 'project_identity', 'scene_uri', 'selected_model_resource_id',
         'selected_material_resource_id', 'render_backend', 'render_adapter_type',
         'device_max_bind_groups', 'device_max_texture_dimension_2d', 'device_max_texture_array_layers',
         'device_max_sampled_textures_per_shader_stage', 'device_max_storage_buffers_per_shader_stage',
@@ -914,6 +914,10 @@ function Assert-MvpRuntimeProductDiagnostics {
     param([Parameter(Mandatory)]$Run)
 
     $diagnostics = Get-MvpRequiredProperty -Value $Run -Name 'runtime_product_diagnostics' -Label "Runtime product run"
+    $proofPolicy = [string](Get-MvpRequiredProperty -Value $diagnostics -Name 'proof_policy' -Label 'Runtime product diagnostics')
+    if ($proofPolicy -cne 'f2-lit-mesh') {
+        throw "Runtime product diagnostics has proof_policy '$proofPolicy' instead of 'f2-lit-mesh'."
+    }
     foreach ($name in @(
         'project_identity',
         'scene_uri',
@@ -1470,6 +1474,7 @@ function Assert-MvpSuccessfulProductRuns {
     $productAttemptCounts = @{}
     $productAttempts = @{}
     $runtimeRepeatInvariantNames = @(
+        'proof_policy',
         'project_identity',
         'scene_uri',
         'selected_model_resource_id',

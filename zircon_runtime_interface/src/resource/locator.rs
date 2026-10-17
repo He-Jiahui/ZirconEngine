@@ -152,6 +152,14 @@ impl ResourceLocator {
         &self.path
     }
 
+    /// Heap capacity retained by the owned path and optional subasset label.
+    /// Excludes the locator header and allocator bookkeeping; does not allocate.
+    pub fn retained_heap_bytes(&self) -> usize {
+        self.path
+            .capacity()
+            .saturating_add(self.label.as_ref().map_or(0, String::capacity))
+    }
+
     pub fn label(&self) -> Option<&str> {
         self.label.as_deref()
     }
@@ -261,11 +269,17 @@ impl<'de> Deserialize<'de> for ResourceLocator {
 ///
 /// [`crate::resource::ResourceLocator::parse`]、[`crate::resource::ResourceLocator::new`]。
 pub enum ResourceLocatorError {
+    /// value 中找不到 ://、无法从文本分出方案名前缀时返回。
     MissingScheme(String),
+    /// 分隔符前的方案名不在 res、lib、package、builtin、mem 支持集合中时返回。
     UnsupportedScheme(String),
+    /// 非包方案路径经词法折叠后没有普通路径组件时返回。
     EmptyPath,
+    /// 包方案缺少包 ID、路径分隔符或包内路径，或包内路径折叠为空时返回。
     MissingPackagePath(String),
+    /// 包 ID 不是单个普通组件，或路径含绝对根或平台前缀、越过词法根时返回。
     EscapeAttempt(String),
+    /// 标签分隔符后没有内容，或 new 显式传入 Some(空字符串) 时返回。
     EmptyLabel,
 }
 
@@ -412,3 +426,16 @@ fn normalize_relative_path_components(path: &str) -> Result<Vec<String>, Resourc
 #[cfg(test)]
 #[path = "tests/locator.rs"]
 mod tests;
+
+impl crate::retained_memory::RetainedOwnerV1 for ResourceLocator {
+    fn retained_bound_v1(
+        &self,
+        m: &mut crate::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), crate::retained_memory::RetentionContractError> {
+        use crate::retained_memory::RetainedOwnerV1;
+        self.path.retained_bound_v1(m)?;
+        self.label.retained_bound_v1(m)
+    }
+}
+// SAFETY: Owned path and label storage is metered above and cannot grow through a shared reference.
+unsafe impl crate::retained_memory::ImmutableRetainedOwnerV1 for ResourceLocator {}

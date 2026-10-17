@@ -149,28 +149,36 @@ impl EditorManager {
         path: impl AsRef<std::path::Path>,
         world: &zircon_runtime::scene::Scene,
         workspace: &ProjectEditorWorkspace,
-    ) -> Result<(), EditorError> {
+    ) -> Result<crate::core::document::SceneSaveOutcome, EditorError> {
+        self.save_scene_with_workspace_authorized(path, world, workspace, None)
+    }
+
+    pub(crate) fn save_scene_with_workspace_authorized(
+        &self,
+        path: impl AsRef<std::path::Path>,
+        world: &zircon_runtime::scene::Scene,
+        workspace: &ProjectEditorWorkspace,
+        overwrite: Option<crate::core::document::OverwriteLease>,
+    ) -> Result<crate::core::document::SceneSaveOutcome, EditorError> {
         let project_root = ProjectAuthority::default().resolve_existing_project_root(&path)?;
-        let active_scene = self
+        let (outcome, saved) = self
             .document_lifecycle
-            .active_scene_identity(&project_root)
-            .ok_or_else(|| {
-                EditorError::Project(
-                    "cannot save without an active project scene document".to_string(),
+            .save_active_scene(&project_root, overwrite, |identity, expected| {
+                let scene_uri = AssetUri::parse(identity.scene_uri())
+                    .map_err(|error| EditorError::Project(error.to_string()))?;
+                self.host.save_active_scene_with_workspace(
+                    &project_root,
+                    &scene_uri,
+                    world,
+                    expected,
+                    workspace,
                 )
+            })
+            .map_err(|error| match error {
+                crate::core::document::SceneSaveError::Persistence(error) => error,
+                error => EditorError::Project(error.to_string()),
             })?;
-        let scene_uri = AssetUri::parse(active_scene.scene_uri()).map_err(|error| {
-            EditorError::Project(format!(
-                "active scene document {} has an invalid source URI: {error}",
-                active_scene.document().value()
-            ))
-        })?;
-        self.host
-            .save_active_scene_with_workspace(&project_root, &scene_uri, world, workspace)?;
-        self.publish_document_messages(
-            self.document_lifecycle
-                .save_scene_identity_if_active(&active_scene),
-        );
-        Ok(())
+        self.publish_document_messages(saved);
+        Ok(outcome)
     }
 }

@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 
 from tools.jenkins.contracts import JenkinsError, canonical_json, digest
 from tools.jenkins.deployment import (lost_owner, lost_recovery_runtime as recovery,
-                                      owned_upgrade, recovery_keeper, startup_observations)
+                                      owned_upgrade, recovery_keeper, runtime_roles, startup_observations)
 
 ROOT = Path(__file__).absolute().parents[3]
 
@@ -167,7 +167,7 @@ class DepartedRuntime:
         # Existing invariant tests need immediate rejection; the wait contracts
         # below use a deterministic clock and explicitly enable their window.
         stack.enter_context(patch.object(recovery, "_RUNTIME_WAIT_SECONDS", 0))
-        for module in (recovery, lost_owner, recovery_keeper, owned_upgrade):
+        for module in (recovery, lost_owner, recovery_keeper, owned_upgrade, runtime_roles):
             stack.enter_context(patch.object(module, "_raw", side_effect=lambda path: self.files[str(Path(path).absolute())]))
             stack.enter_context(patch.object(module, "_plain"))
         stack.enter_context(patch.object(Path, "exists", autospec=True, side_effect=lambda path: str(path) in self.files))
@@ -179,7 +179,7 @@ class DepartedRuntime:
         stack.enter_context(patch.object(recovery, "_lifecycle_fence", side_effect=lambda manager: deepcopy(self.fence)))
         self.boot_probe = stack.enter_context(patch.object(recovery, "windows_boot_filetime", return_value=self.boot))
         self.departures = stack.enter_context(patch.object(recovery, "_departure", side_effect=self.absent))
-        self.inventory = stack.enter_context(patch.object(recovery, "runtime_owner_inventory", return_value=[]))
+        self.inventory = stack.enter_context(patch.object(startup_observations, "runtime_owner_inventory", return_value=[]))
         self.native_rows = stack.enter_context(patch.object(recovery, "execution_inventory", side_effect=lambda state: deepcopy(self.rows)))
         stack.enter_context(patch.object(recovery, "protected_holds", return_value=self.holds))
         stack.enter_context(patch.object(recovery, "_resource_inventory", return_value=[{"budget": 4}]))
@@ -263,6 +263,74 @@ class DepartedRuntime:
 
 
 class LostRecoveryRuntimeTests(unittest.TestCase):
+    def test_ordinary_helper_inventory_survives_review_and_legacy_plan_revalidation(self):
+        for committed in (False, True):
+            with self.subTest(committed=committed):
+                scenario = DepartedRuntime()
+                if committed:
+                    scenario.committed()
+                arguments = [str(ROOT / ".jenkins/runtime/python/python.exe"), "-B",
+                             str(Path("E:/cargo-targets/foreign/validate.py"))]
+                helper = {"pid": 777, "creationTime": str(scenario.boot + 1), "executable": arguments[0],
+                          "commandDigest": runtime_roles._digest_args(tuple(arguments))}
+                with scenario.observations(), \
+                        patch.object(runtime_roles, "_windows_command_line", return_value=arguments), \
+                        patch.object(runtime_roles, "observe_live_identity", side_effect=lambda identity: identity), \
+                        patch.object(recovery.time, "sleep") as wait:
+                    legacy = scenario.prepare().document
+                    legacy.pop("runtimeOwnerObservation")
+                    reviewed = scenario.put(scenario.state / "migration-baseline/legacy-plan.json", legacy)
+                    before = deepcopy(scenario.files)
+                    scenario.inventory.return_value = [helper]
+                    plan = scenario.prepare()
+                    observation = plan.document["runtimeOwnerObservation"]
+                    self.assertEqual([helper], plan.document["runtimeOwnerInventory"])
+                    self.assertEqual([helper], observation["runtimeInventory"])
+                    self.assertEqual([], observation["blockingOwners"])
+                    self.assertEqual(1, len(observation["nonServiceProcesses"]))
+                    self.assertTrue(observation["observationOnly"])
+                    self.assertFalse(observation["terminalProof"])
+                    self.assertFalse(observation["nativeProofIssued"])
+                    restored = recovery.prepare_lost_recovery_runtime(scenario.manager,
+                        request_id=scenario.request_id, reviewed_plan_ref=reviewed)
+                    self.assertEqual(legacy, restored.document)
+                    scenario.inventory.return_value = []
+                    refreshed = plan.revalidate(scenario.manager)
+                    self.assertEqual([], refreshed["runtimeOwnerInventory"])
+                    self.assertEqual(plan.recovery_digest, refreshed["recoveryDigest"])
+                    wait.assert_not_called()
+                    self.assertEqual(before, scenario.files)
+
+    def test_current_service_owner_still_blocks_with_ordinary_helper_present(self):
+        for service_kind in ("journal", "control-entry"):
+            with self.subTest(service_kind=service_kind):
+                scenario = DepartedRuntime().committed()
+                helper_arguments = [str(ROOT / ".jenkins/runtime/python/python.exe"), "-B", "-c", "print('helper')"]
+                service_arguments = [helper_arguments[0], "-B", str(ROOT / "tools/dev/jenkins_recovery_keeper.py")]
+                helper = {"pid": 777, "creationTime": str(scenario.boot + 1), "executable": helper_arguments[0],
+                          "commandDigest": runtime_roles._digest_args(tuple(helper_arguments))}
+                service = (scenario.identities["supervisor"] if service_kind == "journal" else
+                           {**helper, "pid": 778, "commandDigest": runtime_roles._digest_args(tuple(service_arguments))})
+                before = deepcopy(scenario.files)
+                with scenario.observations(), \
+                        patch.object(runtime_roles, "_windows_command_line",
+                            side_effect=lambda pid: helper_arguments if pid == helper["pid"] else service_arguments), \
+                        patch.object(runtime_roles, "observe_live_identity", side_effect=lambda identity: identity), \
+                        patch.object(recovery.time, "sleep") as wait:
+                    scenario.inventory.return_value = [helper, service]
+                    with self.assertRaises(JenkinsError) as raised:
+                        scenario.prepare()
+                    self.assertEqual("lost_recovery_runtime_unproven", raised.exception.code)
+                    self.assertEqual([helper, service], raised.exception.details["runtimeOwnerInventory"])
+                    observation = raised.exception.details["runtimeOwnerObservation"]
+                    self.assertEqual([service], observation["blockingOwners"])
+                    self.assertEqual(1, len(observation["nonServiceProcesses"]))
+                    self.assertFalse(observation["nativeProofIssued"])
+                    scenario.home_probe.assert_not_called()
+                    scenario.endpoint.assert_not_called()
+                    wait.assert_not_called()
+                self.assertEqual(before, scenario.files)
+
     def test_transient_runtime_departure_restarts_full_readonly_review(self):
         scenario = DepartedRuntime().committed()
         before = deepcopy(scenario.files)
@@ -360,13 +428,13 @@ class LostRecoveryRuntimeTests(unittest.TestCase):
         self.assertEqual(management, scenario.management_rows)
 
     def test_same_boot_committed_wrong_admission_boot_or_delivered_result_blocks(self):
-        for case in ("blocked", "later-boot", "old-birth", "missing-result", "wrong-result"):
+        for case in ("blocked", "earlier-boot", "old-birth", "missing-result", "wrong-result"):
             with self.subTest(case=case):
                 scenario = DepartedRuntime().committed()
                 if case == "blocked":
                     scenario.descriptor["admission"] = "blocked"
-                elif case == "later-boot":
-                    scenario.boot += 100
+                elif case == "earlier-boot":
+                    scenario.boot -= 100
                 elif case == "old-birth":
                     scenario.identities["agent"]["creationTime"] = str(scenario.boot - 1)
                 elif case == "missing-result":
@@ -374,6 +442,61 @@ class LostRecoveryRuntimeTests(unittest.TestCase):
                 else:
                     scenario.put(scenario.state / "recovery-lifecycle/results" / (scenario.stop_id + ".json"), scenario.old_release_ref)
                 scenario.refresh()
+                before = deepcopy(scenario.files)
+                with scenario.observations(), self.assertRaises(JenkinsError):
+                    scenario.prepare()
+                self.assertEqual(before, scenario.files)
+
+    def test_committed_previous_boot_retains_original_results_proofs_and_protected_holds(self):
+        scenario = DepartedRuntime().committed()
+        scenario.current_execution()
+        scenario.management_native()
+        scenario.boot += 10000
+        before, rows, management = deepcopy(scenario.files), deepcopy(scenario.rows), deepcopy(scenario.management_rows)
+        with scenario.observations():
+            plan = scenario.prepare()
+            value = plan.revalidate(scenario.manager)
+            self.assertEqual(recovery.SAME_BOOT_VARIANT, value["recoveryVariant"])
+            self.assertEqual("committed", value["originalCommandStatus"])
+            self.assertEqual(scenario.result_ref, value["originalResult"])
+            self.assertEqual(scenario.old_boot, value["previousBootFileTime"])
+            self.assertEqual(str(scenario.boot), value["bootFileTime"])
+            self.assertEqual(scenario.holds, value["executionQuarantine"]["protectedHolds"])
+            self.assertFalse(value["containmentReview"]["nativeTerminationClaimed"])
+            self.assertTrue(value["managementQuarantine"]["nativeDepartures"][0]["nativeProofReused"])
+            for flag in recovery._FLAGS:
+                self.assertIs(value[flag], False)
+        self.assertEqual(before, scenario.files)
+        self.assertEqual(rows, scenario.rows)
+        self.assertEqual(management, scenario.management_rows)
+
+    def test_committed_previous_boot_rejects_owner_or_execution_birth_at_or_after_new_boot(self):
+        for subject in ("agent", "execution"):
+            for offset in (0, 1):
+                with self.subTest(subject=subject, offset=offset):
+                    scenario = DepartedRuntime().committed()
+                    scenario.boot += 10000
+                    if subject == "agent":
+                        scenario.identities["agent"]["creationTime"] = str(scenario.boot + offset)
+                    else:
+                        scenario.current_execution()
+                        row = next(row for row in scenario.rows if row["domain"] == "native_job" and row["payload"].get("role") == "phase")
+                        row["payload"]["completeProof"]["identity"]["creationTime"] = str(scenario.boot + offset)
+                        row["payload"]["birthToken"] = str(scenario.boot + offset)
+                    scenario.refresh()
+                    before = deepcopy(scenario.files)
+                    with scenario.observations(), self.assertRaises(JenkinsError):
+                        scenario.prepare()
+                    self.assertEqual(before, scenario.files)
+
+    def test_committed_previous_boot_rejects_management_native_birth_at_or_after_new_boot(self):
+        for offset in (0, 1):
+            with self.subTest(offset=offset):
+                scenario = DepartedRuntime().committed()
+                scenario.boot += 10000
+                identity = scenario.management_native()
+                identity["creationTime"] = str(scenario.boot + offset)
+                scenario.rows[-1]["payload"]["birthToken"] = identity["creationTime"]
                 before = deepcopy(scenario.files)
                 with scenario.observations(), self.assertRaises(JenkinsError):
                     scenario.prepare()
@@ -842,6 +965,196 @@ class LostRecoveryRuntimeTests(unittest.TestCase):
                 actor._reviewed_lost_runtime_plan(plan.document)
             with self.assertRaises(JenkinsError):
                 actor.start(plan.document)
+
+class RetainedSelectorBindingTests(unittest.TestCase):
+    def _seal(self, case, relative, document):
+        path = (case.state / relative).absolute()
+        raw = canonical_json(document) + b"\n"
+        reference = {"path": str(path), "sha256": hashlib.sha256(raw).hexdigest()}
+        case.artifacts[str(path)] = (deepcopy(document), raw)
+        return reference
+
+    def _case(self):
+        state = Path("E:/in-memory/retained-selector/state").absolute()
+        case = SimpleNamespace(state=state, artifacts={}, previous_runtime_id="start-111",
+                               runtime_id="start-222")
+        previous_release = {"path": str(state / "deployment/previous-release.json"), "sha256": "a" * 64}
+        current_release = {"path": str(state / "deployment/current-release.json"), "sha256": "b" * 64}
+        case.archived = {
+            "driverDigest": "c" * 64,
+            "root": str(state / "drivers/previous"),
+            "launcher": str(state / "drivers/previous/launcher.py"),
+            "manifest": str(state / "drivers/previous/manifest.json"),
+            "steps": str(state / "drivers/previous/steps.groovy"),
+            "runtimeOperationId": case.previous_runtime_id,
+            "recoveryRelease": previous_release,
+            "preparation": str(state / "migration-baseline/previous-preparation.json"),
+            "supportRegression": {"path": str(state / "migration-baseline/regression.json"), "sha256": "d" * 64},
+        }
+        case.archive_ref = self._seal(case, "migration-baseline/previous-selector.json", case.archived)
+        case.preparation = {
+            "previousSelectedDriver": deepcopy(case.archived),
+            "previousSelectorSha256": case.archive_ref["sha256"],
+            "previousRecoveryRelease": deepcopy(case.archived["recoveryRelease"]),
+        }
+        preparation_ref = self._seal(case, "migration-baseline/new-preparation.json", case.preparation)
+        case.release = {
+            "kind": "formal-lost-owner-recovery-release",
+            "lostRecoveryRuntime": {"plan": {"path": str(state / "migration-baseline/plan.json"), "sha256": "e" * 64}},
+            "preparation": preparation_ref,
+            "expectedLifecycleFence": {"deployment/driver.json": case.archive_ref["sha256"]},
+        }
+        case.interruption_ref = {"path": str(state / "recovery-lifecycle/history/interruption.json"), "sha256": "f" * 64}
+        case.interruption = {
+            "operationId": case.previous_runtime_id,
+            "originalArtifacts": {"previousSelector": {"archive": deepcopy(case.archive_ref)}},
+        }
+        case.descriptor = {"release": current_release, "lostRecoveryRuntimeInterruption": case.interruption_ref}
+        case.selected = {**deepcopy(case.archived), "runtimeOperationId": case.runtime_id}
+        return case
+
+    def _artifact(self, case, state, reference, **kwargs):
+        if state != case.state or not isinstance(reference, dict) or set(reference) != {"path", "sha256"}:
+            raise JenkinsError("lost_recovery_runtime_unproven", "Invalid in-memory artifact reference")
+        saved = case.artifacts.get(reference["path"])
+        if saved is None or hashlib.sha256(saved[1]).hexdigest() != reference["sha256"]:
+            raise JenkinsError("lost_recovery_runtime_unproven", "In-memory artifact reference hash changed")
+        return deepcopy(saved[0]), saved[1]
+
+    def _patched(self, case, error=None):
+        artifact = Mock(side_effect=lambda state, reference, **kwargs: self._artifact(case, state, reference, **kwargs))
+        if error is None:
+            validate = Mock(return_value=case.interruption)
+        else:
+            validate = Mock(side_effect=error)
+        stack = ExitStack()
+        stack.enter_context(patch.object(recovery, "_artifact", new=artifact))
+        stack.enter_context(patch.object(recovery, "validate_interruption_receipt", new=validate))
+        return stack, artifact, validate
+
+    def _reject(self, case):
+        stack, _, _ = self._patched(case)
+        with stack, self.assertRaises(JenkinsError):
+            recovery._retained_selector_binding(case.state, case.descriptor, case.release,
+                                                case.selected, case.runtime_id)
+
+    def _sync_archive(self, case):
+        case.archive_ref = self._seal(case, "migration-baseline/previous-selector.json", case.archived)
+        case.interruption["originalArtifacts"]["previousSelector"]["archive"] = deepcopy(case.archive_ref)
+        case.release["expectedLifecycleFence"]["deployment/driver.json"] = case.archive_ref["sha256"]
+        case.preparation["previousSelectedDriver"] = deepcopy(case.archived)
+        case.preparation["previousSelectorSha256"] = case.archive_ref["sha256"]
+        case.preparation["previousRecoveryRelease"] = deepcopy(case.archived["recoveryRelease"])
+        case.release["preparation"] = self._seal(case, "migration-baseline/new-preparation.json", case.preparation)
+        case.selected = {**deepcopy(case.archived), "runtimeOperationId": case.runtime_id}
+
+    def test_direct_binding_returns_none_without_interruption_or_artifact_reads(self):
+        case = self._case()
+        case.release["kind"] = "legacy-direct-binding"
+        case.release.pop("lostRecoveryRuntime")
+        case.selected = {
+            "recoveryRelease": deepcopy(case.descriptor["release"]),
+            "preparation": case.release["preparation"]["path"],
+            "driverDigest": "direct-selector",
+        }
+        stack, artifact, validate = self._patched(case)
+        with stack:
+            result = recovery._retained_selector_binding(case.state, case.descriptor, case.release,
+                                                          case.selected, case.runtime_id)
+        self.assertIsNone(result)
+        artifact.assert_not_called()
+        validate.assert_not_called()
+
+    def test_valid_fallback_returns_only_the_issued_selector_proof(self):
+        case = self._case()
+        stack, artifact, validate = self._patched(case)
+        with stack:
+            proof = recovery._retained_selector_binding(case.state, case.descriptor, case.release,
+                                                        case.selected, case.runtime_id)
+        self.assertEqual({
+            "mode": "issued-same-driver-retained-selector",
+            "preparation": case.release["preparation"],
+            "previousSelector": case.archive_ref,
+            "previousRuntimeOperationId": case.previous_runtime_id,
+            "runtimeOperationId": case.runtime_id,
+        }, proof)
+        validate.assert_called_once_with(case.state, case.descriptor, case.release)
+        self.assertEqual(2, artifact.call_count)
+        self.assertEqual(case.release["preparation"], artifact.call_args_list[0].args[1])
+        self.assertEqual(case.archive_ref, artifact.call_args_list[1].args[1])
+
+    def test_fallback_rejects_any_selector_change_or_extra_key(self):
+        for mutation in ("change_field", "remove_field", "add_key"):
+            with self.subTest(mutation=mutation):
+                case = self._case()
+                if mutation == "change_field":
+                    case.selected["driverDigest"] = "0" * 64
+                elif mutation == "remove_field":
+                    case.selected.pop("steps")
+                else:
+                    case.selected["unreviewedSelectorKey"] = True
+                self._reject(case)
+
+    def test_fallback_rejects_wrong_reference_hash_fence_and_preparation_ancestry(self):
+        for mutation in ("preparation_ref_sha", "archive_ref_sha", "lifecycle_fence_sha",
+                         "previous_selector_sha", "previous_selected_driver", "previous_recovery_release"):
+            with self.subTest(mutation=mutation):
+                case = self._case()
+                if mutation == "preparation_ref_sha":
+                    case.release["preparation"]["sha256"] = "0" * 64
+                elif mutation == "archive_ref_sha":
+                    case.interruption["originalArtifacts"]["previousSelector"]["archive"]["sha256"] = "0" * 64
+                elif mutation == "lifecycle_fence_sha":
+                    case.release["expectedLifecycleFence"]["deployment/driver.json"] = "0" * 64
+                elif mutation == "previous_selector_sha":
+                    case.preparation["previousSelectorSha256"] = "0" * 64
+                    case.release["preparation"] = self._seal(case, "migration-baseline/new-preparation.json", case.preparation)
+                elif mutation == "previous_selected_driver":
+                    case.preparation["previousSelectedDriver"]["root"] = "foreign-driver-root"
+                    case.release["preparation"] = self._seal(case, "migration-baseline/new-preparation.json", case.preparation)
+                else:
+                    case.preparation["previousRecoveryRelease"] = {"path": "foreign-release", "sha256": "9" * 64}
+                    case.release["preparation"] = self._seal(case, "migration-baseline/new-preparation.json", case.preparation)
+                self._reject(case)
+
+    def test_fallback_rejects_wrong_predecessor_and_predecessor_equal_to_current_runtime(self):
+        for mutation in ("wrong_interruption_predecessor", "same_as_current_runtime"):
+            with self.subTest(mutation=mutation):
+                case = self._case()
+                if mutation == "wrong_interruption_predecessor":
+                    case.archived["runtimeOperationId"] = "start-333"
+                else:
+                    case.archived["runtimeOperationId"] = case.runtime_id
+                    case.interruption["operationId"] = case.runtime_id
+                self._sync_archive(case)
+                self._reject(case)
+
+    def test_fallback_requires_issued_marker_and_propagates_interruption_error(self):
+        for mutation in ("wrong_release_kind", "missing_marker"):
+            with self.subTest(mutation=mutation):
+                case = self._case()
+                if mutation == "wrong_release_kind":
+                    case.release["kind"] = "foreign-recovery-release"
+                else:
+                    case.release.pop("lostRecoveryRuntime")
+                stack, artifact, validate = self._patched(case)
+                with stack, self.assertRaises(JenkinsError):
+                    recovery._retained_selector_binding(case.state, case.descriptor, case.release,
+                                                        case.selected, case.runtime_id)
+                artifact.assert_not_called()
+                validate.assert_not_called()
+
+        case = self._case()
+        interruption_error = JenkinsError("fixture_interruption_unproven", "Invalid interruption receipt")
+        stack, artifact, validate = self._patched(case, error=interruption_error)
+        with stack, self.assertRaises(JenkinsError) as raised:
+            recovery._retained_selector_binding(case.state, case.descriptor, case.release,
+                                                case.selected, case.runtime_id)
+        self.assertEqual("fixture_interruption_unproven", raised.exception.code)
+        validate.assert_called_once_with(case.state, case.descriptor, case.release)
+        artifact.assert_not_called()
+
+
 
 
 if __name__ == "__main__":

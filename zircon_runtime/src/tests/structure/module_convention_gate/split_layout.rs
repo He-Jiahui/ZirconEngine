@@ -8,8 +8,7 @@ const FRAMEWORKS_STATUS: &str =
 const SLICE: &str = "Runtime 15 M3 module convention gate guard folder-backed split";
 const GUARD: &str = "runtime_15_module_convention_gate_guard_is_folder_backed";
 
-const PARENT_PATH: &str =
-    "zircon_runtime/src/tests/contracts/structure/module_convention_gate.rs";
+const PARENT_PATH: &str = "zircon_runtime/src/tests/contracts/structure/module_convention_gate.rs";
 const CHILD_PATHS: &[&str] = &[
     "zircon_runtime/src/tests/contracts/structure/module_convention_gate/helpers.rs",
     "zircon_runtime/src/tests/module_convention_gate/module_doc_frontmatter.rs",

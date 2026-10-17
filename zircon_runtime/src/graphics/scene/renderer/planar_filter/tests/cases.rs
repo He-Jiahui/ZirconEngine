@@ -57,8 +57,7 @@ fn render_planar_filter_rejects_invalid_extent_and_mip_count() {
 
 #[test]
 fn render_planar_filter_routes_native_creates_through_pass_capability() {
-    let recording =
-        include_str!("../../execution/context/gpu/native.rs");
+    let recording = include_str!("../../execution/context/gpu/native.rs");
     let pipeline = include_str!("../mod.rs");
     let executor = include_str!("../executor.rs");
 

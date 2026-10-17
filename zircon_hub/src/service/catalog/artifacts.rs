@@ -1,6 +1,6 @@
 use super::{CatalogPolicy, Release};
 use crate::service::{error::ServiceError, identity::Principal, storage::receipt};
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use sha2::{Digest, Sha256};
 
 pub const MAX_ARTIFACT_BYTES: usize = 16 * 1024 * 1024;

@@ -7,7 +7,7 @@ use zircon_runtime_interface::project::{
 };
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 
-use super::{ProjectEditorSessionProbe, classify_live_session_record};
+use super::{classify_live_session_record, ProjectEditorSessionProbe};
 
 #[test]
 fn live_activating_lease_is_pending_not_focusable() {

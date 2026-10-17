@@ -36,10 +36,12 @@ impl ProjectTemplateContentDigest {
         Self(hasher.finalize().into())
     }
 
+    /// 借用摘要的原始 32 字节；返回引用的生命周期受此摘要值约束。
     pub const fn as_bytes(&self) -> &[u8; 32] {
         &self.0
     }
 
+    /// 返回 64 个小写十六进制字符，与 `Display` 和 serde 持久表示一致。
     pub fn to_hex(self) -> String {
         self.to_string()
     }
@@ -95,6 +97,7 @@ impl<'de> Deserialize<'de> for ProjectTemplateContentDigest {
     }
 }
 
+/// 表示摘要文本长度不为 64 或含有非小写十六进制字符；错误保留原始输入。
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 #[error("project template content digest must be 64 lowercase hexadecimal characters: {value}")]
 pub struct ProjectTemplateContentDigestParseError {

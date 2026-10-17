@@ -59,6 +59,9 @@ pub use self::reports::{
     EditorPluginEnableReport, EditorPluginFeatureDependencyStatus,
     EditorPluginFeatureSelectionUpdateReport, EditorPluginFeatureStatus,
     EditorPluginSelectionUpdateReport, EditorPluginStatus, EditorPluginStatusReport,
+    PluginEnablementApplied, PluginEnablementCause, PluginEnablementCauseKind,
+    PluginEnablementDurable, PluginEnablementOperationReport, PluginEnablementPhase,
+    PluginEnablementRecovery,
 };
 
 impl EditorManager {
@@ -83,3 +86,5 @@ impl EditorManager {
         EditorPluginPanelSource::from_manager(self.plugin_manager())
     }
 }
+
+pub use reports::{PluginEnablementAdmission, PluginEnablementRecoveryCommand};

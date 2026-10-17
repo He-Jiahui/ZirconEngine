@@ -1,4 +1,4 @@
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::core::framework::text::{TextDirection, TextLayoutError};
 use crate::text::{TextRange, TextStyle};

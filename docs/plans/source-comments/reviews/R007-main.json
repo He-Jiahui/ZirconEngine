@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R007",
+  "reviewer": "main",
+  "reviewed_at_utc": "2026-10-14T22:07:10.329899+00:00",
+  "status": "accepted-local-review-and-scoped-static-validation",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R007.json",
+    "sha256": "7e5a3bbe87e5101d99a097e38622182eebadc76416cc49b304d2245c124d85ab"
+  },
+  "amendment_record": {
+    "path": "docs/plans/source-comments/reviews/R007-amendment.json",
+    "sha256": "c3f61f33dc45d38c6036e02ba7a76d8a8120ef22170ff840ba32623975d6a849"
+  },
+  "validation_record": {
+    "path": "docs/plans/source-comments/reviews/R007-post-validation.json",
+    "sha256": "69fb37ae026c47362704cb93d48adabf174a7a5aeab651beaa83c312d2cf877f"
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/reflect/editor_hint.rs",
+      "before_sha256": "a0f52918e05d48a58c73f868e524004760b1bdfdae6fe52d1b9ddfb94d721351",
+      "after_sha256": "348d87c632ff36b2a3f42e87c567a8c450a132a6898beec4cb7660925ec6d928",
+      "original_lines": 64,
+      "current_lines": 68,
+      "bytes": 2071,
+      "main_full_manual_read": true,
+      "objects_reviewed": [
+        "ReflectEditorHint (15 variants)",
+        "ReflectEnumOption (3 fields)",
+        "ReflectEnumOption::new",
+        "ReflectEnumOption::with_documentation"
+      ],
+      "block_groups_reviewed": [
+        "Enum variants: None, String, MultilineString, Bool, Integer, Unsigned, Scalar, Vec2, Vec3, Vec4, Enum, Entity, Resource, Color, Json; each prior summary is documented. Derives serde; no manual impl.",
+        "ReflectEnumOption owns value/display_name/documentation; all fields documented.",
+        "new converts Into<String> values, sets documentation None; existing doc assigns uniqueness/normalization checks to Runtime catalog.",
+        "with_documentation stores optional display text and returns Self; existing doc sufficient."
+      ],
+      "all_original_bytes_reconstructed": true,
+      "normalized_original_equals_pinned_HEAD": true,
+      "comment_lines_added": 4,
+      "insertion_proofs": [
+        {
+          "after_byte_offset": 154,
+          "bytes": 114,
+          "content_sha256": "eb303a96162a7c28f90e940572743c406a8827e6ed7da7762a5d5361e1f16247",
+          "exact_text": "///\r\n/// # serde 线格式\r\n///\r\n/// 在 JSON 中，每个单元变体以其变体名表示，例如 `Scalar`。\r\n",
+          "child_exact_text_normalized_only": true
+        }
+      ],
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/numeric_range.rs",
+      "before_sha256": "5400800b9ea1e4906f0bc09170c6a2e81a90a7c39de1ff58464925199c68e7d3",
+      "after_sha256": "80f06e8727377daddb58a975aed29418c932dd445a0f906669d1a3c8fdd7d1e4",
+      "original_lines": 134,
+      "current_lines": 138,
+      "bytes": 4981,
+      "main_full_manual_read": true,
+      "objects_reviewed": [
+        "ReflectNumericRange fields min/max/step/precision",
+        "new",
+        "min/max/step/precision getters",
+        "Deserialize::deserialize",
+        "ReflectNumericRangeWire",
+        "ReflectNumericRangeError (5 variants)",
+        "Display::fmt (5 arms)",
+        "std::error::Error impl"
+      ],
+      "block_groups_reviewed": [
+        "new validates finite min, max and step; min<=max when both set; step>0; precision is stored as a hint. All success/error branches reviewed.",
+        "Four const getters return copied Option values; step and precision have documented limits.",
+        "Deserialize decodes private wire DTO then reuses new; wire DTO has four Option fields and deny_unknown_fields.",
+        "Error variants NonFiniteMin/Max/Step, Inverted{min,max}, NonPositiveStep{step}; all documented. Display covers all five; marker Error impl is empty."
+      ],
+      "all_original_bytes_reconstructed": true,
+      "normalized_original_equals_pinned_HEAD": true,
+      "comment_lines_added": 4,
+      "insertion_proofs": [
+        {
+          "after_byte_offset": 255,
+          "bytes": 191,
+          "content_sha256": "fa72bf554a2711e04e54e2c3d9316d48e2ebcbc7a83ee68a5d6a36e08707c22b",
+          "exact_text": "///\r\n/// # serde 线格式\r\n///\r\n/// 序列化对象包含 `min`、`max`、`step`、`precision` 四项；反序列化拒绝未知字段，并经 [`Self::new`] 复用边界与步长校验。\r\n",
+          "child_exact_text_normalized_only": true
+        }
+      ],
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/error.rs",
+      "before_sha256": "f7f8750bc95027cbaa6130923c7612e4643f0fdbe947d493f5f111f0a9c2526e",
+      "after_sha256": "d4cbcd305c834440ffd6d69e15a36d26d5d7a737e4353078f97ce2bdcfff6881",
+      "original_lines": 299,
+      "current_lines": 304,
+      "bytes": 11300,
+      "main_full_manual_read": true,
+      "objects_reviewed": [
+        "ReflectError (19 variants and documented payload fields)",
+        "lifecycle_target_change",
+        "Display::fmt (19 arms)",
+        "std::error::Error impl",
+        "lifecycle_cancellation_tests (2 tests)"
+      ],
+      "block_groups_reviewed": [
+        "All 19 variants reviewed: LifecycleTargetReplaced, InvalidTypePath, UnknownType, AmbiguousShortTypePath, DuplicateTypePath, NoComponentAdapter, NoResourceAdapter, MissingEntity, MissingComponent, NonRemovableComponent, MissingResource, UnknownField, NonEditableField, TypeMismatch, UnsupportedConversion, AddressKindMismatch, InvalidRegistration, InvalidFieldRegistration, InvalidValue.",
+        "lifecycle_target_change returns Some(target) only for lifecycle replacement, otherwise None.",
+        "Display matches each variant and formats its diagnostic fields; Error impl is empty.",
+        "In-file tests check World/Schedule lifecycle wire and getter, plus unchanged UnsupportedConversion wire and getter None."
+      ],
+      "all_original_bytes_reconstructed": true,
+      "normalized_original_equals_pinned_HEAD": true,
+      "comment_lines_added": 5,
+      "insertion_proofs": [
+        {
+          "after_byte_offset": 385,
+          "bytes": 130,
+          "content_sha256": "c52ce269a806428bf1619ba10821e249c48cf41dacb1f55244e4a7b305c42b69",
+          "exact_text": "///\r\n/// # serde 线格式\r\n///\r\n/// JSON 对象以 `kind` 字段标识变体名，其余变体数据与该标签并列存放。\r\n",
+          "child_exact_text_normalized_only": true
+        }
+      ],
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/object_address.rs",
+      "before_sha256": "736a95d3e3e1236826b03f5d776a19e6b34d9bc64f849cb7dcc47fe6ae0f840a",
+      "after_sha256": "ab3aeb22fc258645da507d8a8ac2d763a0873ffedc75401c486585a497cd8bc6",
+      "original_lines": 38,
+      "current_lines": 42,
+      "bytes": 1823,
+      "main_full_manual_read": true,
+      "objects_reviewed": [
+        "ReflectObjectAddress (Component, Resource)",
+        "component",
+        "resource",
+        "type_path"
+      ],
+      "block_groups_reviewed": [
+        "Component owns entity:u64/type_path:String; Resource owns type_path:String; serde internally tagged kind. Public variants and Deserialize can bypass helper path validation.",
+        "component/resource consume Into<String>, validate type path, do not query instance or resource existence.",
+        "type_path returns &str borrowed from self-owned String.",
+        "Runtime WorldReflection branches by variant and performs registry/adapter and existence checks later."
+      ],
+      "all_original_bytes_reconstructed": true,
+      "normalized_original_equals_pinned_HEAD": true,
+      "comment_lines_added": 4,
+      "insertion_proofs": [
+        {
+          "after_byte_offset": 426,
+          "bytes": 145,
+          "content_sha256": "8410d754647c029e98373f12e0c69be45002985a71b47f53aecf39e7d8974a10",
+          "exact_text": "///\r\n/// # serde 线格式\r\n///\r\n/// JSON 对象以 `kind` 标识 `Component` 或 `Resource`，并将对应变体字段放在同一对象中。\r\n",
+          "child_exact_text_normalized_only": true
+        }
+      ],
+      "formal_acceptance": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/script_visibility.rs",
+      "before_sha256": "2b13aa2b7a0de27ce21fc8dbe4864f485cb1fcd64a39c8d721955aa292cdd061",
+      "after_sha256": "3f6ff9ea352f01d109da0cbd6823193f93d555bc0cd6d5dd5fb2dc531cde2960",
+      "original_lines": 12,
+      "current_lines": 16,
+      "bytes": 610,
+      "main_full_manual_read": true,
+      "objects_reviewed": [
+        "ReflectScriptVisibility",
+        "Private",
+        "Public"
+      ],
+      "block_groups_reviewed": [
+        "Two documented variants; Private carries #[default], serde rename_all=snake_case.",
+        "Type docs distinguish this projection marker from Editor and remote schema visibility; Public still needs host role/type conditions."
+      ],
+      "all_original_bytes_reconstructed": true,
+      "normalized_original_equals_pinned_HEAD": true,
+      "comment_lines_added": 4,
+      "insertion_proofs": [
+        {
+          "after_byte_offset": 256,
+          "bytes": 119,
+          "content_sha256": "f344b451215d6f3392c03058b4d5d321cb21c85ce84d2dda30037bacd76753d8",
+          "exact_text": "///\r\n/// # serde 线格式\r\n///\r\n/// JSON 使用小写变体名 `private` 与 `public`；`Private` 是默认变体。\r\n",
+          "child_exact_text_normalized_only": true
+        }
+      ],
+      "formal_acceptance": false
+    }
+  ],
+  "confirmed_contracts": [
+    "Serde unit variants retain their exact variant names for editor hints; this DTO does not execute editor widgets.",
+    "NumericRange owns optional metadata. Its constructor and custom Deserialize share finite/order/positive-step validation; Runtime separately checks applicability to the field type.",
+    "ReflectError has an internally tagged kind object. Lifecycle target access succeeds only for replacement; all 19 Display variants and both in-file tests were read.",
+    "TypeMismatch also reports Runtime VM declared type admission; expected/actual meaning comes from the caller, so the concrete-Rust conversion explanation was supplemented without replacing it.",
+    "Object addresses own path strings. Constructor path validation does not prove World instance existence; public enum and serde construction bypass those helper checks.",
+    "Script visibility is independent of remote schema visibility; Public additionally requires runtime role/type and host ABI conditions."
+  ],
+  "child_record_corrections": [
+    {
+      "field": "files[*].insertions[*].exact_text",
+      "finding": "All five child exact_text values used LF whereas actual comment insertions use CRLF. Offsets, lengths, content SHA and original byte reconstruction are correct. Actual decoded bytes are preserved in main validation insertion_proofs; immutable child retained."
+    }
+  ],
+  "independent_full_source_and_diff_read": true,
+  "context_files_formal_coverage": false,
+  "test_boundary": "Seven related interface contract tests and two in-file lifecycle tests were read; no tests/builds were executed. DTO/wire tests do not establish Runtime/UI/VM execution.",
+  "R006_independent_context_review": {
+    "path": "zircon_runtime_interface/src/reflect/field_info.rs",
+    "sha256": "96b7c2205f0cb13f0748a99338cca15740bab62d397a0f009f54309e400bba65",
+    "formal_coverage": false,
+    "conclusion": "只读独立复核：String/Vec/Option<ReflectedValue> 字段归 FieldInfo DTO 拥有，不借用 World/字段存储；clone 不创建实例。with_numeric_range 仅组装；ReflectNumericRange::new/反序列化校验数值，Runtime 注册校验字段类型适配。新增说明区分正确，未将 builder 说成验证执行。未修改该源或 R006 记录。"
+  },
+  "issues": [],
+  "source_boundary": {
+    "comments_only": true,
+    "all_original_bytes_and_existing_comments_preserved": true,
+    "behavior_API_assertions_attributes_unchanged": true
+  },
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

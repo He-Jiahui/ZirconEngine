@@ -232,3 +232,24 @@ fn skinned_geometry_omits_unposed_bounds_from_cpu_visibility() {
     };
     assert_eq!(local_bounds_for_cpu_visibility(morphed), Some(local_bounds));
 }
+
+#[test]
+fn portable_scene_keeps_ui_and_output_transfer_without_eager_desktop_effect_resources() {
+    let options = SceneRendererStartupOptions::portable_scene();
+    let profile = options.deferred_lighting_profile();
+    assert!(profile.uses_screen_space_ui());
+    assert!(profile.uses_environment_only_lighting());
+    assert!(profile.defers_local_reflection_provider_resources());
+    assert!(!profile.uses_full_shadow_atlas_resources());
+    assert!(!profile.uses_auxiliary_scene_effects());
+    assert!(!profile.uses_full_post_process_resources());
+    assert!(options.requires_environment_only_pbr_base_prewarm());
+    assert_eq!(
+        profile.post_process_startup_mode(),
+        ScenePostProcessStartupMode::OutputTransferOnly
+    );
+    assert_eq!(
+        SceneRendererStartupOptions::default().deferred_lighting_profile(),
+        SceneRendererDeferredLightingProfile::FullScene
+    );
+}

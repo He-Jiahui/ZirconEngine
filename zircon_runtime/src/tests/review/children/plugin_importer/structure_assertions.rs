@@ -5,13 +5,13 @@ use super::*;
 pub(super) fn assert_plugin_importer_dx_structure_assertions_are_mounted() {
     let plugin_importer_dx_structure_assertions_child =
         read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_CHILD_OWNER);
-    let plugin_importer_dx_review_mounts_child =
+    let _plugin_importer_dx_review_mounts_child =
         read_runtime_src(PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_CHILD_OWNER);
-    let plugin_importer_dx_delegation_child =
+    let _plugin_importer_dx_delegation_child =
         read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_DELEGATION_CHILD_OWNER);
-    let plugin_importer_dx_child_ownership_child =
+    let _plugin_importer_dx_child_ownership_child =
         read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_CHILD_OWNERSHIP_CHILD_OWNER);
-    let plugin_importer_d13_structure_assertions_child =
+    let _plugin_importer_d13_structure_assertions_child =
         read_runtime_src(PLUGIN_IMPORTER_D13_STRUCTURE_ASSERTIONS_CHILD_OWNER);
 
     assert_contains_all(

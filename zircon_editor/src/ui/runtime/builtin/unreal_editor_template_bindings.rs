@@ -11,9 +11,21 @@ pub(super) fn insert_unreal_editor_bindings(bindings: &mut BTreeMap<String, Edit
         ("UnrealMenu", "Build", "workbench.unreal.menu.build.open"),
         ("UnrealMenu", "Help", "workbench.unreal.menu.help.open"),
         ("UnrealToolbar", "Modes", "workbench.unreal.modes.open"),
-        ("UnrealViewportToolbarOverflow", "Toggle", "workbench.unreal.viewport.overflow.open"),
-        ("Unreal", "FindInContentBrowser", "workbench.content_drawer.sync_selection"),
-        ("Unreal", "SelectContentAsset", "workbench.content_drawer.select_asset"),
+        (
+            "UnrealViewportToolbarOverflow",
+            "Toggle",
+            "workbench.unreal.viewport.overflow.open",
+        ),
+        (
+            "Unreal",
+            "FindInContentBrowser",
+            "workbench.content_drawer.sync_selection",
+        ),
+        (
+            "Unreal",
+            "SelectContentAsset",
+            "workbench.content_drawer.select_asset",
+        ),
         ("UnrealToolbar", "Add", "workbench.unreal.add.open"),
         (
             "UnrealToolbar",

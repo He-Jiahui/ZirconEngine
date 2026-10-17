@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use serde_json::Value;
 
 use crate::projects::project_template_catalog;

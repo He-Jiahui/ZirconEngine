@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { Board } from '@penpot/plugin-types';
 import {
   auditRenderedAssetBoard,
+  refreshAssetTextLayout,
   scrollAxisForNode,
 } from './penpot-asset-renderer';
 import { ZUI_METADATA_NAMESPACE } from './metadata';
+import { projectZuiDocument } from './bridge/penpot-projection';
+import type { ZuiDocument } from './bridge/zui-document';
 
 function measuredBoard(id: string, metadata: Record<string, string>): Board {
   return {
@@ -20,8 +23,47 @@ function measuredBoard(id: string, metadata: Record<string, string>): Board {
     children: [],
     getSharedPluginData: (namespace: string, key: string) =>
       namespace === ZUI_METADATA_NAMESPACE ? (metadata[key] ?? '') : '',
+    setSharedPluginData: (namespace: string, key: string, value: string) => {
+      if (namespace === ZUI_METADATA_NAMESPACE) metadata[key] = value;
+    },
+    resize(width: number, height: number) {
+      this.width = width;
+      this.height = height;
+    },
   } as unknown as Board;
 }
+
+describe('initial TreeRow layout refresh', () => {
+  function initialRow(visibility: 'collapsed' | 'visible') {
+    const asset = measuredBoard('asset', { role: 'asset', 'node-id': 'root' });
+    const row = measuredBoard('row', { role: 'node', 'node-id': 'row' });
+    Object.assign(asset, { children: [row] });
+    Object.assign(row, { parent: asset, hidden: true });
+    const document: ZuiDocument = {
+      asset: { kind: 'view', id: 'initial-tree-row', version: 2 },
+      root: { node: 'root' },
+      penpot_host_theme_source: 'editor_tokens.zui',
+      nodes: {
+        root: { component: 'Overlay', children: [{ node: 'row' }] },
+        row: { component: 'TreeRow', props: { text: '', visibility } },
+      },
+    };
+    const projection = projectZuiDocument(document);
+    return { row, refresh: () => refreshAssetTextLayout(asset, document, projection) };
+  }
+
+  it('keeps collapsed source rows unpainted during initial reflow', () => {
+    const { row, refresh } = initialRow('collapsed');
+    expect(refresh).not.toThrow();
+    expect(row.children).toHaveLength(0);
+    expect(row.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'tree-row-authoring-painter')).toBe('');
+  });
+
+  it('rejects missing painter metadata for visible source rows even if the board is hidden', () => {
+    const { refresh } = initialRow('visible');
+    expect(refresh).toThrow('TreeRow has no original painter metadata; reimport it.');
+  });
+});
 
 describe('Penpot rendered source identity', () => {
   it('preserves owner and parent tuples for repeated prefab instances', () => {

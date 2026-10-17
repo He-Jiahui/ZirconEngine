@@ -548,3 +548,456 @@ fn multi_document_tokens_complete_independently() {
     assert!(!engine.is_dirty(first).unwrap());
     assert!(engine.is_dirty(second).unwrap());
 }
+
+use crate::core::editing::engine::{
+    CommandExecutionError, CommandRetentionPlanV1, EditCommand, EditContext,
+    HistoryRetentionBudgetV1, HistoryRetentionDomainV1, MergeMode, MergeOutcome,
+    RetentionMaterializationV1, RetentionPhaseV1,
+};
+use std::any::Any;
+use std::sync::atomic::{AtomicU64, AtomicUsize};
+use std::sync::{Arc, Condvar, Mutex};
+use zircon_runtime_interface::retained_memory::{
+    ImmutableRetainedOwnerV1, RetainedAccountingModelV1, RetainedBoundBuilderV1, RetainedOwnerV1,
+    RetentionContractError,
+};
+
+struct RetentionDropGateV1 {
+    entered: std::sync::atomic::AtomicBool,
+    released: Mutex<bool>,
+    ready: Condvar,
+    committed_seen: AtomicU64,
+    retiring_seen: AtomicU64,
+    domain: HistoryRetentionDomainV1,
+}
+impl RetentionDropGateV1 {
+    fn release(&self) {
+        *self.released.lock().unwrap() = true;
+        self.ready.notify_all();
+    }
+    fn wait_until_entered(&self) -> bool {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        let mut released = self.released.lock().unwrap();
+        while !self.entered.load(Ordering::SeqCst) {
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            if remaining.is_zero() {
+                return false;
+            }
+            let result = self.ready.wait_timeout(released, remaining).unwrap();
+            released = result.0;
+            if result.1.timed_out() && !self.entered.load(Ordering::SeqCst) {
+                return false;
+            }
+        }
+        true
+    }
+}
+impl RetainedOwnerV1 for RetentionDropGateV1 {
+    fn retained_bound_v1(
+        &self,
+        _: &mut RetainedBoundBuilderV1,
+    ) -> Result<(), RetentionContractError> {
+        // The shared domain accounts its own ledger separately. This fixture's
+        // remaining state has no transitive heap and never grows while retained.
+        Ok(())
+    }
+}
+unsafe impl ImmutableRetainedOwnerV1 for RetentionDropGateV1 {}
+
+struct RetainedBytesCommandV1 {
+    bytes: Vec<u8>,
+    applications: Arc<AtomicUsize>,
+    gate: Option<Arc<RetentionDropGateV1>>,
+    fail: bool,
+    merge: bool,
+}
+impl RetainedBytesCommandV1 {
+    fn new(capacity: usize, applications: Arc<AtomicUsize>) -> Self {
+        Self {
+            bytes: Vec::with_capacity(capacity),
+            applications,
+            gate: None,
+            fail: false,
+            merge: false,
+        }
+    }
+}
+impl RetainedOwnerV1 for RetainedBytesCommandV1 {
+    fn retained_bound_v1(
+        &self,
+        m: &mut RetainedBoundBuilderV1,
+    ) -> Result<(), RetentionContractError> {
+        self.bytes.retained_bound_v1(m)?;
+        self.applications.retained_bound_v1(m)?;
+        self.gate.retained_bound_v1(m)
+    }
+}
+impl Drop for RetainedBytesCommandV1 {
+    fn drop(&mut self) {
+        if let Some(gate) = &self.gate {
+            let snapshot = gate.domain.snapshot().unwrap();
+            gate.committed_seen
+                .store(snapshot.committed_bytes, Ordering::SeqCst);
+            gate.retiring_seen
+                .store(snapshot.retiring_bytes, Ordering::SeqCst);
+            gate.entered.store(true, Ordering::SeqCst);
+            gate.ready.notify_all();
+            let mut released = gate.released.lock().unwrap();
+            while !*released {
+                released = gate.ready.wait(released).unwrap();
+            }
+        }
+    }
+}
+impl EditCommand for RetainedBytesCommandV1 {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn EditContext,
+        phase: RetentionPhaseV1,
+        model: RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<CommandRetentionPlanV1, EditCommandError> {
+        CommandRetentionPlanV1::for_owner(self, context, phase, model, limit)
+    }
+    fn prepare_retention_v1(
+        &mut self,
+        _: &mut dyn EditContext,
+        phase: RetentionPhaseV1,
+        permit: &mut RetentionMaterializationV1,
+    ) -> Result<(), CommandExecutionError> {
+        permit
+            .consume(self, phase)
+            .map_err(CommandExecutionError::unchanged)
+    }
+    fn label(&self) -> &str {
+        "retained byte fixture"
+    }
+    fn apply(&mut self, context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
+        if self.fail {
+            return Err(CommandExecutionError::unchanged(
+                EditCommandError::InvariantViolation {
+                    invariant: "intentional unchanged refusal",
+                },
+            ));
+        }
+        self.applications.fetch_add(1, Ordering::SeqCst);
+        context
+            .as_any_mut()
+            .downcast_mut::<FixtureContext>()
+            .unwrap()
+            .value += 1;
+        Ok(())
+    }
+    fn revert(&mut self, context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
+        context
+            .as_any_mut()
+            .downcast_mut::<FixtureContext>()
+            .unwrap()
+            .value -= 1;
+        Ok(())
+    }
+    fn try_merge(&mut self, next: &dyn EditCommand) -> MergeOutcome {
+        if self.merge
+            && next
+                .as_any()
+                .downcast_ref::<Self>()
+                .is_some_and(|next| next.merge)
+        {
+            MergeOutcome::Merged
+        } else {
+            MergeOutcome::Reject
+        }
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+fn retention_test_domain_v1(record: u64, history: u64, global: u64) -> HistoryRetentionDomainV1 {
+    HistoryRetentionDomainV1::try_new(HistoryRetentionBudgetV1 {
+        record_bytes: record,
+        history_bytes: history,
+        committed_bytes: global,
+        staging_bytes: 8 * 1024 * 1024,
+    })
+    .unwrap()
+}
+fn retention_test_engine_v1(
+    capacity: usize,
+    domain: HistoryRetentionDomainV1,
+) -> EditorTransactionEngine {
+    EditorTransactionEngine::with_retention_domain_v1(FixtureContext::default(), capacity, domain)
+        .unwrap()
+}
+fn commit_retained_v1(
+    engine: &EditorTransactionEngine,
+    history: HistoryContextId,
+    bytes: usize,
+) -> TransactionId {
+    let mut scope = engine.begin("retained record", history).unwrap();
+    scope
+        .push(RetainedBytesCommandV1::new(
+            bytes,
+            Arc::new(AtomicUsize::new(0)),
+        ))
+        .unwrap();
+    scope.commit().unwrap();
+    engine.history_status(history).unwrap().top.unwrap()
+}
+
+#[test]
+fn oversized_command_is_rejected_before_apply_and_preserves_history() {
+    let domain = retention_test_domain_v1(32 * 1024, 256 * 1024, 4 * 1024 * 1024);
+    let engine = retention_test_engine_v1(128, domain);
+    let history = HistoryContextId::Global;
+    commit_retained_v1(&engine, history, 1024);
+    mark_current_saved(&engine, history);
+    let before = engine.history_status(history).unwrap();
+    let applied = Arc::new(AtomicUsize::new(0));
+    let mut scope = engine.begin("too large", history).unwrap();
+    let refused = scope.push(RetainedBytesCommandV1::new(64 * 1024, applied.clone()));
+    let rollback = scope.cancel();
+    assert!(matches!(refused, Err(EditCommandError::Retention(_))));
+    rollback.unwrap();
+    assert_eq!(applied.load(Ordering::SeqCst), 0);
+    assert_eq!(engine.history_status(history).unwrap(), before);
+}
+
+#[test]
+fn global_quota_does_not_evict_other_document_history() {
+    let domain = retention_test_domain_v1(128 * 1024, 128 * 1024, 1024 * 1024);
+    let engine = retention_test_engine_v1(8, domain.clone());
+    let first = HistoryContextId::Document(DocumentId::new(201));
+    commit_retained_v1(&engine, first, 24 * 1024);
+    let first_before = engine.history_status(first).unwrap();
+    let applied = Arc::new(AtomicUsize::new(0));
+    let mut refused = false;
+    for index in 0..128 {
+        let second = HistoryContextId::Document(DocumentId::new(202 + index));
+        let result = engine.begin("another document", second);
+        let Ok(mut scope) = result else {
+            refused = true;
+            break;
+        };
+        match scope.push(RetainedBytesCommandV1::new(96 * 1024, applied.clone())) {
+            Ok(()) => {
+                scope.commit().unwrap();
+            }
+            Err(EditCommandError::Retention(_)) => {
+                scope.cancel().unwrap();
+                refused = true;
+                break;
+            }
+            Err(error) => panic!("unexpected refusal: {error}"),
+        }
+    }
+    assert!(
+        refused,
+        "finite shared metadata/payload budget must eventually refuse"
+    );
+    assert_eq!(engine.history_status(first).unwrap(), first_before);
+    assert!(domain.snapshot().unwrap().committed_bytes <= domain.budget().committed_bytes);
+}
+
+#[test]
+fn committed_payload_stays_charged_until_retiring_drop_finishes() {
+    let domain = retention_test_domain_v1(128 * 1024, 128 * 1024, 4 * 1024 * 1024);
+    let gate = Arc::new(RetentionDropGateV1 {
+        entered: std::sync::atomic::AtomicBool::new(false),
+        released: Mutex::new(false),
+        ready: Condvar::new(),
+        committed_seen: AtomicU64::new(0),
+        retiring_seen: AtomicU64::new(0),
+        domain: domain.clone(),
+    });
+    let engine = retention_test_engine_v1(1, domain.clone());
+    let mut first = RetainedBytesCommandV1::new(4096, Arc::new(AtomicUsize::new(0)));
+    first.gate = Some(gate.clone());
+    let mut scope = engine
+        .begin("held payload", HistoryContextId::Global)
+        .unwrap();
+    scope.push(first).unwrap();
+    scope.commit().unwrap();
+    let before = domain.snapshot().unwrap();
+    let worker = std::thread::spawn(move || {
+        commit_retained_v1(&engine, HistoryContextId::Global, 4096);
+        engine
+    });
+    let entered = gate.wait_until_entered();
+    let while_dropping = domain.snapshot();
+    gate.release();
+    let result = worker.join();
+    assert!(entered);
+    let while_dropping = while_dropping.unwrap();
+    let engine = result.unwrap();
+    assert!(while_dropping.retiring_bytes >= 4096);
+    assert!(
+        while_dropping.committed_bytes + while_dropping.retiring_bytes >= before.committed_bytes
+    );
+    assert_eq!(domain.snapshot().unwrap().retiring_bytes, 0);
+    assert_eq!(
+        engine.history_status(HistoryContextId::Global).unwrap().len,
+        1
+    );
+}
+
+#[test]
+fn failed_apply_keeps_planned_eviction_and_saved_top_unchanged() {
+    let domain = retention_test_domain_v1(128 * 1024, 128 * 1024, 4 * 1024 * 1024);
+    let engine = retention_test_engine_v1(1, domain);
+    let history = HistoryContextId::Global;
+    commit_retained_v1(&engine, history, 4096);
+    mark_current_saved(&engine, history);
+    let before = engine.history_status(history).unwrap();
+    let mut command = RetainedBytesCommandV1::new(4096, Arc::new(AtomicUsize::new(0)));
+    command.fail = true;
+    let mut scope = engine.begin("fails before mutation", history).unwrap();
+    let failure = scope.push(command);
+    drop(scope); // unchanged apply failure already closed its scope
+    assert!(failure.is_err());
+    assert_eq!(engine.history_status(history).unwrap(), before);
+}
+
+#[test]
+fn nested_scopes_and_operation_groups_transfer_one_retention_reservation() {
+    let domain = retention_test_domain_v1(128 * 1024, 256 * 1024, 4 * 1024 * 1024);
+    let engine = retention_test_engine_v1(128, domain.clone());
+    let history = HistoryContextId::Global;
+    let mut outer = engine.begin("outer", history).unwrap();
+    outer
+        .push(RetainedBytesCommandV1::new(
+            1024,
+            Arc::new(AtomicUsize::new(0)),
+        ))
+        .unwrap();
+    let mut inner = engine.begin("inner", history).unwrap();
+    inner
+        .push(RetainedBytesCommandV1::new(
+            2048,
+            Arc::new(AtomicUsize::new(0)),
+        ))
+        .unwrap();
+    inner.commit().unwrap();
+    outer.commit().unwrap();
+    assert_eq!(engine.history_status(history).unwrap().len, 1);
+    engine
+        .execute_operation(
+            "group",
+            history,
+            Some("one gesture"),
+            MergeMode::All,
+            Box::new(RetainedBytesCommandV1::new(
+                1024,
+                Arc::new(AtomicUsize::new(0)),
+            )),
+        )
+        .unwrap();
+    let during = domain.snapshot().unwrap();
+    assert!(during.staging_bytes > 0);
+    engine.flush_operation_group().unwrap();
+    let after = domain.snapshot().unwrap();
+    assert_eq!(after.staging_bytes, 0);
+    assert_eq!(after.promised_bytes, 0);
+    assert_eq!(engine.history_status(history).unwrap().len, 2);
+}
+
+#[test]
+fn merged_commands_keep_charge_through_discarded_payload_drop() {
+    let domain = retention_test_domain_v1(128 * 1024, 128 * 1024, 4 * 1024 * 1024);
+    let gate = Arc::new(RetentionDropGateV1 {
+        entered: std::sync::atomic::AtomicBool::new(false),
+        released: Mutex::new(false),
+        ready: Condvar::new(),
+        committed_seen: AtomicU64::new(0),
+        retiring_seen: AtomicU64::new(0),
+        domain: domain.clone(),
+    });
+    // Pre-release avoids a blocking callback; its snapshot still executes in
+    // the exact discarded-command Drop and can acquire the unlocked ledger.
+    gate.release();
+    let engine = retention_test_engine_v1(128, domain.clone());
+    let mut first = RetainedBytesCommandV1::new(4096, Arc::new(AtomicUsize::new(0)));
+    first.merge = true;
+    engine
+        .execute_operation(
+            "merge",
+            HistoryContextId::Global,
+            Some("merge gesture"),
+            MergeMode::All,
+            Box::new(first),
+        )
+        .unwrap();
+    let mut next = RetainedBytesCommandV1::new(8192, Arc::new(AtomicUsize::new(0)));
+    next.merge = true;
+    next.gate = Some(gate.clone());
+    engine
+        .execute_operation(
+            "merge",
+            HistoryContextId::Global,
+            Some("merge gesture"),
+            MergeMode::All,
+            Box::new(next),
+        )
+        .unwrap();
+    let dropped = gate.entered.load(Ordering::SeqCst);
+    let during = domain.snapshot().unwrap();
+    engine.flush_operation_group().unwrap();
+    assert!(dropped);
+    assert!(during.staging_bytes >= 8192);
+    assert_eq!(domain.snapshot().unwrap().staging_bytes, 0);
+    assert_eq!(
+        engine.history_status(HistoryContextId::Global).unwrap().len,
+        1
+    );
+}
+
+#[test]
+fn pinned_records_and_undo_barriers_prevent_budget_retirement() {
+    let domain = retention_test_domain_v1(128 * 1024, 128 * 1024, 4 * 1024 * 1024);
+    let engine = retention_test_engine_v1(1, domain);
+    let history = HistoryContextId::Global;
+    let first = commit_retained_v1(&engine, history, 1024);
+    let pin = engine.pin_history_record_v1(history, first).unwrap();
+    let before = engine.history_status(history).unwrap();
+    let refused = engine.execute_operation(
+        "cannot retire pinned",
+        history,
+        None,
+        MergeMode::Disable,
+        Box::new(RetainedBytesCommandV1::new(
+            1024,
+            Arc::new(AtomicUsize::new(0)),
+        )),
+    );
+    assert!(refused.is_err());
+    assert_eq!(engine.history_status(history).unwrap(), before);
+    drop(pin);
+    let barrier = engine.history_undo_barrier_v1(history, first).unwrap();
+    assert!(!engine.history_status(history).unwrap().can_undo);
+    assert!(!engine.undo(history).unwrap());
+    drop(barrier);
+    assert!(engine.undo(history).unwrap());
+}
+
+#[test]
+fn byte_eviction_preserves_saved_top_and_redo_branch_reachability() {
+    let domain = retention_test_domain_v1(48 * 1024, 64 * 1024, 4 * 1024 * 1024);
+    let engine = retention_test_engine_v1(128, domain);
+    let history = HistoryContextId::Global;
+    commit_retained_v1(&engine, history, 20 * 1024);
+    mark_current_saved(&engine, history);
+    commit_retained_v1(&engine, history, 20 * 1024);
+    let old_count = engine.history_status(history).unwrap().len;
+    commit_retained_v1(&engine, history, 20 * 1024);
+    let evicted = engine.history_status(history).unwrap();
+    assert!(
+        evicted.len < old_count + 1,
+        "byte cap applies before count 128"
+    );
+    assert!(evicted.dirty);
+    assert!(engine.undo(history).unwrap());
+    commit_retained_v1(&engine, history, 1024);
+    let branched = engine.history_status(history).unwrap();
+    assert!(!branched.can_redo);
+    assert!(branched.dirty);
+}

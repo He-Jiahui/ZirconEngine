@@ -3,10 +3,7 @@ use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 
 macro_rules! workbench_asset {
     ($path:literal) => {
-        include_str!(concat!(
-            "../../../../assets/ui/editor/workbench/",
-            $path
-        ))
+        include_str!(concat!("../../../../assets/ui/editor/workbench/", $path))
     };
 }
 

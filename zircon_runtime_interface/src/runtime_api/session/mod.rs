@@ -19,6 +19,8 @@ mod editor_transform;
 mod editor_transform_tests;
 #[path = "events.rs"]
 mod events;
+#[path = "gamepad_generation_v2.rs"]
+mod gamepad_generation_v2;
 #[path = "ime_compose_capability_v2.rs"]
 mod ime_composition_capability_v2;
 #[path = "ime_composition_v2.rs"]
@@ -54,6 +56,11 @@ pub use editor_transform::{
     ZrRuntimeEditorTransformWriteV1, ZrRuntimeTransformV1,
 };
 pub use events::ZrRuntimeEventV1;
+pub use gamepad_generation_v2::{
+    ZrRuntimeGamepadGenerationV2, ZrRuntimeGamepadGenerationV2Error,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V2, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V2,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V2, ZR_RUNTIME_GAMEPAD_GENERATION_V2_HEADER_BYTES,
+};
 pub use ime_composition_capability_v2::{
     ZrRuntimeImeCompositionNegotiation, ZrRuntimeImeCompositionWireVersion,
     ZR_RUNTIME_IME_COMPOSITION_V2_CAPABILITY, ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE,

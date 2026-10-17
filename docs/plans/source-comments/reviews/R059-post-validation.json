@@ -1,0 +1,3493 @@
+{
+  "schema": "zircon.source-comments.post-validation.v1",
+  "batch": "R059",
+  "task": "source-comments-20261014-01a13a81",
+  "created_at_utc": "2026-10-16T10:31:14.430559+00:00",
+  "child": {
+    "path": "docs/plans/source-comments/reviews/R059.json",
+    "sha256": "4d8ca96062aefbd60e56e16a03d8994d361ce5c5a21cc0ea07e3fe232095e625",
+    "bytes": 128119
+  },
+  "sources": [
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "before_sha256": "e1b3b2c580f0e2eeac2e30b560b99cf196ecf8e25298f1e9b950b1fdbd59c0a8",
+      "before_bytes": 4166,
+      "before_lines": 97,
+      "after_sha256": "99e0a189c5f2a5a21c453932184892ce73c12437bb5514dac74e6543ea1997b6",
+      "after_bytes": 4950,
+      "after_lines": 106,
+      "all_original_bytes_preserved": true,
+      "comment_insertions": [
+        {
+          "label": "module-boundary",
+          "before_line": 1,
+          "before_offset": 0,
+          "after_offset": 0,
+          "bytes": 305,
+          "sha256": "e21a979b4641053770d4cd5020b67d1a8cd5f1310738fe57adf14795e608b344",
+          "exact_text": "//! 以源码文本和历史文档锚点检查输入管理器的测试归属。\n//!\n//! 读取器统一换行后检查字面包含关系与行数；这里不执行被定位的计时器测试，\n//! 也不据函数名验证行为。文档输入必须先可读，读取失败会阻止后续结构断言。\n\n",
+          "added_lines": 5
+        },
+        {
+          "label": "CR-ZCA-R059-0002",
+          "before_line": 13,
+          "before_offset": 897,
+          "after_offset": 1202,
+          "bytes": 222,
+          "sha256": "50401725995fa164c6966ca381de8f7a50d847618aa84c2c59b06b2fe0a3311a",
+          "exact_text": "    // BUG: [CR-ZCA-R059-0002] 当前检出缺少此处和下一行的两个文档输入；read_repo 的错误分支直接 panic，\n    // 因而先在 module_doc 读取中止，ui_doc 与后续结构断言尚不可达。\n",
+          "added_lines": 2
+        },
+        {
+          "label": "CR-ZCA-R059-0001",
+          "before_line": 25,
+          "before_offset": 1418,
+          "after_offset": 1945,
+          "bytes": 257,
+          "sha256": "52348dae4ff2eaac1148db5144e7ef59afd53e70fc88c3405d81e5e9e3b99cef",
+          "exact_text": "            // BUG: [CR-ZCA-R059-0001] 被读父模块在 cfg 属性与 tests 声明之间还有 path 属性，\n            // 下列连续字串经仅统一换行的读取器处理后仍不存在；若前置文档可读，此正向包含断言会失败。\n",
+          "added_lines": 2
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "before_sha256": "5bc18f42c8dfc65fad94a3cd4a062d3805f92989b2652d3b93a1e0109bc80f8e",
+      "before_bytes": 7594,
+      "before_lines": 181,
+      "after_sha256": "255711f9d54c2c93c51ff98e51c6c2951f83941b2272ad234ffa9d289528b98a",
+      "after_bytes": 8405,
+      "after_lines": 190,
+      "all_original_bytes_preserved": true,
+      "comment_insertions": [
+        {
+          "label": "module-boundary",
+          "before_line": 1,
+          "before_offset": 0,
+          "after_offset": 0,
+          "bytes": 311,
+          "sha256": "befcf15ce529a093b7a275c9e5db11754e3e8687f97c28abc02ee783e479b277",
+          "exact_text": "//! 按源码文本检查绑定文本更新的归属、接口形态和历史文档锚点。\n//!\n//! 完整文本的注释也参与字面匹配与行数预算；只有 profile 字段检查使用生产视图预处理。\n//! 命中名称不等同于执行对应行为、验证清零效果或证明内存安全。\n\n",
+          "added_lines": 5
+        },
+        {
+          "label": "CR-ZCA-R059-0003",
+          "before_line": 8,
+          "before_offset": 359,
+          "after_offset": 670,
+          "bytes": 255,
+          "sha256": "a0d985bcad9ab562cef0ba771454b67f38a36e53a4664ac4562b27f4ef5ec7e3",
+          "exact_text": "    // BUG: [CR-ZCA-R059-0003] 此处事务输入及后续用例输入的旧路径当前不存在；生产模块的 path 挂载指向实际文件。\n    // read_runtime_src 会先在此处读取错误时 panic，后续用例输入及断言尚不可达。\n",
+          "added_lines": 2
+        },
+        {
+          "label": "CR-ZCA-R059-0004",
+          "before_line": 64,
+          "before_offset": 3021,
+          "after_offset": 3587,
+          "bytes": 245,
+          "sha256": "36de9afc4b75710de8ead5c4785f458f8a47fe7c57664424754a53b56633dc66",
+          "exact_text": "    // BUG: [CR-ZCA-R059-0004] 当前清单以带 optional 的表形式声明同版本依赖，下列精确简写字串不存在；\n    // 若前置输入可读，此字面包含检查会失败；这不表示依赖缺失或清零机制失效。\n",
+          "added_lines": 2
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "files": 2,
+    "before_bytes": 11760,
+    "before_lines": 278,
+    "after_bytes": 13355,
+    "after_lines": 296,
+    "changed_files": 2,
+    "insertions": 6,
+    "added_lf_lines": 18,
+    "objects": 5,
+    "members": 0,
+    "original_semantic_regions": 23,
+    "current_gapfree_semantic_regions": 25,
+    "control_points": 48,
+    "tests": 2,
+    "ignored_tests": 0,
+    "original_string_operands": 140,
+    "raw_predicate_groups": 24,
+    "raw_predicate_positions": 127,
+    "raw_predicate_evaluated": 96,
+    "raw_predicate_true": 75,
+    "raw_predicate_false": 21,
+    "raw_predicate_null": 31,
+    "line_budget_positions": 8,
+    "line_budgets_evaluated": 6,
+    "new_BUG": 4,
+    "retained_TODO": 1
+  },
+  "objects": [
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "name": "use super::{assert_contains_all, read_repo, read_runtime_src};",
+      "kind": "use declaration",
+      "before_lines": [
+        1,
+        1
+      ],
+      "after_lines": [
+        6,
+        6
+      ],
+      "members": [
+        "assert_contains_all",
+        "read_repo",
+        "read_runtime_src"
+      ],
+      "audit": "导入同层读取/断言函数；没有重导出API、类型定义或执行域对象。",
+      "documentation_decision": "no per-import addition: visible import path and new module boundary explain use; names alone need no repetition.",
+      "root_verdict": "independently-reviewed; actual private import/test declaration, not a public type or production API"
+    },
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "name": "runtime_15_ui_dispatch_input_manager_tests_are_child_owner",
+      "kind": "private unit test function",
+      "before_lines": [
+        4,
+        97
+      ],
+      "after_lines": [
+        9,
+        106
+      ],
+      "attributes": [
+        {
+          "name": "#[test]",
+          "before_lines": [
+            4,
+            4
+          ],
+          "after_lines": [
+            9,
+            9
+          ]
+        }
+      ],
+      "parameters": [],
+      "returns": "Implicit unit; normal completion means structural assertions did not panic, not that referenced behavior tests ran.",
+      "local_bindings": [
+        {
+          "name": "parent",
+          "before_line": 6,
+          "after_line": 11
+        },
+        {
+          "name": "tests",
+          "before_line": 7,
+          "after_line": 12
+        },
+        {
+          "name": "runtime_15_plan",
+          "before_line": 8,
+          "after_line": 13
+        },
+        {
+          "name": "runtime_index",
+          "before_line": 10,
+          "after_line": 15
+        },
+        {
+          "name": "review_findings",
+          "before_line": 11,
+          "after_line": 16
+        },
+        {
+          "name": "structure_convention",
+          "before_line": 12,
+          "after_line": 17
+        },
+        {
+          "name": "module_doc",
+          "before_line": 13,
+          "after_line": 20
+        },
+        {
+          "name": "ui_doc",
+          "before_line": 14,
+          "after_line": 21
+        },
+        {
+          "name": "line_count",
+          "before_line": 70,
+          "after_line": 79
+        }
+      ],
+      "declared_types": [],
+      "fields": [],
+      "enum_variants": [],
+      "audit": "测试入口将父管理器、子行为测试和六份历史文档作为字符串输入；真正顺序先读完输入，再检查挂载、用例归属、夹具、行数与文档锚点。当前先因缺module_doc走read_repo失败路径。",
+      "call_timing": "Rust test harness invokes only when parent compilation/test configuration mounts this file; no direct production call found in Runtime/Interface source-name/path search.",
+      "constraints": "Files and historical documents must be readable UTF-8 at repo/runtime path resolution. Exact strings, adjacency and <800 are textual contracts. Missing inputs preempt later predicates.",
+      "ownership_lifetime": "Reader returns owned String local to invocation. Arrays/loops borrow str/String immutably. No domain manager/Surface instance is created; locals are released on normal return or panic unwind.",
+      "documentation_decision": "added module-level responsibility/proof boundary and narrow BUG annotations; no redundant per-array/fn-name narration or empty params/return sections.",
+      "root_verdict": "independently-reviewed; actual private import/test declaration, not a public type or production API"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "use super::super::rust_source_view::production_section;",
+      "kind": "use declaration",
+      "before_lines": [
+        1,
+        1
+      ],
+      "after_lines": [
+        6,
+        6
+      ],
+      "members": [
+        "super::super::rust_source_view::production_section"
+      ],
+      "audit": "导入同层读取/断言函数或祖层生产视图函数；没有重导出API、类型定义或执行域对象。",
+      "documentation_decision": "no per-import addition: visible import path and new module boundary explain use; names alone need no repetition.",
+      "root_verdict": "independently-reviewed; actual private import/test declaration, not a public type or production API"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "use super::{assert_contains_all, read_repo, read_runtime_src};",
+      "kind": "use declaration",
+      "before_lines": [
+        2,
+        2
+      ],
+      "after_lines": [
+        7,
+        7
+      ],
+      "members": [
+        "assert_contains_all",
+        "read_repo",
+        "read_runtime_src"
+      ],
+      "audit": "导入同层读取/断言函数；没有重导出API、类型定义或执行域对象。",
+      "documentation_decision": "no per-import addition: visible import path and new module boundary explain use; names alone need no repetition.",
+      "root_verdict": "independently-reviewed; actual private import/test declaration, not a public type or production API"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "runtime_text_bound_model_updates_are_bounded_child_owner",
+      "kind": "private unit test function",
+      "before_lines": [
+        4,
+        181
+      ],
+      "after_lines": [
+        9,
+        190
+      ],
+      "attributes": [
+        {
+          "name": "#[test]",
+          "before_lines": [
+            4,
+            4
+          ],
+          "after_lines": [
+            9,
+            9
+          ]
+        }
+      ],
+      "parameters": [],
+      "returns": "Implicit unit; normal completion means structural assertions did not panic, not that referenced behavior tests ran.",
+      "local_bindings": [
+        {
+          "name": "manager",
+          "before_line": 6,
+          "after_line": 11
+        },
+        {
+          "name": "owner",
+          "before_line": 7,
+          "after_line": 12
+        },
+        {
+          "name": "transaction",
+          "before_line": 8,
+          "after_line": 15
+        },
+        {
+          "name": "profile",
+          "before_line": 10,
+          "after_line": 17
+        },
+        {
+          "name": "tests",
+          "before_line": 11,
+          "after_line": 18
+        },
+        {
+          "name": "secure_store",
+          "before_line": 13,
+          "after_line": 20
+        },
+        {
+          "name": "runtime_manifest",
+          "before_line": 14,
+          "after_line": 21
+        },
+        {
+          "name": "interface",
+          "before_line": 15,
+          "after_line": 22
+        },
+        {
+          "name": "structure",
+          "before_line": 16,
+          "after_line": 23
+        },
+        {
+          "name": "findings",
+          "before_line": 17,
+          "after_line": 24
+        },
+        {
+          "name": "text_plan",
+          "before_line": 18,
+          "after_line": 25
+        },
+        {
+          "name": "profile_production",
+          "before_line": 123,
+          "after_line": 132
+        },
+        {
+          "name": "line_count",
+          "before_line": 151,
+          "after_line": 160
+        }
+      ],
+      "declared_types": [],
+      "fields": [],
+      "enum_variants": [],
+      "audit": "测试入口按完整源码字符串约束绑定文本更新模块形态，profile使用生产视图；真正顺序先读十一项输入。当前在旧transaction路径缺失处先走read_runtime_src失败路径。",
+      "call_timing": "Rust test harness invokes only when parent compilation/test configuration mounts this file; no direct production call found in Runtime/Interface source-name/path search.",
+      "constraints": "Files and historical documents must be readable UTF-8 at repo/runtime path resolution. Exact strings, adjacency and <800 are textual contracts. Missing inputs preempt later predicates.",
+      "ownership_lifetime": "Reader returns owned String local to invocation. Arrays/loops borrow str/String immutably. No domain manager/Surface instance is created; locals are released on normal return or panic unwind.",
+      "documentation_decision": "added module-level responsibility/proof boundary and narrow BUG annotations; no redundant per-array/fn-name narration or empty params/return sections.",
+      "root_verdict": "independently-reviewed; actual private import/test declaration, not a public type or production API"
+    }
+  ],
+  "members": [],
+  "gapfree_original_partitions": [
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "name": "新增模块职责与文本证明边界",
+      "before_lines": null,
+      "after_lines": [
+        1,
+        5
+      ],
+      "entry": "子模块文档位置",
+      "state_transition": "只新增解释，不参与Rust运行状态；现有调用、文字操作数不变。",
+      "downstream": "将字符串检查与行为运行分开；新增文字对全部原字串贡献0。",
+      "documentation_decision": "必要模块文档补充",
+      "control_points": [],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "name": "导入、原有问题与测试声明准备",
+      "before_lines": [
+        1,
+        3
+      ],
+      "after_lines": [
+        6,
+        8
+      ],
+      "entry": "父 production_file_budget 模块装载此子模块。",
+      "state_transition": "导入读取与包含断言；保留原历史文档 TODO，不变更其意图或编号。",
+      "downstream": "把同一父层 helper 用于后续检查；旧问题和四个新增问题分别登记。",
+      "documentation_decision": "模块说明补上文本守卫的证明边界；导入名和旧 TODO 已明确，不逐名重复。",
+      "control_points": [],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "name": "测试注册与按序读取八项输入",
+      "before_lines": [
+        4,
+        15
+      ],
+      "after_lines": [
+        9,
+        22
+      ],
+      "entry": "原生测试 harness 进入无参数测试函数。",
+      "state_transition": "依次取得 manager、cases 和六份文档的 owned String；读取器出错直接 panic。",
+      "downstream": "当前第一个缺失项 module_doc 原13行，先于 ui_doc 与所有断言；后文谓词仅独立求值。",
+      "documentation_decision": "0002贴于首个缺失调用前，说明两个缺输入和顺序；不创建文档。",
+      "control_points": [
+        {
+          "name": "测试属性",
+          "before_lines": [
+            4,
+            4
+          ],
+          "after_lines": [
+            9,
+            9
+          ],
+          "anchor": "#[test]"
+        },
+        {
+          "name": "两个Runtime源码输入",
+          "before_lines": [
+            6,
+            7
+          ],
+          "after_lines": [
+            11,
+            12
+          ],
+          "anchor": "read_runtime_src"
+        },
+        {
+          "name": "六个仓库文档输入",
+          "before_lines": [
+            8,
+            14
+          ],
+          "after_lines": [
+            13,
+            21
+          ],
+          "anchor": "read_repo"
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "name": "父管理器接口与挂载字串",
+      "before_lines": [
+        16,
+        27
+      ],
+      "after_lines": [
+        23,
+        36
+      ],
+      "entry": "仅在全部输入成功读取后可达。",
+      "state_transition": "assert_contains_all 在完整归一化 parent 中逐项收集缺失字串，前五项为真，最后一项为假。",
+      "downstream": "path 属性打断 cfg 与 tests 声明的相邻关系；与已存在生产测试挂载并不矛盾。",
+      "documentation_decision": "0001只说明错误的连续字串匹配，不向注释注入目标字串。",
+      "control_points": [
+        {
+          "name": "逐锚点包含断言调用",
+          "before_lines": [
+            16,
+            27
+          ],
+          "after_lines": [
+            23,
+            36
+          ],
+          "anchor": "assert_contains_all"
+        },
+        {
+          "name": "六个精确needle",
+          "before_lines": [
+            20,
+            25
+          ],
+          "after_lines": [
+            27,
+            34
+          ],
+          "anchor": null
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "name": "七个计时器用例的双向归属",
+      "before_lines": [
+        28,
+        45
+      ],
+      "after_lines": [
+        37,
+        54
+      ],
+      "entry": "遍历七个原测试函数签名字串。",
+      "state_transition": "每项先要求 parent 不含签名，再要求 cases 含签名；当前独立向量各为7真。",
+      "downstream": "只约束签名文本所在文件，不能证明七个计时器行为已经运行或成立。",
+      "documentation_decision": "现有数组、双向断言和诊断足够；模块说明统一解释其证明边界。",
+      "control_points": [
+        {
+          "name": "七项归属循环",
+          "before_lines": [
+            28,
+            45
+          ],
+          "after_lines": [
+            37,
+            54
+          ],
+          "anchor": "for moved_test"
+        },
+        {
+          "name": "父模块否定匹配",
+          "before_lines": [
+            38,
+            38
+          ],
+          "after_lines": [
+            47,
+            47
+          ],
+          "anchor": "!parent.contains"
+        },
+        {
+          "name": "子测试正向匹配",
+          "before_lines": [
+            42,
+            42
+          ],
+          "after_lines": [
+            51,
+            51
+          ],
+          "anchor": "tests.contains"
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "name": "子测试夹具与事件类型锚点",
+      "before_lines": [
+        46,
+        61
+      ],
+      "after_lines": [
+        55,
+        70
+      ],
+      "entry": "七个用例归属断言之后。",
+      "state_transition": "检查导入、六个辅助函数及两个类型名共九个字串；当前全部存在。",
+      "downstream": "函数名/类型名的存在不证明夹具语义或实际类型导入通过编译。",
+      "documentation_decision": "数组标签与断言清楚，不机械添加逐项名称解释。",
+      "control_points": [
+        {
+          "name": "九项夹具锚点调用",
+          "before_lines": [
+            47,
+            61
+          ],
+          "after_lines": [
+            56,
+            70
+          ],
+          "anchor": "assert_contains_all"
+        },
+        {
+          "name": "夹具和事件类型needle",
+          "before_lines": [
+            51,
+            59
+          ],
+          "after_lines": [
+            60,
+            68
+          ],
+          "anchor": null
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "name": "两个被读文件的行数预算",
+      "before_lines": [
+        62,
+        75
+      ],
+      "after_lines": [
+        71,
+        84
+      ],
+      "entry": "遍历 parent 与 cases 的借用 str。",
+      "state_transition": "source.lines().count() 只计归一化完整文本；严格小于800，796与621均满足。",
+      "downstream": "注释也计入预算；本批被编辑的是结构守卫本身，两个预算输入未改。",
+      "documentation_decision": "阈值和错误消息充分；模块说明已指出行数按源码文本检查。",
+      "control_points": [
+        {
+          "name": "两个输入预算循环",
+          "before_lines": [
+            63,
+            75
+          ],
+          "after_lines": [
+            72,
+            84
+          ],
+          "anchor": "for (path, source)"
+        },
+        {
+          "name": "完整文本行数",
+          "before_lines": [
+            70,
+            70
+          ],
+          "after_lines": [
+            79,
+            79
+          ],
+          "anchor": "source.lines().count()"
+        },
+        {
+          "name": "严格预算断言",
+          "before_lines": [
+            71,
+            74
+          ],
+          "after_lines": [
+            80,
+            83
+          ],
+          "anchor": "line_count < 800"
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "name": "六份历史文档的五锚点矩阵",
+      "before_lines": [
+        76,
+        96
+      ],
+      "after_lines": [
+        85,
+        105
+      ],
+      "entry": "按六份文档借用顺序重复同一五字串断言；当前完整入口未到达。",
+      "state_transition": "四份已存在文档的独立矩阵为FFFFF、FFFFF、FFTFF、FFFFF；两个缺输入为null。",
+      "downstream": "既有0110仍是历史锚点意图问题；文件缺失与cfg邻接问题另有编号，不混为一个问题。",
+      "documentation_decision": "保留旧 TODO，原文档路径及锚点字符串一字不改；详细矩阵入证据。",
+      "control_points": [
+        {
+          "name": "六文档循环",
+          "before_lines": [
+            77,
+            96
+          ],
+          "after_lines": [
+            86,
+            105
+          ],
+          "anchor": "for (label, source)"
+        },
+        {
+          "name": "原五锚点断言调用",
+          "before_lines": [
+            85,
+            95
+          ],
+          "after_lines": [
+            94,
+            104
+          ],
+          "anchor": "assert_contains_all"
+        },
+        {
+          "name": "五个历史needle",
+          "before_lines": [
+            89,
+            93
+          ],
+          "after_lines": [
+            98,
+            102
+          ],
+          "anchor": null
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "name": "函数结束与输入释放",
+      "before_lines": [
+        97,
+        97
+      ],
+      "after_lines": [
+        106,
+        106
+      ],
+      "entry": "所有循环正常完成时返回隐式单元；当前读入路径先panic。",
+      "state_transition": "局部 String 和借用仅属于本次函数栈；正常返回或展开时由Rust释放。",
+      "downstream": "没有创建 UiInputManager 实例、计时器或生产状态。",
+      "documentation_decision": "无需为空返回或花括号添加源码注释；生命周期边界记入对象审查。",
+      "control_points": [],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "新增模块职责与文本证明边界",
+      "before_lines": null,
+      "after_lines": [
+        1,
+        5
+      ],
+      "entry": "子模块文档位置",
+      "state_transition": "只新增解释，不参与Rust运行状态；现有调用、文字操作数不变。",
+      "downstream": "将字符串检查与行为运行分开；新增文字对全部原字串贡献0。",
+      "documentation_decision": "必要模块文档补充",
+      "control_points": [],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "导入生产视图与父级读取断言",
+      "before_lines": [
+        1,
+        3
+      ],
+      "after_lines": [
+        6,
+        8
+      ],
+      "entry": "父 production_file_budget 挂载此子模块。",
+      "state_transition": "导入 production_section 和同一文本读取/包含 helper；没有生产对象构造。",
+      "downstream": "profile 检查走单独词法视图，其余原始文本检查不继承该预处理。",
+      "documentation_decision": "模块说明补上读取文本与生产视图的区别；不逐个复述导入名。",
+      "control_points": [],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "测试注册与十一项输入读取",
+      "before_lines": [
+        4,
+        19
+      ],
+      "after_lines": [
+        9,
+        26
+      ],
+      "entry": "测试 harness 进入第二个无参数测试函数。",
+      "state_transition": "按顺序读 manager、owner、旧transaction、profile、旧cases、secure_store、manifest、Interface与3文档。",
+      "downstream": "当前首先在旧transaction路径读取失败；其实际生产模块仍存在于path指定位置。后续缺cases也尚未读取。",
+      "documentation_decision": "0003靠近首个错误路径，明确失效的是测试输入路径；保留两个旧路径。",
+      "control_points": [
+        {
+          "name": "测试属性",
+          "before_lines": [
+            4,
+            4
+          ],
+          "after_lines": [
+            9,
+            9
+          ],
+          "anchor": "#[test]"
+        },
+        {
+          "name": "按顺序读取全部输入",
+          "before_lines": [
+            6,
+            18
+          ],
+          "after_lines": [
+            11,
+            25
+          ],
+          "anchor": "read_runtime_src"
+        },
+        {
+          "name": "首个缺失旧事务调用",
+          "before_lines": [
+            8,
+            9
+          ],
+          "after_lines": [
+            15,
+            16
+          ],
+          "anchor": "read_runtime_src"
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "三个公共方法的归属字串",
+      "before_lines": [
+        20,
+        33
+      ],
+      "after_lines": [
+        27,
+        40
+      ],
+      "entry": "所有输入可读后遍历三方法签名；当前入口未到达。",
+      "state_transition": "manager中三项均不存在而owner中三项均存在，原始双向向量各3真。",
+      "downstream": "这不执行文本更新、文档身份查询或回执排空方法。",
+      "documentation_decision": "现有签名数组与双向断言说明充分。",
+      "control_points": [
+        {
+          "name": "三方法循环",
+          "before_lines": [
+            20,
+            33
+          ],
+          "after_lines": [
+            27,
+            40
+          ],
+          "anchor": "for public_method"
+        },
+        {
+          "name": "父模块否定匹配",
+          "before_lines": [
+            26,
+            26
+          ],
+          "after_lines": [
+            33,
+            33
+          ],
+          "anchor": "!manager.contains"
+        },
+        {
+          "name": "owner正向匹配",
+          "before_lines": [
+            30,
+            30
+          ],
+          "after_lines": [
+            37,
+            37
+          ],
+          "anchor": "owner.contains"
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "队列与Surface句柄文本形态",
+      "before_lines": [
+        34,
+        48
+      ],
+      "after_lines": [
+        41,
+        55
+      ],
+      "entry": "方法归属检查之后。",
+      "state_transition": "查三个预算常量表达式、BTreeMap字段、两安全存取名、Drop和活动存储名，共8锚点。",
+      "downstream": "文本形态不执行容量准入、按节点去重或Drop清零，类型/行为仍由生产模块及其测试拥有。",
+      "documentation_decision": "模块说明限制证明范围，避免把载体名字当运行验证。",
+      "control_points": [
+        {
+          "name": "八个owner锚点调用",
+          "before_lines": [
+            35,
+            48
+          ],
+          "after_lines": [
+            42,
+            55
+          ],
+          "anchor": "assert_contains_all"
+        },
+        {
+          "name": "容量表达式与拥有者needle",
+          "before_lines": [
+            39,
+            46
+          ],
+          "after_lines": [
+            46,
+            53
+          ],
+          "anchor": null
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "Surface安全文本存储锚点",
+      "before_lines": [
+        49,
+        63
+      ],
+      "after_lines": [
+        56,
+        70
+      ],
+      "entry": "读取 secure_text_values.rs 的完整归一化文本。",
+      "state_transition": "查句柄可见性、Arc/Mutex map、Zeroizing载荷、取出/清除/写入与句柄方法共9项，全部存在。",
+      "downstream": "不能从这些字串推断锁策略、零化完成或无残留副本；这些生产语义不在本批覆盖。",
+      "documentation_decision": "不新增安全保证；模块说明明确不据名称证明清零或内存安全。",
+      "control_points": [
+        {
+          "name": "九个安全存储锚点调用",
+          "before_lines": [
+            49,
+            63
+          ],
+          "after_lines": [
+            56,
+            70
+          ],
+          "anchor": "assert_contains_all"
+        },
+        {
+          "name": "安全载体形态needle",
+          "before_lines": [
+            53,
+            61
+          ],
+          "after_lines": [
+            60,
+            68
+          ],
+          "anchor": null
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "依赖清单的精确声明字串",
+      "before_lines": [
+        64,
+        68
+      ],
+      "after_lines": [
+        71,
+        77
+      ],
+      "entry": "前置输入及此前断言均成功才会到达。",
+      "state_transition": "原单一简写依赖needle计数0，而实际Cargo317使用相同版本的optional表声明。",
+      "downstream": "属于结构守卫的文本形状失配；依赖存在，版本未变，不能据此指控安全机制缺失。",
+      "documentation_decision": "0004贴在此assert之前，仅记录精确字串失配及可达前提。",
+      "control_points": [
+        {
+          "name": "依赖字串断言调用",
+          "before_lines": [
+            64,
+            68
+          ],
+          "after_lines": [
+            73,
+            77
+          ],
+          "anchor": "assert_contains_all"
+        },
+        {
+          "name": "原单项精确声明needle",
+          "before_lines": [
+            67,
+            67
+          ],
+          "after_lines": [
+            76,
+            76
+          ],
+          "anchor": null
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "事务所有权锚点",
+      "before_lines": [
+        69,
+        79
+      ],
+      "after_lines": [
+        78,
+        88
+      ],
+      "entry": "使用原transaction变量；当前输入不存在。",
+      "state_transition": "准备/提交表达式、Programmatic、committed_document_state、CancelComposition与Barrier共5项。",
+      "downstream": "本轮结果为null，不用实际迁移文件替换程序操作数，也不把别处源码存在写成此断言通过。",
+      "documentation_decision": "原标签与数组明晰，保留代码；缺路径由0003集中说明。",
+      "control_points": [
+        {
+          "name": "事务形态调用",
+          "before_lines": [
+            69,
+            79
+          ],
+          "after_lines": [
+            78,
+            88
+          ],
+          "anchor": "assert_contains_all"
+        },
+        {
+          "name": "五个事务needle",
+          "before_lines": [
+            73,
+            77
+          ],
+          "after_lines": [
+            82,
+            86
+          ],
+          "anchor": null
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "Interface版本身份与回执形态",
+      "before_lines": [
+        80,
+        92
+      ],
+      "after_lines": [
+        89,
+        101
+      ],
+      "entry": "读取Interface model_update.rs 文本。",
+      "state_transition": "查origin枚举/三个变体、expected_document、receipt和Debug长度字段，共7项，当前全部命中。",
+      "downstream": "仅文本存在，不执行Serde、schema版本检查、文档修订准入或回执验证。",
+      "documentation_decision": "清楚对象不机械加注释；对象说明限定文本契约。",
+      "control_points": [
+        {
+          "name": "Interface形态调用",
+          "before_lines": [
+            80,
+            92
+          ],
+          "after_lines": [
+            89,
+            101
+          ],
+          "anchor": "assert_contains_all"
+        },
+        {
+          "name": "七个Interface needle",
+          "before_lines": [
+            84,
+            90
+          ],
+          "after_lines": [
+            93,
+            99
+          ],
+          "anchor": null
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "十二个行为用例名锚点",
+      "before_lines": [
+        93,
+        111
+      ],
+      "after_lines": [
+        102,
+        120
+      ],
+      "entry": "使用原tests输入；当前旧路径不存在。",
+      "state_transition": "数组指向拒绝、聚焦延迟、覆盖、冲突、预编辑、安全存储与预算准入等12个名称。",
+      "downstream": "结果null；即便实际迁移cases有同名函数，也不能说该guard执行了它们或本批审过其行为。",
+      "documentation_decision": "模块说明阻止把函数名存在当行为覆盖；不改数组。",
+      "control_points": [
+        {
+          "name": "行为名称调用",
+          "before_lines": [
+            93,
+            110
+          ],
+          "after_lines": [
+            102,
+            119
+          ],
+          "anchor": "assert_contains_all"
+        },
+        {
+          "name": "十二用例名needle",
+          "before_lines": [
+            97,
+            108
+          ],
+          "after_lines": [
+            106,
+            117
+          ],
+          "anchor": null
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "两个owner的四类直接失败文本禁串",
+      "before_lines": [
+        112,
+        122
+      ],
+      "after_lines": [
+        121,
+        131
+      ],
+      "entry": "外层遍历queue和transaction，内层遍历4个失败调用形态。",
+      "state_transition": "queue的4个原始计数为0；transaction缺输入，4项为null。",
+      "downstream": "这是完整源码字符串检查，注释/字符串也会命中；不能证明无panic或传递调用安全。",
+      "documentation_decision": "现有双层循环清楚，模块说明解释原始文本边界。",
+      "control_points": [
+        {
+          "name": "两owner循环",
+          "before_lines": [
+            112,
+            122
+          ],
+          "after_lines": [
+            121,
+            131
+          ],
+          "anchor": "for (label, source)"
+        },
+        {
+          "name": "四类禁串循环",
+          "before_lines": [
+            116,
+            121
+          ],
+          "after_lines": [
+            125,
+            130
+          ],
+          "anchor": "for forbidden"
+        },
+        {
+          "name": "原始否定匹配",
+          "before_lines": [
+            118,
+            118
+          ],
+          "after_lines": [
+            127,
+            127
+          ],
+          "anchor": "!source.contains"
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "profile生产视图及四字段禁串",
+      "before_lines": [
+        123,
+        130
+      ],
+      "after_lines": [
+        132,
+        139
+      ],
+      "entry": "调用 production_section 后逐字段检查。",
+      "state_transition": "实际helper以空白遮罩注释和判定为test-only的项，保留行分隔；此API保留字符串字面量。profile原始四项计数均0。",
+      "downstream": "本轮未执行Rust helper；依据只覆写为空格的实现与原始0计数，可静态推出这四个无空白needle不会由遮罩新造。不是编译器AST或信息流证明。",
+      "documentation_decision": "模块说明只说profile使用生产视图，不扩张预处理能力。",
+      "control_points": [
+        {
+          "name": "生产视图调用",
+          "before_lines": [
+            123,
+            123
+          ],
+          "after_lines": [
+            132,
+            132
+          ],
+          "anchor": "production_section(&profile)"
+        },
+        {
+          "name": "四字段循环",
+          "before_lines": [
+            124,
+            129
+          ],
+          "after_lines": [
+            133,
+            138
+          ],
+          "anchor": "for forbidden_profile_field"
+        },
+        {
+          "name": "生产视图否定匹配",
+          "before_lines": [
+            126,
+            126
+          ],
+          "after_lines": [
+            135,
+            135
+          ],
+          "anchor": "!profile_production.contains"
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "六个owner输入的严格行数预算",
+      "before_lines": [
+        131,
+        157
+      ],
+      "after_lines": [
+        140,
+        166
+      ],
+      "entry": "遍历manager、owner、profile、transaction、tests、secure_store。",
+      "state_transition": "完整归一化文本lines计数须<800；当前四个存在输入796/539/108/641为真，两个缺输入为null。",
+      "downstream": "不以实际迁移文件的行数替代错误程序路径，不把结构预算当分配预算。",
+      "documentation_decision": "原断言和诊断足够，模块说明涵盖注释计入。",
+      "control_points": [
+        {
+          "name": "六输入行数循环",
+          "before_lines": [
+            131,
+            156
+          ],
+          "after_lines": [
+            140,
+            165
+          ],
+          "anchor": "for (path, source)"
+        },
+        {
+          "name": "完整文本行数",
+          "before_lines": [
+            151,
+            151
+          ],
+          "after_lines": [
+            160,
+            160
+          ],
+          "anchor": "source.lines().count()"
+        },
+        {
+          "name": "严格预算断言",
+          "before_lines": [
+            152,
+            155
+          ],
+          "after_lines": [
+            161,
+            164
+          ],
+          "anchor": "line_count < 800"
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "结构约定的四状态锚点",
+      "before_lines": [
+        158,
+        167
+      ],
+      "after_lines": [
+        167,
+        176
+      ],
+      "entry": "检查structure文档完整文本。",
+      "state_transition": "四个既定实现/待验证状态锚点当前均出现。",
+      "downstream": "文本状态不等同Jenkins验收或本轮运行行为测试。",
+      "documentation_decision": "标签清楚，无需重复四个字符串。",
+      "control_points": [
+        {
+          "name": "结构文档调用",
+          "before_lines": [
+            158,
+            167
+          ],
+          "after_lines": [
+            167,
+            176
+          ],
+          "anchor": "assert_contains_all"
+        },
+        {
+          "name": "四状态needle",
+          "before_lines": [
+            162,
+            165
+          ],
+          "after_lines": [
+            171,
+            174
+          ],
+          "anchor": null
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "findings和Text08计划的双锚点",
+      "before_lines": [
+        168,
+        180
+      ],
+      "after_lines": [
+        177,
+        189
+      ],
+      "entry": "遍历两文档，各查相同两状态锚点。",
+      "state_transition": "两份文档当前独立向量均TT，原入口仍在transaction读入阶段中止。",
+      "downstream": "文档锚点命中不升级形式验收或安全保证。",
+      "documentation_decision": "现有数组足够，不复制状态文字到源码新注释。",
+      "control_points": [
+        {
+          "name": "两文档循环",
+          "before_lines": [
+            168,
+            180
+          ],
+          "after_lines": [
+            177,
+            189
+          ],
+          "anchor": "for (label, source)"
+        },
+        {
+          "name": "双状态调用",
+          "before_lines": [
+            172,
+            179
+          ],
+          "after_lines": [
+            181,
+            188
+          ],
+          "anchor": "assert_contains_all"
+        },
+        {
+          "name": "两个状态needle",
+          "before_lines": [
+            176,
+            177
+          ],
+          "after_lines": [
+            185,
+            186
+          ],
+          "anchor": null
+        }
+      ],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "name": "函数结束与临时字符串释放",
+      "before_lines": [
+        181,
+        181
+      ],
+      "after_lines": [
+        190,
+        190
+      ],
+      "entry": "所有断言正常完成时返回单元。",
+      "state_transition": "局部String/生产视图仅在本次测试函数中借用；失败走panic展开。",
+      "downstream": "没有通过公共API修改Surface/模型、注册回调或泄漏生产句柄。",
+      "documentation_decision": "无需花括号注释，生命周期已记于函数对象。",
+      "control_points": [],
+      "root_verdict": "full source and exact operator reviewed; no invented behavioral execution"
+    }
+  ],
+  "macro_string_operand_preservation": [
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "inverse_equals_grant_and_raw_HEAD": true,
+      "original_string_tokens": 48,
+      "original_string_tokens_equal": true,
+      "new_comment_contribution": 0,
+      "LF_unchanged": true
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "inverse_equals_grant_and_raw_HEAD": true,
+      "original_string_tokens": 92,
+      "original_string_tokens_equal": true,
+      "new_comment_contribution": 0,
+      "LF_unchanged": true
+    }
+  ],
+  "raw_source_operations": [
+    {
+      "source_guard": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "operand_path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "name": "parent API and mount",
+      "source_variable": "parent",
+      "before_lines": [
+        20,
+        25
+      ],
+      "operator": "contains",
+      "needles": [
+        "pub struct UiInputManager",
+        "pub fn dispatch_input_event(",
+        "pub fn dispatch_window_input_pump_event(",
+        "pub fn dispatch_window_input_pump_batch(",
+        "pub fn tick(",
+        "#[cfg(test)]\nmod tests;"
+      ],
+      "raw_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        0
+      ],
+      "results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        27,
+        34
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        0
+      ],
+      "root_recomputed_results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "operand_path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "name": "moved timers absent from parent",
+      "source_variable": "parent",
+      "before_lines": [
+        29,
+        35
+      ],
+      "operator": "!contains",
+      "needles": [
+        "fn hovered_menu_option_arms_replaces_and_clears_submenu_hover_timer(",
+        "fn popup_menu_shells_expose_typeahead_and_submenu_timer_contracts(",
+        "fn toast_queue_value_arms_replaces_and_clears_auto_hide_timer(",
+        "fn toast_auto_hide_tick_dispatches_expired_commit_event(",
+        "fn tooltip_hover_arms_and_clears_manager_timer_candidate(",
+        "fn tooltip_hover_timer_tick_dispatches_elapsed_default_action(",
+        "fn tooltip_candidate_clears_on_following_input_activity("
+      ],
+      "raw_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        38,
+        44
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "root_recomputed_results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "operand_path": "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/cases.rs",
+      "name": "moved timers present in child",
+      "source_variable": "tests",
+      "before_lines": [
+        29,
+        35
+      ],
+      "operator": "contains",
+      "needles": [
+        "fn hovered_menu_option_arms_replaces_and_clears_submenu_hover_timer(",
+        "fn popup_menu_shells_expose_typeahead_and_submenu_timer_contracts(",
+        "fn toast_queue_value_arms_replaces_and_clears_auto_hide_timer(",
+        "fn toast_auto_hide_tick_dispatches_expired_commit_event(",
+        "fn tooltip_hover_arms_and_clears_manager_timer_candidate(",
+        "fn tooltip_hover_timer_tick_dispatches_elapsed_default_action(",
+        "fn tooltip_candidate_clears_on_following_input_activity("
+      ],
+      "raw_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        38,
+        44
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "root_recomputed_results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "operand_path": "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/cases.rs",
+      "name": "child fixtures",
+      "source_variable": "tests",
+      "before_lines": [
+        51,
+        59
+      ],
+      "operator": "contains",
+      "needles": [
+        "use super::UiInputManager;",
+        "fn submenu_hover_surface(",
+        "fn toast_surface(",
+        "fn tooltip_surface(",
+        "fn hover_changed_result(",
+        "fn component_event_result(",
+        "fn binding(",
+        "UiTooltipTimerInputEventKind",
+        "UiDispatchHostRequestKind"
+      ],
+      "raw_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2
+      ],
+      "results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        60,
+        68
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2
+      ],
+      "root_recomputed_results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "operand_path": "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+      "name": "historical document anchors",
+      "source_variable": "runtime_15_plan",
+      "before_lines": [
+        89,
+        93
+      ],
+      "operator": "contains",
+      "needles": [
+        "Runtime 15 M4 UI dispatch input manager test owner split",
+        "runtime_15_ui_dispatch_input_manager_tests_owner_split_static_passed_cargo_deferred",
+        "ui/dispatch/input_manager/manager.rs",
+        "ui/dispatch/input_manager/manager/tests.rs",
+        "runtime_15_ui_dispatch_input_manager_tests_are_child_owner"
+      ],
+      "raw_counts": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "results": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        98,
+        102
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "root_recomputed_results": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "operand_path": "docs/plans/zircon_runtime/runtime/index.md",
+      "name": "historical document anchors",
+      "source_variable": "runtime_index",
+      "before_lines": [
+        89,
+        93
+      ],
+      "operator": "contains",
+      "needles": [
+        "Runtime 15 M4 UI dispatch input manager test owner split",
+        "runtime_15_ui_dispatch_input_manager_tests_owner_split_static_passed_cargo_deferred",
+        "ui/dispatch/input_manager/manager.rs",
+        "ui/dispatch/input_manager/manager/tests.rs",
+        "runtime_15_ui_dispatch_input_manager_tests_are_child_owner"
+      ],
+      "raw_counts": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "results": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        98,
+        102
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "root_recomputed_results": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "operand_path": "docs/plans/engine-code-review-findings-2026-06.md",
+      "name": "historical document anchors",
+      "source_variable": "review_findings",
+      "before_lines": [
+        89,
+        93
+      ],
+      "operator": "contains",
+      "needles": [
+        "Runtime 15 M4 UI dispatch input manager test owner split",
+        "runtime_15_ui_dispatch_input_manager_tests_owner_split_static_passed_cargo_deferred",
+        "ui/dispatch/input_manager/manager.rs",
+        "ui/dispatch/input_manager/manager/tests.rs",
+        "runtime_15_ui_dispatch_input_manager_tests_are_child_owner"
+      ],
+      "raw_counts": [
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "results": [
+        false,
+        false,
+        true,
+        false,
+        false
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        98,
+        102
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "root_recomputed_results": [
+        false,
+        false,
+        true,
+        false,
+        false
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "operand_path": "docs/plans/engine-code-structure-convention.md",
+      "name": "historical document anchors",
+      "source_variable": "structure_convention",
+      "before_lines": [
+        89,
+        93
+      ],
+      "operator": "contains",
+      "needles": [
+        "Runtime 15 M4 UI dispatch input manager test owner split",
+        "runtime_15_ui_dispatch_input_manager_tests_owner_split_static_passed_cargo_deferred",
+        "ui/dispatch/input_manager/manager.rs",
+        "ui/dispatch/input_manager/manager/tests.rs",
+        "runtime_15_ui_dispatch_input_manager_tests_are_child_owner"
+      ],
+      "raw_counts": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "results": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        98,
+        102
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "root_recomputed_results": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "operand_path": "docs/zircon_runtime/structure/module-convention.md",
+      "name": "historical document anchors",
+      "source_variable": "module_doc",
+      "before_lines": [
+        89,
+        93
+      ],
+      "operator": "contains",
+      "needles": [
+        "Runtime 15 M4 UI dispatch input manager test owner split",
+        "runtime_15_ui_dispatch_input_manager_tests_owner_split_static_passed_cargo_deferred",
+        "ui/dispatch/input_manager/manager.rs",
+        "ui/dispatch/input_manager/manager/tests.rs",
+        "runtime_15_ui_dispatch_input_manager_tests_are_child_owner"
+      ],
+      "raw_counts": null,
+      "results": null,
+      "evaluation": "not evaluated: input missing",
+      "after_lines": [
+        98,
+        102
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": null,
+      "root_recomputed_results": null,
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "operand_path": "docs/zircon_runtime/ui/architecture.md",
+      "name": "historical document anchors",
+      "source_variable": "ui_doc",
+      "before_lines": [
+        89,
+        93
+      ],
+      "operator": "contains",
+      "needles": [
+        "Runtime 15 M4 UI dispatch input manager test owner split",
+        "runtime_15_ui_dispatch_input_manager_tests_owner_split_static_passed_cargo_deferred",
+        "ui/dispatch/input_manager/manager.rs",
+        "ui/dispatch/input_manager/manager/tests.rs",
+        "runtime_15_ui_dispatch_input_manager_tests_are_child_owner"
+      ],
+      "raw_counts": null,
+      "results": null,
+      "evaluation": "not evaluated: input missing",
+      "after_lines": [
+        98,
+        102
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": null,
+      "root_recomputed_results": null,
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "name": "public API absent from manager",
+      "source_variable": "manager",
+      "before_lines": [
+        21,
+        23
+      ],
+      "operator": "!contains",
+      "needles": [
+        "pub fn text_document_key(",
+        "pub fn update_text_model(",
+        "pub fn drain_text_model_update_receipts("
+      ],
+      "raw_counts": [
+        0,
+        0,
+        0
+      ],
+      "results": [
+        true,
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        28,
+        30
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        0,
+        0,
+        0
+      ],
+      "root_recomputed_results": [
+        true,
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates.rs",
+      "name": "public API present in child",
+      "source_variable": "owner",
+      "before_lines": [
+        21,
+        23
+      ],
+      "operator": "contains",
+      "needles": [
+        "pub fn text_document_key(",
+        "pub fn update_text_model(",
+        "pub fn drain_text_model_update_receipts("
+      ],
+      "raw_counts": [
+        1,
+        1,
+        1
+      ],
+      "results": [
+        true,
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        28,
+        30
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        1,
+        1,
+        1
+      ],
+      "root_recomputed_results": [
+        true,
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates.rs",
+      "name": "queue ownership anchors",
+      "source_variable": "owner",
+      "before_lines": [
+        39,
+        46
+      ],
+      "operator": "contains",
+      "needles": [
+        "MVP_MAX_PENDING_TEXT_MODEL_UPDATES: usize = 256",
+        "MVP_MAX_PENDING_TEXT_MODEL_UPDATE_BYTES: usize = 16 * 1024 * 1024",
+        "MVP_MAX_TEXT_MODEL_UPDATE_VALUE_BYTES: usize = 4 * 1024 * 1024",
+        "pending: BTreeMap<UiNodeId, UiPendingTextModelUpdate>",
+        "store_pending_secure_text_model_update",
+        "take_pending_secure_text_model_update",
+        "impl Drop for UiTextModelUpdateState",
+        "active_secure_store"
+      ],
+      "raw_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        9
+      ],
+      "results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        46,
+        53
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        9
+      ],
+      "root_recomputed_results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "zircon_runtime/src/ui/surface/secure_text_values.rs",
+      "name": "secure Surface storage anchors",
+      "source_variable": "secure_store",
+      "before_lines": [
+        53,
+        61
+      ],
+      "operator": "contains",
+      "needles": [
+        "pub(in crate::ui) struct UiPendingSecureTextModelUpdateStoreHandle",
+        "values: Arc<Mutex<BTreeMap<UiNodeId, UiPendingSecureTextModelValue>>>",
+        "value: Zeroizing<String>",
+        "fn into_string(mut self) -> String",
+        "std::mem::take(&mut *self.value)",
+        "pub(in crate::ui) fn clear(&self)",
+        "pub(crate) fn store_pending_secure_text_model_update(",
+        "pub(crate) fn take_pending_secure_text_model_update(",
+        "pub(in crate::ui) fn pending_secure_text_model_update_store_handle("
+      ],
+      "raw_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        60,
+        68
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "root_recomputed_results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "zircon_runtime/Cargo.toml",
+      "name": "zeroize dependency literal",
+      "source_variable": "runtime_manifest",
+      "before_lines": [
+        67,
+        67
+      ],
+      "operator": "contains",
+      "needles": [
+        "zeroize = \"1.8.2\""
+      ],
+      "raw_counts": [
+        0
+      ],
+      "results": [
+        false
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        76,
+        76
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        0
+      ],
+      "root_recomputed_results": [
+        false
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/transaction.rs",
+      "name": "transaction anchors",
+      "source_variable": "transaction",
+      "before_lines": [
+        73,
+        77
+      ],
+      "operator": "contains",
+      "needles": [
+        "PreparedUiEditableTextDocumentTransaction::new(properties, document).commit()",
+        "UiTextEditSource::Programmatic",
+        "fn committed_document_state(",
+        "UiTextEditAction::CancelComposition",
+        "UiTextHistoryCommit::Barrier"
+      ],
+      "raw_counts": null,
+      "results": null,
+      "evaluation": "not evaluated: input missing",
+      "after_lines": [
+        82,
+        86
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": null,
+      "root_recomputed_results": null,
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "zircon_runtime_interface/src/ui/text/model_update.rs",
+      "name": "Interface shapes",
+      "source_variable": "interface",
+      "before_lines": [
+        84,
+        90
+      ],
+      "operator": "contains",
+      "needles": [
+        "pub enum UiTextModelUpdateOrigin",
+        "BoundRefresh",
+        "ExplicitSetText",
+        "ExplicitLoadText",
+        "pub expected_document: UiTextDocumentKey",
+        "pub struct UiTextModelUpdateReceipt",
+        ".field(\"value_byte_len\", &self.value.len())"
+      ],
+      "raw_counts": [
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1
+      ],
+      "results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        93,
+        99
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1
+      ],
+      "root_recomputed_results": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/tests/cases.rs",
+      "name": "behavior test names",
+      "source_variable": "tests",
+      "before_lines": [
+        97,
+        108
+      ],
+      "operator": "contains",
+      "needles": [
+        "malformed_request_returns_a_valid_content_free_rejection",
+        "focused_bound_refresh_defers_without_overwriting_the_edit_buffer",
+        "latest_unchanged_refresh_supersedes_an_older_deferred_value",
+        "user_edit_after_defer_wins_and_blur_emits_content_free_conflict",
+        "explicit_load_text_uses_the_same_focused_force_review_boundary",
+        "explicit_set_text_during_preedit_replaces_the_committed_document_once",
+        "secure_deferred_value_lives_in_the_surface_secure_store",
+        "secure_policy_change_rejects_and_discards_the_pending_value",
+        "detached_secure_owner_rejects_and_discards_the_pending_value",
+        "surface_switch_revokes_the_previous_surface_pending_secure_value",
+        "manager_drop_revokes_pending_secure_values_from_the_surface_store",
+        "oversized_focused_refresh_is_rejected_without_retention_or_mutation"
+      ],
+      "raw_counts": null,
+      "results": null,
+      "evaluation": "not evaluated: input missing",
+      "after_lines": [
+        106,
+        117
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": null,
+      "root_recomputed_results": null,
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates.rs",
+      "name": "queue raw panic forms",
+      "source_variable": "owner",
+      "before_lines": [
+        116,
+        116
+      ],
+      "operator": "!contains",
+      "needles": [
+        ".unwrap()",
+        ".expect(",
+        "panic!(",
+        "unreachable!("
+      ],
+      "raw_counts": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "results": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        125,
+        125
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "root_recomputed_results": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/transaction.rs",
+      "name": "transaction raw panic forms",
+      "source_variable": "transaction",
+      "before_lines": [
+        116,
+        116
+      ],
+      "operator": "!contains",
+      "needles": [
+        ".unwrap()",
+        ".expect(",
+        "panic!(",
+        "unreachable!("
+      ],
+      "raw_counts": null,
+      "results": null,
+      "evaluation": "not evaluated: input missing",
+      "after_lines": [
+        125,
+        125
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": null,
+      "root_recomputed_results": null,
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/profile.rs",
+      "name": "profile raw diagnostic field absence",
+      "source_variable": "profile",
+      "before_lines": [
+        124,
+        124
+      ],
+      "operator": "!contains",
+      "needles": [
+        "request_id",
+        "tree_id",
+        "node_id",
+        "source_text"
+      ],
+      "raw_counts": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "results": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        133,
+        133
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "root_recomputed_results": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "docs/plans/engine-code-structure-convention.md",
+      "name": "structure anchors",
+      "source_variable": "structure",
+      "before_lines": [
+        162,
+        165
+      ],
+      "operator": "contains",
+      "needles": [
+        "runtime_09_15_focused_bound_model_update_owner_implemented_static_unvalidated",
+        "secure pending plaintext in the Surface secure store.",
+        "secure_pending_drop_zeroization_implemented_unvalidated",
+        "persistent_secure_document_zeroization_open"
+      ],
+      "raw_counts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "results": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        171,
+        174
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "root_recomputed_results": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "docs/plans/engine-code-review-findings-2026-06.md",
+      "name": "findings anchors",
+      "source_variable": "findings",
+      "before_lines": [
+        176,
+        177
+      ],
+      "operator": "contains",
+      "needles": [
+        "focused_bound_model_update_gateway_implemented_unvalidated",
+        "secure_pending_surface_owned_unvalidated"
+      ],
+      "raw_counts": [
+        1,
+        1
+      ],
+      "results": [
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        185,
+        186
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        1,
+        1
+      ],
+      "root_recomputed_results": [
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    },
+    {
+      "source_guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "operand_path": "docs/plans/zircon_runtime/text/08-ime-and-text-input.md",
+      "name": "text plan anchors",
+      "source_variable": "text_plan",
+      "before_lines": [
+        176,
+        177
+      ],
+      "operator": "contains",
+      "needles": [
+        "focused_bound_model_update_gateway_implemented_unvalidated",
+        "secure_pending_surface_owned_unvalidated"
+      ],
+      "raw_counts": [
+        1,
+        1
+      ],
+      "results": [
+        true,
+        true
+      ],
+      "evaluation": "independent static string evaluation; not test execution",
+      "after_lines": [
+        185,
+        186
+      ],
+      "before_current_equal": true,
+      "new_comment_contribution": 0,
+      "current_vector_ref": "same as raw_counts/results; exact final6d5735 checks and before_current_equal",
+      "root_recomputed_raw_counts": [
+        1,
+        1
+      ],
+      "root_recomputed_results": [
+        true,
+        true
+      ],
+      "actual_Rust_test_executed": false
+    }
+  ],
+  "actual_test_read_order": [
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "read_order": [
+        {
+          "name": "parent",
+          "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+          "exists": true,
+          "sha256": "53f765ce0479c1f1775cc62e853251ca65fd7c1d94e1527f3305a761b71332f3",
+          "binding_before_line": 6,
+          "binding_after_line": 11,
+          "reader_before_line": 6,
+          "reader_after_line": 11
+        },
+        {
+          "name": "tests",
+          "path": "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/cases.rs",
+          "exists": true,
+          "sha256": "ddd230fde5e32a88c854fa661157b97dd9cc44d70fcf75e1a65c0c57c5fca74c",
+          "binding_before_line": 7,
+          "binding_after_line": 12,
+          "reader_before_line": 7,
+          "reader_after_line": 12
+        },
+        {
+          "name": "runtime_15_plan",
+          "path": "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+          "exists": true,
+          "sha256": "c11c6cbb43443420e65cada28a5f36ead939795e5ee72277727113db7b966da9",
+          "binding_before_line": 8,
+          "binding_after_line": 13,
+          "reader_before_line": 9,
+          "reader_after_line": 14
+        },
+        {
+          "name": "runtime_index",
+          "path": "docs/plans/zircon_runtime/runtime/index.md",
+          "exists": true,
+          "sha256": "2a9130c52e16b0cd8524aeb445f9f9c8af9b195ce0b0e0b91eb11d254442632a",
+          "binding_before_line": 10,
+          "binding_after_line": 15,
+          "reader_before_line": 10,
+          "reader_after_line": 15
+        },
+        {
+          "name": "review_findings",
+          "path": "docs/plans/engine-code-review-findings-2026-06.md",
+          "exists": true,
+          "sha256": "e3c63227cb4fd861b0c40e35fa19ddd50de56de45748aabcf748cd715968af72",
+          "binding_before_line": 11,
+          "binding_after_line": 16,
+          "reader_before_line": 11,
+          "reader_after_line": 16
+        },
+        {
+          "name": "structure_convention",
+          "path": "docs/plans/engine-code-structure-convention.md",
+          "exists": true,
+          "sha256": "a2e68b952a8a59e026549546e2a6ee4bef0867c3d5ccf8c53b833b66c6c23e50",
+          "binding_before_line": 12,
+          "binding_after_line": 17,
+          "reader_before_line": 12,
+          "reader_after_line": 17
+        },
+        {
+          "name": "module_doc",
+          "path": "docs/zircon_runtime/structure/module-convention.md",
+          "exists": false,
+          "sha256": null,
+          "binding_before_line": 13,
+          "binding_after_line": 20,
+          "reader_before_line": 13,
+          "reader_after_line": 20
+        },
+        {
+          "name": "ui_doc",
+          "path": "docs/zircon_runtime/ui/architecture.md",
+          "exists": false,
+          "sha256": null,
+          "binding_before_line": 14,
+          "binding_after_line": 21,
+          "reader_before_line": 14,
+          "reader_after_line": 21
+        }
+      ],
+      "first_missing": {
+        "name": "module_doc",
+        "path": "docs/zircon_runtime/structure/module-convention.md",
+        "exists": false,
+        "sha256": null,
+        "binding_before_line": 13,
+        "binding_after_line": 20,
+        "reader_before_line": 13,
+        "reader_after_line": 20
+      },
+      "current_context_overrides": {
+        "zircon_runtime/Cargo.toml": "414a82a0b50e1746ef33393b5d4a9fa8ccdaad816ace15746cdd558297c8edd8",
+        "zircon_runtime/src/lib.rs": "3cba255c5db6325f781389745cbe3deadbb3ac2d877066dbcf47537f45b6c713"
+      },
+      "reachability": "The first missing read preempts all contains and line-count assertions in this test; independent vectors are not an execution trace."
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "read_order": [
+        {
+          "name": "manager",
+          "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+          "exists": true,
+          "sha256": "53f765ce0479c1f1775cc62e853251ca65fd7c1d94e1527f3305a761b71332f3",
+          "binding_before_line": 6,
+          "binding_after_line": 11,
+          "reader_before_line": 6,
+          "reader_after_line": 11
+        },
+        {
+          "name": "owner",
+          "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates.rs",
+          "exists": true,
+          "sha256": "d166948901f5580a11b165287dfa0879ac0ad5f06674bc4a146510e281c65b72",
+          "binding_before_line": 7,
+          "binding_after_line": 12,
+          "reader_before_line": 7,
+          "reader_after_line": 12
+        },
+        {
+          "name": "transaction",
+          "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/transaction.rs",
+          "exists": false,
+          "sha256": null,
+          "binding_before_line": 8,
+          "binding_after_line": 15,
+          "reader_before_line": 9,
+          "reader_after_line": 16
+        },
+        {
+          "name": "profile",
+          "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/profile.rs",
+          "exists": true,
+          "sha256": "9575fcd0ddae76d8b7322b0774fbdbc19a76475704f2e655980e4c65819121d1",
+          "binding_before_line": 10,
+          "binding_after_line": 17,
+          "reader_before_line": 10,
+          "reader_after_line": 17
+        },
+        {
+          "name": "tests",
+          "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/tests/cases.rs",
+          "exists": false,
+          "sha256": null,
+          "binding_before_line": 11,
+          "binding_after_line": 18,
+          "reader_before_line": 12,
+          "reader_after_line": 19
+        },
+        {
+          "name": "secure_store",
+          "path": "zircon_runtime/src/ui/surface/secure_text_values.rs",
+          "exists": true,
+          "sha256": "9cdc2ee6c3898e7a06684583913b90ce21cb95d6ef38e848da015daf9e098c9d",
+          "binding_before_line": 13,
+          "binding_after_line": 20,
+          "reader_before_line": 13,
+          "reader_after_line": 20
+        },
+        {
+          "name": "runtime_manifest",
+          "path": "zircon_runtime/Cargo.toml",
+          "exists": true,
+          "sha256": "1ec1a256d36710d17b12e6c63b93e81f2e3b299940e9a1a1b9f81d3fc592f306",
+          "binding_before_line": 14,
+          "binding_after_line": 21,
+          "reader_before_line": 14,
+          "reader_after_line": 21
+        },
+        {
+          "name": "interface",
+          "path": "zircon_runtime_interface/src/ui/text/model_update.rs",
+          "exists": true,
+          "sha256": "14621196582e86e5d248edc817b36ba7356fd34d6954395d8f71606f98d96ab5",
+          "binding_before_line": 15,
+          "binding_after_line": 22,
+          "reader_before_line": 15,
+          "reader_after_line": 22
+        },
+        {
+          "name": "structure",
+          "path": "docs/plans/engine-code-structure-convention.md",
+          "exists": true,
+          "sha256": "a2e68b952a8a59e026549546e2a6ee4bef0867c3d5ccf8c53b833b66c6c23e50",
+          "binding_before_line": 16,
+          "binding_after_line": 23,
+          "reader_before_line": 16,
+          "reader_after_line": 23
+        },
+        {
+          "name": "findings",
+          "path": "docs/plans/engine-code-review-findings-2026-06.md",
+          "exists": true,
+          "sha256": "e3c63227cb4fd861b0c40e35fa19ddd50de56de45748aabcf748cd715968af72",
+          "binding_before_line": 17,
+          "binding_after_line": 24,
+          "reader_before_line": 17,
+          "reader_after_line": 24
+        },
+        {
+          "name": "text_plan",
+          "path": "docs/plans/zircon_runtime/text/08-ime-and-text-input.md",
+          "exists": true,
+          "sha256": "b3812c2d7f8d67523164f334e6b72831e3f00a2495e9135ce9c1dde4d88bc83b",
+          "binding_before_line": 18,
+          "binding_after_line": 25,
+          "reader_before_line": 18,
+          "reader_after_line": 25
+        }
+      ],
+      "first_missing": {
+        "name": "transaction",
+        "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/transaction.rs",
+        "exists": false,
+        "sha256": null,
+        "binding_before_line": 8,
+        "binding_after_line": 15,
+        "reader_before_line": 9,
+        "reader_after_line": 16
+      },
+      "current_context_overrides": {
+        "zircon_runtime/Cargo.toml": "414a82a0b50e1746ef33393b5d4a9fa8ccdaad816ace15746cdd558297c8edd8",
+        "zircon_runtime/src/lib.rs": "3cba255c5db6325f781389745cbe3deadbb3ac2d877066dbcf47537f45b6c713"
+      },
+      "reachability": "The first missing read preempts all contains and line-count assertions in this test; independent vectors are not an execution trace."
+    }
+  ],
+  "six_document_matrix": {
+    "needles": [
+      "Runtime 15 M4 UI dispatch input manager test owner split",
+      "runtime_15_ui_dispatch_input_manager_tests_owner_split_static_passed_cargo_deferred",
+      "ui/dispatch/input_manager/manager.rs",
+      "ui/dispatch/input_manager/manager/tests.rs",
+      "runtime_15_ui_dispatch_input_manager_tests_are_child_owner"
+    ],
+    "rows": [
+      {
+        "variable": "runtime_15_plan",
+        "path": "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "sha256": "c11c6cbb43443420e65cada28a5f36ead939795e5ee72277727113db7b966da9",
+        "exists": true,
+        "reader_before_line": 9,
+        "reader_after_line": 14,
+        "raw_counts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "results": [
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "variable": "runtime_index",
+        "path": "docs/plans/zircon_runtime/runtime/index.md",
+        "sha256": "2a9130c52e16b0cd8524aeb445f9f9c8af9b195ce0b0e0b91eb11d254442632a",
+        "exists": true,
+        "reader_before_line": 10,
+        "reader_after_line": 15,
+        "raw_counts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "results": [
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "variable": "review_findings",
+        "path": "docs/plans/engine-code-review-findings-2026-06.md",
+        "sha256": "e3c63227cb4fd861b0c40e35fa19ddd50de56de45748aabcf748cd715968af72",
+        "exists": true,
+        "reader_before_line": 11,
+        "reader_after_line": 16,
+        "raw_counts": [
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "results": [
+          false,
+          false,
+          true,
+          false,
+          false
+        ]
+      },
+      {
+        "variable": "structure_convention",
+        "path": "docs/plans/engine-code-structure-convention.md",
+        "sha256": "a2e68b952a8a59e026549546e2a6ee4bef0867c3d5ccf8c53b833b66c6c23e50",
+        "exists": true,
+        "reader_before_line": 12,
+        "reader_after_line": 17,
+        "raw_counts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "results": [
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "variable": "module_doc",
+        "path": "docs/zircon_runtime/structure/module-convention.md",
+        "sha256": null,
+        "exists": false,
+        "reader_before_line": 13,
+        "reader_after_line": 20,
+        "raw_counts": null,
+        "results": null
+      },
+      {
+        "variable": "ui_doc",
+        "path": "docs/zircon_runtime/ui/architecture.md",
+        "sha256": null,
+        "exists": false,
+        "reader_before_line": 14,
+        "reader_after_line": 21,
+        "raw_counts": null,
+        "results": null
+      }
+    ],
+    "evaluation": "Independent full-text contains matrix only; missing inputs null, sequential first read failure documented separately."
+  },
+  "physical_line_budgets": [
+    {
+      "guard": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "variable": "parent",
+      "line_count": 796,
+      "operator": "<800",
+      "result": true,
+      "root_recomputed_line_count": 796
+    },
+    {
+      "guard": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/cases.rs",
+      "variable": "tests",
+      "line_count": 621,
+      "operator": "<800",
+      "result": true,
+      "root_recomputed_line_count": 621
+    },
+    {
+      "guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "variable": "manager",
+      "line_count": 796,
+      "operator": "<800",
+      "result": true,
+      "root_recomputed_line_count": 796
+    },
+    {
+      "guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates.rs",
+      "variable": "owner",
+      "line_count": 539,
+      "operator": "<800",
+      "result": true,
+      "root_recomputed_line_count": 539
+    },
+    {
+      "guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/profile.rs",
+      "variable": "profile",
+      "line_count": 108,
+      "operator": "<800",
+      "result": true,
+      "root_recomputed_line_count": 108
+    },
+    {
+      "guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/transaction.rs",
+      "variable": "transaction",
+      "line_count": null,
+      "operator": "<800",
+      "result": null,
+      "root_recomputed_line_count": null
+    },
+    {
+      "guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/tests/cases.rs",
+      "variable": "tests",
+      "line_count": null,
+      "operator": "<800",
+      "result": null,
+      "root_recomputed_line_count": null
+    },
+    {
+      "guard": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "path": "zircon_runtime/src/ui/surface/secure_text_values.rs",
+      "variable": "secure_store",
+      "line_count": 641,
+      "operator": "<800",
+      "result": true,
+      "root_recomputed_line_count": 641
+    }
+  ],
+  "guard": {
+    "tool": "zircon-change-guard",
+    "version": 2,
+    "mode": "patch",
+    "status": "passed",
+    "summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "paths": [
+      "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs"
+    ],
+    "base": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+    "patch_bytes": 4432,
+    "patch_sha256": "6005602b1ae4f9b2765667e98d22ae0845217c6063ff028aec6bfac7f60064e9",
+    "receipt": {
+      "outer_cell": "169",
+      "initial_chunk": "8cac5a",
+      "native_session": 93991,
+      "terminal_chunk": "67036f",
+      "exit_code": 0
+    },
+    "write_grant_check": true,
+    "permission_enforcement_claim": false,
+    "opened_markers": [
+      "CR-ZCA-R059-0001",
+      "CR-ZCA-R059-0002",
+      "CR-ZCA-R059-0003",
+      "CR-ZCA-R059-0004"
+    ]
+  },
+  "scoped_git_checks": {
+    "diff_check": 0,
+    "scoped_index_empty": true,
+    "patch_bytes": 4432,
+    "patch_sha256": "6005602b1ae4f9b2765667e98d22ae0845217c6063ff028aec6bfac7f60064e9",
+    "warnings": "Existing LF->CRLF Git warning preserved; no EOL conversion performed."
+  },
+  "format_evidence": {
+    "reused_source_pinned_child_final_fmt": {
+      "receipt": "6d5735 exit0 PID17060",
+      "paths": [
+        "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+        "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs"
+      ],
+      "each_exit_code": 0,
+      "arguments": [
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true"
+      ]
+    },
+    "root_final_source_pins_equal": true,
+    "rerun_reason": null
+  },
+  "current_decisive_evidence": [
+    {
+      "id": "mount-root",
+      "path": "zircon_runtime/src/lib.rs",
+      "sha256": "3cba255c5db6325f781389745cbe3deadbb3ac2d877066dbcf47537f45b6c713",
+      "lines": [
+        86,
+        88
+      ],
+      "fact": "Root test module requires all(test, feature=native-host) and uses tests/mod.rs.",
+      "child_recorded_sha256": "4db54e8d6c7a61ce33fc411fc28fcc549549e7276516c4ee72de6a7aa6d91243",
+      "child_recorded_lines": [
+        85,
+        87
+      ]
+    },
+    {
+      "id": "mount-tests",
+      "path": "zircon_runtime/src/tests/mod.rs",
+      "sha256": "03c721b676e2938efd07f77ae543892d2b31d1d7cd65bb038ec5d1706e66d14f",
+      "lines": [
+        17,
+        18
+      ],
+      "fact": "tests/runtime_absorption uses contracts/mod.rs."
+    },
+    {
+      "id": "mount-contracts",
+      "path": "zircon_runtime/src/tests/contracts/mod.rs",
+      "sha256": "8557b62d3d4b22c755a2d0110ec158a192455e9fced8ea90303fc8e206d1dde0",
+      "lines": [
+        57,
+        58
+      ],
+      "fact": "runtime_absorption/structure_convention uses structure.rs."
+    },
+    {
+      "id": "mount-budget",
+      "path": "zircon_runtime/src/tests/contracts/structure.rs",
+      "sha256": "496ead10921b6c7b7711336d2e6f8901482f0289beb69ddc2097efa5119c6902",
+      "lines": [
+        20,
+        21
+      ],
+      "fact": "structure_convention/production_file_budget uses structure/source_size.rs."
+    },
+    {
+      "id": "mount-R059",
+      "path": "zircon_runtime/src/tests/contracts/structure/source_size.rs",
+      "sha256": "2fe5681985c52ece0b17d81fdae2d688d24fc7f6cc1516fd20ca564f6bf8189d",
+      "lines": [
+        186,
+        189
+      ],
+      "fact": "The two explicit path attributes mount exactly these R059 files; no ownership of adjacent guards."
+    },
+    {
+      "id": "readers",
+      "path": "zircon_runtime/src/tests/contracts/structure/source_size.rs",
+      "sha256": "2fe5681985c52ece0b17d81fdae2d688d24fc7f6cc1516fd20ca564f6bf8189d",
+      "lines": [
+        213,
+        229
+      ],
+      "fact": "Runtime/repository readers call read_to_string(path), unwrap_or_else(panic), then normalize CRLF and lone CR to LF. No comments/attributes removed."
+    },
+    {
+      "id": "contains-operator",
+      "path": "zircon_runtime/src/tests/contracts/structure/support.rs",
+      "sha256": "bbb3e8385361c8efc1fffe2b680512340b8a1947d46e1d634e2e5681e3dbac16",
+      "lines": [
+        2,
+        15
+      ],
+      "fact": "assert_contains_all delegates to exact helper; missing collects !source.contains(anchor), and assert!(missing.is_empty()) fails if any anchor absent."
+    },
+    {
+      "id": "path-resolvers",
+      "path": "zircon_runtime/src/tests/contracts/structure/support.rs",
+      "sha256": "bbb3e8385361c8efc1fffe2b680512340b8a1947d46e1d634e2e5681e3dbac16",
+      "lines": [
+        18,
+        38
+      ],
+      "fact": "With CARGO_MANIFEST_DIR runtime source is manifest/src/relative and repo is manifest parent/relative; fallbacks are zircon_runtime/src and relative repo path."
+    },
+    {
+      "id": "current-manager-mount",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "sha256": "53f765ce0479c1f1775cc62e853251ca65fd7c1d94e1527f3305a761b71332f3",
+      "lines": [
+        774,
+        776
+      ],
+      "fact": "A path attribute exists between cfg(test) and mod tests, breaking only the guard's required adjacency."
+    },
+    {
+      "id": "actual-transaction-mount",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates.rs",
+      "sha256": "d166948901f5580a11b165287dfa0879ac0ad5f06674bc4a146510e281c65b72",
+      "lines": [
+        24,
+        29
+      ],
+      "fact": "Owner uses profile relative child and ../bound_text_model_updates/transaction.rs for transaction, then imports apply_now/committed_document_state/receipt."
+    },
+    {
+      "id": "actual-cases-mount",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates.rs",
+      "sha256": "d166948901f5580a11b165287dfa0879ac0ad5f06674bc4a146510e281c65b72",
+      "lines": [
+        537,
+        539
+      ],
+      "fact": "Under cfg(test), explicit tests/cases.rs path mounts existing input_manager/tests/cases.rs, rather than guard's obsolete bound_text_model_updates/tests/cases.rs."
+    },
+    {
+      "id": "manifest-shape",
+      "path": "zircon_runtime/Cargo.toml",
+      "sha256": "414a82a0b50e1746ef33393b5d4a9fa8ccdaad816ace15746cdd558297c8edd8",
+      "lines": [
+        320,
+        320
+      ],
+      "fact": "zeroize = { version = \"1.8.2\", optional = true } exists. Exact shorthand needle does not. Dependency absence is not inferred.",
+      "child_recorded_sha256": "1ec1a256d36710d17b12e6c63b93e81f2e3b299940e9a1a1b9f81d3fc592f306",
+      "child_recorded_lines": [
+        317,
+        317
+      ]
+    },
+    {
+      "id": "manifest-feature-reference",
+      "path": "zircon_runtime/Cargo.toml",
+      "sha256": "414a82a0b50e1746ef33393b5d4a9fa8ccdaad816ace15746cdd558297c8edd8",
+      "lines": [
+        100,
+        100
+      ],
+      "fact": "Manifest contains dep:zeroize feature reference; no feature activation/build claim.",
+      "child_recorded_sha256": "1ec1a256d36710d17b12e6c63b93e81f2e3b299940e9a1a1b9f81d3fc592f306",
+      "child_recorded_lines": [
+        98,
+        98
+      ]
+    },
+    {
+      "id": "profile-view",
+      "path": "zircon_runtime/src/tests/contracts/structure/rust_source_view.rs",
+      "sha256": "61d32585f680e08ef2fc3a6d0e0f0cf4887ea2ebd8c812689eb37a2107291bee",
+      "lines": [
+        2,
+        18
+      ],
+      "fact": "production_section uses comment_free_source and masks cfg test spans; production_code_view is a separate API."
+    },
+    {
+      "id": "profile-lexing",
+      "path": "zircon_runtime/src/tests/contracts/structure/rust_source_view.rs",
+      "sha256": "61d32585f680e08ef2fc3a6d0e0f0cf4887ea2ebd8c812689eb37a2107291bee",
+      "lines": [
+        21,
+        82
+      ],
+      "fact": "Comments are blanked in both views; raw/quoted literals are blanked only in rendered code, so production_section's comment-free branch retains literals."
+    },
+    {
+      "id": "profile-masking",
+      "path": "zircon_runtime/src/tests/contracts/structure/rust_source_view.rs",
+      "sha256": "61d32585f680e08ef2fc3a6d0e0f0cf4887ea2ebd8c812689eb37a2107291bee",
+      "lines": [
+        496,
+        503
+      ],
+      "fact": "Mask operation changes non-line-separator bytes only to spaces; no new letters/underscores are manufactured. Four forbidden profile needles have raw count zero."
+    }
+  ],
+  "issues": [
+    {
+      "id": "CR-ZCA-R059-0001",
+      "kind": "BUG",
+      "origin": "new-approved",
+      "status": "open-static-proven-not-fixed",
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "marker_after_lines": [
+        32,
+        33
+      ],
+      "affected_before_lines": [
+        25,
+        25
+      ],
+      "affected_after_lines": [
+        34,
+        34
+      ],
+      "trigger": "If preceding source/document reads complete, guard requires cfg attribute and mod tests contiguous after newline normalization.",
+      "observable_effect": "Exact contains count0; helper would collect the missing anchor and panic. This is later than missing-doc read failure in this checkout.",
+      "proof": [
+        "readers",
+        "contains-operator",
+        "current-manager-mount"
+      ],
+      "original_predicate": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "new_comment_contribution": 0,
+      "reproduction": "Static pinned source/reader/operator chain only; Rust test not executed.",
+      "next_action": "Repair guard against actual mounted syntax under a separate behavior-change grant, then run bounded test after first fixing readable input ownership."
+    },
+    {
+      "id": "CR-ZCA-R059-0002",
+      "kind": "BUG",
+      "origin": "new-approved",
+      "status": "open-static-proven-not-fixed",
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "marker_after_lines": [
+        18,
+        19
+      ],
+      "affected_before_lines": [
+        13,
+        14
+      ],
+      "affected_after_lines": [
+        20,
+        21
+      ],
+      "trigger": "Current checkout lacks docs/zircon_runtime/structure/module-convention.md and docs/zircon_runtime/ui/architecture.md.",
+      "observable_effect": "The first missing module_doc read maps std fs read failure to panic before ui_doc read or any structural assertion. Second missing input is not reached.",
+      "proof": [
+        "readers",
+        "path-resolvers"
+      ],
+      "missing_inputs": [
+        "docs/zircon_runtime/structure/module-convention.md",
+        "docs/zircon_runtime/ui/architecture.md"
+      ],
+      "reproduction": "File existence/readability checked by Python; earlier candidate checker 7e1589 exit1 hit first missing doc. No Rust test execution claim.",
+      "next_action": "Determine authoritative document destinations/input ownership in separate scope; do not create documents or alter paths in this comments-only batch."
+    },
+    {
+      "id": "CR-ZCA-R059-0003",
+      "kind": "BUG",
+      "origin": "new-approved",
+      "status": "open-static-proven-not-fixed",
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "marker_after_lines": [
+        13,
+        14
+      ],
+      "affected_before_lines": [
+        8,
+        12
+      ],
+      "affected_after_lines": [
+        15,
+        19
+      ],
+      "trigger": "Guard reads two obsolete paths under input_manager/bound_text_model_updates; neither file exists.",
+      "observable_effect": "After manager and owner load, old transaction read is the first failing input and panics before profile, cases, manifest and all assertions. Production transaction/cases are present at explicit path destinations.",
+      "proof": [
+        "readers",
+        "path-resolvers",
+        "actual-transaction-mount",
+        "actual-cases-mount"
+      ],
+      "missing_inputs": [
+        "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/transaction.rs",
+        "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/tests/cases.rs"
+      ],
+      "actual_targets": [
+        {
+          "path": "zircon_runtime/src/ui/dispatch/input_manager/tests/cases.rs",
+          "sha256": "9b3dba120ec478cf96a126661187cd14135f36b3ecb8580ef376712848f8b68a",
+          "bytes": 27324,
+          "lines": 773
+        },
+        {
+          "path": "zircon_runtime/src/ui/dispatch/bound_text_model_updates/transaction.rs",
+          "sha256": "81ea4a02ba4fde662a470aeea09e26a0ec65360b728bd747962abfee997d82eb",
+          "bytes": 9443,
+          "lines": 288
+        }
+      ],
+      "reproduction": "Static existence + actual #[path] resolution + reader failure branch; no Rust test was run.",
+      "next_action": "Under later behavior grant point guard at authoritative mounted files and evaluate assertions there. Do not infer missing production modules or replace current null operands with the relocation targets."
+    },
+    {
+      "id": "CR-ZCA-R059-0004",
+      "kind": "BUG",
+      "origin": "new-approved",
+      "status": "open-static-proven-not-fixed",
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "marker_after_lines": [
+        71,
+        72
+      ],
+      "affected_before_lines": [
+        64,
+        68
+      ],
+      "affected_after_lines": [
+        73,
+        77
+      ],
+      "trigger": "If missing inputs and earlier assertions are satisfied, guard requires shorthand zeroize dependency text.",
+      "observable_effect": "Actual same-version optional table declaration does not contain the required shorthand; raw count0 makes exact helper fail. Does not imply dependency or zeroization mechanism absence.",
+      "proof": [
+        "manifest-shape",
+        "manifest-feature-reference",
+        "contains-operator"
+      ],
+      "existing_issue_search": {
+        "sha256": "73ae3d6f44388ea6caf3495078ecdbf78543a2ae0fdc80298fcc9853944234d9",
+        "matched_rows": 0,
+        "scope": "source issue rows containing this guard path, or zeroize and source_tag"
+      },
+      "reproduction": "Static full manifest contains count0; not a Rust test run and not the full entry's first failure.",
+      "next_action": "Review a syntax-aware or authoritative dependency assertion in separate behavior-change scope, retaining dependency/security evidence boundaries."
+    },
+    {
+      "id": "CR-RUNTIME-TESTS-STRUCT-0110",
+      "ledger_id": "LEGACY:zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs:3:TODO",
+      "kind": "TODO",
+      "origin": "preexisting",
+      "status": "retained-open-intent-question",
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "before_lines": [
+        3,
+        3
+      ],
+      "after_lines": [
+        8,
+        8
+      ],
+      "original_source_sha256": "e1b3b2c580f0e2eeac2e30b560b99cf196ecf8e25298f1e9b950b1fdbd59c0a8",
+      "issue_ledger_sha256": "73ae3d6f44388ea6caf3495078ecdbf78543a2ae0fdc80298fcc9853944234d9",
+      "source_tag": "TODO: [CR-RUNTIME-TESTS-STRUCT-0110] 界面输入管理器的计时器行为测试的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。",
+      "evidence_gap": "Four present historical docs do not carry the whole expected five-anchor set. Who owns/archives these historical anchors is still an intent/authority question.",
+      "next_action": "Confirm authoritative plan/archive responsibility before any later correction; do not merge the four newly proven defects into this TODO."
+    }
+  ],
+  "not_run": [
+    "Cargo build/test",
+    "Rust test execution",
+    "Rust production_section helper execution",
+    "Jenkins formal acceptance",
+    "phase commit",
+    "attached WeCom notification"
+  ],
+  "formal_acceptance": false,
+  "metadata_actual_terminal_required_external": true,
+  "source_behavior_API_strings_assertions_preserved": true
+}

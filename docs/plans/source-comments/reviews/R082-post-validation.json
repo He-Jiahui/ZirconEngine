@@ -1,0 +1,3135 @@
+{
+  "schema": "zircon-source-comment-root-validation-v1",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R082",
+  "created_at_utc": "2026-10-17T02:02:19.744839+00:00",
+  "owner": "root",
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false,
+  "source_read_complete": true,
+  "child_review_record": {
+    "path": "docs/plans/source-comments/reviews/R082.json",
+    "sha256": "96731e1b450d4bddf55ede4174e4b8519062cfe723cdf976298a108450811708",
+    "bytes": 131092
+  },
+  "root_read_receipts": {
+    "source": "root620/c07f1a exit0/PID33372 full final diagnostics175LF;root690/8b53fb exit0/PID36588 remaining3 final320LF; root589 initial448LF, outer-only recovery590",
+    "models": "root691/43da47 exit0/PID7104 all top models+schemas;root692/057e4c exit0/PID17740 diagnostics full models;root693/3c4a90 exit0/PID14424 remaining3 full models+all40assertions",
+    "contexts": "root696/36688f exit0/PID29908 first8 exact spans including R083/R087 comment-version reconciliation; root697/bb0d00 exit0/PID5332 remaining9 exact spans",
+    "reuse": "Session root628 full705LF old241d plus root644 exact4 new-doc correction proves final5d; facade124-132 root620 same38ae pin,133-134 newly read696; no extra source coverage",
+    "core": "core_timer_sol 318ac5 exit0/PID23240 all495finalLF+childpin;637e07 exit0/PID35616 current session222-271/320-399/514-575 and profile macro68-98, no new source BUG/doc correction"
+  },
+  "source_files": [
+    {
+      "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+      "before_sha256": "8efc2e1ca10b5c0e9ebbdffe5b83721ddf41a9b485e676447694249c3a609e13",
+      "sha256": "1f2ac0104ca24876f4611457d5468e96aeb7c90fe37453d7ed2308bd65426450",
+      "before_bytes": 5100,
+      "bytes": 7101,
+      "before_lines": 147,
+      "lines": 175,
+      "inserted_blocks": 8,
+      "inserted_lines": 28,
+      "inserted_bytes": 2001,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "stage0_blob": "41552317de772aca5ee85b54a8b07ab533758a83",
+      "clean_filter_blob": "572f0fccceefb01c1bb9bf7e3a8d50f49f14145b"
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+      "before_sha256": "5879db397641d30b0bfa1d2fb5232cb65dc6b08fbf515d2baf9b8c168a85c59b",
+      "sha256": "5439f0269319c115fbb6021a3752e3d46f009e6a34d1851d66c8c11de3368648",
+      "before_bytes": 4732,
+      "bytes": 6301,
+      "before_lines": 115,
+      "lines": 134,
+      "inserted_blocks": 8,
+      "inserted_lines": 19,
+      "inserted_bytes": 1569,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "stage0_blob": "9163713fb8e5dcba99a6aa6ec20c6708ed10c394",
+      "clean_filter_blob": "73c4c00e96c712036b69c971ced8c808e522d558"
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+      "before_sha256": "a304bdda7cba8118417a2795b6aad1709a66104cde57299235260b14e8a6fb08",
+      "sha256": "a304bdda7cba8118417a2795b6aad1709a66104cde57299235260b14e8a6fb08",
+      "before_bytes": 4398,
+      "bytes": 4398,
+      "before_lines": 126,
+      "lines": 126,
+      "inserted_blocks": 0,
+      "inserted_lines": 0,
+      "inserted_bytes": 0,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "stage0_blob": "86265e5ef87b3d14053453f0cdb0a5aa0cfa98c0",
+      "clean_filter_blob": "86265e5ef87b3d14053453f0cdb0a5aa0cfa98c0"
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+      "before_sha256": "a26c7554fd88f6706cebd50c5e4f002fbe0e8363c388ac268445baddb480602f",
+      "sha256": "a26c7554fd88f6706cebd50c5e4f002fbe0e8363c388ac268445baddb480602f",
+      "before_bytes": 2342,
+      "bytes": 2342,
+      "before_lines": 60,
+      "lines": 60,
+      "inserted_blocks": 0,
+      "inserted_lines": 0,
+      "inserted_bytes": 0,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "stage0_blob": "8fe56dcad615348418c4fbc917b5861a9269aa2a",
+      "clean_filter_blob": "8fe56dcad615348418c4fbc917b5861a9269aa2a"
+    }
+  ],
+  "counts": {
+    "files": 4,
+    "objects": 35,
+    "members": 31,
+    "gapfree_blocks": 35,
+    "normal_tests": 8,
+    "ignored_tests": 0,
+    "reviewed_assertion_macros": 40,
+    "derive_attributes": 5,
+    "listed_derive_traits": 25,
+    "formal_scope": "exact4 only; lexical discovery is an index, not AST/call-resolution coverage"
+  },
+  "range_proof": {
+    "schema": "one-based inclusive original physical LF slices",
+    "ranges": [
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:0",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          9,
+          20
+        ],
+        "current_lines": [
+          22,
+          33
+        ],
+        "before_sha256": "605f8cf21bd82bcc5045d8e9a90cec2f5818bb81eae98a3229ea5505d6c79e41",
+        "current_sha256": "605f8cf21bd82bcc5045d8e9a90cec2f5818bb81eae98a3229ea5505d6c79e41"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:1",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          22,
+          37
+        ],
+        "current_lines": [
+          35,
+          50
+        ],
+        "before_sha256": "2d71317db11be1c7ca200bd4b9bd2aaf2abf39e102d93da9c6b5b8e25425038d",
+        "current_sha256": "2d71317db11be1c7ca200bd4b9bd2aaf2abf39e102d93da9c6b5b8e25425038d"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:2",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          23,
+          36
+        ],
+        "current_lines": [
+          36,
+          49
+        ],
+        "before_sha256": "c01f4a39f647b1652d55ce82d38239ed0de42ab052e3b9c49487af1c10c31475",
+        "current_sha256": "c01f4a39f647b1652d55ce82d38239ed0de42ab052e3b9c49487af1c10c31475"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:3",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          39,
+          64
+        ],
+        "current_lines": [
+          52,
+          81
+        ],
+        "before_sha256": "ae116903aaa1f16ba14974bb4ead725ff449681ce9433450fdc73ed980fcb4d9",
+        "current_sha256": "0f2c21e4cd14a6aeca8898ff557e80ecf69d755b5c86f5b8f99b3059746810d6"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:4",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          40,
+          63
+        ],
+        "current_lines": [
+          57,
+          80
+        ],
+        "before_sha256": "84eff1f65c09edab9b18faee156614c2d67881844cf7592b75ddef3f335a6d65",
+        "current_sha256": "84eff1f65c09edab9b18faee156614c2d67881844cf7592b75ddef3f335a6d65"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:5",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          66,
+          73
+        ],
+        "current_lines": [
+          85,
+          92
+        ],
+        "before_sha256": "235c127b6795cbc0a7eed0746670d183fcfc576f818ab092b0a9e70f0e6f500d",
+        "current_sha256": "235c127b6795cbc0a7eed0746670d183fcfc576f818ab092b0a9e70f0e6f500d"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:6",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          75,
+          79
+        ],
+        "current_lines": [
+          96,
+          100
+        ],
+        "before_sha256": "cfd1edd3abe70bc5b58d9796b48255c4577cf31b667509351025d281511c90b5",
+        "current_sha256": "cfd1edd3abe70bc5b58d9796b48255c4577cf31b667509351025d281511c90b5"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:7",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          81,
+          98
+        ],
+        "current_lines": [
+          102,
+          123
+        ],
+        "before_sha256": "06da730bb1fd54d9bad867ac6ab3a1d76b111469e04aa6633e1a555ed5598bd1",
+        "current_sha256": "7b35c70a4798b774c9661a0c1088156fa33fdf4821823080738597a2527122a4"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:8",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          82,
+          97
+        ],
+        "current_lines": [
+          107,
+          122
+        ],
+        "before_sha256": "c42226ca01b5a37dc67c5d6d312963792cc3d46da73226f64f64d44b80418230",
+        "current_sha256": "c42226ca01b5a37dc67c5d6d312963792cc3d46da73226f64f64d44b80418230"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:9",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          100,
+          105
+        ],
+        "current_lines": [
+          127,
+          132
+        ],
+        "before_sha256": "950e81a9d7591b797f9346768b898f3d3c6553b4370be48c7fad4ee1219fbb39",
+        "current_sha256": "950e81a9d7591b797f9346768b898f3d3c6553b4370be48c7fad4ee1219fbb39"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:10",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          107,
+          143
+        ],
+        "current_lines": [
+          134,
+          171
+        ],
+        "before_sha256": "6a01ed9b306b7ff2d9317ebace8b4dbe264d39818ad95281d7719cd6219a5917",
+        "current_sha256": "5321114f8fb14d1e2414b9b06681ba51e4e2387a08e0020f2de37e3cbe3f806b"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:11",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          108,
+          111
+        ],
+        "current_lines": [
+          135,
+          138
+        ],
+        "before_sha256": "f0b52d437debd186664ec1daf100d8ecff65db554c01787cc6765a71963bcd9a",
+        "current_sha256": "f0b52d437debd186664ec1daf100d8ecff65db554c01787cc6765a71963bcd9a"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:12",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          113,
+          122
+        ],
+        "current_lines": [
+          140,
+          149
+        ],
+        "before_sha256": "ce427c2049e2f9ace46808713d0077df3d045b7a60dec4fe381aae486653be13",
+        "current_sha256": "ce427c2049e2f9ace46808713d0077df3d045b7a60dec4fe381aae486653be13"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:13",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          124,
+          130
+        ],
+        "current_lines": [
+          151,
+          158
+        ],
+        "before_sha256": "ab235767045560ca06ee1ecb3d57b1e623cf64a512636f6240789a529f535c65",
+        "current_sha256": "a457bc5ab26b5d7954ae640b4bbbc2e93c04b15200b17d07c3bdb754cc94c116"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:14",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          132,
+          134
+        ],
+        "current_lines": [
+          160,
+          162
+        ],
+        "before_sha256": "07c0b6a746ca379d92c29308ccedeb49112ff3726e1685bdb9fbc852338ff385",
+        "current_sha256": "07c0b6a746ca379d92c29308ccedeb49112ff3726e1685bdb9fbc852338ff385"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:15",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          136,
+          138
+        ],
+        "current_lines": [
+          164,
+          166
+        ],
+        "before_sha256": "d7bea43c9608637ae85fe7c13de623dbc114796f6cc32be6f9f57cc4254fe564",
+        "current_sha256": "d7bea43c9608637ae85fe7c13de623dbc114796f6cc32be6f9f57cc4254fe564"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:16",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          140,
+          142
+        ],
+        "current_lines": [
+          168,
+          170
+        ],
+        "before_sha256": "2dd965fb30e610fe69d4f8ebe6d47872ceb27ac01c28e52ecee03644c16c4439",
+        "current_sha256": "2dd965fb30e610fe69d4f8ebe6d47872ceb27ac01c28e52ecee03644c16c4439"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::object:17",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          145,
+          147
+        ],
+        "current_lines": [
+          173,
+          175
+        ],
+        "before_sha256": "a833cc09aca2ec8c8141164b62b633a3de055f6e1de8abd239f9d57a20072cbf",
+        "current_sha256": "a833cc09aca2ec8c8141164b62b633a3de055f6e1de8abd239f9d57a20072cbf"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:0",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          11,
+          11
+        ],
+        "current_lines": [
+          24,
+          24
+        ],
+        "before_sha256": "4f5d4c038cfc3365d7ed462b9b2d27e2faeaeda862af3da88bf2ddd6e37c267f",
+        "current_sha256": "4f5d4c038cfc3365d7ed462b9b2d27e2faeaeda862af3da88bf2ddd6e37c267f"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:1",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          12,
+          12
+        ],
+        "current_lines": [
+          25,
+          25
+        ],
+        "before_sha256": "528be5faf9cfb68764b399987015e92ee9810f165cd3ac7cf02bfc93426a9e7e",
+        "current_sha256": "528be5faf9cfb68764b399987015e92ee9810f165cd3ac7cf02bfc93426a9e7e"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:2",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          13,
+          13
+        ],
+        "current_lines": [
+          26,
+          26
+        ],
+        "before_sha256": "85a06cd0ec75b04c76ae70a586e1932f9c706b1a53eaae1ba1a5b1d4ca046951",
+        "current_sha256": "85a06cd0ec75b04c76ae70a586e1932f9c706b1a53eaae1ba1a5b1d4ca046951"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:3",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          14,
+          14
+        ],
+        "current_lines": [
+          27,
+          27
+        ],
+        "before_sha256": "755075bccb22532c03bffaa1175720daead03f420b38ca3f20b88ca1e55ca488",
+        "current_sha256": "755075bccb22532c03bffaa1175720daead03f420b38ca3f20b88ca1e55ca488"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:4",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          15,
+          15
+        ],
+        "current_lines": [
+          28,
+          28
+        ],
+        "before_sha256": "b73f735ec20d901bff1c88a60a86cc2a395e315b79568d1f717309ceb0da4c9f",
+        "current_sha256": "b73f735ec20d901bff1c88a60a86cc2a395e315b79568d1f717309ceb0da4c9f"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:5",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          16,
+          16
+        ],
+        "current_lines": [
+          29,
+          29
+        ],
+        "before_sha256": "dfae666a62eb6600ee3dc843f68f5b37ba84aa1385b990866418a11caa04f3dd",
+        "current_sha256": "dfae666a62eb6600ee3dc843f68f5b37ba84aa1385b990866418a11caa04f3dd"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:6",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          17,
+          17
+        ],
+        "current_lines": [
+          30,
+          30
+        ],
+        "before_sha256": "ecec9cf542b6c90af99a1f850818133b2f8580a95a4d2223368f8661c80f1263",
+        "current_sha256": "ecec9cf542b6c90af99a1f850818133b2f8580a95a4d2223368f8661c80f1263"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:7",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          18,
+          18
+        ],
+        "current_lines": [
+          31,
+          31
+        ],
+        "before_sha256": "7f4bcb36005c6d9cf7af0c4508363933f8a9905c7fa69244c36cb89d86dc1f8a",
+        "current_sha256": "7f4bcb36005c6d9cf7af0c4508363933f8a9905c7fa69244c36cb89d86dc1f8a"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:8",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          19,
+          19
+        ],
+        "current_lines": [
+          32,
+          32
+        ],
+        "before_sha256": "5ca57878e66c88baa88486ee5c827a116546cb12770fcac22f2063e02ef67e6d",
+        "current_sha256": "5ca57878e66c88baa88486ee5c827a116546cb12770fcac22f2063e02ef67e6d"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:9",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          68,
+          68
+        ],
+        "current_lines": [
+          87,
+          87
+        ],
+        "before_sha256": "7e56532e06bd8742f940c79fe13769915e12878dec89578cf40bf36667422694",
+        "current_sha256": "7e56532e06bd8742f940c79fe13769915e12878dec89578cf40bf36667422694"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:10",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          69,
+          69
+        ],
+        "current_lines": [
+          88,
+          88
+        ],
+        "before_sha256": "2a8554b63bc6adebd08c59225fa1ffc7cc763872ded8eed3f495ad687345dffc",
+        "current_sha256": "2a8554b63bc6adebd08c59225fa1ffc7cc763872ded8eed3f495ad687345dffc"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:11",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          70,
+          70
+        ],
+        "current_lines": [
+          89,
+          89
+        ],
+        "before_sha256": "8be3d44e03bc655cd507f09ff075ec745c9b1f0bcb65857a345b1fb9fa64121f",
+        "current_sha256": "8be3d44e03bc655cd507f09ff075ec745c9b1f0bcb65857a345b1fb9fa64121f"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:12",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          71,
+          71
+        ],
+        "current_lines": [
+          90,
+          90
+        ],
+        "before_sha256": "e495131916917dcb47d5fba3e44d0d3763f4c0ff7525511600c71ae687837056",
+        "current_sha256": "e495131916917dcb47d5fba3e44d0d3763f4c0ff7525511600c71ae687837056"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:13",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          72,
+          72
+        ],
+        "current_lines": [
+          91,
+          91
+        ],
+        "before_sha256": "d3673c1dcb459890b6cc8d764522d7c220253e68a39d1334a36f6e651dcfc7ea",
+        "current_sha256": "d3673c1dcb459890b6cc8d764522d7c220253e68a39d1334a36f6e651dcfc7ea"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:14",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          77,
+          77
+        ],
+        "current_lines": [
+          98,
+          98
+        ],
+        "before_sha256": "824c2899fe26a91f847ca9b71b29d21b3cd3e66440ceea67c173b51c66183c41",
+        "current_sha256": "824c2899fe26a91f847ca9b71b29d21b3cd3e66440ceea67c173b51c66183c41"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:15",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          78,
+          78
+        ],
+        "current_lines": [
+          99,
+          99
+        ],
+        "before_sha256": "c39b57043d9cd73d14fc5c59247826e15df3f878e12519ef71f0e64388eaea5c",
+        "current_sha256": "c39b57043d9cd73d14fc5c59247826e15df3f878e12519ef71f0e64388eaea5c"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:16",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          102,
+          102
+        ],
+        "current_lines": [
+          129,
+          129
+        ],
+        "before_sha256": "15fcef8004353f495fb644175b2483aa63c9019e9b069726aed65336d415929e",
+        "current_sha256": "15fcef8004353f495fb644175b2483aa63c9019e9b069726aed65336d415929e"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:17",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          103,
+          103
+        ],
+        "current_lines": [
+          130,
+          130
+        ],
+        "before_sha256": "a4e7ee012a2c301f8304501712aeae05bb4e0f758535824bb66ccae8205021a7",
+        "current_sha256": "a4e7ee012a2c301f8304501712aeae05bb4e0f758535824bb66ccae8205021a7"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::member:18",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "member",
+        "before_lines": [
+          104,
+          104
+        ],
+        "current_lines": [
+          131,
+          131
+        ],
+        "before_sha256": "cb227ff958abcea8718aa10f1b1c80d2e0549e8295220a2fc7f24bb63e58db9a",
+        "current_sha256": "cb227ff958abcea8718aa10f1b1c80d2e0549e8295220a2fc7f24bb63e58db9a"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:0",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          1,
+          8
+        ],
+        "current_lines": [
+          1,
+          11
+        ],
+        "before_sha256": "726e6e5ef6d574af94de3af5f1b4e15680f87ee211c734c558e5381f2b0dd838",
+        "current_sha256": "3612939b6bb6fc438e171e25b6579c5e4b5332e38a6c86857c41405804856866"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:1",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          9,
+          20
+        ],
+        "current_lines": [
+          12,
+          33
+        ],
+        "before_sha256": "605f8cf21bd82bcc5045d8e9a90cec2f5818bb81eae98a3229ea5505d6c79e41",
+        "current_sha256": "a48733141e7f76a414f6bccfcec25a85da3770efaa77fa17cfa7910637b620ba"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:2",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          21,
+          38
+        ],
+        "current_lines": [
+          34,
+          51
+        ],
+        "before_sha256": "9705fcd5122fe84a5db5b8785c8e37a7d176f4898a5c7f9bb7047e560562f94e",
+        "current_sha256": "9705fcd5122fe84a5db5b8785c8e37a7d176f4898a5c7f9bb7047e560562f94e"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:3",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          39,
+          44
+        ],
+        "current_lines": [
+          52,
+          61
+        ],
+        "before_sha256": "ce8ae3c3a7059b706e7f2a8c5e1b889891d0134f0f11e0fdde20b5b96629652c",
+        "current_sha256": "5eadeb863e5b5a6e0169d9315a64dfd49566bd2140cca4a849a385d4dc1a57fd"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:4",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          45,
+          64
+        ],
+        "current_lines": [
+          62,
+          81
+        ],
+        "before_sha256": "baee836add134733bb8fc89556cd1f4fc62d21a466121b428b81bb04e991f4fa",
+        "current_sha256": "baee836add134733bb8fc89556cd1f4fc62d21a466121b428b81bb04e991f4fa"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:5",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          65,
+          74
+        ],
+        "current_lines": [
+          82,
+          93
+        ],
+        "before_sha256": "bfbe0798f531e215177da9af1cd37b59c51f731826fa9d0e584a6293a4d06bc3",
+        "current_sha256": "b7d6c5e4cd1e03d03973fa85d009091f0967b8a08dd4c17e2f769d498deabbe8"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:6",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          75,
+          80
+        ],
+        "current_lines": [
+          94,
+          101
+        ],
+        "before_sha256": "5fb6006941ac585837740343b94b3a965bdb46bf6fa5ae4b1afc39d234b42cb5",
+        "current_sha256": "f8ae53d19ea9ccc4356e0a76020f91af8e18b633f3f0ef6ceca72f6e89e47876"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:7",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          81,
+          98
+        ],
+        "current_lines": [
+          102,
+          123
+        ],
+        "before_sha256": "06da730bb1fd54d9bad867ac6ab3a1d76b111469e04aa6633e1a555ed5598bd1",
+        "current_sha256": "7b35c70a4798b774c9661a0c1088156fa33fdf4821823080738597a2527122a4"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:8",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          99,
+          106
+        ],
+        "current_lines": [
+          124,
+          133
+        ],
+        "before_sha256": "cb2c523dd31f67040fd8b8fcccf61a64d5294d6f5c985d84a38f4fff4e205c8e",
+        "current_sha256": "e52903067d44cfd21995b76644df3a18aaab89a1710762a05dd774c722e8d171"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:9",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          107,
+          112
+        ],
+        "current_lines": [
+          134,
+          139
+        ],
+        "before_sha256": "6a0a6bd1acac432a36ee9587c6bb972ffb9583b21cd177c870e86c0d5c7939e7",
+        "current_sha256": "6a0a6bd1acac432a36ee9587c6bb972ffb9583b21cd177c870e86c0d5c7939e7"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:10",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          113,
+          123
+        ],
+        "current_lines": [
+          140,
+          150
+        ],
+        "before_sha256": "2b4dd01ced6d1b1815c433ee61713070b4904ab0b8a004f416fe2f5e830c2ce9",
+        "current_sha256": "2b4dd01ced6d1b1815c433ee61713070b4904ab0b8a004f416fe2f5e830c2ce9"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:11",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          124,
+          131
+        ],
+        "current_lines": [
+          151,
+          159
+        ],
+        "before_sha256": "640c333b182d14f79e1bfe06443c15a1e97e1093ccd28fc05ee7acc058357616",
+        "current_sha256": "d88ff5e06fec08352fc230241b95fcb578577465c17f5ede7b49a8c873896150"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:12",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          132,
+          135
+        ],
+        "current_lines": [
+          160,
+          163
+        ],
+        "before_sha256": "07181b18e3600cff48400211b051659eedc895a5327bb32ead82759b8520f21f",
+        "current_sha256": "07181b18e3600cff48400211b051659eedc895a5327bb32ead82759b8520f21f"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:13",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          136,
+          139
+        ],
+        "current_lines": [
+          164,
+          167
+        ],
+        "before_sha256": "240f8db49be2b63b0a6ce6edf53d8197580a5ca236f37fbb8e0eddc273d29a17",
+        "current_sha256": "240f8db49be2b63b0a6ce6edf53d8197580a5ca236f37fbb8e0eddc273d29a17"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:14",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          140,
+          144
+        ],
+        "current_lines": [
+          168,
+          172
+        ],
+        "before_sha256": "263614429f2e70a906ea0660105966e35ad8e702923ae5f7f336b610e3f101e9",
+        "current_sha256": "263614429f2e70a906ea0660105966e35ad8e702923ae5f7f336b610e3f101e9"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/diagnostics.rs::gapfree-block:15",
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          145,
+          147
+        ],
+        "current_lines": [
+          173,
+          175
+        ],
+        "before_sha256": "a833cc09aca2ec8c8141164b62b633a3de055f6e1de8abd239f9d57a20072cbf",
+        "current_sha256": "a833cc09aca2ec8c8141164b62b633a3de055f6e1de8abd239f9d57a20072cbf"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::object:0",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "object",
+        "before_lines": [
+          1,
+          17
+        ],
+        "current_lines": [
+          4,
+          22
+        ],
+        "before_sha256": "b28596b7dcc34f9ba63ea097c4a8437855943591054131748c305751160e0774",
+        "current_sha256": "38d1c638d0da4db9227ea0226580c78cb53a2cb6ecf55753d5377b2945537c1f"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::object:1",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "object",
+        "before_lines": [
+          19,
+          111
+        ],
+        "current_lines": [
+          24,
+          130
+        ],
+        "before_sha256": "6c6c29af57793cd49a2e62bbecda8103c0f69edf5657ef2892279dd91b37041e",
+        "current_sha256": "c6a021a10302b60402fe4f468f4a2c151844d579aa1763f66931d401659e1bbc"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::object:2",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "object",
+        "before_lines": [
+          20,
+          25
+        ],
+        "current_lines": [
+          29,
+          34
+        ],
+        "before_sha256": "d41e1e10d3a99c6d52e29414230fb42c4a3be2628534c6b177c82b026271b94f",
+        "current_sha256": "d41e1e10d3a99c6d52e29414230fb42c4a3be2628534c6b177c82b026271b94f"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::object:3",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "object",
+        "before_lines": [
+          27,
+          30
+        ],
+        "current_lines": [
+          37,
+          40
+        ],
+        "before_sha256": "e43691b027c227dff96760334effc3e6b21eebe569f374b7a8d911db1e137455",
+        "current_sha256": "e43691b027c227dff96760334effc3e6b21eebe569f374b7a8d911db1e137455"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::object:4",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "object",
+        "before_lines": [
+          32,
+          36
+        ],
+        "current_lines": [
+          43,
+          47
+        ],
+        "before_sha256": "bc43e11f9703b5040442c182ae89445a5d613ec50e27bced59243ae3bc98b772",
+        "current_sha256": "bc43e11f9703b5040442c182ae89445a5d613ec50e27bced59243ae3bc98b772"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::object:5",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "object",
+        "before_lines": [
+          38,
+          41
+        ],
+        "current_lines": [
+          50,
+          53
+        ],
+        "before_sha256": "2e6bf4e7abe7d830fd21768d825f608f47ae14ca63835d3a36520acfedd76996",
+        "current_sha256": "2e6bf4e7abe7d830fd21768d825f608f47ae14ca63835d3a36520acfedd76996"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::object:6",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "object",
+        "before_lines": [
+          43,
+          46
+        ],
+        "current_lines": [
+          57,
+          60
+        ],
+        "before_sha256": "c9f5f8f23e81e3616e9425535d764a0d733f326de385a66c7ab422b48abc1ce8",
+        "current_sha256": "c9f5f8f23e81e3616e9425535d764a0d733f326de385a66c7ab422b48abc1ce8"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::object:7",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "object",
+        "before_lines": [
+          48,
+          110
+        ],
+        "current_lines": [
+          67,
+          129
+        ],
+        "before_sha256": "f0c87d663728f9a01286a0892159464c1042b55db6f146d1dcc4dcbda74174de",
+        "current_sha256": "f0c87d663728f9a01286a0892159464c1042b55db6f146d1dcc4dcbda74174de"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::object:8",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "object",
+        "before_lines": [
+          113,
+          115
+        ],
+        "current_lines": [
+          132,
+          134
+        ],
+        "before_sha256": "e578d5b4b8061af84625943902fc0220d345c5e6af485f2e0a3bc2c704173f44",
+        "current_sha256": "e578d5b4b8061af84625943902fc0220d345c5e6af485f2e0a3bc2c704173f44"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::member:0",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "member",
+        "before_lines": [
+          5,
+          5
+        ],
+        "current_lines": [
+          10,
+          10
+        ],
+        "before_sha256": "06f3c2a9e7ffaff8dda7befa2c229373c27d9c5ff7e9ddcd209fbeaef79cfcb8",
+        "current_sha256": "06f3c2a9e7ffaff8dda7befa2c229373c27d9c5ff7e9ddcd209fbeaef79cfcb8"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::member:1",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "member",
+        "before_lines": [
+          6,
+          6
+        ],
+        "current_lines": [
+          11,
+          11
+        ],
+        "before_sha256": "89b310b7eaef5028d322e8771e89d1ead9854ccf9a586d3c1f1dd61c4fa2c4ae",
+        "current_sha256": "89b310b7eaef5028d322e8771e89d1ead9854ccf9a586d3c1f1dd61c4fa2c4ae"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::member:2",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "member",
+        "before_lines": [
+          7,
+          7
+        ],
+        "current_lines": [
+          12,
+          12
+        ],
+        "before_sha256": "9d04f8eaba4c6537aca59e893cb9a6c56be88ba119639fd721dc72a314211e15",
+        "current_sha256": "9d04f8eaba4c6537aca59e893cb9a6c56be88ba119639fd721dc72a314211e15"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::member:3",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "member",
+        "before_lines": [
+          8,
+          8
+        ],
+        "current_lines": [
+          13,
+          13
+        ],
+        "before_sha256": "88e09e4ffebb7dd73d1d7a5678349b35ac6a203ab5e65dc778c89889d7999e88",
+        "current_sha256": "88e09e4ffebb7dd73d1d7a5678349b35ac6a203ab5e65dc778c89889d7999e88"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::member:4",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "member",
+        "before_lines": [
+          9,
+          9
+        ],
+        "current_lines": [
+          14,
+          14
+        ],
+        "before_sha256": "ca9f5078ccf9e0f561ef9766363315498ae3539b2574eefd47e9032f5fe84d6f",
+        "current_sha256": "ca9f5078ccf9e0f561ef9766363315498ae3539b2574eefd47e9032f5fe84d6f"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::member:5",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "member",
+        "before_lines": [
+          10,
+          10
+        ],
+        "current_lines": [
+          15,
+          15
+        ],
+        "before_sha256": "a0d5195a50468457f3fddfb3ebef6210fd7659e3435ead4186d1fb9de45cf4e9",
+        "current_sha256": "a0d5195a50468457f3fddfb3ebef6210fd7659e3435ead4186d1fb9de45cf4e9"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::member:6",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "member",
+        "before_lines": [
+          11,
+          11
+        ],
+        "current_lines": [
+          16,
+          16
+        ],
+        "before_sha256": "15e5f0e0d7c19bb3877d7b98f5fdd95dba68eeb39979d4f6126d44d78b33b57a",
+        "current_sha256": "15e5f0e0d7c19bb3877d7b98f5fdd95dba68eeb39979d4f6126d44d78b33b57a"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::member:7",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "member",
+        "before_lines": [
+          12,
+          12
+        ],
+        "current_lines": [
+          17,
+          17
+        ],
+        "before_sha256": "899059c1682117d598b86550c009aa3b95634933e17a1bcbbd51f6f3fb350587",
+        "current_sha256": "899059c1682117d598b86550c009aa3b95634933e17a1bcbbd51f6f3fb350587"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::member:8",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "member",
+        "before_lines": [
+          13,
+          13
+        ],
+        "current_lines": [
+          18,
+          18
+        ],
+        "before_sha256": "7db9f66340d37ac1d6b8c68e213594717dabde93279b536dbdf806b1c8e5376c",
+        "current_sha256": "7db9f66340d37ac1d6b8c68e213594717dabde93279b536dbdf806b1c8e5376c"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::member:9",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "member",
+        "before_lines": [
+          14,
+          14
+        ],
+        "current_lines": [
+          19,
+          19
+        ],
+        "before_sha256": "b55783f06139e8c6624722e53f93a4a9c10b1791b00ad6f2a6fe8a66bba1ee7f",
+        "current_sha256": "b55783f06139e8c6624722e53f93a4a9c10b1791b00ad6f2a6fe8a66bba1ee7f"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::member:10",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "member",
+        "before_lines": [
+          15,
+          15
+        ],
+        "current_lines": [
+          20,
+          20
+        ],
+        "before_sha256": "865f5dcc3b0c332783b03028fcbb221a2a26f6eb5a439b8288c7cb465258bef5",
+        "current_sha256": "865f5dcc3b0c332783b03028fcbb221a2a26f6eb5a439b8288c7cb465258bef5"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::member:11",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "member",
+        "before_lines": [
+          16,
+          16
+        ],
+        "current_lines": [
+          21,
+          21
+        ],
+        "before_sha256": "0b227b5cdb9efdbc71adae478ec74da2caf5289667f8d321cb3bcb1419479794",
+        "current_sha256": "0b227b5cdb9efdbc71adae478ec74da2caf5289667f8d321cb3bcb1419479794"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::gapfree-block:0",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          1,
+          18
+        ],
+        "current_lines": [
+          1,
+          23
+        ],
+        "before_sha256": "37dc4808b0e504fc5c81639f74ddecedf4659d8fcf41d30351849b8d8a1a51b9",
+        "current_sha256": "91602a6244597cf80618d9145635c5729dea0574eb6594b59d7bef274d01538d"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::gapfree-block:1",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          19,
+          26
+        ],
+        "current_lines": [
+          24,
+          35
+        ],
+        "before_sha256": "ba17555089b1d3f97a5ed2a98c2e3d59ce1b9dc6114b8e9bd263dba76772009e",
+        "current_sha256": "b7a412c394341921043cb69c884b44aa0af98a4a19772c2e43e52bfe09ec2d02"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::gapfree-block:2",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          27,
+          31
+        ],
+        "current_lines": [
+          36,
+          41
+        ],
+        "before_sha256": "6b6a5586d8bf930d6818c890c607e2b5a81e457d87a57b711afbcc2f9a23f3ba",
+        "current_sha256": "69f41830f82facfa20fa2718c9165a04776c59e95cc9515a8ea709a76486a0e5"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::gapfree-block:3",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          32,
+          37
+        ],
+        "current_lines": [
+          42,
+          48
+        ],
+        "before_sha256": "84d3ee04ef2572cc1784361e7902810053b896c873212a8ead76d1a467e2656e",
+        "current_sha256": "e92d92acfc80aef7bf9a865098e5ecd282b016f86db4f011afee4cb4d67a6bf7"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::gapfree-block:4",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          38,
+          42
+        ],
+        "current_lines": [
+          49,
+          54
+        ],
+        "before_sha256": "dceef3558da1ac855f5c8f35cee3f05f08f9074e669c591579de2cd7e5257144",
+        "current_sha256": "98d8fcf4e275c6c18eaad44f5a0b7f8a0ccb2f3d4883b02bddad577d3daecbcd"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::gapfree-block:5",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          43,
+          47
+        ],
+        "current_lines": [
+          55,
+          61
+        ],
+        "before_sha256": "b34bd70f34a78d67e0a3691eca6eabb7dcfe0b68bf5c9cf956e907a279e48676",
+        "current_sha256": "64a49ad165b8732bea19aa67991aed20704bb4abb1ce4b110b437e38cd88bd6b"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::gapfree-block:6",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          48,
+          107
+        ],
+        "current_lines": [
+          62,
+          126
+        ],
+        "before_sha256": "cdbadae7ddbb5134f7a39321974c0b1876fe14d0c0a22a3d5e903809c844f12c",
+        "current_sha256": "7ca86bb437ca1f1a8fc51323c8e011e8b89de94b138f69bf17d216d86da1ca91"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::gapfree-block:7",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          108,
+          111
+        ],
+        "current_lines": [
+          127,
+          130
+        ],
+        "before_sha256": "a4716cd0339d357ab56cc4ec5772b4293827faed73ebb9d9db6cd42aa046db91",
+        "current_sha256": "a4716cd0339d357ab56cc4ec5772b4293827faed73ebb9d9db6cd42aa046db91"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/table_work.rs::gapfree-block:8",
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          112,
+          115
+        ],
+        "current_lines": [
+          131,
+          134
+        ],
+        "before_sha256": "d836383b3516513a3c0da997ff2f92eda6afafb38c79376b7b22ecb8f5698341",
+        "current_sha256": "d836383b3516513a3c0da997ff2f92eda6afafb38c79376b7b22ecb8f5698341"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::object:0",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          11,
+          18
+        ],
+        "current_lines": [
+          11,
+          18
+        ],
+        "before_sha256": "42edd39e22c4b9fda52f79ddccde344d0f7f52e60fd062c659e5e092a96cf3b2",
+        "current_sha256": "42edd39e22c4b9fda52f79ddccde344d0f7f52e60fd062c659e5e092a96cf3b2"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::object:1",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          20,
+          27
+        ],
+        "current_lines": [
+          20,
+          27
+        ],
+        "before_sha256": "ebccdcc2f9bfad6ffeb4bdc2a730d85e69dcb9cf2325a49cac991798846664df",
+        "current_sha256": "ebccdcc2f9bfad6ffeb4bdc2a730d85e69dcb9cf2325a49cac991798846664df"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::object:2",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          29,
+          37
+        ],
+        "current_lines": [
+          29,
+          37
+        ],
+        "before_sha256": "8e0ba759e59c599ee86d4f8b755e2fcabcacc62434f295423d67a2f3a9577c7d",
+        "current_sha256": "8e0ba759e59c599ee86d4f8b755e2fcabcacc62434f295423d67a2f3a9577c7d"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::object:3",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          39,
+          47
+        ],
+        "current_lines": [
+          39,
+          47
+        ],
+        "before_sha256": "6e354a88fe5bab081bdbd6ecea7c1921628b2172ff0a1856d526a2c4ee913742",
+        "current_sha256": "6e354a88fe5bab081bdbd6ecea7c1921628b2172ff0a1856d526a2c4ee913742"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::object:4",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          49,
+          87
+        ],
+        "current_lines": [
+          49,
+          87
+        ],
+        "before_sha256": "a922e50ab6c185a4b9b75b51ef8a6d00499d514e0d4868c37342277ba28d81a6",
+        "current_sha256": "a922e50ab6c185a4b9b75b51ef8a6d00499d514e0d4868c37342277ba28d81a6"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::object:5",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "object",
+        "before_lines": [
+          89,
+          126
+        ],
+        "current_lines": [
+          89,
+          126
+        ],
+        "before_sha256": "50291d32c848c9de1bd34cf1c6b30c8b8a221ad0563130459c567ac0f1854662",
+        "current_sha256": "50291d32c848c9de1bd34cf1c6b30c8b8a221ad0563130459c567ac0f1854662"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::gapfree-block:0",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          1,
+          10
+        ],
+        "current_lines": [
+          1,
+          10
+        ],
+        "before_sha256": "2afbcabc295a1c40daf38d9f33bfa9ac4e514ebb5ba8c73e6d079953dd5e45cf",
+        "current_sha256": "2afbcabc295a1c40daf38d9f33bfa9ac4e514ebb5ba8c73e6d079953dd5e45cf"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::gapfree-block:1",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          11,
+          19
+        ],
+        "current_lines": [
+          11,
+          19
+        ],
+        "before_sha256": "923f3c746c886e1b3640a6b83faca328012caca592bb5181fc071f8c0769a2c9",
+        "current_sha256": "923f3c746c886e1b3640a6b83faca328012caca592bb5181fc071f8c0769a2c9"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::gapfree-block:2",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          20,
+          28
+        ],
+        "current_lines": [
+          20,
+          28
+        ],
+        "before_sha256": "c07b29eba1df3c64355f211312db7550a636129eb9ab342e2a15a2e25c281770",
+        "current_sha256": "c07b29eba1df3c64355f211312db7550a636129eb9ab342e2a15a2e25c281770"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::gapfree-block:3",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          29,
+          38
+        ],
+        "current_lines": [
+          29,
+          38
+        ],
+        "before_sha256": "e8becda9a8c9fe35a4774d29c6dd3e506a5889d20e9a20f68a1d923de8fd2f07",
+        "current_sha256": "e8becda9a8c9fe35a4774d29c6dd3e506a5889d20e9a20f68a1d923de8fd2f07"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::gapfree-block:4",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          39,
+          48
+        ],
+        "current_lines": [
+          39,
+          48
+        ],
+        "before_sha256": "3ec5a64753ffc7230f7ef356991cafc3fbaa3f9d5fc1c9f7eaaf89709af3059c",
+        "current_sha256": "3ec5a64753ffc7230f7ef356991cafc3fbaa3f9d5fc1c9f7eaaf89709af3059c"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::gapfree-block:5",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          49,
+          88
+        ],
+        "current_lines": [
+          49,
+          88
+        ],
+        "before_sha256": "a0a14c7bc80c3fdfa6912eb5a42eefc4e3f71d82cd34d40a332310530180e5d2",
+        "current_sha256": "a0a14c7bc80c3fdfa6912eb5a42eefc4e3f71d82cd34d40a332310530180e5d2"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::gapfree-block:6",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          89,
+          126
+        ],
+        "current_lines": [
+          89,
+          126
+        ],
+        "before_sha256": "50291d32c848c9de1bd34cf1c6b30c8b8a221ad0563130459c567ac0f1854662",
+        "current_sha256": "50291d32c848c9de1bd34cf1c6b30c8b8a221ad0563130459c567ac0f1854662"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::object:0",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "object",
+        "before_lines": [
+          3,
+          26
+        ],
+        "current_lines": [
+          3,
+          26
+        ],
+        "before_sha256": "10140ad585785ef634494e55a1e9b9f7b27e88da6ea5340955efb87654bfa665",
+        "current_sha256": "10140ad585785ef634494e55a1e9b9f7b27e88da6ea5340955efb87654bfa665"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::object:1",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "object",
+        "before_lines": [
+          28,
+          60
+        ],
+        "current_lines": [
+          28,
+          60
+        ],
+        "before_sha256": "8cbb519a9d2217263b1853908c0690d1a53a3afa5e6b3355c49e3a32a31601dc",
+        "current_sha256": "8cbb519a9d2217263b1853908c0690d1a53a3afa5e6b3355c49e3a32a31601dc"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::gapfree-block:0",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          1,
+          2
+        ],
+        "current_lines": [
+          1,
+          2
+        ],
+        "before_sha256": "2e85b6b6f93c86fb47df6e585ff3880c19f48f93ebbd2eac7dfe5dbf2c532c90",
+        "current_sha256": "2e85b6b6f93c86fb47df6e585ff3880c19f48f93ebbd2eac7dfe5dbf2c532c90"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::gapfree-block:1",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          3,
+          27
+        ],
+        "current_lines": [
+          3,
+          27
+        ],
+        "before_sha256": "03b6aac54009334c657056bd03a70676fe92429ab7e5d9772db9cc22e85e8b6b",
+        "current_sha256": "03b6aac54009334c657056bd03a70676fe92429ab7e5d9772db9cc22e85e8b6b"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::gapfree-block:2",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "gapfree-block",
+        "before_lines": [
+          28,
+          60
+        ],
+        "current_lines": [
+          28,
+          60
+        ],
+        "before_sha256": "8cbb519a9d2217263b1853908c0690d1a53a3afa5e6b3355c49e3a32a31601dc",
+        "current_sha256": "8cbb519a9d2217263b1853908c0690d1a53a3afa5e6b3355c49e3a32a31601dc"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:generation_defer_does_not_count_as_a_fallback:16",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          16,
+          16
+        ],
+        "current_lines": [
+          16,
+          16
+        ],
+        "before_sha256": "598e498cf26080decc3b0383aeb8688519dd5552ecbc428547f32522e6110a15",
+        "current_sha256": "598e498cf26080decc3b0383aeb8688519dd5552ecbc428547f32522e6110a15"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:generation_defer_does_not_count_as_a_fallback:17",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          17,
+          17
+        ],
+        "current_lines": [
+          17,
+          17
+        ],
+        "before_sha256": "4733f4278f949afc9108cf0ab4e48c27d2be1a10b878f3a2f35e385d0cd4cc6c",
+        "current_sha256": "4733f4278f949afc9108cf0ab4e48c27d2be1a10b878f3a2f35e385d0cd4cc6c"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:report_identifies_the_compiled_unicode_snapshot:25",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          25,
+          25
+        ],
+        "current_lines": [
+          25,
+          25
+        ],
+        "before_sha256": "cfc0104fe264b3be77279ee72ee7a151583eb5dc767256acfb8dbb43f78becbb",
+        "current_sha256": "cfc0104fe264b3be77279ee72ee7a151583eb5dc767256acfb8dbb43f78becbb"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:report_identifies_the_compiled_unicode_snapshot:26",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          26,
+          26
+        ],
+        "current_lines": [
+          26,
+          26
+        ],
+        "before_sha256": "9821552886167fe73c45458ceba3d4e96cfdca55ecbdcc3a07e4732aabf43d8c",
+        "current_sha256": "9821552886167fe73c45458ceba3d4e96cfdca55ecbdcc3a07e4732aabf43d8c"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:bidi_invariants_are_not_collapsed_into_other_errors:34",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          34,
+          34
+        ],
+        "current_lines": [
+          34,
+          34
+        ],
+        "before_sha256": "ae8a57f22410d195b01bcedb6be9150fbd19e25066c3d0347e4ae273c41bd0f7",
+        "current_sha256": "ae8a57f22410d195b01bcedb6be9150fbd19e25066c3d0347e4ae273c41bd0f7"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:bidi_invariants_are_not_collapsed_into_other_errors:35",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          35,
+          35
+        ],
+        "current_lines": [
+          35,
+          35
+        ],
+        "before_sha256": "ff3d47db310f83b94f1af62208304bafc5c333a4e995db61a88e5b85f73ae067",
+        "current_sha256": "ff3d47db310f83b94f1af62208304bafc5c333a4e995db61a88e5b85f73ae067"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:bidi_invariants_are_not_collapsed_into_other_errors:36",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          36,
+          36
+        ],
+        "current_lines": [
+          36,
+          36
+        ],
+        "before_sha256": "035a7e47b4398c71f503c2fe6687ce3131f994621f49e564c0277e895590cba8",
+        "current_sha256": "035a7e47b4398c71f503c2fe6687ce3131f994621f49e564c0277e895590cba8"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:oversized_geometry_is_not_collapsed_into_other_errors:44",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          44,
+          44
+        ],
+        "current_lines": [
+          44,
+          44
+        ],
+        "before_sha256": "ae8a57f22410d195b01bcedb6be9150fbd19e25066c3d0347e4ae273c41bd0f7",
+        "current_sha256": "ae8a57f22410d195b01bcedb6be9150fbd19e25066c3d0347e4ae273c41bd0f7"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:oversized_geometry_is_not_collapsed_into_other_errors:45",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          45,
+          45
+        ],
+        "current_lines": [
+          45,
+          45
+        ],
+        "before_sha256": "adbd8e3156cea4a662c49893de99f0109ad43a172c23759fa8f4164826b0c1a8",
+        "current_sha256": "adbd8e3156cea4a662c49893de99f0109ad43a172c23759fa8f4164826b0c1a8"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:oversized_geometry_is_not_collapsed_into_other_errors:46",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          46,
+          46
+        ],
+        "current_lines": [
+          46,
+          46
+        ],
+        "before_sha256": "035a7e47b4398c71f503c2fe6687ce3131f994621f49e564c0277e895590cba8",
+        "current_sha256": "035a7e47b4398c71f503c2fe6687ce3131f994621f49e564c0277e895590cba8"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:deferred_shaping_outcome_never_enters_the_session_cache:66",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          66,
+          72
+        ],
+        "current_lines": [
+          66,
+          72
+        ],
+        "before_sha256": "da48eeb6c1beb8cc27bbfcc968e7f8c08ad07e6b189b5257f0880b9c1a73a22b",
+        "current_sha256": "da48eeb6c1beb8cc27bbfcc968e7f8c08ad07e6b189b5257f0880b9c1a73a22b"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:deferred_shaping_outcome_never_enters_the_session_cache:73",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          73,
+          73
+        ],
+        "current_lines": [
+          73,
+          73
+        ],
+        "before_sha256": "faba782eb728df3757873347144c377974eb1497e18047e9a6fb2797ad869768",
+        "current_sha256": "faba782eb728df3757873347144c377974eb1497e18047e9a6fb2797ad869768"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:deferred_shaping_outcome_never_enters_the_session_cache:74",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          74,
+          74
+        ],
+        "current_lines": [
+          74,
+          74
+        ],
+        "before_sha256": "ea50a08e9d17928f066b58ca79faee9be6f4ee054c4a6b497a040a61ac6a026c",
+        "current_sha256": "ea50a08e9d17928f066b58ca79faee9be6f4ee054c4a6b497a040a61ac6a026c"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:deferred_shaping_outcome_never_enters_the_session_cache:75",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          75,
+          78
+        ],
+        "current_lines": [
+          75,
+          78
+        ],
+        "before_sha256": "46f52300cb973f1cf5593f8570c9ae1e86ff7d7dc317852babfdb9058c236332",
+        "current_sha256": "46f52300cb973f1cf5593f8570c9ae1e86ff7d7dc317852babfdb9058c236332"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:deferred_shaping_outcome_never_enters_the_session_cache:79",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          79,
+          86
+        ],
+        "current_lines": [
+          79,
+          86
+        ],
+        "before_sha256": "bb447082d69f1f02581671eff6e6c58836af4a45fe300c180b6461bcd69c11ea",
+        "current_sha256": "bb447082d69f1f02581671eff6e6c58836af4a45fe300c180b6461bcd69c11ea"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:ready_shaping_outcome_from_a_retired_generation_is_deferred:113",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          113,
+          119
+        ],
+        "current_lines": [
+          113,
+          119
+        ],
+        "before_sha256": "da48eeb6c1beb8cc27bbfcc968e7f8c08ad07e6b189b5257f0880b9c1a73a22b",
+        "current_sha256": "da48eeb6c1beb8cc27bbfcc968e7f8c08ad07e6b189b5257f0880b9c1a73a22b"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:ready_shaping_outcome_from_a_retired_generation_is_deferred:120",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          120,
+          120
+        ],
+        "current_lines": [
+          120,
+          120
+        ],
+        "before_sha256": "faba782eb728df3757873347144c377974eb1497e18047e9a6fb2797ad869768",
+        "current_sha256": "faba782eb728df3757873347144c377974eb1497e18047e9a6fb2797ad869768"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:ready_shaping_outcome_from_a_retired_generation_is_deferred:121",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          121,
+          121
+        ],
+        "current_lines": [
+          121,
+          121
+        ],
+        "before_sha256": "ea50a08e9d17928f066b58ca79faee9be6f4ee054c4a6b497a040a61ac6a026c",
+        "current_sha256": "ea50a08e9d17928f066b58ca79faee9be6f4ee054c4a6b497a040a61ac6a026c"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs::assertion:ready_shaping_outcome_from_a_retired_generation_is_deferred:122",
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "kind": "assertion",
+        "before_lines": [
+          122,
+          125
+        ],
+        "current_lines": [
+          122,
+          125
+        ],
+        "before_sha256": "46f52300cb973f1cf5593f8570c9ae1e86ff7d7dc317852babfdb9058c236332",
+        "current_sha256": "46f52300cb973f1cf5593f8570c9ae1e86ff7d7dc317852babfdb9058c236332"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_counts_actual_table_layout_phases_without_implying_a_budget:14",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          14,
+          14
+        ],
+        "current_lines": [
+          14,
+          14
+        ],
+        "before_sha256": "ecadd03f64377f29f4c7e85901b918e8c19b4e1bc5448968dcd0054683fb5d71",
+        "current_sha256": "ecadd03f64377f29f4c7e85901b918e8c19b4e1bc5448968dcd0054683fb5d71"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_counts_actual_table_layout_phases_without_implying_a_budget:15",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          15,
+          15
+        ],
+        "current_lines": [
+          15,
+          15
+        ],
+        "before_sha256": "5b1391ed056705bc469259aa9741dd8f66e664fbbccc5b95b0e0fa80b5c2dc39",
+        "current_sha256": "5b1391ed056705bc469259aa9741dd8f66e664fbbccc5b95b0e0fa80b5c2dc39"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_counts_actual_table_layout_phases_without_implying_a_budget:16",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          16,
+          16
+        ],
+        "current_lines": [
+          16,
+          16
+        ],
+        "before_sha256": "67e866d0781b8c8ee47707fc5c53dfd1166cbe32b98418f76b00e1aee59e0186",
+        "current_sha256": "67e866d0781b8c8ee47707fc5c53dfd1166cbe32b98418f76b00e1aee59e0186"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_counts_actual_table_layout_phases_without_implying_a_budget:17",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          17,
+          17
+        ],
+        "current_lines": [
+          17,
+          17
+        ],
+        "before_sha256": "7c40c2305f6ac62d3417079536e432e02aa8329b36a261975d5a46464125ec7a",
+        "current_sha256": "7c40c2305f6ac62d3417079536e432e02aa8329b36a261975d5a46464125ec7a"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_counts_actual_table_layout_phases_without_implying_a_budget:18",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          18,
+          18
+        ],
+        "current_lines": [
+          18,
+          18
+        ],
+        "before_sha256": "937f73b3c91a9bc3ecf7c973344db898ca0e6ac85b6bb140d1149aabff4615b2",
+        "current_sha256": "937f73b3c91a9bc3ecf7c973344db898ca0e6ac85b6bb140d1149aabff4615b2"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_counts_actual_table_layout_phases_without_implying_a_budget:19",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          19,
+          19
+        ],
+        "current_lines": [
+          19,
+          19
+        ],
+        "before_sha256": "cc536fe66ef71e3528aa40e93f837de5375d363cdce9571a9594d3adef419826",
+        "current_sha256": "cc536fe66ef71e3528aa40e93f837de5375d363cdce9571a9594d3adef419826"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_counts_actual_table_layout_phases_without_implying_a_budget:20",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          20,
+          20
+        ],
+        "current_lines": [
+          20,
+          20
+        ],
+        "before_sha256": "56cfef30c9a5bbb1a7a333851650cceb2b392b012e82ca6ce1a1f9e17ecb2766",
+        "current_sha256": "56cfef30c9a5bbb1a7a333851650cceb2b392b012e82ca6ce1a1f9e17ecb2766"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_counts_actual_table_layout_phases_without_implying_a_budget:21",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          21,
+          21
+        ],
+        "current_lines": [
+          21,
+          21
+        ],
+        "before_sha256": "ad8d6146da3f751b639a986c91d6c0c1156b5be07c27b40f6870c7462010cd67",
+        "current_sha256": "ad8d6146da3f751b639a986c91d6c0c1156b5be07c27b40f6870c7462010cd67"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_counts_actual_table_layout_phases_without_implying_a_budget:22",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          22,
+          22
+        ],
+        "current_lines": [
+          22,
+          22
+        ],
+        "before_sha256": "6d4a5f4065ea14588997714c01a898847de06e48044907477dce98802f50f878",
+        "current_sha256": "6d4a5f4065ea14588997714c01a898847de06e48044907477dce98802f50f878"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_counts_actual_table_layout_phases_without_implying_a_budget:23",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          23,
+          23
+        ],
+        "current_lines": [
+          23,
+          23
+        ],
+        "before_sha256": "6db0a18e5066d83f80e3dbfffba3082d294fb9f067b843d68eff0468b637c18d",
+        "current_sha256": "6db0a18e5066d83f80e3dbfffba3082d294fb9f067b843d68eff0468b637c18d"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_counts_actual_table_layout_phases_without_implying_a_budget:24",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          24,
+          24
+        ],
+        "current_lines": [
+          24,
+          24
+        ],
+        "before_sha256": "bc3caec5ee4371f22d7730e9389aa3d7ee6ac515e0a6e201c6ec7d50f6c90e9c",
+        "current_sha256": "bc3caec5ee4371f22d7730e9389aa3d7ee6ac515e0a6e201c6ec7d50f6c90e9c"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_counts_actual_table_layout_phases_without_implying_a_budget:25",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          25,
+          25
+        ],
+        "current_lines": [
+          25,
+          25
+        ],
+        "before_sha256": "a4e82b435ce9d6d8231f251f02f77eea2ea55918e231e87e711af75269c6f304",
+        "current_sha256": "a4e82b435ce9d6d8231f251f02f77eea2ea55918e231e87e711af75269c6f304"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_saturates_telemetry_counters:51",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          51,
+          51
+        ],
+        "current_lines": [
+          51,
+          51
+        ],
+        "before_sha256": "cf43163cbd6f604f02f09e122543709ab4eb66e53942ef1545ce999bef493951",
+        "current_sha256": "cf43163cbd6f604f02f09e122543709ab4eb66e53942ef1545ce999bef493951"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_saturates_telemetry_counters:52",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          52,
+          52
+        ],
+        "current_lines": [
+          52,
+          52
+        ],
+        "before_sha256": "1daed8eb15f5b10d90eb62ff45e3cfbc0c40ab6b6b4f61923747890cd3c71b88",
+        "current_sha256": "1daed8eb15f5b10d90eb62ff45e3cfbc0c40ab6b6b4f61923747890cd3c71b88"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_saturates_telemetry_counters:53",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          53,
+          53
+        ],
+        "current_lines": [
+          53,
+          53
+        ],
+        "before_sha256": "e737b7da0903a5b342f4640bbbc4bbe8f6f8ae1d0fcade1fda1de58f65f8597d",
+        "current_sha256": "e737b7da0903a5b342f4640bbbc4bbe8f6f8ae1d0fcade1fda1de58f65f8597d"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_saturates_telemetry_counters:54",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          54,
+          54
+        ],
+        "current_lines": [
+          54,
+          54
+        ],
+        "before_sha256": "220204c25c353dc4e9a8c1836837ef5b8893502765faaaf09dd23646f49eb528",
+        "current_sha256": "220204c25c353dc4e9a8c1836837ef5b8893502765faaaf09dd23646f49eb528"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_saturates_telemetry_counters:55",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          55,
+          55
+        ],
+        "current_lines": [
+          55,
+          55
+        ],
+        "before_sha256": "08628421b4e44e31a8c62957650d693cec44aed3a14c450f69a705cd66729d65",
+        "current_sha256": "08628421b4e44e31a8c62957650d693cec44aed3a14c450f69a705cd66729d65"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_saturates_telemetry_counters:56",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          56,
+          56
+        ],
+        "current_lines": [
+          56,
+          56
+        ],
+        "before_sha256": "86dbd7a339975bdb95b3b1e0968f88814b6b0017ef3ceac7f165ec5debfe4e57",
+        "current_sha256": "86dbd7a339975bdb95b3b1e0968f88814b6b0017ef3ceac7f165ec5debfe4e57"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_saturates_telemetry_counters:57",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          57,
+          57
+        ],
+        "current_lines": [
+          57,
+          57
+        ],
+        "before_sha256": "3b1b5ecffb595620a192476f305b1eb3822742d1c5064204e0757f9ed1401686",
+        "current_sha256": "3b1b5ecffb595620a192476f305b1eb3822742d1c5064204e0757f9ed1401686"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_saturates_telemetry_counters:58",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          58,
+          58
+        ],
+        "current_lines": [
+          58,
+          58
+        ],
+        "before_sha256": "ef935a858c43b690d76dc6d65904bcb6b73a5641a639c3eca04f5c6dc184b087",
+        "current_sha256": "ef935a858c43b690d76dc6d65904bcb6b73a5641a639c3eca04f5c6dc184b087"
+      },
+      {
+        "id": "zircon_runtime/src/text/layout_session/tests/table_work.rs::assertion:report_saturates_telemetry_counters:59",
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "kind": "assertion",
+        "before_lines": [
+          59,
+          59
+        ],
+        "current_lines": [
+          59,
+          59
+        ],
+        "before_sha256": "40c3fbca8b76db56820523288676d2112d84c287706cdb3ac88fc1de96310177",
+        "current_sha256": "40c3fbca8b76db56820523288676d2112d84c287706cdb3ac88fc1de96310177"
+      }
+    ],
+    "count": 141,
+    "canonical_sha256": "d51131cc853f3f7b7ee8e9c4b83734ce22f668adf4a7077801fab8d9e8f23543",
+    "source_original_bytes_inverse_exact": true,
+    "objects": 35,
+    "members": 31,
+    "gapfree_partitions": 35,
+    "assertions": 40
+  },
+  "root_semantic_findings": [
+    "Fallback Default captures compiled Unicode identity and seven zero counters, independently owned by-value report; font-generation errors defer without incrementing fallback. Recording classifies observation, not recovery execution or successful presentation.",
+    "Geometry rejection copies caller-provided owner/range/violation/work into a last-only receipt and saturates count; it neither validates supplied values nor consumes work quota. Geometry and layout-fallback counters remain independent.",
+    "Session begin_frame resets reports, finish_frame publishes Copy table-work snapshot without resetting, clear clears caches only. Ready shaping diagnostics occur before current-generation admission and may precede a Deferred result; counters do not prove cache insertion or artifact presentation.",
+    "Table grid/attempt, preferred/final layout calls and tracks are observed before later failures. Output is recorded after local geometry validation just before Ready; telemetry saturation/max handling is not admission or memory/resource budgeting.",
+    "Actual publish macro is crate::profile_counter!, selected by any(profiling,profiling-tracy). Recorder capture_active and independent Tracy tracing branches differ; no assertion that every backend shares a capture gate. Twelve values convert to f64; publishing consumes Copy and leaves owner's report unchanged.",
+    "Eight tests/40assertions are reviewed without execution. Direct-injected deferred/retired tags are not concurrent reload tests; manual phase test checks twelve values, saturation test only nine named results. No whole-workspace guard, benchmark or Cargo test execution."
+  ],
+  "child_metadata_errata": [
+    {
+      "location": "traits_macros_registration_ffi.macro.name",
+      "child": "crate::runtime_profile_counter!",
+      "actual": "crate::profile_counter!",
+      "evidence": "table_work original51-106/current70-125; profiling/macros.rs70-94",
+      "child_preserved": true,
+      "source_change": false
+    },
+    {
+      "location": "control_points[4].decision",
+      "child": "runtime-profiling feature",
+      "actual": "any(feature=\"profiling\", feature=\"profiling-tracy\") with negated disabled branch",
+      "evidence": "table_work current68 and127",
+      "child_preserved": true,
+      "source_change": false
+    }
+  ],
+  "contexts": [
+    {
+      "id": "session",
+      "path": "zircon_runtime/src/text/layout_session.rs",
+      "sha256": "5d3652e545c61889466ac0fc1e09c970a2507ed642ffa29420c52f0d9359e07c",
+      "bytes": 28707,
+      "lines": 705,
+      "ranges": [
+        [
+          43,
+          52
+        ],
+        [
+          200,
+          246
+        ],
+        [
+          306,
+          371
+        ],
+        [
+          407,
+          423
+        ],
+        [
+          485,
+          552
+        ]
+      ],
+      "range_sha256": [
+        "d29cbe24b53d04327152e1a3feb018e345f174de81c6dbc1f4ad35eaf3f0d142",
+        "cb4e414e4461b2f0e310156dda7a593702ace05c8260c472c1532c3d799c36e5",
+        "0beba25cce1d45db45be2acaa6aa05efeb2ef846c446b0a3cdd05e4d09e46472",
+        "e6a08944282e6c15fb9b704c8434d5f8c966ffc983c97178633da01382b0e60d",
+        "657edebf62f0ac8ea01b07d38d89a055d9190024006018944e42d16c80aaee48"
+      ],
+      "original_observation_sha256": "0a06469e0517f148047e9c5f130139d6ecaa48aa6cc8b4c0ea5939ed3e3b46c2",
+      "comment_only_version_reconciled": true,
+      "formal_coverage": false
+    },
+    {
+      "id": "rich_table",
+      "path": "zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs",
+      "sha256": "ce1a3ff996d92150dfe10c9a22806e97b8b27d6578eaf3c413a8a9d4ab4f0110",
+      "bytes": 27175,
+      "lines": 730,
+      "ranges": [
+        [
+          225,
+          243
+        ],
+        [
+          359,
+          377
+        ],
+        [
+          432,
+          446
+        ],
+        [
+          530,
+          541
+        ],
+        [
+          555,
+          578
+        ]
+      ],
+      "range_sha256": [
+        "c5c41a46ef791175b21b3b2151ead0782ed6cb34b9ba72b570a94bd9ea08905c",
+        "83d9c4266b333ec92438b8e0d32106a6cd4e321c04a683160f213b448e91dc02",
+        "a6a4103e732824b5ee13d705d3fab09009089d4d4bc25c5bcec6d620f8c02ec4",
+        "742cbb441d25957acd1cfdb684c33761f113c60c0fa87f9883e6246f1ff30b45",
+        "7d48d3aa415a511b83cfad7c7302d54c55f00756804a01295b05dfedb44b551b"
+      ],
+      "original_observation_sha256": "ce1a3ff996d92150dfe10c9a22806e97b8b27d6578eaf3c413a8a9d4ab4f0110",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "profiling_macro",
+      "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs",
+      "sha256": "4fc7de3f6eb4143faeaef7896fb0ebf21b172375360fae59b84e018fd5e9dcda",
+      "bytes": 3963,
+      "lines": 98,
+      "ranges": [
+        [
+          49,
+          95
+        ]
+      ],
+      "range_sha256": [
+        "e6530d24a2e4d9b56ba7a814d8daf52fc34487eb4e8638bce43eef689cfd21f4"
+      ],
+      "original_observation_sha256": "4fc7de3f6eb4143faeaef7896fb0ebf21b172375360fae59b84e018fd5e9dcda",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "text_facade",
+      "path": "zircon_runtime/src/text/mod.rs",
+      "sha256": "38aef7102fa2a7850d4b7b2b8d644400ef0bb9e01cb5222cefbd642694201157",
+      "bytes": 7193,
+      "lines": 170,
+      "ranges": [
+        [
+          124,
+          134
+        ]
+      ],
+      "range_sha256": [
+        "4615cb0e2dd179415bbe5a66798c6518887c4d9445d32d1ab291125384158b7b"
+      ],
+      "original_observation_sha256": "38aef7102fa2a7850d4b7b2b8d644400ef0bb9e01cb5222cefbd642694201157",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "measure_cache",
+      "path": "zircon_runtime/src/ui/text/measure_cache.rs",
+      "sha256": "2f9ed0e72c5efed4522e58dd38ee530b41d82e2d18c49bd6e34b50ea215e130a",
+      "bytes": 30857,
+      "lines": 766,
+      "ranges": [
+        [
+          404,
+          422
+        ]
+      ],
+      "range_sha256": [
+        "0bc29a8cd5f9f75528374cec4d5b024426e14ce334088f8ea4602e233fe3b302"
+      ],
+      "original_observation_sha256": "f2e4b54b241f8e1977609479ccdce24454cd87ea7b30a1d141a7cfe70bb4e5e6",
+      "comment_only_version_reconciled": true,
+      "formal_coverage": false
+    },
+    {
+      "id": "profile_session",
+      "path": "zircon_runtime/src/ui/surface/render/text_prewarm/profile/session.rs",
+      "sha256": "aad5c1b762daaece08d2ac14460a2744b9b7d0ceaf92637e0217935c9dd16fbf",
+      "bytes": 6606,
+      "lines": 195,
+      "ranges": [
+        [
+          1,
+          80
+        ]
+      ],
+      "range_sha256": [
+        "bae181b6977bddf896c51285c5864ee6872eb7cb31d9b85e9e5b730c74d3dd67"
+      ],
+      "original_observation_sha256": "aad5c1b762daaece08d2ac14460a2744b9b7d0ceaf92637e0217935c9dd16fbf",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "renderer_report",
+      "path": "zircon_runtime/src/graphics/scene/renderer/ui/text/resolved_batches.rs",
+      "sha256": "fceab19adb9530a2f45d03a1fd5c3de88bd6e732372e7d54ae59ead7c9ba66a5",
+      "bytes": 7954,
+      "lines": 217,
+      "ranges": [
+        [
+          68,
+          90
+        ]
+      ],
+      "range_sha256": [
+        "6bc70879e690a450fc29187a9b842a85204b00834ff8173ddaf7952e870c32e4"
+      ],
+      "original_observation_sha256": "fceab19adb9530a2f45d03a1fd5c3de88bd6e732372e7d54ae59ead7c9ba66a5",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "renderer_merge",
+      "path": "zircon_runtime/src/graphics/scene/renderer/ui/text/prepare_report.rs",
+      "sha256": "ad5966dbed4d5a65065b92a157a5e2149182c2f88e97eafec5b1ae9f61ac2ced",
+      "bytes": 24080,
+      "lines": 484,
+      "ranges": [
+        [
+          275,
+          315
+        ]
+      ],
+      "range_sha256": [
+        "477392ff6f1a6f2148a379915a8ac07347222789f7eefa4de360665f9b62ba98"
+      ],
+      "original_observation_sha256": "ad5966dbed4d5a65065b92a157a5e2149182c2f88e97eafec5b1ae9f61ac2ced",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "naming_classifier",
+      "path": "zircon_runtime/src/tests/contracts/naming_boundary/classifiers.rs",
+      "sha256": "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651",
+      "bytes": 7987,
+      "lines": 224,
+      "ranges": [
+        [
+          118,
+          152
+        ]
+      ],
+      "range_sha256": [
+        "c762fda54a2d559071060ac9f3815afe740898e9f5093050eda99a429a996d9a"
+      ],
+      "original_observation_sha256": "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "naming_reader",
+      "path": "zircon_runtime/src/tests/contracts/naming_boundary/lexical_scan.rs",
+      "sha256": "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748",
+      "bytes": 3875,
+      "lines": 115,
+      "ranges": [
+        [
+          1,
+          115
+        ]
+      ],
+      "range_sha256": [
+        "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748"
+      ],
+      "original_observation_sha256": "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "naming_operator",
+      "path": "zircon_runtime/src/tests/contracts/naming_boundary/top_level.rs",
+      "sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450",
+      "bytes": 3501,
+      "lines": 108,
+      "ranges": [
+        [
+          1,
+          108
+        ]
+      ],
+      "range_sha256": [
+        "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450"
+      ],
+      "original_observation_sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "naming_production_lines",
+      "path": "zircon_runtime/src/tests/contracts/lexical_scan/production_lines.rs",
+      "sha256": "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b",
+      "bytes": 2095,
+      "lines": 53,
+      "ranges": [
+        [
+          1,
+          53
+        ]
+      ],
+      "range_sha256": [
+        "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b"
+      ],
+      "original_observation_sha256": "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "naming_contract_mount",
+      "path": "zircon_runtime/src/tests/contracts/mod.rs",
+      "sha256": "8557b62d3d4b22c755a2d0110ec158a192455e9fced8ea90303fc8e206d1dde0",
+      "bytes": 1837,
+      "lines": 62,
+      "ranges": [
+        [
+          20,
+          34
+        ]
+      ],
+      "range_sha256": [
+        "f503675626dd53b4d71cd52be207fd13d04b91124130aae0680494e725a86851"
+      ],
+      "original_observation_sha256": "8557b62d3d4b22c755a2d0110ec158a192455e9fced8ea90303fc8e206d1dde0",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "naming_child_mount",
+      "path": "zircon_runtime/src/tests/contracts/naming_boundary.rs",
+      "sha256": "365296f7f5ac5d0f9071af76bc7e258f9992c1c3a76620773de1d559e2c1e57d",
+      "bytes": 514,
+      "lines": 13,
+      "ranges": [
+        [
+          1,
+          13
+        ]
+      ],
+      "range_sha256": [
+        "365296f7f5ac5d0f9071af76bc7e258f9992c1c3a76620773de1d559e2c1e57d"
+      ],
+      "original_observation_sha256": "365296f7f5ac5d0f9071af76bc7e258f9992c1c3a76620773de1d559e2c1e57d",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "shaping_core",
+      "path": "zircon_runtime/src/text/shaping/failure_receipt.rs",
+      "sha256": "9db85eb0a56ab8c130787afd7c3dfb38ff95ae1c6a8c3649031f3f2a7a11aa83",
+      "bytes": 17054,
+      "lines": 403,
+      "ranges": [
+        [
+          145,
+          326
+        ]
+      ],
+      "range_sha256": [
+        "ee8f8da9c5aa6d6f6da0570ff8eb57990c2f4c0b97d407b81edfec3901f937a9"
+      ],
+      "original_observation_sha256": "9db85eb0a56ab8c130787afd7c3dfb38ff95ae1c6a8c3649031f3f2a7a11aa83",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "shaping_work_budget",
+      "path": "zircon_runtime/src/text/shaping/work_budget.rs",
+      "sha256": "7b6d530943c537e7aa47e22b2145f5ca01f5e67ebdfb5e29701cdacdedb12b5c",
+      "bytes": 3136,
+      "lines": 86,
+      "ranges": [
+        [
+          1,
+          86
+        ]
+      ],
+      "range_sha256": [
+        "7b6d530943c537e7aa47e22b2145f5ca01f5e67ebdfb5e29701cdacdedb12b5c"
+      ],
+      "original_observation_sha256": "7b6d530943c537e7aa47e22b2145f5ca01f5e67ebdfb5e29701cdacdedb12b5c",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    },
+    {
+      "id": "artifact_fence",
+      "path": "zircon_runtime/src/ui/text/layout_engine/artifact.rs",
+      "sha256": "c6acb152e2b018900d8c6928cd3e7508379631237df3aaed1350bb9cac9f9f66",
+      "bytes": 2344,
+      "lines": 65,
+      "ranges": [
+        [
+          1,
+          65
+        ]
+      ],
+      "range_sha256": [
+        "c6acb152e2b018900d8c6928cd3e7508379631237df3aaed1350bb9cac9f9f66"
+      ],
+      "original_observation_sha256": "c6acb152e2b018900d8c6928cd3e7508379631237df3aaed1350bb9cac9f9f66",
+      "comment_only_version_reconciled": false,
+      "formal_coverage": false
+    }
+  ],
+  "raw_reader": {
+    "exact_inputs": [
+      {
+        "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "reader": "naming_reader",
+        "operators": "actual split ASCII token contains editor/legacy; server component exclusions; production line state machine",
+        "before_references": {
+          "editor": [],
+          "legacy": [],
+          "server": []
+        },
+        "current_references": {
+          "editor": [],
+          "legacy": [],
+          "server": []
+        },
+        "new_comment_references": {
+          "editor": [],
+          "legacy": [],
+          "server": []
+        },
+        "new_comment_brace_delta": 0,
+        "scope": "exact4 standalone source scanner inputs; whole Rust contract not executed"
+      },
+      {
+        "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+        "reader": "naming_reader",
+        "operators": "actual split ASCII token contains editor/legacy; server component exclusions; production line state machine",
+        "before_references": {
+          "editor": [],
+          "legacy": [],
+          "server": []
+        },
+        "current_references": {
+          "editor": [],
+          "legacy": [],
+          "server": []
+        },
+        "new_comment_references": {
+          "editor": [],
+          "legacy": [],
+          "server": []
+        },
+        "new_comment_brace_delta": 0,
+        "scope": "exact4 standalone source scanner inputs; whole Rust contract not executed"
+      },
+      {
+        "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "reader": "naming_reader",
+        "operators": "actual split ASCII token contains editor/legacy; server component exclusions; production line state machine",
+        "before_references": {
+          "editor": [],
+          "legacy": [],
+          "server": []
+        },
+        "current_references": {
+          "editor": [],
+          "legacy": [],
+          "server": []
+        },
+        "new_comment_references": {
+          "editor": [],
+          "legacy": [],
+          "server": []
+        },
+        "new_comment_brace_delta": 0,
+        "scope": "exact4 standalone source scanner inputs; whole Rust contract not executed"
+      },
+      {
+        "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+        "reader": "naming_reader",
+        "operators": "actual split ASCII token contains editor/legacy; server component exclusions; production line state machine",
+        "before_references": {
+          "editor": [],
+          "legacy": [],
+          "server": []
+        },
+        "current_references": {
+          "editor": [],
+          "legacy": [],
+          "server": []
+        },
+        "new_comment_references": {
+          "editor": [],
+          "legacy": [],
+          "server": []
+        },
+        "new_comment_brace_delta": 0,
+        "scope": "exact4 standalone source scanner inputs; whole Rust contract not executed"
+      }
+    ],
+    "reader_pins": [
+      {
+        "id": "naming_classifier",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/classifiers.rs",
+        "sha256": "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651"
+      },
+      {
+        "id": "naming_reader",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/lexical_scan.rs",
+        "sha256": "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748"
+      },
+      {
+        "id": "naming_operator",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/top_level.rs",
+        "sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450"
+      },
+      {
+        "id": "naming_production_lines",
+        "path": "zircon_runtime/src/tests/contracts/lexical_scan/production_lines.rs",
+        "sha256": "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b"
+      },
+      {
+        "id": "naming_contract_mount",
+        "path": "zircon_runtime/src/tests/contracts/mod.rs",
+        "sha256": "8557b62d3d4b22c755a2d0110ec158a192455e9fced8ea90303fc8e206d1dde0"
+      },
+      {
+        "id": "naming_child_mount",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary.rs",
+        "sha256": "365296f7f5ac5d0f9071af76bc7e258f9992c1c3a76620773de1d559e2c1e57d"
+      }
+    ],
+    "whole_test_executed": false,
+    "preexisting_context_issue": "CR-RUNTIME-TESTS-ABS-0008 remains open/preserved; exact added comments have no brace delta or new operand hits, no blanket guard claim."
+  },
+  "validation": {
+    "rustfmt": {
+      "reuse": true,
+      "affected2_receipt": "Luna4ed52a/native21304->75ed98 exit0/PID26292",
+      "unchanged2tests_receipt": "Luna6c0a6b/native49413->7f350c exit0/PID13972",
+      "exact_final_source_pins_unchanged": true,
+      "argv_prefix": [
+        "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true"
+      ],
+      "paths": [
+        "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "zircon_runtime/src/text/layout_session/table_work.rs",
+        "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+      ],
+      "exit_code": 0,
+      "repeated": false
+    },
+    "commands": [
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "rev-parse",
+          "HEAD"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "c096fcebb5691399cff45d8e0033ad3575e3cc6199399be3a1150868831cc8ee",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "89789b74beaef9bf83cb61f8c13236ca730a81c0\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "ls-files",
+          "--stage",
+          "--",
+          "zircon_runtime/src/text/layout_session/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/table_work.rs",
+          "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "7c33ef2b47b3afd57e0f68aa145575506462f340baa34672b6b4c0bee2c82591",
+        "stdout_bytes": 426,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "100644 41552317de772aca5ee85b54a8b07ab533758a83 0\tzircon_runtime/src/text/layout_session/diagnostics.rs\n100644 9163713fb8e5dcba99a6aa6ec20c6708ed10c394 0\tzircon_runtime/src/text/layout_session/table_work.rs\n100644 86265e5ef87b3d14053453f0cdb0a5aa0cfa98c0 0\tzircon_runtime/src/text/layout_session/tests/diagnostics.rs\n100644 8fe56dcad615348418c4fbc917b5861a9269aa2a 0\tzircon_runtime/src/text/layout_session/tests/table_work.rs\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/layout_session/diagnostics.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "8efc2e1ca10b5c0e9ebbdffe5b83721ddf41a9b485e676447694249c3a609e13",
+        "stdout_bytes": 5100,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "hash-object",
+          "--path=zircon_runtime/src/text/layout_session/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/diagnostics.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "5e7259f1b5d36463f4f8355ce50c38f49c55d6ceafec4c674679bfc998ce5d5c",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "572f0fccceefb01c1bb9bf7e3a8d50f49f14145b\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/layout_session/table_work.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "5879db397641d30b0bfa1d2fb5232cb65dc6b08fbf515d2baf9b8c168a85c59b",
+        "stdout_bytes": 4732,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "hash-object",
+          "--path=zircon_runtime/src/text/layout_session/table_work.rs",
+          "zircon_runtime/src/text/layout_session/table_work.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "980e2c7a358ce904acc4998929fdc9d52a170032d9f49f24658ce20ff9adf03d",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "73c4c00e96c712036b69c971ced8c808e522d558\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/layout_session/tests/diagnostics.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "a304bdda7cba8118417a2795b6aad1709a66104cde57299235260b14e8a6fb08",
+        "stdout_bytes": 4398,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "hash-object",
+          "--path=zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/tests/diagnostics.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "e74943e5cee7e471d8e304b09b1a8467999aa6311a8210b534f7e7157c29242b",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "86265e5ef87b3d14053453f0cdb0a5aa0cfa98c0\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/layout_session/tests/table_work.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "a26c7554fd88f6706cebd50c5e4f002fbe0e8363c388ac268445baddb480602f",
+        "stdout_bytes": 2342,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "hash-object",
+          "--path=zircon_runtime/src/text/layout_session/tests/table_work.rs",
+          "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "fdc3304c49fdad8cddd8c9781d111da80aca74014cc6dcc693a55419d451a154",
+        "stdout_bytes": 41,
+        "stderr": "",
+        "kind": "git",
+        "stdout": "8fe56dcad615348418c4fbc917b5861a9269aa2a\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/layout_session.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "0a06469e0517f148047e9c5f130139d6ecaa48aa6cc8b4c0ea5939ed3e3b46c2",
+        "stdout_bytes": 21058,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/ui/text/measure_cache.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "f2e4b54b241f8e1977609479ccdce24454cd87ea7b30a1d141a7cfe70bb4e5e6",
+        "stdout_bytes": 25821,
+        "stderr": "",
+        "kind": "raw-source"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--numstat",
+          "--",
+          "zircon_runtime/src/text/layout_session/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/table_work.rs",
+          "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "59f8fac0de2cd171147303e2ec8800deaca30ea77e08fd8ba69369df68501af4",
+        "stdout_bytes": 117,
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/layout_session/diagnostics.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/layout_session/table_work.rs.\nThe file will have its original line endings in your working directory\n",
+        "kind": "git",
+        "stdout": "28\t0\tzircon_runtime/src/text/layout_session/diagnostics.rs\n19\t0\tzircon_runtime/src/text/layout_session/table_work.rs\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--check",
+          "--",
+          "zircon_runtime/src/text/layout_session/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/table_work.rs",
+          "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 0,
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/layout_session/diagnostics.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/text/layout_session/table_work.rs.\nThe file will have its original line endings in your working directory\n",
+        "kind": "git",
+        "stdout": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "zircon_runtime/src/text/layout_session/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/table_work.rs",
+          "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 0,
+        "stderr": "",
+        "kind": "git",
+        "stdout": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "status",
+          "--porcelain=v1",
+          "--untracked-files=all",
+          "--",
+          "zircon_runtime/src/text/layout_session/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/table_work.rs",
+          "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "b545e4f7bf923c8675f77157aebb2bdf44c94a10f715fa277f414e528cfdc900",
+        "stdout_bytes": 113,
+        "stderr": "warning: unable to access 'C:\\Users\\HeJiahui/.config/git/ignore': Permission denied\n",
+        "kind": "git",
+        "stdout": " M zircon_runtime/src/text/layout_session/diagnostics.rs\n M zircon_runtime/src/text/layout_session/table_work.rs\n"
+      },
+      {
+        "argv": [
+          "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          ".codex/skills/zircon-change-guard/scripts/change_guard.py",
+          "--json",
+          "patch",
+          "--git",
+          "--base",
+          "HEAD",
+          "--path",
+          "zircon_runtime/src/text/layout_session/diagnostics.rs",
+          "--path",
+          "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+          "--path",
+          "zircon_runtime/src/text/layout_session/table_work.rs",
+          "--path",
+          "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+        ],
+        "exit_code": 0,
+        "stdout_sha256": "09a4011f62c251e319c74124cd38e14ebe317196640c7580d6ca457c35ce555b",
+        "stdout_bytes": 1011,
+        "stderr": "",
+        "kind": "check",
+        "stdout": "{\r\n  \"tool\": \"zircon-change-guard\",\r\n  \"version\": 2,\r\n  \"mode\": \"patch\",\r\n  \"status\": \"passed\",\r\n  \"input\": {\r\n    \"patchDigest\": \"e74c9cc50a17c059471e44f841374f6332d162ea501c52cd59c6d5ca1dafa49c\",\r\n    \"base\": \"89789b74beaef9bf83cb61f8c13236ca730a81c0\",\r\n    \"files\": [\r\n      \"zircon_runtime/src/text/layout_session/diagnostics.rs\",\r\n      \"zircon_runtime/src/text/layout_session/table_work.rs\"\r\n    ],\r\n    \"declaredPaths\": [\r\n      \"zircon_runtime/src/text/layout_session/diagnostics.rs\",\r\n      \"zircon_runtime/src/text/layout_session/tests/diagnostics.rs\",\r\n      \"zircon_runtime/src/text/layout_session/table_work.rs\",\r\n      \"zircon_runtime/src/text/layout_session/tests/table_work.rs\"\r\n    ],\r\n    \"writeGrantCheck\": true,\r\n    \"permissionRoot\": \"E:/Git/ZirconEngine\",\r\n    \"contributor\": false\r\n  },\r\n  \"summary\": {\r\n    \"errors\": 0,\r\n    \"warnings\": 0,\r\n    \"suppressed\": 0\r\n  },\r\n  \"markers\": {\r\n    \"closed\": [],\r\n    \"opened\": [],\r\n    \"moved\": []\r\n  },\r\n  \"findings\": [],\r\n  \"suppressed\": []\r\n}\r\n"
+      }
+    ],
+    "change_guard": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "e74c9cc50a17c059471e44f841374f6332d162ea501c52cd59c6d5ca1dafa49c",
+        "base": "89789b74beaef9bf83cb61f8c13236ca730a81c0",
+        "files": [
+          "zircon_runtime/src/text/layout_session/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/table_work.rs"
+        ],
+        "declaredPaths": [
+          "zircon_runtime/src/text/layout_session/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+          "zircon_runtime/src/text/layout_session/table_work.rs",
+          "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": []
+    },
+    "guard_script_sha256": "bb9bf97836c3af3779447f5404c8afe39621356b2ad15ff4de3316d61b599734",
+    "config_sha256": "7b93e661049be8c99bd2fa696115f0e992002fa0c6b5852ce73629865e7ceade",
+    "tests_executed": 0,
+    "issues_sha256": "b6df02c01fc7b778c41ee49fe7fefbbe25bfb6be34de7376be42969ce68ec069",
+    "issue_count": 895,
+    "new_issues": 0,
+    "head_observed": "89789b74beaef9bf83cb61f8c13236ca730a81c0",
+    "index": {
+      "sha256": "45120c88a8b9210a3b78124b29dcf4e86b1297d3e215c80efb9ca5297b68a90f",
+      "bytes": 7479846
+    },
+    "index_lock": {
+      "exists": true,
+      "owner": "unknown",
+      "deleted_or_bypassed": false,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mtime_ns_text": "1792192256891113100"
+    }
+  },
+  "artifact_lifecycle": {
+    "new_helpers": 0,
+    "source_copies": 0,
+    "builds": 0,
+    "temporary_files": 0,
+    "generated_fixtures": 0,
+    "released_bytes": 0,
+    "retained": "Exact4 sources plus solechild/root main/post and designated Jenkins handoff; necessary failed tool evidence retained."
+  },
+  "writer": {
+    "pid": 1772,
+    "write_set": [
+      "docs/plans/source-comments/reviews/R082-post-validation.json"
+    ],
+    "source_writes": [],
+    "actual_terminal": "Not self-observable; bind actual terminal and subsequent independent readback in root main.",
+    "prior_failure": {
+      "receipt": "root698/4f8dfb exit1/PID35800",
+      "location": "line15 root checker used nonexistent standard.md instead of actual 01-standard.md",
+      "before_record_write": true,
+      "source_writes": [],
+      "record_writes": [],
+      "independent_state": "root699/f429c7 exit0/PID22944 actual 01-standard.md4088B/5671f048; child unchanged and4source pins unchanged, post absent",
+      "correction": "Only root checker input path corrected; all source/grant/range/raw checks retained."
+    }
+  }
+}

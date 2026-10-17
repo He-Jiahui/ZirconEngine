@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R016",
+  "reviewer": "root",
+  "created_at_utc": "2026-10-15T04:16:42.910058+00:00",
+  "status": "single-new-doc-precision-refinement-source-proof-complete-scoped-checks-pending",
+  "immutable_child_record": {
+    "path": "docs/plans/source-comments/reviews/R016.json",
+    "sha256": "5c76f3bc3198b456c1931c58ddaba6165df491a27356a598b54a0f3bc2f3d2e5",
+    "kept_unchanged": true
+  },
+  "source_path": "zircon_runtime_interface/src/serialization/error.rs",
+  "original_assignment_before_sha256": "77f6bd3e24d67c8c6bdabedb08c996a8fcd20b4979b08101f9d9993455a24543",
+  "child_reviewed_sha256": "a6e27a361d0b9c391f8281f113c17eda64ae7aee39aced50ee17c10a7943af9f",
+  "final_source_sha256": "2ae90b36d92e83f197ab35bde22dfa656c33e81bf8d8e23268e6a12c671045c2",
+  "replacement": {
+    "old_exact_added_comment": "    /// 输入不是合法 JSON 文本；与可解析文本中的封套结构错误区分。\n",
+    "new_exact_added_comment": "    /// 顶层文本预探测或旧格式 JSON 读取失败；source 保留 serde 错误，与严格封套解析失败区分。\n",
+    "line": 11,
+    "old_raw_length": 93,
+    "new_raw_length": 128,
+    "only_own_new_comment_changed": true
+  },
+  "reason": "MalformedText is mapped from top-level EnvelopeProbe serde failures and old unversioned JSON parsing; it cannot be documented as exclusively invalid JSON syntax. Strict-envelope parsing failures have the separate InvalidEnvelope mapping.",
+  "root_actual_context_reads": [
+    {
+      "chunk_id": "3ec386",
+      "path": "zircon_runtime_interface/src/serialization/text/read.rs",
+      "sha256": "d789852bc154073e0baafb393d6a6e85d29ea9924cd47ab0e0b47112d07d3e6f",
+      "spans": [
+        [
+          34,
+          85
+        ]
+      ]
+    },
+    {
+      "chunk_id": "3da38d",
+      "path": "zircon_runtime_interface/src/serialization/text/read.rs",
+      "sha256": "d789852bc154073e0baafb393d6a6e85d29ea9924cd47ab0e0b47112d07d3e6f",
+      "spans": [
+        [
+          85,
+          131
+        ]
+      ]
+    },
+    {
+      "chunk_id": "8f2156",
+      "path": "zircon_runtime_interface/src/serialization/load.rs",
+      "sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+      "spans": [
+        [
+          163,
+          170
+        ]
+      ]
+    },
+    {
+      "chunk_id": "3da38d",
+      "path": "zircon_runtime_interface/src/serialization/load.rs",
+      "sha256": "837e517baf73b2f0e473b36b94ea09664af8ede3f16e539e24b92faa174c41b1",
+      "spans": [
+        [
+          225,
+          230
+        ]
+      ]
+    }
+  ],
+  "final_insertions": [
+    {
+      "offset_before": 97,
+      "offset_after": 97,
+      "length_bytes": 212,
+      "sha256": "376d733764d3952ba9771e223df40fe938fd9c387adde794ed2090c490e3c867",
+      "exact_text": "/// 版本化载荷读取的 wire 解析、schema 兼容性、迁移和目标类型解码错误。\n///\n/// 带 source 字段的变体保留底层错误链；其余变体提供结构化上下文或原因文本。\n",
+      "location": "LoadError 类型职责和错误链",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 142,
+      "offset_after": 354,
+      "length_bytes": 128,
+      "sha256": "b57c02c0207500d58f6854265615b57796c0fef4917b356c8a5e83cc18592b4c",
+      "exact_text": "    /// 顶层文本预探测或旧格式 JSON 读取失败；source 保留 serde 错误，与严格封套解析失败区分。\n",
+      "location": "MalformedText",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 273,
+      "offset_after": 613,
+      "length_bytes": 105,
+      "sha256": "eb389e577457351402c5ea70baada8420f410a91cbaf2149defaf5e0a64e15ea",
+      "exact_text": "    /// 文本声明了保留封套，但封套结构不符合线格式；不会降级为旧裸载荷。\n",
+      "location": "InvalidEnvelope",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 416,
+      "offset_after": 861,
+      "length_bytes": 99,
+      "sha256": "d2972fe36e080e5ff1c1a8bcd64b0049a19875d0dd4c79a5a1eb385178b49bdc",
+      "exact_text": "    /// 常规文本读取拒绝无封套输入；schema-zero 回退须显式选择兼容入口。\n",
+      "location": "MissingTextEnvelope",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 533,
+      "offset_after": 1077,
+      "length_bytes": 316,
+      "sha256": "36ab50c2c64662fcfaab34e35feada28b836c6feef7dbc2da2068f784b736a9b",
+      "exact_text": "    /// 文本文档字节长度超过固定输入上限，在封套和载荷解析前失败。\n    /// found 统计完整文本输入字节（含封套）；仅 found > max 时产生此错误，等于上限继续解析。\n    /// 该上限约束读取字节数，不衡量目标类型解码后全部内存分配。\n",
+      "location": "TextDocumentTooLarge",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 668,
+      "offset_after": 1528,
+      "length_bytes": 178,
+      "sha256": "49623cfa1805c3f95cc2feb4215317575971f05bc3682085c127a7adedb664fb",
+      "exact_text": "    /// 二进制输入短于解析 wire 头所需的字节数。\n    /// 仅表示固定 wire 前缀不完整；前缀完整后的封套头格式错误归入 MalformedBinary。\n",
+      "location": "BinaryHeaderTruncated",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 845,
+      "offset_after": 1883,
+      "length_bytes": 66,
+      "sha256": "a69400149364d10bace5f6040dd97f27357fd45ee7a59d2a79a97dc1246fa7f7",
+      "exact_text": "    /// 二进制头部的魔数与当前格式标识不匹配。\n",
+      "location": "BinaryMagicMismatch",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 954,
+      "offset_after": 2058,
+      "length_bytes": 95,
+      "sha256": "0162ffc0b4c6a4c1694edefd722a5eee9ec84afe5b60ddc63fc8b02062c06bee",
+      "exact_text": "    /// 头部声明了不支持的 wire 格式版本；它与载荷的 schema 版本不同。\n",
+      "location": "UnsupportedBinaryWireVersion",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 1112,
+      "offset_after": 2311,
+      "length_bytes": 156,
+      "sha256": "ce62da70580a55194fa01b677bc2d84f9e330b13a81ca8eb93983a26c59a500f",
+      "exact_text": "    /// 二进制载荷主体超过读取上限。\n    /// found 统计固定前缀后的封套 body（含头部和载荷）；仅 found > max 时拒绝。\n",
+      "location": "BinaryPayloadTooLarge",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 1253,
+      "offset_after": 2608,
+      "length_bytes": 93,
+      "sha256": "ed4331d415bb278485a97d01090cd4bc4af0abe1499b51234f5d3315c171449b",
+      "exact_text": "    /// 二进制位置编码字节不符合线格式结构，并保留底层解码错误。\n",
+      "location": "MalformedBinary",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 1407,
+      "offset_after": 2855,
+      "length_bytes": 78,
+      "sha256": "0428d230d8638ef7ad4bca4d13575b72bc0206e533b8fb4a69b443b234184e1a",
+      "exact_text": "    /// 二进制值域载荷无效，保留 decoder 提供的原因文本。\n",
+      "location": "InvalidBinaryPayload",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 1514,
+      "offset_after": 3040,
+      "length_bytes": 74,
+      "sha256": "e71366ed42b2683112580ec5bfd0d74246f31b7423fb7a209660b20182560687",
+      "exact_text": "    /// 封套中的 schema 身份与目标类型声明的身份不同。\n",
+      "location": "SchemaMismatch",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 1628,
+      "offset_after": 3228,
+      "length_bytes": 90,
+      "sha256": "5d0aff41c3f68fdc1928ee2eb803b08541bcd3bbe4739bc0d1e1fc5a6bbe38ed",
+      "exact_text": "    /// 输入 schema 版本高于目标类型的当前版本，loader 不尝试解码。\n",
+      "location": "FutureVersion",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 1821,
+      "offset_after": 3511,
+      "length_bytes": 111,
+      "sha256": "900997179c4904455ec3f0f578694ca9582cc5cd6039dff9c99aa8fc9c76f60d",
+      "exact_text": "    /// schema/版本检查及必要迁移后，目标类型反序列化失败；source 保留 serde 错误。\n",
+      "location": "PayloadDecode",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    },
+    {
+      "offset_before": 2049,
+      "offset_after": 3850,
+      "length_bytes": 86,
+      "sha256": "ad2ca0b20379c8ca702d52167a4c26edd3b3ba39511355b1d5795ae53136ed7a",
+      "exact_text": "    /// 迁移表校验或迁移回调失败，内层原因由 MigrateError 保留。\n",
+      "location": "Migration",
+      "reason": "仅补足由实现和调用证明的接口合同；不改变代码 token 或行为。"
+    }
+  ],
+  "exact_final_insertion_reverse_proof": {
+    "blocks": 15,
+    "original_bytes_sha256": "77f6bd3e24d67c8c6bdabedb08c996a8fcd20b4979b08101f9d9993455a24543",
+    "restored_original_raw_bytes": true,
+    "all_existing_comments_code_assertions_and_strings_preserved": true
+  },
+  "source_line_count": 77,
+  "new_comment_lines_in_batch_unchanged": true,
+  "other_R016_sources_untouched": true,
+  "Rust_Cargo_tests_run": false,
+  "formal_acceptance": false,
+  "root_validation_record": "docs/plans/source-comments/reviews/R016-post-validation.json"
+}

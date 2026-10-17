@@ -296,18 +296,22 @@ pub(crate) fn to_host_contract_template_node_owned(
 pub(crate) fn to_host_contract_template_nodes(
     data: &ModelRc<ViewTemplateNodeData>,
 ) -> ModelRc<host_contract::TemplatePaneNodeData> {
-    if let Some(Some(source)) = data.metadata::<Option<Arc<crate::ui::layouts::views::UnrealDockHeaderSource>>>() {
+    if let Some(Some(source)) =
+        data.metadata::<Option<Arc<crate::ui::layouts::views::UnrealDockHeaderSource>>>()
+    {
         return data.map_preserving_metadata(|row| {
             let mut node = to_host_contract_template_node(row);
             if let Some(id) = node.surface_node_id {
                 if source.frame.arranged_tree.get(id).is_some_and(|arranged| {
-                        arranged.control_id.as_deref() == Some(node.control_id.as_str())
-                    })
-                    && node.surface_render_command_ref.is_none_or(|reference| {
-                        reference.node_id == id
-                            && source.frame.render_extract.command_by_ref(reference).is_some()
-                    })
-                {
+                    arranged.control_id.as_deref() == Some(node.control_id.as_str())
+                }) && node.surface_render_command_ref.is_none_or(|reference| {
+                    reference.node_id == id
+                        && source
+                            .frame
+                            .render_extract
+                            .command_by_ref(reference)
+                            .is_some()
+                }) {
                     node.source_surface_frame = Some(Arc::clone(&source.frame));
                     if let Some(identity) = source.identities.get(node.control_id.as_str()) {
                         node.source_path = identity.source_path.clone().into();

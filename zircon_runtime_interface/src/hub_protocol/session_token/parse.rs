@@ -4,6 +4,7 @@ use uuid::{Uuid, Version};
 
 use super::{HubSessionToken, HubSessionTokenParseError};
 
+/// 只接受规范文本形式，避免同一 UUID 出现多种协议字符串。
 impl FromStr for HubSessionToken {
     type Err = HubSessionTokenParseError;
 

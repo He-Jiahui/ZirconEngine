@@ -1,4 +1,4 @@
-use std::time::Instant;
+use web_time::Instant;
 
 use super::WindowCommandId;
 use crate::core::framework::window::WindowId;

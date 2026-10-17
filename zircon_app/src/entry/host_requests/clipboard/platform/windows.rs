@@ -72,31 +72,65 @@ pub(super) fn write_text(
         .checked_mul(size_of::<u16>())
         .ok_or(UiClipboardTransferFailure::PayloadTooLarge)?;
     let _clipboard = ClipboardGuard::open(clipboard_owner(window)?)?;
-    // BUG: [CR-APP-ENTRY-0012] 清空剪贴板后 GlobalAlloc、GlobalLock 或 SetClipboardData 仍可能失败；调用方收到失败回执但旧内容已丢失；证据：本函数清空在可失败写入操作之前。
-    // SAFETY: the clipboard is open and EmptyClipboard has no pointer preconditions.
-    if unsafe { EmptyClipboard() } == 0 {
-        return Err(last_clipboard_failure());
-    }
-    // SAFETY: byte_len is checked above and GMEM_MOVEABLE is required by SetClipboardData.
-    let handle = unsafe { GlobalAlloc(GMEM_MOVEABLE, byte_len) };
-    if handle.is_null() {
-        return Err(UiClipboardTransferFailure::Unavailable);
-    }
-    let mut memory = OwnedGlobal::new(handle);
-    // SAFETY: handle was allocated above and remains owned by memory until transfer succeeds.
-    let destination = unsafe { GlobalLock(handle) }.cast::<u16>();
-    if destination.is_null() {
-        return Err(UiClipboardTransferFailure::Unavailable);
-    }
-    // SAFETY: destination spans byte_len bytes and units contains exactly byte_len bytes.
-    unsafe { ptr::copy_nonoverlapping(units.as_ptr(), destination, units.len()) };
-    // SAFETY: destination came from GlobalLock for this handle.
-    unsafe { GlobalUnlock(handle) };
-    // SAFETY: the clipboard is open, emptied, and handle is a GMEM_MOVEABLE allocation.
-    if unsafe { SetClipboardData(u32::from(CF_UNICODETEXT), handle) }.is_null() {
-        return Err(last_clipboard_failure());
-    }
-    memory.release_to_clipboard();
+    let mut memory = prepare_before_empty(
+        || {
+            // SAFETY: byte_len is checked above and GMEM_MOVEABLE is required by SetClipboardData.
+            let handle = unsafe { GlobalAlloc(GMEM_MOVEABLE, byte_len) };
+            if handle.is_null() {
+                return Err(UiClipboardTransferFailure::Unavailable);
+            }
+            let memory = OwnedGlobal::new(handle);
+            // SAFETY: handle was allocated above and remains owned by memory until transfer succeeds.
+            let destination = unsafe { GlobalLock(handle) }.cast::<u16>();
+            if destination.is_null() {
+                return Err(UiClipboardTransferFailure::Unavailable);
+            }
+            // SAFETY: destination spans byte_len bytes and units contains exactly byte_len bytes.
+            unsafe { ptr::copy_nonoverlapping(units.as_ptr(), destination, units.len()) };
+            // SAFETY: destination came from GlobalLock for this handle.
+            unsafe { GlobalUnlock(handle) };
+            Ok(memory)
+        },
+        || {
+            // SAFETY: the clipboard is open and EmptyClipboard has no pointer preconditions.
+            if unsafe { EmptyClipboard() } == 0 {
+                Err(last_clipboard_failure())
+            } else {
+                Ok(())
+            }
+        },
+    )?;
+    publish_owned_global(
+        &mut memory,
+        |memory| {
+            // BUG: [CR-APP-ENTRY-0012] SetClipboardData can still fail after EmptyClipboard has destroyed the old formats; Win32 has no atomic rollback here.
+            // SAFETY: the clipboard is open, emptied, and handle is a GMEM_MOVEABLE allocation.
+            if unsafe { SetClipboardData(u32::from(CF_UNICODETEXT), memory.handle) }.is_null() {
+                Err(last_clipboard_failure())
+            } else {
+                Ok(())
+            }
+        },
+        OwnedGlobal::release_to_clipboard,
+    )
+}
+
+fn prepare_before_empty<T>(
+    prepare: impl FnOnce() -> Result<T, UiClipboardTransferFailure>,
+    empty: impl FnOnce() -> Result<(), UiClipboardTransferFailure>,
+) -> Result<T, UiClipboardTransferFailure> {
+    let prepared = prepare()?;
+    empty()?;
+    Ok(prepared)
+}
+
+fn publish_owned_global<T>(
+    memory: &mut T,
+    publish: impl FnOnce(&mut T) -> Result<(), UiClipboardTransferFailure>,
+    transfer: impl FnOnce(&mut T),
+) -> Result<(), UiClipboardTransferFailure> {
+    publish(memory)?;
+    transfer(memory);
     Ok(())
 }
 
@@ -182,5 +216,80 @@ fn last_clipboard_failure() -> UiClipboardTransferFailure {
     match unsafe { GetLastError() } {
         ERROR_ACCESS_DENIED => UiClipboardTransferFailure::PermissionDenied,
         _ => UiClipboardTransferFailure::Unavailable,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{prepare_before_empty, publish_owned_global};
+    use std::cell::RefCell;
+    use zircon_runtime_interface::ui::dispatch::UiClipboardTransferFailure;
+
+    #[test]
+    fn clipboard_is_not_emptied_until_global_payload_is_prepared() {
+        let calls = RefCell::new(Vec::new());
+        let result = prepare_before_empty(
+            || {
+                calls.borrow_mut().push("allocate");
+                calls.borrow_mut().push("lock");
+                calls.borrow_mut().push("copy");
+                Ok(())
+            },
+            || {
+                calls.borrow_mut().push("empty");
+                Ok(())
+            },
+        );
+        assert_eq!(result, Ok(()));
+        assert_eq!(*calls.borrow(), ["allocate", "lock", "copy", "empty"]);
+
+        calls.borrow_mut().clear();
+        let result: Result<(), UiClipboardTransferFailure> = prepare_before_empty(
+            || {
+                calls.borrow_mut().push("allocate");
+                Err(UiClipboardTransferFailure::Unavailable)
+            },
+            || {
+                calls.borrow_mut().push("empty");
+                Ok(())
+            },
+        );
+        assert_eq!(result, Err(UiClipboardTransferFailure::Unavailable));
+        assert_eq!(*calls.borrow(), ["allocate"]);
+
+        calls.borrow_mut().clear();
+        let result: Result<(), UiClipboardTransferFailure> = prepare_before_empty(
+            || {
+                calls.borrow_mut().push("allocate");
+                calls.borrow_mut().push("lock");
+                Err(UiClipboardTransferFailure::Unavailable)
+            },
+            || {
+                calls.borrow_mut().push("empty");
+                Ok(())
+            },
+        );
+        assert_eq!(result, Err(UiClipboardTransferFailure::Unavailable));
+        assert_eq!(*calls.borrow(), ["allocate", "lock"]);
+    }
+
+    #[test]
+    fn global_memory_ownership_transfers_only_after_publish_succeeds() {
+        #[derive(Default)]
+        struct Ownership(bool);
+
+        let mut ownership = Ownership(true);
+        let failed = publish_owned_global(
+            &mut ownership,
+            |_| Err(UiClipboardTransferFailure::Unavailable),
+            |ownership| ownership.0 = false,
+        );
+        assert_eq!(failed, Err(UiClipboardTransferFailure::Unavailable));
+        assert!(ownership.0);
+
+        let succeeded =
+            publish_owned_global(&mut ownership, |_| Ok(()), |ownership| ownership.0 = false);
+        assert_eq!(succeeded, Ok(()));
+        assert!(!ownership.0);
     }
 }

@@ -249,6 +249,7 @@ fn editor_project_document_roundtrips_world_and_workspace() {
         &project,
         &project.manifest().default_scene,
         &level.snapshot(),
+        initial.scene_source_revision.as_ref().unwrap(),
         Some(&workspace),
     )
     .unwrap();
@@ -374,7 +375,7 @@ fn saving_an_explicit_scene_target_never_overwrites_the_manifest_default_scene()
     let default_scene_path = project.source_path_for_uri(&default_scene_uri).unwrap();
     let default_before = fs::read(&default_scene_path).unwrap();
     let selected_scene_uri = AssetUri::parse("res://scenes/level_b.scene.toml").unwrap();
-    ProjectAuthority::default()
+    let selected_document = ProjectAuthority::default()
         .create_scene(
             &mut project,
             SceneCreateRequest::new(selected_scene_uri.clone()),
@@ -388,6 +389,7 @@ fn saving_an_explicit_scene_target_never_overwrites_the_manifest_default_scene()
         &project,
         &selected_scene_uri,
         &selected_world,
+        selected_document.source_revision(),
         None,
     )
     .unwrap();
@@ -416,17 +418,24 @@ fn editor_project_document_none_workspace_save_removes_workspace_on_reopen() {
     let scene_uri = project.manifest().default_scene.clone();
     let workspace_path = root.join(".zircon").join("editor-workspace.json");
 
-    EditorProjectDocument::save_scene_to_project(
+    let receipt = EditorProjectDocument::save_scene_to_project(
         &project,
         &scene_uri,
         &document.world,
+        document.scene_source_revision.as_ref().unwrap(),
         Some(&workspace),
     )
     .unwrap();
     assert!(workspace_path.is_file());
 
-    EditorProjectDocument::save_scene_to_project(&project, &scene_uri, &document.world, None)
-        .unwrap();
+    EditorProjectDocument::save_scene_to_project(
+        &project,
+        &scene_uri,
+        &document.world,
+        receipt.source_revision(),
+        None,
+    )
+    .unwrap();
     assert!(!workspace_path.exists());
 
     drop(document);
@@ -453,10 +462,11 @@ fn editor_project_document_current_scene_save_is_byte_stable() {
     let document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     let scene_path = root.join("assets").join("scenes").join("main.scene.toml");
 
-    EditorProjectDocument::save_scene_to_project(
+    let receipt = EditorProjectDocument::save_scene_to_project(
         &project,
         &project.manifest().default_scene,
         &document.world,
+        document.scene_source_revision.as_ref().unwrap(),
         document.editor_workspace.as_ref(),
     )
     .unwrap();
@@ -466,6 +476,7 @@ fn editor_project_document_current_scene_save_is_byte_stable() {
         &project,
         &project.manifest().default_scene,
         &document.world,
+        receipt.source_revision(),
         document.editor_workspace.as_ref(),
     )
     .unwrap();
@@ -541,6 +552,7 @@ fn editor_project_document_failed_scene_save_preserves_dirty_baseline_and_last_v
         &project,
         &project.manifest().default_scene,
         &level.snapshot(),
+        document.scene_source_revision.as_ref().unwrap(),
         document.editor_workspace.as_ref(),
     )
     .unwrap_err();
@@ -580,10 +592,11 @@ fn editor_project_document_failed_scene_save_restores_the_previous_workspace() {
         active_drawers: Vec::new(),
         scene_viewport_sessions: BTreeMap::new(),
     };
-    EditorProjectDocument::save_scene_to_project(
+    let receipt = EditorProjectDocument::save_scene_to_project(
         &project,
         &project.manifest().default_scene,
         &document.world,
+        document.scene_source_revision.as_ref().unwrap(),
         Some(&previous_workspace),
     )
     .unwrap();
@@ -608,6 +621,7 @@ fn editor_project_document_failed_scene_save_restores_the_previous_workspace() {
         &project,
         &project.manifest().default_scene,
         &document.world,
+        receipt.source_revision(),
         Some(&changed_workspace),
     )
     .unwrap_err();
@@ -671,6 +685,7 @@ fn editor_project_document_workspace_write_failure_keeps_last_valid_scene() {
         &project,
         &project.manifest().default_scene,
         &changed_world,
+        document.scene_source_revision.as_ref().unwrap(),
         Some(&workspace),
     )
     .unwrap_err();
@@ -763,10 +778,12 @@ fn editor_project_document_ignores_unknown_workspace_format_with_diagnostic() {
 
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
+    let source_document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     EditorProjectDocument::save_scene_to_project(
         &project,
         &project.manifest().default_scene,
         &world,
+        source_document.scene_source_revision.as_ref().unwrap(),
         Some(&workspace),
     )
     .unwrap();
@@ -799,10 +816,12 @@ fn editor_project_document_loads_from_the_active_generation_without_reopening_ma
     create_renderable_project(&root);
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
+    let source_document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     EditorProjectDocument::save_scene_to_project(
         &project,
         &project.manifest().default_scene,
         &world,
+        source_document.scene_source_revision.as_ref().unwrap(),
         None,
     )
     .unwrap();
@@ -901,6 +920,7 @@ fn editor_project_document_roundtrips_first_party_2d_components() {
         &project,
         &project.manifest().default_scene,
         &level.snapshot(),
+        document.scene_source_revision.as_ref().unwrap(),
         None,
     )
     .unwrap();

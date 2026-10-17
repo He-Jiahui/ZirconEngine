@@ -7,10 +7,12 @@ use zircon_runtime_interface::world_sync::{WatchKey, WatchRegistration};
 
 #[derive(Debug, PartialEq, Eq)]
 struct OwnedTable(Box<str>);
+zircon_runtime_interface::impl_retained_owner_v1!(OwnedTable { 0 });
 impl Component for OwnedTable {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct OwnedSparse(u64);
+zircon_runtime_interface::impl_retained_owner_v1!(OwnedSparse { 0 });
 impl Component for OwnedSparse {
     const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }
@@ -112,11 +114,17 @@ fn restore_union_cycle_rejects_and_returns_owned_batch_for_retry() {
             serde_json::json!({"v": 9}),
         )
         .unwrap();
-    let observed = Arc::new(Mutex::new(Vec::new()));
+    let observed = Arc::new(crate::tests::prelude::RetainedObserverLogV1::new());
     let for_callback = Arc::clone(&observed);
-    world.observe_entity_event::<RestoreProbe>(restored, move |_world, entity, event| {
-        for_callback.lock().unwrap().push((entity, event.0));
-    });
+    world.observe_entity_event::<RestoreProbe>(
+        restored,
+        crate::core::framework::retained_memory::RetainedEntityObserverV1::new(
+            for_callback,
+            |for_callback, _world, entity, event| {
+                for_callback.lock().unwrap().push((entity, event.0));
+            },
+        ),
+    );
     let table_ticks = world
         .component_change_ticks::<OwnedTable>(restored)
         .unwrap();

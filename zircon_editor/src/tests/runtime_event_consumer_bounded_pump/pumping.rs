@@ -107,6 +107,9 @@ fn total_pending_delivery_retention_rejects_an_over_budget_page() {
         gateway.push(12, "tests.events.b", sequence);
     }
 
+    gateway.set_encoded_bytes(11, 22);
+    gateway.set_encoded_bytes(12, 22);
+
     let report = host.pump_with_budget(budget(2, 1)).unwrap();
 
     assert_eq!(report.applied(), 1);

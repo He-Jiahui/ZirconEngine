@@ -41,19 +41,19 @@ fn review_f5_ui_surface_input_effects_use_typed_errors_before_rejected_reason_bo
             include_str!("../../../../../ui/surface/input/effect/text_services.rs"),
         ),
     ];
-    let review_findings =
+    let _review_findings =
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let module_doc = include_str!(
+    let _module_doc = include_str!(
         "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
     );
-    let ui_doc =
+    let _ui_doc =
         include_str!("../../../../../../../docs/crates/zircon_runtime/ui/platform_input.md");
 
     for required in [

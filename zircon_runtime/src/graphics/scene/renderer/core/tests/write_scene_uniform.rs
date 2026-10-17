@@ -1,6 +1,7 @@
 #[test]
 fn static_cubemap_upload_prepares_frame_bindings_without_publishing_them() {
-    let uniform_source = include_str!("../../../../core/write_scene_uniform/write_scene_uniform.rs");
+    let uniform_source =
+        include_str!("../../../../core/write_scene_uniform/write_scene_uniform.rs");
     let upload = uniform_source
         .find("self.scene_environment_cubemap.ensure_uploaded(")
         .expect("source cubemap uploads must be encoded through the scene uniform path");
@@ -19,7 +20,8 @@ fn static_cubemap_upload_prepares_frame_bindings_without_publishing_them() {
 
 #[test]
 fn provider_upgrade_downgrades_the_environment_variant_before_draw_construction() {
-    let uniform_source = include_str!("../../../../core/write_scene_uniform/write_scene_uniform.rs");
+    let uniform_source =
+        include_str!("../../../../core/write_scene_uniform/write_scene_uniform.rs");
     let prepare = uniform_source
         .find(".reflection_probes.prepare(")
         .expect("scene uniform update must prepare reflection providers");
@@ -53,7 +55,8 @@ fn provider_upgrade_downgrades_the_environment_variant_before_draw_construction(
 
 #[test]
 fn incomplete_realtime_ticket_keeps_procedural_environment_bindings() {
-    let uniform_source = include_str!("../../../../core/write_scene_uniform/write_scene_uniform.rs");
+    let uniform_source =
+        include_str!("../../../../core/write_scene_uniform/write_scene_uniform.rs");
 
     assert!(uniform_source.contains("prepared.uses_realtime_resources()"));
     assert!(uniform_source

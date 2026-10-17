@@ -44,14 +44,17 @@ impl RetiredAssetRefMigrationBudget {
         )
     }
 
+    /// 返回每次迁移允许遍历的最大 JSON 值节点数。
     pub const fn max_nodes(self) -> usize {
         self.max_nodes
     }
 
+    /// 返回允许的最大嵌套深度；根值的深度为 0。
     pub const fn max_depth(self) -> usize {
         self.max_depth
     }
 
+    /// 返回可解析的精确旧引用对象数上限。
     pub const fn max_references(self) -> usize {
         self.max_references
     }

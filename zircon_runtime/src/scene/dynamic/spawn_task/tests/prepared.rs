@@ -87,9 +87,17 @@ fn dynamic_scene_asset_reload_level_transaction_is_target_bound_and_replays_live
     let callbacks = Arc::new(AtomicUsize::new(0));
     let observed = callbacks.clone();
     first.with_world_mut(|world| {
-        world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |_, _| {
-            observed.fetch_add(1, Ordering::Relaxed);
-        });
+        world.observe_component_lifecycle::<Name>(
+            LifecycleEventKind::Add,
+            // SAFETY: Only an external atomic counter changes; retained World payload and
+            // dynamic JSON are untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                    observed.fetch_add(1, Ordering::Relaxed);
+                })
+            },
+        );
     });
 
     let staged = prepared

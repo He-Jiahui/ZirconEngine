@@ -21,9 +21,13 @@ pub(super) fn build_export_target_for_preset(
     preset_name: &str,
     profile: ExportProfile,
 ) -> Result<BuildExportTargetViewData, crate::ui::host::EditorError> {
-    let result = host.editor_manager.enter()
+    let result = host
+        .editor_manager
+        .enter()
         .map_err(crate::ui::host::EditorError::from)
-        .map(|manager| manager.generate_native_aware_export_plan(project_root, manifest, &profile.name))?;
+        .map(|manager| {
+            manager.generate_native_aware_export_plan(project_root, manifest, &profile.name)
+        })?;
     Ok(match result {
         Ok(plan) => {
             let mut target = target_from_export_plan(plan);

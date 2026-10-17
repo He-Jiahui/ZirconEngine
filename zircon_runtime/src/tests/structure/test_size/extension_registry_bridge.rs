@@ -9,13 +9,13 @@ fn runtime_15_extension_registry_bridge_tests_are_folder_backed() {
         read_runtime_src("tests/plugin_extensions/extension_registry_bridge/diagnostics.rs");
     let lifecycle =
         read_runtime_src("tests/plugin_extensions/extension_registry_bridge/lifecycle.rs");
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
 
     assert_contains_all(
         "extension registry bridge parent mounts child owners",

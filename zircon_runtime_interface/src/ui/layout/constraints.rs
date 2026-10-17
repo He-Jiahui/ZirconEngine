@@ -48,6 +48,7 @@ impl AxisConstraint {
             max,
             preferred,
             priority: self.priority,
+            // BUG: [CR-ZCA-R039-0001] max < 0（无上界）、Stretch、min/preferred 为 0 且 weight 为 NaN 时，此分支保留 NaN；无 slot sizing 覆盖、主轴 slot padding 为 0 的 Linear 父容器中单个可见子节点在可用主轴空间 > 0.001（例如 100）时进入 Runtime native growth 循环，每轮分配量与无上界容量均为 NaN，退出比较不成立，布局线程无法退出。
             weight: if self.weight <= 0.0 { 1.0 } else { self.weight },
             stretch_mode: self.stretch_mode,
             resolved: preferred,

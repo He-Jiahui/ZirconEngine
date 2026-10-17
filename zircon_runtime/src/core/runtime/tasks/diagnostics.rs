@@ -3,7 +3,7 @@ use std::sync::{
     atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
     Arc, Mutex, MutexGuard,
 };
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::core::diagnostics::DiagnosticStore;
 

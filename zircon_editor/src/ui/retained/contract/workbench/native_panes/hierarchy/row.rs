@@ -15,6 +15,7 @@ use super::super::super::super::paint_primitives::{draw_border_clipped, draw_rec
 pub(in crate::ui::retained_host::host_contract) use self::frame::hierarchy_row_frame;
 use self::style::hierarchy_row_color;
 use self::text::draw_hierarchy_row_text;
+#[cfg(test)]
 use super::super::super::ACCENT;
 
 pub(super) fn draw_hierarchy_row(
@@ -46,7 +47,12 @@ pub(super) fn draw_hierarchy_row(
         && interaction.focused_template_control_id == "HierarchyListPanel"
         && interaction.template_focus_visible
     {
-        draw_border_clipped(frame, row.clone(), Some(row_clip), ACCENT);
+        draw_border_clipped(
+            frame,
+            row.clone(),
+            Some(row_clip),
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette().focus_ring,
+        );
     }
     draw_hierarchy_row_text(frame, &row, node, row_clip, inline_rename_value);
     if let (Some(start), Some(recording)) = (command_start, frame.recording.as_ref()) {

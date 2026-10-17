@@ -48,7 +48,7 @@ impl RenderArtifactManifestRequestKey {
 pub struct RenderArtifactManifestRequest {
     key: RenderArtifactManifestRequestKey,
     priority: RenderArtifactIoPriority,
-    deadline: Option<std::time::Instant>,
+    deadline: Option<web_time::Instant>,
 }
 
 impl RenderArtifactManifestRequest {
@@ -65,7 +65,7 @@ impl RenderArtifactManifestRequest {
         }
     }
 
-    pub fn with_deadline(mut self, deadline: std::time::Instant) -> Self {
+    pub fn with_deadline(mut self, deadline: web_time::Instant) -> Self {
         self.deadline = Some(deadline);
         self
     }
@@ -78,7 +78,7 @@ impl RenderArtifactManifestRequest {
         self.priority
     }
 
-    pub const fn deadline(&self) -> Option<std::time::Instant> {
+    pub const fn deadline(&self) -> Option<web_time::Instant> {
         self.deadline
     }
 }

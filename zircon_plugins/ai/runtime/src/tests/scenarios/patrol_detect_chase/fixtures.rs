@@ -414,7 +414,9 @@ pub(super) fn sight_snapshot(
 }
 
 pub(super) fn spawn_nav_agent(world: &mut World) -> u64 {
-    let agent = world.spawn_node(NodeKind::Empty);
+    let agent = world
+        .spawn_node(NodeKind::Empty)
+        .expect("spawn patrol/detect/chase agent");
     world
         .update_transform(agent, Transform::from_translation(Vec3::ZERO))
         .expect("position AI agent");

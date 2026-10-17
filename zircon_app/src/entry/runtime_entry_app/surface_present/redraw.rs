@@ -4,8 +4,13 @@
 use winit::event_loop::ActiveEventLoop;
 use zircon_runtime::asset::project::ResolvedProjectPath;
 use zircon_runtime::diagnostic_log::write_log;
+use zircon_runtime_interface::{RuntimeDiagnosticsSnapshot, ZrRuntimeViewportSizeV1};
 
-use super::super::RuntimeEntryApp;
+use super::super::mvp_input_probe::mvp_input_probe_enabled;
+use super::super::runtime_product_diagnostics::{
+    product_frame_diagnostic, request_runtime_product_snapshot, validate_product_snapshot_for_policy,
+};
+use super::super::{RuntimeEntryApp, RuntimeProductProofPolicy};
 
 impl RuntimeEntryApp {
     /// 响应一次窗口重绘；原生表面优先，CPU 捕获仅用于显式降级诊断。
@@ -135,8 +140,24 @@ impl RuntimeEntryApp {
             event_loop.exit();
             return;
         }
-        if self.require_persisted_scene_diagnostics {
-            if let Err(error) = self.emit_first_frame_product_diagnostics_once() {
+        let session = &self.session;
+        let input_probe_enabled = self.product_proof_policy != RuntimeProductProofPolicy::Disabled
+            && !self.first_frame_product_diagnostics_emitted
+            && mvp_input_probe_enabled();
+        let completion = Self::complete_presented_frame_with_diagnostics(
+            self.product_proof_policy,
+            self.viewport_size,
+            (
+                &mut self.first_frame_product_diagnostics_emitted,
+                &mut self.presented_frame_count,
+            ),
+            self.exit_after_presented_frames,
+            input_probe_enabled,
+            || request_runtime_product_snapshot(session),
+            |diagnostic| write_log("runtime_surface_present", diagnostic),
+        );
+        match completion {
+            Err(error) => {
                 self.report_fatal_failure(
                     "runtime_product_diagnostics",
                     format!(
@@ -144,29 +165,40 @@ impl RuntimeEntryApp {
                         self.viewport, self.viewport_size.width, self.viewport_size.height
                     ),
                     error,
-                    "verify the loaded runtime supports diagnostics and the F2 scene renders before retrying zircon_runtime",
+                    "verify runtime device diagnostics and any explicitly requested F2 proof before retrying zircon_runtime",
                 );
                 event_loop.exit();
-                return;
             }
-        }
-        self.presented_frame_count = self.presented_frame_count.saturating_add(1);
-        if let Some(diagnostic) = presented_frame_exit_diagnostic(
-            self.presented_frame_count,
-            self.exit_after_presented_frames,
-        ) {
-            write_log("runtime_surface_present", diagnostic);
-            event_loop.exit();
+            Ok(Some(diagnostic)) => {
+                write_log("runtime_surface_present", diagnostic);
+                event_loop.exit();
+            }
+            Ok(None) => {}
         }
     }
 
-    fn emit_first_frame_product_diagnostics_once(&mut self) -> Result<(), String> {
-        if should_emit_first_frame_product_diagnostics(self.first_frame_product_diagnostics_emitted)
-        {
-            self.emit_first_frame_product_diagnostics()?;
-            self.first_frame_product_diagnostics_emitted = true;
+    /// Called after successful presentation and capture. Only snapshot I/O and the log sink vary.
+    pub(in crate::entry) fn complete_presented_frame_with_diagnostics(
+        policy: RuntimeProductProofPolicy,
+        viewport: ZrRuntimeViewportSizeV1,
+        completion_state: (&mut bool, &mut u64),
+        exit_after_presented_frames: Option<std::num::NonZeroU64>,
+        input_probe_enabled: bool,
+        snapshot: impl FnOnce() -> Result<RuntimeDiagnosticsSnapshot, String>,
+        emit: impl FnOnce(String),
+    ) -> Result<Option<String>, String> {
+        let (diagnostics_emitted, presented_frame_count) = completion_state;
+        if policy != RuntimeProductProofPolicy::Disabled && !*diagnostics_emitted {
+            let snapshot = snapshot()?;
+            validate_product_snapshot_for_policy(&snapshot, policy, input_probe_enabled)?;
+            emit(product_frame_diagnostic(&snapshot, viewport, policy));
+            *diagnostics_emitted = true;
         }
-        Ok(())
+        *presented_frame_count = (*presented_frame_count).saturating_add(1);
+        Ok(presented_frame_exit_diagnostic(
+            *presented_frame_count,
+            exit_after_presented_frames,
+        ))
     }
 
     /// 显式请求的首帧 PNG 必须来自 Runtime 捕获；写入成功后才锁定一次性状态。
@@ -229,10 +261,6 @@ fn presented_frame_exit_diagnostic(
             )
         }
     })
-}
-
-fn should_emit_first_frame_product_diagnostics(emitted: bool) -> bool {
-    !emitted
 }
 
 fn should_capture_first_presented_frame(path: Option<&ResolvedProjectPath>, written: bool) -> bool {

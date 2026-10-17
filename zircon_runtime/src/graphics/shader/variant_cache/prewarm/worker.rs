@@ -23,18 +23,15 @@ pub(super) fn prewarm_shader_variants_to_disk_inner(
 ) -> ShaderVariantPrewarmReport {
     let mut report = ShaderVariantPrewarmReport::default();
     report.execution_budget.configure(budget);
-    // BUG: [CR-GRAPHICS-SHADER-VIS-0001] 所有整份 manifest 的预检分支都调用 record_failure(0)，把零变体错误伪装成首个变体失败并虚增 requested/failed；应使用 preflight_error。
+    // BUG: [CR-GRAPHICS-SHADER-VIS-0001] 回归待验证：整份 manifest 的预检错误不能虚增任何变体计数。
     if let Err(error) = budget.validate() {
         report.execution_budget.record_rejected();
-        report.record_failure(0, error.to_string());
+        report.record_preflight_error(error.to_string());
         return report;
     }
     let Some(resident_source_bytes) = manifest.source_table_resident_bytes() else {
         report.execution_budget.record_rejected();
-        report.record_failure(
-            0,
-            "shader prewarm source table resident byte count overflowed",
-        );
+        report.record_preflight_error("shader prewarm source table resident byte count overflowed");
         return report;
     };
     report
@@ -42,8 +39,7 @@ pub(super) fn prewarm_shader_variants_to_disk_inner(
         .record_source_residency(resident_source_bytes);
     if resident_source_bytes > budget.max_resident_source_bytes {
         report.execution_budget.record_rejected();
-        report.record_failure(
-            0,
+        report.record_preflight_error(
             format!(
                 "shader prewarm source table requires {resident_source_bytes} resident bytes; budget is {}",
                 budget.max_resident_source_bytes
@@ -60,18 +56,15 @@ pub(super) fn prewarm_shader_variants_to_disk_inner(
         report.enable_wgpu_pipeline_validation(manifest.variants.len());
     }
     if manifest.schema_version != ShaderVariantPrewarmManifest::SCHEMA_VERSION {
-        report.record_failure(
-            0,
-            format!(
-                "shader variant prewarm manifest schema {} is not supported; expected {}",
-                manifest.schema_version,
-                ShaderVariantPrewarmManifest::SCHEMA_VERSION
-            ),
-        );
+        report.record_preflight_error(format!(
+            "shader variant prewarm manifest schema {} is not supported; expected {}",
+            manifest.schema_version,
+            ShaderVariantPrewarmManifest::SCHEMA_VERSION
+        ));
         return report;
     }
     if let Err(error) = manifest.validate_integrity() {
-        report.record_failure(0, error.to_string());
+        report.record_preflight_error(error.to_string());
         return report;
     }
 

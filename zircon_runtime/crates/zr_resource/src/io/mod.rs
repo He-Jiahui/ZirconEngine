@@ -2,6 +2,8 @@
 mod artifact_identity;
 #[path = "atomic_file/mod.rs"]
 pub(crate) mod atomic_file;
+#[path = "source_revision.rs"]
+pub mod source_revision;
 #[path = "transaction/mod.rs"]
 pub(crate) mod transaction;
 

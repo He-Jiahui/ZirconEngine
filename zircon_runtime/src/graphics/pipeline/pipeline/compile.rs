@@ -470,6 +470,7 @@ fn apply_pass_resource_extensions(
         }
     }
 
+    apply_ordered_buffer_replays(stages, descriptors)?;
     Ok(())
 }
 
@@ -826,6 +827,151 @@ fn validate_descriptor_pass_names(descriptors: &[RenderFeatureDescriptor]) -> Re
                 ));
             }
         }
+    }
+    Ok(())
+}
+
+fn apply_ordered_buffer_replays(
+    stages: &[RenderPassStage],
+    descriptors: &mut [RenderFeatureDescriptor],
+) -> Result<(), String> {
+    use crate::graphics::feature::{RenderFeatureResourceKind, RenderFeatureResourceVersion};
+    let chains = descriptors
+        .iter()
+        .flat_map(|descriptor| {
+            descriptor.ordered_buffer_replays().map(
+                |(ids, initial, terminal, indirect, journal)| {
+                    (
+                        ids.to_vec(),
+                        initial.to_string(),
+                        terminal.to_string(),
+                        indirect.clone(),
+                        journal.clone(),
+                    )
+                },
+            )
+        })
+        .collect::<Vec<_>>();
+    for (ids, initial, terminal, indirect, journal) in chains {
+        if ids.is_empty()
+            || ids.iter().any(|id| id.trim().is_empty())
+            || initial.trim().is_empty()
+            || terminal.trim().is_empty()
+            || initial == terminal
+            || indirect.kind != RenderFeatureResourceKind::Buffer
+            || journal.kind != RenderFeatureResourceKind::Buffer
+            || indirect.name == journal.name
+            || indirect.schema.is_none()
+            || journal.schema.is_none()
+        {
+            return Err("ordered buffer replay has an invalid typed contract".into());
+        }
+        let all = descriptors
+            .iter()
+            .flat_map(|descriptor| descriptor.stage_passes.iter())
+            .collect::<Vec<_>>();
+        let initial_passes = all
+            .iter()
+            .filter(|pass| pass.pass_name == initial)
+            .collect::<Vec<_>>();
+        let terminal_passes = all
+            .iter()
+            .filter(|pass| pass.pass_name == terminal)
+            .collect::<Vec<_>>();
+        if initial_passes.len() != 1 || terminal_passes.len() != 1 {
+            return Err("ordered buffer replay requires unique initial and terminal passes".into());
+        }
+        for resource in [&indirect, &journal] {
+            if !initial_passes[0].resources.iter().any(|existing| {
+                existing.name == resource.name
+                    && existing.kind == resource.kind
+                    && existing.access == RenderFeatureResourceAccess::Write
+                    && existing.schema == resource.schema
+            }) {
+                return Err(format!(
+                    "ordered buffer replay initial producer lacks typed resource {}",
+                    resource.name
+                ));
+            }
+        }
+        let mut targets = all
+            .iter()
+            .enumerate()
+            .filter(|(_, pass)| ids.iter().any(|id| id == pass.executor_id.as_str()))
+            .map(|(ordinal, pass)| {
+                Ok((
+                    stages
+                        .iter()
+                        .position(|stage| *stage == pass.stage)
+                        .ok_or_else(|| {
+                            "ordered buffer replay target stage is absent".to_string()
+                        })?,
+                    ordinal,
+                    pass.pass_name.clone(),
+                    pass.queue,
+                ))
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        targets.sort_by_key(|(stage, ordinal, _, _)| (*stage, *ordinal));
+        let mut previous = initial.clone();
+        let mut names = std::collections::BTreeSet::new();
+        for (_, _, name, queue) in targets {
+            if name == initial
+                || name == terminal
+                || queue != QueueLane::Graphics
+                || !names.insert(name.clone())
+            {
+                return Err("ordered buffer replay target identity or queue is invalid".into());
+            }
+            let target = descriptors
+                .iter_mut()
+                .flat_map(|descriptor| descriptor.stage_passes.iter_mut())
+                .find(|pass| pass.pass_name == name)
+                .ok_or_else(|| "ordered buffer replay target disappeared".to_string())?;
+            if target
+                .resources
+                .iter()
+                .any(|resource| resource.name == indirect.name || resource.name == journal.name)
+            {
+                return Err(
+                    "ordered buffer replay conflicts with an existing target resource".into(),
+                );
+            }
+            let mut read = indirect.clone();
+            read.access = RenderFeatureResourceAccess::Read;
+            read.input_version = Some(RenderFeatureResourceVersion::new(
+                &read.name, read.kind, &initial,
+            ));
+            target.resources.push(read);
+            let mut write = journal.clone();
+            write.access = RenderFeatureResourceAccess::Write;
+            write.input_version = Some(RenderFeatureResourceVersion::new(
+                &write.name,
+                write.kind,
+                &previous,
+            ));
+            target.resources.push(write);
+            previous = name;
+        }
+        let terminal_pass = descriptors
+            .iter_mut()
+            .flat_map(|descriptor| descriptor.stage_passes.iter_mut())
+            .find(|pass| pass.pass_name == terminal)
+            .ok_or_else(|| "ordered buffer replay terminal disappeared".to_string())?;
+        let terminal_read = terminal_pass
+            .resources
+            .iter_mut()
+            .find(|resource| {
+                resource.name == journal.name
+                    && resource.kind == journal.kind
+                    && resource.access == RenderFeatureResourceAccess::Read
+            })
+            .ok_or_else(|| "ordered buffer replay terminal lacks journal read".to_string())?;
+        terminal_read.input_version = Some(RenderFeatureResourceVersion::new(
+            &journal.name,
+            journal.kind,
+            previous,
+        ));
     }
     Ok(())
 }

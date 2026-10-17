@@ -389,3 +389,114 @@ fn global_scale_moves_a_rotated_multi_selection_along_world_axes_about_the_centr
             < 1.0e-4
     );
 }
+
+#[test]
+fn interactive_transform_reserves_before_the_first_preview() {
+    use crate::core::editing::engine::{
+        EditCommandError, EditContext, EditWorldRoute, EditorTransactionEngine, HistoryContextId,
+        HistoryRetentionBudgetV1, HistoryRetentionDomainV1, SelectionSnapshot,
+    };
+    use crate::core::play::WorldDomain;
+    use zircon_runtime::scene::components::Name;
+
+    struct PreviewEditContextV1;
+    impl EditContext for PreviewEditContextV1 {
+        fn capture_world_route(
+            &self,
+            domain: WorldDomain,
+        ) -> Result<EditWorldRoute, EditCommandError> {
+            Ok(EditWorldRoute::logical(domain))
+        }
+        fn activate_world_route(&mut self, _: &EditWorldRoute) -> Result<(), EditCommandError> {
+            Ok(())
+        }
+        fn retire_world_route(&mut self, _: WorldDomain) -> Result<(), EditCommandError> {
+            Ok(())
+        }
+        fn selection_retention_bound_v1(
+            &self,
+            model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+            limit: u64,
+        ) -> Result<u64, EditCommandError> {
+            SelectionSnapshot::scalar_retention_bound_v1(model, limit)
+        }
+        fn selection_snapshot(&self) -> SelectionSnapshot {
+            SelectionSnapshot::default()
+        }
+        fn restore_selection(&mut self, _: &SelectionSnapshot) -> Result<(), EditCommandError> {
+            Ok(())
+        }
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+        fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+            self
+        }
+    }
+
+    let mut scene = Scene::empty();
+    let entity = scene.spawn_node(NodeKind::Cube).unwrap();
+    scene.get_mut::<Name>(entity).unwrap().0 = "gizmo-target".repeat(1024);
+    let before = scene.world_transform(entity).unwrap();
+    let generation = scene.world_generation();
+    let history = HistoryContextId::Document(DOCUMENT);
+    let small = HistoryRetentionDomainV1::try_new(HistoryRetentionBudgetV1 {
+        record_bytes: 256 * 1024,
+        history_bytes: 1024 * 1024,
+        committed_bytes: 4 * 1024 * 1024,
+        staging_bytes: 32 * 1024,
+    })
+    .unwrap();
+    let engine =
+        EditorTransactionEngine::with_retention_domain_v1(PreviewEditContextV1, 1, small.clone())
+            .unwrap();
+    let (retained, peak) = InteractiveTransformSession::retention_projection_v1(
+        &scene,
+        &[entity],
+        small.model(),
+        small.budget().record_bytes,
+    )
+    .unwrap();
+    let refused = engine.reserve_preview_retention_v1(history, retained, peak);
+    assert!(matches!(refused, Err(EditCommandError::Retention(_))));
+    assert_eq!(scene.world_generation(), generation);
+    assert_eq!(scene.world_transform(entity).unwrap(), before);
+    assert!(!engine.history_status(history).unwrap().can_undo);
+    drop(engine);
+
+    let domain = HistoryRetentionDomainV1::try_new(HistoryRetentionBudgetV1::default()).unwrap();
+    let engine =
+        EditorTransactionEngine::with_retention_domain_v1(PreviewEditContextV1, 1, domain.clone())
+            .unwrap();
+    let (retained, peak) = InteractiveTransformSession::retention_projection_v1(
+        &scene,
+        &[entity],
+        domain.model(),
+        domain.budget().record_bytes,
+    )
+    .unwrap();
+    let owner = engine
+        .reserve_preview_retention_v1(history, retained, peak)
+        .unwrap();
+    let mut session = InteractiveTransformSession::begin_reserved_v1(
+        &scene,
+        &[entity],
+        entity,
+        move_spec(),
+        PivotMode::Primary,
+        DOCUMENT,
+        owner,
+    )
+    .unwrap();
+    let charged = domain.snapshot().unwrap();
+    let mut target = session.pivot_transform();
+    target.translation.x += 2.0;
+    session
+        .preview(&mut scene, Some(DOCUMENT), entity, target)
+        .unwrap();
+    assert_ne!(scene.world_transform(entity).unwrap(), before);
+    assert_eq!(domain.snapshot().unwrap(), charged);
+    session.cancel(&mut scene, Some(DOCUMENT)).unwrap();
+    assert_eq!(scene.world_transform(entity).unwrap(), before);
+    assert!(domain.snapshot().unwrap().staging_bytes < charged.staging_bytes);
+}

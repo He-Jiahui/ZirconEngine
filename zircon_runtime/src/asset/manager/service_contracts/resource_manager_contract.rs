@@ -5,8 +5,8 @@ use crate::core::framework::asset::{
 };
 use crate::core::resource::{ResourceEventReceiver, ResourceManagementGeneration, ResourceRecord};
 
-use super::super::project_asset_manager::ProjectAssetManager;
 use crate::asset::AssetUri;
+use crate::asset::RuntimeAssetManager as ProjectAssetManager;
 
 impl ResourceManagerContract for ProjectAssetManager {
     fn resolve_resource_id(&self, locator: &str) -> Option<String> {

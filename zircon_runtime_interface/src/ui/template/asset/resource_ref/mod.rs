@@ -1,3 +1,5 @@
+//! 资源声明、来源和静态诊断的共享契约；Runtime 收集器显式校验，解析器随后查找注册表。
+//! 此处拥有可序列化的声明数据，不持有加载器、缓存或运行时资源句柄。
 #[path = "dependency.rs"]
 mod dependency;
 #[path = "diagnostic.rs"]

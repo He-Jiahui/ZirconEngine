@@ -8,9 +8,9 @@ use zircon_plugin_net_runtime::{DefaultNetManager, DEFAULT_NET_MANAGER_NAME};
 
 pub const NET_WEBSOCKET_FEATURE_ID: &str = "net.websocket";
 pub const NET_WEBSOCKET_FEATURE_CAPABILITY: &str = "runtime.feature.net.websocket";
-pub const NET_WEBSOCKET_FEATURE_MODULE_NAME: &str = "NetWebSocketFeatureModule";
+pub const NET_WEBSOCKET_FEATURE_MODULE_NAME: &str = "net.websocket.runtime";
 pub const NET_WEBSOCKET_FEATURE_MANAGER_NAME: &str =
-    "NetWebSocketFeatureModule.Manager.NetWebSocketManager";
+    "net.websocket.runtime.Manager.NetWebSocketManager";
 
 #[derive(Clone, Debug)]
 pub struct NetWebSocketRuntimeFeature;
@@ -95,7 +95,7 @@ pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest
     .with_capability(NET_WEBSOCKET_FEATURE_CAPABILITY)
     .with_runtime_module(
         zircon_runtime::plugin::PluginModuleManifest::runtime(
-            "net.websocket.runtime",
+            NET_WEBSOCKET_FEATURE_MODULE_NAME,
             "zircon_plugin_net_websocket_runtime",
         )
         .with_target_modes([

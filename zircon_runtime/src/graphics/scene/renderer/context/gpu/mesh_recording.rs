@@ -389,13 +389,14 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             crate::core::framework::render::PostProcessGraphResourceNames::TRANSMISSION_SCENE_COLOR,
             RenderGraphResourceAccessKind::Read,
         )?;
+        let mut indexed_journal = Vec::new();
         let replay_stats = if mixes_transparent_sprites {
             let sprite_renderer = self.sprite_renderer.ok_or_else(|| {
                 format!(
                     "transparent mixed graph executor for stage `{stage:?}` requires sprite renderer context"
                 )
             })?;
-            BaseScenePass.record_transparent_mixed_with_attachment_ops(
+            BaseScenePass.record_transparent_mixed_with_indexed_journal(
                 self.encoder,
                 self.device,
                 color_view,
@@ -416,9 +417,10 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 transmission_scene_color_view,
                 mesh_stage_attachment_ops(stage, attachment_ops),
                 mesh_stage_attachment_ops(stage, depth_attachment_ops),
+                Some(&mut indexed_journal),
             )
         } else {
-            BaseScenePass.record_commands_with_attachment_ops(
+            BaseScenePass.record_commands_with_indexed_journal(
                 self.encoder,
                 self.device,
                 color_view,
@@ -438,8 +440,23 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 transmission_scene_color_view,
                 mesh_stage_attachment_ops(stage, attachment_ops),
                 mesh_stage_attachment_ops(stage, depth_attachment_ops),
+                Some(&mut indexed_journal),
             )
         };
+        if matches!(
+            stage,
+            RenderPassStage::Opaque3d | RenderPassStage::Transparent3d
+        ) && !indexed_journal.is_empty()
+        {
+            let plan = resources
+                .virtual_geometry_indexed_plan
+                .as_ref()
+                .ok_or("actual indexed issuance has no frame plan")?;
+            let journal = resources
+                .buffer("virtual-geometry-admitted-run-slots")
+                .ok_or("actual indexed issuance has no declared native journal")?;
+            plan.append_issued(self.device, self.encoder, journal, &indexed_journal)?;
+        }
         mesh_draw_lists.replay_stats.record(replay_stats);
         Ok(())
     }

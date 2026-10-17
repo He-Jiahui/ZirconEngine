@@ -1,0 +1,2072 @@
+{
+  "batch": "R021",
+  "task": "serialization write path, typed errors, text wire and full write-contract tests: Chinese source-comment review",
+  "owner": "reflection_luna",
+  "status": "reviewed-child-pending-parent-review",
+  "assignment": {
+    "owner": "reflection_luna",
+    "metadata_task": "R021",
+    "source_write_mode": "comment-only exact-path assignment",
+    "grant_assignments_sha256": "1cee0ea894581362f34ff1aadc640d28b4048130f8041d120d39380f26192ca9",
+    "assignments_sha256_at_record": "1abab96f2ad168104c7c76706fa9345fc03d6243e8a7ba19979a82547b96cc70",
+    "exact_write_path": "docs/plans/source-comments/reviews/R021.json",
+    "audited_paths": [
+      "zircon_runtime_interface/src/serialization/write.rs",
+      "zircon_runtime_interface/src/serialization/write_error.rs",
+      "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "zircon_runtime_interface/src/serialization/text/document.rs",
+      "zircon_runtime_interface/src/serialization/text/envelope.rs",
+      "zircon_runtime_interface/src/serialization/text/mod.rs",
+      "zircon_runtime_interface/src/serialization/text/read.rs",
+      "zircon_runtime_interface/src/serialization/text/wire.rs"
+    ],
+    "before_sha256": {
+      "zircon_runtime_interface/src/serialization/write.rs": "82e8c35a6bc599ac23b8efaae33898a2507721c08fd84482b3ed445a0cb138cb",
+      "zircon_runtime_interface/src/serialization/write_error.rs": "5e556bcedf84b12fbcdcaa216136238881afb0f402823ff9520c47b01d675797",
+      "zircon_runtime_interface/src/serialization/tests/write_contract.rs": "f1d4bccd23a391a602db885c708ea4a9d9ca0e4b4a94e5fddbf622487101db64",
+      "zircon_runtime_interface/src/serialization/text/document.rs": "bf75dade35a3a83aeeb19b78dd2d73b9ff64a245dbf858d5965c76e61065c4e7",
+      "zircon_runtime_interface/src/serialization/text/envelope.rs": "29fb15a1cc0d3d0a8329d5ef8922edece74295908358683c370725f4edd03a5b",
+      "zircon_runtime_interface/src/serialization/text/mod.rs": "2d5e7a01ee621f86ca6b372d11e96f43b7275dd68bfbc41baa620975572320bc",
+      "zircon_runtime_interface/src/serialization/text/read.rs": "d789852bc154073e0baafb393d6a6e85d29ea9924cd47ab0e0b47112d07d3e6f",
+      "zircon_runtime_interface/src/serialization/text/wire.rs": "216534ee17a313a768ca18def0ba5f54589f7186d67e5d501f3704f9b33c3b6d"
+    }
+  },
+  "scope": {
+    "source_files": [
+      "zircon_runtime_interface/src/serialization/write.rs",
+      "zircon_runtime_interface/src/serialization/write_error.rs",
+      "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "zircon_runtime_interface/src/serialization/text/document.rs",
+      "zircon_runtime_interface/src/serialization/text/envelope.rs",
+      "zircon_runtime_interface/src/serialization/text/mod.rs",
+      "zircon_runtime_interface/src/serialization/text/read.rs",
+      "zircon_runtime_interface/src/serialization/text/wire.rs"
+    ],
+    "before_physical_lines": 1664,
+    "after_physical_lines": 1722,
+    "source_changes": {
+      "changed_files": [
+        "zircon_runtime_interface/src/serialization/write.rs",
+        "zircon_runtime_interface/src/serialization/write_error.rs",
+        "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+        "zircon_runtime_interface/src/serialization/text/wire.rs"
+      ],
+      "comment_insertion_blocks": 44,
+      "inserted_lines": 58,
+      "inserted_bytes": 4952,
+      "original_bytes_reconstruct_exactly": true
+    },
+    "cross_file_context_is_read_only": true,
+    "no_api_behavior_assertion_string_or_existing_comment_changes": true,
+    "ownership_note": "Formal coverage and write authority are restricted to the eight listed paths and this record. Other serialization callers/helpers are context only."
+  },
+  "files": {
+    "zircon_runtime_interface/src/serialization/write.rs": {
+      "objects": [
+        {
+          "name": "导入与依赖边界",
+          "lines": [
+            1,
+            21
+          ],
+          "audit": "引入标准 Write、serde Serializer/复合值 trait、版本头与文本/二进制编码器。",
+          "documentation_decision": "导入关系通过实现块直接可见，无需新增注释。"
+        },
+        {
+          "name": "write_versioned",
+          "lines": [
+            23,
+            39
+          ],
+          "audit": "按 Format 分派；文本写入 Vec，二进制先预检再编码 payload，并使用当前类型头。",
+          "documentation_decision": "新增中文参数和返回约定，解释两条编码分支。"
+        },
+        {
+          "name": "write_versioned_text",
+          "lines": [
+            41,
+            53
+          ],
+          "audit": "调用流式入口写入 Vec，之后转换为 String；错误包括载荷错误和 UTF-8 转换错误。",
+          "documentation_decision": "新增返回内容及错误上下文说明。"
+        },
+        {
+          "name": "write_versioned_text_to",
+          "lines": [
+            55,
+            113
+          ],
+          "audit": "借用载荷同步构造 TextDocument，委派规范文本 writer，并将载荷、预算、I/O错误映射为 WriteError；写入失败可能已留下前缀。",
+          "documentation_decision": "保留原有英文流式/不构造整份文本说明和中文原注，补参数、返回及前缀语义。"
+        },
+        {
+          "name": "write_canonical_text_to",
+          "lines": [
+            115,
+            130
+          ],
+          "audit": "供已有自有兼容契约的运行时格式写原始规范 JSON；将调用方 budget 直接交给 canonical writer，不套版本化 envelope。",
+          "documentation_decision": "新增借用、sink、预算和返回字节数说明；未扩大预算单位含义。"
+        },
+        {
+          "name": "encode_binary_payload_value",
+          "lines": [
+            132,
+            155
+          ],
+          "audit": "先使用无输出 guard 遍历验证，再通过 serde_json 转换成供位置式二进制编码器消费的 Value。",
+          "documentation_decision": "新增两阶段职责说明，避免把校验器误称为载荷编码器。"
+        },
+        {
+          "name": "FloatValidationError 与错误适配实现",
+          "lines": [
+            157,
+            183
+          ],
+          "audit": "NonFinite 保存值，Custom 保存 serde 自定义错误；Display/Error/serde::ser::Error 实现转换文本并把 custom 映射为 Custom。",
+          "documentation_decision": "新增 enum/variant 中文说明；简单适配实现由代码直接表达，不重复注释。"
+        },
+        {
+          "name": "FiniteFloatGuard、FiniteFloatCompound 与整数方法宏",
+          "lines": [
+            185,
+            194
+          ],
+          "audit": "零状态 Serializer 与复合访问器只做递归检查；整数方法统一返回空结果，不物化值。",
+          "documentation_decision": "新增类型职责与宏生成方法用途说明。"
+        },
+        {
+          "name": "Serializer for FiniteFloatGuard",
+          "lines": [
+            196,
+            368
+          ],
+          "audit": "标量只对 f32/f64 检查有限性；Option/newtype/newtype variant 递归；复合值返回 guard，RawValue 在 newtype 与 struct 两种 serde 回调均拒绝。",
+          "documentation_decision": "新增 impl 和两个 RawValue 分支的局部说明；其余逐方法行为由 trait 方法名及实现清楚表达。"
+        },
+        {
+          "name": "finite_compound_impl 宏",
+          "lines": [
+            370,
+            388
+          ],
+          "audit": "统一生成 sequence/tuple/tuple struct/tuple variant 的逐字段递归访问器。",
+          "documentation_decision": "新增宏复用边界说明。"
+        },
+        {
+          "name": "SerializeMap for FiniteFloatCompound",
+          "lines": [
+            395,
+            416
+          ],
+          "audit": "键和值分别重新序列化到 guard；结束时不保留数据。",
+          "documentation_decision": "新增 map key/value 递归检查说明。"
+        },
+        {
+          "name": "SerializeStruct 与 SerializeStructVariant for FiniteFloatCompound",
+          "lines": [
+            418,
+            448
+          ],
+          "audit": "结构体字段值递归检查，字段名不参与浮点校验；struct variant 相同。",
+          "documentation_decision": "分别增加 trait impl 职责说明。"
+        },
+        {
+          "name": "validate_float 与 current_header",
+          "lines": [
+            450,
+            466
+          ],
+          "audit": "有限值返回 Ok，否则返回含原数值的错误；头部从静态 SCHEMA/VERSION 克隆构造。",
+          "documentation_decision": "新增参数/结果与头部来源说明。"
+        }
+      ],
+      "block_audit": [
+        {
+          "lines": [
+            23,
+            130
+          ],
+          "blocks": [
+            "write_versioned",
+            "write_versioned_text",
+            "write_versioned_text_to",
+            "write_canonical_text_to"
+          ],
+          "audit": "跨 format 分派、借用 sink/载荷、同步写出字节、错误映射與 partial prefix contract。",
+          "documentation_decision": "四个入口补参数、返回和生命周期/预算分工；静态源守卫通过。"
+        },
+        {
+          "lines": [
+            132,
+            194
+          ],
+          "blocks": [
+            "encode_binary_payload_value",
+            "FloatValidationError",
+            "Display/Error/serde::ser::Error",
+            "FiniteFloatGuard",
+            "FiniteFloatCompound",
+            "finite_integer_methods"
+          ],
+          "audit": "校验遍历与实际 Value 物化分为两阶段；guard检查浮点及 RawValue；不保留验证输出。",
+          "documentation_decision": "仅补内部类型/宏和阶段边界说明。"
+        },
+        {
+          "lines": [
+            196,
+            368
+          ],
+          "blocks": [
+            "Serializer for FiniteFloatGuard"
+          ],
+          "audit": "覆盖所有 serde primitive/option/newtype/compound入口，确认递归与 RawValue 双入口拒绝。",
+          "documentation_decision": "给 impl 和两种 RawValue 分支补理由，保留trait实现与token。"
+        },
+        {
+          "lines": [
+            370,
+            448
+          ],
+          "blocks": [
+            "finite_compound_impl",
+            "SerializeMap",
+            "SerializeStruct",
+            "SerializeStructVariant"
+          ],
+          "audit": "元素/key/value/fields递归送入guard且不物化复合值。",
+          "documentation_decision": "新增宏和三个显式复合访问器职责说明。"
+        },
+        {
+          "lines": [
+            450,
+            466
+          ],
+          "blocks": [
+            "validate_float",
+            "current_header"
+          ],
+          "audit": "检查有限性并从 VersionedSchema常量构造头部。",
+          "documentation_decision": "新增参数/结果和字段来源说明。"
+        }
+      ],
+      "before_sha256": "82e8c35a6bc599ac23b8efaae33898a2507721c08fd84482b3ed445a0cb138cb",
+      "after_sha256": "cc32b34523d86d7732ac6b03476ce9eda488836eddf8f6bc19330ef356261211",
+      "before_bytes": 13316,
+      "after_bytes": 16190,
+      "before_physical_lines": 466,
+      "after_physical_lines": 500,
+      "line_ending": "LF; original physical LF bytes preserved",
+      "status_before": "clean; exact before pin matched HEAD immediately before authorized edit",
+      "status_after": "M zircon_runtime_interface/src/serialization/write.rs",
+      "insertions": [
+        {
+          "block_id": "R021-001",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 684,
+          "after_offset_bytes": 684,
+          "byte_length": 347,
+          "sha256": "a57644a9362357c8b81d4781e9da85701628476e98b4cc4257848bd2923f2f75",
+          "exact_text": "/// # 参数\n/// - `value`：实现 `VersionedSchema + Serialize` 的当前版本载荷。\n/// - `format`：选择版本化文本或二进制线格式。\n/// # 返回值\n/// 成功时返回完整封套字节；失败时保留 schema/version 上下文。文本分支通过规范写入器写入 `Vec`，二进制分支先验证再构造载荷值。\n",
+          "before_anchor_line": 24,
+          "after_line_span": [
+            24,
+            28
+          ],
+          "inserted_physical_lines": 5,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-002",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 1235,
+          "after_offset_bytes": 1582,
+          "byte_length": 227,
+          "sha256": "cb8af70db29622a7b9f69437c751c27c7d1e6d03b3d7ddea17161c9409c255bf",
+          "exact_text": "/// 参数 `value` 是当前版本载荷；成功时返回含版本封套、规范 JSON 和单个末尾换行的 UTF-8 字符串。\n/// 载荷编码或 UTF-8 转换失败时返回带 schema/version 上下文的 `WriteError`。\n",
+          "before_anchor_line": 42,
+          "after_line_span": [
+            47,
+            48
+          ],
+          "inserted_physical_lines": 2,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-003",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 2035,
+          "after_offset_bytes": 2609,
+          "byte_length": 346,
+          "sha256": "eed69be477bb6d28f19c01b07b75ba992f1b39556a36b69a72bdd8d5e943b5a8",
+          "exact_text": "/// # 参数\n/// - `value`：同步借用并序列化的当前版本载荷。\n/// - `sink`：由调用方持有的字节写入器，其缓冲和持久化策略由调用方决定。\n/// # 返回值\n/// 成功时返回写入的 UTF-8 字节数；失败时返回带 schema/version 上下文的 `WriteError`，此前已写入的前缀不会回滚。\n",
+          "before_anchor_line": 60,
+          "after_line_span": [
+            67,
+            71
+          ],
+          "inserted_physical_lines": 5,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-004",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 4268,
+          "after_offset_bytes": 5188,
+          "byte_length": 396,
+          "sha256": "f7d5b4fbdacf406443ec846df410b57c43452107617a63f8aa2ced24b4993b41",
+          "exact_text": "/// # 参数\n/// - `value`：同步序列化的借用值，不添加版本封套。\n/// - `sink`：接收规范 JSON 字节的调用方写入器。\n/// - `budget`：调用方提供、按规范写入器定义应用的输出/资源预算。\n/// # 返回值\n/// 成功时返回本次写出的字节数（含末尾换行）；预算、载荷或 I/O 失败返回对应的 `CanonicalTextWriteError`。\n",
+          "before_anchor_line": 120,
+          "after_line_span": [
+            132,
+            137
+          ],
+          "inserted_physical_lines": 6,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-005",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 4535,
+          "after_offset_bytes": 5851,
+          "byte_length": 152,
+          "sha256": "95452dd54ff2307315721ff36325dd55d05ca96c3d82ff532f8451588b764822",
+          "exact_text": "/// 先以只校验的 serde 遍历检查浮点和受支持的载荷形状，再将载荷物化为供二进制编码器使用的 `serde_json::Value`。\n",
+          "before_anchor_line": 132,
+          "after_line_span": [
+            150,
+            150
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-006",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 5439,
+          "after_offset_bytes": 6907,
+          "byte_length": 102,
+          "sha256": "dea0e4356349f0a85f9b182e593d9838cbe44cab3600b403525390f4382a4383",
+          "exact_text": "/// 二进制载荷预检期间由 serde 回调返回的内部错误；不承载编码后的数据。\n",
+          "before_anchor_line": 158,
+          "after_line_span": [
+            177,
+            177
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-007",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 5467,
+          "after_offset_bytes": 7037,
+          "byte_length": 57,
+          "sha256": "4782a2af10624b2564f6d3e1aa43ab957612bfadd1dba2fda7d798138b228dca",
+          "exact_text": "    /// 发现不能进入载荷的非有限浮点值。\n",
+          "before_anchor_line": 159,
+          "after_line_span": [
+            179,
+            179
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-008",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 5497,
+          "after_offset_bytes": 7124,
+          "byte_length": 84,
+          "sha256": "19dd50c6021a6ee2360fdc2c61db862b9ec4c1fbca5adf245b7603c69e1cfb17",
+          "exact_text": "    /// serde 自定义验证失败，包括拒绝不在支持域内的 RawValue。\n",
+          "before_anchor_line": 160,
+          "after_line_span": [
+            181,
+            181
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-009",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 6129,
+          "after_offset_bytes": 7840,
+          "byte_length": 84,
+          "sha256": "9527e9510442afc2de68edcd4747aae2d803dccc245bd6a54cee52a623c5e356",
+          "exact_text": "/// 只遍历载荷并验证，不保留序列化结果的校验用 `Serializer`。\n",
+          "before_anchor_line": 186,
+          "after_line_span": [
+            208,
+            208
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-010",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 6155,
+          "after_offset_bytes": 7950,
+          "byte_length": 94,
+          "sha256": "1df58dbf7b76ff9cef00cdc268190bd9b8afecb1201fcbf8512e5860c1fa4fbe",
+          "exact_text": "/// 复合值访问器；每个元素、键和值都重新交给 `FiniteFloatGuard` 检查。\n",
+          "before_anchor_line": 188,
+          "after_line_span": [
+            211,
+            211
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-011",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 6184,
+          "after_offset_bytes": 8073,
+          "byte_length": 106,
+          "sha256": "56d989d4deb17ac5008326c091a01f96864b0b867242c5f3851a8928773c8a7e",
+          "exact_text": "// 整数序列化入口不产生数据，只接受各整数类型；本轮预检只额外限制浮点。\n",
+          "before_anchor_line": 190,
+          "after_line_span": [
+            214,
+            214
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-012",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 6366,
+          "after_offset_bytes": 8361,
+          "byte_length": 114,
+          "sha256": "93fa4dd44fbfe14e6941445fa4102c73b3512a98df3a48433501fe78260f97da",
+          "exact_text": "// 以 serde 的实际序列化回调递归遍历载荷；在这里集中拒绝 RawValue 并检查有限浮点。\n",
+          "before_anchor_line": 196,
+          "after_line_span": [
+            221,
+            221
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-013",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 8393,
+          "after_offset_bytes": 10502,
+          "byte_length": 108,
+          "sha256": "1e1124f00c6b610b887d30c29409bd0e0181f7cba404c975134c1a943803903f",
+          "exact_text": "    // RawValue 会绕过规范载荷域的结构化验证，因此在两种 serde 表达入口都拒绝。\n",
+          "before_anchor_line": 272,
+          "after_line_span": [
+            298,
+            298
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-014",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 10008,
+          "after_offset_bytes": 12225,
+          "byte_length": 107,
+          "sha256": "61b6832ead0471cf46a7ffd69b373eaa9654c82066e2f7b5c88c9979bbb2a8af",
+          "exact_text": "    // RawValue 也可能通过结构体回调到达，必须与 newtype 回调保持同一准入规则。\n",
+          "before_anchor_line": 333,
+          "after_line_span": [
+            360,
+            360
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-015",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 10927,
+          "after_offset_bytes": 13251,
+          "byte_length": 101,
+          "sha256": "c60985de99b4786ec86e862f70850d0fb3ddc5c74ef2fe59c8a443a56b1baf48",
+          "exact_text": "// 多种 serde 复合值共享同一递归遍历：只检查每个字段，不累计复合内容。\n",
+          "before_anchor_line": 370,
+          "after_line_span": [
+            398,
+            398
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-016",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 11690,
+          "after_offset_bytes": 14115,
+          "byte_length": 95,
+          "sha256": "ec73a41243d55498e9b0990b9d3ae2e2518406e8e9461885ff4b0c3628471bfd",
+          "exact_text": "// Map 的键和值都可能包含嵌套浮点，分别完整遍历后才结束该复合值。\n",
+          "before_anchor_line": 395,
+          "after_line_span": [
+            424,
+            424
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-017",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 12204,
+          "after_offset_bytes": 14724,
+          "byte_length": 83,
+          "sha256": "fff32a856c9c4cf2adad7d89c74106650296def2b1db9dd88e242f242409c098",
+          "exact_text": "// 结构体字段按 serde 回调递归检查；字段名不参与数值校验。\n",
+          "before_anchor_line": 418,
+          "after_line_span": [
+            448,
+            448
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-018",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 12576,
+          "after_offset_bytes": 15179,
+          "byte_length": 94,
+          "sha256": "8638fc107d04103bc911d0ba0f3d5dd1c6d790d535e9dceefc13554b132bccdc",
+          "exact_text": "// 结构体变体的字段值沿用相同校验器，不在预检阶段保存变体数据。\n",
+          "before_anchor_line": 434,
+          "after_line_span": [
+            465,
+            465
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-019",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 12955,
+          "after_offset_bytes": 15652,
+          "byte_length": 95,
+          "sha256": "a88694a534a47e20ab78ef96342b6f1bade12a7429e4eebc64f9499a65bbbf2a",
+          "exact_text": "/// 仅接受有限浮点；非有限值作为内部校验错误返回给编码入口映射。\n",
+          "before_anchor_line": 450,
+          "after_line_span": [
+            482,
+            482
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-020",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 13142,
+          "after_offset_bytes": 15934,
+          "byte_length": 82,
+          "sha256": "8ea08657ae13fdd07cecfd0e4eca39ee2246a080f394bcf011bb339b8c6a85cc",
+          "exact_text": "/// 从载荷类型的静态 schema 标识和版本构造当前写入封套头。\n",
+          "before_anchor_line": 458,
+          "after_line_span": [
+            491,
+            491
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        }
+      ],
+      "byte_reconstruction": {
+        "method": "Remove inserted raw UTF-8 comment blocks from after bytes in descending after_offset_bytes order.",
+        "insertion_blocks": 20,
+        "removed_bytes": 2874,
+        "reconstructed_before_sha256": "82e8c35a6bc599ac23b8efaae33898a2507721c08fd84482b3ed445a0cb138cb",
+        "reconstructed_before_bytes": 13316,
+        "matches_original_before_bytes": true
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/write_error.rs": {
+      "objects": [
+        {
+          "name": "CanonicalTextWriteError",
+          "lines": [
+            5,
+            28
+          ],
+          "audit": "六个变体分别代表非有限浮点、载荷验证、载荷编码、固定文本字节上限、命名资源预算和 sink I/O；error/display/source 属性保持原样。",
+          "documentation_decision": "新增类型和全部变体中文解释，不改错误文本。"
+        },
+        {
+          "name": "serde::ser::Error::custom 适配",
+          "lines": [
+            30,
+            39
+          ],
+          "audit": "把 serde 自定义错误文本包装为 PayloadValidation。",
+          "documentation_decision": "映射与变体文档直接可证，未重复添加局部注释。"
+        },
+        {
+          "name": "WriteError",
+          "lines": [
+            41,
+            118
+          ],
+          "audit": "十个变体覆盖版本化文本/二进制编码阶段，均携带 schema/version，并保留 source 或资源/操作上下文。",
+          "documentation_decision": "新增类型和全部变体中文阶段说明；保留全部 thiserror 文本/source 属性。"
+        },
+        {
+          "name": "CanonicalTextWriteError::NonFinite",
+          "lines": [
+            8,
+            9
+          ],
+          "audit": "非有限浮点在载荷遍历阶段被拒绝。",
+          "documentation_decision": "新增中文变体文档；对应有限性预检的错误映射。"
+        },
+        {
+          "name": "CanonicalTextWriteError::PayloadValidation",
+          "lines": [
+            10,
+            11
+          ],
+          "audit": "自定义载荷校验或不受支持形状导致的拒绝。",
+          "documentation_decision": "新增中文变体文档；Serde custom 映射及 RawValue guard 路径。"
+        },
+        {
+          "name": "CanonicalTextWriteError::PayloadEncode",
+          "lines": [
+            12,
+            13
+          ],
+          "audit": "规范文本 payload 序列化阶段的非校验类错误。",
+          "documentation_decision": "新增中文变体文档；保留 payload encode 错误类别。"
+        },
+        {
+          "name": "CanonicalTextWriteError::OutputTooLarge",
+          "lines": [
+            14,
+            15
+          ],
+          "audit": "固定文本 wire 字节上限错误；found 可能是下限。",
+          "documentation_decision": "新增中文变体文档；调用固定文档 wire 上限。"
+        },
+        {
+          "name": "CanonicalTextWriteError::ResourceLimitExceeded",
+          "lines": [
+            16,
+            21
+          ],
+          "audit": "命名资源超出其预算；计量单位随资源定义。",
+          "documentation_decision": "新增中文变体文档；调用方预算拒绝，不把所有资源称为字节。"
+        },
+        {
+          "name": "CanonicalTextWriteError::Io",
+          "lines": [
+            22,
+            27
+          ],
+          "audit": "向 sink 写入指定操作失败并保留 io::Error source。",
+          "documentation_decision": "新增中文变体文档；错误可能发生在前缀已写入后。"
+        },
+        {
+          "name": "WriteError::NonFiniteFloat",
+          "lines": [
+            44,
+            49
+          ],
+          "audit": "文本或二进制载荷预检遇到非有限浮点。",
+          "documentation_decision": "新增中文变体文档；两种 writer 路径都可产生。"
+        },
+        {
+          "name": "WriteError::PayloadValidation",
+          "lines": [
+            50,
+            55
+          ],
+          "audit": "自定义载荷校验或支持域检查失败。",
+          "documentation_decision": "新增中文变体文档；canonical writer 与 binary guard 均可产生。"
+        },
+        {
+          "name": "WriteError::PayloadEncode",
+          "lines": [
+            56,
+            62
+          ],
+          "audit": "二进制支路将载荷转换为 serde_json::Value 时的错误。",
+          "documentation_decision": "新增中文变体文档；encode_binary_payload_value 的物化阶段映射。"
+        },
+        {
+          "name": "WriteError::TextDocumentTooLarge",
+          "lines": [
+            63,
+            71
+          ],
+          "audit": "版本化文本达到固定 wire 字节上限。",
+          "documentation_decision": "新增中文变体文档；write_versioned_text_to 的错误适配。"
+        },
+        {
+          "name": "WriteError::TextResourceLimitExceeded",
+          "lines": [
+            72,
+            81
+          ],
+          "audit": "版本化规范文本命名资源预算失败。",
+          "documentation_decision": "新增中文变体文档；保留资源名和该资源自己的单位。"
+        },
+        {
+          "name": "WriteError::BinaryEncode",
+          "lines": [
+            82,
+            88
+          ],
+          "audit": "位置式二进制编码器返回的失败。",
+          "documentation_decision": "新增中文变体文档；source 为 PositionalEncodeError。"
+        },
+        {
+          "name": "WriteError::BinaryPayloadTooLarge",
+          "lines": [
+            89,
+            96
+          ],
+          "audit": "二进制 body 超出 wire 允许长度。",
+          "documentation_decision": "新增中文变体文档；编码二进制封套时映射。"
+        },
+        {
+          "name": "WriteError::InvalidBinaryPayload",
+          "lines": [
+            97,
+            102
+          ],
+          "audit": "binary encoder 判定载荷值不满足可表示约束。",
+          "documentation_decision": "新增中文变体文档；不把该项误述成 serde value 构造错误。"
+        },
+        {
+          "name": "WriteError::TextEncode",
+          "lines": [
+            103,
+            109
+          ],
+          "audit": "规范文本转 String 时的错误。",
+          "documentation_decision": "新增中文变体文档；UTF-8 转换错误包入 serde_json::Error。"
+        },
+        {
+          "name": "WriteError::TextWrite",
+          "lines": [
+            110,
+            117
+          ],
+          "audit": "流式文本 sink 的指定 I/O 操作失败。",
+          "documentation_decision": "新增中文变体文档；保留 operation 与底层 source。"
+        }
+      ],
+      "block_audit": [
+        {
+          "lines": [
+            5,
+            39
+          ],
+          "blocks": [
+            "CanonicalTextWriteError::NonFinite",
+            "CanonicalTextWriteError::PayloadValidation",
+            "CanonicalTextWriteError::PayloadEncode",
+            "CanonicalTextWriteError::OutputTooLarge",
+            "CanonicalTextWriteError::ResourceLimitExceeded",
+            "CanonicalTextWriteError::Io",
+            "serde::ser::Error::custom"
+          ],
+          "audit": "逐变体核对载荷校验/编码、wire与资源预算、sink错误来源及 custom 错误归类。",
+          "documentation_decision": "变体文档补足失败阶段与计量边界；adapter简短映射不重复说明。"
+        },
+        {
+          "lines": [
+            41,
+            118
+          ],
+          "blocks": [
+            "WriteError::NonFiniteFloat",
+            "WriteError::PayloadValidation",
+            "WriteError::PayloadEncode",
+            "WriteError::TextDocumentTooLarge",
+            "WriteError::TextResourceLimitExceeded",
+            "WriteError::BinaryEncode",
+            "WriteError::BinaryPayloadTooLarge",
+            "WriteError::InvalidBinaryPayload",
+            "WriteError::TextEncode",
+            "WriteError::TextWrite"
+          ],
+          "audit": "逐变体核对schema/version上下文、文本/二进制阶段和底层错误来源。",
+          "documentation_decision": "全部变体添加与实际 writer 调用一致的中文用途说明。"
+        }
+      ],
+      "before_sha256": "5e556bcedf84b12fbcdcaa216136238881afb0f402823ff9520c47b01d675797",
+      "after_sha256": "f0cbb2acc191b5594206d3880e08dc9a2ecb6b98b5f50e5ed0b27b18b7e71f39",
+      "before_bytes": 3689,
+      "after_bytes": 5163,
+      "before_physical_lines": 118,
+      "after_physical_lines": 136,
+      "line_ending": "LF; original physical LF bytes preserved",
+      "status_before": "clean; exact before pin matched HEAD immediately before authorized edit",
+      "status_after": "M zircon_runtime_interface/src/serialization/write_error.rs",
+      "insertions": [
+        {
+          "block_id": "R021-001",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 137,
+          "after_offset_bytes": 137,
+          "byte_length": 104,
+          "sha256": "6ebe9184192c3284b34dafc2199f03f7d9b8c30d65988108b4223472dbd47438",
+          "exact_text": "/// 规范文本写入的分阶段失败；调用方可区分载荷拒绝、预算超限和 sink I/O。\n",
+          "before_anchor_line": 7,
+          "after_line_span": [
+            7,
+            7
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-002",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 237,
+          "after_offset_bytes": 341,
+          "byte_length": 48,
+          "sha256": "cdca768182ddfa631d104ebd82d237b42f4b643dd8e4c1be898f41bb3be152b3",
+          "exact_text": "    /// 载荷遍历发现非有限浮点值。\n",
+          "before_anchor_line": 9,
+          "after_line_span": [
+            10,
+            10
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-003",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 267,
+          "after_offset_bytes": 419,
+          "byte_length": 72,
+          "sha256": "505d391f2d727eb1283fc58f2c2fdf923b010f318f65ea7912e93b25f1c349b7",
+          "exact_text": "    /// 序列化器自定义校验失败或载荷形状不受支持。\n",
+          "before_anchor_line": 10,
+          "after_line_span": [
+            12,
+            12
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-004",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 376,
+          "after_offset_bytes": 600,
+          "byte_length": 60,
+          "sha256": "0795e4c34e872a0078dbbcffe8e9895739beffc03d93e423bcbd116201b2943a",
+          "exact_text": "    /// 载荷编码器返回非校验类序列化错误。\n",
+          "before_anchor_line": 12,
+          "after_line_span": [
+            15,
+            15
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-005",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 573,
+          "after_offset_bytes": 857,
+          "byte_length": 101,
+          "sha256": "0f68e29b6341ee7b71b3acfdf88db62c5c521fdaf25ba8ee2e32468899c4c175",
+          "exact_text": "    /// 规范文本超过固定线格式字节上限；`found` 是已知至少达到的字节数。\n",
+          "before_anchor_line": 15,
+          "after_line_span": [
+            19,
+            19
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-006",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 704,
+          "after_offset_bytes": 1089,
+          "byte_length": 108,
+          "sha256": "3c8f8e2913f3def29ce369cd38e6f6d9062f5b6c6335f3bd7a114b08f50780ee",
+          "exact_text": "    /// 超过调用方预算中的某项资源限制；`found` 与 `max` 使用该资源的计量单位。\n",
+          "before_anchor_line": 17,
+          "after_line_span": [
+            22,
+            22
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-007",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 873,
+          "after_offset_bytes": 1366,
+          "byte_length": 102,
+          "sha256": "82ffb6e684694cfa8e7a5871fc65a05ca03af198025abc37f6f2ba7b91778b61",
+          "exact_text": "    /// 向 sink 写入时指定操作失败；此前成功写入的字节不会由此错误撤销。\n",
+          "before_anchor_line": 23,
+          "after_line_span": [
+            29,
+            29
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-008",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 1284,
+          "after_offset_bytes": 1879,
+          "byte_length": 103,
+          "sha256": "e789de7e19cd8b4968b58bab302265f1356dbd326fb79f13d03dbfa7dec594c2",
+          "exact_text": "/// 版本化编码的统一错误；变体保留文本/二进制阶段及 schema/version 上下文。\n",
+          "before_anchor_line": 43,
+          "after_line_span": [
+            50,
+            50
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-009",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 1400,
+          "after_offset_bytes": 2098,
+          "byte_length": 63,
+          "sha256": "7c67b5ba8bd91f6b3cbd9f537d7d4cf13523049a84117be935ad63726e4c44bd",
+          "exact_text": "    /// 文本或二进制载荷预检遇到非有限浮点。\n",
+          "before_anchor_line": 45,
+          "after_line_span": [
+            53,
+            53
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-010",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 1504,
+          "after_offset_bytes": 2265,
+          "byte_length": 57,
+          "sha256": "b94e455089f56555c248abd935b3fdf5c870c0f9848129535cce86f7a897d698",
+          "exact_text": "    /// 载荷自定义验证或支持域检查失败。\n",
+          "before_anchor_line": 50,
+          "after_line_span": [
+            59,
+            59
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-011",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 1711,
+          "after_offset_bytes": 2529,
+          "byte_length": 91,
+          "sha256": "05fb20117fd758c6216513beccedd425d997cb346ba8d47c070d2e36627320c7",
+          "exact_text": "    /// 二进制分支把已预检载荷转换为 JSON 值时发生 serde 编码错误。\n",
+          "before_anchor_line": 56,
+          "after_line_span": [
+            66,
+            66
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-012",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 2092,
+          "after_offset_bytes": 3001,
+          "byte_length": 63,
+          "sha256": "c1bb88cb5c471d6ff4bc4d3d751ed911d7c79d9e8560b6461430173e9a5d04ef",
+          "exact_text": "    /// 版本化文本输出达到固定 wire 字节上限。\n",
+          "before_anchor_line": 66,
+          "after_line_span": [
+            77,
+            77
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-013",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 2364,
+          "after_offset_bytes": 3336,
+          "byte_length": 99,
+          "sha256": "1d43d7bf20897b4d817e98f169af806731271fa52b0c11806554ad641e0b0972",
+          "exact_text": "    /// 版本化规范文本在命名资源上超过限制；计量单位随 `resource` 定义。\n",
+          "before_anchor_line": 75,
+          "after_line_span": [
+            87,
+            87
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-014",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 2624,
+          "after_offset_bytes": 3695,
+          "byte_length": 66,
+          "sha256": "36e5a0b71fd308f2b89ccf77c5c9e5f469861abc3f858a8dc74cae4d43368233",
+          "exact_text": "    /// 位置式二进制编码器拒绝载荷或编码失败。\n",
+          "before_anchor_line": 83,
+          "after_line_span": [
+            96,
+            96
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-015",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 2890,
+          "after_offset_bytes": 4027,
+          "byte_length": 72,
+          "sha256": "b6a643daa095023a2452c800886d5c0c744a7f5a3af02a250d249605b6c59b05",
+          "exact_text": "    /// 二进制载荷体超过 wire 格式允许的最大字节数。\n",
+          "before_anchor_line": 92,
+          "after_line_span": [
+            106,
+            106
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-016",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 3095,
+          "after_offset_bytes": 4304,
+          "byte_length": 84,
+          "sha256": "ed2c95a9622fc4b358c3666579bd8b2bbf4107a033c0a7e7fa181f494cd383b6",
+          "exact_text": "    /// 二进制封套编码前的载荷值不符合该格式的可表示约束。\n",
+          "before_anchor_line": 98,
+          "after_line_span": [
+            113,
+            113
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-017",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 3298,
+          "after_offset_bytes": 4591,
+          "byte_length": 80,
+          "sha256": "1d573c0cc6c7047e8220ee9d0f4a041ef6db33c0da9dcf6d5ee64bd81f56e6de",
+          "exact_text": "    /// 版本化规范文本转换为 `String` 时的编码或 UTF-8 错误。\n",
+          "before_anchor_line": 104,
+          "after_line_span": [
+            120,
+            120
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-018",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 3530,
+          "after_offset_bytes": 4903,
+          "byte_length": 101,
+          "sha256": "f143dbe8578a73f4f7d9940937e0c182de174caac866efd09f24634b9d9341d8",
+          "exact_text": "    /// 流式文本写入的 sink 操作失败；错误保留具体操作名和底层 I/O 来源。\n",
+          "before_anchor_line": 111,
+          "after_line_span": [
+            128,
+            128
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        }
+      ],
+      "byte_reconstruction": {
+        "method": "Remove inserted raw UTF-8 comment blocks from after bytes in descending after_offset_bytes order.",
+        "insertion_blocks": 18,
+        "removed_bytes": 1474,
+        "reconstructed_before_sha256": "5e556bcedf84b12fbcdcaa216136238881afb0f402823ff9520c47b01d675797",
+        "reconstructed_before_bytes": 3689,
+        "matches_original_before_bytes": true
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/tests/write_contract.rs": {
+      "objects": [
+        {
+          "name": "测试模块与共享 fixture",
+          "lines": [
+            1,
+            357
+          ],
+          "audit": "完整读取模块说明、序列化探针、RawValue/键探针及计数 fixture；可见意图已充分的 fixture 保持不动。",
+          "documentation_decision": "仅补五个非显然状态探针的用途：分块 Display、按需大 map 键、递归嵌套数组、短写/失败 sink、最大请求跟踪 sink。"
+        },
+        {
+          "name": "规范顺序、编码和预聚合测试",
+          "lines": [
+            358,
+            577
+          ],
+          "audit": "覆盖键排序/单换行、float 最短拼写、bytes sequence、text/binary 一致拒绝边界、RawValue 拒绝、预聚合早停/重复 key、深度、错误类型。",
+          "documentation_decision": "测试名称与断言消息已描述触发条件，未逐测试重复写注释。"
+        },
+        {
+          "name": "当前写入路径源码守卫与流式写入测试",
+          "lines": [
+            577,
+            656
+          ],
+          "audit": "借用载荷直接规范写入；include_str 源扫描要求 write_versioned_text_to 直接调用 write_canonical_text 且不在该入口物化整个 payload；短写与 sink 错误传播。",
+          "documentation_decision": "保留源码守卫原字串；新增注释未改变被扫描代码 token 或守卫字面量。"
+        },
+        {
+          "name": "规范错误类别和限制测试",
+          "lines": [
+            657,
+            899
+          ],
+          "audit": "覆盖 JSON key normalization/error categories、非有限浮点、二进制与文本 reader wire limit、archive 显式预算、1MiB数组无聚合、sink 请求上限及 ignored 512MiB 超限 fixture。",
+          "documentation_decision": "断言和测试名已有足够解释；512MiB 测试保持 #[ignore]，本轮不执行。"
+        }
+      ],
+      "block_audit": [
+        {
+          "lines": [
+            1,
+            357
+          ],
+          "blocks": [
+            "module docs/imports",
+            "all fixture types and helper serializers"
+          ],
+          "audit": "完整审查fixtures和helper serializer，确认静态源扫描输入为include_str!(\"../write.rs\")。",
+          "documentation_decision": "仅5个非显然观测探针加说明，其余fixture从名称/实现可读。"
+        },
+        {
+          "lines": [
+            358,
+            610
+          ],
+          "blocks": [
+            "canonical_text_writer_orders_nested_keys_and_uses_one_trailing_newline",
+            "canonical_text_writer_uses_shortest_roundtrip_float_spelling",
+            "canonical_text_writer_serializes_bytes_through_the_sequence_contract",
+            "text_and_binary_writers_reject_out_of_range_json_integers_consistently",
+            "text_and_binary_writers_reject_raw_value_private_marker_consistently",
+            "canonical_text_preaggregation_rejects_raw_value_map_keys_as_payload_validation",
+            "canonical_text_preaggregation_stops_chunked_display_before_all_chunks_are_formatted",
+            "canonical_text_preaggregation_stops_key_generation_before_the_full_map_is_retained",
+            "canonical_text_rejects_an_object_before_it_retains_unbounded_entries",
+            "canonical_text_rejects_nesting_beyond_the_runtime_stack_budget",
+            "versioned_text_preserves_the_typed_canonical_resource_failure",
+            "canonical_text_preaggregation_counts_a_duplicate_map_key_only_once",
+            "current_text_writer_streams_a_borrowed_payload_with_canonical_map_order"
+          ],
+          "audit": "审查前13项测试，包含原始源码字符串守卫。",
+          "documentation_decision": "保留全部测试谓词字符串；新注释只在实现源码/fixtures。"
+        },
+        {
+          "lines": [
+            612,
+            705
+          ],
+          "blocks": [
+            "streaming_text_writer_matches_the_owned_text_adapter_through_short_writes",
+            "streaming_text_writer_preserves_the_downstream_write_failure",
+            "canonical_text_writer_matches_json_key_normalization_and_error_categories",
+            "writers_reject_non_finite_floats_instead_of_normalizing_them_to_null"
+          ],
+          "audit": "审查短写、I/O错误、key normalization及非有限浮点分支。",
+          "documentation_decision": "测试名和assert充分，不新增重复注释。"
+        },
+        {
+          "lines": [
+            706,
+            899
+          ],
+          "blocks": [
+            "binary_writer_rejects_a_body_larger_than_the_reader_limit",
+            "text_writer_rejects_a_document_larger_than_the_reader_limit",
+            "raw_streaming_writer_uses_its_explicit_archive_budget",
+            "raw_streaming_writer_rejects_output_above_its_explicit_archive_budget",
+            "raw_streaming_writer_handles_a_one_mebibyte_direct_array_without_text_aggregation",
+            "raw_streaming_writer_bounds_each_sink_request_to_the_staging_size",
+            "raw_streaming_writer_rejects_output_above_its_explicit_512_mebibyte_budget"
+          ],
+          "audit": "审查固定wire上限、显式预算、直接大数组、sink请求尺寸和ignored超大样例。",
+          "documentation_decision": "保留所有边界与#[ignore]，不声称未执行测试已通过。"
+        }
+      ],
+      "before_sha256": "f1d4bccd23a391a602db885c708ea4a9d9ca0e4b4a94e5fddbf622487101db64",
+      "after_sha256": "fe5902977c9ab83f40b8f9429724c3f4d2a0ce5329b987c93c496c9f3e998c2b",
+      "before_bytes": 27787,
+      "after_bytes": 28292,
+      "before_physical_lines": 899,
+      "after_physical_lines": 904,
+      "line_ending": "LF; original physical LF bytes preserved",
+      "status_before": "clean; exact before pin matched HEAD immediately before authorized edit",
+      "status_after": "M zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "insertions": [
+        {
+          "block_id": "R021-001",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 8049,
+          "after_offset_bytes": 8049,
+          "byte_length": 110,
+          "sha256": "8fbf246ca6f8e289fd61ed8d3fda68ab8fe01822c1faf6e2c18893b0b9bc4ab3",
+          "exact_text": "/// 逐块格式化并计数的载荷探针，用于确认预聚合在资源超限后停止继续格式化。\n",
+          "before_anchor_line": 282,
+          "after_line_span": [
+            282,
+            282
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-002",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 8690,
+          "after_offset_bytes": 8800,
+          "byte_length": 114,
+          "sha256": "58106f88167b57697c0fb9425f6f80c94151f2597dd004317c49de2aa7337456",
+          "exact_text": "/// 按需生成大量 map 键的载荷探针，计数用于观察预聚合是否在保留完整 map 前中止。\n",
+          "before_anchor_line": 307,
+          "after_line_span": [
+            308,
+            308
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-003",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 8792,
+          "after_offset_bytes": 9016,
+          "byte_length": 86,
+          "sha256": "e62fa49980998a98e217d32207cda4057b6a7857201d2d1f709ae62192342b6d",
+          "exact_text": "/// 递归数组载荷探针，用于覆盖超过运行时栈预算的嵌套深度。\n",
+          "before_anchor_line": 312,
+          "after_line_span": [
+            314,
+            314
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-004",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 26203,
+          "after_offset_bytes": 26513,
+          "byte_length": 103,
+          "sha256": "90b79ea1c266957dd20b8d1db5f3f73057bcc5673280accd525b32445e25d7ba",
+          "exact_text": "/// 限制单次写入长度并可在指定位置失败的 sink，用于覆盖短写与错误传播。\n",
+          "before_anchor_line": 838,
+          "after_line_span": [
+            841,
+            841
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        },
+        {
+          "block_id": "R021-005",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 27461,
+          "after_offset_bytes": 27874,
+          "byte_length": 92,
+          "sha256": "0091348f4da06338e0066cccb6cefcf030a92102ff60f08977466da9b7eb4eda",
+          "exact_text": "/// 记录每次 `Write::write` 请求长度的 sink，用于验证暂存缓冲区上限。\n",
+          "before_anchor_line": 886,
+          "after_line_span": [
+            890,
+            890
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        }
+      ],
+      "byte_reconstruction": {
+        "method": "Remove inserted raw UTF-8 comment blocks from after bytes in descending after_offset_bytes order.",
+        "insertion_blocks": 5,
+        "removed_bytes": 505,
+        "reconstructed_before_sha256": "f1d4bccd23a391a602db885c708ea4a9d9ca0e4b4a94e5fddbf622487101db64",
+        "reconstructed_before_bytes": 27787,
+        "matches_original_before_bytes": true
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/text/document.rs": {
+      "objects": [
+        {
+          "name": "TextDocument",
+          "lines": [
+            1,
+            13
+          ],
+          "audit": "借用 envelope/document 类型与 payload 生命周期边界。",
+          "documentation_decision": "既有模块/结构说明已充分解释借用载荷及用途，不新增。"
+        }
+      ],
+      "block_audit": [
+        {
+          "lines": [
+            1,
+            13
+          ],
+          "blocks": [
+            "TextDocument"
+          ],
+          "audit": "借用 envelope/document 类型与 payload 生命周期边界。",
+          "documentation_decision": "既有模块/结构说明已充分解释借用载荷及用途，不新增。"
+        }
+      ],
+      "before_sha256": "bf75dade35a3a83aeeb19b78dd2d73b9ff64a245dbf858d5965c76e61065c4e7",
+      "after_sha256": "bf75dade35a3a83aeeb19b78dd2d73b9ff64a245dbf858d5965c76e61065c4e7",
+      "before_bytes": 576,
+      "after_bytes": 576,
+      "before_physical_lines": 13,
+      "after_physical_lines": 13,
+      "line_ending": "LF; original physical LF bytes preserved",
+      "status_before": "clean; exact before pin matched HEAD immediately before authorized edit",
+      "status_after": "clean; unchanged",
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "Remove inserted raw UTF-8 comment blocks from after bytes in descending after_offset_bytes order.",
+        "insertion_blocks": 0,
+        "removed_bytes": 0,
+        "reconstructed_before_sha256": "bf75dade35a3a83aeeb19b78dd2d73b9ff64a245dbf858d5965c76e61065c4e7",
+        "reconstructed_before_bytes": 576,
+        "matches_original_before_bytes": true
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/text/envelope.rs": {
+      "objects": [
+        {
+          "name": "TextEnvelope",
+          "lines": [
+            1,
+            14
+          ],
+          "audit": "versioned header 与 borrowed payload 的 JSON envelope 字段及序列化形状。",
+          "documentation_decision": "既有类型/字段文档充分，不新增。"
+        }
+      ],
+      "block_audit": [
+        {
+          "lines": [
+            1,
+            14
+          ],
+          "blocks": [
+            "TextEnvelope"
+          ],
+          "audit": "versioned header 与 borrowed payload 的 JSON envelope 字段及序列化形状。",
+          "documentation_decision": "既有类型/字段文档充分，不新增。"
+        }
+      ],
+      "before_sha256": "29fb15a1cc0d3d0a8329d5ef8922edece74295908358683c370725f4edd03a5b",
+      "after_sha256": "29fb15a1cc0d3d0a8329d5ef8922edece74295908358683c370725f4edd03a5b",
+      "before_bytes": 728,
+      "after_bytes": 728,
+      "before_physical_lines": 14,
+      "after_physical_lines": 14,
+      "line_ending": "LF; original physical LF bytes preserved",
+      "status_before": "clean; exact before pin matched HEAD immediately before authorized edit",
+      "status_after": "clean; unchanged",
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "Remove inserted raw UTF-8 comment blocks from after bytes in descending after_offset_bytes order.",
+        "insertion_blocks": 0,
+        "removed_bytes": 0,
+        "reconstructed_before_sha256": "29fb15a1cc0d3d0a8329d5ef8922edece74295908358683c370725f4edd03a5b",
+        "reconstructed_before_bytes": 728,
+        "matches_original_before_bytes": true
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/text/mod.rs": {
+      "objects": [
+        {
+          "name": "text 模块入口与模块文档",
+          "lines": [
+            1,
+            19
+          ],
+          "audit": "公开/私有子模块挂载和 text wire职责说明。",
+          "documentation_decision": "现有模块文档已说明读取、规范写入和 envelope边界，不新增。"
+        }
+      ],
+      "block_audit": [
+        {
+          "lines": [
+            1,
+            19
+          ],
+          "blocks": [
+            "text 模块入口与模块文档"
+          ],
+          "audit": "公开/私有子模块挂载和 text wire职责说明。",
+          "documentation_decision": "现有模块文档已说明读取、规范写入和 envelope边界，不新增。"
+        }
+      ],
+      "before_sha256": "2d5e7a01ee621f86ca6b372d11e96f43b7275dd68bfbc41baa620975572320bc",
+      "after_sha256": "2d5e7a01ee621f86ca6b372d11e96f43b7275dd68bfbc41baa620975572320bc",
+      "before_bytes": 620,
+      "after_bytes": 620,
+      "before_physical_lines": 19,
+      "after_physical_lines": 19,
+      "line_ending": "LF; original physical LF bytes preserved",
+      "status_before": "clean; exact before pin matched HEAD immediately before authorized edit",
+      "status_after": "clean; unchanged",
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "Remove inserted raw UTF-8 comment blocks from after bytes in descending after_offset_bytes order.",
+        "insertion_blocks": 0,
+        "removed_bytes": 0,
+        "reconstructed_before_sha256": "2d5e7a01ee621f86ca6b372d11e96f43b7275dd68bfbc41baa620975572320bc",
+        "reconstructed_before_bytes": 620,
+        "matches_original_before_bytes": true
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/text/read.rs": {
+      "objects": [
+        {
+          "name": "文本读取模块全部声明和解析路径",
+          "lines": [
+            1,
+            131
+          ],
+          "audit": "逐块核对输入借用生命周期、顶层探测、封套读取、版本/载荷校验、错误阶段及分支提前返回。",
+          "documentation_decision": "现有中文与英文说明已覆盖入口、生命周期、探测/解析分层和错误策略，不重复添加。"
+        }
+      ],
+      "block_audit": [
+        {
+          "lines": [
+            1,
+            131
+          ],
+          "blocks": [
+            "文本读取模块全部声明和解析路径"
+          ],
+          "audit": "逐块核对输入借用生命周期、顶层探测、封套读取、版本/载荷校验、错误阶段及分支提前返回。",
+          "documentation_decision": "现有中文与英文说明已覆盖入口、生命周期、探测/解析分层和错误策略，不重复添加。"
+        }
+      ],
+      "before_sha256": "d789852bc154073e0baafb393d6a6e85d29ea9924cd47ab0e0b47112d07d3e6f",
+      "after_sha256": "d789852bc154073e0baafb393d6a6e85d29ea9924cd47ab0e0b47112d07d3e6f",
+      "before_bytes": 5823,
+      "after_bytes": 5823,
+      "before_physical_lines": 131,
+      "after_physical_lines": 131,
+      "line_ending": "LF; original physical LF bytes preserved",
+      "status_before": "clean; exact before pin matched HEAD immediately before authorized edit",
+      "status_after": "clean; unchanged",
+      "insertions": [],
+      "byte_reconstruction": {
+        "method": "Remove inserted raw UTF-8 comment blocks from after bytes in descending after_offset_bytes order.",
+        "insertion_blocks": 0,
+        "removed_bytes": 0,
+        "reconstructed_before_sha256": "d789852bc154073e0baafb393d6a6e85d29ea9924cd47ab0e0b47112d07d3e6f",
+        "reconstructed_before_bytes": 5823,
+        "matches_original_before_bytes": true
+      },
+      "preexisting_markers": [],
+      "issues": []
+    },
+    "zircon_runtime_interface/src/serialization/text/wire.rs": {
+      "objects": [
+        {
+          "name": "MAX_TEXT_DOCUMENT_BYTES",
+          "lines": [
+            1,
+            4
+          ],
+          "audit": "版本化文本固定 wire 上限，原始 canonical writer 使用调用方 SerializationBudget。",
+          "documentation_decision": "保留现有中英文范围说明，补充上限计量按 UTF-8 字节。"
+        }
+      ],
+      "block_audit": [
+        {
+          "lines": [
+            1,
+            4
+          ],
+          "blocks": [
+            "MAX_TEXT_DOCUMENT_BYTES"
+          ],
+          "audit": "版本化文本固定 wire 上限，原始 canonical writer 使用调用方 SerializationBudget。",
+          "documentation_decision": "保留现有中英文范围说明，补充上限计量按 UTF-8 字节。"
+        }
+      ],
+      "before_sha256": "216534ee17a313a768ca18def0ba5f54589f7186d67e5d501f3704f9b33c3b6d",
+      "after_sha256": "5a65e27c8304ad1b6a59ee8879aefef9d2353337583b7e8f70e666295e7bae0e",
+      "before_bytes": 334,
+      "after_bytes": 433,
+      "before_physical_lines": 4,
+      "after_physical_lines": 5,
+      "line_ending": "LF; original physical LF bytes preserved",
+      "status_before": "clean; exact before pin matched HEAD immediately before authorized edit",
+      "status_after": "M zircon_runtime_interface/src/serialization/text/wire.rs",
+      "insertions": [
+        {
+          "block_id": "R021-001",
+          "kind": "comment_insertion",
+          "before_offset_bytes": 248,
+          "after_offset_bytes": 248,
+          "byte_length": 99,
+          "sha256": "318d190a0e1f0101cc5ecd53e95a5d99c7e25cc729f2bbc3b53dcc09cc559997",
+          "exact_text": "/// 上限按 UTF-8 编码后的字节数计，供版本化文本线格式读取与写入共用。\n",
+          "before_anchor_line": 4,
+          "after_line_span": [
+            4,
+            4
+          ],
+          "inserted_physical_lines": 1,
+          "content": "Chinese explanatory source comments only"
+        }
+      ],
+      "byte_reconstruction": {
+        "method": "Remove inserted raw UTF-8 comment blocks from after bytes in descending after_offset_bytes order.",
+        "insertion_blocks": 1,
+        "removed_bytes": 99,
+        "reconstructed_before_sha256": "216534ee17a313a768ca18def0ba5f54589f7186d67e5d501f3704f9b33c3b6d",
+        "reconstructed_before_bytes": 334,
+        "matches_original_before_bytes": true
+      },
+      "preexisting_markers": [],
+      "issues": []
+    }
+  },
+  "test_contracts": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "canonical_text_writer_orders_nested_keys_and_uses_one_trailing_newline",
+      "lines": [
+        357,
+        358
+      ],
+      "checks": [
+        "验证嵌套对象 canonical key order、末尾仅一个 newline 及 JSON roundtrip。"
+      ],
+      "limits": "仅覆盖给定嵌套样例与字符串断言，不证明任意 serde 输入的全局性质。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "canonical_text_writer_uses_shortest_roundtrip_float_spelling",
+      "lines": [
+        395,
+        396
+      ],
+      "checks": [
+        "断言浮点输出为可往返的最短十进制表示。"
+      ],
+      "limits": "只覆盖测试列出的浮点值。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "canonical_text_writer_serializes_bytes_through_the_sequence_contract",
+      "lines": [
+        403,
+        404
+      ],
+      "checks": [
+        "断言 bytes 走 serde sequence 形状。"
+      ],
+      "limits": "不代表任意自定义 bytes serializer。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "text_and_binary_writers_reject_out_of_range_json_integers_consistently",
+      "lines": [
+        411,
+        412
+      ],
+      "checks": [
+        "文本和二进制路径对 JSON 范围外整数都返回错误。"
+      ],
+      "limits": "仅覆盖指定整数边界 fixture。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "text_and_binary_writers_reject_raw_value_private_marker_consistently",
+      "lines": [
+        426,
+        427
+      ],
+      "checks": [
+        "两条 writer 路径都拒绝 serde_json RawValue 私有标记。"
+      ],
+      "limits": "仅覆盖测试 fixture 触发的 marker/struct 序列化路径。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "canonical_text_preaggregation_rejects_raw_value_map_keys_as_payload_validation",
+      "lines": [
+        442,
+        443
+      ],
+      "checks": [
+        "RawValue 作为 map key 时被归类为 payload validation。"
+      ],
+      "limits": "仅覆盖该 map-key fixture。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "canonical_text_preaggregation_stops_chunked_display_before_all_chunks_are_formatted",
+      "lines": [
+        455,
+        456
+      ],
+      "checks": [
+        "超预算时分块 Display 探针未格式化全部块。"
+      ],
+      "limits": "计数只观测测试探针的 format 调用，不证明其他自定义 Serialize 内部无副作用。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "canonical_text_preaggregation_stops_key_generation_before_the_full_map_is_retained",
+      "lines": [
+        478,
+        479
+      ],
+      "checks": [
+        "map key 按需生成，在预聚合超限时未生成完整键集。"
+      ],
+      "limits": "只证明测试探针中断位置。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "canonical_text_rejects_an_object_before_it_retains_unbounded_entries",
+      "lines": [
+        500,
+        501
+      ],
+      "checks": [
+        "过多对象项在无限保留前被预算拒绝。"
+      ],
+      "limits": "仅覆盖指定 entry 计数/预算。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "canonical_text_rejects_nesting_beyond_the_runtime_stack_budget",
+      "lines": [
+        522,
+        523
+      ],
+      "checks": [
+        "超过运行时深度限制的嵌套数组被拒绝。"
+      ],
+      "limits": "不测量其他结构或线程栈大小。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "versioned_text_preserves_the_typed_canonical_resource_failure",
+      "lines": [
+        541,
+        542
+      ],
+      "checks": [
+        "版本化包装保留底层命名资源超限类别和上下文。"
+      ],
+      "limits": "仅覆盖测试使用的资源名和限额。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "canonical_text_preaggregation_counts_a_duplicate_map_key_only_once",
+      "lines": [
+        563,
+        564
+      ],
+      "checks": [
+        "重复 map key 的预聚合计数按唯一键行为断言。"
+      ],
+      "limits": "仅覆盖所用 serializer/map 样例。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "current_text_writer_streams_a_borrowed_payload_with_canonical_map_order",
+      "lines": [
+        576,
+        577
+      ],
+      "checks": [
+        "测试 borrowed payload 的流式 canonical 输出与键排序；同一测试静态扫描 write.rs 要求直接委派 canonical writer 并排除全值 materialization。"
+      ],
+      "limits": "source guard 是字符串谓词，不是宏展开/Runtime 执行证据。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "streaming_text_writer_matches_the_owned_text_adapter_through_short_writes",
+      "lines": [
+        611,
+        612
+      ],
+      "checks": [
+        "短写 sink 下 streaming writer 与 owned text adapter 输出一致。"
+      ],
+      "limits": "只覆盖测试 sink 的短写模式。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "streaming_text_writer_preserves_the_downstream_write_failure",
+      "lines": [
+        633,
+        634
+      ],
+      "checks": [
+        "下游 sink 错误以 typed WriteError 保留。"
+      ],
+      "limits": "只覆盖 BrokenPipe fixture。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "canonical_text_writer_matches_json_key_normalization_and_error_categories",
+      "lines": [
+        656,
+        657
+      ],
+      "checks": [
+        "对照 serde_json key normalization 和指定错误类别。"
+      ],
+      "limits": "仅覆盖列举的键和值。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "writers_reject_non_finite_floats_instead_of_normalizing_them_to_null",
+      "lines": [
+        686,
+        687
+      ],
+      "checks": [
+        "text/binary writer 拒绝 NaN/Infinity 而非归一为 null。"
+      ],
+      "limits": "只覆盖测试列出的非有限值。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "binary_writer_rejects_a_body_larger_than_the_reader_limit",
+      "lines": [
+        705,
+        706
+      ],
+      "checks": [
+        "二进制写出拒绝超过 reader body 上限的 payload。"
+      ],
+      "limits": "仅证明该 writer/reader 常量组合与测试 payload。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "text_writer_rejects_a_document_larger_than_the_reader_limit",
+      "lines": [
+        727,
+        728
+      ],
+      "checks": [
+        "版本化文本写出拒绝大于 reader wire 上限的文档。"
+      ],
+      "limits": "仅覆盖构造的超限文档。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "raw_streaming_writer_uses_its_explicit_archive_budget",
+      "lines": [
+        749,
+        750
+      ],
+      "checks": [
+        "raw writer 使用调用方传入的 archive budget。"
+      ],
+      "limits": "只覆盖给定预算配置。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "raw_streaming_writer_rejects_output_above_its_explicit_archive_budget",
+      "lines": [
+        762,
+        763
+      ],
+      "checks": [
+        "raw writer 在输出超预算时返回资源限制错误。"
+      ],
+      "limits": "只覆盖该 archive budget 和 sink。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "raw_streaming_writer_handles_a_one_mebibyte_direct_array_without_text_aggregation",
+      "lines": [
+        786,
+        787
+      ],
+      "checks": [
+        "一 MiB 直接数组能够 streaming 写出且不经整份文本聚合。"
+      ],
+      "limits": "测试结果不代表更大数组的性能上限。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "raw_streaming_writer_bounds_each_sink_request_to_the_staging_size",
+      "lines": [
+        800,
+        801
+      ],
+      "checks": [
+        "追踪 sink 请求长度不超过 writer staging size。"
+      ],
+      "limits": "只测最大请求长度，不证明底层 sink 的物理缓冲大小。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "name": "raw_streaming_writer_rejects_output_above_its_explicit_512_mebibyte_budget",
+      "lines": [
+        817,
+        819
+      ],
+      "checks": [
+        "忽略的高容量 fixture 检查 512 MiB 显式预算上限。"
+      ],
+      "limits": "带 #[ignore]；本轮未执行，记录其源码断言而非运行结果。",
+      "documentation_decision": "测试名与断言足以表达契约；仅对非显然共享探针补说明。"
+    }
+  ],
+  "context_files": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/mod.rs",
+      "sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b",
+      "physical_lines": 53,
+      "formal_coverage": false,
+      "read_only_context": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/mod.rs",
+      "sha256": "55ae7bab29bd22dc3c0e7f0422a3d1d7aca12445131fb0401cccf76a09f50ed9",
+      "physical_lines": 79,
+      "formal_coverage": false,
+      "read_only_context": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/canonical_writer.rs",
+      "sha256": "e2268a1b4fd3a9961922a63e87eabe38fbc1ed9e8ef9ff84b5806b4a3eeb6e77",
+      "physical_lines": 890,
+      "formal_coverage": false,
+      "read_only_context": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/canonical.rs",
+      "sha256": "d7de6cb03e64ab6f95c74f3e47b75d663e6c97817c949a826696c3ef433fd068",
+      "physical_lines": 49,
+      "formal_coverage": false,
+      "read_only_context": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/mod.rs",
+      "sha256": "33446dce32f2a33cbce5232416464036f609e67361b44ed9b93f84a7ef2b4714",
+      "physical_lines": 27,
+      "formal_coverage": false,
+      "read_only_context": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/binary/encode.rs",
+      "sha256": "0662f3f4ed25d9685812b08aa780fd74ce23ae7a2ef6ec899e0d7fce7dcf5f14",
+      "physical_lines": 70,
+      "formal_coverage": false,
+      "read_only_context": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/budget.rs",
+      "sha256": "1213d94d395c713d859239b106027a510b1cd7ab6e7e1acefa2f6477e4d3a843",
+      "physical_lines": 29,
+      "formal_coverage": false,
+      "read_only_context": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/dynamic/session/artifact.rs",
+      "sha256": "f56683b937ab484b2640cc16b81ee726adf8f05ad5e47d1a879076f016203e6b",
+      "physical_lines": 533,
+      "formal_coverage": false,
+      "read_only_context": true
+    }
+  ],
+  "test_mounts": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/mod.rs",
+      "sha256": "55ae7bab29bd22dc3c0e7f0422a3d1d7aca12445131fb0401cccf76a09f50ed9",
+      "lines": [
+        22,
+        23
+      ],
+      "evidence": "#[path = \"write_contract.rs\"]\nmod write_contract;",
+      "relationship": "cfg(test) parent mounts the audited write_contract module; context only."
+    }
+  ],
+  "callers_traits_registration_ffi": {
+    "public_reexports": {
+      "path": "zircon_runtime_interface/src/serialization/mod.rs",
+      "evidence": "The serialization facade reexports the write entry points and typed error enums.",
+      "sha256": "3787d7b5ab8faed05f120f30d1e3886aaf6b0fe804b6f8319a7ceee6293dd10b"
+    },
+    "writer_call_graph": [
+      "write_versioned(Format::Text) -> write_versioned_text_to -> write_canonical_text",
+      "write_versioned(Format::Binary) -> encode_binary_payload_value -> encode_binary_payload",
+      "write_versioned_text -> write_versioned_text_to -> write_canonical_text",
+      "write_canonical_text_to -> write_canonical_text_with_budget"
+    ],
+    "runtime_caller": {
+      "path": "zircon_runtime/src/scene/dynamic/session/artifact.rs",
+      "line": 206,
+      "evidence": "Runtime-owned archive serialization calls write_canonical_text_to with an explicit budget. This is caller context, not formal source coverage."
+    },
+    "serde_traits": "The binary guard implements serde::Serializer and its sequence/map/struct compound traits; canonical writer consumes Serialize. This is the trait integration audited in write.rs.",
+    "io_traits": "Streaming entry points borrow a std::io::Write sink; they do not own sink buffering or persistence.",
+    "registration": "No registry or runtime type registration participates in these writer functions.",
+    "ffi": "No FFI boundary is present in the audited writer/error/text wire paths."
+  },
+  "helpers_call_graph": [
+    {
+      "caller": "write_versioned",
+      "callee": "write_versioned_text_to or encode_binary_payload_value + encode_binary_payload",
+      "evidence": "format match in write.rs."
+    },
+    {
+      "caller": "write_versioned_text",
+      "callee": "write_versioned_text_to then String::from_utf8",
+      "evidence": "owned convenience wrapper maps UTF-8 conversion error."
+    },
+    {
+      "caller": "write_versioned_text_to",
+      "callee": "write_canonical_text",
+      "evidence": "borrows TextDocument and maps typed writer errors to WriteError."
+    },
+    {
+      "caller": "write_canonical_text_to",
+      "callee": "write_canonical_text_with_budget",
+      "evidence": "raw archive entry passes caller SerializationBudget."
+    },
+    {
+      "caller": "encode_binary_payload_value",
+      "callee": "FiniteFloatGuard validation pass, serde_json Value conversion",
+      "evidence": "validation runs before materialization; each failure maps to WriteError."
+    }
+  ],
+  "evidence": {
+    "coverage_basis": "All eight assigned sources were read in full; cross-file callers and helper context are pinned separately and do not add formal coverage.",
+    "direct_write_test_boundary": "24 test functions in write_contract.rs are individually recorded. Tests are source evidence only; no test was run in this comment-only task.",
+    "static_source_guard": {
+      "test_file": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "include_str": "../write.rs",
+      "before_after_predicates": {
+        "before": {
+          "required_direct_canonical_call": true,
+          "forbidden_payload_materialization_absent": true
+        },
+        "after": {
+          "required_direct_canonical_call": true,
+          "forbidden_payload_materialization_absent": true
+        }
+      },
+      "interpretation": "The source-string predicates remain true before and after; this is a manual evaluation of the included source text, not execution of the Rust test or proof of expanded macro/runtime behavior."
+    },
+    "test_fixture_boundary": "The five new fixture comments describe measurement/probe roles. Counter assertions prove only the listed fixture behavior, not all arbitrary Serialize implementations.",
+    "byte_integrity": {
+      "inserted_comment_only": true,
+      "inserted_blocks": 44,
+      "inserted_lines": 58,
+      "inserted_bytes": 4952,
+      "all_before_files_reconstructed_exactly": true,
+      "line_endings_preserved": "All assigned files use LF; original LF bytes retained."
+    },
+    "existing_docs_sufficiency": "text/document.rs, text/envelope.rs, text/mod.rs and text/read.rs have sufficient existing lifecycle, format, read-stage and error-boundary documentation; no duplicate comments added."
+  },
+  "coverage_basis": {
+    "formal_source_files": [
+      "zircon_runtime_interface/src/serialization/write.rs",
+      "zircon_runtime_interface/src/serialization/write_error.rs",
+      "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "zircon_runtime_interface/src/serialization/text/document.rs",
+      "zircon_runtime_interface/src/serialization/text/envelope.rs",
+      "zircon_runtime_interface/src/serialization/text/mod.rs",
+      "zircon_runtime_interface/src/serialization/text/read.rs",
+      "zircon_runtime_interface/src/serialization/text/wire.rs"
+    ],
+    "formal_source_physical_lines_before": 1664,
+    "formal_source_physical_lines_after": 1722,
+    "formal_test_functions": 24,
+    "all_formal_files_read_in_full": true,
+    "context_files_are_not_formal_coverage": true,
+    "objects_and_blocks": "Each function/type/trait implementation/macro and each test is enumerated in files[*].objects, files[*].block_audit or test_contracts; local helper/control-flow branches are described with the containing block."
+  },
+  "validation": {
+    "rustfmt_command": "rustfmt --check --edition 2021 --config skip_children=true <the eight assigned paths>",
+    "rustfmt_exit_code": 0,
+    "git_diff_check_command": "git diff --check -- <the eight assigned paths>",
+    "git_diff_check_exit_code": 0,
+    "git_warning": "Git emitted LF-to-CRLF working-tree advisory for changed files; direct byte hashes/reconstruction confirm the physical LF bytes remain unchanged outside added comments.",
+    "static_guard": "Before and after: required direct canonical call=true; forbidden serde_json::to_value in write_versioned_text_to body=false. No test execution.",
+    "cargo_tests_build_generation": "Not run; comment-only task and explicitly outside the granted validation.",
+    "git_mutations": "None."
+  },
+  "issues": [],
+  "preexisting_markers": [],
+  "formal_gate": {
+    "status": "pending-parent-review; no Jenkins acceptance claimed",
+    "acceptance_claimed": false,
+    "source_write_stopped_after_fixed_record": true
+  }
+}

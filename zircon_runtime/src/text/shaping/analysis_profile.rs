@@ -1,5 +1,5 @@
 use std::cell::Cell;
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 // 计数器名称固定且低基数；TLS 聚合只在一次请求结束时发布，避免按段落或文本内容生成动态键。
 const TEXT_ANALYSIS_PROFILE_COUNTER_NAMES: [&str; 11] = [

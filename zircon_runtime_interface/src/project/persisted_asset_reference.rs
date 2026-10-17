@@ -46,6 +46,7 @@ impl Display for PersistedAssetReferenceError {
 impl Error for PersistedAssetReferenceError {}
 
 impl PersistedAssetReference {
+    /// 将已构造的项目资产引用包装为持久化 project 变体。
     pub fn project(reference: AssetRef) -> Self {
         Self(PersistedAssetReferenceKind::Project { reference })
     }

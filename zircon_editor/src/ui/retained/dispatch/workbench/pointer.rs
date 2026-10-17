@@ -47,10 +47,11 @@ pub(crate) fn dispatch_componentized_workbench_pointer_event(
             Ok(candidate) => candidate,
             Err(error) => return Some(Err(error.to_string())),
         };
-    let content_drawer_scroll_candidate = match bridge.refresh_content_drawer_assets_after_scroll(&route) {
-        Ok(candidate) => candidate,
-        Err(error) => return Some(Err(error.to_string())),
-    };
+    let content_drawer_scroll_candidate =
+        match bridge.refresh_content_drawer_assets_after_scroll(&route) {
+            Ok(candidate) => candidate,
+            Err(error) => return Some(Err(error.to_string())),
+        };
     let hover_feedback_candidate = match bridge.update_pointer_hover_feedback(&route) {
         Ok(candidate) => candidate,
         Err(error) => return Some(Err(error.to_string())),

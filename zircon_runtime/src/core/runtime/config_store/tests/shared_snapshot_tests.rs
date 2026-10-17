@@ -43,6 +43,7 @@ fn optimization_batch_20260829ax_runtime324_locked_snapshot_step_shares_json_sto
     }
 }
 
+// 快照闭包只保留配置存储；本夹具还在 Runtime 释放后核对已封存值与后续取值。
 #[test]
 fn config_persistence_snapshot_source_shares_large_json_and_preserves_sealed_values() {
     const LARGE_PAYLOAD_BYTES: usize = 1_048_576;
@@ -125,6 +126,7 @@ fn config_public_owned_snapshots_remain_independent_of_shared_owners() {
     assert!(!source().contains_key("snapshot only"));
 }
 
+// 此基准比较固定数据集的快照步骤，未测量文件序列化或磁盘发布。
 #[test]
 #[ignore = "managed Windows release performance evidence"]
 fn optimization_batch_20260829ax_runtime324_short_config_snapshot_lock_bench() {

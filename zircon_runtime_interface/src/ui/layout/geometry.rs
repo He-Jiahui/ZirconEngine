@@ -107,6 +107,7 @@ impl UiFrame {
             .translated(transform.translation)
     }
 
+    /// 将有限帧的边界按设备比例向外对齐到像素；比例无效或非正时按 1 处理，非有限帧原样返回。
     pub fn pixel_snapped(self, dpi_scale: f32) -> Self {
         if !frame_is_finite(self) {
             return self;
@@ -258,6 +259,7 @@ impl UiGeometry {
         }
     }
 
+    /// 保留原布局帧并设置布局、绘制变换；仅在像素对齐启用时计算向外取整的绘制边界。
     pub fn from_frame_with_metrics(frame: UiFrame, metrics: UiLayoutMetrics) -> Self {
         let dpi_scale = sanitized_metric_scale(metrics.dpi_scale);
         let layout_scale = sanitized_metric_scale(metrics.layout_scale);

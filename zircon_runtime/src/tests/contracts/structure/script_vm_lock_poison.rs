@@ -1,5 +1,5 @@
 use super::rust_source_view::production_code_view;
-use super::{assert_contains_all_exact, runtime_src_path};
+use super::{assert_contains_all, assert_contains_all_exact, runtime_src_path};
 
 const READ_UNWRAP_CALL: &str = concat!(".read().", "unwrap()");
 const WRITE_UNWRAP_CALL: &str = concat!(".write().", "unwrap()");
@@ -9,30 +9,35 @@ const WRITE_UNWRAP_CALL: &str = concat!(".write().", "unwrap()");
 fn runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_covers_manager_selector(
 ) {
     let vm_plugin_manager = read_runtime_src("script/vm/runtime/vm_plugin_manager.rs");
-    let structure_parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
+    let structure_parent = read_runtime_src("tests/contracts/structure.rs");
 
     assert_contains_all_exact(
         "VM plugin manager selected-backend poison recovery",
         &vm_plugin_manager,
         &[
             "use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};",
-            "fn selected_backend_read(&self) -> RwLockReadGuard<'_, String>",
-            "fn selected_backend_write(&self) -> RwLockWriteGuard<'_, String>",
+            "fn selected_backend_read(&self) -> RwLockReadGuard<'_, Arc<str>>",
+            "fn selected_backend_write(&self) -> RwLockWriteGuard<'_, Arc<str>>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
-            "self.selected_backend_read().clone()",
-            "*self.selected_backend_write() = backend_name.to_string();",
-            "vm_plugin_manager_selected_backend_accessors_recover_poisoned_lock",
+            "Arc::clone(&self.selected_backend_read())",
+            "*self.selected_backend_write() = Arc::from(backend_name);",
         ],
     );
     assert_contains_all_exact(
         "script VM lock poison guard mount",
         &structure_parent,
         &[
-            "#[path = \"structure_convention/script_vm_lock_poison.rs\"]",
+            "#[path = \"structure/script_vm_lock_poison.rs\"]",
             "mod script_vm_lock_poison;",
         ],
     );
     assert_no_direct_rwlock_unwrap_in_production("VM plugin manager", &vm_plugin_manager);
+    let recovery_tests = read_runtime_src("script/vm/runtime/tests/vm_plugin_manager.rs");
+    assert_contains_all(
+        "mounted poison recovery regression",
+        &recovery_tests,
+        &["fn vm_plugin_manager_selected_backend_accessors_recover_poisoned_lock("],
+    );
 }
 
 fn assert_no_direct_rwlock_unwrap_in_production(label: &str, source: &str) {

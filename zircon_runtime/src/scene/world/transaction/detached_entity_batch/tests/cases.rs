@@ -221,9 +221,11 @@ mod lifecycle_cancellation {
 
     #[derive(Debug, PartialEq, Eq)]
     struct OwnedTable(Box<str>);
+    zircon_runtime_interface::impl_retained_owner_v1!(OwnedTable { 0 });
     impl Component for OwnedTable {}
     #[derive(Debug, PartialEq, Eq)]
     struct OwnedSparse(u64);
+    zircon_runtime_interface::impl_retained_owner_v1!(OwnedSparse { 0 });
     impl Component for OwnedSparse {
         const STORAGE_TYPE: StorageType = StorageType::SparseSet;
     }
@@ -234,8 +236,28 @@ mod lifecycle_cancellation {
     macro_rules! observe_rows {
         ($world:expr, $kinds:expr, $callback:expr) => {{
             for kind in $kinds {
-                $world.observe_component_lifecycle::<OwnedTable>(kind, $callback.clone());
-                $world.observe_component_lifecycle::<OwnedSparse>(kind, $callback.clone());
+                // SAFETY: All four callers of this local macro are audited below:
+                // cancellation_case only reads rows, records external counters, replaces
+                // the World/Schedule and installs the sentinel (resource/diagnostics/queue);
+                // its queued sentinel body only increments an external counter. The other
+                // callers count events or register one schedule body that only counts.
+                // No caller changes component/dynamic payload or recursively dispatches;
+                // replacement ownership interrupts replay before adopting its existing rows.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    $world.observe_component_lifecycle::<OwnedTable>(
+                        kind,
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                            $callback.clone(),
+                        ),
+                    );
+                    $world.observe_component_lifecycle::<OwnedSparse>(
+                        kind,
+                        RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                            $callback.clone(),
+                        ),
+                    );
+                }
             }
         }};
     }
@@ -614,7 +636,11 @@ mod lifecycle_cancellation {
             } else {
                 LifecycleEventKind::Remove
             };
-            world.observe_component_lifecycle::<OwnedTable>(kind, move |world, _| {
+            world.observe_component_lifecycle::<OwnedTable>(kind,
+                // SAFETY: The only producer registered here increments an external atomic.
+                // Then the World is retired and the callback panics. No history component
+                // or dynamic presence is added; replacement rows cannot be adopted by replay.
+                unsafe { crate::core::framework::retained_memory::RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, _| {
                 let observed = Arc::clone(&observed);
                 world
                     .register_native_system::<(), _>(
@@ -628,7 +654,7 @@ mod lifecycle_cancellation {
                     .unwrap();
                 *saved.lock().unwrap() = Some(std::mem::replace(world, World::empty()));
                 panic!("detached original observer panic");
-            });
+            }) });
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 if restoring {
                     world
@@ -652,4 +678,51 @@ mod lifecycle_cancellation {
             assert_eq!(systems.load(Ordering::SeqCst), 1);
         }
     }
+}
+
+#[test]
+fn detached_entity_observer_bound_survives_snapshot_and_restore() {
+    use crate::core::framework::retained_memory::RetainedEntityObserverV1;
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+    use zircon_runtime_interface::retained_memory::{
+        verified_std_model_v1, RetainedBoundBuilderV1, RetainedOwnerV1,
+    };
+    struct RetainedEventV1;
+    let model = verified_std_model_v1().unwrap();
+    let mut world = World::empty();
+    let root = world.spawn_node(NodeKind::Empty).unwrap();
+    let observed = Arc::new(AtomicUsize::new(0));
+    world.observe_entity_event::<RetainedEventV1>(
+        root,
+        RetainedEntityObserverV1::new(
+            (Vec::<u8>::with_capacity(16 * 1024), Arc::clone(&observed)),
+            |state, _, _, _| {
+                state.1.fetch_add(1, Ordering::SeqCst);
+            },
+        ),
+    );
+    let mut before = RetainedBoundBuilderV1::new(model);
+    world
+        .detached_subtrees_retention_bound_v1(&[root], &mut before)
+        .unwrap();
+    let batch = world.remove_entity_subtrees([root]).unwrap();
+    let mut detached = RetainedBoundBuilderV1::new(model);
+    batch.retained_bound_v1(&mut detached).unwrap();
+    assert!(detached.bytes().get() >= 16 * 1024);
+    assert!(before.bytes().get() >= detached.bytes().get());
+    assert_eq!(observed.load(Ordering::SeqCst), 0);
+
+    world.restore_detached_entity_batch(batch).unwrap();
+    world.trigger_entity_event(root, RetainedEventV1);
+    assert_eq!(observed.load(Ordering::SeqCst), 1);
+    let batch = world.remove_entity_subtrees([root]).unwrap();
+    let mut detached_again = RetainedBoundBuilderV1::new(model);
+    batch.retained_bound_v1(&mut detached_again).unwrap();
+    assert!(detached_again.bytes().get() >= 16 * 1024);
+    world.restore_detached_entity_batch(batch).unwrap();
+    world.trigger_entity_event(root, RetainedEventV1);
+    assert_eq!(observed.load(Ordering::SeqCst), 2);
 }

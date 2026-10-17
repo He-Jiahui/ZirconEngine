@@ -56,6 +56,7 @@ fn shared_clone_sample(names: &[RegistryName], clones_per_name: usize) -> (u128,
     (started.elapsed().as_nanos(), checksum)
 }
 
+// 固定 21 组交替采样比较完整克隆/释放循环；阈值是该忽略夹具的 release 性能门槛。
 #[test]
 #[ignore = "release-only registry-name clone performance evidence"]
 fn registry_name_clone_release_benchmark_evidence() {

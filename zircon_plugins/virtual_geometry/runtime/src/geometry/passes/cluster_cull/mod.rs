@@ -14,13 +14,19 @@ mod page_requests;
 mod startup_worklist;
 #[path = "../../cluster_cull/store_parts.rs"]
 mod store_parts;
-#[path = "../../cluster_cull/traversal.rs"]
-mod traversal;
 #[cfg(test)]
 #[path = "../../tests/cluster_cull_mod.rs"]
 mod tests;
+#[path = "../../cluster_cull/traversal.rs"]
+mod traversal;
 
 pub(in crate::virtual_geometry::renderer) use output::VirtualGeometryNodeAndClusterCullPassOutput;
 pub(in crate::virtual_geometry::renderer) use store_parts::VirtualGeometryNodeAndClusterCullPassStoreParts;
 
 pub(super) use execute::execute_virtual_geometry_node_and_cluster_cull_pass;
+
+pub(crate) use execute::prepare_virtual_geometry_node_and_cluster_cull;
+
+pub(crate) use buffers::{materialize_prepared_cull, MaterializedPreparedCull};
+#[cfg(test)]
+pub(super) use startup_worklist::build_node_and_cluster_cull_global_state;

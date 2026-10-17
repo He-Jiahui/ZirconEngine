@@ -19,6 +19,9 @@ use zircon_runtime::asset::ProjectImportReceipt;
 #[path = "../../../app/assets/workspace/active_scene_reload_conflict.rs"]
 mod active_scene_reload_conflict;
 
+#[path = "workspace/model_import_settlement.rs"]
+mod model_import_settlement;
+
 #[cfg(test)]
 #[path = "workspace/tests/reload.rs"]
 mod reload_tests;
@@ -31,6 +34,7 @@ const ACTIVE_SCENE_RELOAD_ADMISSION_RETRY_BASE_DELAY: Duration = Duration::from_
 pub(in crate::ui::retained_host::app) struct PendingActiveSceneReload {
     ticket: ProjectSceneLoadTicket,
     prepared: Option<AuthoringWorldSeed>,
+    prepared_source_revision: Option<zircon_runtime::scene::world::SceneSourceRevision>,
     generation: ProjectAssetGenerationToken,
     identity: ActiveSceneDocumentIdentity,
     dirty_policy: PreparedActiveSceneReloadDirtyPolicy,
@@ -47,7 +51,10 @@ pub(in crate::ui::retained_host::app) struct ActiveSceneReloadAdmissionState {
 pub(in crate::ui::retained_host::app) struct PendingModelImport {
     ticket: EditorModelImportTicket,
     display_path: String,
+    identity: ActiveSceneDocumentIdentity,
     close_requested: bool,
+    close_attempted: bool,
+    settlement: Option<model_import_settlement::ModelImportSettlement>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -59,6 +66,7 @@ pub(in crate::ui::retained_host::app) enum ActiveSceneReloadOutcome {
     Conflict {
         identity: ActiveSceneDocumentIdentity,
         generation: ProjectAssetGenerationToken,
+        observed_revision: zircon_runtime::scene::world::SceneSourceRevision,
     },
 }
 
@@ -170,6 +178,7 @@ impl RetainedEditorHost {
         self.pending_active_scene_reload = Some(PendingActiveSceneReload {
             ticket,
             prepared: None,
+            prepared_source_revision: None,
             generation,
             identity,
             dirty_policy,
@@ -237,20 +246,31 @@ impl RetainedEditorHost {
             Ok(ActiveSceneReloadOutcome::Conflict {
                 identity,
                 generation,
+                observed_revision,
             }) => {
                 zircon_runtime::profile_counter!(
                     "editor",
                     "ui.asset_refresh.active_scene_reload_conflict",
                     1
                 );
-                self.install_active_scene_reload_conflict(identity, generation);
+                self.install_active_scene_reload_conflict(identity, generation, observed_revision);
             }
             Err(error) => {
                 if discard_requested {
-                    self.restore_active_scene_reload_conflict_after_discard_failure(
-                        completed_identity,
-                        completed_generation,
-                    );
+                    let observed = pending.prepared_source_revision.clone().or_else(|| {
+                        self.active_scene_reload_conflict
+                            .as_ref()
+                            .map(|conflict| conflict.observed_revision.clone())
+                    });
+                    if let Some(observed) = observed {
+                        self.restore_active_scene_reload_conflict_after_discard_failure(
+                            completed_identity,
+                            completed_generation,
+                            observed,
+                        );
+                    } else {
+                        self.queue_active_scene_reload_retry();
+                    }
                 }
                 self.set_status_line(error);
             }
@@ -402,6 +422,7 @@ impl RetainedEditorHost {
                 "retained_host",
                 "active_scene_authoring_prepare"
             );
+            pending.prepared_source_revision = Some(document.source_revision().clone());
             pending.prepared = Some(
                 self.editor_manager
                     .enter()
@@ -410,10 +431,15 @@ impl RetainedEditorHost {
                     .map_err(|error| error.to_string())?,
             );
         }
+        let source_revision = pending
+            .prepared_source_revision
+            .as_ref()
+            .ok_or_else(|| "prepared scene reload has no source revision".to_owned())?;
         match self.runtime.commit_prepared_active_scene_reload(
             &*project_asset_manager,
             &pending.generation,
             pending.identity.clone(),
+            source_revision,
             &mut pending.prepared,
             &pending.dirty_policy,
         )? {
@@ -423,6 +449,7 @@ impl RetainedEditorHost {
             PreparedActiveSceneReloadOutcome::Conflict => Ok(ActiveSceneReloadOutcome::Conflict {
                 identity: pending.identity.clone(),
                 generation: pending.generation.clone(),
+                observed_revision: source_revision.clone(),
             }),
             PreparedActiveSceneReloadOutcome::ProjectGenerationSuperseded {
                 newer_same_project_generation: true,
@@ -446,118 +473,6 @@ impl RetainedEditorHost {
         }
         self.active_scene_reload_admission = None;
         self.dismiss_active_scene_reload_conflict();
-    }
-
-    pub(in crate::ui::retained_host::app) fn import_model_into_project(
-        &mut self,
-    ) -> Result<(), String> {
-        if self.pending_asset_deletion.is_some() {
-            return Err("an asset deletion is already running".to_owned());
-        }
-        if self.pending_asset_relocation.is_some() {
-            return Err("an asset move is already running".to_owned());
-        }
-        if self.pending_model_import.is_some() {
-            return Err("a model import is already running".to_owned());
-        }
-        let chrome = self.build_chrome().map_err(|error| error.to_string())?;
-        let source = canonical_model_source_path(&chrome.mesh_import_path)
-            .map_err(|error| error.to_string())?;
-        let ticket = self
-            .editor_asset_manager_at_use_point()
-            .map_err(|error| error.to_string())?
-            .submit_model_import(source.clone())
-            .map_err(|error| error.to_string())?;
-        let display_path = ProjectPaths::display_path(&source)
-            .to_string_lossy()
-            .into_owned();
-        self.pending_model_import = Some(PendingModelImport {
-            ticket,
-            display_path,
-            close_requested: false,
-        });
-        Ok(())
-    }
-
-    pub(in crate::ui::retained_host::app) fn poll_model_import(&mut self) {
-        let Some(pending) = self.pending_model_import.take() else {
-            return;
-        };
-        let Some(result) = pending.ticket.try_take() else {
-            self.pending_model_import = Some(pending);
-            return;
-        };
-        if pending.close_requested {
-            if let Err(error) = self.commit_project_close() {
-                self.set_status_line(error.to_string());
-            }
-            return;
-        }
-        let completion = match result {
-            Ok(receipt) => self.complete_model_import(receipt, pending.display_path),
-            Err(error) => Err(error.to_string()),
-        };
-        match completion {
-            Ok(()) => {
-                if let Some(notification) = import_model_completed_toast() {
-                    self.publish_activity_toasts(std::slice::from_ref(&notification));
-                }
-            }
-            Err(error) => {
-                let error = error.to_string();
-                if let Some(notification) = import_model_failed_toast(&error) {
-                    self.publish_activity_toasts(std::slice::from_ref(&notification));
-                }
-                self.set_status_line(error);
-            }
-        }
-    }
-
-    pub(in crate::ui::retained_host::app) fn cancel_pending_model_import(&mut self) -> bool {
-        let Some(mut pending) = self.pending_model_import.take() else {
-            return true;
-        };
-        let _ = self.runtime.context().jobs().cancel(pending.ticket.id());
-        if pending.ticket.try_take().is_some() {
-            return true;
-        }
-        pending.close_requested = true;
-        self.pending_model_import = Some(pending);
-        false
-    }
-
-    fn complete_model_import(
-        &mut self,
-        receipt: ProjectImportReceipt,
-        display_path: String,
-    ) -> Result<(), String> {
-        // The Runtime transaction deliberately filters its own watcher echoes. Project the
-        // committed receipt here so a successful model import is visible without relying on a
-        // second scan or on filesystem timing.
-        self.editor_asset_manager_at_use_point()
-            .map_err(|error| error.to_string())?
-            .refresh_from_runtime_project()
-            .map_err(|error| error.to_string())?;
-        let model_uri = receipt.source_uri().clone();
-        let resource_manager = self
-            .resolve_resource_manager()
-            .map_err(|error| error.to_string())?;
-        let model_id = resolve_ready_handle::<ModelMarker>(&*resource_manager, &model_uri)?;
-        let material_uri = ResourceLocator::parse("res://materials/default.zmaterial")
-            .map_err(|error| error.to_string())?;
-        let material_id =
-            resolve_ready_handle::<MaterialMarker>(&*resource_manager, &material_uri)?;
-        drop(resource_manager);
-        if self
-            .runtime
-            .import_mesh_asset(model_id, material_id, display_path)
-            .map_err(|error| error.to_string())?
-        {
-            self.mark_render_and_presentation_dirty();
-        } else {
-            self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
-        }
-        Ok(())
     }
 
     pub(in crate::ui::retained_host::app) fn sync_asset_workspace(&mut self) {

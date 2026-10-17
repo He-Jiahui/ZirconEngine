@@ -1,5 +1,5 @@
 pub(super) fn create_node_and_cluster_cull_instance_work_item_pipeline(
-    device: &wgpu::Device,
+    device: &(impl zircon_runtime::graphics::RenderPassGpuResourceFactory + ?Sized),
 ) -> (wgpu::BindGroupLayout, wgpu::ComputePipeline) {
     let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-vg-node-and-cluster-cull-instance-work-items-bind-group-layout"),
@@ -47,4 +47,12 @@ pub(super) fn create_node_and_cluster_cull_instance_work_item_pipeline(
     });
 
     (bind_group_layout, pipeline)
+}
+
+impl super::VirtualGeometryGpuResources {
+    pub(crate) fn create_prepared_cull_startup_pipeline(
+        factory: &(impl zircon_runtime::graphics::RenderPassGpuResourceFactory + ?Sized),
+    ) -> (wgpu::BindGroupLayout, wgpu::ComputePipeline) {
+        create_node_and_cluster_cull_instance_work_item_pipeline(factory)
+    }
 }

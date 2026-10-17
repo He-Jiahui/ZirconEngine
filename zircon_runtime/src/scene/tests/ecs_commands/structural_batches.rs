@@ -251,21 +251,37 @@ fn deferred_final_row_segment_hides_insert_then_remove_lifecycle() {
         LifecycleEventKind::Remove,
     ] {
         let health_events = Arc::clone(&health_events);
-        world.observe_component_lifecycle::<Health>(kind, move |_world, _event| {
-            health_events
-                .lock()
-                .expect("health lifecycle events")
-                .push(kind);
-        });
+        world.observe_component_lifecycle::<Health>(
+            kind,
+            // SAFETY: Only the external observation log changes after optional World reads;
+            // retained World payload is untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                    health_events
+                        .lock()
+                        .expect("health lifecycle events")
+                        .push(kind);
+                })
+            },
+        );
     }
     for kind in [LifecycleEventKind::Add, LifecycleEventKind::Insert] {
         let marker_events = Arc::clone(&marker_events);
-        world.observe_component_lifecycle::<Marker>(kind, move |_world, _event| {
-            marker_events
-                .lock()
-                .expect("marker lifecycle events")
-                .push(kind);
-        });
+        world.observe_component_lifecycle::<Marker>(
+            kind,
+            // SAFETY: Only the external observation log changes after optional World reads;
+            // retained World payload is untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                    marker_events
+                        .lock()
+                        .expect("marker lifecycle events")
+                        .push(kind);
+                })
+            },
+        );
     }
     world.reset_ecs_frame_performance_diagnostics();
 
@@ -477,12 +493,20 @@ fn deferred_final_row_segment_cancels_spawn_then_despawn_without_publication() {
         LifecycleEventKind::Despawn,
     ] {
         let marker_events = Arc::clone(&marker_events);
-        world.observe_component_lifecycle::<Marker>(kind, move |_world, _event| {
-            marker_events
-                .lock()
-                .expect("marker lifecycle events")
-                .push(kind);
-        });
+        world.observe_component_lifecycle::<Marker>(
+            kind,
+            // SAFETY: Only the external observation log changes after optional World reads;
+            // retained World payload is untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                    marker_events
+                        .lock()
+                        .expect("marker lifecycle events")
+                        .push(kind);
+                })
+            },
+        );
     }
     world.reset_ecs_frame_performance_diagnostics();
 
@@ -531,27 +555,48 @@ fn deferred_final_row_segment_despawn_discards_pending_insert() {
         LifecycleEventKind::Despawn,
     ] {
         let marker_events = Arc::clone(&marker_events);
-        world.observe_component_lifecycle::<Marker>(kind, move |_world, _event| {
-            marker_events
-                .lock()
-                .expect("marker lifecycle events")
-                .push(kind);
-        });
+        world.observe_component_lifecycle::<Marker>(
+            kind,
+            // SAFETY: Only the external observation log changes after optional World reads;
+            // retained World payload is untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                    marker_events
+                        .lock()
+                        .expect("marker lifecycle events")
+                        .push(kind);
+                })
+            },
+        );
         let health_events = Arc::clone(&health_events);
-        world.observe_component_lifecycle::<Health>(kind, move |_world, _event| {
-            health_events
-                .lock()
-                .expect("health lifecycle events")
-                .push(kind);
-        });
+        world.observe_component_lifecycle::<Health>(
+            kind,
+            // SAFETY: Only the external observation log changes after optional World reads;
+            // retained World payload is untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                    health_events
+                        .lock()
+                        .expect("health lifecycle events")
+                        .push(kind);
+                })
+            },
+        );
     }
     let observed_removed_entity_for_remove = Arc::clone(&observed_removed_entity);
     world.observe_component_lifecycle::<Health>(
         LifecycleEventKind::Remove,
-        move |world, _event| {
-            *observed_removed_entity_for_remove
-                .lock()
-                .expect("removed entity observation") = !world.contains_entity(entity);
+        // SAFETY: Only an external boolean observation is assigned from World reads; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, _event| {
+                *observed_removed_entity_for_remove
+                    .lock()
+                    .expect("removed entity observation") = !world.contains_entity(entity);
+            })
         },
     );
     world.reset_ecs_frame_performance_diagnostics();
@@ -629,12 +674,20 @@ fn deferred_final_row_segment_publishes_existing_sparse_removal_once() {
         LifecycleEventKind::Remove,
     ] {
         let sparse_events = Arc::clone(&sparse_events);
-        world.observe_component_lifecycle::<SparseMarker>(kind, move |_world, _event| {
-            sparse_events
-                .lock()
-                .expect("sparse lifecycle events")
-                .push(kind);
-        });
+        world.observe_component_lifecycle::<SparseMarker>(
+            kind,
+            // SAFETY: Only the external observation log changes after optional World reads;
+            // retained World payload is untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                    sparse_events
+                        .lock()
+                        .expect("sparse lifecycle events")
+                        .push(kind);
+                })
+            },
+        );
     }
     world.reset_ecs_frame_performance_diagnostics();
 

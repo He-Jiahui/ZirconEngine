@@ -2,7 +2,7 @@ use super::support::*;
 use crate::service::{
     cloud::*,
     error::ServiceError,
-    storage::{Database, receipt},
+    storage::{receipt, Database},
 };
 use std::sync::Arc;
 

@@ -78,17 +78,28 @@ pub(super) fn sample_vec3(value: &AnimationChannelValueAsset) -> AnimationResult
 
 pub(super) fn sample_quaternion(value: &AnimationChannelValueAsset) -> AnimationResult<Quat> {
     match value {
-        AnimationChannelValueAsset::Quaternion(value)
-            if value.iter().all(|c| c.is_finite()) && quaternion_array_is_normalizable(value) =>
-        {
-            Ok(Quat::from_array(*value).normalize())
+        AnimationChannelValueAsset::Quaternion(value) => {
+            let value = Quat::from_array(*value);
+            let length_squared = value.length_squared();
+            if !value.is_finite() || !length_squared.is_finite() {
+                return Err(AnimationError::NonFiniteSample {
+                    sample_kind: "quaternion",
+                });
+            }
+            if length_squared <= Real::EPSILON {
+                return Err(AnimationError::ZeroLengthQuaternionSample);
+            }
+            let value = value.normalize();
+            if !value.is_finite() {
+                return Err(AnimationError::NonFiniteSample {
+                    sample_kind: "quaternion",
+                });
+            }
+            if value.length_squared() <= Real::EPSILON {
+                return Err(AnimationError::ZeroLengthQuaternionSample);
+            }
+            Ok(value)
         }
-        AnimationChannelValueAsset::Quaternion(value) if value.iter().all(|c| c.is_finite()) => {
-            Err(AnimationError::ZeroLengthQuaternionSample)
-        }
-        AnimationChannelValueAsset::Quaternion(_) => Err(AnimationError::NonFiniteSample {
-            sample_kind: "quaternion",
-        }),
         other => Err(AnimationError::SampleTypeMismatch {
             expected: "quaternion",
             actual: animation_channel_value_kind(other),

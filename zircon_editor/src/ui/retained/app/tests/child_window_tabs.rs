@@ -201,7 +201,9 @@ fn native_child_tab_drop_to_root_uses_child_state_and_projected_workbench_coordi
     let host = harness.host.borrow();
     assert!(
         matches!(
-            host.runtime.view_host_for_instance_key("editor.assets#1").unwrap(),
+            host.runtime
+                .view_host_for_instance_key("editor.assets#1")
+                .unwrap(),
             Some(ViewHost::Document(_, _))
         ),
         "a drop on the root document surface should attach the child tab to a document workspace"
@@ -269,7 +271,8 @@ fn native_child_tab_drop_to_another_child_uses_target_window_route() {
     ));
     assert!(host
         .runtime
-        .floating_window_instance_ids(&target_id).unwrap()
+        .floating_window_instance_ids(&target_id)
+        .unwrap()
         .expect("target child should remain open")
         .contains(&ViewInstanceId::new("editor.assets#1")));
     assert!(!host.runtime.floating_window_exists(&source_id).unwrap());

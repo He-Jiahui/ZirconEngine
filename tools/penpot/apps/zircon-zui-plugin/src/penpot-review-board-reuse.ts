@@ -29,6 +29,10 @@ export function canReuseReviewBoard(
   document: ZuiDocument,
   reviewCase: LayoutReviewCaseMessage,
 ): boolean {
+  // SDK clones assign new shape IDs while guards and painter caches retain
+  // the original IDs. Build a fresh review using the existing component shelf.
+  if (previous.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard'))
+    return false;
   if (reviewCase.locale !== 'en-US' || Object.keys(reviewCase.data).length > 0)
     return false;
   if (

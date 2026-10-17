@@ -1,5 +1,5 @@
 use std::sync::{Mutex, MutexGuard, TryLockError};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::graphics::types::GraphicsError;
 use thiserror::Error;

@@ -9,11 +9,14 @@ use std::{
 use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime_interface::project::RelPath;
 
+use crate::entry::runtime_product_proof::RuntimeProductProofPolicy;
+
 const RUNTIME_SESSION_PROJECT_ARG: &str = "--project";
 const RUNTIME_SESSION_PROFILE_ARG: &str = "--runtime-session-profile";
 const RUNTIME_SESSION_PLAY_SCENE_ARG: &str = "--play-scene";
 const RUNTIME_SESSION_PLAY_REPORT_PIPE_ARG: &str = "--play-report-pipe";
 const RUNTIME_SESSION_REFERENCE_CPU_PRESENTER_ARG: &str = "--reference-cpu-presenter";
+const RUNTIME_PRODUCT_PROOF_ARG: &str = "--runtime-product-proof";
 const RUNTIME_SESSION_HELP_ARG: &str = "--help";
 const RUNTIME_SESSION_SHORT_HELP_ARG: &str = "-h";
 
@@ -30,6 +33,8 @@ Options:
   --play-report-pipe <name>             Select a logical Play startup report outlet
   --play-report-pipe=<name>             Select the same logical Play startup report outlet with an equals-form argument
   --reference-cpu-presenter              Explicitly use the degraded CPU copy presenter when a qualified native backend is unavailable
+  --runtime-product-proof <proof>        Explicitly require f2-lit-mesh evidence after a presented frame; needs --project and a windowed profile
+  --runtime-product-proof=<proof>        Select the same F2 proof with an equals-form argument
   --log-level <level>                   Select verbose, debug, log, warn, error, or off process logging
   --log-filter <filter>                 Select comma-separated log filters such as warn,zircon_runtime::asset=debug
   -h, --help                            Print this help without loading the dynamic runtime library
@@ -56,6 +61,7 @@ Profiles:
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct RuntimeSessionStartupArgs {
     pub(super) profile: RuntimeSessionProfile,
+    pub(super) product_proof_policy: RuntimeProductProofPolicy,
     pub(super) project_root: Option<PathBuf>,
     pub(super) play_scene: Option<RelPath>,
     pub(super) play_report_pipe: Option<String>,
@@ -163,6 +169,7 @@ where
     let mut play_scene = None;
     let mut play_report_pipe = None;
     let mut reference_cpu_presenter = false;
+    let mut requested_product_proof = None;
     let mut help_requested = false;
     let mut args = args.into_iter().map(Into::into);
 
@@ -177,6 +184,41 @@ where
                 return Err(duplicate_reference_cpu_presenter_error().into());
             }
             reference_cpu_presenter = true;
+            continue;
+        }
+
+        if arg == RUNTIME_PRODUCT_PROOF_ARG || arg.starts_with("--runtime-product-proof=") {
+            if requested_product_proof.is_some() {
+                return Err(runtime_product_proof_argument_error(
+                    "<multiple>",
+                    "runtime product proof was provided more than once",
+                )
+                .into());
+            }
+            let value = if let Some(value) = arg.strip_prefix("--runtime-product-proof=") {
+                value.to_owned()
+            } else {
+                args.next().ok_or_else(|| {
+                    runtime_product_proof_argument_error("<missing>", "missing runtime product proof")
+                })?
+            };
+            requested_product_proof = Some(match value.trim() {
+                "f2-lit-mesh" => RuntimeProductProofPolicy::F2LitMesh,
+                "" => {
+                    return Err(runtime_product_proof_argument_error(
+                        "<empty>",
+                        "missing runtime product proof",
+                    )
+                    .into());
+                }
+                _ => {
+                    return Err(runtime_product_proof_argument_error(
+                        value,
+                        "unsupported runtime product proof",
+                    )
+                    .into());
+                }
+            });
             continue;
         }
 
@@ -274,8 +316,36 @@ where
         remaining_args.push(arg);
     }
 
+    let product_proof_policy = requested_product_proof.unwrap_or_else(|| {
+        if project_root.is_some() {
+            RuntimeProductProofPolicy::GeneralProject
+        } else {
+            RuntimeProductProofPolicy::Disabled
+        }
+    });
+    if product_proof_policy == RuntimeProductProofPolicy::F2LitMesh {
+        if project_root.is_none() {
+            return Err(runtime_product_proof_argument_error(
+                "f2-lit-mesh",
+                "F2 runtime product proof requires --project",
+            )
+            .into());
+        }
+        if matches!(
+            profile,
+            RuntimeSessionProfile::Minimal | RuntimeSessionProfile::Headless
+        ) {
+            return Err(runtime_product_proof_argument_error(
+                profile.as_str(),
+                "F2 runtime product proof requires a profile with a primary window",
+            )
+            .into());
+        }
+    }
+
     Ok(RuntimeSessionStartupArgs {
         profile,
+        product_proof_policy,
         project_root,
         play_scene,
         play_report_pipe,
@@ -461,6 +531,18 @@ fn empty_play_report_pipe_value_error() -> RuntimeStartupArgumentError {
         "<empty>",
         "missing Play startup report outlet name",
         "provide a nonempty report outlet name after --play-report-pipe",
+    )
+}
+
+fn runtime_product_proof_argument_error(
+    requested: impl Into<String>,
+    cause: &'static str,
+) -> RuntimeStartupArgumentError {
+    RuntimeStartupArgumentError::new(
+        RUNTIME_PRODUCT_PROOF_ARG,
+        requested,
+        cause,
+        "provide exactly one --runtime-product-proof f2-lit-mesh with --project and a windowed runtime session profile",
     )
 }
 

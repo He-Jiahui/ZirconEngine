@@ -70,7 +70,6 @@ fn ecs_typed_api_compile_owners_keep_internal_types_in_their_lowest_visible_doma
         read_source(&scene_root.join("typed_api").join("bundle_transaction.rs"));
     let deferred_bundle_staging = read_source(
         &scene_root
-            .join("typed_api")
             .join("bundle_transaction")
             .join("deferred_bundle_staging.rs"),
     );
@@ -123,7 +122,6 @@ fn ecs_typed_api_bundle_transaction_keeps_staging_in_its_leaf_owner() {
             .join("src")
             .join("scene")
             .join("world")
-            .join("typed_api")
             .join("bundle_transaction")
             .join("deferred_bundle_staging.rs"),
     );

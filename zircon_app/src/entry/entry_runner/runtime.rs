@@ -24,7 +24,8 @@ use super::super::runtime_library::{
 use super::runtime_session_args::{
     invalid_runtime_project_root_error, missing_runtime_project_manifest_error,
     parse_runtime_session_startup_args, play_startup_requires_project_error,
-    unknown_runtime_argument_error, RuntimeSessionProfile, RUNTIME_SESSION_STARTUP_HELP,
+    unknown_runtime_argument_error, RuntimeSessionProfile, RuntimeSessionStartupArgs,
+    RUNTIME_SESSION_STARTUP_HELP,
 };
 use super::EntryRunner;
 use crate::entry::cli::parse_diagnostic_log_startup_args;
@@ -650,14 +651,11 @@ impl EntryRunner {
                 "stage=runtime-session-create",
             ),
         );
-        let host_config =
-            runtime_entry_app_config_for_session_profile_with_presented_frame_exit_limit(
-                runtime_session_args.profile,
-                presented_frame_exit_limit,
-            )
-            .with_persisted_scene_diagnostics(project_root.is_some())
-            .with_reference_cpu_presenter(runtime_session_args.reference_cpu_presenter)
-            .with_first_frame_capture_path(first_frame_capture_path);
+        let host_config = runtime_entry_app_config_for_startup_args(
+            &runtime_session_args,
+            presented_frame_exit_limit,
+            first_frame_capture_path,
+        );
         let failure_state =
             RuntimeEntryAppFailureState::with_failure_ledger(product_failure_ledger.clone());
         let app = RuntimeEntryApp::new(session, host_config, failure_state);
@@ -706,6 +704,20 @@ impl EntryRunner {
         );
         Ok(())
     }
+}
+
+fn runtime_entry_app_config_for_startup_args(
+    args: &RuntimeSessionStartupArgs,
+    exit_after_presented_frames: Option<NonZeroU64>,
+    first_frame_capture_path: Option<ResolvedProjectPath>,
+) -> RuntimeEntryAppConfig {
+    runtime_entry_app_config_for_session_profile_with_presented_frame_exit_limit(
+        args.profile,
+        exit_after_presented_frames,
+    )
+    .with_product_proof_policy(args.product_proof_policy)
+    .with_reference_cpu_presenter(args.reference_cpu_presenter)
+    .with_first_frame_capture_path(first_frame_capture_path)
 }
 
 #[cfg(test)]

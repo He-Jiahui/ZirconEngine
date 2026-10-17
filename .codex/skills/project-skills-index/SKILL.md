@@ -27,6 +27,6 @@ python -B .codex/skills/project-skills-index/scripts/refresh_catalog.py --write
 python -B .codex/skills/project-skills-index/scripts/refresh_catalog.py --check
 ```
 
-The helper reads source frontmatter and writes only the generated Codex catalog. It does not manage another client, register a session, or require a service. If `python` resolves to an unavailable Windows alias, use the existing `.jenkins/runtime/python/python.exe` interpreter.
+The helper reads source frontmatter and writes only the generated Codex catalog. It does not manage another client, register a session, or require a service. If `python` resolves to an unavailable Windows alias, choose an available general Codex runtime Python with PyYAML. Keep the Jenkins interpreter reserved according to [interpreter ownership](../jenkins-coordination/SKILL.md#interpreter-ownership).
 
 Validate actual skills with the current skill-creator validator, check local routes, and run helper checks when the helper changes. Skill prose maintenance needs structural checks instead of Rust builds.

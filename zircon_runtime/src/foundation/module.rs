@@ -1,3 +1,4 @@
+#[cfg(feature = "native-host")]
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -63,6 +64,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
 /// # 参考
 ///
 /// 默认描述符由 [module_descriptor] 创建，实例构造见 [DefaultConfigManager::new_with_file_path]。
+#[cfg(feature = "native-host")]
 pub fn bind_config_file_path(
     descriptor: &mut ModuleDescriptor,
     path: PathBuf,

@@ -1,3 +1,7 @@
+//! 为规范文本 writer 暂存尚未输出的值；每个 spool 先留在内存，超过 64 KiB 后转为本次写入专属文件。
+//! 多个 spool 共享一个延迟创建的 `SpoolAttempt`；输出字节和临时工作字节预算由调用侧的 `OutputBudget` 记账。
+//! 写句柄关闭后按块回读；文件及尝试目录由各自所有者析构时尽力清理，尝试日志记录格式版本、进程号与编号。
+
 use std::cell::{Cell, RefCell};
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
@@ -22,6 +26,9 @@ const CANONICAL_SPOOL_FILES_RESOURCE: &str = "canonical spool files";
 
 static NEXT_ATTEMPT_ID: AtomicU64 = AtomicU64::new(1);
 
+/// 一次规范文本写入共享的临时目录及溢出文件计数器。
+///
+/// 目录按需创建，所有相关 spool 通过 `Rc` 持有本状态；最后一个所有者释放时尽力删除该尝试目录。
 pub(super) struct SpoolAttempt {
     base_root: PathBuf,
     directory: RefCell<Option<PathBuf>>,
@@ -163,6 +170,7 @@ impl std::fmt::Display for CanonicalSpoolFileLimitExceeded {
 
 impl std::error::Error for CanonicalSpoolFileLimitExceeded {}
 
+/// 仅从内部文件数哨兵中提取资源上限；普通文件系统 I/O 错误不会匹配。
 pub(super) fn canonical_spool_resource_limit(
     error: &io::Error,
 ) -> Option<(&'static str, usize, usize)> {
@@ -180,14 +188,20 @@ impl Drop for SpoolAttempt {
     }
 }
 
+/// 内存缓存或溢出文件；文件句柄为 `None` 表示写端已关闭，路径仍可供回读。
 enum TempSpoolStorage {
     Memory(Vec<u8>),
     File { path: PathBuf, file: Option<File> },
 }
 
+/// 单个可回读值的暂存区，超过内存阈值后使用所属尝试的临时文件。
+///
+/// `attempt` 延长共享目录的生命周期；writer 的 `serialize_to_spool` 会把该值占用的文档预算增量写入
+/// `accounted_bytes`，供重复键替换时退还；其他 wrapper spool 保持其初始化值。
 pub(super) struct TempSpool {
     attempt: Rc<SpoolAttempt>,
     storage: TempSpoolStorage,
+    /// `serialize_to_spool` 写入的文档预算增量；对象值被替换时供 writer 退还。
     pub(super) accounted_bytes: usize,
 }
 
@@ -200,6 +214,7 @@ impl TempSpool {
         }
     }
 
+    /// 对落盘形式刷新并关闭写句柄；内存形式无需处理。
     pub(super) fn finish_write(&mut self) -> Result<(), CanonicalTextWriteError> {
         if let TempSpoolStorage::File { file, .. } = &mut self.storage {
             if let Some(mut writer) = file.take() {
@@ -214,6 +229,7 @@ impl TempSpool {
         Ok(())
     }
 
+    /// 完成写入后将暂存内容送入外层 writer；文档预算已在首次序列化时记账，此处避免重复计数。
     pub(super) fn copy_to<W>(
         &mut self,
         output: &mut CountingWriter<'_, '_, W>,

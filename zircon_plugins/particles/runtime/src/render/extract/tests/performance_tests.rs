@@ -82,8 +82,12 @@ fn optimization_batch_20260830da_gpu_frame_skips_filtered_reference_staging() {
 fn optimization_batch_20260830da_bounds_hash_aggregation_beats_tree_updates() {
     let sprites = benchmark_sprites();
     let (legacy_p95, optimized_p95) = paired_p95(
-        || black_box(legacy_bounds(black_box(&sprites))),
-        || black_box(build_bounds(black_box(&sprites), BOUNDS_ENTITY_COUNT)),
+        || {
+            black_box(legacy_bounds(black_box(&sprites)));
+        },
+        || {
+            black_box(build_bounds(black_box(&sprites), BOUNDS_ENTITY_COUNT));
+        },
     );
     let improvement = improvement_percent(legacy_p95, optimized_p95);
 

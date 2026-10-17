@@ -35,7 +35,7 @@ pub(crate) fn to_host_contract_module_plugins_pane_from_host_pane_with_cache(
 ) -> host_contract::ModulePluginsPaneData {
     let native = &data.native_body.module_plugins;
     let cache_key = module_plugins_projection_cache_key(data, content_size);
-    if let Some(cache_key) = cache_key {
+    if let Some(cache_key) = cache_key.as_ref() {
         if let Some(pane) = cache.cached(
             data.id.as_str(),
             cache_key,
@@ -66,7 +66,9 @@ pub(crate) fn to_host_contract_module_plugins_pane_from_host_pane_with_cache(
         native.plugins.row_count()
     );
     let mut nodes = module_plugins_template_projection(data, content_size).unwrap_or_default();
-    nodes.extend(module_plugin_row_nodes(native, &nodes, content_size));
+    if native.details.is_none() {
+        nodes.extend(module_plugin_row_nodes(native, &nodes, content_size));
+    }
 
     let pane = host_contract::ModulePluginsPaneData {
         nodes: model_rc(nodes),
@@ -103,6 +105,8 @@ fn module_plugins_projection_cache_key(
         uses_template,
         width_bits: content_size.width.to_bits(),
         height_bits: content_size.height.to_bits(),
+        detail_generation: data.native_body.module_plugins.detail_generation,
+        detail_locale: data.native_body.module_plugins.detail_locale.to_string(),
     })
 }
 
@@ -118,7 +122,12 @@ fn module_plugins_template_projection(
         return None;
     }
 
-    super::project_pane_template_nodes(&presentation.body, content_size)
+    super::template_runtime_projection::project_pane_template_nodes_with_runtime_for_pane(
+        &presentation.body,
+        content_size,
+        None,
+        Some(data.id.as_str()),
+    )
 }
 
 fn module_plugin_row_nodes(
@@ -175,10 +184,10 @@ fn module_plugin_row_nodes(
         );
         nodes.push(row_node);
 
-        nodes.push(module_plugin_node(
+        let mut title = module_plugin_node(
             format!("module_plugin_title_{plugin_id}"),
-            format!("ModulePluginTitle.{plugin_id}"),
-            "Label",
+            "ModulePluginSelect",
+            "Button",
             plugin.display_name.to_string(),
             host_contract::TemplateNodeFrameData {
                 x: list_frame.x + MODULE_PLUGIN_ROW_PADDING,
@@ -186,7 +195,13 @@ fn module_plugin_row_nodes(
                 width: (list_width - MODULE_PLUGIN_ROW_PADDING * 2.0).max(0.0),
                 height: 20.0,
             },
-        ));
+        );
+        title.dispatch_kind = "module_plugin".into();
+        title.action_id = plugin_id.as_str().into();
+        title.focused = data.focused_control.as_str() == "package"
+            && data.selected_plugin_id.as_str() == plugin_id;
+        title.button_variant = "ghost".into();
+        nodes.push(title);
 
         let mut meta = module_plugin_node(
             format!("module_plugin_meta_{plugin_id}"),

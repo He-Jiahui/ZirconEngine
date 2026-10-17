@@ -1,0 +1,5899 @@
+{
+  "schema_version": "source-comments-root-post-validation-v2",
+  "batch": "R069",
+  "owner": "root",
+  "status": "locally-validated-pending-main-coverage-and-designated-Jenkins",
+  "created_at_utc": "2026-10-16T22:48:07.079280+00:00",
+  "child_record": {
+    "path": "docs/plans/source-comments/reviews/R069.json",
+    "sha256": "df87133b52e47bb6a574ddf4dba1a3d7c44cdd386208e93d1078ea6d91337bc0",
+    "bytes": 233719,
+    "immutable": true
+  },
+  "root_amendment": {
+    "path": "docs/plans/source-comments/reviews/R069-main-amendment.json",
+    "sha256": "f1e577e831237f7eea1952a9d454be8d60a7300516479766891ff0f19ba53ae9",
+    "bytes": 12132,
+    "root_bug": "CR-ZCA-R069-0001",
+    "source_writer_receipt": "root597 native14202->232299 exit0/PID12368",
+    "independent_source_and_record_inverse_verified": true
+  },
+  "source_files": [
+    {
+      "path": "zircon_runtime/src/ui/event_ui/mod.rs",
+      "before_sha256": "2b5893221caeb3dedc76cada7c9ca406f5d034412804b044d4589fe35a203754",
+      "before_bytes": 213,
+      "before_lines": 6,
+      "current_sha256": "2b5893221caeb3dedc76cada7c9ca406f5d034412804b044d4589fe35a203754",
+      "current_bytes": 213,
+      "current_lines": 6,
+      "child_sha256": "2b5893221caeb3dedc76cada7c9ca406f5d034412804b044d4589fe35a203754",
+      "eol": {
+        "crlf": 0,
+        "lf_only": 6,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_sha256": "2b5893221caeb3dedc76cada7c9ca406f5d034412804b044d4589fe35a203754",
+      "raw_HEAD_sha256": "2b5893221caeb3dedc76cada7c9ca406f5d034412804b044d4589fe35a203754",
+      "inverse_equals_raw_HEAD": true,
+      "normalized_HEAD_equal": true,
+      "clean_filter_equals_HEAD": true,
+      "stage_candidate": false,
+      "added_lines": 0,
+      "added_bytes": 0,
+      "original_bytes_preserved": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "before_sha256": "2651ae6078c036a4e46e06dc4bd3645c003d5d1301bf4d4802805727b24c886d",
+      "before_bytes": 1522,
+      "before_lines": 49,
+      "current_sha256": "acb7f5b2fedb3606f65215341b35b3dd2e6643f80e9197f083f1bc0c99908bd9",
+      "current_bytes": 2172,
+      "current_lines": 58,
+      "child_sha256": "acb7f5b2fedb3606f65215341b35b3dd2e6643f80e9197f083f1bc0c99908bd9",
+      "eol": {
+        "crlf": 0,
+        "lf_only": 58,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_sha256": "2651ae6078c036a4e46e06dc4bd3645c003d5d1301bf4d4802805727b24c886d",
+      "raw_HEAD_sha256": "2651ae6078c036a4e46e06dc4bd3645c003d5d1301bf4d4802805727b24c886d",
+      "inverse_equals_raw_HEAD": true,
+      "normalized_HEAD_equal": true,
+      "clean_filter_equals_HEAD": true,
+      "stage_candidate": true,
+      "added_lines": 9,
+      "added_bytes": 650,
+      "original_bytes_preserved": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "before_sha256": "b10a56bddc81fcdb78006fb66001600afffb94e4ee32c4df3130ec33fa9ee56f",
+      "before_bytes": 5038,
+      "before_lines": 134,
+      "current_sha256": "d064ed4c528b1b39da411dd9273bd786e2a0604c055070c4c7fb3a45db07323d",
+      "current_bytes": 5204,
+      "current_lines": 137,
+      "child_sha256": "d064ed4c528b1b39da411dd9273bd786e2a0604c055070c4c7fb3a45db07323d",
+      "eol": {
+        "crlf": 0,
+        "lf_only": 137,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_sha256": "b10a56bddc81fcdb78006fb66001600afffb94e4ee32c4df3130ec33fa9ee56f",
+      "raw_HEAD_sha256": "b10a56bddc81fcdb78006fb66001600afffb94e4ee32c4df3130ec33fa9ee56f",
+      "inverse_equals_raw_HEAD": true,
+      "normalized_HEAD_equal": true,
+      "clean_filter_equals_HEAD": true,
+      "stage_candidate": true,
+      "added_lines": 3,
+      "added_bytes": 166,
+      "original_bytes_preserved": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+      "before_sha256": "ed69afd21c25e4c7517ed6a212b3e69c13e6aabc6118c7bb4289bc89004c1e53",
+      "before_bytes": 456,
+      "before_lines": 11,
+      "current_sha256": "b498dab9adb050165d7055c63bc61ba023603070cbcc3e0729fafbd57d915665",
+      "current_bytes": 617,
+      "current_lines": 13,
+      "child_sha256": "b498dab9adb050165d7055c63bc61ba023603070cbcc3e0729fafbd57d915665",
+      "eol": {
+        "crlf": 0,
+        "lf_only": 13,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_sha256": "ed69afd21c25e4c7517ed6a212b3e69c13e6aabc6118c7bb4289bc89004c1e53",
+      "raw_HEAD_sha256": "ed69afd21c25e4c7517ed6a212b3e69c13e6aabc6118c7bb4289bc89004c1e53",
+      "inverse_equals_raw_HEAD": true,
+      "normalized_HEAD_equal": true,
+      "clean_filter_equals_HEAD": true,
+      "stage_candidate": true,
+      "added_lines": 2,
+      "added_bytes": 161,
+      "original_bytes_preserved": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+      "before_sha256": "981012a0c1beb7322a89919a8307cb39974e246b797771868e6bacbb3fb10be6",
+      "before_bytes": 408,
+      "before_lines": 9,
+      "current_sha256": "113df1c3092c62d72681eaa7755970f1c34917b1bb978b31c7adcc42c828431e",
+      "current_bytes": 600,
+      "current_lines": 11,
+      "child_sha256": "113df1c3092c62d72681eaa7755970f1c34917b1bb978b31c7adcc42c828431e",
+      "eol": {
+        "crlf": 0,
+        "lf_only": 11,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_sha256": "981012a0c1beb7322a89919a8307cb39974e246b797771868e6bacbb3fb10be6",
+      "raw_HEAD_sha256": "981012a0c1beb7322a89919a8307cb39974e246b797771868e6bacbb3fb10be6",
+      "inverse_equals_raw_HEAD": true,
+      "normalized_HEAD_equal": true,
+      "clean_filter_equals_HEAD": true,
+      "stage_candidate": true,
+      "added_lines": 2,
+      "added_bytes": 192,
+      "original_bytes_preserved": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "before_sha256": "aa4abb7acde89a54a3a92593a4e6d62309202ea0de2f8edc13946a2bcf5827da",
+      "before_bytes": 2629,
+      "before_lines": 74,
+      "current_sha256": "f98397e6ca05452f5eb73d6e04cd2eb7de46e97f1f21a3baf86e1d9b120c9624",
+      "current_bytes": 3685,
+      "current_lines": 90,
+      "child_sha256": "f98397e6ca05452f5eb73d6e04cd2eb7de46e97f1f21a3baf86e1d9b120c9624",
+      "eol": {
+        "crlf": 0,
+        "lf_only": 90,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_sha256": "aa4abb7acde89a54a3a92593a4e6d62309202ea0de2f8edc13946a2bcf5827da",
+      "raw_HEAD_sha256": "aa4abb7acde89a54a3a92593a4e6d62309202ea0de2f8edc13946a2bcf5827da",
+      "inverse_equals_raw_HEAD": true,
+      "normalized_HEAD_equal": true,
+      "clean_filter_equals_HEAD": true,
+      "stage_candidate": true,
+      "added_lines": 16,
+      "added_bytes": 1056,
+      "original_bytes_preserved": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "before_sha256": "cd6501ad56bf32f2a3cbf8025c0758671f855c6c2f7b21ef342f3ced067d48b4",
+      "before_bytes": 513,
+      "before_lines": 16,
+      "current_sha256": "4614157ab0e68d6752515117bd1452929b68563f8b7fb6b6dd45f2a90d1329df",
+      "current_bytes": 705,
+      "current_lines": 18,
+      "child_sha256": "4614157ab0e68d6752515117bd1452929b68563f8b7fb6b6dd45f2a90d1329df",
+      "eol": {
+        "crlf": 18,
+        "lf_only": 0,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_sha256": "cd6501ad56bf32f2a3cbf8025c0758671f855c6c2f7b21ef342f3ced067d48b4",
+      "raw_HEAD_sha256": "1b314e5d7ed3a091876d1d35a1cade86961df19bd6f0e0ea819e10f1b568b614",
+      "inverse_equals_raw_HEAD": false,
+      "normalized_HEAD_equal": true,
+      "clean_filter_equals_HEAD": true,
+      "stage_candidate": true,
+      "added_lines": 2,
+      "added_bytes": 192,
+      "original_bytes_preserved": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "before_sha256": "b4dc352a19eb42d21e5678d474cdf4b42a4049ed5fc93bbe9ffcfe935293484b",
+      "before_bytes": 1921,
+      "before_lines": 71,
+      "current_sha256": "ad45e96578e2b9f8294767ba8ade24bc6f895e8fa81114d42be622ca1bbe98f5",
+      "current_bytes": 3429,
+      "current_lines": 92,
+      "child_sha256": "ad45e96578e2b9f8294767ba8ade24bc6f895e8fa81114d42be622ca1bbe98f5",
+      "eol": {
+        "crlf": 0,
+        "lf_only": 92,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_sha256": "b4dc352a19eb42d21e5678d474cdf4b42a4049ed5fc93bbe9ffcfe935293484b",
+      "raw_HEAD_sha256": "b4dc352a19eb42d21e5678d474cdf4b42a4049ed5fc93bbe9ffcfe935293484b",
+      "inverse_equals_raw_HEAD": true,
+      "normalized_HEAD_equal": true,
+      "clean_filter_equals_HEAD": true,
+      "stage_candidate": true,
+      "added_lines": 21,
+      "added_bytes": 1508,
+      "original_bytes_preserved": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "before_sha256": "225f9545cedbc9623c2a174024f658951847eecc8c40f2e726c010caeed7033a",
+      "before_bytes": 5767,
+      "before_lines": 149,
+      "current_sha256": "3ddc86fd4f2d78dc3a9985badea6ec3a4cfc694e567bc920b5bb370eb5cd9ac0",
+      "current_bytes": 6882,
+      "current_lines": 161,
+      "child_sha256": "43c76aa300ddf23e2f935219f57ef064f04f9da53677e1e119046e267fef7309",
+      "eol": {
+        "crlf": 161,
+        "lf_only": 0,
+        "bare_cr": 0,
+        "bom": false
+      },
+      "inverse_sha256": "225f9545cedbc9623c2a174024f658951847eecc8c40f2e726c010caeed7033a",
+      "raw_HEAD_sha256": "1cc215d74702eeb7e349c144a01d8089db0b7eb734909a2f51858c1f0d1a37fa",
+      "inverse_equals_raw_HEAD": false,
+      "normalized_HEAD_equal": true,
+      "clean_filter_equals_HEAD": true,
+      "stage_candidate": true,
+      "added_lines": 12,
+      "added_bytes": 1115,
+      "original_bytes_preserved": true
+    }
+  ],
+  "counts": {
+    "files": 9,
+    "changed_files": 8,
+    "unchanged_files": 1,
+    "objects": 53,
+    "members": 19,
+    "parameters": 16,
+    "blocks": 64,
+    "controls": 26,
+    "normal_tests": 5,
+    "ignored_tests": 1,
+    "assertions": 33,
+    "insertion_blocks": 25,
+    "added_lines": 67,
+    "added_lf_only_lines": 53,
+    "added_crlf_lines": 14,
+    "before_bytes": 18467,
+    "after_bytes": 23507,
+    "before_lines": 519,
+    "after_lines": 586
+  },
+  "canonical_range_count": 217,
+  "canonical_range_digest": "1c1820ff917bdc23c094a5cf14c547fefd71be2ba11b82ebf289b1a609c86f22",
+  "canonical_ranges": [
+    {
+      "path": "zircon_runtime/src/ui/event_ui/mod.rs",
+      "category": "objects",
+      "name": "manager",
+      "before_lines": [
+        3,
+        4
+      ],
+      "child_lines": [
+        3,
+        4
+      ],
+      "after_lines": [
+        3,
+        4
+      ],
+      "before_span_sha256": "0d84926fbef92a0ea3d2f11bf8ae5e112d47265a3d232cc860ce0d357f1ee20a",
+      "after_span_sha256": "0d84926fbef92a0ea3d2f11bf8ae5e112d47265a3d232cc860ce0d357f1ee20a"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/mod.rs",
+      "category": "objects",
+      "name": "UiEventManager",
+      "before_lines": [
+        6,
+        6
+      ],
+      "child_lines": [
+        6,
+        6
+      ],
+      "after_lines": [
+        6,
+        6
+      ],
+      "before_span_sha256": "db791cad3490feb249283aefdf67ed111745dee8d3d1d9b12ea5c50464c3a2f0",
+      "after_span_sha256": "db791cad3490feb249283aefdf67ed111745dee8d3d1d9b12ea5c50464c3a2f0"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/mod.rs",
+      "category": "block_audit",
+      "name": "模块职责及分工文档",
+      "before_lines": [
+        1,
+        2
+      ],
+      "child_lines": [
+        1,
+        2
+      ],
+      "after_lines": [
+        1,
+        2
+      ],
+      "before_span_sha256": "6466f277fbbfaf9856eb4a2348d683bd665f6c70e9f437f2d19c9691a3fc2eb7",
+      "after_span_sha256": "6466f277fbbfaf9856eb4a2348d683bd665f6c70e9f437f2d19c9691a3fc2eb7"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/mod.rs",
+      "category": "block_audit",
+      "name": "私有管理器挂载",
+      "before_lines": [
+        3,
+        4
+      ],
+      "child_lines": [
+        3,
+        4
+      ],
+      "after_lines": [
+        3,
+        4
+      ],
+      "before_span_sha256": "0d84926fbef92a0ea3d2f11bf8ae5e112d47265a3d232cc860ce0d357f1ee20a",
+      "after_span_sha256": "0d84926fbef92a0ea3d2f11bf8ae5e112d47265a3d232cc860ce0d357f1ee20a"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/mod.rs",
+      "category": "block_audit",
+      "name": "公开管理器导出",
+      "before_lines": [
+        5,
+        6
+      ],
+      "child_lines": [
+        5,
+        6
+      ],
+      "after_lines": [
+        5,
+        6
+      ],
+      "before_span_sha256": "edc110daf48ef0400d2133370f642b219923c49733d01147b73ba93605b338d2",
+      "after_span_sha256": "edc110daf48ef0400d2133370f642b219923c49733d01147b73ba93605b338d2"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "objects",
+      "name": "UiReflectionDiff / UiReflectionSnapshot",
+      "before_lines": [
+        1,
+        1
+      ],
+      "child_lines": [
+        1,
+        1
+      ],
+      "after_lines": [
+        1,
+        1
+      ],
+      "before_span_sha256": "06b49998efb89c2a12ea0cd9ba243570e1a9af6b348227dc3a1deba3dfc3a7e0",
+      "after_span_sha256": "06b49998efb89c2a12ea0cd9ba243570e1a9af6b348227dc3a1deba3dfc3a7e0"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "objects",
+      "name": "capacity_tests",
+      "before_lines": [
+        3,
+        5
+      ],
+      "child_lines": [
+        3,
+        5
+      ],
+      "after_lines": [
+        3,
+        5
+      ],
+      "before_span_sha256": "4cd3a02a5d0e5e05e098712b97aaa30ab4610b43bca892311d8bf1d47e97cc95",
+      "after_span_sha256": "4cd3a02a5d0e5e05e098712b97aaa30ab4610b43bca892311d8bf1d47e97cc95"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "objects",
+      "name": "compute_diff",
+      "before_lines": [
+        8,
+        32
+      ],
+      "child_lines": [
+        8,
+        40
+      ],
+      "after_lines": [
+        8,
+        40
+      ],
+      "before_span_sha256": "5bad52fbc594b9cc29c36cbcfaa04105bb30ffa6160f48f4e569b4caa8f52255",
+      "after_span_sha256": "da487b4f3bb1559b69ac6045c0cb517cb2882905a6d836e1468fc688ee08659f"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "parameters",
+      "name": "previous",
+      "before_lines": [
+        9,
+        9
+      ],
+      "child_lines": [
+        17,
+        17
+      ],
+      "after_lines": [
+        17,
+        17
+      ],
+      "before_span_sha256": "54e9cb313d807ce2e99828643fd2455876a9e7562ad2b584e8684f4329c0ee01",
+      "after_span_sha256": "54e9cb313d807ce2e99828643fd2455876a9e7562ad2b584e8684f4329c0ee01"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "parameters",
+      "name": "current",
+      "before_lines": [
+        10,
+        10
+      ],
+      "child_lines": [
+        18,
+        18
+      ],
+      "after_lines": [
+        18,
+        18
+      ],
+      "before_span_sha256": "d74be6588dee7ea7277c78200df386e791db14a3eef4b5b1c8f6b2335e74cbe8",
+      "after_span_sha256": "d74be6588dee7ea7277c78200df386e791db14a3eef4b5b1c8f6b2335e74cbe8"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "objects",
+      "name": "reflection_diff_capacities",
+      "before_lines": [
+        34,
+        49
+      ],
+      "child_lines": [
+        42,
+        58
+      ],
+      "after_lines": [
+        42,
+        58
+      ],
+      "before_span_sha256": "23c0ff92f142eeda0ab76eff24b4d57190c5cfec3571b7e0554462cc2d48abd0",
+      "after_span_sha256": "26d287366e5ca90787eab83b9add2a87b5424c45be0e0322f76dc85bc98ea980"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "parameters",
+      "name": "previous",
+      "before_lines": [
+        35,
+        35
+      ],
+      "child_lines": [
+        44,
+        44
+      ],
+      "after_lines": [
+        44,
+        44
+      ],
+      "before_span_sha256": "54e9cb313d807ce2e99828643fd2455876a9e7562ad2b584e8684f4329c0ee01",
+      "after_span_sha256": "54e9cb313d807ce2e99828643fd2455876a9e7562ad2b584e8684f4329c0ee01"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "parameters",
+      "name": "current",
+      "before_lines": [
+        36,
+        36
+      ],
+      "child_lines": [
+        45,
+        45
+      ],
+      "after_lines": [
+        45,
+        45
+      ],
+      "before_span_sha256": "d74be6588dee7ea7277c78200df386e791db14a3eef4b5b1c8f6b2335e74cbe8",
+      "after_span_sha256": "d74be6588dee7ea7277c78200df386e791db14a3eef4b5b1c8f6b2335e74cbe8"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "block_audit",
+      "name": "接口类型导入",
+      "before_lines": [
+        1,
+        2
+      ],
+      "child_lines": [
+        1,
+        2
+      ],
+      "after_lines": [
+        1,
+        2
+      ],
+      "before_span_sha256": "fadcc23bde49d320f6593589ffb766faee4b44804786dbb79ba72f1f66f75c08",
+      "after_span_sha256": "fadcc23bde49d320f6593589ffb766faee4b44804786dbb79ba72f1f66f75c08"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "block_audit",
+      "name": "直属容量测试挂载",
+      "before_lines": [
+        3,
+        6
+      ],
+      "child_lines": [
+        3,
+        6
+      ],
+      "after_lines": [
+        3,
+        6
+      ],
+      "before_span_sha256": "a219063d8539e45a94ab38a0f506f403f83f0489f44127b1ad22ff82d00fa616",
+      "after_span_sha256": "a219063d8539e45a94ab38a0f506f403f83f0489f44127b1ad22ff82d00fa616"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "block_audit",
+      "name": "差异入口和预分配",
+      "before_lines": [
+        7,
+        15
+      ],
+      "child_lines": [
+        7,
+        23
+      ],
+      "after_lines": [
+        7,
+        23
+      ],
+      "before_span_sha256": "857d22a36b93a4f3a1be96acc4a5b988c8cc42039bc0027d584bc7e94e8c56d4",
+      "after_span_sha256": "6132fbb7167de15d24d9ceeb8a476c4ff1448acc50ffc7b35f425132976cd94f"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "controls",
+      "name": "reflection_diff_capacities(previous, current)",
+      "before_lines": [
+        12,
+        12
+      ],
+      "child_lines": [
+        20,
+        20
+      ],
+      "after_lines": [
+        20,
+        20
+      ],
+      "before_span_sha256": "a683d54a90bbd4212b082c62b89bb3dee57dfb0b0aea95859127ee3842108656",
+      "after_span_sha256": "a683d54a90bbd4212b082c62b89bb3dee57dfb0b0aea95859127ee3842108656"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "controls",
+      "name": "changed_nodes / removed_nodes",
+      "before_lines": [
+        13,
+        14
+      ],
+      "child_lines": [
+        21,
+        22
+      ],
+      "after_lines": [
+        21,
+        22
+      ],
+      "before_span_sha256": "227f96799d02b2c82c1f9e65d1f26e6b4ef67a7f7e833e5add4cb40626dcb982",
+      "after_span_sha256": "227f96799d02b2c82c1f9e65d1f26e6b4ef67a7f7e833e5add4cb40626dcb982"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "block_audit",
+      "name": "变化及新增节点收集",
+      "before_lines": [
+        16,
+        20
+      ],
+      "child_lines": [
+        24,
+        28
+      ],
+      "after_lines": [
+        24,
+        28
+      ],
+      "before_span_sha256": "e07829b722958309f4e32f07081df70b219d1f4fe96b74e0882c967b838456ce",
+      "after_span_sha256": "e07829b722958309f4e32f07081df70b219d1f4fe96b74e0882c967b838456ce"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "controls",
+      "name": "previous.nodes.get(node_id) != Some(node)",
+      "before_lines": [
+        17,
+        19
+      ],
+      "child_lines": [
+        25,
+        27
+      ],
+      "after_lines": [
+        25,
+        27
+      ],
+      "before_span_sha256": "4b929f048a4e1089437b43119bf83cc73efb8729b72a5f6e61dd2fa9bcbdb760",
+      "after_span_sha256": "4b929f048a4e1089437b43119bf83cc73efb8729b72a5f6e61dd2fa9bcbdb760"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "block_audit",
+      "name": "移除节点收集",
+      "before_lines": [
+        21,
+        26
+      ],
+      "child_lines": [
+        29,
+        34
+      ],
+      "after_lines": [
+        29,
+        34
+      ],
+      "before_span_sha256": "56d1655577fd5ecba9f2c3bb145fd40fa9e4b804bbbece887f99e1608ce5d994",
+      "after_span_sha256": "56d1655577fd5ecba9f2c3bb145fd40fa9e4b804bbbece887f99e1608ce5d994"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "controls",
+      "name": "!current.nodes.contains_key(node_id)",
+      "before_lines": [
+        22,
+        24
+      ],
+      "child_lines": [
+        30,
+        32
+      ],
+      "after_lines": [
+        30,
+        32
+      ],
+      "before_span_sha256": "d77d0b7a9dacbc1bd0cfb513249501b9054c5bf1c6da8c3a257501f0254cf305",
+      "after_span_sha256": "d77d0b7a9dacbc1bd0cfb513249501b9054c5bf1c6da8c3a257501f0254cf305"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "block_audit",
+      "name": "拥有差异结果组装",
+      "before_lines": [
+        27,
+        33
+      ],
+      "child_lines": [
+        35,
+        41
+      ],
+      "after_lines": [
+        35,
+        41
+      ],
+      "before_span_sha256": "48052b6c23585fb2d892d3142174b5e586061d4a16e003443952b1e1ebffa02f",
+      "after_span_sha256": "48052b6c23585fb2d892d3142174b5e586061d4a16e003443952b1e1ebffa02f"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "block_audit",
+      "name": "变化容量过滤计数",
+      "before_lines": [
+        34,
+        42
+      ],
+      "child_lines": [
+        42,
+        51
+      ],
+      "after_lines": [
+        42,
+        51
+      ],
+      "before_span_sha256": "a1a5f2fad5c4d7f7922dd452021dc64d6f681440bebb80800194fe8bfeea6bda",
+      "after_span_sha256": "3fa46c79f3ba064a1457c7bc942c97a00435d87b3c95ea5bfe66165834929b2c"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "controls",
+      "name": "previous.nodes.get(*node_id) != Some(*node)",
+      "before_lines": [
+        38,
+        42
+      ],
+      "child_lines": [
+        47,
+        51
+      ],
+      "after_lines": [
+        47,
+        51
+      ],
+      "before_span_sha256": "69afa9168fd6f987787e15675d50a3d3f8593f384d05718fbbb50fa19c5d204c",
+      "after_span_sha256": "69afa9168fd6f987787e15675d50a3d3f8593f384d05718fbbb50fa19c5d204c"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "block_audit",
+      "name": "移除容量过滤和返回",
+      "before_lines": [
+        43,
+        49
+      ],
+      "child_lines": [
+        52,
+        58
+      ],
+      "after_lines": [
+        52,
+        58
+      ],
+      "before_span_sha256": "dbc80dfbf8e3439a86ba17b942e3bf55bf1636205ad393bed6016b78b845f0a3",
+      "after_span_sha256": "dbc80dfbf8e3439a86ba17b942e3bf55bf1636205ad393bed6016b78b845f0a3"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "category": "controls",
+      "name": "!current.nodes.contains_key(*node_id)",
+      "before_lines": [
+        43,
+        47
+      ],
+      "child_lines": [
+        52,
+        56
+      ],
+      "after_lines": [
+        52,
+        56
+      ],
+      "before_span_sha256": "3622dd4b3daefa1fb5a7a87f422562f6718a0584a952b958598f11a67593590a",
+      "after_span_sha256": "3622dd4b3daefa1fb5a7a87f422562f6718a0584a952b958598f11a67593590a"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "black_box / Instant / diff 函数与接口夹具类型",
+      "before_lines": [
+        1,
+        7
+      ],
+      "child_lines": [
+        1,
+        10
+      ],
+      "after_lines": [
+        1,
+        10
+      ],
+      "before_span_sha256": "3e754c52ec6f66d3817b75dbd97374cbff228278d20f530de16d3754bfc8e338",
+      "after_span_sha256": "27a6a83fa46e271efd3c4b2b89791e049aaed1ce9c4ec77d082253df103c26db"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "SAMPLE_PAIRS",
+      "before_lines": [
+        9,
+        9
+      ],
+      "child_lines": [
+        12,
+        12
+      ],
+      "after_lines": [
+        12,
+        12
+      ],
+      "before_span_sha256": "6364f181c6e97484ac2420ddb698ff22785836b2c82c8a8572519378c2ccafce",
+      "after_span_sha256": "6364f181c6e97484ac2420ddb698ff22785836b2c82c8a8572519378c2ccafce"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "BUILDS_PER_SAMPLE",
+      "before_lines": [
+        10,
+        10
+      ],
+      "child_lines": [
+        13,
+        13
+      ],
+      "after_lines": [
+        13,
+        13
+      ],
+      "before_span_sha256": "8c118d56b196bc3bfe0ad8690065f39182027216ca9157cde9619c7d4c197810",
+      "after_span_sha256": "8c118d56b196bc3bfe0ad8690065f39182027216ca9157cde9619c7d4c197810"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "CHANGED_NODES_PER_BUILD",
+      "before_lines": [
+        11,
+        11
+      ],
+      "child_lines": [
+        14,
+        14
+      ],
+      "after_lines": [
+        14,
+        14
+      ],
+      "before_span_sha256": "be37e077622c0fa5d8a752796124619810d1220456d474c4f7dfc04e66cdc538",
+      "after_span_sha256": "be37e077622c0fa5d8a752796124619810d1220456d474c4f7dfc04e66cdc538"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "REMOVED_NODES_PER_BUILD",
+      "before_lines": [
+        12,
+        12
+      ],
+      "child_lines": [
+        15,
+        15
+      ],
+      "after_lines": [
+        15,
+        15
+      ],
+      "before_span_sha256": "370b8de4ca80b902104982e82b7804c7c9212a174d47a4ac7c19f75a735f7c5c",
+      "after_span_sha256": "370b8de4ca80b902104982e82b7804c7c9212a174d47a4ac7c19f75a735f7c5c"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "optimization_batch_20260826fb_runtime197_capacity_preserves_reflection_diff_order",
+      "before_lines": [
+        15,
+        38
+      ],
+      "child_lines": [
+        18,
+        41
+      ],
+      "after_lines": [
+        18,
+        41
+      ],
+      "before_span_sha256": "33d80d9049eaa10c78717a1ab1eb3a0e5fdd54ddb9705f09c0650053c454ee87",
+      "after_span_sha256": "33d80d9049eaa10c78717a1ab1eb3a0e5fdd54ddb9705f09c0650053c454ee87"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "optimization_batch_20260826fb_runtime197_diff_reserves_exact_change_counts",
+      "before_lines": [
+        41,
+        47
+      ],
+      "child_lines": [
+        44,
+        50
+      ],
+      "after_lines": [
+        44,
+        50
+      ],
+      "before_span_sha256": "b3288d9becbdd37917583ec21afa3ad51f8c3baa6fabdb1d6e487cb9a99bba4b",
+      "after_span_sha256": "b3288d9becbdd37917583ec21afa3ad51f8c3baa6fabdb1d6e487cb9a99bba4b"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "optimization_batch_20260826fb_runtime197_ui_reflection_diff_capacity_bench",
+      "before_lines": [
+        51,
+        78
+      ],
+      "child_lines": [
+        54,
+        81
+      ],
+      "after_lines": [
+        54,
+        81
+      ],
+      "before_span_sha256": "06afe3e43feb2406529d6006c05bbd19cf0c7df92e17c7c40c8f407a60fd24f7",
+      "after_span_sha256": "06afe3e43feb2406529d6006c05bbd19cf0c7df92e17c7c40c8f407a60fd24f7"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "snapshot",
+      "before_lines": [
+        80,
+        82
+      ],
+      "child_lines": [
+        83,
+        85
+      ],
+      "after_lines": [
+        83,
+        85
+      ],
+      "before_span_sha256": "f77f08cc9ff77d113d7dd29855a0b4013486d06dee676380506eb840eeaaaa27",
+      "after_span_sha256": "f77f08cc9ff77d113d7dd29855a0b4013486d06dee676380506eb840eeaaaa27"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "parameters",
+      "name": "nodes",
+      "before_lines": [
+        80,
+        80
+      ],
+      "child_lines": [
+        83,
+        83
+      ],
+      "after_lines": [
+        83,
+        83
+      ],
+      "before_span_sha256": "97dd54f7a0440ca874ffb1534aa1fcd26976d4080b2ef9c69f6758cfdb6e99c3",
+      "after_span_sha256": "97dd54f7a0440ca874ffb1534aa1fcd26976d4080b2ef9c69f6758cfdb6e99c3"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "node",
+      "before_lines": [
+        84,
+        91
+      ],
+      "child_lines": [
+        87,
+        94
+      ],
+      "after_lines": [
+        87,
+        94
+      ],
+      "before_span_sha256": "0dcfac7a0813aeac77efce93d0d0995c7c0bfa377ff011bcec94674214e7e5fd",
+      "after_span_sha256": "0dcfac7a0813aeac77efce93d0d0995c7c0bfa377ff011bcec94674214e7e5fd"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "parameters",
+      "name": "id",
+      "before_lines": [
+        84,
+        84
+      ],
+      "child_lines": [
+        87,
+        87
+      ],
+      "after_lines": [
+        87,
+        87
+      ],
+      "before_span_sha256": "147fd733345c84780ad013c21ddac58c157add2fbba2c1fe24768eff36092389",
+      "after_span_sha256": "147fd733345c84780ad013c21ddac58c157add2fbba2c1fe24768eff36092389"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "parameters",
+      "name": "class_name",
+      "before_lines": [
+        84,
+        84
+      ],
+      "child_lines": [
+        87,
+        87
+      ],
+      "after_lines": [
+        87,
+        87
+      ],
+      "before_span_sha256": "147fd733345c84780ad013c21ddac58c157add2fbba2c1fe24768eff36092389",
+      "after_span_sha256": "147fd733345c84780ad013c21ddac58c157add2fbba2c1fe24768eff36092389"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "measure",
+      "before_lines": [
+        93,
+        119
+      ],
+      "child_lines": [
+        96,
+        122
+      ],
+      "after_lines": [
+        96,
+        122
+      ],
+      "before_span_sha256": "74d50f264c3d50a6db9a7fb6eab462e6570d15cb7e88ca1d9be351ddd3ff3873",
+      "after_span_sha256": "74d50f264c3d50a6db9a7fb6eab462e6570d15cb7e88ca1d9be351ddd3ff3873"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "parameters",
+      "name": "reserve",
+      "before_lines": [
+        94,
+        94
+      ],
+      "child_lines": [
+        97,
+        97
+      ],
+      "after_lines": [
+        97,
+        97
+      ],
+      "before_span_sha256": "7c6b03333731587479ceb47b399ca099fa72344568c27de927b1bf0d1582a69f",
+      "after_span_sha256": "7c6b03333731587479ceb47b399ca099fa72344568c27de927b1bf0d1582a69f"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "percentile",
+      "before_lines": [
+        121,
+        126
+      ],
+      "child_lines": [
+        124,
+        129
+      ],
+      "after_lines": [
+        124,
+        129
+      ],
+      "before_span_sha256": "76d29f874e71709ab8ee0806df0aa1801ed1ed615cc841a0b575d82eb9ebede9",
+      "after_span_sha256": "76d29f874e71709ab8ee0806df0aa1801ed1ed615cc841a0b575d82eb9ebede9"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "parameters",
+      "name": "samples",
+      "before_lines": [
+        121,
+        121
+      ],
+      "child_lines": [
+        124,
+        124
+      ],
+      "after_lines": [
+        124,
+        124
+      ],
+      "before_span_sha256": "67a4a754280ecbdcad826945d3dfba2328cedc4a4d2b6f47d85bcbc51a5f90fe",
+      "after_span_sha256": "67a4a754280ecbdcad826945d3dfba2328cedc4a4d2b6f47d85bcbc51a5f90fe"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "parameters",
+      "name": "percentile",
+      "before_lines": [
+        121,
+        121
+      ],
+      "child_lines": [
+        124,
+        124
+      ],
+      "after_lines": [
+        124,
+        124
+      ],
+      "before_span_sha256": "67a4a754280ecbdcad826945d3dfba2328cedc4a4d2b6f47d85bcbc51a5f90fe",
+      "after_span_sha256": "67a4a754280ecbdcad826945d3dfba2328cedc4a4d2b6f47d85bcbc51a5f90fe"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "objects",
+      "name": "sample_csv",
+      "before_lines": [
+        128,
+        134
+      ],
+      "child_lines": [
+        131,
+        137
+      ],
+      "after_lines": [
+        131,
+        137
+      ],
+      "before_span_sha256": "6a4b8c58c113839eeadd3e1ce2ee900636a935d0a4711cc493ec8958ad514fc8",
+      "after_span_sha256": "6a4b8c58c113839eeadd3e1ce2ee900636a935d0a4711cc493ec8958ad514fc8"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "parameters",
+      "name": "samples",
+      "before_lines": [
+        128,
+        128
+      ],
+      "child_lines": [
+        131,
+        131
+      ],
+      "after_lines": [
+        131,
+        131
+      ],
+      "before_span_sha256": "349186edce743a11bc6ce35e771a73e0fe86eb6f1194b3f4d5b54e2c3922bee7",
+      "after_span_sha256": "349186edce743a11bc6ce35e771a73e0fe86eb6f1194b3f4d5b54e2c3922bee7"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "测试与基准依赖",
+      "before_lines": [
+        1,
+        8
+      ],
+      "child_lines": [
+        1,
+        11
+      ],
+      "after_lines": [
+        1,
+        11
+      ],
+      "before_span_sha256": "dd3823ff01bbd2462ec68e15dc56a6e781389cc77b4373991eec72fdd143ea48",
+      "after_span_sha256": "e167a4bd8eecfb3ac7c096bdaf29201c16c4ea84a40dacd30415a196505befe4"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "固定样本及输出规模",
+      "before_lines": [
+        9,
+        13
+      ],
+      "child_lines": [
+        12,
+        16
+      ],
+      "after_lines": [
+        12,
+        16
+      ],
+      "before_span_sha256": "6020295042a7a908b004cc556c900df42a155207de68288a8cb0f016511dab92",
+      "after_span_sha256": "6020295042a7a908b004cc556c900df42a155207de68288a8cb0f016511dab92"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "变化/移除行为夹具",
+      "before_lines": [
+        14,
+        25
+      ],
+      "child_lines": [
+        17,
+        28
+      ],
+      "after_lines": [
+        17,
+        28
+      ],
+      "before_span_sha256": "2dac25785d149b97349a4a84f1054d94fe5a35bd9ad40c53d6379bd5ad753870",
+      "after_span_sha256": "2dac25785d149b97349a4a84f1054d94fe5a35bd9ad40c53d6379bd5ad753870"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "行为结果数量/端点/容量断言",
+      "before_lines": [
+        26,
+        39
+      ],
+      "child_lines": [
+        29,
+        42
+      ],
+      "after_lines": [
+        29,
+        42
+      ],
+      "before_span_sha256": "ec8d32151d74fa00f69906954ff64e14eaafa10f06b88c6361d725af9d9b1436",
+      "after_span_sha256": "ec8d32151d74fa00f69906954ff64e14eaafa10f06b88c6361d725af9d9b1436"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "原始源码四正向守卫",
+      "before_lines": [
+        40,
+        48
+      ],
+      "child_lines": [
+        43,
+        51
+      ],
+      "after_lines": [
+        43,
+        51
+      ],
+      "before_span_sha256": "d7375bc445f778199cad80715fb4ffb2fcece7ff343fddacdee67e09491477c8",
+      "after_span_sha256": "d7375bc445f778199cad80715fb4ffb2fcece7ff343fddacdee67e09491477c8"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "忽略基准样本与顺序交替",
+      "before_lines": [
+        49,
+        62
+      ],
+      "child_lines": [
+        52,
+        65
+      ],
+      "after_lines": [
+        52,
+        65
+      ],
+      "before_span_sha256": "cd09ba672e50af830ccb08407fec3823047943574cbe85c652301b10638efde7",
+      "after_span_sha256": "cd09ba672e50af830ccb08407fec3823047943574cbe85c652301b10638efde7"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "controls",
+      "name": "for pair in 0..SAMPLE_PAIRS",
+      "before_lines": [
+        54,
+        62
+      ],
+      "child_lines": [
+        57,
+        65
+      ],
+      "after_lines": [
+        57,
+        65
+      ],
+      "before_span_sha256": "1ac4d38a3bd07919805bde4c46e1ed8084586eb494ec86b4095e3678c2ee18bd",
+      "after_span_sha256": "1ac4d38a3bd07919805bde4c46e1ed8084586eb494ec86b4095e3678c2ee18bd"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "controls",
+      "name": "pair % 2 == 0",
+      "before_lines": [
+        55,
+        61
+      ],
+      "child_lines": [
+        58,
+        64
+      ],
+      "after_lines": [
+        58,
+        64
+      ],
+      "before_span_sha256": "37f4c24a3ea5c61d6a325c545175773c789d1e7472cb794721fb9f5f4f8a14f0",
+      "after_span_sha256": "37f4c24a3ea5c61d6a325c545175773c789d1e7472cb794721fb9f5f4f8a14f0"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "分位统计、报告和性能门",
+      "before_lines": [
+        63,
+        79
+      ],
+      "child_lines": [
+        66,
+        82
+      ],
+      "after_lines": [
+        66,
+        82
+      ],
+      "before_span_sha256": "3ee83015fa89ea6424c1a5c1a13a2fd7ebec1acb9ab733f3007ed8efa7a5e4bf",
+      "after_span_sha256": "3ee83015fa89ea6424c1a5c1a13a2fd7ebec1acb9ab733f3007ed8efa7a5e4bf"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "同树快照夹具",
+      "before_lines": [
+        80,
+        83
+      ],
+      "child_lines": [
+        83,
+        86
+      ],
+      "after_lines": [
+        83,
+        86
+      ],
+      "before_span_sha256": "b71d60d64e524e43c8bf5cc2508c3f8554fd4a2398fecc11c9c38ec58526109f",
+      "after_span_sha256": "b71d60d64e524e43c8bf5cc2508c3f8554fd4a2398fecc11c9c38ec58526109f"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "节点描述夹具",
+      "before_lines": [
+        84,
+        92
+      ],
+      "child_lines": [
+        87,
+        95
+      ],
+      "after_lines": [
+        87,
+        95
+      ],
+      "before_span_sha256": "f04997c262dd858bf75786bce9c974218a211bad0d227bac222fe7375b8a53ff",
+      "after_span_sha256": "f04997c262dd858bf75786bce9c974218a211bad0d227bac222fe7375b8a53ff"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "微基准计时与容量选择",
+      "before_lines": [
+        93,
+        107
+      ],
+      "child_lines": [
+        96,
+        110
+      ],
+      "after_lines": [
+        96,
+        110
+      ],
+      "before_span_sha256": "a51b2fa2560705c65f19fabe09858088f91ab57191fbe4a5662c0bdc1fad8a84",
+      "after_span_sha256": "a51b2fa2560705c65f19fabe09858088f91ab57191fbe4a5662c0bdc1fad8a84"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "controls",
+      "name": "for _ in 0..BUILDS_PER_SAMPLE",
+      "before_lines": [
+        97,
+        107
+      ],
+      "child_lines": [
+        100,
+        110
+      ],
+      "after_lines": [
+        100,
+        110
+      ],
+      "before_span_sha256": "f0fd335a04fc887b01fb5eddcc8cd7ad960d25fce17ef889374e7b2f4a1da801",
+      "after_span_sha256": "f0fd335a04fc887b01fb5eddcc8cd7ad960d25fce17ef889374e7b2f4a1da801"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "controls",
+      "name": "if reserve / else",
+      "before_lines": [
+        98,
+        107
+      ],
+      "child_lines": [
+        101,
+        110
+      ],
+      "after_lines": [
+        101,
+        110
+      ],
+      "before_span_sha256": "2729cb8adfe472d243eea144492a5ae80e1392e21f444aadaa9f2aba2365f36c",
+      "after_span_sha256": "2729cb8adfe472d243eea144492a5ae80e1392e21f444aadaa9f2aba2365f36c"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "微基准填充、抑制消除和耗时返回",
+      "before_lines": [
+        108,
+        120
+      ],
+      "child_lines": [
+        111,
+        123
+      ],
+      "after_lines": [
+        111,
+        123
+      ],
+      "before_span_sha256": "07ce6c89234627f5ef71ffbdb00f857bdbad2322eee1edeb3c24372ee017d2ac",
+      "after_span_sha256": "07ce6c89234627f5ef71ffbdb00f857bdbad2322eee1edeb3c24372ee017d2ac"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "controls",
+      "name": "for node in 0..CHANGED_NODES_PER_BUILD",
+      "before_lines": [
+        108,
+        110
+      ],
+      "child_lines": [
+        111,
+        113
+      ],
+      "after_lines": [
+        111,
+        113
+      ],
+      "before_span_sha256": "330d8726625f53fff4f2fe16d7078f135dfd2f4a6731de70b554bd3d4568bf36",
+      "after_span_sha256": "330d8726625f53fff4f2fe16d7078f135dfd2f4a6731de70b554bd3d4568bf36"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "controls",
+      "name": "for node in 0..REMOVED_NODES_PER_BUILD",
+      "before_lines": [
+        111,
+        113
+      ],
+      "child_lines": [
+        114,
+        116
+      ],
+      "after_lines": [
+        114,
+        116
+      ],
+      "before_span_sha256": "fb19623215ce4be92c54561d02d68329147a6975a77406b51ba480f30738b37c",
+      "after_span_sha256": "fb19623215ce4be92c54561d02d68329147a6975a77406b51ba480f30738b37c"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "复制排序分位",
+      "before_lines": [
+        121,
+        127
+      ],
+      "child_lines": [
+        124,
+        130
+      ],
+      "after_lines": [
+        124,
+        130
+      ],
+      "before_span_sha256": "d60f700012683abbfa6b78fa8fb82ecd4c500a802c9fbae0cdc07cbb17d52dc1",
+      "after_span_sha256": "d60f700012683abbfa6b78fa8fb82ecd4c500a802c9fbae0cdc07cbb17d52dc1"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "block_audit",
+      "name": "报告样本CSV",
+      "before_lines": [
+        128,
+        134
+      ],
+      "child_lines": [
+        131,
+        137
+      ],
+      "after_lines": [
+        131,
+        137
+      ],
+      "before_span_sha256": "6a4b8c58c113839eeadd3e1ce2ee900636a935d0a4711cc493ec8958ad514fc8",
+      "after_span_sha256": "6a4b8c58c113839eeadd3e1ce2ee900636a935d0a4711cc493ec8958ad514fc8"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "test_contracts",
+      "name": "optimization_batch_20260826fb_runtime197_capacity_preserves_reflection_diff_order",
+      "before_lines": [
+        14,
+        38
+      ],
+      "child_lines": [
+        17,
+        41
+      ],
+      "after_lines": [
+        17,
+        41
+      ],
+      "before_span_sha256": "7263dc93c51bb4b0d05ad0d9633f95a075c950263ccf359c863f549e97c87105",
+      "after_span_sha256": "7263dc93c51bb4b0d05ad0d9633f95a075c950263ccf359c863f549e97c87105"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "changed_nodes.len()==256",
+      "before_lines": [
+        26,
+        26
+      ],
+      "child_lines": [
+        29,
+        29
+      ],
+      "after_lines": [
+        29,
+        29
+      ],
+      "before_span_sha256": "c0659cf17c0786f0d5c24f531e2ea2d50b1502935d946fb8091a70fd739afcec",
+      "after_span_sha256": "c0659cf17c0786f0d5c24f531e2ea2d50b1502935d946fb8091a70fd739afcec"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "changed_nodes.capacity()>=256",
+      "before_lines": [
+        27,
+        27
+      ],
+      "child_lines": [
+        30,
+        30
+      ],
+      "after_lines": [
+        30,
+        30
+      ],
+      "before_span_sha256": "73ba2099ec999ea5d627b6d02bfe99cf0a3dde38d64a099712daf9c961a4976b",
+      "after_span_sha256": "73ba2099ec999ea5d627b6d02bfe99cf0a3dde38d64a099712daf9c961a4976b"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "changed首项id0",
+      "before_lines": [
+        28,
+        28
+      ],
+      "child_lines": [
+        31,
+        31
+      ],
+      "after_lines": [
+        31,
+        31
+      ],
+      "before_span_sha256": "703b7ad95fb54941bdbfe069635f40ba90c5c1d0f9a2a3154f9232bb2bb34aef",
+      "after_span_sha256": "703b7ad95fb54941bdbfe069635f40ba90c5c1d0f9a2a3154f9232bb2bb34aef"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "changed末项id383",
+      "before_lines": [
+        29,
+        29
+      ],
+      "child_lines": [
+        32,
+        32
+      ],
+      "after_lines": [
+        32,
+        32
+      ],
+      "before_span_sha256": "f4660d656552387e041e7aa516003d70bf620ac390c3081a75f2421724a5cebf",
+      "after_span_sha256": "f4660d656552387e041e7aa516003d70bf620ac390c3081a75f2421724a5cebf"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "removed_nodes.len()==128",
+      "before_lines": [
+        30,
+        30
+      ],
+      "child_lines": [
+        33,
+        33
+      ],
+      "after_lines": [
+        33,
+        33
+      ],
+      "before_span_sha256": "d3e7e40c07f7ef4acba7de9fe3a5edef1683d19ba6354cc05167865dc3b441ed",
+      "after_span_sha256": "d3e7e40c07f7ef4acba7de9fe3a5edef1683d19ba6354cc05167865dc3b441ed"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "removed_nodes.capacity()>=128",
+      "before_lines": [
+        31,
+        31
+      ],
+      "child_lines": [
+        34,
+        34
+      ],
+      "after_lines": [
+        34,
+        34
+      ],
+      "before_span_sha256": "1d0675174676b9726b09335fbbda56599698cbbcfd5d058ba7342261c776e003",
+      "after_span_sha256": "1d0675174676b9726b09335fbbda56599698cbbcfd5d058ba7342261c776e003"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "removed首项id128",
+      "before_lines": [
+        32,
+        32
+      ],
+      "child_lines": [
+        35,
+        35
+      ],
+      "after_lines": [
+        35,
+        35
+      ],
+      "before_span_sha256": "d5825133bc43088c879bfc7773a9950a034f2b4b7086aaf2d622d9b05a64f18a",
+      "after_span_sha256": "d5825133bc43088c879bfc7773a9950a034f2b4b7086aaf2d622d9b05a64f18a"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "removed末项id255",
+      "before_lines": [
+        33,
+        33
+      ],
+      "child_lines": [
+        36,
+        36
+      ],
+      "after_lines": [
+        36,
+        36
+      ],
+      "before_span_sha256": "905cd45ebd9167769c9a0aad29eb3d38fbf26404a99d2eb6896a1707349c5a55",
+      "after_span_sha256": "905cd45ebd9167769c9a0aad29eb3d38fbf26404a99d2eb6896a1707349c5a55"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "reflection_diff_capacities==(256,128)",
+      "before_lines": [
+        34,
+        37
+      ],
+      "child_lines": [
+        37,
+        40
+      ],
+      "after_lines": [
+        37,
+        40
+      ],
+      "before_span_sha256": "ef24235cdd304f4c0d5e6a88c95882740863290981aa621cfd5d0409000cb4a3",
+      "after_span_sha256": "ef24235cdd304f4c0d5e6a88c95882740863290981aa621cfd5d0409000cb4a3"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "test_contracts",
+      "name": "optimization_batch_20260826fb_runtime197_diff_reserves_exact_change_counts",
+      "before_lines": [
+        40,
+        47
+      ],
+      "child_lines": [
+        43,
+        50
+      ],
+      "after_lines": [
+        43,
+        50
+      ],
+      "before_span_sha256": "29a52330c676fb8e79d6c891e37cca79671c4c00b3e6f8f5fb2b6e6263d42770",
+      "after_span_sha256": "29a52330c676fb8e79d6c891e37cca79671c4c00b3e6f8f5fb2b6e6263d42770"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "source包含辅助函数签名形状",
+      "before_lines": [
+        43,
+        43
+      ],
+      "child_lines": [
+        46,
+        46
+      ],
+      "after_lines": [
+        46,
+        46
+      ],
+      "before_span_sha256": "59b6083f4a16de8dbce454499abea78ced84db7293a39b144bac4a20895c57c2",
+      "after_span_sha256": "59b6083f4a16de8dbce454499abea78ced84db7293a39b144bac4a20895c57c2"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "source包含容量元组绑定形状",
+      "before_lines": [
+        44,
+        44
+      ],
+      "child_lines": [
+        47,
+        47
+      ],
+      "after_lines": [
+        47,
+        47
+      ],
+      "before_span_sha256": "d39af56b6a9e7575447b2f4545c491dc8cc6690d41731433944a267c44b9d7ea",
+      "after_span_sha256": "d39af56b6a9e7575447b2f4545c491dc8cc6690d41731433944a267c44b9d7ea"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "source包含变化Vec预留形状",
+      "before_lines": [
+        45,
+        45
+      ],
+      "child_lines": [
+        48,
+        48
+      ],
+      "after_lines": [
+        48,
+        48
+      ],
+      "before_span_sha256": "f2d6c6cf6a189bbdcecd0ff51e7785eb9bb96f33bd34693f24cebb9cf130fa9a",
+      "after_span_sha256": "f2d6c6cf6a189bbdcecd0ff51e7785eb9bb96f33bd34693f24cebb9cf130fa9a"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "source包含移除Vec预留形状",
+      "before_lines": [
+        46,
+        46
+      ],
+      "child_lines": [
+        49,
+        49
+      ],
+      "after_lines": [
+        49,
+        49
+      ],
+      "before_span_sha256": "a7b5217cd3c1cb92f7e8f728c62698cd89663bdc08fe211455df5d52fa21c182",
+      "after_span_sha256": "a7b5217cd3c1cb92f7e8f728c62698cd89663bdc08fe211455df5d52fa21c182"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "test_contracts",
+      "name": "optimization_batch_20260826fb_runtime197_ui_reflection_diff_capacity_bench",
+      "before_lines": [
+        49,
+        78
+      ],
+      "child_lines": [
+        52,
+        81
+      ],
+      "after_lines": [
+        52,
+        81
+      ],
+      "before_span_sha256": "2e7301618eeb89081828dc906963ff09d4d14d8cc1b302fe94be8ce37a92ce3f",
+      "after_span_sha256": "2e7301618eeb89081828dc906963ff09d4d14d8cc1b302fe94be8ce37a92ce3f"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "category": "assertions",
+      "name": "optimized_p95.saturating_mul(100)<=legacy_p95.saturating_mul(70)",
+      "before_lines": [
+        77,
+        77
+      ],
+      "child_lines": [
+        80,
+        80
+      ],
+      "after_lines": [
+        80,
+        80
+      ],
+      "before_span_sha256": "ce640c23759bdcd1f26c123674918aecd428d98537a87ea6907ec901763bdbce",
+      "after_span_sha256": "ce640c23759bdcd1f26c123674918aecd428d98537a87ea6907ec901763bdbce"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+      "category": "objects",
+      "name": "RouteHandler / UiEventBinding / UiRouteId",
+      "before_lines": [
+        1,
+        3
+      ],
+      "child_lines": [
+        1,
+        3
+      ],
+      "after_lines": [
+        1,
+        3
+      ],
+      "before_span_sha256": "c8f156ffc6574433d4c76119770a8255b27a37a954c7497aa3543906c3e593b0",
+      "after_span_sha256": "c8f156ffc6574433d4c76119770a8255b27a37a954c7497aa3543906c3e593b0"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+      "category": "objects",
+      "name": "RouteEntry",
+      "before_lines": [
+        6,
+        11
+      ],
+      "child_lines": [
+        6,
+        13
+      ],
+      "after_lines": [
+        6,
+        13
+      ],
+      "before_span_sha256": "bafd062facc0ba9360776bec91903cf0fedb8f634efc5c6ab95ebdb456ff65c8",
+      "after_span_sha256": "a439112bda429d1e1c1f7db6421aa76311aca272d93ca4b03fe5b217a91dbe24"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+      "category": "members",
+      "name": "route_id",
+      "before_lines": [
+        8,
+        8
+      ],
+      "child_lines": [
+        10,
+        10
+      ],
+      "after_lines": [
+        10,
+        10
+      ],
+      "before_span_sha256": "7519ad401a83e572a1966bc6476faf92afeb8f4814eaf64570ccefc72394d4a5",
+      "after_span_sha256": "7519ad401a83e572a1966bc6476faf92afeb8f4814eaf64570ccefc72394d4a5"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+      "category": "members",
+      "name": "binding",
+      "before_lines": [
+        9,
+        9
+      ],
+      "child_lines": [
+        11,
+        11
+      ],
+      "after_lines": [
+        11,
+        11
+      ],
+      "before_span_sha256": "501154f78a3e065dccd07c72a6cda6cce5d53e9778f89ac97f306285c95cc028",
+      "after_span_sha256": "501154f78a3e065dccd07c72a6cda6cce5d53e9778f89ac97f306285c95cc028"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+      "category": "members",
+      "name": "handler",
+      "before_lines": [
+        10,
+        10
+      ],
+      "child_lines": [
+        12,
+        12
+      ],
+      "after_lines": [
+        12,
+        12
+      ],
+      "before_span_sha256": "f0bfe1b2ff346a5ef64878365eb27b81d5c3dca1d327e480d9c155515d2204da",
+      "after_span_sha256": "f0bfe1b2ff346a5ef64878365eb27b81d5c3dca1d327e480d9c155515d2204da"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+      "category": "block_audit",
+      "name": "记录依赖导入",
+      "before_lines": [
+        1,
+        4
+      ],
+      "child_lines": [
+        1,
+        4
+      ],
+      "after_lines": [
+        1,
+        4
+      ],
+      "before_span_sha256": "1ca62ae5cf273fa21f8819622754e19d956f7ce2a4e655af4e7c8f9454cd2dc0",
+      "after_span_sha256": "1ca62ae5cf273fa21f8819622754e19d956f7ce2a4e655af4e7c8f9454cd2dc0"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+      "category": "block_audit",
+      "name": "记录语义、Clone 和字段",
+      "before_lines": [
+        5,
+        11
+      ],
+      "child_lines": [
+        5,
+        13
+      ],
+      "after_lines": [
+        5,
+        13
+      ],
+      "before_span_sha256": "5bf691036fb92de4dd383623c802e6f8716c82be1b89bf929017de941489ba0b",
+      "after_span_sha256": "6d0a8406ce8cc0a424a41a1d94eec47be9a1ba406e86c164c490d539fd657bba"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+      "category": "objects",
+      "name": "Arc / Value / UiInvocationContext / UiInvocationError",
+      "before_lines": [
+        1,
+        5
+      ],
+      "child_lines": [
+        1,
+        5
+      ],
+      "after_lines": [
+        1,
+        5
+      ],
+      "before_span_sha256": "1ccb105b2222ae44bd060963eb4d3b7e54d01feaf9b418e7d50990ddc26e0a46",
+      "after_span_sha256": "1ccb105b2222ae44bd060963eb4d3b7e54d01feaf9b418e7d50990ddc26e0a46"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+      "category": "objects",
+      "name": "RouteHandler",
+      "before_lines": [
+        8,
+        9
+      ],
+      "child_lines": [
+        8,
+        11
+      ],
+      "after_lines": [
+        8,
+        11
+      ],
+      "before_span_sha256": "489fbdaa88614d764aa2cc0b0548870dafc9a79d40d2f5ebf37c6e48a29887f5",
+      "after_span_sha256": "a6ce558a43a488e0f73219c9605aef5ed3fdaeae5072c70386ef7bf39044417a"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+      "category": "block_audit",
+      "name": "回调参数与所有者类型",
+      "before_lines": [
+        1,
+        6
+      ],
+      "child_lines": [
+        1,
+        6
+      ],
+      "after_lines": [
+        1,
+        6
+      ],
+      "before_span_sha256": "166da3769604bf9da3fe6174d8e0caba40bbf82ab40b97b6cb5deb82a435c3f4",
+      "after_span_sha256": "166da3769604bf9da3fe6174d8e0caba40bbf82ab40b97b6cb5deb82a435c3f4"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+      "category": "block_audit",
+      "name": "共享同步回调别名",
+      "before_lines": [
+        7,
+        9
+      ],
+      "child_lines": [
+        7,
+        11
+      ],
+      "after_lines": [
+        7,
+        11
+      ],
+      "before_span_sha256": "1c33a24b7f5d2ea98fa76939123d9a70720c2f7a7820b28afe043002e8602d9e",
+      "after_span_sha256": "1177f0bec6b1e68a592834b1551fe49a8610fb769ee3d750e268eae395becbb8"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "objects",
+      "name": "Arc / Core 与 engine_module 描述构造依赖",
+      "before_lines": [
+        1,
+        13
+      ],
+      "child_lines": [
+        1,
+        16
+      ],
+      "after_lines": [
+        1,
+        16
+      ],
+      "before_span_sha256": "1e38a0d54e236d7772701a7f96686783e974f32692b707067a1218d314638e8e",
+      "after_span_sha256": "9c118581131b4b48629a2eb687a575a80d9e2f72d6b16960d04db5d607f6b6f2"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "objects",
+      "name": "lifecycle",
+      "before_lines": [
+        15,
+        16
+      ],
+      "child_lines": [
+        18,
+        19
+      ],
+      "after_lines": [
+        18,
+        19
+      ],
+      "before_span_sha256": "33bd8182fa7cc572bda5613a37cd216fdbdefb195235b9f5977a7134a5bc67c1",
+      "after_span_sha256": "33bd8182fa7cc572bda5613a37cd216fdbdefb195235b9f5977a7134a5bc67c1"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "objects",
+      "name": "runtime_driver",
+      "before_lines": [
+        17,
+        18
+      ],
+      "child_lines": [
+        20,
+        21
+      ],
+      "after_lines": [
+        20,
+        21
+      ],
+      "before_span_sha256": "406b1f307c141abf341075ec474207dcd7c583428d512759eb6c6f48c1e0f106",
+      "after_span_sha256": "406b1f307c141abf341075ec474207dcd7c583428d512759eb6c6f48c1e0f106"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "objects",
+      "name": "UiConfig / UiRuntimeDriver / UI_CONFIG_KEY",
+      "before_lines": [
+        20,
+        20
+      ],
+      "child_lines": [
+        23,
+        23
+      ],
+      "after_lines": [
+        23,
+        23
+      ],
+      "before_span_sha256": "f1658d3d4e40256cbc63745704f60b8d0d515e863f18a2ed6745388791933653",
+      "after_span_sha256": "f1658d3d4e40256cbc63745704f60b8d0d515e863f18a2ed6745388791933653"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "objects",
+      "name": "tests",
+      "before_lines": [
+        22,
+        24
+      ],
+      "child_lines": [
+        25,
+        27
+      ],
+      "after_lines": [
+        25,
+        27
+      ],
+      "before_span_sha256": "5ae172ab3b53934a946076fcb348c3e1442f881f3dbf4df87a78e06277661780",
+      "after_span_sha256": "5ae172ab3b53934a946076fcb348c3e1442f881f3dbf4df87a78e06277661780"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "objects",
+      "name": "UI_RUNTIME_DRIVER_NAME",
+      "before_lines": [
+        26,
+        26
+      ],
+      "child_lines": [
+        29,
+        30
+      ],
+      "after_lines": [
+        29,
+        30
+      ],
+      "before_span_sha256": "8937dcc41d9414421b3bfa6bf185b549d617a9fe267e84fef8f6bfab5bd270aa",
+      "after_span_sha256": "5af9cf0c4d1430e59d78577965786489ee0ddf13ebd689300ebab62e68cbcd59"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "objects",
+      "name": "UI_EVENT_MANAGER_NAME",
+      "before_lines": [
+        27,
+        27
+      ],
+      "child_lines": [
+        31,
+        32
+      ],
+      "after_lines": [
+        31,
+        32
+      ],
+      "before_span_sha256": "b461c6ebbb63d2da0c4d3bbc58dd42abfd47730fb4dd56b194e2250bbad701ee",
+      "after_span_sha256": "d195343b8d686e82e4a234bef60e3bafa815630e1a81ca67744cea209d5244a6"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "objects",
+      "name": "UiModule",
+      "before_lines": [
+        29,
+        30
+      ],
+      "child_lines": [
+        34,
+        37
+      ],
+      "after_lines": [
+        34,
+        37
+      ],
+      "before_span_sha256": "a7261b89ec23cd29da3e25ec164257fca427a127c5233184d664e9436d3d8b01",
+      "after_span_sha256": "defd5dc060d2e72a3427ce795cc625bb06edf5f87c8d427021d46166f170b057"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "objects",
+      "name": "module_descriptor",
+      "before_lines": [
+        32,
+        60
+      ],
+      "child_lines": [
+        39,
+        76
+      ],
+      "after_lines": [
+        39,
+        76
+      ],
+      "before_span_sha256": "3f63d4b6bf1ebf89c33dbc9e7b88aa333f374c79f9b65729a6ea909f2010617f",
+      "after_span_sha256": "86c243d17ba4725211c361548ba6780e08150abe1561f971af2b65e2797abfec"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "objects",
+      "name": "EngineModule for UiModule",
+      "before_lines": [
+        62,
+        74
+      ],
+      "child_lines": [
+        78,
+        90
+      ],
+      "after_lines": [
+        78,
+        90
+      ],
+      "before_span_sha256": "6cfbe436a2e01460d5e15ed4934f27891b892d894a859bddfb28f222dc1f85f7",
+      "after_span_sha256": "6cfbe436a2e01460d5e15ed4934f27891b892d894a859bddfb28f222dc1f85f7"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "members",
+      "name": "module_name",
+      "before_lines": [
+        63,
+        65
+      ],
+      "child_lines": [
+        79,
+        81
+      ],
+      "after_lines": [
+        79,
+        81
+      ],
+      "before_span_sha256": "27e14138263c007ddd85ee4fd5db3969fa9bf2551ca89b71291e9c7e03c6b269",
+      "after_span_sha256": "27e14138263c007ddd85ee4fd5db3969fa9bf2551ca89b71291e9c7e03c6b269"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "members",
+      "name": "module_description",
+      "before_lines": [
+        67,
+        69
+      ],
+      "child_lines": [
+        83,
+        85
+      ],
+      "after_lines": [
+        83,
+        85
+      ],
+      "before_span_sha256": "185caa3035b720f640fccf2e23b3b7edacab93d8fb72eec26036c474199f302e",
+      "after_span_sha256": "185caa3035b720f640fccf2e23b3b7edacab93d8fb72eec26036c474199f302e"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "members",
+      "name": "descriptor",
+      "before_lines": [
+        71,
+        73
+      ],
+      "child_lines": [
+        87,
+        89
+      ],
+      "after_lines": [
+        87,
+        89
+      ],
+      "before_span_sha256": "75a732eb09ea35e2a94146d02f989dd106bffe92b04b5b75507d56d46c57decb",
+      "after_span_sha256": "75a732eb09ea35e2a94146d02f989dd106bffe92b04b5b75507d56d46c57decb"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "block_audit",
+      "name": "注册所需类型与 owner 导入",
+      "before_lines": [
+        1,
+        14
+      ],
+      "child_lines": [
+        1,
+        17
+      ],
+      "after_lines": [
+        1,
+        17
+      ],
+      "before_span_sha256": "bff44242fc964cfdfa52a9b5ec5483ffa73b8fbd83dfad9f282cc727959b5fd6",
+      "after_span_sha256": "1575b3c58017a4b55010d19725924886c695fb121b65325e15e332f658634c60"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "block_audit",
+      "name": "支持模块、公开声明及测试挂载",
+      "before_lines": [
+        15,
+        25
+      ],
+      "child_lines": [
+        18,
+        28
+      ],
+      "after_lines": [
+        18,
+        28
+      ],
+      "before_span_sha256": "e51d7f1e5369a733bbcdfab9f86e728c3c6eb0321a2654e64e9e526e7bfdb703",
+      "after_span_sha256": "e51d7f1e5369a733bbcdfab9f86e728c3c6eb0321a2654e64e9e526e7bfdb703"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "block_audit",
+      "name": "服务名称与无状态模块标记",
+      "before_lines": [
+        26,
+        31
+      ],
+      "child_lines": [
+        29,
+        38
+      ],
+      "after_lines": [
+        29,
+        38
+      ],
+      "before_span_sha256": "989f8c7dd03eaa2549fcbfcda6a68a0f6a65ed1140a00eecfd59e703359d1ce0",
+      "after_span_sha256": "91e59360abe3d8aa57c29ffc8043bcec11a26ca5f72fcaeeae7865260f1f5372"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "block_audit",
+      "name": "描述基础、停止回调和模块依赖",
+      "before_lines": [
+        32,
+        38
+      ],
+      "child_lines": [
+        39,
+        54
+      ],
+      "after_lines": [
+        39,
+        54
+      ],
+      "before_span_sha256": "e7fcfca1ad32ee3a02a2ad5c03038e991962e8fc4ebf6f5efe37f5bab163d38f",
+      "after_span_sha256": "e1a06614c99fd37cec8b4e39fdca5ef4210920d4efa3ee7382db9b080bb2eb7d"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "block_audit",
+      "name": "驱动描述和弱 Core 工厂",
+      "before_lines": [
+        39,
+        49
+      ],
+      "child_lines": [
+        55,
+        65
+      ],
+      "after_lines": [
+        55,
+        65
+      ],
+      "before_span_sha256": "4f75d1bc1b9dd151733becb41683a32e674b2666300d834d7eaa7cfe120fb149",
+      "after_span_sha256": "4f75d1bc1b9dd151733becb41683a32e674b2666300d834d7eaa7cfe120fb149"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "controls",
+      "name": "core.upgrade().ok_or(RuntimeUnavailable)?",
+      "before_lines": [
+        43,
+        46
+      ],
+      "child_lines": [
+        59,
+        62
+      ],
+      "after_lines": [
+        59,
+        62
+      ],
+      "before_span_sha256": "aad6d40b9b0a712ebcface423b9705780e3fe7ab41df12e8c6c7d152e2b913e1",
+      "after_span_sha256": "aad6d40b9b0a712ebcface423b9705780e3fe7ab41df12e8c6c7d152e2b913e1"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "controls",
+      "name": "UiRuntimeDriver::from_core(&core)?",
+      "before_lines": [
+        47,
+        47
+      ],
+      "child_lines": [
+        63,
+        63
+      ],
+      "after_lines": [
+        63,
+        63
+      ],
+      "before_span_sha256": "dbcbe9c59627eec87cda9fedf32299f11b754e389f0dc7137df16b6194d5be15",
+      "after_span_sha256": "dbcbe9c59627eec87cda9fedf32299f11b754e389f0dc7137df16b6194d5be15"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "block_audit",
+      "name": "管理器描述、驱动依赖和默认工厂",
+      "before_lines": [
+        50,
+        61
+      ],
+      "child_lines": [
+        66,
+        77
+      ],
+      "after_lines": [
+        66,
+        77
+      ],
+      "before_span_sha256": "3e34a404237c96de71d10110bc03b02a522e256e66b02b42fe93810042f88193",
+      "after_span_sha256": "3e34a404237c96de71d10110bc03b02a522e256e66b02b42fe93810042f88193"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "block_audit",
+      "name": "模块名与说明 trait 委托",
+      "before_lines": [
+        62,
+        70
+      ],
+      "child_lines": [
+        78,
+        86
+      ],
+      "after_lines": [
+        78,
+        86
+      ],
+      "before_span_sha256": "e0c29d45e900adab019caa3a863ad0243d95e1fc0e68fa2a2c302da9ca8932e0",
+      "after_span_sha256": "e0c29d45e900adab019caa3a863ad0243d95e1fc0e68fa2a2c302da9ca8932e0"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "category": "block_audit",
+      "name": "描述 trait 委托",
+      "before_lines": [
+        71,
+        74
+      ],
+      "child_lines": [
+        87,
+        90
+      ],
+      "after_lines": [
+        87,
+        90
+      ],
+      "before_span_sha256": "56bd01be6d63fd8386e0d5841d7f0e77054a240ae28ecaab3e9bbb7f6754d7c4",
+      "after_span_sha256": "56bd01be6d63fd8386e0d5841d7f0e77054a240ae28ecaab3e9bbb7f6754d7c4"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "category": "objects",
+      "name": "CoreResult / ModuleCleanupContext / ModuleLifecycle / UiRuntimeDriver / UI_RUNTIME_DRIVER_NAME",
+      "before_lines": [
+        1,
+        3
+      ],
+      "child_lines": [
+        1,
+        3
+      ],
+      "after_lines": [
+        1,
+        3
+      ],
+      "before_span_sha256": "3030ff13b2557179c61f59c076336013a1fd59738d33089602300d1ac3f75193",
+      "after_span_sha256": "3030ff13b2557179c61f59c076336013a1fd59738d33089602300d1ac3f75193"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "category": "objects",
+      "name": "UiModuleLifecycle",
+      "before_lines": [
+        5,
+        6
+      ],
+      "child_lines": [
+        5,
+        8
+      ],
+      "after_lines": [
+        5,
+        8
+      ],
+      "before_span_sha256": "4fe8da0c15fa9a616fbe80847e1cbb562267d615b0154797fd7ad2d2a6864a3a",
+      "after_span_sha256": "bf899d53ab24719a5cf4d0404a7c5e385767cce6c74dfea936a6f5557b294596"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "category": "objects",
+      "name": "ModuleLifecycle for UiModuleLifecycle",
+      "before_lines": [
+        8,
+        16
+      ],
+      "child_lines": [
+        10,
+        18
+      ],
+      "after_lines": [
+        10,
+        18
+      ],
+      "before_span_sha256": "d2c6bf9bc64a6a31d8b929d97dc31537ee5c91cdfef219f6897ec5194f2b4ad0",
+      "after_span_sha256": "d2c6bf9bc64a6a31d8b929d97dc31537ee5c91cdfef219f6897ec5194f2b4ad0"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "category": "members",
+      "name": "cleanup",
+      "before_lines": [
+        9,
+        15
+      ],
+      "child_lines": [
+        11,
+        17
+      ],
+      "after_lines": [
+        11,
+        17
+      ],
+      "before_span_sha256": "7644cbf2de20dbb555c26e14038076a11f0bbfdf176051f15b1262f4f252fb6e",
+      "after_span_sha256": "7644cbf2de20dbb555c26e14038076a11f0bbfdf176051f15b1262f4f252fb6e"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "category": "parameters",
+      "name": "context",
+      "before_lines": [
+        9,
+        9
+      ],
+      "child_lines": [
+        11,
+        11
+      ],
+      "after_lines": [
+        11,
+        11
+      ],
+      "before_span_sha256": "b4b7505ba9ad2b3aa6f6594e4b2573bf4b661554ba4109a09bfe8c09e6174f41",
+      "after_span_sha256": "b4b7505ba9ad2b3aa6f6594e4b2573bf4b661554ba4109a09bfe8c09e6174f41"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "category": "block_audit",
+      "name": "停止能力与驱动身份导入",
+      "before_lines": [
+        1,
+        4
+      ],
+      "child_lines": [
+        1,
+        4
+      ],
+      "after_lines": [
+        1,
+        4
+      ],
+      "before_span_sha256": "40ca8b2444d40fa9f0b8e0b77f99232d73523ce7bd19ec252eddf31bc697d210",
+      "after_span_sha256": "40ca8b2444d40fa9f0b8e0b77f99232d73523ce7bd19ec252eddf31bc697d210"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "category": "block_audit",
+      "name": "无状态清理钩子",
+      "before_lines": [
+        5,
+        7
+      ],
+      "child_lines": [
+        5,
+        9
+      ],
+      "after_lines": [
+        5,
+        9
+      ],
+      "before_span_sha256": "73a530b28d40a0a1662513c00d003f3f7c0f8a5247213ea6a30d4da173b65cd4",
+      "after_span_sha256": "b71f40852010828f1ed31ac489dc841be6b4b93c8ecad1defa529a20d6c81c62"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "category": "block_audit",
+      "name": "既有驱动借用与准入关闭",
+      "before_lines": [
+        8,
+        13
+      ],
+      "child_lines": [
+        10,
+        15
+      ],
+      "after_lines": [
+        10,
+        15
+      ],
+      "before_span_sha256": "ea9f7af93790933cf831c8ae4000e95546d9da83d57c90100cfe72d0c8418278",
+      "after_span_sha256": "ea9f7af93790933cf831c8ae4000e95546d9da83d57c90100cfe72d0c8418278"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "category": "controls",
+      "name": "context.with_existing_driver::<UiRuntimeDriver>",
+      "before_lines": [
+        10,
+        13
+      ],
+      "child_lines": [
+        12,
+        15
+      ],
+      "after_lines": [
+        12,
+        15
+      ],
+      "before_span_sha256": "45863a67c14849ebd17931cf0d0ec5cc5828cd6b3f4558e07c372a0dc1af22c1",
+      "after_span_sha256": "45863a67c14849ebd17931cf0d0ec5cc5828cd6b3f4558e07c372a0dc1af22c1"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "category": "controls",
+      "name": "driver.close_admission()",
+      "before_lines": [
+        11,
+        12
+      ],
+      "child_lines": [
+        13,
+        14
+      ],
+      "after_lines": [
+        13,
+        14
+      ],
+      "before_span_sha256": "f795f0819341a56536fe77bd0cd9c27b2268cab5bb4c532888594ea452de79c5",
+      "after_span_sha256": "f795f0819341a56536fe77bd0cd9c27b2268cab5bb4c532888594ea452de79c5"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "category": "block_audit",
+      "name": "清理结果返回",
+      "before_lines": [
+        14,
+        16
+      ],
+      "child_lines": [
+        16,
+        18
+      ],
+      "after_lines": [
+        16,
+        18
+      ],
+      "before_span_sha256": "08b698f16ed440e36cfd95fd9b90d10e04306142089f301e045d7d17b0b8fbb9",
+      "after_span_sha256": "08b698f16ed440e36cfd95fd9b90d10e04306142089f301e045d7d17b0b8fbb9"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "objects",
+      "name": "AtomicBool / Ordering / serde / Core / UI_RUNTIME_DRIVER_NAME",
+      "before_lines": [
+        1,
+        7
+      ],
+      "child_lines": [
+        1,
+        7
+      ],
+      "after_lines": [
+        1,
+        7
+      ],
+      "before_span_sha256": "af079716373e7048ac580e6b48e32cdc7bf81acd9a3c1290f4240816c282a2eb",
+      "after_span_sha256": "af079716373e7048ac580e6b48e32cdc7bf81acd9a3c1290f4240816c282a2eb"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "objects",
+      "name": "UI_CONFIG_KEY",
+      "before_lines": [
+        9,
+        10
+      ],
+      "child_lines": [
+        9,
+        11
+      ],
+      "after_lines": [
+        9,
+        11
+      ],
+      "before_span_sha256": "aed4b44409164c1d8eaf87c59d02bfbc2896f67fa7e7763c737e4fcf1557fb33",
+      "after_span_sha256": "7c55bc27c851ec734688ee8625c013683ef7b5639c84da50301ee6ab9c1a94bf"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "objects",
+      "name": "UiConfig",
+      "before_lines": [
+        12,
+        15
+      ],
+      "child_lines": [
+        13,
+        22
+      ],
+      "after_lines": [
+        13,
+        22
+      ],
+      "before_span_sha256": "374b89ae83763423da87cda77c147ba3cc2f3f1dc02980353841ea90d263cb97",
+      "after_span_sha256": "51094b7068dc28f9ac6142c8b1d7ffba5a05eef882e561127bcc8d2354cbc6ac"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "members",
+      "name": "enabled",
+      "before_lines": [
+        14,
+        14
+      ],
+      "child_lines": [
+        20,
+        21
+      ],
+      "after_lines": [
+        20,
+        21
+      ],
+      "before_span_sha256": "b0442ace8d9449d8880f134bca2727c537cf85fa979e985201e905e4c60b3ca9",
+      "after_span_sha256": "9806eecede5ccb98aafa37c28e61857b8852fc687954b54f4e4108dbb65d187c"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "objects",
+      "name": "Default for UiConfig",
+      "before_lines": [
+        17,
+        21
+      ],
+      "child_lines": [
+        24,
+        28
+      ],
+      "after_lines": [
+        24,
+        28
+      ],
+      "before_span_sha256": "844a8f9f2a9d2052849b8a20cb64daaf9728a54eee79e7afb1ae5be55461078b",
+      "after_span_sha256": "844a8f9f2a9d2052849b8a20cb64daaf9728a54eee79e7afb1ae5be55461078b"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "members",
+      "name": "default",
+      "before_lines": [
+        18,
+        20
+      ],
+      "child_lines": [
+        25,
+        27
+      ],
+      "after_lines": [
+        25,
+        27
+      ],
+      "before_span_sha256": "816d8e1f1f86b5a1ac0dd53e6e151e67f8b694978f7adea1ff12be7b6768fd2a",
+      "after_span_sha256": "816d8e1f1f86b5a1ac0dd53e6e151e67f8b694978f7adea1ff12be7b6768fd2a"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "objects",
+      "name": "UiRuntimeDriver",
+      "before_lines": [
+        23,
+        28
+      ],
+      "child_lines": [
+        30,
+        40
+      ],
+      "after_lines": [
+        30,
+        40
+      ],
+      "before_span_sha256": "d908a73d144aeaf146b9d4b30d8eb1d513c826f26ddfda5c285ddcfa6bede48b",
+      "after_span_sha256": "5eb20792cfc5a96acf29e5e4456cf1df6b0ace33d24aef05d54f001013364432"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "members",
+      "name": "config",
+      "before_lines": [
+        26,
+        26
+      ],
+      "child_lines": [
+        38,
+        38
+      ],
+      "after_lines": [
+        38,
+        38
+      ],
+      "before_span_sha256": "fd9f350e16c1282e90d9e24c23c258f1f7fd01d52c2ed6a0cddd8afa4170f7a3",
+      "after_span_sha256": "fd9f350e16c1282e90d9e24c23c258f1f7fd01d52c2ed6a0cddd8afa4170f7a3"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "members",
+      "name": "admission_open",
+      "before_lines": [
+        27,
+        27
+      ],
+      "child_lines": [
+        39,
+        39
+      ],
+      "after_lines": [
+        39,
+        39
+      ],
+      "before_span_sha256": "74471b75c327683ba152a45ece944915afbd3a7935f8824d7f4b0dd1585b756f",
+      "after_span_sha256": "74471b75c327683ba152a45ece944915afbd3a7935f8824d7f4b0dd1585b756f"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "objects",
+      "name": "Default for UiRuntimeDriver",
+      "before_lines": [
+        30,
+        34
+      ],
+      "child_lines": [
+        42,
+        46
+      ],
+      "after_lines": [
+        42,
+        46
+      ],
+      "before_span_sha256": "58af220e883dbbae846582ff9a1a2919e71a280cf1ad9f3b3f3d8bb4e1194a37",
+      "after_span_sha256": "58af220e883dbbae846582ff9a1a2919e71a280cf1ad9f3b3f3d8bb4e1194a37"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "members",
+      "name": "default",
+      "before_lines": [
+        31,
+        33
+      ],
+      "child_lines": [
+        43,
+        45
+      ],
+      "after_lines": [
+        43,
+        45
+      ],
+      "before_span_sha256": "37f80f5c8629b4c24d284afce8a89eebb99e72e9f3cd9943b89337a908073d56",
+      "after_span_sha256": "37f80f5c8629b4c24d284afce8a89eebb99e72e9f3cd9943b89337a908073d56"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "objects",
+      "name": "UiRuntimeDriver",
+      "before_lines": [
+        36,
+        71
+      ],
+      "child_lines": [
+        48,
+        92
+      ],
+      "after_lines": [
+        48,
+        92
+      ],
+      "before_span_sha256": "dcad0e389873ffad443c3f4dee497319d843c0b9ee9969648f6e1945d015b699",
+      "after_span_sha256": "81519323459afbe2fbc9673aa0eeeb2a31c025f44fd02435930ddaa70eb4df3f"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "members",
+      "name": "new",
+      "before_lines": [
+        37,
+        42
+      ],
+      "child_lines": [
+        49,
+        54
+      ],
+      "after_lines": [
+        49,
+        54
+      ],
+      "before_span_sha256": "def709942e20b21cb5a7257fc7f64b1510d7112b53af64e8af3aa64de04c8a42",
+      "after_span_sha256": "def709942e20b21cb5a7257fc7f64b1510d7112b53af64e8af3aa64de04c8a42"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "parameters",
+      "name": "config",
+      "before_lines": [
+        37,
+        37
+      ],
+      "child_lines": [
+        49,
+        49
+      ],
+      "after_lines": [
+        49,
+        49
+      ],
+      "before_span_sha256": "a90a45fd6a048c4cb3d21622990008e3457353b936bd77d322241feb8b881989",
+      "after_span_sha256": "a90a45fd6a048c4cb3d21622990008e3457353b936bd77d322241feb8b881989"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "members",
+      "name": "from_core",
+      "before_lines": [
+        44,
+        52
+      ],
+      "child_lines": [
+        56,
+        66
+      ],
+      "after_lines": [
+        56,
+        66
+      ],
+      "before_span_sha256": "914a6485c54d0c5d4eea0b2b3f137f87c44ff5b26b1eb712a975e26d515eac9b",
+      "after_span_sha256": "606830c8a6ca2f73a8b6dc0c15eb267293b40c77f573a92d9ee04e354b69aaf7"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "parameters",
+      "name": "core",
+      "before_lines": [
+        44,
+        44
+      ],
+      "child_lines": [
+        56,
+        58
+      ],
+      "after_lines": [
+        56,
+        58
+      ],
+      "before_span_sha256": "dc615ce561db1069bc61fdc3849c3a0974e307b62bdccd00d5f4c5cacca3c145",
+      "after_span_sha256": "93d2d8bfe6fb38387c17dd5325a218ed84969ddc74c3a1e7825cabc5a862e1fd"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "members",
+      "name": "config",
+      "before_lines": [
+        54,
+        56
+      ],
+      "child_lines": [
+        68,
+        71
+      ],
+      "after_lines": [
+        68,
+        71
+      ],
+      "before_span_sha256": "8b7f456c253d754bf144f324b43fbb8c39f52b0d911b4a1ffa53fe0cae717e77",
+      "after_span_sha256": "41203052dfc67e201a4b21c786d460e511c3b24dcac574f2d5e88a0d9e2e56ec"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "members",
+      "name": "admit_project",
+      "before_lines": [
+        58,
+        66
+      ],
+      "child_lines": [
+        73,
+        86
+      ],
+      "after_lines": [
+        73,
+        86
+      ],
+      "before_span_sha256": "c2627e85fbc989ec25d0b47e36b4125d02ef43213cba09a9342d25bb50b7213d",
+      "after_span_sha256": "d559ca4d3e0b84d05b0601d0a7d54c2dcff775b83c8a7c00efc764af3890d5e3"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "members",
+      "name": "close_admission",
+      "before_lines": [
+        68,
+        70
+      ],
+      "child_lines": [
+        88,
+        91
+      ],
+      "after_lines": [
+        88,
+        91
+      ],
+      "before_span_sha256": "221364e464d911738c0b2300c505d6f6929e3df9b9cb3c8ceb582260b724ad44",
+      "after_span_sha256": "08f6ae591496f5bdd2fc49bb9011125d0784d3ea3d2b27d9d879a8c61a83dd6c"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "block_audit",
+      "name": "原子、Serde 与 Core 依赖",
+      "before_lines": [
+        1,
+        8
+      ],
+      "child_lines": [
+        1,
+        8
+      ],
+      "after_lines": [
+        1,
+        8
+      ],
+      "before_span_sha256": "22f7e54ccb0b2c85c0589540e89b8ff9347d1211dbd30b4554cdf127b9981ec4",
+      "after_span_sha256": "22f7e54ccb0b2c85c0589540e89b8ff9347d1211dbd30b4554cdf127b9981ec4"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "block_audit",
+      "name": "配置键、配置类型和字段",
+      "before_lines": [
+        9,
+        16
+      ],
+      "child_lines": [
+        9,
+        23
+      ],
+      "after_lines": [
+        9,
+        23
+      ],
+      "before_span_sha256": "4fcca2cdcd8cac684a7814c2a4d06519c7ce0d9c4ad0d6226a1bb0a325fb32fd",
+      "after_span_sha256": "00d24990083ca85213d0e626f263a6fc47d1c598b4ffa3f75f8c8fb6da06dbc6"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "block_audit",
+      "name": "配置默认值",
+      "before_lines": [
+        17,
+        22
+      ],
+      "child_lines": [
+        24,
+        29
+      ],
+      "after_lines": [
+        24,
+        29
+      ],
+      "before_span_sha256": "4b01d6087d88decf8227fd49e616a2e7a57b131b701d4c7079522e9f6cf3a0bd",
+      "after_span_sha256": "4b01d6087d88decf8227fd49e616a2e7a57b131b701d4c7079522e9f6cf3a0bd"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "block_audit",
+      "name": "驱动状态布局",
+      "before_lines": [
+        23,
+        29
+      ],
+      "child_lines": [
+        30,
+        41
+      ],
+      "after_lines": [
+        30,
+        41
+      ],
+      "before_span_sha256": "2db59711461dda5172e6553b41b9879c69e65142028663538dea357158e2e6e2",
+      "after_span_sha256": "a214fa4cb430035c0b730424878b8fe03faac5e0f4e27f7f84fb16c905e0e2a0"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "block_audit",
+      "name": "默认驱动委托",
+      "before_lines": [
+        30,
+        35
+      ],
+      "child_lines": [
+        42,
+        47
+      ],
+      "after_lines": [
+        42,
+        47
+      ],
+      "before_span_sha256": "bdaba74f1da7bb15b5fd173e85203f046a48fd9733829da4d03aee15e1ddf699",
+      "after_span_sha256": "bdaba74f1da7bb15b5fd173e85203f046a48fd9733829da4d03aee15e1ddf699"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "block_audit",
+      "name": "拥有驱动构造",
+      "before_lines": [
+        36,
+        43
+      ],
+      "child_lines": [
+        48,
+        55
+      ],
+      "after_lines": [
+        48,
+        55
+      ],
+      "before_span_sha256": "9625f2f5c0d777246970edc4c3b76fecc0b085d6f4026d1e14c77a0d161dd6cd",
+      "after_span_sha256": "9625f2f5c0d777246970edc4c3b76fecc0b085d6f4026d1e14c77a0d161dd6cd"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "block_audit",
+      "name": "Core 配置读取、解析与新实例",
+      "before_lines": [
+        44,
+        53
+      ],
+      "child_lines": [
+        56,
+        67
+      ],
+      "after_lines": [
+        56,
+        67
+      ],
+      "before_span_sha256": "68d5467a6a9e7f4385b47ed67d56d4ec327c72b354f57b253062c2e9250331d3",
+      "after_span_sha256": "d27d0724768362e0b4034dd2359cb5f3d9b12a3fc7727246312d76fd30c27bbb"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "controls",
+      "name": "match core.load_config_value(UI_CONFIG_KEY)",
+      "before_lines": [
+        45,
+        50
+      ],
+      "child_lines": [
+        59,
+        64
+      ],
+      "after_lines": [
+        59,
+        64
+      ],
+      "before_span_sha256": "402b78378b6b148ced6986d002a0d419de45ed25827e7da3a14e47136f9a2240",
+      "after_span_sha256": "402b78378b6b148ced6986d002a0d419de45ed25827e7da3a14e47136f9a2240"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "controls",
+      "name": "serde_json::from_value(value).map_err",
+      "before_lines": [
+        46,
+        48
+      ],
+      "child_lines": [
+        60,
+        62
+      ],
+      "after_lines": [
+        60,
+        62
+      ],
+      "before_span_sha256": "f5673e615c1074c748bdb071d5572399fd49978db04c0cbf211ae4def41e596b",
+      "after_span_sha256": "f5673e615c1074c748bdb071d5572399fd49978db04c0cbf211ae4def41e596b"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "controls",
+      "name": "Ok(Self::new(config))",
+      "before_lines": [
+        51,
+        52
+      ],
+      "child_lines": [
+        65,
+        66
+      ],
+      "after_lines": [
+        65,
+        66
+      ],
+      "before_span_sha256": "a5013ac8a5a7d0aa7ab5ab88f691e86e82c9fd479ed40ea43e4dbfb51d6a233c",
+      "after_span_sha256": "a5013ac8a5a7d0aa7ab5ab88f691e86e82c9fd479ed40ea43e4dbfb51d6a233c"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "block_audit",
+      "name": "配置快照借用",
+      "before_lines": [
+        54,
+        57
+      ],
+      "child_lines": [
+        68,
+        72
+      ],
+      "after_lines": [
+        68,
+        72
+      ],
+      "before_span_sha256": "aa51b2e96716e0a98f35e6b8855f6d10317d1d57f00cc6e74d2d572286e72e1c",
+      "after_span_sha256": "727ce0f562308dca51f5105f35d5326d6f1305937e1142eb221bf460a9987e95"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "block_audit",
+      "name": "项目准入分支",
+      "before_lines": [
+        58,
+        67
+      ],
+      "child_lines": [
+        73,
+        87
+      ],
+      "after_lines": [
+        73,
+        87
+      ],
+      "before_span_sha256": "d501eb8dba738d93d0daae84381f19062da39d26ad2764b5ee972feaf5ec0e16",
+      "after_span_sha256": "8ab14dcfde21427d0a5859c4874891ffa22e4efcaecd7ca784a7303d76558adf"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "controls",
+      "name": "!self.admission_open.load(Ordering::Acquire)",
+      "before_lines": [
+        60,
+        64
+      ],
+      "child_lines": [
+        80,
+        84
+      ],
+      "after_lines": [
+        80,
+        84
+      ],
+      "before_span_sha256": "4a105a7e8bcc8c16c192a6520d35f8c1efe0678734f6fc09a883d99657f7d148",
+      "after_span_sha256": "4a105a7e8bcc8c16c192a6520d35f8c1efe0678734f6fc09a883d99657f7d148"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "controls",
+      "name": "Ok(self.config.enabled)",
+      "before_lines": [
+        65,
+        66
+      ],
+      "child_lines": [
+        85,
+        86
+      ],
+      "after_lines": [
+        85,
+        86
+      ],
+      "before_span_sha256": "ee4bef3372799b0f9fdbffea9af20edf1ca844f49ae5797803bc970453cd9af4",
+      "after_span_sha256": "ee4bef3372799b0f9fdbffea9af20edf1ca844f49ae5797803bc970453cd9af4"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "category": "block_audit",
+      "name": "停止期关闭门",
+      "before_lines": [
+        68,
+        71
+      ],
+      "child_lines": [
+        88,
+        92
+      ],
+      "after_lines": [
+        88,
+        92
+      ],
+      "before_span_sha256": "c6e4e51f1475ffb80d2151229a8789a5f78f361c07951ace02aa1160469e26ce",
+      "after_span_sha256": "7d58b09b24e03b03641af69d12f1955d2b2964f535c8e17854c5ab1877718617"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "objects",
+      "name": "Arc / Mutex / Core 与 UI 驱动测试依赖",
+      "before_lines": [
+        1,
+        10
+      ],
+      "child_lines": [
+        1,
+        13
+      ],
+      "after_lines": [
+        1,
+        13
+      ],
+      "before_span_sha256": "567795ed40fe024f6a31d2625542798de194de4a061989791abee8b174af88d3",
+      "after_span_sha256": "e0b70fdb4188fa1c84ffd743d8f059a3b5260a88b5b4f06bd4d2d601f7522523"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "objects",
+      "name": "CleanupObservations",
+      "before_lines": [
+        12,
+        12
+      ],
+      "child_lines": [
+        15,
+        16
+      ],
+      "after_lines": [
+        15,
+        16
+      ],
+      "before_span_sha256": "5add92761fcfd5c28296b73729587b77808d3e7596e8577be4fbda8f20ea28d6",
+      "after_span_sha256": "e9f127bb47dfc2e31e0f5f7890ead88fb53a1ea774e2f3e34404f6a5a7bd2d00"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "objects",
+      "name": "ObservedUiCleanup",
+      "before_lines": [
+        14,
+        17
+      ],
+      "child_lines": [
+        18,
+        21
+      ],
+      "after_lines": [
+        18,
+        21
+      ],
+      "before_span_sha256": "a9cdad8a6edacbc09540b258b10112fe90f5007eb0a51490042bcb15af44179a",
+      "after_span_sha256": "a9cdad8a6edacbc09540b258b10112fe90f5007eb0a51490042bcb15af44179a"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "members",
+      "name": "observations",
+      "before_lines": [
+        16,
+        16
+      ],
+      "child_lines": [
+        20,
+        20
+      ],
+      "after_lines": [
+        20,
+        20
+      ],
+      "before_span_sha256": "acef2378a07422081c7fdea29449edbd4c7ff68dfcc29d0aa97c61cd1d2eb9da",
+      "after_span_sha256": "acef2378a07422081c7fdea29449edbd4c7ff68dfcc29d0aa97c61cd1d2eb9da"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "objects",
+      "name": "ModuleLifecycle for ObservedUiCleanup",
+      "before_lines": [
+        19,
+        35
+      ],
+      "child_lines": [
+        23,
+        40
+      ],
+      "after_lines": [
+        23,
+        40
+      ],
+      "before_span_sha256": "5862771beabcd072e06e2ec61f14bae6bb3a0dbe6ee9274d1bd034a1e8b66306",
+      "after_span_sha256": "35d9eeda3d5c341fabef4cd161051882c1d36721c73ef320b8ebe47c48a926a1"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "members",
+      "name": "cleanup",
+      "before_lines": [
+        20,
+        34
+      ],
+      "child_lines": [
+        24,
+        39
+      ],
+      "after_lines": [
+        24,
+        39
+      ],
+      "before_span_sha256": "6236527dabb8ba02d1fd51870344e611c120155b13a7d1be7a7009ca5f0be6da",
+      "after_span_sha256": "78bd5b473aa63f64b006c0ae4f14016493e97a10dfa2f5f301f1c326ff42f96b"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "objects",
+      "name": "registered_runtime",
+      "before_lines": [
+        37,
+        53
+      ],
+      "child_lines": [
+        42,
+        60
+      ],
+      "after_lines": [
+        42,
+        60
+      ],
+      "before_span_sha256": "b06aeb96bc2a27841e3ee31c5aaa80fceb6253e3faa5b3453efd71fda9e0eaa2",
+      "after_span_sha256": "8f56c9682e505b77b4160d7df12baaec45e58542ff22bb124ac626fabebd8a06"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "objects",
+      "name": "driver_identity",
+      "before_lines": [
+        55,
+        60
+      ],
+      "child_lines": [
+        62,
+        68
+      ],
+      "after_lines": [
+        62,
+        68
+      ],
+      "before_span_sha256": "990e1921f6cff1a429ca954670231bbeea2fae11c4871a5cc07630d8032c4741",
+      "after_span_sha256": "d9a5345f1bc9d7943c9e88c44e4847d7568b42a23c893c46fe2e9397a636e363"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "parameters",
+      "name": "runtime",
+      "before_lines": [
+        55,
+        55
+      ],
+      "child_lines": [
+        62,
+        63
+      ],
+      "after_lines": [
+        62,
+        63
+      ],
+      "before_span_sha256": "85e14bc90124b8cadd065e685e49559c4030262d61d4b3559bb7984f63b16e6c",
+      "after_span_sha256": "439a2ecf790bcb61b1f3f24b0bce2e2caf66dc8655f9a938b5b7c05769da1f0e"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "objects",
+      "name": "driver",
+      "before_lines": [
+        62,
+        64
+      ],
+      "child_lines": [
+        70,
+        72
+      ],
+      "after_lines": [
+        70,
+        72
+      ],
+      "before_span_sha256": "613e6f4aa982ad466516901c235f6bad82d41745b477ca85fc5c53413149bbbd",
+      "after_span_sha256": "613e6f4aa982ad466516901c235f6bad82d41745b477ca85fc5c53413149bbbd"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "parameters",
+      "name": "runtime",
+      "before_lines": [
+        62,
+        62
+      ],
+      "child_lines": [
+        70,
+        70
+      ],
+      "after_lines": [
+        70,
+        70
+      ],
+      "before_span_sha256": "7f922e443b225b13608e4510cb6280b9b2d2bb6a08c6e48755da1f72622abd88",
+      "after_span_sha256": "7f922e443b225b13608e4510cb6280b9b2d2bb6a08c6e48755da1f72622abd88"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "objects",
+      "name": "ui_driver_default_admission_is_stable_per_core_and_isolated_between_cores",
+      "before_lines": [
+        67,
+        90
+      ],
+      "child_lines": [
+        75,
+        98
+      ],
+      "after_lines": [
+        75,
+        98
+      ],
+      "before_span_sha256": "4547693d60d3c88a5e7598852eaaa64c9420d483f1bcd6f13e2ef81603847f41",
+      "after_span_sha256": "4547693d60d3c88a5e7598852eaaa64c9420d483f1bcd6f13e2ef81603847f41"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "objects",
+      "name": "ui_driver_snapshots_config_and_reactivation_replaces_closed_admission",
+      "before_lines": [
+        93,
+        132
+      ],
+      "child_lines": [
+        101,
+        140
+      ],
+      "after_lines": [
+        101,
+        140
+      ],
+      "before_span_sha256": "94b8651a3a31f3c4120a5439c6c8159871df4db7183e032634e9fefcdb3ac672",
+      "after_span_sha256": "94b8651a3a31f3c4120a5439c6c8159871df4db7183e032634e9fefcdb3ac672"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "objects",
+      "name": "ui_driver_invalid_config_fails_activation_without_defaulting_to_enabled",
+      "before_lines": [
+        135,
+        149
+      ],
+      "child_lines": [
+        143,
+        157
+      ],
+      "after_lines": [
+        143,
+        161
+      ],
+      "before_span_sha256": "976611611ee55e9e072c9cb5280f0b4c0ceec01860e509b4f8143a299132c490",
+      "after_span_sha256": "28cc8da695b98b77393ab85532f30d7a2f43cb642fa851dd7708fc84a4186ffc"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "Core生命周期与UI夹具导入",
+      "before_lines": [
+        1,
+        11
+      ],
+      "child_lines": [
+        1,
+        14
+      ],
+      "after_lines": [
+        1,
+        14
+      ],
+      "before_span_sha256": "bd7bf9263420427f6f22d3dac0c84b16bac4c03613f5210b64417c28fc8418af",
+      "after_span_sha256": "fd16c8a08088749fde6a39b8c513d5f73d3595b70da724f3b766923ff6001af8"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "观测共享容器与包装钩子",
+      "before_lines": [
+        12,
+        18
+      ],
+      "child_lines": [
+        15,
+        22
+      ],
+      "after_lines": [
+        15,
+        22
+      ],
+      "before_span_sha256": "eef9f635c64cd193c72ba947791d00c0c118f624b32f6ecc8d318e782e3ce1b9",
+      "after_span_sha256": "244703ed207a0cd701073059b723fdbde9b71cac8c86d8d60763e7f4784674b5"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "真实清理先行",
+      "before_lines": [
+        19,
+        21
+      ],
+      "child_lines": [
+        23,
+        26
+      ],
+      "after_lines": [
+        23,
+        26
+      ],
+      "before_span_sha256": "166fce6976c840fd17433b9b16f4817c979cf4489a06a32236cbb90914313245",
+      "after_span_sha256": "731aaa42b5b7186dbfa019ee1cc0b323075e04aea2c10b8d39c49664c23fcb19"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "停止期借用并记录身份和拒绝状态",
+      "before_lines": [
+        22,
+        32
+      ],
+      "child_lines": [
+        27,
+        37
+      ],
+      "after_lines": [
+        27,
+        37
+      ],
+      "before_span_sha256": "b3cf07095cad036b719de8c28a3147378d1122cdd229d379d876006bf4b46d22",
+      "after_span_sha256": "b3cf07095cad036b719de8c28a3147378d1122cdd229d379d876006bf4b46d22"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "controls",
+      "name": "matches!(registered.admit_project(), Err(...))",
+      "before_lines": [
+        23,
+        26
+      ],
+      "child_lines": [
+        28,
+        31
+      ],
+      "after_lines": [
+        28,
+        31
+      ],
+      "before_span_sha256": "e26df07260bb721245dad90c77f3a0df7dfc6776594bcd869256e212cf7fd78c",
+      "after_span_sha256": "e26df07260bb721245dad90c77f3a0df7dfc6776594bcd869256e212cf7fd78c"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "controls",
+      "name": "observations.lock().unwrap().push",
+      "before_lines": [
+        27,
+        30
+      ],
+      "child_lines": [
+        32,
+        35
+      ],
+      "after_lines": [
+        32,
+        35
+      ],
+      "before_span_sha256": "73048c5e3b31de36925c07a51b22fc09f501972701d4a5922c371654715e7037",
+      "after_span_sha256": "73048c5e3b31de36925c07a51b22fc09f501972701d4a5922c371654715e7037"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "包装清理返回",
+      "before_lines": [
+        33,
+        36
+      ],
+      "child_lines": [
+        38,
+        41
+      ],
+      "after_lines": [
+        38,
+        41
+      ],
+      "before_span_sha256": "2de06c5d4b35bd5d65b21fcf09d75c85e503f64fa78fa57adb3da13f6d81c471",
+      "after_span_sha256": "2de06c5d4b35bd5d65b21fcf09d75c85e503f64fa78fa57adb3da13f6d81c471"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "Core与UI观察fixture建立",
+      "before_lines": [
+        37,
+        42
+      ],
+      "child_lines": [
+        42,
+        49
+      ],
+      "after_lines": [
+        42,
+        49
+      ],
+      "before_span_sha256": "285adcf5db1ef490c43e27d112b861e1466209ca831db4ec34da654bf6e84169",
+      "after_span_sha256": "8a72d0f4709d471f636966b2222ab781e69e672dda84a33a549a889c21babf6a"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "最小依赖身份和UI描述注册",
+      "before_lines": [
+        43,
+        53
+      ],
+      "child_lines": [
+        50,
+        60
+      ],
+      "after_lines": [
+        50,
+        60
+      ],
+      "before_span_sha256": "a21a84b52527fcadd8e6772ce4fba63b2982aeb6d11398b744bfcb74dac7251b",
+      "after_span_sha256": "a21a84b52527fcadd8e6772ce4fba63b2982aeb6d11398b744bfcb74dac7251b"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "controls",
+      "name": "for dependency in &descriptor.module_dependencies",
+      "before_lines": [
+        43,
+        50
+      ],
+      "child_lines": [
+        50,
+        57
+      ],
+      "after_lines": [
+        50,
+        57
+      ],
+      "before_span_sha256": "e82319c602698ca3698ef8c6d533bc94e3b713a7a01e474f529d0128d86ab34a",
+      "after_span_sha256": "e82319c602698ca3698ef8c6d533bc94e3b713a7a01e474f529d0128d86ab34a"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "controls",
+      "name": "runtime.register_module(descriptor)",
+      "before_lines": [
+        51,
+        52
+      ],
+      "child_lines": [
+        58,
+        59
+      ],
+      "after_lines": [
+        58,
+        59
+      ],
+      "before_span_sha256": "bc021ac8d455c718056f8efd4612e02ce01f59ce4fc74b0333f689ebc19423d6",
+      "after_span_sha256": "bc021ac8d455c718056f8efd4612e02ce01f59ce4fc74b0333f689ebc19423d6"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "注册身份观察",
+      "before_lines": [
+        54,
+        60
+      ],
+      "child_lines": [
+        61,
+        68
+      ],
+      "after_lines": [
+        61,
+        68
+      ],
+      "before_span_sha256": "b71d8db775e831c2b42b2bf2ff25f6c3e76cebb6bc927272eba5c0d96d02b9f9",
+      "after_span_sha256": "2dff5bc24cea80561294ad2b83bf48d42633e9e5002344c0a74cac8bbd9b86e4"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "当前Driver调用守卫helper",
+      "before_lines": [
+        61,
+        65
+      ],
+      "child_lines": [
+        69,
+        73
+      ],
+      "after_lines": [
+        69,
+        73
+      ],
+      "before_span_sha256": "f20bd2a1f368e8c288d528d1d01945a0b2962aeeb6ec639ad4963af8b2294d1e",
+      "after_span_sha256": "f20bd2a1f368e8c288d528d1d01945a0b2962aeeb6ec639ad4963af8b2294d1e"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "双Core激活、稳定实例与隔离",
+      "before_lines": [
+        66,
+        80
+      ],
+      "child_lines": [
+        74,
+        88
+      ],
+      "after_lines": [
+        74,
+        88
+      ],
+      "before_span_sha256": "039a7436c1b17f21d3912891603c761c7a59a8450d55fcbcd3567d36b3ecaf34",
+      "after_span_sha256": "039a7436c1b17f21d3912891603c761c7a59a8450d55fcbcd3567d36b3ecaf34"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "释放调用后停止first并核对second",
+      "before_lines": [
+        81,
+        91
+      ],
+      "child_lines": [
+        89,
+        99
+      ],
+      "after_lines": [
+        89,
+        99
+      ],
+      "before_span_sha256": "da7c23b586ccfa5af1b8d8ce4e1f66cb5860dd0e20df0984c019a4a951c6b2ed",
+      "after_span_sha256": "da7c23b586ccfa5af1b8d8ce4e1f66cb5860dd0e20df0984c019a4a951c6b2ed"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "配置激活快照与Core热写隔离",
+      "before_lines": [
+        92,
+        113
+      ],
+      "child_lines": [
+        100,
+        121
+      ],
+      "after_lines": [
+        100,
+        121
+      ],
+      "before_span_sha256": "6d24601c4378aba5451a07cb65162bee275fdb1ef052a94a13be5cee1546f48c",
+      "after_span_sha256": "6d24601c4378aba5451a07cb65162bee275fdb1ef052a94a13be5cee1546f48c"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "关闭旧代次、重新激活读新配置",
+      "before_lines": [
+        114,
+        132
+      ],
+      "child_lines": [
+        122,
+        140
+      ],
+      "after_lines": [
+        122,
+        140
+      ],
+      "before_span_sha256": "c86fa6011fa2f7954df86f36ddef0a281c69b05b193e4c1c7115799be3ab5d23",
+      "after_span_sha256": "c86fa6011fa2f7954df86f36ddef0a281c69b05b193e4c1c7115799be3ab5d23"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "block_audit",
+      "name": "不合法enabled配置激活失败",
+      "before_lines": [
+        133,
+        149
+      ],
+      "child_lines": [
+        141,
+        157
+      ],
+      "after_lines": [
+        141,
+        161
+      ],
+      "before_span_sha256": "304ab48b54425d2f72154e26ee52d1487da84b99b6f7ee9e9e02bac486ab5308",
+      "after_span_sha256": "e8f340e99456403f0a97c36ef298aed0f76145dbb72f0fae2cd3cda96ebca0dc"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "controls",
+      "name": "match failure",
+      "before_lines": [
+        141,
+        144
+      ],
+      "child_lines": [
+        149,
+        152
+      ],
+      "after_lines": [
+        149,
+        152
+      ],
+      "before_span_sha256": "5475764c417c177efe92ec86dc7b578846a93c8a5dc93f7cffd83ca9a0ba0c56",
+      "after_span_sha256": "5475764c417c177efe92ec86dc7b578846a93c8a5dc93f7cffd83ca9a0ba0c56"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "test_contracts",
+      "name": "ui_driver_default_admission_is_stable_per_core_and_isolated_between_cores",
+      "before_lines": [
+        66,
+        90
+      ],
+      "child_lines": [
+        74,
+        98
+      ],
+      "after_lines": [
+        74,
+        98
+      ],
+      "before_span_sha256": "1b0965b462e3605e4582b0073ac1ff511f2908bbba11e69dba5df703a1bc5654",
+      "after_span_sha256": "1b0965b462e3605e4582b0073ac1ff511f2908bbba11e69dba5df703a1bc5654"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "retained默认准入true",
+      "before_lines": [
+        77,
+        77
+      ],
+      "child_lines": [
+        85,
+        85
+      ],
+      "after_lines": [
+        85,
+        85
+      ],
+      "before_span_sha256": "3355017b452e839fd4cf187f1fe09f8d020bcad2d8c043af7353b6f81d7dbc91",
+      "after_span_sha256": "3355017b452e839fd4cf187f1fe09f8d020bcad2d8c043af7353b6f81d7dbc91"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "first两次解析ptr::eq",
+      "before_lines": [
+        78,
+        78
+      ],
+      "child_lines": [
+        86,
+        86
+      ],
+      "after_lines": [
+        86,
+        86
+      ],
+      "before_span_sha256": "a686240a2bef4e21cfc7797652c73af5f2545319139b403151555afccb92c2b3",
+      "after_span_sha256": "a686240a2bef4e21cfc7797652c73af5f2545319139b403151555afccb92c2b3"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "first/second指针不相等",
+      "before_lines": [
+        79,
+        79
+      ],
+      "child_lines": [
+        87,
+        87
+      ],
+      "after_lines": [
+        87,
+        87
+      ],
+      "before_span_sha256": "021a9a8a65ac04af4c38b67dd4a2495e591eeb3b52b61fd5ab1f412066b06c58",
+      "after_span_sha256": "021a9a8a65ac04af4c38b67dd4a2495e591eeb3b52b61fd5ab1f412066b06c58"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "first清理记录恰(retained地址,true)",
+      "before_lines": [
+        83,
+        86
+      ],
+      "child_lines": [
+        91,
+        94
+      ],
+      "after_lines": [
+        91,
+        94
+      ],
+      "before_span_sha256": "484d245fc44ada4f7ec3182fad02701a33a9b481b36935612ea55a8285f08407",
+      "after_span_sha256": "484d245fc44ada4f7ec3182fad02701a33a9b481b36935612ea55a8285f08407"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "旧token.enter is_err",
+      "before_lines": [
+        87,
+        87
+      ],
+      "child_lines": [
+        95,
+        95
+      ],
+      "after_lines": [
+        95,
+        95
+      ],
+      "before_span_sha256": "6c780992bbd7e0c357af252fb6aaac6f0aa0a154332bab22d4915e5a95009cea",
+      "after_span_sha256": "6c780992bbd7e0c357af252fb6aaac6f0aa0a154332bab22d4915e5a95009cea"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "second清理观测仍空",
+      "before_lines": [
+        88,
+        88
+      ],
+      "child_lines": [
+        96,
+        96
+      ],
+      "after_lines": [
+        96,
+        96
+      ],
+      "before_span_sha256": "05cea60cb6f976f834c68cf9e5d31afd505d95c513e1c67963a769a0796c12d5",
+      "after_span_sha256": "05cea60cb6f976f834c68cf9e5d31afd505d95c513e1c67963a769a0796c12d5"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "second仍可准入",
+      "before_lines": [
+        89,
+        89
+      ],
+      "child_lines": [
+        97,
+        97
+      ],
+      "after_lines": [
+        97,
+        97
+      ],
+      "before_span_sha256": "47eaabe4c5ee4fae62b3388b9fe93244e711bf1a7d7b64ac0e9edb4260d37614",
+      "after_span_sha256": "47eaabe4c5ee4fae62b3388b9fe93244e711bf1a7d7b64ac0e9edb4260d37614"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "test_contracts",
+      "name": "ui_driver_snapshots_config_and_reactivation_replaces_closed_admission",
+      "before_lines": [
+        92,
+        132
+      ],
+      "child_lines": [
+        100,
+        140
+      ],
+      "after_lines": [
+        100,
+        140
+      ],
+      "before_span_sha256": "59606e582ad8c3ef05107ef4fa6e6093ab57df87b4eb855c41de41ddd64eb1ef",
+      "after_span_sha256": "59606e582ad8c3ef05107ef4fa6e6093ab57df87b4eb855c41de41ddd64eb1ef"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "初始false导致准入false",
+      "before_lines": [
+        106,
+        106
+      ],
+      "child_lines": [
+        114,
+        114
+      ],
+      "after_lines": [
+        114,
+        114
+      ],
+      "before_span_sha256": "c3da9f4e6fbf79d5c0210752b3c7dfbecf0ba25928755ab8bf176b8c80f0c099",
+      "after_span_sha256": "c3da9f4e6fbf79d5c0210752b3c7dfbecf0ba25928755ab8bf176b8c80f0c099"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "Core写true后旧config.enabled仍false",
+      "before_lines": [
+        111,
+        111
+      ],
+      "child_lines": [
+        119,
+        119
+      ],
+      "after_lines": [
+        119,
+        119
+      ],
+      "before_span_sha256": "ed987b983467731a02cbd384b86c9d306583c7f14fd634236fce20223522b587",
+      "after_span_sha256": "ed987b983467731a02cbd384b86c9d306583c7f14fd634236fce20223522b587"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "旧admit仍false",
+      "before_lines": [
+        112,
+        112
+      ],
+      "child_lines": [
+        120,
+        120
+      ],
+      "after_lines": [
+        120,
+        120
+      ],
+      "before_span_sha256": "c3da9f4e6fbf79d5c0210752b3c7dfbecf0ba25928755ab8bf176b8c80f0c099",
+      "after_span_sha256": "c3da9f4e6fbf79d5c0210752b3c7dfbecf0ba25928755ab8bf176b8c80f0c099"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "清理恰记录旧地址,true",
+      "before_lines": [
+        116,
+        119
+      ],
+      "child_lines": [
+        124,
+        127
+      ],
+      "after_lines": [
+        124,
+        127
+      ],
+      "before_span_sha256": "3cf9ce3858fecff8c9546322b38ada0bcc44f2150b0c87e347cd27435a90221c",
+      "after_span_sha256": "3cf9ce3858fecff8c9546322b38ada0bcc44f2150b0c87e347cd27435a90221c"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "停止后旧token进入失败",
+      "before_lines": [
+        120,
+        120
+      ],
+      "child_lines": [
+        128,
+        128
+      ],
+      "after_lines": [
+        128,
+        128
+      ],
+      "before_span_sha256": "6c780992bbd7e0c357af252fb6aaac6f0aa0a154332bab22d4915e5a95009cea",
+      "after_span_sha256": "6c780992bbd7e0c357af252fb6aaac6f0aa0a154332bab22d4915e5a95009cea"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "重新激活槽index相同",
+      "before_lines": [
+        126,
+        126
+      ],
+      "child_lines": [
+        134,
+        134
+      ],
+      "after_lines": [
+        134,
+        134
+      ],
+      "before_span_sha256": "f22b71f3e609dc936e540623da482d4c9534f51e59933ffc3c96aee9591bf5dd",
+      "after_span_sha256": "f22b71f3e609dc936e540623da482d4c9534f51e59933ffc3c96aee9591bf5dd"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "generation变化",
+      "before_lines": [
+        127,
+        127
+      ],
+      "child_lines": [
+        135,
+        135
+      ],
+      "after_lines": [
+        135,
+        135
+      ],
+      "before_span_sha256": "a66a5e0c5c45ebdef2cace85a7826196edd92439bad1ecd8281b31e68357df69",
+      "after_span_sha256": "a66a5e0c5c45ebdef2cace85a7826196edd92439bad1ecd8281b31e68357df69"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "新实例config.enabled真",
+      "before_lines": [
+        129,
+        129
+      ],
+      "child_lines": [
+        137,
+        137
+      ],
+      "after_lines": [
+        137,
+        137
+      ],
+      "before_span_sha256": "38f6d6d1583c9eb6702499c7c2267bc4fbb3cdb8bfc06d267a4a69216ce6b3db",
+      "after_span_sha256": "38f6d6d1583c9eb6702499c7c2267bc4fbb3cdb8bfc06d267a4a69216ce6b3db"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "新实例admit真",
+      "before_lines": [
+        130,
+        130
+      ],
+      "child_lines": [
+        138,
+        138
+      ],
+      "after_lines": [
+        138,
+        138
+      ],
+      "before_span_sha256": "25212afb75789e22390c7fa5d36133abd7520149afe6903c49599919599d4b9f",
+      "after_span_sha256": "25212afb75789e22390c7fa5d36133abd7520149afe6903c49599919599d4b9f"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "旧token依旧进入失败",
+      "before_lines": [
+        131,
+        131
+      ],
+      "child_lines": [
+        139,
+        139
+      ],
+      "after_lines": [
+        139,
+        139
+      ],
+      "before_span_sha256": "6c780992bbd7e0c357af252fb6aaac6f0aa0a154332bab22d4915e5a95009cea",
+      "after_span_sha256": "6c780992bbd7e0c357af252fb6aaac6f0aa0a154332bab22d4915e5a95009cea"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "test_contracts",
+      "name": "ui_driver_invalid_config_fails_activation_without_defaulting_to_enabled",
+      "before_lines": [
+        134,
+        149
+      ],
+      "child_lines": [
+        142,
+        157
+      ],
+      "after_lines": [
+        142,
+        161
+      ],
+      "before_span_sha256": "6e8dd0ac0afb7eaeb6f84224876522f4580a9a01e20751ff99aa05e793d9d7ef",
+      "after_span_sha256": "37ca19cd1d54b3cd28fb9113a97a1d5b7da48e0ad8484f23108534cca7e17556"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "错误为ConfigParse且key==ui",
+      "before_lines": [
+        145,
+        145
+      ],
+      "child_lines": [
+        153,
+        153
+      ],
+      "after_lines": [
+        157,
+        157
+      ],
+      "before_span_sha256": "fb17c2209d71d643e3b89a2fd3d8c3085c6c77c83c8ecd6ef886606999b0950f",
+      "after_span_sha256": "fb17c2209d71d643e3b89a2fd3d8c3085c6c77c83c8ecd6ef886606999b0950f"
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "category": "assertions",
+      "name": "resolve_driver结果is_err",
+      "before_lines": [
+        146,
+        148
+      ],
+      "child_lines": [
+        154,
+        156
+      ],
+      "after_lines": [
+        158,
+        160
+      ],
+      "before_span_sha256": "93bad2d19bf09b6600dda04403b717c52e943ed4325657f3eea6b5f1c51be3c3",
+      "after_span_sha256": "93bad2d19bf09b6600dda04403b717c52e943ed4325657f3eea6b5f1c51be3c3"
+    }
+  ],
+  "partitions": [
+    {
+      "path": "zircon_runtime/src/ui/event_ui/mod.rs",
+      "before_lines": 6,
+      "child_lines": 6,
+      "after_lines": 6,
+      "blocks": 3,
+      "gapfree": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "before_lines": 49,
+      "child_lines": 58,
+      "after_lines": 58,
+      "blocks": 8,
+      "gapfree": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "before_lines": 134,
+      "child_lines": 137,
+      "after_lines": 137,
+      "blocks": 13,
+      "gapfree": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+      "before_lines": 11,
+      "child_lines": 13,
+      "after_lines": 13,
+      "blocks": 2,
+      "gapfree": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+      "before_lines": 9,
+      "child_lines": 11,
+      "after_lines": 11,
+      "blocks": 2,
+      "gapfree": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/module.rs",
+      "before_lines": 74,
+      "child_lines": 90,
+      "after_lines": 90,
+      "blocks": 8,
+      "gapfree": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/lifecycle.rs",
+      "before_lines": 16,
+      "child_lines": 18,
+      "after_lines": 18,
+      "blocks": 4,
+      "gapfree": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "before_lines": 71,
+      "child_lines": 92,
+      "after_lines": 92,
+      "blocks": 10,
+      "gapfree": true
+    },
+    {
+      "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+      "before_lines": 149,
+      "child_lines": 157,
+      "after_lines": 161,
+      "blocks": 14,
+      "gapfree": true
+    }
+  ],
+  "root_review": {
+    "source_read_complete": true,
+    "all_objects_members_parameters_blocks_controls_and_assertions_reviewed": true,
+    "source_read_receipts": [
+      "root563/d28307 exit0/PID26580 full9/582L complete",
+      "root568/a1fbfc exit0/PID2692 native31898tokens cut30000, capacity model incomplete; root573/5e9c35 exit0/PID10096 recovered full model and23 contexts complete15995tokens",
+      "root585/9933c0 native50552->8aeb7d exit0/PID5280 precise supplemental reflection_store/project/admission/resolution tail",
+      "root588/691b5b exit0/PID11752 actual activation rg and9 coverage bases",
+      "root589/9b5887 exit0/PID28836 actual activation/error/startup/runtime/resolution",
+      "root595 native60304->0fbcff exit0/PID37744 complete140L transaction_set"
+    ],
+    "core_helper": "core_timer_sol gpt-6.1-sol/max220963/9b3ad4/c4c62f/18b1e7 actual exit0, no PID/session exposed, supports confirmed assertion mismatch; no source writes/tests",
+    "source_semantics": [
+      "diff compares node descriptor PartialEq and removed keys in BTreeMap key order; caller guarantees same tree identity; root list equality alone not diffed or applied",
+      "capacity prescan repeats comparison predicates, benchmark measures only Vec reserve/push not snapshot comparison or end-to-end replacement; ignored benchmark not run",
+      "route owns binding and shares optional Arc handler; callbacks consume context and produce owned JSON/error, no panic containment guarantee; actual registration/invocation pins reused correctly",
+      "UiModule descriptor stores factories; Core invokes them at immediate startup, module Input/Scene/Graphics and manager->driver dependencies; cleanup closes existing-driver admission only",
+      "driver snapshots config, default only missing whole config, invalid config emitted then Core wraps factory error as Initialization; Acquire/Release is admission gate, no asset work/surface drain guarantee",
+      "project empty roots bypass driver; otherwise enter driver and admit before asset manager load; false skips UI roots; handle guard remains during this function",
+      "cleanup capability only already initialized stopping/drained matching driver; callback outside locks, no service resurrection or Arc escape",
+      "test cleanup wrapper runs real hook then observes address and closed flag; retained guards dropped before stop; reactivation compares index/generation, no address-reuse assertion",
+      "root BUG: fixed invalid enabled-string test expects ConfigParse after only optional rollback extraction; Core has already stringified it into Initialization, so first assert statically fails and following driver-resolve assert is blocked"
+    ],
+    "model_overrides": [
+      {
+        "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+        "object": "ui_driver_invalid_config_fails_activation_without_defaulting_to_enabled",
+        "correction": "Child described intended test expectation, not actual error propagation. Root confirms wrong ConfigParse assertion and marks following typed-resolve assertion blocked; do not treat either as passing execution evidence."
+      }
+    ],
+    "citation_correction": {
+      "wrong_readonly573": "R070 root495 native27295->eba2b6/PID21836",
+      "correct": "R070 root495 exit0/PID15252 complete12caller contexts25609tokens; exact76 registration224 invocation",
+      "wrong_fragment_origin": "root478 partial types native27295->eba2b6/PID21836",
+      "source_data_changed": false
+    },
+    "failures_retained": [
+      "root578 broad readonly fallback stopped via own session10045 Ctrl-C6445a0 exit1 no source evidence/writes",
+      "root583 explicit spawn_ready rejection before body/native/PID",
+      "child historical failures/unknown unrelated writers retained"
+    ]
+  },
+  "contexts": [
+    {
+      "path": "zircon_runtime/src/ui/mod.rs",
+      "sha256": "c2428bd042db5c94d637bfcaf9565872b468b6b81199a4607e33440a367f1b09",
+      "child_sha256": "c2428bd042db5c94d637bfcaf9565872b468b6b81199a4607e33440a367f1b09",
+      "same_child_pin": true,
+      "bytes": 1557,
+      "lines": 60,
+      "reviewed_spans": [
+        [
+          1,
+          38
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/mod.rs",
+      "sha256": "18e7c767f735bb8a4659df226c974b35e2f590ea94ccab00c0c70d2d7d32264c",
+      "child_sha256": "18e7c767f735bb8a4659df226c974b35e2f590ea94ccab00c0c70d2d7d32264c",
+      "same_child_pin": true,
+      "bytes": 839,
+      "lines": 24,
+      "reviewed_spans": [
+        [
+          1,
+          24
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/registration.rs",
+      "sha256": "61f7f7898b0640a8241c08a2d072dd55ff7eea4b75c80bf08728d07a13fa099a",
+      "child_sha256": "61f7f7898b0640a8241c08a2d072dd55ff7eea4b75c80bf08728d07a13fa099a",
+      "same_child_pin": true,
+      "bytes": 3361,
+      "lines": 76,
+      "reviewed_spans": [
+        [
+          1,
+          76
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/invocation.rs",
+      "sha256": "1cf23d12ae5731746c71d691efbf9c6a5e4115d750dfb1ed90e271d1351a0718",
+      "child_sha256": "1cf23d12ae5731746c71d691efbf9c6a5e4115d750dfb1ed90e271d1351a0718",
+      "same_child_pin": true,
+      "bytes": 9468,
+      "lines": 224,
+      "reviewed_spans": [
+        [
+          38,
+          77
+        ],
+        [
+          137,
+          224
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/ui/event_ui/manager/reflection_store.rs",
+      "sha256": "b0845f6a0701179c58e92fbff1bce9ff15e6e5275fe5c823b28fefea2ed8854e",
+      "child_sha256": "b0845f6a0701179c58e92fbff1bce9ff15e6e5275fe5c823b28fefea2ed8854e",
+      "same_child_pin": true,
+      "bytes": 9953,
+      "lines": 238,
+      "reviewed_spans": [
+        [
+          9,
+          40
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/project.rs",
+      "sha256": "4b801d1036577e6676a73fe725203c37d0ea85425f8ed8735071c3e7b945c77f",
+      "child_sha256": "4b801d1036577e6676a73fe725203c37d0ea85425f8ed8735071c3e7b945c77f",
+      "same_child_pin": true,
+      "bytes": 24077,
+      "lines": 616,
+      "reviewed_spans": [
+        [
+          333,
+          383
+        ],
+        [
+          607,
+          616
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs",
+      "sha256": "a7d1e71b5d47ec4b84663dbd533cdafcdea7e43e6dde36f635b30132f0b6aadc",
+      "child_sha256": "a7d1e71b5d47ec4b84663dbd533cdafcdea7e43e6dde36f635b30132f0b6aadc",
+      "same_child_pin": true,
+      "bytes": 463,
+      "lines": 24,
+      "reviewed_spans": [
+        [
+          1,
+          24
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_app/src/plugins/groups/resolution.rs",
+      "sha256": "20fa1154b5f4811ed0b1b1b3d121deeb505b9696a3c954754c4b94865bf269f4",
+      "child_sha256": "20fa1154b5f4811ed0b1b1b3d121deeb505b9696a3c954754c4b94865bf269f4",
+      "same_child_pin": true,
+      "bytes": 1991,
+      "lines": 63,
+      "reviewed_spans": [
+        [
+          35,
+          63
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/engine_module/engine_module.rs",
+      "sha256": "821f6a4a5d3045e1d0d6c849828eab21a31116fc6b80fa2ca596d2022bb653ae",
+      "child_sha256": "821f6a4a5d3045e1d0d6c849828eab21a31116fc6b80fa2ca596d2022bb653ae",
+      "same_child_pin": true,
+      "bytes": 227,
+      "lines": 9,
+      "reviewed_spans": [
+        [
+          1,
+          9
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/engine_module/service_factory.rs",
+      "sha256": "a53277492ce3bc25f037c26d09235e3348442ca98eab40c0e3c56c6f3974b879",
+      "child_sha256": "a53277492ce3bc25f037c26d09235e3348442ca98eab40c0e3c56c6f3974b879",
+      "same_child_pin": true,
+      "bytes": 474,
+      "lines": 16,
+      "reviewed_spans": [
+        [
+          1,
+          16
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/contexts/module_cleanup_context.rs",
+      "sha256": "c93722cf503617b5577ae3e1c11dee55bbdc397f1f78aa048c9c2d054d02d092",
+      "child_sha256": "c93722cf503617b5577ae3e1c11dee55bbdc397f1f78aa048c9c2d054d02d092",
+      "same_child_pin": true,
+      "bytes": 7542,
+      "lines": 175,
+      "reviewed_spans": [
+        [
+          1,
+          175
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/lifecycle.rs",
+      "sha256": "08bd2304cb216adddc08ed59eab73f9bbac42d37acb62514539fbcc633d0a0b7",
+      "child_sha256": "08bd2304cb216adddc08ed59eab73f9bbac42d37acb62514539fbcc633d0a0b7",
+      "same_child_pin": true,
+      "bytes": 3050,
+      "lines": 112,
+      "reviewed_spans": [
+        [
+          70,
+          112
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/event_ui/reflection.rs",
+      "sha256": "e91dfe9b80eabee8e63e0106b9ae983dc22052b46d82d375874d9a974ad80de7",
+      "child_sha256": "e91dfe9b80eabee8e63e0106b9ae983dc22052b46d82d375874d9a974ad80de7",
+      "same_child_pin": true,
+      "bytes": 24164,
+      "lines": 673,
+      "reviewed_spans": [
+        [
+          528,
+          619
+        ],
+        [
+          658,
+          673
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/project/tests/ui_admission_tests.rs",
+      "sha256": "be240f6ed896af1c6888533857ac2b3cc08a2e07ce354d9e48ba45fa1aa66b68",
+      "child_sha256": "be240f6ed896af1c6888533857ac2b3cc08a2e07ce354d9e48ba45fa1aa66b68",
+      "same_child_pin": true,
+      "bytes": 3201,
+      "lines": 93,
+      "reviewed_spans": [
+        [
+          1,
+          93
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/tests/ui_boundary/module_absorption.rs",
+      "sha256": "732140fdc37cb3b45e84d0ba3b888df7757026134b27f15c9bb29592b18e6239",
+      "child_sha256": "7b328b94a5716fc09adc63a6173fa98723788a73a1f8eea185e16d5c9256710c",
+      "same_child_pin": false,
+      "bytes": 1955,
+      "lines": 42,
+      "reviewed_spans": [
+        [
+          1,
+          42
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/descriptors/service_object.rs",
+      "sha256": "ed76ea8a25f54de884f57193bfc2a298dec724e376ce7c587308f60b73b4573c",
+      "child_sha256": "ed76ea8a25f54de884f57193bfc2a298dec724e376ce7c587308f60b73b4573c",
+      "same_child_pin": true,
+      "bytes": 463,
+      "lines": 10,
+      "reviewed_spans": [
+        [
+          1,
+          10
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/descriptors/service_factory.rs",
+      "sha256": "467112ee7da44e8501bd761994e19a03000b933e205686f4d8c2ec20b80ac32f",
+      "child_sha256": "467112ee7da44e8501bd761994e19a03000b933e205686f4d8c2ec20b80ac32f",
+      "same_child_pin": true,
+      "bytes": 793,
+      "lines": 14,
+      "reviewed_spans": [
+        [
+          1,
+          14
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/handle/resolution.rs",
+      "sha256": "b25f7e66f1764990d58a432c08f002463851477c25dca175d7038c0245aadb50",
+      "child_sha256": "b25f7e66f1764990d58a432c08f002463851477c25dca175d7038c0245aadb50",
+      "same_child_pin": true,
+      "bytes": 30218,
+      "lines": 818,
+      "reviewed_spans": [
+        [
+          549,
+          625
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/lib.rs",
+      "sha256": "3f3a9334f79a9de50f239db2a2c4a283fd9fcb40891acff12e608cd14d669714",
+      "child_sha256": "19ef7ac67c8c9e51bc940c700df42794fa57e8d925eca93fd5109371a1e4607c",
+      "same_child_pin": false,
+      "bytes": 3270,
+      "lines": 127,
+      "reviewed_spans": [
+        [
+          1,
+          127
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session.rs",
+      "sha256": "9a109aaec2b13464e81ca2779487aa71c232afb7050e45a12aa4744aab6de17f",
+      "child_sha256": "9a109aaec2b13464e81ca2779487aa71c232afb7050e45a12aa4744aab6de17f",
+      "same_child_pin": true,
+      "bytes": 3428,
+      "lines": 106,
+      "reviewed_spans": [
+        [
+          47,
+          55
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/tests/ui_boundary/mod.rs",
+      "sha256": "ac0e446653f22bca48fb59b6c050ce5e48dcdd7dbbc8277945c835db0149ba83",
+      "child_sha256": "ae648bca478a3857f1c8b92fad14d0721dc2c904a19d025d3cfe7383a46eaba7",
+      "same_child_pin": false,
+      "bytes": 722,
+      "lines": 17,
+      "reviewed_spans": [
+        [
+          1,
+          17
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/ui/module_identity.rs",
+      "sha256": "4e6dbb83e4589bf306551fb2ca0fadb2c32c338a58791b118cd3085a47c5f09b",
+      "child_sha256": "4e6dbb83e4589bf306551fb2ca0fadb2c32c338a58791b118cd3085a47c5f09b",
+      "same_child_pin": true,
+      "bytes": 199,
+      "lines": 4,
+      "reviewed_spans": [
+        [
+          1,
+          4
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    },
+    {
+      "path": "zircon_runtime/src/engine_module/descriptors/names.rs",
+      "sha256": "952e1d0aecf0676da2f44854129a0a2e887ef77016bec735cb7258a08fe30384",
+      "child_sha256": "952e1d0aecf0676da2f44854129a0a2e887ef77016bec735cb7258a08fe30384",
+      "same_child_pin": true,
+      "bytes": 362,
+      "lines": 9,
+      "reviewed_spans": [
+        [
+          1,
+          9
+        ]
+      ],
+      "formal_coverage": false,
+      "root_receipt": "root573/5e9c35 exit0/PID10096; exact3 supplemental root585/9933c0->8aeb7d/PID5280; registration/invocation reused R070 root495 exit0/PID15252 exact same pins"
+    }
+  ],
+  "extra_core_context_pins": [
+    {
+      "path": "zircon_runtime/src/core/runtime/handle/activation.rs",
+      "sha256": "c18655d5fa1848d2e84f5a6b8048d790bee5eb438e47ec604f7913d467974094",
+      "bytes": 25322,
+      "lines": 597,
+      "read_spans": [
+        [
+          1,
+          350
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/handle/activation/startup.rs",
+      "sha256": "288c94bedea5749b13b0b7fb4b56035151fad36f78861604b2a83498b951af4b",
+      "bytes": 2134,
+      "lines": 51,
+      "read_spans": [
+        [
+          1,
+          51
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/runtime.rs",
+      "sha256": "48eca2bd68d6b0b5a2a183b7fdab285e595a0b68ee5e14fb5ca8df3228940073",
+      "bytes": 16909,
+      "lines": 508,
+      "read_spans": [
+        [
+          290,
+          314
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/error.rs",
+      "sha256": "171480e991e5162bc7c097029b351b4df19cc5c45014d78b5daafe3725825d4b",
+      "bytes": 8253,
+      "lines": 217,
+      "read_spans": [
+        [
+          125,
+          150
+        ],
+        [
+          185,
+          204
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/handle/resolution.rs",
+      "sha256": "b25f7e66f1764990d58a432c08f002463851477c25dca175d7038c0245aadb50",
+      "bytes": 30218,
+      "lines": 818,
+      "read_spans": [
+        [
+          358,
+          438
+        ],
+        [
+          519,
+          607
+        ]
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/handle/activation/batch/transaction_set.rs",
+      "sha256": "04d6e0194cd62f1dbd5fcc0c4e47d4fd46adf7a59e29509dd1e9240d7b60e8ce",
+      "bytes": 4506,
+      "lines": 140,
+      "read_spans": [
+        [
+          1,
+          140
+        ]
+      ]
+    }
+  ],
+  "context_changes": {
+    "count": 3,
+    "paths": [
+      "zircon_runtime/src/tests/ui_boundary/module_absorption.rs",
+      "zircon_runtime/src/lib.rs",
+      "zircon_runtime/src/tests/ui_boundary/mod.rs"
+    ],
+    "meaning": "Outside R069 source grant. Root573 fully reread current42/127/17 lines; UI feature mount and negative stub predicate maintained. No owner-release or whole-file behavioral/coverage claim."
+  },
+  "raw_source_predicates": [
+    {
+      "id": "G01",
+      "input": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "operator": "contains",
+      "operand": "fn reflection_diff_capacities(",
+      "before_count": 1,
+      "after_count": 1,
+      "new_comment_contribution": 0,
+      "static_result": true,
+      "tests_executed": false
+    },
+    {
+      "id": "G01",
+      "input": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "operator": "contains",
+      "operand": "let (changed_capacity, removed_capacity) =",
+      "before_count": 1,
+      "after_count": 1,
+      "new_comment_contribution": 0,
+      "static_result": true,
+      "tests_executed": false
+    },
+    {
+      "id": "G01",
+      "input": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "operator": "contains",
+      "operand": "Vec::with_capacity(changed_capacity)",
+      "before_count": 1,
+      "after_count": 1,
+      "new_comment_contribution": 0,
+      "static_result": true,
+      "tests_executed": false
+    },
+    {
+      "id": "G01",
+      "input": "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "operator": "contains",
+      "operand": "Vec::with_capacity(removed_capacity)",
+      "before_count": 1,
+      "after_count": 1,
+      "new_comment_contribution": 0,
+      "static_result": true,
+      "tests_executed": false
+    },
+    {
+      "id": "G02",
+      "input": "zircon_runtime/src/ui/module.rs",
+      "reader": "zircon_runtime/src/tests/ui_boundary/module_absorption.rs",
+      "reader_sha256": "732140fdc37cb3b45e84d0ba3b888df7757026134b27f15c9bb29592b18e6239",
+      "reader_lines": [
+        14,
+        16
+      ],
+      "predicate_lines": [
+        34,
+        37
+      ],
+      "operator": "!contains",
+      "operand": "stub_module_descriptor",
+      "before_count": 0,
+      "after_count": 0,
+      "new_comment_contribution": 0,
+      "static_result": true,
+      "whole_reader_test_pass_claimed": false,
+      "tests_executed": false
+    }
+  ],
+  "raw_summary": {
+    "predicates": 5,
+    "static_true": 5,
+    "new_comment_operand_contribution": 0,
+    "rust_tests_executed": 0
+  },
+  "formatting": {
+    "changed_root_source": {
+      "argv": [
+        "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "zircon_runtime/src/ui/module/tests/cases.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "other8_reused_same_pins": "child66/537650 native74393->840da9 exit0/PID4264 exact9 check;8 other finals unchanged",
+    "all9_final_pins_covered": true,
+    "tests_executed": false
+  },
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "show",
+        "HEAD:zircon_runtime/src/ui/event_ui/mod.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "2b5893221caeb3dedc76cada7c9ca406f5d034412804b044d4589fe35a203754",
+      "stdout_bytes": 213,
+      "stderr": "",
+      "stdout": "//! 管理可反射 UI 的路由、快照及通知；宿主业务动作仍由注册处理器或宿主自己的 typed dispatcher 执行。\n\n#[path = \"manager/mod.rs\"]\nmod manager;\n\npub use manager::UiEventManager;\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "rev-parse",
+        "HEAD:zircon_runtime/src/ui/event_ui/mod.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "bb5240a816118352b8016a5d45ce8b98a8c809a8c9a757393f4a4782e617e1c2",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "77d9d26f67158608fa67b6286dcf885fa3e4b9bf\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "hash-object",
+        "--stdin",
+        "--path=zircon_runtime/src/ui/event_ui/mod.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "bb5240a816118352b8016a5d45ce8b98a8c809a8c9a757393f4a4782e617e1c2",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "77d9d26f67158608fa67b6286dcf885fa3e4b9bf\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "show",
+        "HEAD:zircon_runtime/src/ui/event_ui/manager/diff.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "2651ae6078c036a4e46e06dc4bd3645c003d5d1301bf4d4802805727b24c886d",
+      "stdout_bytes": 1522,
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "rev-parse",
+        "HEAD:zircon_runtime/src/ui/event_ui/manager/diff.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "ddd5864c5b5326b57faff1b9890f1fbf500f036fd86770a8f930d67563642ddd",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "1d260d3c5052fb4e808f6c723dfbde4d3dfaad2c\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "hash-object",
+        "--stdin",
+        "--path=zircon_runtime/src/ui/event_ui/manager/diff.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "ddd5864c5b5326b57faff1b9890f1fbf500f036fd86770a8f930d67563642ddd",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "1d260d3c5052fb4e808f6c723dfbde4d3dfaad2c\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "show",
+        "HEAD:zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "b10a56bddc81fcdb78006fb66001600afffb94e4ee32c4df3130ec33fa9ee56f",
+      "stdout_bytes": 5038,
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "rev-parse",
+        "HEAD:zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "300e76606b6dde650dde40b33fde112b009b1bf4db734c2b6be161a1f3eadac6",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "a85a2bb896ea73eb078ec9626d16a6c439f8add6\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "hash-object",
+        "--stdin",
+        "--path=zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "300e76606b6dde650dde40b33fde112b009b1bf4db734c2b6be161a1f3eadac6",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "a85a2bb896ea73eb078ec9626d16a6c439f8add6\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "show",
+        "HEAD:zircon_runtime/src/ui/event_ui/manager/route_entry.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "ed69afd21c25e4c7517ed6a212b3e69c13e6aabc6118c7bb4289bc89004c1e53",
+      "stdout_bytes": 456,
+      "stderr": "",
+      "stdout": "use super::route_handler::RouteHandler;\nuse zircon_runtime_interface::ui::binding::UiEventBinding;\nuse zircon_runtime_interface::ui::event_ui::UiRouteId;\n\n// handler 为 None 表示路由由宿主 typed dispatcher 执行；并非一个可由本管理器直接执行的空处理器。\n#[derive(Clone)]\npub(super) struct RouteEntry {\n    pub(super) route_id: UiRouteId,\n    pub(super) binding: UiEventBinding,\n    pub(super) handler: Option<RouteHandler>,\n}\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "rev-parse",
+        "HEAD:zircon_runtime/src/ui/event_ui/manager/route_entry.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "28ef28c5b44d6947ac1ad2ed5fcf81b8f883a49a2d7ecb32bd0465c4fd505e73",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "0fc600e2fbe7bb5a47fd2b0c6d7e4fb230aee382\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "hash-object",
+        "--stdin",
+        "--path=zircon_runtime/src/ui/event_ui/manager/route_entry.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "28ef28c5b44d6947ac1ad2ed5fcf81b8f883a49a2d7ecb32bd0465c4fd505e73",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "0fc600e2fbe7bb5a47fd2b0c6d7e4fb230aee382\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "show",
+        "HEAD:zircon_runtime/src/ui/event_ui/manager/route_handler.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "981012a0c1beb7322a89919a8307cb39974e246b797771868e6bacbb3fb10be6",
+      "stdout_bytes": 408,
+      "stderr": "",
+      "stdout": "use std::sync::Arc;\n\nuse serde_json::Value;\n\nuse zircon_runtime_interface::ui::event_ui::{UiInvocationContext, UiInvocationError};\n\n// Arc 让路由表持有宿主注册的可共享处理器；业务状态应通过处理器捕获的 owner 访问，避免复制到反射快照。\npub(super) type RouteHandler =\n    Arc<dyn Fn(UiInvocationContext) -> Result<Value, UiInvocationError> + Send + Sync + 'static>;\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "rev-parse",
+        "HEAD:zircon_runtime/src/ui/event_ui/manager/route_handler.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "ebc13d7919069184fa48348373ed0cac717ae6f76080b6208fc6af05b6c9d37c",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "3d8650db4844d3946846a393ad533b0ad2cb5289\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "hash-object",
+        "--stdin",
+        "--path=zircon_runtime/src/ui/event_ui/manager/route_handler.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "ebc13d7919069184fa48348373ed0cac717ae6f76080b6208fc6af05b6c9d37c",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "3d8650db4844d3946846a393ad533b0ad2cb5289\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "show",
+        "HEAD:zircon_runtime/src/ui/module.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "aa4abb7acde89a54a3a92593a4e6d62309202ea0de2f8edc13946a2bcf5827da",
+      "stdout_bytes": 2629,
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "rev-parse",
+        "HEAD:zircon_runtime/src/ui/module.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "4693e814cc7b53ea69582841a794ae9e05d69a02473db2f1828664fc91d4463c",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "1719c5294ab4c04deb0134e4391f61840f8890af\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "hash-object",
+        "--stdin",
+        "--path=zircon_runtime/src/ui/module.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "4693e814cc7b53ea69582841a794ae9e05d69a02473db2f1828664fc91d4463c",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "1719c5294ab4c04deb0134e4391f61840f8890af\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "show",
+        "HEAD:zircon_runtime/src/ui/module/lifecycle.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "1b314e5d7ed3a091876d1d35a1cade86961df19bd6f0e0ea819e10f1b568b614",
+      "stdout_bytes": 497,
+      "stderr": "",
+      "stdout": "use crate::core::{CoreResult, ModuleCleanupContext, ModuleLifecycle};\n\nuse super::{UiRuntimeDriver, UI_RUNTIME_DRIVER_NAME};\n\n#[derive(Debug, Default)]\npub(super) struct UiModuleLifecycle;\n\nimpl ModuleLifecycle for UiModuleLifecycle {\n    fn cleanup(&self, context: &ModuleCleanupContext<'_>) -> CoreResult<()> {\n        context.with_existing_driver::<UiRuntimeDriver>(UI_RUNTIME_DRIVER_NAME, |driver| {\n            driver.close_admission();\n            Ok(())\n        })?;\n        Ok(())\n    }\n}\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "rev-parse",
+        "HEAD:zircon_runtime/src/ui/module/lifecycle.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "9712eb7dccd9ee149cfa65dc88e0a7f67f667ae73862e6bd970fecf1b4ed2aa1",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "598fed5b3072c07016dbceefbdb5e7e22c9555ea\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "hash-object",
+        "--stdin",
+        "--path=zircon_runtime/src/ui/module/lifecycle.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "9712eb7dccd9ee149cfa65dc88e0a7f67f667ae73862e6bd970fecf1b4ed2aa1",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "598fed5b3072c07016dbceefbdb5e7e22c9555ea\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "show",
+        "HEAD:zircon_runtime/src/ui/module/runtime_driver.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "b4dc352a19eb42d21e5678d474cdf4b42a4049ed5fc93bbe9ffcfe935293484b",
+      "stdout_bytes": 1921,
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "rev-parse",
+        "HEAD:zircon_runtime/src/ui/module/runtime_driver.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "16944ef539f37e35cf3bc1f360720d3c1b42ae901711a11f11ba7b9bef6fdc3b",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "6847f7338f21dbb4aa716df5b6c650e754fc553e\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "hash-object",
+        "--stdin",
+        "--path=zircon_runtime/src/ui/module/runtime_driver.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "16944ef539f37e35cf3bc1f360720d3c1b42ae901711a11f11ba7b9bef6fdc3b",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "6847f7338f21dbb4aa716df5b6c650e754fc553e\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "show",
+        "HEAD:zircon_runtime/src/ui/module/tests/cases.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "1cc215d74702eeb7e349c144a01d8089db0b7eb734909a2f51858c1f0d1a37fa",
+      "stdout_bytes": 5618,
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "rev-parse",
+        "HEAD:zircon_runtime/src/ui/module/tests/cases.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "ae80994a0bf62c6fb987dda76a5133c52dfc8276fb0995877634e3b9132a6d27",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "2d14e34957d7c6930879f07865bebaa446acf536\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "hash-object",
+        "--stdin",
+        "--path=zircon_runtime/src/ui/module/tests/cases.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "ae80994a0bf62c6fb987dda76a5133c52dfc8276fb0995877634e3b9132a6d27",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "2d14e34957d7c6930879f07865bebaa446acf536\n"
+    },
+    {
+      "argv": [
+        "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "zircon_runtime/src/ui/module/tests/cases.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--no-ext-diff",
+        "--check",
+        "--",
+        "zircon_runtime/src/ui/event_ui/mod.rs",
+        "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+        "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+        "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+        "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+        "zircon_runtime/src/ui/module.rs",
+        "zircon_runtime/src/ui/module/lifecycle.rs",
+        "zircon_runtime/src/ui/module/runtime_driver.rs",
+        "zircon_runtime/src/ui/module/tests/cases.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/ui/event_ui/manager/diff.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/event_ui/manager/route_entry.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/event_ui/manager/route_handler.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/module.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/module/runtime_driver.rs.\nThe file will have its original line endings in your working directory\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--no-ext-diff",
+        "--numstat",
+        "--",
+        "zircon_runtime/src/ui/event_ui/mod.rs",
+        "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+        "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+        "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+        "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+        "zircon_runtime/src/ui/module.rs",
+        "zircon_runtime/src/ui/module/lifecycle.rs",
+        "zircon_runtime/src/ui/module/runtime_driver.rs",
+        "zircon_runtime/src/ui/module/tests/cases.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "9e709fe28f0bd5eb5da0bc4a64d281d45be1566a309d77f10d04e3482c525152",
+      "stdout_bytes": 425,
+      "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/ui/event_ui/manager/diff.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/event_ui/manager/route_entry.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/event_ui/manager/route_handler.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/module.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/module/runtime_driver.rs.\nThe file will have its original line endings in your working directory\n",
+      "stdout": "9\t0\tzircon_runtime/src/ui/event_ui/manager/diff.rs\n3\t0\tzircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs\n2\t0\tzircon_runtime/src/ui/event_ui/manager/route_entry.rs\n2\t0\tzircon_runtime/src/ui/event_ui/manager/route_handler.rs\n16\t0\tzircon_runtime/src/ui/module.rs\n2\t0\tzircon_runtime/src/ui/module/lifecycle.rs\n21\t0\tzircon_runtime/src/ui/module/runtime_driver.rs\n12\t0\tzircon_runtime/src/ui/module/tests/cases.rs\n"
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--cached",
+        "--no-ext-diff",
+        "--name-only",
+        "--",
+        "zircon_runtime/src/ui/event_ui/mod.rs",
+        "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+        "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+        "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+        "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+        "zircon_runtime/src/ui/module.rs",
+        "zircon_runtime/src/ui/module/lifecycle.rs",
+        "zircon_runtime/src/ui/module/runtime_driver.rs",
+        "zircon_runtime/src/ui/module/tests/cases.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--no-ext-diff",
+        "--",
+        "zircon_runtime/src/ui/event_ui/mod.rs",
+        "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+        "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+        "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+        "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+        "zircon_runtime/src/ui/module.rs",
+        "zircon_runtime/src/ui/module/lifecycle.rs",
+        "zircon_runtime/src/ui/module/runtime_driver.rs",
+        "zircon_runtime/src/ui/module/tests/cases.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "3990bc56094019c0c033226e30ba23c1ec5aa02a59d3ff108dcfd9955f95c2a6",
+      "stdout_bytes": 12383,
+      "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/ui/event_ui/manager/diff.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/event_ui/manager/route_entry.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/event_ui/manager/route_handler.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/module.rs.\nThe file will have its original line endings in your working directory\nwarning: LF will be replaced by CRLF in zircon_runtime/src/ui/module/runtime_driver.rs.\nThe file will have its original line endings in your working directory\n"
+    },
+    {
+      "argv": [
+        "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        ".codex/skills/zircon-change-guard/scripts/change_guard.py",
+        "--json",
+        "patch",
+        "--git",
+        "--base",
+        "HEAD",
+        "--path",
+        "zircon_runtime/src/ui/event_ui/mod.rs",
+        "--path",
+        "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+        "--path",
+        "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+        "--path",
+        "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+        "--path",
+        "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+        "--path",
+        "zircon_runtime/src/ui/module.rs",
+        "--path",
+        "zircon_runtime/src/ui/module/lifecycle.rs",
+        "--path",
+        "zircon_runtime/src/ui/module/runtime_driver.rs",
+        "--path",
+        "zircon_runtime/src/ui/module/tests/cases.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "e5b1edae8d6e3241fba68793be12b0024361816592d6d8565296163732a3dc04",
+      "stdout_bytes": 1638,
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "--no-optional-locks",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "c096fcebb5691399cff45d8e0033ad3575e3cc6199399be3a1150868831cc8ee",
+      "stdout_bytes": 41,
+      "stderr": "",
+      "stdout": "89789b74beaef9bf83cb61f8c13236ca730a81c0\n"
+    }
+  ],
+  "patch": {
+    "sha256": "3990bc56094019c0c033226e30ba23c1ec5aa02a59d3ff108dcfd9955f95c2a6",
+    "bytes": 12383,
+    "added_lines": 67,
+    "removed_lines": 0,
+    "scope_paths": [
+      "zircon_runtime/src/ui/event_ui/mod.rs",
+      "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+      "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+      "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+      "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+      "zircon_runtime/src/ui/module.rs",
+      "zircon_runtime/src/ui/module/lifecycle.rs",
+      "zircon_runtime/src/ui/module/runtime_driver.rs",
+      "zircon_runtime/src/ui/module/tests/cases.rs"
+    ],
+    "all_changes_exact_comment_insertions": true
+  },
+  "guard": {
+    "path": ".codex/skills/zircon-change-guard/scripts/change_guard.py",
+    "script_sha256": "bb9bf97836c3af3779447f5404c8afe39621356b2ad15ff4de3316d61b599734",
+    "config_sha256": "7b93e661049be8c99bd2fa696115f0e992002fa0c6b5852ce73629865e7ceade",
+    "summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "details": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "input": {
+        "patchDigest": "3990bc56094019c0c033226e30ba23c1ec5aa02a59d3ff108dcfd9955f95c2a6",
+        "base": "89789b74beaef9bf83cb61f8c13236ca730a81c0",
+        "files": [
+          "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+          "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+          "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+          "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+          "zircon_runtime/src/ui/module.rs",
+          "zircon_runtime/src/ui/module/lifecycle.rs",
+          "zircon_runtime/src/ui/module/runtime_driver.rs",
+          "zircon_runtime/src/ui/module/tests/cases.rs"
+        ],
+        "declaredPaths": [
+          "zircon_runtime/src/ui/event_ui/mod.rs",
+          "zircon_runtime/src/ui/event_ui/manager/diff.rs",
+          "zircon_runtime/src/ui/event_ui/manager/diff/tests/capacity_tests.rs",
+          "zircon_runtime/src/ui/event_ui/manager/route_entry.rs",
+          "zircon_runtime/src/ui/event_ui/manager/route_handler.rs",
+          "zircon_runtime/src/ui/module.rs",
+          "zircon_runtime/src/ui/module/lifecycle.rs",
+          "zircon_runtime/src/ui/module/runtime_driver.rs",
+          "zircon_runtime/src/ui/module/tests/cases.rs"
+        ],
+        "writeGrantCheck": true,
+        "permissionRoot": "E:/Git/ZirconEngine",
+        "contributor": false
+      },
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "markers": {
+        "closed": [],
+        "opened": [
+          "CR-ZCA-R069-0001"
+        ],
+        "moved": []
+      },
+      "findings": [],
+      "suppressed": []
+    }
+  },
+  "index_observation": {
+    "head": "89789b74beaef9bf83cb61f8c13236ca730a81c0",
+    "index_bytes": 7479846,
+    "index_sha256": "45120c88a8b9210a3b78124b29dcf4e86b1297d3e215c80efb9ca5297b68a90f",
+    "index_lock": {
+      "exists": false,
+      "owner": "unknown-not-claimed",
+      "deleted": false
+    },
+    "root_git_mutation": false
+  },
+  "issue_ids": [
+    "CR-ZCA-R069-0001"
+  ],
+  "issue_root_proof": {
+    "id": "CR-ZCA-R069-0001",
+    "tag": "BUG",
+    "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+    "marker_after_lines": [
+      153,
+      156
+    ],
+    "fault_after_lines": [
+      157,
+      157
+    ],
+    "before_fault_lines": [
+      145,
+      145
+    ],
+    "status": "open-confirmed-static-code-path",
+    "trigger": "Execute fixed invalid enabled-string test fixture through the UI immediate driver factory; no earlier unrelated runtime/environment failure.",
+    "impact": "from_core emits ConfigParse, invoke_service_factory stringifies it as Initialization. Activation preserves that main error, with optional rollback wrapper. After removing only rollback the ConfigParse matches! is false; first assert fails and following resolve_driver assertion is not reached.",
+    "proof_type": "Static complete normal code path, cross-checked by core helper; no test execution or behavior fix.",
+    "evidence_paths": [
+      {
+        "path": "zircon_runtime/src/core/runtime/handle/activation.rs",
+        "sha256": "c18655d5fa1848d2e84f5a6b8048d790bee5eb438e47ec604f7913d467974094",
+        "bytes": 25322,
+        "lines": 597,
+        "read_spans": [
+          [
+            1,
+            350
+          ]
+        ]
+      },
+      {
+        "path": "zircon_runtime/src/core/runtime/handle/activation/startup.rs",
+        "sha256": "288c94bedea5749b13b0b7fb4b56035151fad36f78861604b2a83498b951af4b",
+        "bytes": 2134,
+        "lines": 51,
+        "read_spans": [
+          [
+            1,
+            51
+          ]
+        ]
+      },
+      {
+        "path": "zircon_runtime/src/core/runtime/runtime.rs",
+        "sha256": "48eca2bd68d6b0b5a2a183b7fdab285e595a0b68ee5e14fb5ca8df3228940073",
+        "bytes": 16909,
+        "lines": 508,
+        "read_spans": [
+          [
+            290,
+            314
+          ]
+        ]
+      },
+      {
+        "path": "zircon_runtime/src/core/runtime/error.rs",
+        "sha256": "171480e991e5162bc7c097029b351b4df19cc5c45014d78b5daafe3725825d4b",
+        "bytes": 8253,
+        "lines": 217,
+        "read_spans": [
+          [
+            125,
+            150
+          ],
+          [
+            185,
+            204
+          ]
+        ]
+      },
+      {
+        "path": "zircon_runtime/src/core/runtime/handle/resolution.rs",
+        "sha256": "b25f7e66f1764990d58a432c08f002463851477c25dca175d7038c0245aadb50",
+        "bytes": 30218,
+        "lines": 818,
+        "read_spans": [
+          [
+            358,
+            438
+          ],
+          [
+            519,
+            607
+          ]
+        ]
+      },
+      {
+        "path": "zircon_runtime/src/core/runtime/handle/activation/batch/transaction_set.rs",
+        "sha256": "04d6e0194cd62f1dbd5fcc0c4e47d4fd46adf7a59e29509dd1e9240d7b60e8ce",
+        "bytes": 4506,
+        "lines": 140,
+        "read_spans": [
+          [
+            1,
+            140
+          ]
+        ]
+      }
+    ],
+    "source_chain": [
+      {
+        "path": "zircon_runtime/src/ui/module/tests/cases.rs",
+        "child_lines": [
+          142,
+          153
+        ],
+        "meaning": "fixed enabled string, activate_module, optional rollback-only extraction, wrong ConfigParse assertion"
+      },
+      {
+        "path": "zircon_runtime/src/ui/module.rs",
+        "lines": [
+          55,
+          64
+        ],
+        "meaning": "Immediate driver factory calls UiRuntimeDriver::from_core and propagates error"
+      },
+      {
+        "path": "zircon_runtime/src/ui/module/runtime_driver.rs",
+        "lines": [
+          58,
+          65
+        ],
+        "meaning": "serde bool mismatch converted to ConfigParse(ui)"
+      },
+      {
+        "path": "zircon_runtime/src/core/runtime/handle/resolution.rs",
+        "lines": [
+          565,
+          565
+        ],
+        "meaning": "service factory result propagated"
+      },
+      {
+        "path": "zircon_runtime/src/core/runtime/handle/resolution.rs",
+        "lines": [
+          627,
+          636
+        ],
+        "meaning": "factory error becomes Initialization(name,error.to_string())"
+      },
+      {
+        "path": "zircon_runtime/src/core/runtime/handle/activation.rs",
+        "lines": [
+          219,
+          221
+        ],
+        "meaning": "startup resolution error exits activation result"
+      },
+      {
+        "path": "zircon_runtime/src/core/runtime/handle/activation.rs",
+        "lines": [
+          241,
+          292
+        ],
+        "meaning": "retains activation_error and optional rollback cleanup"
+      },
+      {
+        "path": "zircon_runtime/src/core/runtime/error.rs",
+        "lines": [
+          191,
+          201
+        ],
+        "meaning": "only wraps activation main error on cleanup failure"
+      },
+      {
+        "path": "zircon_runtime/src/core/runtime/handle/activation/batch/transaction_set.rs",
+        "lines": [
+          84,
+          107
+        ],
+        "meaning": "finish returns unchanged result"
+      },
+      {
+        "path": "zircon_runtime/src/core/runtime/runtime.rs",
+        "lines": [
+          300,
+          302
+        ],
+        "meaning": "CoreRuntime forwards CoreHandle result"
+      }
+    ],
+    "next_action": "Separately authorize behavior repair: align test expectation with the documented Core factory error contract, or explicitly change that contract and dependent tests; then run targeted lifecycle/config tests. This audit changes only comments.",
+    "formal_acceptance": false
+  },
+  "validation_limits": [
+    "No Rust type check, Cargo build, test execution or benchmark/performance pass claimed.",
+    "Raw guards statically evaluate only unchanged original operands; external reader other assertions are outside this batch.",
+    "Historical child carries intended failing test expectation; root canonical overlay records actual static failure, not a pass.",
+    "Local validation/root post is not designated Jenkins functional or phase acceptance, Git commit or attached WeCom."
+  ],
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false,
+  "git_commit": false,
+  "push": false,
+  "notification": false,
+  "process_lifecycle": {
+    "pid": 17240,
+    "this_writer_terminal_unknown_at_creation": true,
+    "source_amendment_writer_actual_terminal_known": true,
+    "unknown_foreign_writers_preserved": true
+  },
+  "artifact_lifecycle": {
+    "preregistered": true,
+    "source_copies": false,
+    "helpers": false,
+    "deleted_paths": [],
+    "freed_bytes": 0,
+    "keep_until": "Root independent readback/main/coverage and designated Jenkins exact phase receipt/commit/attached WeCom."
+  }
+}

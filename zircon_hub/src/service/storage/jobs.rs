@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 use tokio::{
-    sync::{Notify, oneshot},
+    sync::{oneshot, Notify},
     task::JoinHandle,
     time::Instant,
 };

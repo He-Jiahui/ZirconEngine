@@ -29,6 +29,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
     );
     let (hybrid_gi_feedback, particle_feedback, virtual_geometry_feedback) =
         runtime_feedback.into_parts();
+    record.apply_ready_virtual_geometry_readbacks();
     record.store_presented_pipeline(context.compiled_pipeline_shared());
     let hybrid_gi_stats =
         update_hybrid_gi_runtime(record, context.camera_history_key(), hybrid_gi_feedback);

@@ -12,7 +12,7 @@ mod script;
 use serde::{Deserialize, Serialize};
 
 use self::entity::ArtifactCacheSceneEntityAsset;
-use crate::asset::{AssetImportError, SceneAsset};
+use crate::asset::{AssetCodecError, SceneAsset};
 
 // Scene 与 Prefab 共用此实体树缓存边界；读回时每个实体组件都必须完成转换。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -33,7 +33,7 @@ impl From<&SceneAsset> for ArtifactCacheSceneAsset {
 }
 
 impl ArtifactCacheSceneAsset {
-    pub(super) fn into_asset(self) -> Result<SceneAsset, AssetImportError> {
+    pub(super) fn into_asset(self) -> Result<SceneAsset, AssetCodecError> {
         Ok(SceneAsset {
             entities: self
                 .entities

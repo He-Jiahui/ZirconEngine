@@ -170,7 +170,7 @@ fn test_gpu_mesh() -> Option<std::sync::Arc<crate::graphics::scene::resources::G
     Some(std::sync::Arc::new(
         crate::graphics::scene::resources::GpuMeshResource::from_asset(
             &backend.device,
-            crate::asset::ModelPrimitiveAsset {
+            &crate::asset::ModelPrimitiveAsset {
                 vertices: vec![
                     crate::asset::MeshVertex::new(
                         Vec3::ZERO,

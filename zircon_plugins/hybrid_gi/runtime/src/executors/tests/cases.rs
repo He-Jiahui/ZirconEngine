@@ -46,8 +46,7 @@ fn resolve_publishes_global_illumination_history_only_after_encoding_succeeds() 
 
 #[test]
 fn resolve_shader_consumes_trace_depth_source_packet() {
-    let source =
-        include_str!("../../gi/shaders/resolve_trace_depth_source.wgsl");
+    let source = include_str!("../../gi/shaders/resolve_trace_depth_source.wgsl");
 
     assert!(source.contains("HYBRID_GI_TRACE_SCHEDULE_MAGIC"));
     assert!(source.contains("hybrid_gi_trace_words[6]"));
@@ -87,8 +86,7 @@ fn resolve_debug_view_codes_match_the_shader_abi_and_disable_history() {
         );
     }
 
-    let source =
-        include_str!("../../gi/shaders/resolve_trace_depth_source.wgsl");
+    let source = include_str!("../../gi/shaders/resolve_trace_depth_source.wgsl");
     assert!(source.contains("fn debug_radiance"));
     assert!(source.contains("HYBRID_GI_DEBUG_VIEW_CARDS"));
     assert!(source.contains("HYBRID_GI_DEBUG_VIEW_SURFACE_CACHE"));

@@ -7,13 +7,13 @@ fn runtime_15_render_stats_graph_execution_resources_are_child_owner() {
     let execution_resources = read_runtime_src(
         "core/runtime/diagnostics/render_stats_store/graph/execution_resources.rs",
     );
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let diagnostics_doc = read_repo("docs/zircon_runtime/core/diagnostics.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _diagnostics_doc = read_repo("docs/zircon_runtime/core/diagnostics.md");
 
     assert_contains_all(
         "render-stats graph parent keeps graph dispatcher responsibilities",

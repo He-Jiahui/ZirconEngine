@@ -7,7 +7,12 @@ impl EditorRuntimeEventConsumerHost {
         snapshots: &[ActiveConsumerSnapshot],
         visited_consumer_count: usize,
     ) {
-        let Some(next) = next_start_index(snapshots.len(), visited_consumer_count)
+        let next_index = if snapshots.len() > 1 && visited_consumer_count >= snapshots.len() {
+            Some(1)
+        } else {
+            next_start_index(snapshots.len(), visited_consumer_count)
+        };
+        let Some(next) = next_index
             .and_then(|index| snapshots.get(index))
             .map(|snapshot| snapshot.consumer_id.as_str())
         else {

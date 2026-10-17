@@ -10,6 +10,9 @@ impl RetainedEditorHost {
         let Some(template_action) = event.template_action else {
             return;
         };
+        if self.dispatch_module_plugin_details_invocation(&template_action) {
+            return;
+        }
         self.apply_dispatch_result(callback_dispatch::dispatch_template_action(
             &self.runtime,
             &template_action,
@@ -25,6 +28,25 @@ impl RetainedEditorHost {
         identity_text: &str,
     ) {
         self.focus_callback_source_window();
+        if control_id == "ModulePluginFeatureRows" && self.is_module_plugin_details_pane(pane_id) {
+            if EditorUiHostRuntime::retained_builtin_pane_runtime().is_some_and(|runtime| {
+                runtime.select_template_table_row(
+                    pane_id,
+                    control_id,
+                    source_index,
+                    identity_kind,
+                    identity_text,
+                )
+            }) {
+                self.select_module_plugin_feature(
+                    pane_id,
+                    source_index,
+                    identity_kind,
+                    identity_text,
+                );
+            }
+            return;
+        }
         let selected = self.builtin_template_runtime.select_template_table_row(
             pane_id,
             control_id,
@@ -63,6 +85,32 @@ impl RetainedEditorHost {
     ) {
         self.focus_callback_source_window();
         if self.dispatch_generated_bottom_action_token(control_id, action_id, None) {
+            return;
+        }
+        // Clone the resolved invocation before calling host/plugin code: the
+        // registry's callback scope must never contain a plugin mutation.
+        if let Some(runtime) = EditorUiHostRuntime::retained_builtin_pane_runtime().filter(|_| {
+            control_id.starts_with("ModulePlugin") || control_id == "FocusModulePlugins"
+        }) {
+            if let Some(invocation) =
+                runtime.dispatch_template_action_for_token(action_id, Clone::clone)
+            {
+                if self.dispatch_module_plugin_details_invocation(&invocation) {
+                    return;
+                }
+                if control_id == "FocusModulePlugins" {
+                    self.apply_dispatch_result(callback_dispatch::dispatch_template_action(
+                        &self.runtime,
+                        &invocation,
+                    ));
+                    return;
+                }
+            }
+            if runtime.is_template_action_token(action_id) {
+                return;
+            }
+        }
+        if self.dispatch_module_plugin_detail_control(control_id, action_id) {
             return;
         }
         let template_action_result = {

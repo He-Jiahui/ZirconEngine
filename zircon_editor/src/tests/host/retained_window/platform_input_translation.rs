@@ -243,8 +243,7 @@ fn runtime_touch_pointer_events_map_pointer_id_source_kind_and_button() {
 
 #[test]
 fn m1_s3_editor_event_loop_routes_winit_input_through_runtime_platform_input() {
-    let window_events =
-        include_str!("../../../ui/retained/contract/window/event_loop/events.rs");
+    let window_events = include_str!("../../../ui/retained/contract/window/event_loop/events.rs");
     let platform_input =
         include_str!("../../../ui/retained/contract/window/event_loop/platform_input.rs");
     let host_contract_mod = include_str!("../../../ui/retained/contract/mod.rs");

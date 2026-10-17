@@ -1,3 +1,7 @@
+//! 校验并将拥有型扁平节点流恢复为 JSON 值，供旧 schema 进入迁移链。
+//! 显式容器帧记录直接子项和对象键状态；结构、唯一键、节点数、深度与字符串预算均在组装时检查。
+//! 输入节点被消费，成功结果由自身拥有数据，不再依赖 BinaryValue。
+
 use serde_json::{map::Entry, Map, Number, Value};
 
 use super::super::wire::{
@@ -5,6 +9,7 @@ use super::super::wire::{
 };
 use super::{BinaryNode, BinaryValue, BinaryValueError};
 
+// remaining 记录当前容器的直接子项；对象帧还要求每个值前恰有一个待用键。
 enum DecodeFrame {
     Array {
         remaining: usize,
@@ -107,6 +112,7 @@ fn attach_value(
     frames: &mut Vec<DecodeFrame>,
     root: &mut Option<Value>,
 ) -> Result<(), BinaryValueError> {
+    // 子值填满当前容器后逐层弹栈，并将完整容器继续作为父容器的一个值挂接。
     loop {
         let Some(frame) = frames.last_mut() else {
             if root.replace(value).is_some() {
@@ -146,6 +152,7 @@ fn insert_unique_object_value(
     key: String,
     value: Value,
 ) -> Result<(), BinaryValueError> {
+    // Entry 同时区分新键和重复键，避免重复字段覆盖已组装的 JSON 值。
     match values.entry(key) {
         Entry::Vacant(entry) => {
             entry.insert(value);

@@ -347,7 +347,9 @@ fn hierarchy_pointer_coordinates(
     let mut host = host.borrow_mut();
     host.refresh_ui();
     let cached_size = host.hierarchy_pointer_size;
-    let rows = host.prepare_hierarchy_pointer_target(cached_size.width, cached_size.height, false).map_err(|error| error.to_string())?;
+    let rows = host
+        .prepare_hierarchy_pointer_target(cached_size.width, cached_size.height, false)
+        .map_err(|error| error.to_string())?;
     let index = rows
         .iter()
         .position(|row| row.entity == node_id)
@@ -376,7 +378,8 @@ fn hierarchy_pointer_coordinates(
             )
             .max(y + 1.0);
         }
-        host.prepare_hierarchy_pointer_target(width, height, false).map_err(|error| error.to_string())?;
+        host.prepare_hierarchy_pointer_target(width, height, false)
+            .map_err(|error| error.to_string())?;
     }
     if width <= 0.0 || height <= 0.0 || x >= width || y < 0.0 || y >= height {
         return Err(format!(

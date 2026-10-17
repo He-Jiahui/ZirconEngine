@@ -14,21 +14,31 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "style.token.select" => self.editor_manager
+            "style.token.select" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
-                    manager.select_ui_asset_editor_style_token(&instance_id, item_index.max(0) as usize)
+                    manager.select_ui_asset_editor_style_token(
+                        &instance_id,
+                        item_index.max(0) as usize,
+                    )
                 })
                 .map(|_| ()),
-            "style.token.upsert" => self.editor_manager
+            "style.token.upsert" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
-                    manager.upsert_ui_asset_editor_style_token(&instance_id, token_name, token_value)
+                    manager.upsert_ui_asset_editor_style_token(
+                        &instance_id,
+                        token_name,
+                        token_value,
+                    )
                 })
                 .map(|_| ()),
-            "style.token.delete" => self.editor_manager
+            "style.token.delete" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {

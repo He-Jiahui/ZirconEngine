@@ -178,26 +178,27 @@ fn render_frame_extract_matches_legacy_render_snapshot_projection() {
 }
 
 #[test]
-fn render_frame_submission_carries_editor_owned_viewport_text_overlay() {
-    let state = test_state();
+fn render_frame_submission_does_not_duplicate_authored_viewport_chrome() {
+    let mut state = test_state();
+    let expected_scene = state.render_snapshot().expect("render snapshot");
+    let viewport_size = state.viewport_state().size;
 
     let submission = state
         .render_frame_submission()
         .expect("render frame submission");
-    let ui = submission.ui.expect("viewport hud overlay");
-    let command = ui.list.commands.first().expect("viewport hud command");
+    assert!(submission.ui.is_none());
+    assert_eq!(submission.extract.to_scene_snapshot(), expected_scene);
 
-    assert_eq!(ui.tree_id.0, "zircon.editor.viewport.hud");
-    assert_eq!(command.kind, UiRenderCommandKind::Quad);
-    assert_eq!(
-        command.style.font.as_deref(),
-        Some("res://fonts/default.font.toml")
-    );
-    assert_eq!(command.style.text_render_mode, UiTextRenderMode::Auto);
-    assert!(command
-        .text
-        .as_deref()
-        .is_some_and(|text| text.contains("Move") && text.contains("Persp")));
+    let view_id = crate::core::editor_event::ViewInstanceId::new("test.scene#authored-chrome");
+    let per_view = state
+        .render_frame_submission_for_view(
+            &view_id,
+            viewport_size,
+            ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1,
+        )
+        .expect("per-view render frame submission");
+    assert!(per_view.ui.is_none());
+    assert_eq!(per_view.extract.to_scene_snapshot(), expected_scene);
 }
 
 #[test]
@@ -273,17 +274,50 @@ fn viewport_authoring_commands_do_not_mutate_runtime_world_or_default_extract() 
 }
 
 #[test]
-fn render_frame_submission_hud_text_renders_through_runtime_glyph_capture() {
+fn explicit_runtime_text_overlay_renders_through_runtime_glyph_capture() {
+    use zircon_runtime_interface::ui::event_ui::UiNodeId;
+    use zircon_runtime_interface::ui::surface::{
+        UiRenderCommand, UiRenderList, UiResolvedStyle, UiTextAlign, UiTextWrap,
+    };
+
     let state = test_state();
     let submission = state
         .render_frame_submission()
         .expect("render frame submission");
-    let ui = submission.ui.clone().expect("viewport hud overlay");
+    // Runtime UI transport is independent of the editor's authored chrome.
+    let ui = Arc::new(UiRenderExtract {
+        tree_id: UiTreeId::new("test.runtime.text-overlay"),
+        list: UiRenderList {
+            commands: vec![UiRenderCommand {
+                node_id: UiNodeId::new(1),
+                kind: UiRenderCommandKind::Quad,
+                frame: UiFrame::new(16.0, 16.0, 280.0, 28.0),
+                clip_frame: None,
+                z_index: 10,
+                style: UiResolvedStyle {
+                    background_color: Some("#16202ccc".to_string()),
+                    foreground_color: Some("#eef3ff".to_string()),
+                    font: Some("res://fonts/default.font.toml".to_string()),
+                    font_size: 13.0,
+                    line_height: 16.0,
+                    text_align: UiTextAlign::Center,
+                    wrap: UiTextWrap::None,
+                    text_render_mode: UiTextRenderMode::Auto,
+                    ..UiResolvedStyle::default()
+                },
+                text_layout: None,
+                text: Some("Move | Persp | Shaded | Grid".to_string()),
+                image: None,
+                opacity: 1.0,
+            }],
+        },
+        raster_scale: 1.0,
+    });
     let hud_frame = ui
         .list
         .commands
         .first()
-        .expect("viewport hud command")
+        .expect("explicit runtime text command")
         .frame;
 
     let (with_text, with_text_stats) = capture_editor_submission(
@@ -296,12 +330,12 @@ fn render_frame_submission_hud_text_renders_through_runtime_glyph_capture() {
     assert_eq!(with_text_stats.last_ui_text_payload_count, 1);
 
     let mut background_only = ui.as_ref().clone();
-    background_only.tree_id = UiTreeId::new("zircon.editor.viewport.hud.background-only");
+    background_only.tree_id = UiTreeId::new("test.runtime.text-overlay.background-only");
     background_only
         .list
         .commands
         .first_mut()
-        .expect("viewport hud command")
+        .expect("explicit runtime text command")
         .text = None;
 
     let (without_text, without_text_stats) = capture_editor_submission(
@@ -323,7 +357,7 @@ fn render_frame_submission_hud_text_renders_through_runtime_glyph_capture() {
     );
     assert!(
         changed_pixels > 48,
-        "expected editor-owned viewport HUD text to add visible glyph pixels through the shared runtime text backend; changed_pixels={changed_pixels}; glyphs={}; unmapped_glyphs={}; visible_raster_glyphs={}; raster_sources={}; worker_pending={}; worker_failed={}",
+        "expected explicit runtime overlay text to add visible glyph pixels through the shared runtime text backend; changed_pixels={changed_pixels}; glyphs={}; unmapped_glyphs={}; visible_raster_glyphs={}; raster_sources={}; worker_pending={}; worker_failed={}",
         with_text_stats.last_ui_text_glyph_count,
         with_text_stats.last_ui_text_unmapped_glyph_count,
         with_text_stats.last_ui_text_visible_raster_glyph_count,
@@ -700,7 +734,40 @@ pub(crate) fn begin_moved_gizmo_drag(state: &mut EditorState) -> (u64, Transform
 #[derive(Debug)]
 struct FaultTransactionEngineCommand;
 
+impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for FaultTransactionEngineCommand {
+    fn retained_bound_v1(
+        &self,
+        m: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
+        Ok(())
+    }
+}
 impl EditCommand for FaultTransactionEngineCommand {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<
+        crate::core::editing::engine::CommandRetentionPlanV1,
+        crate::core::editing::engine::EditCommandError,
+    > {
+        crate::core::editing::engine::CommandRetentionPlanV1::for_owner(
+            self, context, phase, model, limit,
+        )
+    }
+    fn prepare_retention_v1(
+        &mut self,
+        _: &mut dyn crate::core::editing::engine::EditContext,
+        phase: crate::core::editing::engine::RetentionPhaseV1,
+        permit: &mut crate::core::editing::engine::RetentionMaterializationV1,
+    ) -> Result<(), crate::core::editing::engine::CommandExecutionError> {
+        permit
+            .consume(self, phase)
+            .map_err(crate::core::editing::engine::CommandExecutionError::unchanged)
+    }
+
     fn label(&self) -> &str {
         "Fault transaction engine"
     }

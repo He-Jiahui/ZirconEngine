@@ -32,6 +32,7 @@ fn close_project_retires_project_resources_and_publishes_removed_changes() {
     let paths = ProjectPaths::from_root(&root).unwrap();
     let assets = zircon_runtime_interface::project::RelPath::project_assets();
     paths.ensure_layout(&[assets.clone()]).unwrap();
+    let root = paths.root().to_path_buf();
     ProjectManifest::new(
         "Close Project",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -89,7 +90,7 @@ fn close_project_publishes_removed_before_the_next_generation_added() {
     AssetManager::open_project(manager.as_ref(), first_root.to_string_lossy().as_ref()).unwrap();
     while changes.recv_timeout(Duration::from_millis(25)).is_ok() {}
 
-    let subscribers = manager.lock_change_subscribers();
+    let subscribers = manager.change_events.lock_for_test();
     let close_manager = Arc::clone(&manager);
     let close = thread::spawn(move || AssetManager::close_project(close_manager.as_ref()));
 
@@ -164,7 +165,7 @@ fn close_project_publishes_removed_before_the_next_generation_added() {
     while relevant.len() < 2 && Instant::now() < event_deadline {
         if let Ok(change) = changes.recv_timeout(Duration::from_millis(25)) {
             if change.uri == first_uri || change.uri == second_uri {
-                relevant.push((change.kind, change.uri));
+                relevant.push((change.kind.clone(), change.uri.clone()));
             }
         }
     }
@@ -195,7 +196,76 @@ fn create_project(case: &str, name: &str, asset_path: &str) -> (std::path::PathB
     .unwrap();
     write_triangle_obj(paths.asset_root(&assets).join(asset_path));
     (
-        root,
+        paths.root().to_path_buf(),
         AssetUri::parse(&format!("res://{asset_path}")).unwrap(),
     )
+}
+
+#[test]
+fn resync_waits_for_publication_and_resumes_after_the_same_boundary() {
+    let manager = Arc::new(ProjectAssetManager::default());
+    let reader = AssetManager::subscribe_asset_changes(manager.as_ref());
+    let generation = manager.project_generation_write();
+    let (entered, started) = crossbeam_channel::bounded(1);
+    let (completed, result) = crossbeam_channel::bounded(1);
+    let recovery = reader.clone();
+    let waiter = thread::spawn(move || {
+        entered.send(()).unwrap();
+        let snapshot = recovery.resync().unwrap();
+        completed.send(snapshot).unwrap();
+    });
+    started.recv_timeout(Duration::from_secs(2)).unwrap();
+    assert!(matches!(
+        result.recv_timeout(Duration::from_millis(20)),
+        Err(crossbeam_channel::RecvTimeoutError::Timeout)
+    ));
+    let before = crate::asset::watch::AssetChange {
+        kind: AssetChangeKind::Removed,
+        uri: AssetUri::parse("res://before.mesh").unwrap(),
+        previous_uri: None,
+    };
+    manager.publish_project_generation(generation, vec![before]);
+    let snapshot = result.recv_timeout(Duration::from_secs(2)).unwrap();
+    assert!(snapshot.catalog.is_none());
+    assert_eq!(snapshot.next_sequence, 2);
+    assert!(matches!(
+        reader.try_recv(),
+        Err(crate::asset::watch::AssetEventTryRecvError::Empty)
+    ));
+    let after = crate::asset::watch::AssetChange {
+        kind: AssetChangeKind::Added,
+        uri: AssetUri::parse("res://after.mesh").unwrap(),
+        previous_uri: None,
+    };
+    manager.publish_project_generation(manager.project_generation_write(), vec![after.clone()]);
+    assert_eq!(*reader.try_recv().unwrap(), after);
+    waiter.join().unwrap();
+}
+
+#[test]
+fn publication_callback_can_subscribe_and_resync_after_all_fences_are_released() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let manager = Arc::new(ProjectAssetManager::default());
+    let weak = Arc::downgrade(&manager);
+    let count = Arc::new(AtomicUsize::new(0));
+    let observed = count.clone();
+    let _reader = AssetManager::subscribe_asset_changes_with_wake(
+        manager.as_ref(),
+        Arc::new(move || {
+            if let Some(manager) = weak.upgrade() {
+                let reader = AssetManager::subscribe_asset_changes(manager.as_ref());
+                assert!(reader.resync().unwrap().catalog.is_none());
+                observed.fetch_add(1, Ordering::Relaxed);
+            }
+        }),
+    );
+    manager.publish_project_generation(
+        manager.project_generation_write(),
+        vec![crate::asset::watch::AssetChange {
+            kind: AssetChangeKind::Removed,
+            uri: AssetUri::parse("res://reentrant.mesh").unwrap(),
+            previous_uri: None,
+        }],
+    );
+    assert_eq!(count.load(Ordering::Relaxed), 1);
 }

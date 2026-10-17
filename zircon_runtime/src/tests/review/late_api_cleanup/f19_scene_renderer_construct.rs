@@ -2,30 +2,22 @@
 #[test]
 fn review_f19_scene_renderer_construction_modules_use_construct_names() {
     let core_mod = include_str!("../../../graphics/scene/renderer/core/mod.rs");
-    let core_construct_mod = include_str!(
-        "../../../graphics/scene/renderer/core/construct/mod.rs"
-    );
-    let core_construct_layouts = include_str!(
-        "../../../graphics/scene/renderer/core/construct/layouts/mod.rs"
-    );
-    let core_construct_scene_bind_group = include_str!(
-        "../../../graphics/scene/renderer/core/scene_bind_group_bundle/mod.rs"
-    );
-    let renderer_construct_mod = include_str!(
-        "../../../graphics/scene/renderer/core/scene_renderer_construct/mod.rs"
-    );
-    let renderer_construct = include_str!(
-        "../../../graphics/scene/core/scene_renderer_construct/construct.rs"
-    );
-    let renderer_construct_new_with_icon_source = include_str!(
-        "../../../graphics/scene_renderer_construct/new_with_icon_source.rs"
-    );
+    let core_construct_mod = include_str!("../../../graphics/scene/renderer/core/construct/mod.rs");
+    let core_construct_layouts =
+        include_str!("../../../graphics/scene/renderer/core/construct/layouts/mod.rs");
+    let core_construct_scene_bind_group =
+        include_str!("../../../graphics/scene/renderer/core/scene_bind_group_bundle/mod.rs");
+    let renderer_construct_mod =
+        include_str!("../../../graphics/scene/renderer/core/scene_renderer_construct/mod.rs");
+    let renderer_construct =
+        include_str!("../../../graphics/scene/core/scene_renderer_construct/construct.rs");
+    let renderer_construct_new_with_icon_source =
+        include_str!("../../../graphics/scene_renderer_construct/new_with_icon_source.rs");
     let review_findings = concat!(
         include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
         include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
-    let convention =
-        include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
     let render_index = include_str!("../../../../../docs/plans/zircon_runtime/render/index.md");
     let runtime_15 = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"

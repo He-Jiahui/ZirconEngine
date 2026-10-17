@@ -23,10 +23,14 @@ impl ModuleToolsMenuSpec {
     pub(in crate::ui::retained_host) fn trigger_source_is_owned(
         &self,
         root_source_path: &str,
-        root_instance_path: Option<&[zircon_runtime_interface::ui::v2::UiTemplateNodeInstancePathStep]>,
+        root_instance_path: Option<
+            &[zircon_runtime_interface::ui::v2::UiTemplateNodeInstancePathStep],
+        >,
         trigger_source_path: &str,
         trigger_source_node_id: &str,
-        trigger_instance_path: Option<&[zircon_runtime_interface::ui::v2::UiTemplateNodeInstancePathStep]>,
+        trigger_instance_path: Option<
+            &[zircon_runtime_interface::ui::v2::UiTemplateNodeInstancePathStep],
+        >,
     ) -> bool {
         let (Some(root_instance_path), Some(trigger_instance_path)) =
             (root_instance_path, trigger_instance_path)
@@ -283,7 +287,8 @@ fn trigger_source<'a>(
         return None;
     }
     let anchor = source.arranged_tree.get(trigger_id)?;
-    if !trigger_source_member(root, trigger, spec) || !anchor.enabled
+    if !trigger_source_member(root, trigger, spec)
+        || !anchor.enabled
         || !anchor.is_render_visible()
         || trigger.disabled
         || !finite_frame(&node_frame(trigger))
@@ -343,21 +348,26 @@ fn trigger_source_member(
     spec: &ModuleToolsMenuSpec,
 ) -> bool {
     type Step = zircon_runtime_interface::ui::v2::UiTemplateNodeInstancePathStep;
-    let Ok(root_instance_path) = serde_json::from_str::<Vec<Step>>(root.instance_path.as_str()) else {
+    let Ok(root_instance_path) = serde_json::from_str::<Vec<Step>>(root.instance_path.as_str())
+    else {
         return false;
     };
-    let Ok(trigger_instance_path) = serde_json::from_str::<Vec<Step>>(trigger.instance_path.as_str()) else {
+    let Ok(trigger_instance_path) =
+        serde_json::from_str::<Vec<Step>>(trigger.instance_path.as_str())
+    else {
         return false;
     };
     spec.trigger_source_is_owned(
-        root.source_path.as_str(), Some(&root_instance_path),
-        trigger.source_path.as_str(), trigger.source_node_id.as_str(), Some(&trigger_instance_path),
+        root.source_path.as_str(),
+        Some(&root_instance_path),
+        trigger.source_path.as_str(),
+        trigger.source_node_id.as_str(),
+        Some(&trigger_instance_path),
     ) && source_frame_member(root, trigger)
 }
 
 fn source_frame_member(root: &TemplatePaneNodeData, node: &TemplatePaneNodeData) -> bool {
-    root
-        .source_surface_frame
+    root.source_surface_frame
         .as_ref()
         .zip(node.source_surface_frame.as_ref())
         .is_some_and(|(root, node)| Arc::ptr_eq(root, node))

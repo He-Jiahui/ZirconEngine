@@ -257,3 +257,26 @@ fn optimization_batch_im_editor623_preallocated_template_import_performance_evid
         unreserved_p95,
     );
 }
+
+#[test]
+fn builtin_import_rejects_invalid_relative_paths_before_filesystem_loading() {
+    let service = EditorTemplateRuntimeService;
+    for reference in [
+        "res://../editor.zui",
+        "res://ui/../editor.zui",
+        "res:///assets/ui/editor.zui",
+        "res://C:/ui/editor.zui",
+        r"res://ui\editor.zui",
+        "res://ui//editor.zui",
+        "res://ui/./editor.zui",
+        "res://#Root",
+    ] {
+        assert!(
+            matches!(
+                resolve_builtin_import(&service, reference),
+                Err(UiAssetError::InvalidDocument { .. })
+            ),
+            "{reference}"
+        );
+    }
+}

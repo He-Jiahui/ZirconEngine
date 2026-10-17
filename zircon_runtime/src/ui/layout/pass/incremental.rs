@@ -19,6 +19,12 @@ use super::{
     slot::{slot_for_container_child, UiLayoutSlotIndex},
 };
 
+/// 一次增量布局的访问、几何变化与后端路由结果，供表面合并本次重建报告。
+///
+/// # 统计边界
+/// `visited_node_ids` 合并测量访问与安排路由；两个 probe 计数记录遍历探测次数，
+/// 不能直接当作独立分配次数。几何变化集合比较安排前后的框架与裁剪，移除节点另列集合。
+/// `layout_engine_report` 是本次经过的后端选择，调用方结合路由和移除集合更新已有报告。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct UiIncrementalLayoutStats {
     pub visited_node_count: usize,
@@ -33,6 +39,26 @@ pub(crate) struct UiIncrementalLayoutStats {
     pub layout_engine_report: UiLayoutEngineSelectionReport,
 }
 
+/// 按脏节点和树内待处理变更更新布局，并扩展测量所需的依赖路径。
+///
+/// # 参数
+/// - `tree`、`root_size`：原地更新的树及当前根尺寸。
+/// - `text_measure_cache`：所有者保留的文本缓存；本入口不管理其帧开始和结束。
+/// - `dirty_node_ids`：调用方的布局脏集合；实现还吸收树内待处理变更，响应式解析后再次收集变更。
+/// - `root_size_changed`：由所有者比较前次尺寸得到；为真时将所有根纳入安排集合。
+/// - `layout_slot_index`：同一树所有者跨调用保留的子顺序、响应式候选、依赖和后端产品索引。
+///
+/// # 调用约束
+/// 树变更应经过可记录脏节点和顺序变化的入口。根尺寸变化时调用响应式候选索引入口，
+/// 实际解析仍受宽度缓存门控制；不因此承诺每个候选或每个节点都重新测量。
+///
+/// # 返回与生命周期
+/// 成功返回本次增量统计，调用方将路由与移除集合并入已有选择报告。
+/// 错误可能留下部分树更新；统计返回和工作区归还不构成几何回滚。
+///
+/// # 参考
+/// 完整重建使用 `super::compute_layout_tree_with_text_measure_cache_and_slot_index`；
+/// 统计含义见 `UiIncrementalLayoutStats`。
 pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
     tree: &mut UiTree,
     root_size: UiSize,

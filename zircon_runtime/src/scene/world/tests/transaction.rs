@@ -63,9 +63,17 @@ fn compact_dynamic_scene_publication_preserves_prior_outer_staging_and_event_pre
     let prefix_entity = target.spawn_node(NodeKind::Empty).unwrap();
     let calls = Arc::new(AtomicUsize::new(0));
     let observed = Arc::clone(&calls);
-    target.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |_, _| {
-        observed.fetch_add(1, Ordering::SeqCst);
-    });
+    target.observe_component_lifecycle::<Name>(
+        LifecycleEventKind::Add,
+        // SAFETY: Only an external atomic counter changes; retained World payload and dynamic
+        // JSON are untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                observed.fetch_add(1, Ordering::SeqCst);
+            })
+        },
+    );
     target.record_staged_lifecycle_events = true;
     let name = target.registered_component_id::<Name>().unwrap();
     target.trigger_component_lifecycle(LifecycleEventKind::Add, prefix_entity, name);

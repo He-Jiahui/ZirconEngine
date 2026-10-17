@@ -17,6 +17,7 @@ pub struct ProjectActivationOperationIdGenerator {
 }
 
 impl ProjectActivationOperationIdGenerator {
+    /// 为给定启动实例创建生成器；首次成功分配使用序号 1。
     pub const fn new(origin_instance: ProjectLaunchInstanceId) -> Self {
         Self {
             origin_instance,
@@ -24,6 +25,7 @@ impl ProjectActivationOperationIdGenerator {
         }
     }
 
+    /// 返回此生成器发放的操作身份所绑定的启动实例。
     pub const fn origin_instance(&self) -> ProjectLaunchInstanceId {
         self.origin_instance
     }
@@ -35,6 +37,7 @@ impl ProjectActivationOperationIdGenerator {
             let current = self.next_sequence.load(Ordering::Relaxed);
             let sequence = ProjectActivationOperationSequence::new(current)?;
             let next = current.checked_add(1).unwrap_or(EXHAUSTED_SEQUENCE);
+            // 此原子只负责唯一分配序号，不发布其他数据；无需用它同步额外状态。
             if self
                 .next_sequence
                 .compare_exchange_weak(current, next, Ordering::Relaxed, Ordering::Relaxed)

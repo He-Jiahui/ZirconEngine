@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use zircon_runtime_interface::hub_protocol::{
-    HubEditorFocusSignalV1, HubSessionToken, hub_editor_focus_request_directory,
-    hub_editor_focus_signal_path,
+    hub_editor_focus_request_directory, hub_editor_focus_signal_path, HubEditorFocusSignalV1,
+    HubSessionToken,
 };
 use zircon_runtime_interface::project::session_lock::{
     ProjectSessionAdmissionLifecycleV1, ProjectSessionAdmissionRecordV1,
@@ -117,7 +117,7 @@ fn pending_request_count(directory: &Path) -> Result<usize, HubError> {
 }
 
 fn pending_request_count_from_entries(
-    entries: impl Iterator<Item = io::Result<fs::DirEntry>>,
+    mut entries: impl Iterator<Item = io::Result<fs::DirEntry>>,
 ) -> Result<usize, HubError> {
     entries.try_fold(0_usize, |count, entry| {
         let entry = entry.map_err(HubError::from)?;

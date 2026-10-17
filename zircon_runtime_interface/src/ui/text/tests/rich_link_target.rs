@@ -1,3 +1,6 @@
+//! 检查富链接的词法规范化、scheme 准入和 Serde 字符串重解析契约。
+//! 测试输入不触发资源读取或宿主打开目标。
+
 use super::UiRichLinkTarget;
 
 #[test]

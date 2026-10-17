@@ -1,0 +1,796 @@
+{
+  "schema_version": "source-comments-root-main-v2",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R082",
+  "owner": "root",
+  "agent": "reflection_luna",
+  "agent_model": "gpt-6-luna",
+  "agent_reasoning_effort": "max",
+  "created_at_utc": "2026-10-17T02:10:43.904711+00:00",
+  "status": "root-reviewed-locally-validated-pending-coverage-book-and-designated-Jenkins",
+  "source_read_complete": true,
+  "source_scope": "Exact session diagnostics and table-work telemetry leaf modules with their two directly mounted test leaves. Parent session, UI and renderer callers and naming readers remain context only.",
+  "source_files": [
+    {
+      "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+      "before_sha256": "8efc2e1ca10b5c0e9ebbdffe5b83721ddf41a9b485e676447694249c3a609e13",
+      "sha256": "1f2ac0104ca24876f4611457d5468e96aeb7c90fe37453d7ed2308bd65426450",
+      "before_bytes": 5100,
+      "bytes": 7101,
+      "before_lines": 147,
+      "lines": 175,
+      "inserted_blocks": 8,
+      "inserted_lines": 28,
+      "inserted_bytes": 2001,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "stage0_blob": "41552317de772aca5ee85b54a8b07ab533758a83",
+      "clean_filter_blob": "572f0fccceefb01c1bb9bf7e3a8d50f49f14145b",
+      "owner": "reflection_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 53
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+      "before_sha256": "5879db397641d30b0bfa1d2fb5232cb65dc6b08fbf515d2baf9b8c168a85c59b",
+      "sha256": "5439f0269319c115fbb6021a3752e3d46f009e6a34d1851d66c8c11de3368648",
+      "before_bytes": 4732,
+      "bytes": 6301,
+      "before_lines": 115,
+      "lines": 134,
+      "inserted_blocks": 8,
+      "inserted_lines": 19,
+      "inserted_bytes": 1569,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "stage0_blob": "9163713fb8e5dcba99a6aa6ec20c6708ed10c394",
+      "clean_filter_blob": "73c4c00e96c712036b69c971ced8c808e522d558",
+      "owner": "reflection_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 30
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+      "before_sha256": "a304bdda7cba8118417a2795b6aad1709a66104cde57299235260b14e8a6fb08",
+      "sha256": "a304bdda7cba8118417a2795b6aad1709a66104cde57299235260b14e8a6fb08",
+      "before_bytes": 4398,
+      "bytes": 4398,
+      "before_lines": 126,
+      "lines": 126,
+      "inserted_blocks": 0,
+      "inserted_lines": 0,
+      "inserted_bytes": 0,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "stage0_blob": "86265e5ef87b3d14053453f0cdb0a5aa0cfa98c0",
+      "clean_filter_blob": "86265e5ef87b3d14053453f0cdb0a5aa0cfa98c0",
+      "owner": "reflection_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 32
+    },
+    {
+      "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+      "before_sha256": "a26c7554fd88f6706cebd50c5e4f002fbe0e8363c388ac268445baddb480602f",
+      "sha256": "a26c7554fd88f6706cebd50c5e4f002fbe0e8363c388ac268445baddb480602f",
+      "before_bytes": 2342,
+      "bytes": 2342,
+      "before_lines": 60,
+      "lines": 60,
+      "inserted_blocks": 0,
+      "inserted_lines": 0,
+      "inserted_bytes": 0,
+      "removed_bytes": 0,
+      "inverse_equals_grant_actual_raw_HEAD": true,
+      "eol": "LF",
+      "bom": false,
+      "stage0_blob": "8fe56dcad615348418c4fbc917b5861a9269aa2a",
+      "clean_filter_blob": "8fe56dcad615348418c4fbc917b5861a9269aa2a",
+      "owner": "reflection_luna",
+      "root_reviewer": "root",
+      "issues": [],
+      "canonical_ranges": 26
+    }
+  ],
+  "counts": {
+    "files": 4,
+    "objects": 35,
+    "members": 31,
+    "gapfree_blocks": 35,
+    "normal_tests": 8,
+    "ignored_tests": 0,
+    "reviewed_assertion_macros": 40,
+    "derive_attributes": 5,
+    "listed_derive_traits": 25,
+    "formal_scope": "exact4 only; lexical discovery is an index, not AST/call-resolution coverage"
+  },
+  "canonical_ranges": 141,
+  "canonical_range_digest": "d51131cc853f3f7b7ee8e9c4b83734ce22f668adf4a7077801fab8d9e8f23543",
+  "canonical_range_record": "docs/plans/source-comments/reviews/R082-post-validation.json",
+  "records": [
+    {
+      "path": "docs/plans/source-comments/reviews/R082.json",
+      "bytes": 131092,
+      "sha256": "96731e1b450d4bddf55ede4174e4b8519062cfe723cdf976298a108450811708",
+      "lines": 3568
+    },
+    {
+      "path": "docs/plans/source-comments/reviews/R082-post-validation.json",
+      "bytes": 114428,
+      "sha256": "c8b4e596ab17f70b19801d8ce063253a4e9384ff9e67a706dfd4e05c749dcc4e",
+      "lines": 3135
+    }
+  ],
+  "child_immutable": true,
+  "source_amendments": [],
+  "root_review": {
+    "source": "root620/c07f1a exit0/PID33372 full final diagnostics175LF;root690/8b53fb exit0/PID36588 remaining3 final320LF; root589 initial448LF, outer-only recovery590",
+    "models": "root691/43da47 exit0/PID7104 all top models+schemas;root692/057e4c exit0/PID17740 diagnostics full models;root693/3c4a90 exit0/PID14424 remaining3 full models+all40assertions",
+    "contexts": "root696/36688f exit0/PID29908 first8 exact spans including R083/R087 comment-version reconciliation; root697/bb0d00 exit0/PID5332 remaining9 exact spans",
+    "reuse": "Session root628 full705LF old241d plus root644 exact4 new-doc correction proves final5d; facade124-132 root620 same38ae pin,133-134 newly read696; no extra source coverage",
+    "core": "core_timer_sol 318ac5 exit0/PID23240 all495finalLF+childpin;637e07 exit0/PID35616 current session222-271/320-399/514-575 and profile macro68-98, no new source BUG/doc correction",
+    "current_independent_verification": "This invocation independently validates both fixed records, exact4source byte inverse/all141range hashes/digest/17currentcontext pins and span hashes/guard/config/count/raw operands, then creates only root main. Actual terminal will be bound by subsequent coverage book."
+  },
+  "core_helper": {
+    "agent": "core_timer_sol",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "max",
+    "actual_receipts": [
+      "318ac5 exit0/PID23240 full495finalLF plus child identity",
+      "637e07 exit0/PID35616 current session222-271/320-399/514-575 and profiling macro68-98"
+    ],
+    "new_source_bug_or_doc_correction": false,
+    "identified_child_metadata_errata": [
+      {
+        "location": "traits_macros_registration_ffi.macro.name",
+        "child": "crate::runtime_profile_counter!",
+        "actual": "crate::profile_counter!",
+        "evidence": "table_work original51-106/current70-125; profiling/macros.rs70-94",
+        "child_preserved": true,
+        "source_change": false
+      },
+      {
+        "location": "control_points[4].decision",
+        "child": "runtime-profiling feature",
+        "actual": "any(feature=\"profiling\", feature=\"profiling-tracy\") with negated disabled branch",
+        "evidence": "table_work current68 and127",
+        "child_preserved": true,
+        "source_change": false
+      }
+    ],
+    "tests_run": false
+  },
+  "semantic_contracts": [
+    "Fallback Default captures compiled Unicode identity and seven zero counters, independently owned by-value report; font-generation errors defer without incrementing fallback. Recording classifies observation, not recovery execution or successful presentation.",
+    "Geometry rejection copies caller-provided owner/range/violation/work into a last-only receipt and saturates count; it neither validates supplied values nor consumes work quota. Geometry and layout-fallback counters remain independent.",
+    "Session begin_frame resets reports, finish_frame publishes Copy table-work snapshot without resetting, clear clears caches only. Ready shaping diagnostics occur before current-generation admission and may precede a Deferred result; counters do not prove cache insertion or artifact presentation.",
+    "Table grid/attempt, preferred/final layout calls and tracks are observed before later failures. Output is recorded after local geometry validation just before Ready; telemetry saturation/max handling is not admission or memory/resource budgeting.",
+    "Actual publish macro is crate::profile_counter!, selected by any(profiling,profiling-tracy). Recorder capture_active and independent Tracy tracing branches differ; no assertion that every backend shares a capture gate. Twelve values convert to f64; publishing consumes Copy and leaves owner's report unchanged.",
+    "Eight tests/40assertions are reviewed without execution. Direct-injected deferred/retired tags are not concurrent reload tests; manual phase test checks twelve values, saturation test only nine named results. No whole-workspace guard, benchmark or Cargo test execution."
+  ],
+  "call_relation_evidence": {
+    "contexts": [
+      {
+        "id": "session",
+        "path": "zircon_runtime/src/text/layout_session.rs",
+        "sha256": "5d3652e545c61889466ac0fc1e09c970a2507ed642ffa29420c52f0d9359e07c",
+        "bytes": 28707,
+        "lines": 705,
+        "ranges": [
+          [
+            43,
+            52
+          ],
+          [
+            200,
+            246
+          ],
+          [
+            306,
+            371
+          ],
+          [
+            407,
+            423
+          ],
+          [
+            485,
+            552
+          ]
+        ],
+        "range_sha256": [
+          "d29cbe24b53d04327152e1a3feb018e345f174de81c6dbc1f4ad35eaf3f0d142",
+          "cb4e414e4461b2f0e310156dda7a593702ace05c8260c472c1532c3d799c36e5",
+          "0beba25cce1d45db45be2acaa6aa05efeb2ef846c446b0a3cdd05e4d09e46472",
+          "e6a08944282e6c15fb9b704c8434d5f8c966ffc983c97178633da01382b0e60d",
+          "657edebf62f0ac8ea01b07d38d89a055d9190024006018944e42d16c80aaee48"
+        ],
+        "original_observation_sha256": "0a06469e0517f148047e9c5f130139d6ecaa48aa6cc8b4c0ea5939ed3e3b46c2",
+        "comment_only_version_reconciled": true,
+        "formal_coverage": false
+      },
+      {
+        "id": "rich_table",
+        "path": "zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs",
+        "sha256": "ce1a3ff996d92150dfe10c9a22806e97b8b27d6578eaf3c413a8a9d4ab4f0110",
+        "bytes": 27175,
+        "lines": 730,
+        "ranges": [
+          [
+            225,
+            243
+          ],
+          [
+            359,
+            377
+          ],
+          [
+            432,
+            446
+          ],
+          [
+            530,
+            541
+          ],
+          [
+            555,
+            578
+          ]
+        ],
+        "range_sha256": [
+          "c5c41a46ef791175b21b3b2151ead0782ed6cb34b9ba72b570a94bd9ea08905c",
+          "83d9c4266b333ec92438b8e0d32106a6cd4e321c04a683160f213b448e91dc02",
+          "a6a4103e732824b5ee13d705d3fab09009089d4d4bc25c5bcec6d620f8c02ec4",
+          "742cbb441d25957acd1cfdb684c33761f113c60c0fa87f9883e6246f1ff30b45",
+          "7d48d3aa415a511b83cfad7c7302d54c55f00756804a01295b05dfedb44b551b"
+        ],
+        "original_observation_sha256": "ce1a3ff996d92150dfe10c9a22806e97b8b27d6578eaf3c413a8a9d4ab4f0110",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "profiling_macro",
+        "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs",
+        "sha256": "4fc7de3f6eb4143faeaef7896fb0ebf21b172375360fae59b84e018fd5e9dcda",
+        "bytes": 3963,
+        "lines": 98,
+        "ranges": [
+          [
+            49,
+            95
+          ]
+        ],
+        "range_sha256": [
+          "e6530d24a2e4d9b56ba7a814d8daf52fc34487eb4e8638bce43eef689cfd21f4"
+        ],
+        "original_observation_sha256": "4fc7de3f6eb4143faeaef7896fb0ebf21b172375360fae59b84e018fd5e9dcda",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "text_facade",
+        "path": "zircon_runtime/src/text/mod.rs",
+        "sha256": "38aef7102fa2a7850d4b7b2b8d644400ef0bb9e01cb5222cefbd642694201157",
+        "bytes": 7193,
+        "lines": 170,
+        "ranges": [
+          [
+            124,
+            134
+          ]
+        ],
+        "range_sha256": [
+          "4615cb0e2dd179415bbe5a66798c6518887c4d9445d32d1ab291125384158b7b"
+        ],
+        "original_observation_sha256": "38aef7102fa2a7850d4b7b2b8d644400ef0bb9e01cb5222cefbd642694201157",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "measure_cache",
+        "path": "zircon_runtime/src/ui/text/measure_cache.rs",
+        "sha256": "2f9ed0e72c5efed4522e58dd38ee530b41d82e2d18c49bd6e34b50ea215e130a",
+        "bytes": 30857,
+        "lines": 766,
+        "ranges": [
+          [
+            404,
+            422
+          ]
+        ],
+        "range_sha256": [
+          "0bc29a8cd5f9f75528374cec4d5b024426e14ce334088f8ea4602e233fe3b302"
+        ],
+        "original_observation_sha256": "f2e4b54b241f8e1977609479ccdce24454cd87ea7b30a1d141a7cfe70bb4e5e6",
+        "comment_only_version_reconciled": true,
+        "formal_coverage": false
+      },
+      {
+        "id": "profile_session",
+        "path": "zircon_runtime/src/ui/surface/render/text_prewarm/profile/session.rs",
+        "sha256": "aad5c1b762daaece08d2ac14460a2744b9b7d0ceaf92637e0217935c9dd16fbf",
+        "bytes": 6606,
+        "lines": 195,
+        "ranges": [
+          [
+            1,
+            80
+          ]
+        ],
+        "range_sha256": [
+          "bae181b6977bddf896c51285c5864ee6872eb7cb31d9b85e9e5b730c74d3dd67"
+        ],
+        "original_observation_sha256": "aad5c1b762daaece08d2ac14460a2744b9b7d0ceaf92637e0217935c9dd16fbf",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "renderer_report",
+        "path": "zircon_runtime/src/graphics/scene/renderer/ui/text/resolved_batches.rs",
+        "sha256": "fceab19adb9530a2f45d03a1fd5c3de88bd6e732372e7d54ae59ead7c9ba66a5",
+        "bytes": 7954,
+        "lines": 217,
+        "ranges": [
+          [
+            68,
+            90
+          ]
+        ],
+        "range_sha256": [
+          "6bc70879e690a450fc29187a9b842a85204b00834ff8173ddaf7952e870c32e4"
+        ],
+        "original_observation_sha256": "fceab19adb9530a2f45d03a1fd5c3de88bd6e732372e7d54ae59ead7c9ba66a5",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "renderer_merge",
+        "path": "zircon_runtime/src/graphics/scene/renderer/ui/text/prepare_report.rs",
+        "sha256": "ad5966dbed4d5a65065b92a157a5e2149182c2f88e97eafec5b1ae9f61ac2ced",
+        "bytes": 24080,
+        "lines": 484,
+        "ranges": [
+          [
+            275,
+            315
+          ]
+        ],
+        "range_sha256": [
+          "477392ff6f1a6f2148a379915a8ac07347222789f7eefa4de360665f9b62ba98"
+        ],
+        "original_observation_sha256": "ad5966dbed4d5a65065b92a157a5e2149182c2f88e97eafec5b1ae9f61ac2ced",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "naming_classifier",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/classifiers.rs",
+        "sha256": "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651",
+        "bytes": 7987,
+        "lines": 224,
+        "ranges": [
+          [
+            118,
+            152
+          ]
+        ],
+        "range_sha256": [
+          "c762fda54a2d559071060ac9f3815afe740898e9f5093050eda99a429a996d9a"
+        ],
+        "original_observation_sha256": "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "naming_reader",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/lexical_scan.rs",
+        "sha256": "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748",
+        "bytes": 3875,
+        "lines": 115,
+        "ranges": [
+          [
+            1,
+            115
+          ]
+        ],
+        "range_sha256": [
+          "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748"
+        ],
+        "original_observation_sha256": "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "naming_operator",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary/top_level.rs",
+        "sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450",
+        "bytes": 3501,
+        "lines": 108,
+        "ranges": [
+          [
+            1,
+            108
+          ]
+        ],
+        "range_sha256": [
+          "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450"
+        ],
+        "original_observation_sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "naming_production_lines",
+        "path": "zircon_runtime/src/tests/contracts/lexical_scan/production_lines.rs",
+        "sha256": "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b",
+        "bytes": 2095,
+        "lines": 53,
+        "ranges": [
+          [
+            1,
+            53
+          ]
+        ],
+        "range_sha256": [
+          "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b"
+        ],
+        "original_observation_sha256": "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "naming_contract_mount",
+        "path": "zircon_runtime/src/tests/contracts/mod.rs",
+        "sha256": "8557b62d3d4b22c755a2d0110ec158a192455e9fced8ea90303fc8e206d1dde0",
+        "bytes": 1837,
+        "lines": 62,
+        "ranges": [
+          [
+            20,
+            34
+          ]
+        ],
+        "range_sha256": [
+          "f503675626dd53b4d71cd52be207fd13d04b91124130aae0680494e725a86851"
+        ],
+        "original_observation_sha256": "8557b62d3d4b22c755a2d0110ec158a192455e9fced8ea90303fc8e206d1dde0",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "naming_child_mount",
+        "path": "zircon_runtime/src/tests/contracts/naming_boundary.rs",
+        "sha256": "365296f7f5ac5d0f9071af76bc7e258f9992c1c3a76620773de1d559e2c1e57d",
+        "bytes": 514,
+        "lines": 13,
+        "ranges": [
+          [
+            1,
+            13
+          ]
+        ],
+        "range_sha256": [
+          "365296f7f5ac5d0f9071af76bc7e258f9992c1c3a76620773de1d559e2c1e57d"
+        ],
+        "original_observation_sha256": "365296f7f5ac5d0f9071af76bc7e258f9992c1c3a76620773de1d559e2c1e57d",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "shaping_core",
+        "path": "zircon_runtime/src/text/shaping/failure_receipt.rs",
+        "sha256": "9db85eb0a56ab8c130787afd7c3dfb38ff95ae1c6a8c3649031f3f2a7a11aa83",
+        "bytes": 17054,
+        "lines": 403,
+        "ranges": [
+          [
+            145,
+            326
+          ]
+        ],
+        "range_sha256": [
+          "ee8f8da9c5aa6d6f6da0570ff8eb57990c2f4c0b97d407b81edfec3901f937a9"
+        ],
+        "original_observation_sha256": "9db85eb0a56ab8c130787afd7c3dfb38ff95ae1c6a8c3649031f3f2a7a11aa83",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "shaping_work_budget",
+        "path": "zircon_runtime/src/text/shaping/work_budget.rs",
+        "sha256": "7b6d530943c537e7aa47e22b2145f5ca01f5e67ebdfb5e29701cdacdedb12b5c",
+        "bytes": 3136,
+        "lines": 86,
+        "ranges": [
+          [
+            1,
+            86
+          ]
+        ],
+        "range_sha256": [
+          "7b6d530943c537e7aa47e22b2145f5ca01f5e67ebdfb5e29701cdacdedb12b5c"
+        ],
+        "original_observation_sha256": "7b6d530943c537e7aa47e22b2145f5ca01f5e67ebdfb5e29701cdacdedb12b5c",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      },
+      {
+        "id": "artifact_fence",
+        "path": "zircon_runtime/src/ui/text/layout_engine/artifact.rs",
+        "sha256": "c6acb152e2b018900d8c6928cd3e7508379631237df3aaed1350bb9cac9f9f66",
+        "bytes": 2344,
+        "lines": 65,
+        "ranges": [
+          [
+            1,
+            65
+          ]
+        ],
+        "range_sha256": [
+          "c6acb152e2b018900d8c6928cd3e7508379631237df3aaed1350bb9cac9f9f66"
+        ],
+        "original_observation_sha256": "c6acb152e2b018900d8c6928cd3e7508379631237df3aaed1350bb9cac9f9f66",
+        "comment_only_version_reconciled": false,
+        "formal_coverage": false
+      }
+    ],
+    "version_reconciliation": "R083 parent99LF and R087 measure facade60LF additions inverted against actual original rawHEAD in root696 and root post. Same executable bytes; no coverage assigned to these contexts.",
+    "traits_macros_dynamic_FFI": "One hand-written Default plus five builtin derive attributes; actual crate::profile_counter! twelve invocations, eight preserved #[test] functions. Exact4 no dynamic registry, unsafe, extern ABI or Serde derives. No generated expansion acceptance claimed.",
+    "profiling": "Recorder's capture_active does not gate the independent profiling-tracy tracing branch. Feature names/macro references in child metadata corrected by explicit root errata without modifying fixed child."
+  },
+  "record_errata": [
+    {
+      "location": "traits_macros_registration_ffi.macro.name",
+      "child": "crate::runtime_profile_counter!",
+      "actual": "crate::profile_counter!",
+      "evidence": "table_work original51-106/current70-125; profiling/macros.rs70-94",
+      "child_preserved": true,
+      "source_change": false
+    },
+    {
+      "location": "control_points[4].decision",
+      "child": "runtime-profiling feature",
+      "actual": "any(feature=\"profiling\", feature=\"profiling-tracy\") with negated disabled branch",
+      "evidence": "table_work current68 and127",
+      "child_preserved": true,
+      "source_change": false
+    }
+  ],
+  "issue_ids": [],
+  "issues": [],
+  "issue_ledger_registration_pending": false,
+  "verification": {
+    "post_writer_actual_terminal": "root700/bc7927 native77159->root701/6a419a exit0/PID1772",
+    "post_exact_commands": 17,
+    "all_command_exit_codes_zero": true,
+    "guard_summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "format_evidence_reused": {
+      "reuse": true,
+      "affected2_receipt": "Luna4ed52a/native21304->75ed98 exit0/PID26292",
+      "unchanged2tests_receipt": "Luna6c0a6b/native49413->7f350c exit0/PID13972",
+      "exact_final_source_pins_unchanged": true,
+      "argv_prefix": [
+        "C:/Users/HeJiahui/.cargo/bin/rustfmt.exe",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true"
+      ],
+      "paths": [
+        "zircon_runtime/src/text/layout_session/diagnostics.rs",
+        "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+        "zircon_runtime/src/text/layout_session/table_work.rs",
+        "zircon_runtime/src/text/layout_session/tests/table_work.rs"
+      ],
+      "exit_code": 0,
+      "repeated": false
+    },
+    "raw_consumers": {
+      "exact_inputs": [
+        {
+          "path": "zircon_runtime/src/text/layout_session/diagnostics.rs",
+          "reader": "naming_reader",
+          "operators": "actual split ASCII token contains editor/legacy; server component exclusions; production line state machine",
+          "before_references": {
+            "editor": [],
+            "legacy": [],
+            "server": []
+          },
+          "current_references": {
+            "editor": [],
+            "legacy": [],
+            "server": []
+          },
+          "new_comment_references": {
+            "editor": [],
+            "legacy": [],
+            "server": []
+          },
+          "new_comment_brace_delta": 0,
+          "scope": "exact4 standalone source scanner inputs; whole Rust contract not executed"
+        },
+        {
+          "path": "zircon_runtime/src/text/layout_session/table_work.rs",
+          "reader": "naming_reader",
+          "operators": "actual split ASCII token contains editor/legacy; server component exclusions; production line state machine",
+          "before_references": {
+            "editor": [],
+            "legacy": [],
+            "server": []
+          },
+          "current_references": {
+            "editor": [],
+            "legacy": [],
+            "server": []
+          },
+          "new_comment_references": {
+            "editor": [],
+            "legacy": [],
+            "server": []
+          },
+          "new_comment_brace_delta": 0,
+          "scope": "exact4 standalone source scanner inputs; whole Rust contract not executed"
+        },
+        {
+          "path": "zircon_runtime/src/text/layout_session/tests/diagnostics.rs",
+          "reader": "naming_reader",
+          "operators": "actual split ASCII token contains editor/legacy; server component exclusions; production line state machine",
+          "before_references": {
+            "editor": [],
+            "legacy": [],
+            "server": []
+          },
+          "current_references": {
+            "editor": [],
+            "legacy": [],
+            "server": []
+          },
+          "new_comment_references": {
+            "editor": [],
+            "legacy": [],
+            "server": []
+          },
+          "new_comment_brace_delta": 0,
+          "scope": "exact4 standalone source scanner inputs; whole Rust contract not executed"
+        },
+        {
+          "path": "zircon_runtime/src/text/layout_session/tests/table_work.rs",
+          "reader": "naming_reader",
+          "operators": "actual split ASCII token contains editor/legacy; server component exclusions; production line state machine",
+          "before_references": {
+            "editor": [],
+            "legacy": [],
+            "server": []
+          },
+          "current_references": {
+            "editor": [],
+            "legacy": [],
+            "server": []
+          },
+          "new_comment_references": {
+            "editor": [],
+            "legacy": [],
+            "server": []
+          },
+          "new_comment_brace_delta": 0,
+          "scope": "exact4 standalone source scanner inputs; whole Rust contract not executed"
+        }
+      ],
+      "reader_pins": [
+        {
+          "id": "naming_classifier",
+          "path": "zircon_runtime/src/tests/contracts/naming_boundary/classifiers.rs",
+          "sha256": "d64b0e8e9e2cf20746220940088446186c47476e624fcc8c8caa6e86f85eb651"
+        },
+        {
+          "id": "naming_reader",
+          "path": "zircon_runtime/src/tests/contracts/naming_boundary/lexical_scan.rs",
+          "sha256": "66b2c8d800187a7ce1370078fb9fd90aa62e95836a75129d05f2c191dc9d7748"
+        },
+        {
+          "id": "naming_operator",
+          "path": "zircon_runtime/src/tests/contracts/naming_boundary/top_level.rs",
+          "sha256": "ac22ed974c573fbccbca8e548d93f3b2248ff06eebd05d0940168313ca88e450"
+        },
+        {
+          "id": "naming_production_lines",
+          "path": "zircon_runtime/src/tests/contracts/lexical_scan/production_lines.rs",
+          "sha256": "6eb8c1985b01949b15363c1bb47e210dd32c7bf23da0324a3728e6d193df148b"
+        },
+        {
+          "id": "naming_contract_mount",
+          "path": "zircon_runtime/src/tests/contracts/mod.rs",
+          "sha256": "8557b62d3d4b22c755a2d0110ec158a192455e9fced8ea90303fc8e206d1dde0"
+        },
+        {
+          "id": "naming_child_mount",
+          "path": "zircon_runtime/src/tests/contracts/naming_boundary.rs",
+          "sha256": "365296f7f5ac5d0f9071af76bc7e258f9992c1c3a76620773de1d559e2c1e57d"
+        }
+      ],
+      "whole_test_executed": false,
+      "preexisting_context_issue": "CR-RUNTIME-TESTS-ABS-0008 remains open/preserved; exact added comments have no brace delta or new operand hits, no blanket guard claim."
+    },
+    "tests_run": false,
+    "builds_run": false,
+    "git_mutations": false
+  },
+  "test_interpretation": {
+    "normal": 8,
+    "ignored": 0,
+    "assertion_sites": 40,
+    "executed": 0,
+    "limits": [
+      "Fallback tests invoke report.record directly; the geometry error classification test does not execute session.reject_geometry or validate receipt fields.",
+      "Deferred and retired-generation tests directly inject outcome states into the session consumption path. The latter does not assert terminal_run_count=0 and neither performs real hot reload/concurrency.",
+      "Manual table phase test asserts all twelve fields after explicit recording calls; it does not execute rich-table layout, profiling capture or budget policy.",
+      "Saturation test seeds eleven accumulators and asserts only nine named results, not preferred_cell_input_bytes, final_cell_input_bytes or max_table_cell_count.",
+      "Read-only Python raw-scanner operand evaluation is scoped evidence; Rust test binaries and whole-workspace structural tests were not run."
+    ]
+  },
+  "failure_history": [
+    {
+      "receipt": "root698/4f8dfb exit1/PID35800",
+      "location": "line15 root checker used nonexistent standard.md instead of actual 01-standard.md",
+      "before_record_write": true,
+      "source_writes": [],
+      "record_writes": [],
+      "independent_state": "root699/f429c7 exit0/PID22944 actual 01-standard.md4088B/5671f048; child unchanged and4source pins unchanged, post absent",
+      "correction": "Only root checker input path corrected; all source/grant/range/raw checks retained."
+    }
+  ],
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false,
+  "git_commit": false,
+  "push": false,
+  "notification": false,
+  "formal_gate": "Final-hash coverage book and exact candidate manifest followed by designated Jenkins actual gates, live lock-owner diagnosis, phase commit and attached authorized WeCom remain pending. Root does not stage/commit/delete locks/push/bypass gates.",
+  "index_observation": {
+    "head": "89789b74beaef9bf83cb61f8c13236ca730a81c0",
+    "index": {
+      "sha256": "45120c88a8b9210a3b78124b29dcf4e86b1297d3e215c80efb9ca5297b68a90f",
+      "bytes": 7479846
+    },
+    "index_lock": {
+      "exists": true,
+      "owner": "unknown",
+      "deleted_or_bypassed": false,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mtime_ns_text": "1792192256891113100"
+    }
+  },
+  "process_lifecycle": {
+    "pid": 15376,
+    "own_writer_terminal_known_at_creation": false,
+    "post_source_writers_terminal_known": true,
+    "historical_unknown_R033_R039GroupC_R046_preserved": true
+  },
+  "artifact_lifecycle": {
+    "preregistered": true,
+    "source_copies": false,
+    "helpers": false,
+    "build_products": false,
+    "deleted_paths": [],
+    "freed_bytes": 0,
+    "retained": [
+      "Exact4 sources",
+      "child/main/post",
+      "necessary validation/failure evidence"
+    ],
+    "keep_until": "Designated Jenkins exact phase receipt/commit/attached authorized WeCom; preserve foreign/shared outputs."
+  }
+}

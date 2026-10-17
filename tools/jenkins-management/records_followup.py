@@ -55,6 +55,7 @@ def validate(context, inventory, original):
                   and inventory["response"].get("taskId") == task["taskId"]
                   and inventory["response"].get("formalAcceptance") is False,
                   "A scoped pending response for the original task is required")
+    queue.validate_requirement_outcome(context, inventory["response"].get("requirementOutcomeProjection"), original)
     for document in inventory.get("documents", []):
         path = queue.plain(document["path"])
         queue.require(path.is_relative_to(context["repo"] / "docs/tests"),
@@ -229,6 +230,8 @@ def work(repo, task_id, digest):
                     "response": response_pin, "buildUrl": result["buildUrl"], "intakeAccepted": True})
                 current.setdefault("contractAmendments", []).append(inventory["response"].get("contractAmendment", {}))
                 current["pendingRequirements"] += [p for p in task["pendingRequirements"] if p not in current["pendingRequirements"]]
+                queue.attach_requirement_outcome(current, inventory["response"].get("requirementOutcomeProjection"),
+                                                 followup_digest=digest, response=response_pin)
                 state.put("records_queue_task", task_id, current, expected_version=parent["version"], connection=conn)
                 state.put("records_queue_followup", digest, result, expected_version=0, connection=conn)
                 for message in retained:

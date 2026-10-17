@@ -4,6 +4,7 @@
 use std::any::Any;
 use std::error::Error;
 use std::fmt;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
@@ -153,10 +154,7 @@ impl TestRuntime {
         &self.activated_modules
     }
 
-    pub fn resolve_manager<T: Any + Send + Sync>(
-        &self,
-        name: &str,
-    ) -> Result<ServiceCallGuard<T>> {
+    pub fn resolve_manager<T: Any + Send + Sync>(&self, name: &str) -> Result<ServiceCallGuard<T>> {
         self.runtime
             .resolve_manager(name)
             .map_err(|source| TestRuntimeError::Core {
@@ -202,6 +200,7 @@ pub struct TestRuntimeBuilder {
     fixed_timestep: Option<Duration>,
     max_fixed_steps: u32,
     base_modules: Vec<TestRuntimeBaseModule>,
+    config_file_path: Option<PathBuf>,
     runtime_registrations: Vec<RuntimePluginRegistrationReport>,
     feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
     install_scene_runtime_extension_plan: bool,
@@ -215,6 +214,7 @@ impl Default for TestRuntimeBuilder {
             fixed_timestep: Some(default_fixed_timestep()),
             max_fixed_steps: DEFAULT_MAX_FIXED_STEPS,
             base_modules: TestRuntimeBaseModule::default_stack().to_vec(),
+            config_file_path: None,
             runtime_registrations: Vec::new(),
             feature_registrations: Vec::new(),
             install_scene_runtime_extension_plan: true,
@@ -225,6 +225,13 @@ impl Default for TestRuntimeBuilder {
 }
 
 impl TestRuntimeBuilder {
+    /// Bind an explicit host-owned Foundation file. The caller owns its fixture lifetime;
+    /// into_runtime transfers the runtime without deleting or adopting that file.
+    pub fn with_config_file_path(mut self, path: PathBuf) -> Self {
+        self.config_file_path = Some(path);
+        self
+    }
+
     pub fn with_fixed_timestep(mut self, timestep: Duration) -> Self {
         self.fixed_timestep = Some(timestep);
         self
@@ -314,7 +321,19 @@ impl TestRuntimeBuilder {
         }
 
         for module in &self.base_modules {
-            register_module(&runtime, module.descriptor())?;
+            let mut descriptor = module.descriptor();
+            if matches!(module, TestRuntimeBaseModule::Foundation) {
+                if let Some(path) = &self.config_file_path {
+                    foundation::bind_config_file_path(&mut descriptor, path.clone()).map_err(
+                        |source| TestRuntimeError::Core {
+                            action: "bind foundation config file",
+                            target: module.module_name().to_string(),
+                            source,
+                        },
+                    )?;
+                }
+            }
+            register_module(&runtime, descriptor)?;
         }
 
         let catalog = RuntimePluginCatalog::from_registration_reports(

@@ -1,4 +1,6 @@
-use crate::ui::retained_host::host_contract::data::{HostDocumentDockSurfaceData, HostWindowPresentationData};
+use crate::ui::retained_host::host_contract::data::{
+    HostDocumentDockSurfaceData, HostWindowPresentationData,
+};
 
 use super::super::super::super::geometry::{contains, translated};
 use super::super::super::super::PanePointerRoute;

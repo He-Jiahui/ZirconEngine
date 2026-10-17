@@ -16,8 +16,7 @@ fn workbench_shell_contract_is_rust_owned_and_asset_projected() {
     let pane_context = source("src/ui/retained/contract/globals/pane_context.rs");
     let host_root = source("src/ui/retained/contract/data/host_root.rs");
     let template_nodes = source("src/ui/retained/contract/data/nodes.rs");
-    let template_node_data =
-        source("src/ui/retained/contract/data/nodes/node.rs");
+    let template_node_data = source("src/ui/retained/contract/data/nodes/node.rs");
 
     let generated_include = [
         "crate::ui::retained_host::primitives::",

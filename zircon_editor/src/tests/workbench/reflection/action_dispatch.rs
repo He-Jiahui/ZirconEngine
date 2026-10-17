@@ -125,14 +125,27 @@ fn workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_ac
         UiControlResponse::Invocation(result)
             if result.error.is_none() && result.value.is_some()
     ));
-    assert_eq!(runtime.runtime.current_layout().unwrap().floating_windows.len(), 1);
+    assert_eq!(
+        runtime
+            .runtime
+            .current_layout()
+            .unwrap()
+            .floating_windows
+            .len(),
+        1
+    );
 }
 
 #[test]
 fn remote_control_operation_binding_preserves_native_binding_provenance_and_transaction() {
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_workbench_reflection_operation_provenance");
-    let scene_entries_before = runtime.runtime.editor_snapshot().unwrap().scene_entries.len();
+    let scene_entries_before = runtime
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .scene_entries
+        .len();
     let binding = EditorUiBinding::new(
         "SceneMenu",
         "CreateCube",
@@ -168,7 +181,12 @@ fn remote_control_operation_binding_preserves_native_binding_provenance_and_tran
     );
     assert_eq!(record.save_generation, None);
     assert_eq!(
-        runtime.runtime.editor_snapshot().unwrap().scene_entries.len(),
+        runtime
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .scene_entries
+            .len(),
         scene_entries_before + 1
     );
 }
@@ -288,7 +306,8 @@ fn workbench_reflection_call_action_dispatches_typed_draft_actions() {
     assert_eq!(
         runtime
             .runtime
-            .editor_snapshot().unwrap()
+            .editor_snapshot()
+            .unwrap()
             .inspector
             .as_ref()
             .map(|inspector| inspector.name.as_str()),
@@ -388,7 +407,8 @@ fn workbench_reflection_call_action_dispatches_animation_track_creation_from_ins
         .unwrap();
     let instance = runtime
         .runtime
-        .current_view_instances().unwrap()
+        .current_view_instances()
+        .unwrap()
         .into_iter()
         .find(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")

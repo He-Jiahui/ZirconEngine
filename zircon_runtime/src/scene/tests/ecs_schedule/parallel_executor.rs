@@ -12,11 +12,13 @@ use crate::scene::World;
 #[derive(Debug, PartialEq, Eq)]
 struct ScheduleHealth(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(ScheduleHealth { 0 });
 impl Component for ScheduleHealth {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct SchedulePlayer;
 
+zircon_runtime_interface::impl_retained_owner_v1!(SchedulePlayer {});
 impl Component for SchedulePlayer {}
 
 #[derive(Debug, PartialEq, Eq)]

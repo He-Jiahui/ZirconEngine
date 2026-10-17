@@ -7,8 +7,7 @@ fn review_f7_asset_artifact_errors_use_asset_import_error_sources() {
     let cache_payload_ui = include_str!("../../../../asset/artifact/cache_payload/ui.rs");
     let toml_value = include_str!("../../../../asset/artifact/cache_payload/toml_value.rs");
     let artifact_store = include_str!("../../../../asset/artifact/store.rs");
-    let importer_tests =
-        include_str!("../../../../asset/tests/assets/importer/registry_errors.rs");
+    let importer_tests = include_str!("../../../../asset/tests/assets/importer/registry_errors.rs");
     let review_findings = concat!(
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")

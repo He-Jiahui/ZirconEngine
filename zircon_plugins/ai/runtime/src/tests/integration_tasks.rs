@@ -143,7 +143,9 @@ fn play_animation_sets_parameter_and_completes() {
         [("trigger", "attack".into())],
     );
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("spawn AI test fixture node");
     world
         .set_animation_state_machine_player(
             entity,
@@ -151,7 +153,7 @@ fn play_animation_sets_parameter_and_completes() {
                 state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(
                     ResourceId::from_stable_label("res://animation/combat.state_machine.zranim"),
                 ),
-                parameters: BTreeMap::new(),
+                parameters: BTreeMap::new().into(),
                 active_state: None,
                 playing: false,
             }),
@@ -181,7 +183,9 @@ fn play_animation_writes_typed_graph_parameter() {
         [("parameter", "speed".into()), ("value", 2.5_f32.into())],
     );
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("spawn AI test fixture node");
     world
         .set_animation_graph_player(
             entity,
@@ -189,7 +193,7 @@ fn play_animation_writes_typed_graph_parameter() {
                 graph: ResourceHandle::<AnimationGraphMarker>::new(ResourceId::from_stable_label(
                     "res://animation/locomotion.graph.zranim",
                 )),
-                parameters: BTreeMap::new(),
+                parameters: BTreeMap::new().into(),
                 playing: false,
             }),
         )
@@ -263,7 +267,9 @@ fn script_task_round_trips_through_mock_vm() {
         [("callback", "combat_plugin::combat.attack".into())],
     );
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("spawn AI test fixture node");
     let (script_import, bridge) = bound_script_behavior_bridge();
     let mut host = RuntimeBehaviorIntegrationHost::new(&mut world, Some(script_import));
 
@@ -335,7 +341,9 @@ fn navigation_world() -> World {
 }
 
 fn spawn_nav_agent(world: &mut World) -> u64 {
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("spawn AI test fixture node");
     world
         .set_dynamic_component(
             entity,

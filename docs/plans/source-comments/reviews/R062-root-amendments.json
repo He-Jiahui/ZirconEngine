@@ -1,0 +1,261 @@
+{
+  "schema": "zircon.source-comments.root-task-comment-corrections.v1",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R062",
+  "owner": "root",
+  "fixed_child": {
+    "path": "docs/plans/source-comments/reviews/R062.json",
+    "bytes": 211341,
+    "sha256": "d09a1e5ffa1ed1dd341b6052d2b25442f939c31b0e2add9313eef9f277dc8547",
+    "immutable": true
+  },
+  "status": "two-task-added-doc-lines-corrected-no-original-byte-change",
+  "formal_acceptance": false,
+  "preregistration_receipt": "7f57ec exit0/PID36488",
+  "root_evidence": [
+    "c55eb5 exit0/PID13264 complete host controller121L and registry339L, actual text viewed separately.",
+    "7f57ec exit0/PID36488 inspector160L; full text viewed separately.",
+    "core_sol gpt-6.1-sol/max advisory actual callee proof; not root own coverage."
+  ],
+  "sources": [
+    {
+      "path": "zircon_runtime_interface/src/ui/component/data_binding/adapter_error.rs",
+      "before_task_source": {
+        "sha256": "3433b83c62751c05beba68c7a939b13a00b88ec56195a25e20fb6bee74605af7",
+        "bytes": 1495,
+        "lines": 45,
+        "raw_HEAD_equal": true,
+        "eol": "LF",
+        "BOM": false
+      },
+      "before_root_correction": {
+        "sha256": "c642757060d690db037f32d02092a886492420e77213797bd957f4fe4b139fc2",
+        "bytes": 2570,
+        "lines": 60
+      },
+      "after_root_correction": {
+        "sha256": "08c8ae09390b75a127ba702f5f52e7c6c4aa4eec510a32d8b775040bf99eef2f",
+        "bytes": 2633,
+        "lines": 60
+      },
+      "old_task_added_doc": "    /// 宿主写入操作失败，保存目标及宿主报告的原因。\n",
+      "new_task_added_doc": "    /// 宿主处理失败，保留目标和原因；错误也可能来自访问或校验阶段，不表示已开始写入或已回滚。\n",
+      "reason": "Actual component_dispatch20-26 maps manager-entry failure before registry call; inspector36/53-73 maps readonly dynamic-field query error before apply_field_value41-42. Original display template remains unchanged.",
+      "final_insertions": [
+        {
+          "before_line": 1,
+          "current_lines": [
+            1,
+            3
+          ],
+          "after_offset_bytes": 0,
+          "length_bytes": 242,
+          "sha256": "52ab7099673f39c41920d76d2df0c3e3ee8833ac319efbffcf1fcad54b96ab60",
+          "exact_text": "//! 宿主组件适配器返回的可序列化错误值；域、字段路径和诊断文字均由错误值自行持有。\n//! 此模块定义错误分类与显示格式，实际目标解析、输入校验及数据写入由消费端完成。\n\n",
+          "before_offset_bytes": 0
+        },
+        {
+          "before_line": 6,
+          "current_lines": [
+            9,
+            13
+          ],
+          "after_offset_bytes": 366,
+          "length_bytes": 383,
+          "sha256": "31b6fa23734b95ad9791ff37a3a79e4f7a2dc8c86052a244bf9e9b05b080368a",
+          "exact_text": "/// 组件事件在目标路由、输入检查或宿主写入阶段产生的错误。\n///\n/// # 使用与生命周期\n/// 适配器选择对应变体并填入上下文，调用者可显示或序列化该独立值；它不借用宿主状态。\n/// 字符串字段只保存诊断信息，不解析路径，也不执行回滚；错误显示由派生实现使用各变体格式生成。\n",
+          "before_offset_bytes": 124
+        },
+        {
+          "before_line": 8,
+          "current_lines": [
+            16,
+            16
+          ],
+          "after_offset_bytes": 854,
+          "length_bytes": 48,
+          "sha256": "5224f9f52abfbe49a4248f262046700b32a8dd2f606129e5acfc0001debd7ec1",
+          "exact_text": "    /// 目标域未被当前消费端支持。\n",
+          "before_offset_bytes": 229
+        },
+        {
+          "before_line": 10,
+          "current_lines": [
+            19,
+            19
+          ],
+          "after_offset_bytes": 1022,
+          "length_bytes": 57,
+          "sha256": "d6f9e5fbf47d5fafed67b3b69f1ebd27f90480c2c5d1b26efff6aaed0c5adb0b",
+          "exact_text": "    /// 域内字段路径不受当前消费端支持。\n",
+          "before_offset_bytes": 349
+        },
+        {
+          "before_line": 12,
+          "current_lines": [
+            22,
+            22
+          ],
+          "after_offset_bytes": 1226,
+          "length_bytes": 60,
+          "sha256": "7a3dfb5d0870ae3872f8d9ead15a74f571e71487de97619970564d8b2871ad35",
+          "exact_text": "    /// 目标缺少适配器所需的具名数据来源。\n",
+          "before_offset_bytes": 496
+        },
+        {
+          "before_line": 18,
+          "current_lines": [
+            29,
+            29
+          ],
+          "after_offset_bytes": 1480,
+          "length_bytes": 57,
+          "sha256": "fd73c652754a6e2562fe595b1b8acb290cdac7b0a6b9bbd032d7dcf84944a7fb",
+          "exact_text": "    /// 目标不接收给定的类型化事件种类。\n",
+          "before_offset_bytes": 690
+        },
+        {
+          "before_line": 24,
+          "current_lines": [
+            36,
+            36
+          ],
+          "after_offset_bytes": 1742,
+          "length_bytes": 87,
+          "sha256": "ca4ad0102ca169496fe18fd82048063d0784ddcdad719c0ee89c38922b6cadf1",
+          "exact_text": "    /// 载荷值种类与目标要求不符，保留预期值和实际值供诊断。\n",
+          "before_offset_bytes": 895
+        },
+        {
+          "before_line": 33,
+          "current_lines": [
+            46,
+            46
+          ],
+          "after_offset_bytes": 2085,
+          "length_bytes": 66,
+          "sha256": "11d32038bb7f7df654dc63543b7eb7a4bea4cb3d849394d24f57b9b47b6328a5",
+          "exact_text": "    /// 输入被目标规则拒绝，原因由适配器提供。\n",
+          "before_offset_bytes": 1151
+        },
+        {
+          "before_line": 39,
+          "current_lines": [
+            53,
+            53
+          ],
+          "after_offset_bytes": 2322,
+          "length_bytes": 138,
+          "sha256": "22c11acf5ec7c3359bf6e5165c03ec7ab0ec0ff90ee5fc54f3d2e13d6f7299a8",
+          "exact_text": "    /// 宿主处理失败，保留目标和原因；错误也可能来自访问或校验阶段，不表示已开始写入或已回滚。\n",
+          "before_offset_bytes": 1322
+        }
+      ],
+      "inverse_equals_grant": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/component/data_binding/projection_patch.rs",
+      "before_task_source": {
+        "sha256": "244bf25c38c5124e4044a3cc575e441de4032a36f7f91005ada1b17541d5345e",
+        "bytes": 1264,
+        "lines": 36,
+        "raw_HEAD_equal": true,
+        "eol": "LF",
+        "BOM": false
+      },
+      "before_root_correction": {
+        "sha256": "f0630c50c3b8736806bf3fd1685d2716e832a9c26fb8b4e224e5ff892b2c1945",
+        "bytes": 2070,
+        "lines": 46
+      },
+      "after_root_correction": {
+        "sha256": "f8321232a70fc1e8f46c67d3fb684c72732fceee3f0ae2c2a399929522425806",
+        "bytes": 2112,
+        "lines": 46
+      },
+      "old_task_added_doc": "/// 适配器把此值放入结果交给宿主，宿主再按控件标识应用投影。\n",
+      "new_task_added_doc": "/// 适配器把此值放入结果交给宿主，供宿主按控件标识更新投影；是否及何时应用由消费端决定。\n",
+      "reason": "Actual result consumer component_dispatch27-40 only requests refresh after success; a data value does not guarantee patch application. Original projection construction/code unchanged.",
+      "final_insertions": [
+        {
+          "before_line": 1,
+          "current_lines": [
+            1,
+            2
+          ],
+          "after_offset_bytes": 0,
+          "length_bytes": 108,
+          "sha256": "5723281c3487a25ae3b00360b99c432abd0feef59233249dab460f0ff91cd437",
+          "exact_text": "//! 宿主呈现投影的局部更新值，分别保存控件属性与保留状态的自有键值集合。\n\n",
+          "before_offset_bytes": 0
+        },
+        {
+          "before_line": 9,
+          "current_lines": [
+            11,
+            15
+          ],
+          "after_offset_bytes": 437,
+          "length_bytes": 413,
+          "sha256": "826686c34657f8561fa02ce49f573ece4517913fe0987f7bc983fbaf030ce59c",
+          "exact_text": "///\n/// # 使用与生命周期\n/// 适配器把此值放入结果交给宿主，供宿主按控件标识更新投影；是否及何时应用由消费端决定。\n/// 两个集合分别拥有键和值；同名键可以在两个域中同时出现，不持有控件或源数据的借用。\n/// 构建器只修改该值，不查找控件、不执行源数据写入，也不自动设置适配结果的刷新标志。\n",
+          "before_offset_bytes": 329
+        },
+        {
+          "before_line": 19,
+          "current_lines": [
+            26,
+            26
+          ],
+          "after_offset_bytes": 1251,
+          "length_bytes": 105,
+          "sha256": "890bc077168f0609582522f1cee23cea2ae128606993da26736d98449273d524",
+          "exact_text": "    /// 接管控件标识并创建两个空集合；返回自有投影，不验证控件是否存在。\n",
+          "before_offset_bytes": 730
+        },
+        {
+          "before_line": 27,
+          "current_lines": [
+            35,
+            35
+          ],
+          "after_offset_bytes": 1571,
+          "length_bytes": 111,
+          "sha256": "beacab17a7caa6ca204babda4b9621361dd149c711ebbb8ea62eaa9e284b3301",
+          "exact_text": "    /// 接管属性键和值并返回投影；同一属性键替换旧值，保留状态集合保持原值。\n",
+          "before_offset_bytes": 945
+        },
+        {
+          "before_line": 32,
+          "current_lines": [
+            41,
+            41
+          ],
+          "after_offset_bytes": 1839,
+          "length_bytes": 111,
+          "sha256": "46d83a86cf1e150935f5dbe5da2881bab6968182613c86bcce0f5b1e6a963e19",
+          "exact_text": "    /// 接管保留状态键和值并返回投影；同一状态键替换旧值，属性集合保持原值。\n",
+          "before_offset_bytes": 1102
+        }
+      ],
+      "inverse_equals_grant": true
+    }
+  ],
+  "metadata_corrections": [
+    "HostMutation can represent host access/read-only query/dispatch failure before write; original thiserror mutation-failed template preserved.",
+    "ProjectionPatch carries updates; consumption timing/application is determined by host, not DTO builder.",
+    "External Python symbol consumer uses an old absent pane_payload literal; do not substitute current renamed file or claim a reached assertion. Root missing-path022680 exit1 recovered1678e2/c55eb5, test not run."
+  ],
+  "line_count_unchanged": true,
+  "new_BUG": 0,
+  "new_TODO": 0,
+  "actual_writer_pid": 31884,
+  "actual_terminal_receipt_external_to_this_record": true,
+  "requires_independent_fixed_readback": true,
+  "cleanup": {
+    "source_copies": 0,
+    "temporary_helpers": 0,
+    "released_bytes": 0
+  },
+  "recorded_at_utc": "2026-10-16T14:29:40.717453+00:00"
+}

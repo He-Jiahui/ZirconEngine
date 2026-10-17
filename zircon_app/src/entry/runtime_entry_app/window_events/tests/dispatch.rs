@@ -1,4 +1,5 @@
 use super::{window_event_belongs_to_primary, window_event_requests_runtime_frame};
+use crate::entry::runtime_entry_app::window_events::dispatch::native_ime_result_claims_event;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::WindowEvent,

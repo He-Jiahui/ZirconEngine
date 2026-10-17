@@ -1,22 +1,16 @@
 //! 固定高度文本与行原语必须显式声明运行时省略及共享文字度量；这里检查资产源码契约。
-const WORKBENCH_CAPTION_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/primitives/data/caption.zui"
-);
-const WORKBENCH_LABEL_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/primitives/data/label.zui"
-);
-const WORKBENCH_SECTION_TITLE_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/workbench/primitives/chrome/section_title.zui"
-);
-const WORKBENCH_TREE_ROW_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/primitives/data/tree_row.zui"
-);
-const WORKBENCH_LIST_ROW_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/primitives/data/list_row.zui"
-);
-const WORKBENCH_TABLE_ROW_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/workbench/primitives/data/table_row.zui"
-);
+const WORKBENCH_CAPTION_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/components/workbench/primitives/data/caption.zui");
+const WORKBENCH_LABEL_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/components/workbench/primitives/data/label.zui");
+const WORKBENCH_SECTION_TITLE_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/workbench/primitives/chrome/section_title.zui");
+const WORKBENCH_TREE_ROW_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/components/workbench/primitives/data/tree_row.zui");
+const WORKBENCH_LIST_ROW_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/components/workbench/primitives/data/list_row.zui");
+const WORKBENCH_TABLE_ROW_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/workbench/primitives/data/table_row.zui");
 
 #[test]
 /// 有限高度标签采用省略和共享行高，避免长文案改变布局高度；不衡量真实字体排版。

@@ -125,9 +125,9 @@ fn package_manifest_declares_opus_importer_dist_contract() {
         zircon_runtime::plugin::PluginModuleKind::Native
     );
     assert_eq!(dist_module.crate_name, OPUS_IMPORTER_DIST_CRATE_NAME);
-    assert!(dist_module.target_modes.contains(
-        &zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime
-    ));
+    assert!(dist_module
+        .target_modes
+        .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime));
     assert!(dist_module
         .target_modes
         .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost));

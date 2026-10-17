@@ -18,6 +18,7 @@ fn editor_project_document_reopens_distinct_pairs_after_workspace_and_none_fault
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
     let initial = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
+    let mut source_revision = initial.scene_source_revision.clone().unwrap();
     let scene_uri = project.manifest().default_scene.clone();
     let scene_path = project.source_path_for_uri(&scene_uri).unwrap();
     let workspace_path = root.join(".zircon").join("editor-workspace.json");
@@ -37,13 +38,16 @@ fn editor_project_document_reopens_distinct_pairs_after_workspace_and_none_fault
     let old_workspace = transaction_workspace("serialized-old");
     let new_workspace = transaction_workspace("serialized-new");
 
-    EditorProjectDocument::save_scene_to_project(
+    source_revision = EditorProjectDocument::save_scene_to_project(
         &project,
         &scene_uri,
         &old_scene,
+        &source_revision,
         Some(&old_workspace),
     )
-    .unwrap();
+    .unwrap()
+    .source_revision()
+    .clone();
     let old_scene_bytes = fs::read(&scene_path).unwrap();
     let old_workspace_bytes = fs::read(&workspace_path).unwrap();
     let previous_pair = (
@@ -52,26 +56,32 @@ fn editor_project_document_reopens_distinct_pairs_after_workspace_and_none_fault
         old_scene_bytes.clone(),
         old_workspace_bytes.clone(),
     );
-    EditorProjectDocument::save_scene_to_project(
+    source_revision = EditorProjectDocument::save_scene_to_project(
         &project,
         &scene_uri,
         &new_scene,
+        &source_revision,
         Some(&new_workspace),
     )
-    .unwrap();
+    .unwrap()
+    .source_revision()
+    .clone();
     let new_scene_bytes = fs::read(&scene_path).unwrap();
     let new_workspace_bytes = fs::read(&workspace_path).unwrap();
     assert_ne!(old_scene_bytes, new_scene_bytes);
     assert_ne!(old_workspace_bytes, new_workspace_bytes);
 
     // Every interruption starts from a valid old pair and reopens through the actual decoder.
-    EditorProjectDocument::save_scene_to_project(
+    source_revision = EditorProjectDocument::save_scene_to_project(
         &project,
         &scene_uri,
         &old_scene,
+        &source_revision,
         Some(&old_workspace),
     )
-    .unwrap();
+    .unwrap()
+    .source_revision()
+    .clone();
     let generation = project.catalog_input_generation().sequence();
     let scope = project
         .scoped_editor_document(&EditorDocumentScope::new(&root, generation))
@@ -80,6 +90,7 @@ fn editor_project_document_reopens_distinct_pairs_after_workspace_and_none_fault
         .commit_scene_workspace_with_fault_for_test(
             &scene_uri,
             &new_scene,
+            &source_revision,
             &new_workspace_bytes,
             EditorDocumentCommitFault::CrashAfterTargetReplace(0),
         )
@@ -103,15 +114,19 @@ fn editor_project_document_reopens_distinct_pairs_after_workspace_and_none_fault
     assert_eq!(loaded_old.world.nodes(), previous_pair.0.nodes());
     assert_eq!(loaded_old.editor_workspace, Some(previous_pair.1.clone()));
     assert_journal_is_empty(&root);
+    source_revision = loaded_old.scene_source_revision.clone().unwrap();
     drop(loaded_old);
 
-    EditorProjectDocument::save_scene_to_project(
+    source_revision = EditorProjectDocument::save_scene_to_project(
         &reopened,
         &scene_uri,
         &new_scene,
+        &source_revision,
         Some(&new_workspace),
     )
-    .unwrap();
+    .unwrap()
+    .source_revision()
+    .clone();
     drop(reopened);
     let mut committed = ProjectManager::open(&root).unwrap();
     committed.scan_and_import().unwrap();
@@ -120,25 +135,34 @@ fn editor_project_document_reopens_distinct_pairs_after_workspace_and_none_fault
     assert_eq!(fs::read(&workspace_path).unwrap(), new_workspace_bytes);
     assert_eq!(loaded_new.world.nodes(), new_scene.nodes());
     assert_eq!(loaded_new.editor_workspace, Some(new_workspace.clone()));
+    source_revision = loaded_new.scene_source_revision.clone().unwrap();
     drop(loaded_new);
 
     for fault in [
         EditorDocumentCommitFault::CrashAfterTargetReplace(0),
         EditorDocumentCommitFault::CrashAfterRetiredDelete(0),
     ] {
-        EditorProjectDocument::save_scene_to_project(
+        source_revision = EditorProjectDocument::save_scene_to_project(
             &committed,
             &scene_uri,
             &old_scene,
+            &source_revision,
             Some(&old_workspace),
         )
-        .unwrap();
+        .unwrap()
+        .source_revision()
+        .clone();
         let generation = committed.catalog_input_generation().sequence();
         let scope = committed
             .scoped_editor_document(&EditorDocumentScope::new(&root, generation))
             .unwrap();
         assert!(scope
-            .commit_scene_without_workspace_with_fault_for_test(&scene_uri, &new_scene, fault)
+            .commit_scene_without_workspace_with_fault_for_test(
+                &scene_uri,
+                &new_scene,
+                &source_revision,
+                fault
+            )
             .is_err());
         assert_fault_stage(
             &root,
@@ -163,11 +187,21 @@ fn editor_project_document_reopens_distinct_pairs_after_workspace_and_none_fault
         assert_eq!(loaded_old.world.nodes(), previous_pair.0.nodes());
         assert_eq!(loaded_old.editor_workspace, Some(previous_pair.1.clone()));
         assert_journal_is_empty(&root);
+        source_revision = loaded_old.scene_source_revision.clone().unwrap();
         drop(loaded_old);
         committed = recovered;
     }
 
-    EditorProjectDocument::save_scene_to_project(&committed, &scene_uri, &new_scene, None).unwrap();
+    source_revision = EditorProjectDocument::save_scene_to_project(
+        &committed,
+        &scene_uri,
+        &new_scene,
+        &source_revision,
+        None,
+    )
+    .unwrap()
+    .source_revision()
+    .clone();
     assert!(!workspace_path.exists());
     drop(committed);
     let mut absent = ProjectManager::open(&root).unwrap();
@@ -176,6 +210,7 @@ fn editor_project_document_reopens_distinct_pairs_after_workspace_and_none_fault
     assert_eq!(loaded_new.world.nodes(), new_scene.nodes());
     assert!(loaded_new.editor_workspace.is_none());
     let new_none_scene_bytes = fs::read(&scene_path).unwrap();
+    source_revision = loaded_new.scene_source_revision.clone().unwrap();
     drop(loaded_new);
 
     let generation = absent.catalog_input_generation().sequence();
@@ -186,6 +221,7 @@ fn editor_project_document_reopens_distinct_pairs_after_workspace_and_none_fault
         .commit_scene_without_workspace_with_fault_for_test(
             &scene_uri,
             &old_scene,
+            &source_revision,
             EditorDocumentCommitFault::CrashAfterTargetReplace(0),
         )
         .is_err());

@@ -20,6 +20,8 @@ mod inspector_event;
 mod layout_command;
 #[path = "menu_action.rs"]
 mod menu_action;
+#[path = "scene_save.rs"]
+mod scene_save;
 #[path = "selection_event.rs"]
 mod selection_event;
 #[path = "undo_policy.rs"]
@@ -34,4 +36,5 @@ pub use error::{
     MenuActionExecutionError,
 };
 pub(crate) use execution_outcome::ExecutionOutcome;
+pub(crate) use scene_save::{complete_scene_save_checkpoint, execute_scene_save};
 pub(crate) use undo_policy::undo_policy_for_event;

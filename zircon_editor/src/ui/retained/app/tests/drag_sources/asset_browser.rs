@@ -177,7 +177,8 @@ fn browser_right_click_opens_the_context_target_asset_not_the_selected_asset() {
         host.refresh_ui();
         assert_eq!(
             host.runtime
-                .editor_snapshot().unwrap()
+                .editor_snapshot()
+                .unwrap()
                 .asset_browser
                 .selected_asset_uuid
                 .as_deref(),
@@ -200,7 +201,8 @@ fn browser_right_click_opens_the_context_target_asset_not_the_selected_asset() {
     let host = harness.host.borrow();
     assert_eq!(
         host.runtime
-            .editor_snapshot().unwrap()
+            .editor_snapshot()
+            .unwrap()
             .asset_browser
             .selected_asset_uuid
             .as_deref(),

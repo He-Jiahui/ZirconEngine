@@ -135,9 +135,12 @@ pub(super) fn selected_asset_item_indices(snapshot: &AssetWorkspaceSnapshot) -> 
     // An explicitly selected primary that also belongs to a published sparse
     // selection identifies a synchronized multi-selection. A different primary
     // still overrides legacy row flags, preserving normal standalone selection.
-    if snapshot.selected_asset_uuid.as_deref()
+    if snapshot
+        .selected_asset_uuid
+        .as_deref()
         .and_then(|uuid| snapshot.visible_assets.selected_index(uuid))
-        .is_some_and(|index| snapshot.visible_assets.selected_indices().contains(&index)) {
+        .is_some_and(|index| snapshot.visible_assets.selected_indices().contains(&index))
+    {
         return snapshot.visible_assets.selected_indices().to_vec();
     }
     if let Some(index) = snapshot

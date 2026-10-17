@@ -36,7 +36,10 @@ fn reliable_udp_send_stops_before_an_active_u16_sequence_alias() {
         assert_eq!(report.packets[0].sequence, sequence);
     }
     let blocked = manager.enqueue_reliable_datagram("state", b"payload".to_vec());
-    assert_eq!(blocked.status, ReliableDatagramSendStatus::SequenceWindowFull);
+    assert_eq!(
+        blocked.status,
+        ReliableDatagramSendStatus::SequenceWindowFull
+    );
     assert!(blocked.packets.is_empty());
 
     assert_eq!(

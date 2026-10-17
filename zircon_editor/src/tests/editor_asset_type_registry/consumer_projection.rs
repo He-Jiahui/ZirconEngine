@@ -36,9 +36,7 @@ fn browser_projection_reads_the_builtin_definition_owner() {
 fn editor_parallel_sidecar_and_ui_kind_dispatch_are_retired() {
     let manager_root = include_str!("../../ui/host/assets/mod.rs");
     let catalog = include_str!("../../ui/host/assets/catalog.rs");
-    let sync = include_str!(
-        "../../ui/host/assets/manager/project_sync/sync_from_project.rs"
-    );
+    let sync = include_str!("../../ui/host/assets/manager/project_sync/sync_from_project.rs");
     for retired in [
         "mod editor_meta;",
         "EditorAssetMetaDocument",
@@ -56,9 +54,7 @@ fn editor_parallel_sidecar_and_ui_kind_dispatch_are_retired() {
     let thumbnails = include_str!("../../ui/layouts/views/asset_browser/thumbnail_nodes.rs");
     let activity_content = include_str!("../../ui/layouts/views/assets_activity/content_nodes.rs");
     let browser = include_str!("../../ui/layouts/views/asset_browser.rs");
-    let preview = include_str!(
-        "../../ui/host/assets/preview_refresh/generate_preview_artifact.rs"
-    );
+    let preview = include_str!("../../ui/host/assets/preview_refresh/generate_preview_artifact.rs");
     for retired in [
         "fn resource_kind_badge_code",
         "fn compact_resource_kind_label",
@@ -84,9 +80,7 @@ fn editor_parallel_sidecar_and_ui_kind_dispatch_are_retired() {
 
 #[test]
 fn preview_generation_retains_resolved_source_path_views() {
-    let preview = include_str!(
-        "../../ui/host/assets/preview_refresh/generate_preview_artifact.rs"
-    );
+    let preview = include_str!("../../ui/host/assets/preview_refresh/generate_preview_artifact.rs");
 
     assert!(preview.contains("resolve_source_path_for_uri(&record.locator)?"));
     assert!(preview.contains("image::open(source_path.operation_path())"));
@@ -112,8 +106,7 @@ fn asset_catalog_view_projects_internal_paths_through_the_resolver_display_view(
 
 #[test]
 fn asset_catalog_snapshot_projects_roots_through_the_resolver_display_view() {
-    let catalog_build =
-        include_str!("../../ui/host/assets/manager/catalog_generation/build.rs");
+    let catalog_build = include_str!("../../ui/host/assets/manager/catalog_generation/build.rs");
 
     assert!(catalog_build
         .contains("use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};"));

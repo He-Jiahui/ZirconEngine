@@ -334,14 +334,14 @@ impl WorldQuery {
     ///
     /// # 使用时机与生命周期
     ///
-/// Runtime 为请求实体取得同一检查快照的字段后调用。None 表示目标实体不存在；Some(empty)
-/// 表示实体存在但当前没有可投影字段行。
+    /// Runtime 为请求实体取得同一检查快照的字段后调用。None 表示目标实体不存在；Some(empty)
+    /// 表示实体存在但当前没有可投影字段行。
     ///
     /// # 返回值
     ///
-/// 未饱和且提示匹配时优先返回 NotModified；否则 Some(fields) 返回 InspectionFields，即使
-/// fields 为空；None 返回 EntityMissing。字段向量由 Runtime 按组件显示名、字段显示名、
-/// 类型路径和字段名排序。
+    /// 未饱和且提示匹配时优先返回 NotModified；否则 Some(fields) 返回 InspectionFields，即使
+    /// fields 为空；None 返回 EntityMissing。字段向量由 Runtime 按组件显示名、字段显示名、
+    /// 类型路径和字段名排序。
     ///
     /// # 约束
     ///

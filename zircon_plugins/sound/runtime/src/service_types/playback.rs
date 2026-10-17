@@ -21,8 +21,6 @@ impl DefaultSoundManager {
     ) -> Result<SoundPlaybackId, SoundError> {
         validate_playback_settings(&settings)?;
         let mut state = lock_recover(&self.state);
-        state.kira.ensure_control_available()?;
-        state.poll_kira_completions();
         let (playback_range, data) = {
             let loaded_clip = state
                 .clips
@@ -47,6 +45,9 @@ impl DefaultSoundManager {
                 track: settings.output_track,
             });
         }
+        // Validate the request before backend admission or completion polling mutates state.
+        state.kira.ensure_control_available()?;
+        state.poll_kira_completions();
         state.next_playback_id += 1;
         let playback_id = SoundPlaybackId::new(state.next_playback_id);
         let active = ActivePlayback {

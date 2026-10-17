@@ -4,7 +4,79 @@ use zircon_runtime::core::framework::project::{
 use zircon_runtime::core::framework::render::RenderProductFeature;
 
 use super::*;
-use crate::entry::builtin_modules::render_profile_runtime_plugin_overlay;
+use crate::entry::builtin_modules::{
+    effective_project_plugin_manifest, render_profile_runtime_plugin_overlay,
+};
+
+#[test]
+fn effective_runtime_manifest_keeps_builtin_ui_enabled_but_not_a_required_provider() {
+    let config = crate::entry::EntryConfig::for_runtime_profile(
+        zircon_runtime::core::framework::project::RuntimeProfileId::Client2d,
+    )
+    .resolve()
+    .expect("client 2D runtime profile should resolve");
+
+    let manifest = effective_project_plugin_manifest(&config);
+    let ui = manifest
+        .selections
+        .iter()
+        .find(|selection| selection.id == RuntimePluginId::Ui.key())
+        .expect("client runtime manifest should select built-in UI");
+    let importer = manifest
+        .selections
+        .iter()
+        .find(|selection| selection.id == RuntimePluginId::UiDocumentImporter.key())
+        .expect("client runtime manifest should require its UI document importer");
+
+    assert!(ui.enabled);
+    assert!(!ui.required);
+    assert!(importer.enabled);
+    assert!(importer.required);
+}
+
+#[cfg(feature = "first-party-ui-document-importer")]
+#[test]
+fn minimal_profile_omits_default_ui_importer_but_preserves_explicit_required_selection() {
+    use zircon_runtime::core::framework::project::RuntimeProfileId;
+
+    let minimal = crate::entry::EntryConfig::for_runtime_profile(RuntimeProfileId::Minimal);
+    let resolved = minimal
+        .resolve()
+        .expect("minimal runtime profile should resolve");
+    let effective = effective_project_plugin_manifest(&resolved);
+    assert!(effective.selections.iter().all(|selection| {
+        selection.id != RuntimePluginId::Ui.key()
+            && selection.id != RuntimePluginId::UiDocumentImporter.key()
+    }));
+
+    let explicit = minimal.with_project_plugins(ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::UiDocumentImporter,
+            true,
+            true,
+        )],
+    });
+    let explicit_resolved = explicit
+        .resolve()
+        .expect("explicit UI importer selection should resolve as input");
+    let explicit_effective = effective_project_plugin_manifest(&explicit_resolved);
+    let importer = explicit_effective
+        .selections
+        .iter()
+        .find(|selection| selection.id == RuntimePluginId::UiDocumentImporter.key())
+        .expect("explicit required importer selection must be preserved");
+    assert!(importer.enabled);
+    assert!(importer.required);
+
+    let error = crate::entry::BuiltinEngineEntry::for_config(&explicit)
+        .expect_err("explicit importer must retain profile maturity/dependency validation");
+    assert!(
+        error
+            .to_string()
+            .contains("required runtime plugin UiDocumentImporter is unavailable"),
+        "explicit required importer must still be rejected by its real provider contract: {error}"
+    );
+}
 
 #[test]
 fn prepared_product_retains_optional_unsupported_selection_diagnostics() {

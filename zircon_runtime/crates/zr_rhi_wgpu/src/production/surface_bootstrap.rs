@@ -19,6 +19,29 @@ pub struct WgpuSurfaceBootstrap {
 }
 
 impl WgpuSurfaceBootstrap {
+    /// Retains the Canvas surface before requesting its compatible WebGPU adapter.
+    #[cfg(target_arch = "wasm32")]
+    pub fn from_canvas(
+        instance: wgpu::Instance,
+        descriptor: RenderSurfaceDescriptor,
+        canvas: web_sys::HtmlCanvasElement,
+    ) -> Result<Self, RhiError> {
+        if !matches!(descriptor.target, zr_rhi::RenderNativeSurfaceTarget::Canvas { identity } if identity != 0)
+        {
+            return Err(RhiError::SurfaceUnavailable(
+                "a Canvas surface needs a nonzero browser identity".into(),
+            ));
+        }
+        let surface = instance
+            .create_surface(wgpu::SurfaceTarget::Canvas(canvas))
+            .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))?;
+        Ok(Self {
+            surface,
+            descriptor,
+            instance,
+        })
+    }
+
     /// Creates the native surface before adapter selection and retains the instance that owns it.
     pub fn new(
         instance: wgpu::Instance,
@@ -33,18 +56,60 @@ impl WgpuSurfaceBootstrap {
     }
 
     /// Selects a policy-approved adapter only from adapters that can present this surface.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn select_compatible_adapter(
+        self,
+        backends: wgpu::Backends,
+        policy: &AdapterSelectionPolicy,
+    ) -> Result<WgpuSurfaceAdapterBootstrap, RhiError> {
+        pollster::block_on(self.select_compatible_adapter_async(backends, policy))
+    }
+
+    pub async fn select_compatible_adapter_async(
         self,
         backends: wgpu::Backends,
         policy: &AdapterSelectionPolicy,
     ) -> Result<WgpuSurfaceAdapterBootstrap, RhiError> {
         let Self {
             surface,
-            descriptor,
+            mut descriptor,
             instance,
         } = self;
         let surface_ref = &surface;
-        let candidates = pollster::block_on(instance.enumerate_adapters(backends))
+        #[cfg(target_arch = "wasm32")]
+        let adapters = {
+            let _ = backends;
+            let adapter = instance
+                .request_adapter(&wgpu::RequestAdapterOptions {
+                    compatible_surface: Some(surface_ref),
+                    ..Default::default()
+                })
+                .await
+                .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))?;
+            let capabilities = surface_ref.get_capabilities(&adapter);
+            let selected = capabilities
+                .formats
+                .iter()
+                .find_map(|format| match format {
+                    wgpu::TextureFormat::Bgra8UnormSrgb => {
+                        Some(zr_rhi::TextureFormat::Bgra8UnormSrgb)
+                    }
+                    wgpu::TextureFormat::Rgba8UnormSrgb => {
+                        Some(zr_rhi::TextureFormat::Rgba8UnormSrgb)
+                    }
+                    wgpu::TextureFormat::Bgra8Unorm => Some(zr_rhi::TextureFormat::Bgra8Unorm),
+                    wgpu::TextureFormat::Rgba8Unorm => Some(zr_rhi::TextureFormat::Rgba8Unorm),
+                    _ => None,
+                })
+                .ok_or_else(|| {
+                    RhiError::SurfaceUnavailable("Canvas has no SDR surface format".into())
+                })?;
+            descriptor.swapchain.format = selected;
+            vec![adapter]
+        };
+        #[cfg(not(target_arch = "wasm32"))]
+        let adapters = instance.enumerate_adapters(backends).await;
+        let candidates = adapters
             .into_iter()
             .filter_map(|adapter| {
                 let capabilities = surface_ref.get_capabilities(&adapter);

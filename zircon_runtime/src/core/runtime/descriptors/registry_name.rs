@@ -11,6 +11,8 @@ use crate::core::ServiceKind;
 /// 服务注册表的规范键，格式为 `<module namespace>.<kind>.<service>`。
 ///
 /// 模块命名空间可分段；验证后的完整字符串同时决定相等、哈希与序列化身份。
+/// 每个模块段及服务本地名都须非空且首尾无 Unicode 空白；不会清理内部空白或改变大小写。
+/// 种类段只接受 Driver、Manager、Plugin；名称有效不等于服务已注册或当前准入开放。
 #[derive(Clone, Debug)]
 pub struct RegistryName {
     // `value` remains the equality, hash, borrow, and serde authority; the
@@ -23,6 +25,8 @@ pub struct RegistryName {
 
 impl RegistryName {
     /// 验证来自配置或常量的完整名称；非法名称返回错误，不进入注册表。
+    /// 成功返回独立拥有规范字符串的名称；失败保留原输入于 InvalidRegistryName。
+    /// 模块段可含多个点分段，但每段都须满足上述边界；不做注册表查找。
     pub fn new(value: impl Into<String>) -> Result<Self, CoreError> {
         let value = value.into();
         let Some((module_end, kind_end)) = registry_separator_offsets(&value) else {
@@ -53,6 +57,8 @@ impl RegistryName {
     }
 
     /// 为已知合法的内部片段构造名称；不合法片段会触发断言。
+    /// `module` 可为多段命名空间，`service` 须为单个无点段，且各段非空、首尾无空白。
+    /// 成功直接生成拥有式名称；非法片段触发断言。外部不可信字符串宜使用 [`Self::new`]。
     pub fn from_parts(module: &str, kind: ServiceKind, service: &str) -> Self {
         assert!(
             is_canonical_module_namespace(module),
@@ -79,18 +85,22 @@ impl RegistryName {
         }
     }
 
+    /// 借用完整规范键；该视图的生命期受当前名称借用约束。
     pub fn as_str(&self) -> &str {
         &self.value
     }
 
+    /// 借用种类段之前的完整模块命名空间。
     pub fn module_name(&self) -> &str {
         &self.value[..self.module_end]
     }
 
+    /// 返回构造时已校验的服务种类，不再次解析字符串。
     pub fn service_kind(&self) -> ServiceKind {
         self.kind
     }
 
+    /// 借用最后一段服务本地名，不包含模块或种类。
     pub fn service_name(&self) -> &str {
         &self.value[self.service_start..]
     }

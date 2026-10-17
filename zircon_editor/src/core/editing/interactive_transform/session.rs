@@ -26,7 +26,7 @@ struct FrozenTransformTarget {
     latest: Transform,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub(crate) struct InteractiveTransformSession {
     document: DocumentId,
     spec: InteractiveTransformSpec,
@@ -37,21 +37,28 @@ pub(crate) struct InteractiveTransformSession {
     expected_world_generation: u64,
     targets: Vec<FrozenTransformTarget>,
     pending: Vec<Transform>,
+    // Last: the preview and final history share this exact owner capability.
+    retention: Option<crate::core::editing::engine::retention::RootRetentionV1>,
 }
 
 impl InteractiveTransformSession {
-    pub(crate) fn begin(
+    pub(crate) fn begin<'selection, Selection>(
         scene: &Scene,
-        selected: &[NodeId],
+        selected: Selection,
         primary: NodeId,
         spec: InteractiveTransformSpec,
         pivot_mode: PivotMode,
         document: DocumentId,
-    ) -> Result<Self, InteractiveTransformError> {
-        if selected.is_empty() {
+    ) -> Result<Self, InteractiveTransformError>
+    where
+        Selection: IntoIterator<Item = &'selection NodeId> + Copy,
+        Selection::IntoIter: ExactSizeIterator,
+    {
+        if selected.into_iter().len() == 0 {
             return Err(InteractiveTransformError::EmptySelection);
         }
-        let Some((roots, primary_root)) = selection_roots(scene, selected.iter().copied(), primary)
+        let Some((roots, primary_root)) =
+            selection_roots(scene, selected.into_iter().copied(), primary)
         else {
             return Err(InteractiveTransformError::PrimaryNotSelected { primary });
         };
@@ -102,7 +109,110 @@ impl InteractiveTransformSession {
             expected_world_generation: scene.world_generation(),
             pending: Vec::with_capacity(targets.len()),
             targets,
+            retention: None,
         })
+    }
+
+    pub(crate) fn retention_projection_v1<'selection, Selection>(
+        scene: &Scene,
+        selected: Selection,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<(u64, u64), crate::core::editing::engine::EditCommandError>
+    where
+        Selection: IntoIterator<Item = &'selection NodeId> + Copy,
+        Selection::IntoIter: ExactSizeIterator,
+    {
+        use zircon_runtime_interface::retained_memory::{
+            FreshHashStorageV1, RetainedBoundBuilderV1, RetainedBytesV1,
+        };
+        let selected_len = selected.into_iter().len();
+        let mut m = RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(limit));
+        m.items(selected_len)?;
+        let selection =
+            crate::core::editing::engine::SelectionSnapshot::scene_projection_retention_bound_v1(
+                selected_len,
+                model,
+                limit,
+            )?;
+        // Context binding, the original/current snapshot and the committed
+        // before/after states share this owner's pre-preview reservation.
+        m.add(
+            selection.checked_mul(4).ok_or(
+                zircon_runtime_interface::retained_memory::RetentionContractError::Overflow,
+            )?,
+        )?;
+        m.layout(std::mem::size_of::<Self>(), std::mem::align_of::<Self>())?;
+        m.array::<FrozenTransformTarget>(selected_len)?;
+        m.array::<Transform>(selected_len)?;
+        m.array::<BatchTransformTarget>(selected_len)?;
+        m.array::<NodeId>(selected_len)?;
+        for entity in selected {
+            let name = scene
+                .get::<zircon_runtime::scene::components::Name>(*entity)
+                .ok_or(
+                    crate::core::editing::engine::EditCommandError::InvariantViolation {
+                        invariant: "gizmo targets retain a Name component",
+                    },
+                )?;
+            // Source + prepared before/after String clones; the admitted String clone allocates len.
+            m.array::<u8>(name.0.len().checked_mul(6).ok_or(
+                zircon_runtime_interface::retained_memory::RetentionContractError::Overflow,
+            )?)?;
+        }
+        let retained = m.bytes().get();
+        m.array::<NodeId>(
+            selected_len.checked_mul(3).ok_or(
+                zircon_runtime_interface::retained_memory::RetentionContractError::Overflow,
+            )?,
+        )?;
+        let hash =
+            FreshHashStorageV1::for_request::<NodeId>(selected_len)?.allocation::<NodeId>()?;
+        m.add(hash)?;
+        m.add(hash)?;
+        let peak =
+            m.bytes().get().checked_mul(2).ok_or(
+                zircon_runtime_interface::retained_memory::RetentionContractError::Overflow,
+            )?;
+        Ok((retained, peak))
+    }
+    pub(crate) fn begin_reserved_v1<'selection, Selection>(
+        scene: &Scene,
+        selected: Selection,
+        primary: NodeId,
+        spec: InteractiveTransformSpec,
+        pivot_mode: PivotMode,
+        document: DocumentId,
+        retention: crate::core::editing::engine::retention::RootRetentionV1,
+    ) -> Result<Self, crate::core::editing::engine::EditCommandError>
+    where
+        Selection: IntoIterator<Item = &'selection NodeId> + Copy,
+        Selection::IntoIter: ExactSizeIterator,
+    {
+        let (retained, peak) = Self::retention_projection_v1(
+            scene,
+            selected,
+            retention.model(),
+            retention.budget().record_bytes,
+        )?;
+        if retained > retention.payload_bytes() || peak > retention.reserved_peak_v1() {
+            return Err(
+                zircon_runtime_interface::retained_memory::RetentionContractError::Stale.into(),
+            );
+        }
+        let mut session = Self::begin(scene, selected, primary, spec, pivot_mode, document)
+            .map_err(
+                |source| crate::core::editing::engine::EditCommandError::ExternalEffect {
+                    source: Box::new(source),
+                },
+            )?;
+        session.retention = Some(retention);
+        Ok(session)
+    }
+    pub(crate) fn retention_owner_v1(
+        &self,
+    ) -> Option<crate::core::editing::engine::retention::RootRetentionV1> {
+        self.retention.clone()
     }
 
     pub(crate) const fn spec(&self) -> InteractiveTransformSpec {

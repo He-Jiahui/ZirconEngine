@@ -1,3 +1,4 @@
+//! 启动邮箱将终态结果绑定到一次 Hub 启动会话；文件路径及生命周期由宿主负责。
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -10,6 +11,7 @@ use super::{
 /// File-mailbox payload shared by Hub and Editor for a single launch session.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// Hub 读取后还须把 launch_session 与当前受监督启动令牌逐项比对。
 pub struct HubEditorMailboxV1 {
     pub protocol_version: HubProtocolVersionV1,
     pub launch_session: HubSessionToken,
@@ -41,6 +43,7 @@ impl HubEditorMailboxV1 {
     }
 
     /// Hub 解码邮箱后用受监控子进程的 token 核对，避免旧会话结果冒充当前启动。
+    /// 仅当载荷中的会话令牌与本次启动令牌一致时返回成功。
     pub fn validate_launch_session(
         &self,
         expected: HubSessionToken,

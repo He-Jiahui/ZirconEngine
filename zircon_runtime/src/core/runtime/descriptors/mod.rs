@@ -1,3 +1,4 @@
+//! Core 的注册声明、规范服务键与冻结拓扑；实例和可变生命周期另由注册表持有。
 #[path = "dependency_spec.rs"]
 mod dependency_spec;
 #[path = "driver_descriptor.rs"]

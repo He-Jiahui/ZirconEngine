@@ -1,4 +1,4 @@
-use crate::asset::pipeline::types::MeshVertex;
+use crate::asset::MeshVertex;
 
 use super::gpu_mesh_vertex::GpuMeshVertex;
 

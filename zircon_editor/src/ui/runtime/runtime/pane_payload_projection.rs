@@ -11,6 +11,7 @@ pub(super) fn inject_pane_projection_attributes(
     body: &PaneBodyPresentation,
 ) {
     let pane_attributes = pane_body_attributes(body);
+    inject_module_plugin_detail_patches(root, body);
     let Some((control_id, slot_name)) = hybrid_slot_anchor(body) else {
         root.attributes.extend(pane_attributes);
         inject_template_v2_component_patches(root, &body.payload);
@@ -46,6 +47,154 @@ pub(super) fn template_v2_component_patch_attributes(
         );
     }
     control_attributes
+}
+
+/// The same control values feed the retained projection and the native surface.
+pub(super) fn pane_component_patch_attributes(
+    body: &PaneBodyPresentation,
+) -> BTreeMap<String, BTreeMap<String, Value>> {
+    let PanePayload::ModulePluginsV1(payload) = &body.payload else {
+        return template_v2_component_patch_attributes(body);
+    };
+    let mut controls = BTreeMap::new();
+    let open = payload.details.is_some();
+    for (control, visible) in [
+        ("ModulePluginListPanel", !open),
+        ("ModulePluginDetailsBody", open),
+    ] {
+        controls.insert(
+            control.to_owned(),
+            BTreeMap::from([
+                ("visible".into(), Value::Boolean(visible)),
+                (
+                    "visibility".into(),
+                    Value::String(if visible { "Visible" } else { "Collapsed" }.into()),
+                ),
+            ]),
+        );
+    }
+    let Some(detail) = payload.details.as_ref() else {
+        return controls;
+    };
+    for (control, text) in [
+        ("ModulePluginDetailsTitle", &detail.title),
+        ("ModulePluginDetailsBack", &detail.back_label),
+        ("ModulePluginDetailsPrevious", &detail.previous_label),
+        ("ModulePluginDetailsNext", &detail.next_label),
+        ("ModulePluginDetailsPage", &detail.page_label),
+        ("ModulePluginFeatureEmpty", &detail.empty_label),
+        ("ModulePluginFeatureIdentity", &detail.selected_identity),
+        ("ModulePluginFeatureName", &detail.selected_name),
+        ("ModulePluginFeatureStates", &detail.selected_states),
+        ("ModulePluginFeatureReason", &detail.selected_reason),
+        ("ModulePluginDetailsApply", &detail.action_label),
+    ] {
+        controls.insert(
+            control.into(),
+            BTreeMap::from([
+                ("text".into(), Value::String(text.clone())),
+                ("label".into(), Value::String(text.clone())),
+            ]),
+        );
+    }
+    let rows = Value::Array(
+        detail
+            .rows
+            .iter()
+            .map(|row| {
+                Value::Table(Table::from_iter([
+                    ("feature_id".into(), Value::String(row.feature_id.clone())),
+                    ("label".into(), Value::String(row.label.clone())),
+                ]))
+            })
+            .collect(),
+    );
+    controls.insert(
+        "ModulePluginFeatureRows".into(),
+        BTreeMap::from([
+            ("rows".into(), rows),
+            (
+                "row_identity_field".into(),
+                Value::String("feature_id".into()),
+            ),
+            (
+                "selected_row_identity".into(),
+                Value::String(detail.selected_feature_id.clone()),
+            ),
+            (
+                "value".into(),
+                Value::String(detail.selected_feature_id.clone()),
+            ),
+            (
+                "value_text".into(),
+                Value::String(detail.selected_feature_id.clone()),
+            ),
+            (
+                "detail_generation".into(),
+                Value::String(payload.detail_generation.to_string()),
+            ),
+            (
+                "focused".into(),
+                Value::Boolean(payload.focused_control == "features"),
+            ),
+            ("visible".into(), Value::Boolean(!detail.rows.is_empty())),
+            (
+                "height".into(),
+                Value::Float((detail.rows.len().max(1) * 128) as f64),
+            ),
+        ]),
+    );
+    controls
+        .get_mut("ModulePluginFeatureEmpty")
+        .unwrap()
+        .insert("visible".into(), Value::Boolean(detail.rows.is_empty()));
+    for (control, focus, disabled) in [
+        ("ModulePluginDetailsBack", "back", false),
+        ("ModulePluginDetailsPrevious", "previous", detail.page == 0),
+        (
+            "ModulePluginDetailsNext",
+            "next",
+            (detail.page + 1) * 8 >= detail.total_features,
+        ),
+        (
+            "ModulePluginDetailsApply",
+            "apply",
+            detail.action_id.is_empty(),
+        ),
+    ] {
+        let attributes = controls.get_mut(control).unwrap();
+        attributes.insert(
+            "focused".into(),
+            Value::Boolean(payload.focused_control == focus),
+        );
+        attributes.insert("disabled".into(), Value::Boolean(disabled));
+    }
+    controls
+        .get_mut("ModulePluginDetailsApply")
+        .unwrap()
+        .insert("intent_id".into(), Value::String(detail.intent_id.clone()));
+    controls
+}
+
+fn inject_module_plugin_detail_patches(
+    root: &mut RetainedUiNodeProjection,
+    body: &PaneBodyPresentation,
+) {
+    if !matches!(&body.payload, PanePayload::ModulePluginsV1(_)) {
+        return;
+    }
+    fn apply(
+        node: &mut RetainedUiNodeProjection,
+        controls: &mut BTreeMap<String, BTreeMap<String, Value>>,
+    ) {
+        if let Some(attributes) = node.control_id.as_ref().and_then(|id| controls.remove(id)) {
+            node.attributes.extend(attributes);
+        }
+        for child in &mut node.children {
+            apply(child, controls);
+        }
+    }
+    apply(root, &mut pane_component_patch_attributes(body));
 }
 
 fn pane_body_attributes(body: &PaneBodyPresentation) -> BTreeMap<String, Value> {
@@ -621,7 +770,7 @@ fn hybrid_slot_anchor(body: &PaneBodyPresentation) -> Option<(&'static str, &'st
             "AnimationGraphCanvasSlotAnchor",
             "animation_graph_canvas_slot",
         )),
-        PanePayload::ModulePluginsV1(_) => {
+        PanePayload::ModulePluginsV1(payload) if payload.details.is_none() => {
             Some(("ModulePluginListSlotAnchor", "module_plugin_list_slot"))
         }
         PanePayload::BuildExportV1(_) => {

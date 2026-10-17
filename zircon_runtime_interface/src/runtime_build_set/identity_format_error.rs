@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 /// Reports malformed textual identity values before they reach a loader boundary.
+/// 报告文本身份在进入加载器边界前未通过格式校验。
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum ZrRuntimeIdentityFormatError {
     #[error("{kind} must be exactly 64 lowercase hexadecimal characters, received `{value}`")]

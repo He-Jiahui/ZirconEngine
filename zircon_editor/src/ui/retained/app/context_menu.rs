@@ -7,7 +7,15 @@ impl RetainedEditorHost {
         mut request: WorkbenchContextMenuRequestData,
     ) {
         self.focus_callback_source_window();
-        if !(match self.active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }) {
+        if !(match self
+            .active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)
+        {
+            Ok(value) => value,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        }) {
             return;
         }
 

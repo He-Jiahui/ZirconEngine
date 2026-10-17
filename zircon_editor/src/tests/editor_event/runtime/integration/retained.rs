@@ -11,9 +11,24 @@ fn retained_adapter_binding_and_call_action_share_the_same_normalized_menu_event
     let binding = EventRuntimeHarness::new("zircon_editor_event_binding");
     let action = EventRuntimeHarness::new("zircon_editor_event_action");
 
-    let retained_before = retained_host.runtime.editor_snapshot().unwrap().scene_entries.len();
-    let binding_before = binding.runtime.editor_snapshot().unwrap().scene_entries.len();
-    let action_before = action.runtime.editor_snapshot().unwrap().scene_entries.len();
+    let retained_before = retained_host
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .scene_entries
+        .len();
+    let binding_before = binding
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .scene_entries
+        .len();
+    let action_before = action
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .scene_entries
+        .len();
 
     let retained_record = retained_host
         .runtime
@@ -62,15 +77,30 @@ fn retained_adapter_binding_and_call_action_share_the_same_normalized_menu_event
     assert_eq!(action_result.value, retained_record.result.value);
 
     assert_eq!(
-        retained_host.runtime.editor_snapshot().unwrap().scene_entries.len(),
+        retained_host
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .scene_entries
+            .len(),
         retained_before + 1
     );
     assert_eq!(
-        binding.runtime.editor_snapshot().unwrap().scene_entries.len(),
+        binding
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .scene_entries
+            .len(),
         binding_before + 1
     );
     assert_eq!(
-        action.runtime.editor_snapshot().unwrap().scene_entries.len(),
+        action
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .scene_entries
+            .len(),
         action_before + 1
     );
 

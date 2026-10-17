@@ -31,8 +31,7 @@ fn ray_traced_convolution_dist_descriptor_exports_runtime_entry() {
 
 #[test]
 fn ray_traced_convolution_dist_runtime_entry_reports_registration_manifest() {
-    let granted =
-        b"runtime.plugin.sound\nruntime.feature.sound.ray_traced_convolution_reverb\0";
+    let granted = b"runtime.plugin.sound\nruntime.feature.sound.ray_traced_convolution_reverb\0";
     let host = NativePluginHostFunctionTableV3 {
         abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
         host_handle: 53,

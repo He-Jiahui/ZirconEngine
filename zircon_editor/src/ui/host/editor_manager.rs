@@ -16,7 +16,8 @@ use crate::core::plugin::{EditorPluginLifecycleMessageBridge, EditorPluginManage
 use crate::core::recovery::{DocumentJournalCoordinator, SessionGuard};
 use crate::core::settings::{EditorKeymapOverrides, SettingsSnapshot};
 use crate::ui::host::editor_manager_plugins_export::{
-    EditorPluginStatusReport, ProjectPluginStatusSnapshot,
+    EditorPluginStatusReport, PluginEnablementOperationReport, PluginEnablementRecovery,
+    ProjectPluginStatusSnapshot,
 };
 use zircon_runtime::asset::{project::ProjectManifest, AssetUri};
 use zircon_runtime::core::runtime::tasks::JobScheduler;
@@ -164,6 +165,10 @@ pub struct EditorManager {
     plugin_lifecycle_messages: EditorPluginLifecycleMessageBridge,
     builtin_plugin_status: Mutex<Arc<ProjectPluginStatusSnapshot>>,
     project_plugin_status: Mutex<Option<Arc<ProjectPluginStatusSnapshot>>>,
+    /// Authoritative callback uncertainty; presentation eviction cannot release it.
+    project_plugin_enablement_repair: Mutex<Option<PluginEnablementOperationReport>>,
+    #[cfg(test)]
+    enablement_test_runtime_checkpoint: Mutex<Option<fn()>>,
     /// Serializes complete project activation and close transactions for this manager.
     pub(super) project_session_transition: ProjectSessionTransitionGate,
     /// The OS-backed admission lease for the active runtime project generation.
@@ -244,6 +249,9 @@ impl EditorManager {
                 EditorPluginStatusReport::default(),
             ))),
             project_plugin_status: Mutex::new(None),
+            project_plugin_enablement_repair: Mutex::new(None),
+            #[cfg(test)]
+            enablement_test_runtime_checkpoint: Mutex::new(None),
             project_session_transition: ProjectSessionTransitionGate::default(),
             project_session_guard: Mutex::new(None),
             project_session_heartbeat: Mutex::new(ProjectSessionHeartbeatState::default()),
@@ -376,10 +384,130 @@ impl EditorManager {
         *snapshot = Arc::new(ProjectPluginStatusSnapshot::new(report));
     }
 
+    /// The repair authority outlives every disposable status Arc. No file read or display
+    /// refresh proves that an uncertain callback was rolled back.
+    pub(in crate::ui::host) fn preserve_plugin_enablement_repair(
+        &self,
+        report: PluginEnablementOperationReport,
+    ) -> PluginEnablementOperationReport {
+        let mut fence = self
+            .project_plugin_enablement_repair
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(current) = fence.as_ref().filter(|current| {
+            current.project_root == report.project_root
+                && current.operation_id == report.operation_id
+                && current.project_instance == report.project_instance
+                && current.session_generation == report.session_generation
+                && current.plugin_id == report.plugin_id
+                && current.requested_enabled == report.requested_enabled
+                && report.committed_revision.as_ref().map_or(true, |revision| {
+                    current.committed_revision.as_ref() == Some(revision)
+                })
+        }) {
+            let mut retained = current.clone();
+            if report.recovery_admission.is_some() {
+                retained.recovery_admission = report.recovery_admission;
+            }
+            *fence = Some(retained.clone());
+            return retained;
+        }
+        let same_session = fence.as_ref().is_some_and(|current| {
+            current.project_root == report.project_root
+                && current.project_instance == report.project_instance
+                && current.session_generation == report.session_generation
+        });
+        if report.recovery == PluginEnablementRecovery::RuntimeRepairRequired && !same_session {
+            *fence = Some(report.clone());
+        }
+        report
+    }
+
+    pub(in crate::ui::host) fn plugin_enablement_repair_for_session(
+        &self,
+        root: &std::path::Path,
+        instance: &str,
+        generation: u64,
+    ) -> Option<PluginEnablementOperationReport> {
+        self.project_plugin_enablement_repair
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .as_ref()
+            .filter(|report| {
+                report.project_root == root
+                    && report.project_instance == instance
+                    && report.session_generation == generation
+            })
+            .cloned()
+    }
+
+    pub(in crate::ui::host) fn clear_plugin_enablement_repair_after_resolution(
+        &self,
+        root: &std::path::Path,
+        old_operation_id: &str,
+        expected_revision: &zircon_runtime::core::resource::io::SourceRevision,
+        resolved: &zircon_runtime::asset::project::plugin_apply::PendingPluginApply,
+    ) {
+        if !resolved.resolved_before_activation || resolved.operation_id == old_operation_id {
+            return;
+        }
+        let mut fence = self
+            .project_plugin_enablement_repair
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let matches = fence.as_ref().is_some_and(|current| {
+            current.project_root == root
+                && current.operation_id == old_operation_id
+                && current.project_instance == resolved.session_instance
+                && current.session_generation == resolved.session_generation
+                && current.plugin_id == resolved.plugin_id
+                && current.committed_revision.as_ref() == Some(expected_revision)
+        });
+        if matches {
+            fence.take();
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn set_enablement_runtime_checkpoint_for_test(&self, hook: Option<fn()>) {
+        *self
+            .enablement_test_runtime_checkpoint
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = hook;
+    }
+
+    #[cfg(test)]
+    pub(in crate::ui::host) fn run_enablement_runtime_checkpoint_for_test(&self) {
+        let hook = self
+            .enablement_test_runtime_checkpoint
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        if let Some(hook) = hook {
+            hook();
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn replace_then_clear_enablement_status_for_test(&self) {
+        let mut replacement = self.published_plugin_status_report().as_ref().clone();
+        replacement.enablement = None;
+        self.publish_project_plugin_status(replacement);
+        self.update_project_plugin_status(|current| {
+            let mut next = current.clone();
+            next.enablement = None;
+            next
+        });
+        self.clear_project_plugin_status();
+    }
+
     pub(in crate::ui::host) fn publish_project_plugin_status(
         &self,
-        report: EditorPluginStatusReport,
+        mut report: EditorPluginStatusReport,
     ) {
+        if let Some(operation) = report.enablement.take() {
+            report.enablement = Some(self.preserve_plugin_enablement_repair(operation));
+        }
         let mut snapshot = self
             .project_plugin_status
             .lock()
@@ -398,7 +526,10 @@ impl EditorManager {
         let Some(current) = snapshot.as_ref() else {
             return false;
         };
-        let next = update(current.report().as_ref());
+        let mut next = update(current.report().as_ref());
+        if let Some(operation) = next.enablement.take() {
+            next.enablement = Some(self.preserve_plugin_enablement_repair(operation));
+        }
         *snapshot = Some(Arc::new(ProjectPluginStatusSnapshot::new(next)));
         true
     }
@@ -408,6 +539,7 @@ impl EditorManager {
             .project_plugin_status
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+        // Display cleanup is not a runtime shutdown or an explicit durable resolution.
         snapshot.take();
     }
 }

@@ -3,6 +3,8 @@ use std::fmt::{Display, Formatter};
 
 use crate::core::notifications::{NotificationId, NotificationIdentityError};
 
+use super::model::TOAST_LIFETIME_POLICY;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ToastNotificationError {
     Identity(NotificationIdentityError),
@@ -16,6 +18,8 @@ pub enum ToastNotificationError {
     },
     InvalidLifetime,
     InvalidCapacity,
+    PresentationSequenceExhausted,
+    PresentationClockOverflow,
     DuplicateNotification {
         notification: NotificationId,
     },
@@ -37,12 +41,15 @@ impl Display for ToastNotificationError {
                 formatter,
                 "toast {field} is {actual} bytes; maximum is {maximum} bytes"
             ),
-            Self::InvalidLifetime => {
-                formatter.write_str("toast lifetime must be between one second and one hour")
-            }
+            Self::InvalidLifetime => write!(
+                formatter,
+                "toast lifetime must be {TOAST_LIFETIME_POLICY}; publication time plus lifetime must not overflow"
+            ),
             Self::InvalidCapacity => {
                 formatter.write_str("toast capacity must be greater than zero")
             }
+            Self::PresentationSequenceExhausted => formatter.write_str("toast presentation sequence is exhausted"),
+            Self::PresentationClockOverflow => formatter.write_str("toast first-presentation time plus lifetime must not overflow"),
             Self::DuplicateNotification { notification } => {
                 write!(formatter, "toast `{notification}` already exists")
             }

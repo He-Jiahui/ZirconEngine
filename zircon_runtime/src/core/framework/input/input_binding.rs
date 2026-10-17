@@ -34,38 +34,38 @@ use super::{GamepadAxis, GamepadId, InputButton};
 /// 参见 [`InputAxisDirection::value`]、[`InputAxisBinding`]。
 pub enum InputAxisDirection {
     #[default]
-/// 保留有限源值的正负号，并把幅度限定在单位闭区间。
-///
-/// # 约束
-/// 此项是默认方向；非有限源值归零，两个符号的零统一为正零。
-///
-/// # 生命周期
-/// 仅表示投影策略，实际数值在每次调用时由调用方提供。
-///
-/// # 参考
-/// 参见 [`InputAxisDirection::value`]。
+    /// 保留有限源值的正负号，并把幅度限定在单位闭区间。
+    ///
+    /// # 约束
+    /// 此项是默认方向；非有限源值归零，两个符号的零统一为正零。
+    ///
+    /// # 生命周期
+    /// 仅表示投影策略，实际数值在每次调用时由调用方提供。
+    ///
+    /// # 参考
+    /// 参见 [`InputAxisDirection::value`]。
     Full,
-/// 只保留源值的正侧幅值，负侧归零。
-///
-/// # 约束
-/// 结果位于 [0, 1]；非有限输入归零，不是一个独立轴或增益参数。
-///
-/// # 生命周期
-/// 方向值可复制，不读取设备状态。
-///
-/// # 参考
-/// 参见 [`InputAxisDirection::value`]。
+    /// 只保留源值的正侧幅值，负侧归零。
+    ///
+    /// # 约束
+    /// 结果位于 [0, 1]；非有限输入归零，不是一个独立轴或增益参数。
+    ///
+    /// # 生命周期
+    /// 方向值可复制，不读取设备状态。
+    ///
+    /// # 参考
+    /// 参见 [`InputAxisDirection::value`]。
     Positive,
-/// 把源值的负侧映射为非负幅值，正侧归零。
-///
-/// # 约束
-/// 先对有限源值夹取，再取负侧幅值，结果位于 [0, 1]；不会保留负号。
-///
-/// # 生命周期
-/// 方向值不保存上次采样或边沿状态。
-///
-/// # 参考
-/// 参见 [`InputAxisDirection::value`]。
+    /// 把源值的负侧映射为非负幅值，正侧归零。
+    ///
+    /// # 约束
+    /// 先对有限源值夹取，再取负侧幅值，结果位于 [0, 1]；不会保留负号。
+    ///
+    /// # 生命周期
+    /// 方向值不保存上次采样或边沿状态。
+    ///
+    /// # 参考
+    /// 参见 [`InputAxisDirection::value`]。
     Negative,
 }
 
@@ -83,26 +83,26 @@ pub enum InputAxisDirection {
 /// # 参考
 /// 参见 [`InputAxisDirection::value`]、[`normalized_axis_value`]。
 impl InputAxisDirection {
-/// 夹取单轴源值并按当前方向返回标量。
-///
-/// # 参数
-/// - `self`：按值提供本次方向；类型可复制，不变更已有方向值。
-/// - `source`：调用方提供的轴标量；有限值夹取到 [-1, 1]，NaN 和正负无穷归零。
-///
-/// # 返回
-/// Full 返回 [-1, 1] 内的有符号值；Positive 与 Negative 返回各自侧的 [0, 1] 幅值。所有零结果为正零。
-///
-/// # 使用时机
-/// 收到当前值或转换前后值后投影；是否已应用死区和活区由采样生产者决定。
-///
-/// # 约束
-/// 没有额外死区、增益、二维合成或设备查询。
-///
-/// # 生命周期
-/// 纯数值计算，不保留帧或跨次历史，返回 f32 按值拥有。
-///
-/// # 参考
-/// 参见 [`InputAxisDirection`]、[`normalized_axis_value`]、[`InputAxisBinding::value`]。
+    /// 夹取单轴源值并按当前方向返回标量。
+    ///
+    /// # 参数
+    /// - `self`：按值提供本次方向；类型可复制，不变更已有方向值。
+    /// - `source`：调用方提供的轴标量；有限值夹取到 [-1, 1]，NaN 和正负无穷归零。
+    ///
+    /// # 返回
+    /// Full 返回 [-1, 1] 内的有符号值；Positive 与 Negative 返回各自侧的 [0, 1] 幅值。所有零结果为正零。
+    ///
+    /// # 使用时机
+    /// 收到当前值或转换前后值后投影；是否已应用死区和活区由采样生产者决定。
+    ///
+    /// # 约束
+    /// 没有额外死区、增益、二维合成或设备查询。
+    ///
+    /// # 生命周期
+    /// 纯数值计算，不保留帧或跨次历史，返回 f32 按值拥有。
+    ///
+    /// # 参考
+    /// 参见 [`InputAxisDirection`]、[`normalized_axis_value`]、[`InputAxisBinding::value`]。
     pub fn value(self, source: f32) -> f32 {
         let value = if source.is_finite() {
             source.clamp(-1.0, 1.0)
@@ -135,39 +135,39 @@ impl InputAxisDirection {
 /// # 参考
 /// 参见 [`super::GamepadId`]、[`super::GamepadAxis`]、[`InputAxisDirection`]、[`InputAxisBinding::value`]。
 pub struct InputAxisBinding {
-/// 确定读取轴样本的设备身份。
-///
-/// # 约束
-/// 与 axis 共同匹配物理来源；公开字段可任意赋值，本层不保证编号分配、全局唯一或设备在线。
-///
-/// # 生命周期
-/// 仅保存可复制标识，不取得设备所有权。
-///
-/// # 参考
-/// 参见 [`super::GamepadId`]、[`InputAxisBinding::value`]。
+    /// 确定读取轴样本的设备身份。
+    ///
+    /// # 约束
+    /// 与 axis 共同匹配物理来源；公开字段可任意赋值，本层不保证编号分配、全局唯一或设备在线。
+    ///
+    /// # 生命周期
+    /// 仅保存可复制标识，不取得设备所有权。
+    ///
+    /// # 参考
+    /// 参见 [`super::GamepadId`]、[`InputAxisBinding::value`]。
     pub gamepad: GamepadId,
-/// 确定该设备上要读取的物理轴分量。
-///
-/// # 约束
-/// LeftStickX/Y 等名称区分物理标量；Other(u16) 按现有枚举表示保存，不能解释为目标动作的二维分量或平台编号翻译。
-///
-/// # 生命周期
-/// 可复制枚举值，实际源采样由调用方提供。
-///
-/// # 参考
-/// 参见 [`super::GamepadAxis`]、[`InputAxisBinding::value`]。
+    /// 确定该设备上要读取的物理轴分量。
+    ///
+    /// # 约束
+    /// LeftStickX/Y 等名称区分物理标量；Other(u16) 按现有枚举表示保存，不能解释为目标动作的二维分量或平台编号翻译。
+    ///
+    /// # 生命周期
+    /// 可复制枚举值，实际源采样由调用方提供。
+    ///
+    /// # 参考
+    /// 参见 [`super::GamepadAxis`]、[`InputAxisBinding::value`]。
     pub axis: GamepadAxis,
     #[serde(default)]
-/// 指定匹配到的物理轴标量采用哪一侧投影。
-///
-/// # 约束
-/// 省略 Serde 字段时使用 Full；相同设备和轴但方向不同的绑定是不同三元身份，构造器保留它们。
-///
-/// # 生命周期
-/// 可复制策略，不携带转换历史或设备资源。
-///
-/// # 参考
-/// 参见 [`InputAxisDirection`]、[`InputAxisDirection::value`]。
+    /// 指定匹配到的物理轴标量采用哪一侧投影。
+    ///
+    /// # 约束
+    /// 省略 Serde 字段时使用 Full；相同设备和轴但方向不同的绑定是不同三元身份，构造器保留它们。
+    ///
+    /// # 生命周期
+    /// 可复制策略，不携带转换历史或设备资源。
+    ///
+    /// # 参考
+    /// 参见 [`InputAxisDirection`]、[`InputAxisDirection::value`]。
     pub direction: InputAxisDirection,
 }
 
@@ -185,26 +185,26 @@ pub struct InputAxisBinding {
 /// # 参考
 /// 参见 [`InputAxisBinding::new`]、[`InputAxisBinding::positive`]、[`InputAxisBinding::negative`]、[`InputAxisBinding::value`]。
 impl InputAxisBinding {
-/// 创建保留完整有符号轴值的来源绑定。
-///
-/// # 参数
-/// - `gamepad`：按值复制要匹配的设备标识，不在此分配或验证。
-/// - `axis`：按值复制该设备的物理轴标识，包含 Other 表示。
-///
-/// # 返回
-/// 返回 direction 为 Full 的 Self；其它两个字段与输入相同。
-///
-/// # 使用时机
-/// 准备轴绑定列表时使用；const 构造也只建立值。
-///
-/// # 约束
-/// 不查询设备、读取轴值或验证来源；具体幅值规则由方向 value 实现。
-///
-/// # 生命周期
-/// 返回值不借用参数，未取得设备资源。
-///
-/// # 参考
-/// 参见 [`InputAxisBinding`]、[`InputAxisDirection::value`]。
+    /// 创建保留完整有符号轴值的来源绑定。
+    ///
+    /// # 参数
+    /// - `gamepad`：按值复制要匹配的设备标识，不在此分配或验证。
+    /// - `axis`：按值复制该设备的物理轴标识，包含 Other 表示。
+    ///
+    /// # 返回
+    /// 返回 direction 为 Full 的 Self；其它两个字段与输入相同。
+    ///
+    /// # 使用时机
+    /// 准备轴绑定列表时使用；const 构造也只建立值。
+    ///
+    /// # 约束
+    /// 不查询设备、读取轴值或验证来源；具体幅值规则由方向 value 实现。
+    ///
+    /// # 生命周期
+    /// 返回值不借用参数，未取得设备资源。
+    ///
+    /// # 参考
+    /// 参见 [`InputAxisBinding`]、[`InputAxisDirection::value`]。
     pub const fn new(gamepad: GamepadId, axis: GamepadAxis) -> Self {
         Self {
             gamepad,
@@ -213,26 +213,26 @@ impl InputAxisBinding {
         }
     }
 
-/// 创建只保留正侧幅值的来源绑定。
-///
-/// # 参数
-/// - `gamepad`：按值复制要匹配的设备标识，不在此分配或验证。
-/// - `axis`：按值复制该设备的物理轴标识，包含 Other 表示。
-///
-/// # 返回
-/// 返回 direction 为 Positive 的 Self；其它两个字段与输入相同。
-///
-/// # 使用时机
-/// 准备轴绑定列表时使用；const 构造也只建立值。
-///
-/// # 约束
-/// 不查询设备、读取轴值或验证来源；具体幅值规则由方向 value 实现。
-///
-/// # 生命周期
-/// 返回值不借用参数，未取得设备资源。
-///
-/// # 参考
-/// 参见 [`InputAxisBinding`]、[`InputAxisDirection::value`]。
+    /// 创建只保留正侧幅值的来源绑定。
+    ///
+    /// # 参数
+    /// - `gamepad`：按值复制要匹配的设备标识，不在此分配或验证。
+    /// - `axis`：按值复制该设备的物理轴标识，包含 Other 表示。
+    ///
+    /// # 返回
+    /// 返回 direction 为 Positive 的 Self；其它两个字段与输入相同。
+    ///
+    /// # 使用时机
+    /// 准备轴绑定列表时使用；const 构造也只建立值。
+    ///
+    /// # 约束
+    /// 不查询设备、读取轴值或验证来源；具体幅值规则由方向 value 实现。
+    ///
+    /// # 生命周期
+    /// 返回值不借用参数，未取得设备资源。
+    ///
+    /// # 参考
+    /// 参见 [`InputAxisBinding`]、[`InputAxisDirection::value`]。
     pub const fn positive(gamepad: GamepadId, axis: GamepadAxis) -> Self {
         Self {
             gamepad,
@@ -241,26 +241,26 @@ impl InputAxisBinding {
         }
     }
 
-/// 创建把负侧映射为非负幅值的来源绑定。
-///
-/// # 参数
-/// - `gamepad`：按值复制要匹配的设备标识，不在此分配或验证。
-/// - `axis`：按值复制该设备的物理轴标识，包含 Other 表示。
-///
-/// # 返回
-/// 返回 direction 为 Negative 的 Self；其它两个字段与输入相同。
-///
-/// # 使用时机
-/// 准备轴绑定列表时使用；const 构造也只建立值。
-///
-/// # 约束
-/// 不查询设备、读取轴值或验证来源；具体幅值规则由方向 value 实现。
-///
-/// # 生命周期
-/// 返回值不借用参数，未取得设备资源。
-///
-/// # 参考
-/// 参见 [`InputAxisBinding`]、[`InputAxisDirection::value`]。
+    /// 创建把负侧映射为非负幅值的来源绑定。
+    ///
+    /// # 参数
+    /// - `gamepad`：按值复制要匹配的设备标识，不在此分配或验证。
+    /// - `axis`：按值复制该设备的物理轴标识，包含 Other 表示。
+    ///
+    /// # 返回
+    /// 返回 direction 为 Negative 的 Self；其它两个字段与输入相同。
+    ///
+    /// # 使用时机
+    /// 准备轴绑定列表时使用；const 构造也只建立值。
+    ///
+    /// # 约束
+    /// 不查询设备、读取轴值或验证来源；具体幅值规则由方向 value 实现。
+    ///
+    /// # 生命周期
+    /// 返回值不借用参数，未取得设备资源。
+    ///
+    /// # 参考
+    /// 参见 [`InputAxisBinding`]、[`InputAxisDirection::value`]。
     pub const fn negative(gamepad: GamepadId, axis: GamepadAxis) -> Self {
         Self {
             gamepad,
@@ -269,26 +269,26 @@ impl InputAxisBinding {
         }
     }
 
-/// 把调用方提供的单个源标量按绑定方向投影。
-///
-/// # 参数
-/// - `self`：按值提供绑定；仅使用 direction，gamepad 与 axis 不参与此方法的计算。
-/// - `source`：应当已经按本绑定的设备/轴匹配的数值；本方法不会检查该对应关系。
-///
-/// # 返回
-/// 返回方向 value 的 f32 结果：有限值先夹取，非有限值归零，零符号统一；Negative 返回负侧的非负幅值。
-///
-/// # 使用时机
-/// 具体求值器查得当前状态或转换前后值之后使用。
-///
-/// # 约束
-/// 不重新应用上游死区或活区缩放，没有 gain 或二维输出。
-///
-/// # 生命周期
-/// 不保留状态或输入引用，返回标量按值拥有。
-///
-/// # 参考
-/// 参见 [`InputAxisDirection::value`]、[`InputAxisBinding`]。
+    /// 把调用方提供的单个源标量按绑定方向投影。
+    ///
+    /// # 参数
+    /// - `self`：按值提供绑定；仅使用 direction，gamepad 与 axis 不参与此方法的计算。
+    /// - `source`：应当已经按本绑定的设备/轴匹配的数值；本方法不会检查该对应关系。
+    ///
+    /// # 返回
+    /// 返回方向 value 的 f32 结果：有限值先夹取，非有限值归零，零符号统一；Negative 返回负侧的非负幅值。
+    ///
+    /// # 使用时机
+    /// 具体求值器查得当前状态或转换前后值之后使用。
+    ///
+    /// # 约束
+    /// 不重新应用上游死区或活区缩放，没有 gain 或二维输出。
+    ///
+    /// # 生命周期
+    /// 不保留状态或输入引用，返回标量按值拥有。
+    ///
+    /// # 参考
+    /// 参见 [`InputAxisDirection::value`]、[`InputAxisBinding`]。
     pub fn value(self, source: f32) -> f32 {
         self.direction.value(source)
     }
@@ -313,42 +313,42 @@ impl InputAxisBinding {
 /// # 参考
 /// 参见 [`InputBinding::buttons_and_axes`]、[`InputBinding::is_empty`]、[`super::InputActionMap::bind`]、[`super::InputActionManager`]。
 pub struct InputBinding {
-/// 给出此绑定关联的精确动作名称。
-///
-/// # 约束
-/// 原样拥有字符串，不自动注册动作、补齐上下文或检查名称非空；当前代际按已声明动作的名称寻找候选绑定。
-///
-/// # 生命周期
-/// 随绑定拥有，修改已返回配置副本须重新安装才影响具体服务。
-///
-/// # 参考
-/// 参见 [`super::InputActionMap`]、[`InputBinding::is_empty`]。
+    /// 给出此绑定关联的精确动作名称。
+    ///
+    /// # 约束
+    /// 原样拥有字符串，不自动注册动作、补齐上下文或检查名称非空；当前代际按已声明动作的名称寻找候选绑定。
+    ///
+    /// # 生命周期
+    /// 随绑定拥有，修改已返回配置副本须重新安装才影响具体服务。
+    ///
+    /// # 参考
+    /// 参见 [`super::InputActionMap`]、[`InputBinding::is_empty`]。
     pub action: String,
     #[serde(default)]
-/// 保存该条绑定要求的完整按钮身份列表。
-///
-/// # 约束
-/// 构造器按枚举 Ord 排序并按完整 Eq 去重；KeyCode 与 Key 字符串仍是不同身份。公开字段和 Serde 不自动整理。
-/// 当前具体求值器要求这些按钮全部按住，任一按钮已消费会跳过整条绑定；这不是字段类型自行执行的匹配。
-///
-/// # 生命周期
-/// Vec 拥有元素；Key variant 的字符串也随元素拥有，列表可为空。
-///
-/// # 参考
-/// 参见 [`super::InputButton`]、[`InputBinding::chord`]。
+    /// 保存该条绑定要求的完整按钮身份列表。
+    ///
+    /// # 约束
+    /// 构造器按枚举 Ord 排序并按完整 Eq 去重；KeyCode 与 Key 字符串仍是不同身份。公开字段和 Serde 不自动整理。
+    /// 当前具体求值器要求这些按钮全部按住，任一按钮已消费会跳过整条绑定；这不是字段类型自行执行的匹配。
+    ///
+    /// # 生命周期
+    /// Vec 拥有元素；Key variant 的字符串也随元素拥有，列表可为空。
+    ///
+    /// # 参考
+    /// 参见 [`super::InputButton`]、[`InputBinding::chord`]。
     pub buttons: Vec<InputButton>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-/// 保存该条绑定的物理轴来源和方向选择。
-///
-/// # 约束
-/// 构造器按设备、轴、方向排序，只有完整三元组重复才去重；同物理轴的不同方向保留。缺省为空，空列表在序列化时省略。
-/// 当前具体求值器选择最大绝对值标量，不把列表当作二维向量或相加；轴消费按物理设备/轴过滤，同来源各方向都会受影响。
-///
-/// # 生命周期
-/// Vec 拥有可复制绑定值，不持有实时采样；公开写入和 Serde 可保留任意顺序和重复项。
-///
-/// # 参考
-/// 参见 [`InputAxisBinding`]、[`InputBinding::axes`]、[`InputBinding::buttons_and_axes`]。
+    /// 保存该条绑定的物理轴来源和方向选择。
+    ///
+    /// # 约束
+    /// 构造器按设备、轴、方向排序，只有完整三元组重复才去重；同物理轴的不同方向保留。缺省为空，空列表在序列化时省略。
+    /// 当前具体求值器选择最大绝对值标量，不把列表当作二维向量或相加；轴消费按物理设备/轴过滤，同来源各方向都会受影响。
+    ///
+    /// # 生命周期
+    /// Vec 拥有可复制绑定值，不持有实时采样；公开写入和 Serde 可保留任意顺序和重复项。
+    ///
+    /// # 参考
+    /// 参见 [`InputAxisBinding`]、[`InputBinding::axes`]、[`InputBinding::buttons_and_axes`]。
     pub axes: Vec<InputAxisBinding>,
 }
 
@@ -366,50 +366,50 @@ pub struct InputBinding {
 /// # 参考
 /// 参见 [`InputBinding::chord`]、[`InputBinding::buttons_and_axes`]、[`InputBinding::is_empty`]。
 impl InputBinding {
-/// 用一个完整按钮身份创建无轴绑定。
-///
-/// # 参数
-/// - `action`：转换为拥有的 String，按原值保存，不验证非空或自动声明动作。
-/// - `button`：按值移入的按钮；Key/KeyCode 和设备按钮按各自完整身份保存。
-///
-/// # 返回
-/// 返回含唯一按钮、空轴列表的 Self，整理规则与 chord 相同。
-///
-/// # 使用时机
-/// 配置单按钮命名动作时使用。
-///
-/// # 约束
-/// 不读取按钮状态，不翻译键名或注册动作。
-///
-/// # 生命周期
-/// 返回值拥有 action 与按钮元素，未借用调用方状态。
-///
-/// # 参考
-/// 参见 [`InputBinding::chord`]、[`super::InputButton`]。
+    /// 用一个完整按钮身份创建无轴绑定。
+    ///
+    /// # 参数
+    /// - `action`：转换为拥有的 String，按原值保存，不验证非空或自动声明动作。
+    /// - `button`：按值移入的按钮；Key/KeyCode 和设备按钮按各自完整身份保存。
+    ///
+    /// # 返回
+    /// 返回含唯一按钮、空轴列表的 Self，整理规则与 chord 相同。
+    ///
+    /// # 使用时机
+    /// 配置单按钮命名动作时使用。
+    ///
+    /// # 约束
+    /// 不读取按钮状态，不翻译键名或注册动作。
+    ///
+    /// # 生命周期
+    /// 返回值拥有 action 与按钮元素，未借用调用方状态。
+    ///
+    /// # 参考
+    /// 参见 [`InputBinding::chord`]、[`super::InputButton`]。
     pub fn button(action: impl Into<String>, button: InputButton) -> Self {
         Self::chord(action, [button])
     }
 
-/// 收集并规范化一条按钮组合绑定，轴列表为空。
-///
-/// # 参数
-/// - `action`：转换为拥有的 String，按原值保存，不验证非空或自动声明动作。
-/// - `buttons`：消费一次迭代器并收集拥有的按钮；按派生 Ord 排序，再按完整 Eq 去重。
-///
-/// # 返回
-/// 返回拥有规范化按钮列表和空 axes 的 Self；空迭代器得到可表示的空绑定。
-///
-/// # 使用时机
-/// 准备按钮组合配置时使用；当前具体求值器随后要求同条按钮全部按住。
-///
-/// # 约束
-/// 只整理枚举身份，不把 KeyCode 与 Key 视为等价，也不排除空名称或空输入；bind 入口才拒绝两个列表都为空的值。
-///
-/// # 生命周期
-/// 收集完成后不借用迭代器；String 和含字符串的按钮随返回值拥有。
-///
-/// # 参考
-/// 参见 [`super::InputButton`]、[`InputBinding::buttons_and_axes`]、[`super::InputActionMap::bind`]。
+    /// 收集并规范化一条按钮组合绑定，轴列表为空。
+    ///
+    /// # 参数
+    /// - `action`：转换为拥有的 String，按原值保存，不验证非空或自动声明动作。
+    /// - `buttons`：消费一次迭代器并收集拥有的按钮；按派生 Ord 排序，再按完整 Eq 去重。
+    ///
+    /// # 返回
+    /// 返回拥有规范化按钮列表和空 axes 的 Self；空迭代器得到可表示的空绑定。
+    ///
+    /// # 使用时机
+    /// 准备按钮组合配置时使用；当前具体求值器随后要求同条按钮全部按住。
+    ///
+    /// # 约束
+    /// 只整理枚举身份，不把 KeyCode 与 Key 视为等价，也不排除空名称或空输入；bind 入口才拒绝两个列表都为空的值。
+    ///
+    /// # 生命周期
+    /// 收集完成后不借用迭代器；String 和含字符串的按钮随返回值拥有。
+    ///
+    /// # 参考
+    /// 参见 [`super::InputButton`]、[`InputBinding::buttons_and_axes`]、[`super::InputActionMap::bind`]。
     pub fn chord(
         action: impl Into<String>,
         buttons: impl IntoIterator<Item = InputButton>,
@@ -424,50 +424,50 @@ impl InputBinding {
         }
     }
 
-/// 用一条物理轴来源创建无按钮绑定。
-///
-/// # 参数
-/// - `action`：转换为拥有的 String，按原值保存，不验证非空或自动声明动作。
-/// - `axis`：按值保存的来源/方向绑定，其标识不在此校验。
-///
-/// # 返回
-/// 返回包含该唯一轴、空 buttons 的 Self。
-///
-/// # 使用时机
-/// 配置单个连续标量动作来源时使用。
-///
-/// # 约束
-/// 不设置缩放或二维分量，不读取样本；方向计算在已有源值时进行。
-///
-/// # 生命周期
-/// 返回值拥有名称和列表，轴元素按值复制/移动，不借用设备。
-///
-/// # 参考
-/// 参见 [`InputBinding::axes`]、[`InputAxisBinding`]。
+    /// 用一条物理轴来源创建无按钮绑定。
+    ///
+    /// # 参数
+    /// - `action`：转换为拥有的 String，按原值保存，不验证非空或自动声明动作。
+    /// - `axis`：按值保存的来源/方向绑定，其标识不在此校验。
+    ///
+    /// # 返回
+    /// 返回包含该唯一轴、空 buttons 的 Self。
+    ///
+    /// # 使用时机
+    /// 配置单个连续标量动作来源时使用。
+    ///
+    /// # 约束
+    /// 不设置缩放或二维分量，不读取样本；方向计算在已有源值时进行。
+    ///
+    /// # 生命周期
+    /// 返回值拥有名称和列表，轴元素按值复制/移动，不借用设备。
+    ///
+    /// # 参考
+    /// 参见 [`InputBinding::axes`]、[`InputAxisBinding`]。
     pub fn axis(action: impl Into<String>, axis: InputAxisBinding) -> Self {
         Self::axes(action, [axis])
     }
 
-/// 收集多个轴来源创建无按钮绑定。
-///
-/// # 参数
-/// - `action`：转换为拥有的 String，按原值保存，不验证非空或自动声明动作。
-/// - `axes`：消费一次迭代器的轴绑定集合；按设备、轴、方向排序并去重完整三元身份。
-///
-/// # 返回
-/// 返回规范化 axes 与空 buttons 的 Self；空集合保留为空绑定。
-///
-/// # 使用时机
-/// 准备多个候选轴来源时使用。
-///
-/// # 约束
-/// 相同设备/轴的不同方向仍保留；当前具体求值器选最大绝对值，列表本身不规定二维组合、相加或增益。
-///
-/// # 生命周期
-/// 返回值拥有收集出的列表和名称，不借用迭代器或采样。
-///
-/// # 参考
-/// 参见 [`InputBinding::buttons_and_axes`]、[`InputAxisBinding`]。
+    /// 收集多个轴来源创建无按钮绑定。
+    ///
+    /// # 参数
+    /// - `action`：转换为拥有的 String，按原值保存，不验证非空或自动声明动作。
+    /// - `axes`：消费一次迭代器的轴绑定集合；按设备、轴、方向排序并去重完整三元身份。
+    ///
+    /// # 返回
+    /// 返回规范化 axes 与空 buttons 的 Self；空集合保留为空绑定。
+    ///
+    /// # 使用时机
+    /// 准备多个候选轴来源时使用。
+    ///
+    /// # 约束
+    /// 相同设备/轴的不同方向仍保留；当前具体求值器选最大绝对值，列表本身不规定二维组合、相加或增益。
+    ///
+    /// # 生命周期
+    /// 返回值拥有收集出的列表和名称，不借用迭代器或采样。
+    ///
+    /// # 参考
+    /// 参见 [`InputBinding::buttons_and_axes`]、[`InputAxisBinding`]。
     pub fn axes(
         action: impl Into<String>,
         axes: impl IntoIterator<Item = InputAxisBinding>,
@@ -476,27 +476,27 @@ impl InputBinding {
     }
 
     /// 构造时统一排序去重，使重复设备输入不会改变求值或序列化后的绑定身份。
-/// 同时收集按钮门控与轴来源，并规范化两份拥有的列表。
-///
-/// # 参数
-/// - `action`：转换为拥有的 String，按原值保存，不验证非空或自动声明动作。
-/// - `buttons`：先收集并按完整按钮身份排序去重；不同按钮 variant 不互相翻译。
-/// - `axes`：随后收集，按 (gamepad, axis, direction) 排序，只有完整三元身份相等才去重。
-///
-/// # 返回
-/// 返回拥有规范化列表的 Self；任一列表或两者均可为空，action 原值保留。
-///
-/// # 使用时机
-/// 配置组合门控/连续输入时使用；当前具体求值器先检查全部按钮，再从未消费的轴选标量。
-///
-/// # 约束
-/// 不同方向的同源轴保留；不验证设备、动作注册或名称，不设置死区、增益和二维分量。构造整理不是公开字段/Serde 的不变式。
-///
-/// # 生命周期
-/// 两次收集均取得元素所有权，返回值不借用迭代器；方法不安装映射或保存帧。
-///
-/// # 参考
-/// 参见 [`InputBinding::chord`]、[`InputAxisBinding`]、[`super::InputActionMap::bind`]。
+    /// 同时收集按钮门控与轴来源，并规范化两份拥有的列表。
+    ///
+    /// # 参数
+    /// - `action`：转换为拥有的 String，按原值保存，不验证非空或自动声明动作。
+    /// - `buttons`：先收集并按完整按钮身份排序去重；不同按钮 variant 不互相翻译。
+    /// - `axes`：随后收集，按 (gamepad, axis, direction) 排序，只有完整三元身份相等才去重。
+    ///
+    /// # 返回
+    /// 返回拥有规范化列表的 Self；任一列表或两者均可为空，action 原值保留。
+    ///
+    /// # 使用时机
+    /// 配置组合门控/连续输入时使用；当前具体求值器先检查全部按钮，再从未消费的轴选标量。
+    ///
+    /// # 约束
+    /// 不同方向的同源轴保留；不验证设备、动作注册或名称，不设置死区、增益和二维分量。构造整理不是公开字段/Serde 的不变式。
+    ///
+    /// # 生命周期
+    /// 两次收集均取得元素所有权，返回值不借用迭代器；方法不安装映射或保存帧。
+    ///
+    /// # 参考
+    /// 参见 [`InputBinding::chord`]、[`InputAxisBinding`]、[`super::InputActionMap::bind`]。
     pub fn buttons_and_axes(
         action: impl Into<String>,
         buttons: impl IntoIterator<Item = InputButton>,
@@ -515,25 +515,25 @@ impl InputBinding {
         binding
     }
 
-/// 检查两个物理输入列表是否同时为空。
-///
-/// # 参数
-/// - `self`：只读借用当前绑定的两个 Vec。
-///
-/// # 返回
-/// 仅在 buttons 与 axes 都为空时返回 true；action 的空字符串、未知名称和设备有效性不参与判断。
-///
-/// # 使用时机
-/// 映射 bind 入口使用此检查过滤空绑定，也可独立检查直接构造或反序列化的值。
-///
-/// # 约束
-/// 不是配置验证器；公开映射字段和反序列化安装路径不一定调用此过滤。
-///
-/// # 生命周期
-/// 不修改或保留借用，返回 bool 按值拥有。
-///
-/// # 参考
-/// 参见 [`super::InputActionMap::bind`]、[`InputBinding`]。
+    /// 检查两个物理输入列表是否同时为空。
+    ///
+    /// # 参数
+    /// - `self`：只读借用当前绑定的两个 Vec。
+    ///
+    /// # 返回
+    /// 仅在 buttons 与 axes 都为空时返回 true；action 的空字符串、未知名称和设备有效性不参与判断。
+    ///
+    /// # 使用时机
+    /// 映射 bind 入口使用此检查过滤空绑定，也可独立检查直接构造或反序列化的值。
+    ///
+    /// # 约束
+    /// 不是配置验证器；公开映射字段和反序列化安装路径不一定调用此过滤。
+    ///
+    /// # 生命周期
+    /// 不修改或保留借用，返回 bool 按值拥有。
+    ///
+    /// # 参考
+    /// 参见 [`super::InputActionMap::bind`]、[`InputBinding`]。
     pub fn is_empty(&self) -> bool {
         self.buttons.is_empty() && self.axes.is_empty()
     }

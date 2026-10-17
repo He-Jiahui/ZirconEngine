@@ -21,7 +21,7 @@ use crate::render_graph::{
 
 use super::super::validation::stage_pass_descriptors;
 use super::graph_resources::{pipeline_graph_resources, PipelineGraphResourcePlan};
-use super::resource_descriptors::buffer_desc_from_schema;
+
 use super::resource_schema_catalog::RenderResourceSchemaCatalog;
 use crate::graphics::pipeline::RenderGraphCompileCameraTargetFingerprint;
 use crate::rhi::TextureUsage;
@@ -110,7 +110,13 @@ fn author_graph_resources(
                         "storage texture resource `{name}` requires an explicit RenderResourceSchema"
                     ));
                 }
-                texture_resources.insert(name.clone(), graph.create_texture(desc));
+                let texture = graph.create_texture(desc);
+                if plan.usage.persistent {
+                    graph
+                        .mark_persistent(texture)
+                        .map_err(|error| error.to_string())?;
+                }
+                texture_resources.insert(name.clone(), texture);
             }
             RenderFeatureResourceKind::Buffer => {
                 let desc =
@@ -118,20 +124,22 @@ fn author_graph_resources(
                 buffer_resources.insert(name.clone(), graph.create_buffer(desc));
             }
             RenderFeatureResourceKind::External => {
-                let external = match plan.schema {
-                    Some(schema)
-                        if matches!(
-                            plan.external_binding.resource_type,
-                            RenderGraphExternalResourceType::Buffer
-                        ) =>
+                let external = match plan.external_binding.resource_type {
+                    RenderGraphExternalResourceType::Buffer => match resource_catalog
+                        .external_buffer_desc(name, plan.schema, plan.minimum_size_bytes)?
                     {
-                        graph.import_external_buffer_with_usage_and_binding(
+                        Some(desc) => graph.import_external_buffer_with_usage_and_binding(
                             name,
                             plan.usage,
-                            buffer_desc_from_schema(name, schema, plan.minimum_size_bytes)?,
+                            desc,
                             plan.external_binding,
-                        )
-                    }
+                        ),
+                        None => graph.import_external_resource_with_usage_and_binding(
+                            name,
+                            plan.usage,
+                            plan.external_binding,
+                        ),
+                    },
                     _ => match resource_catalog.external_texture_desc(name, plan.schema)? {
                         Some(desc) => graph.import_external_texture_with_usage_and_binding(
                             name,

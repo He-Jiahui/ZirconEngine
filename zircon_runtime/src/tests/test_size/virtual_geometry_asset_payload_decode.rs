@@ -22,16 +22,14 @@ fn runtime_15_virtual_geometry_asset_payload_decode_is_wired() {
     );
     let nanite_mod =
         read_repo("zircon_plugins/virtual_geometry/runtime/src/geometry/nanite/mod.rs");
-    let page_payload = read_repo(
-        "zircon_plugins/virtual_geometry/runtime/src/geometry/nanite/page_payload.rs",
-    );
+    let page_payload =
+        read_repo("zircon_plugins/virtual_geometry/runtime/src/geometry/nanite/page_payload.rs");
     let automatic_extract = read_repo(
         "zircon_plugins/virtual_geometry/runtime/src/geometry/nanite/automatic_extract.rs",
     );
     let provider = read_repo("zircon_plugins/virtual_geometry/runtime/src/provider.rs");
-    let imported_extract_test = read_repo(
-        "zircon_plugins/virtual_geometry/runtime/src/tests/virtual_geometry_imported.rs",
-    );
+    let imported_extract_test =
+        read_repo("zircon_plugins/virtual_geometry/runtime/src/tests/virtual_geometry_imported.rs");
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
@@ -61,12 +59,8 @@ fn runtime_15_virtual_geometry_asset_payload_decode_is_wired() {
     );
     assert_contains_all(
         "nanite automatic extract owns cooked page payload decode in a separate module",
-        &read_repo(
-        "zircon_plugins/virtual_geometry/runtime/src/geometry/tests/page_payload.rs",
-    ),
-        &[
-            "render_page_payloads_decode_cooked_triangle_vertices_with_global_page_ids",
-        ],
+        &read_repo("zircon_plugins/virtual_geometry/runtime/src/geometry/tests/page_payload.rs"),
+        &["render_page_payloads_decode_cooked_triangle_vertices_with_global_page_ids"],
     );
     assert_contains_all(
         "runtime extract output and frame context carry decoded page payload sidecar",

@@ -176,9 +176,7 @@ fn workbench_diagnostic_row_exposes_required_status_item_slots() {
         .unwrap_or_else(|| panic!("catalog must declare WorkbenchDiagnosticRow"));
     assert_eq!(
         diagnostic.get("document_id").and_then(Value::as_str),
-        Some(
-            "res://ui/editor/workbench/composites/feedback/diagnostic_row.zui"
-        )
+        Some("res://ui/editor/workbench/composites/feedback/diagnostic_row.zui")
     );
     assert_eq!(
         diagnostic.get("binding_namespace").and_then(Value::as_str),

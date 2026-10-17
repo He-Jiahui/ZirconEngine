@@ -183,9 +183,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         QueueLane::AsyncCompute,
         ComputeShaderSource::builtin_wgsl(
             "zircon-ssao-spatial-denoise-pipeline",
-            include_str!(
-                "scene/post/shaders/ssao_spatial_denoise.wgsl"
-            ),
+            include_str!("scene/post/shaders/ssao_spatial_denoise.wgsl"),
         ),
         "cs_main",
         SSAO_WORKGROUP_SIZE,
@@ -496,9 +494,7 @@ fn bilateral_upsample_pass(half_schema: RenderResourceSchema) -> RenderFeaturePa
         QueueLane::AsyncCompute,
         ComputeShaderSource::builtin_wgsl(
             "zircon-ssao-bilateral-upsample-pipeline",
-            include_str!(
-                "scene/post/shaders/ssao_bilateral_upsample.wgsl"
-            ),
+            include_str!("scene/post/shaders/ssao_bilateral_upsample.wgsl"),
         ),
         "cs_main",
         SSAO_WORKGROUP_SIZE,

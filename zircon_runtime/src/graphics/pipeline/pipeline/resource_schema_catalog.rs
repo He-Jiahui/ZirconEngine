@@ -4,8 +4,8 @@ use crate::graphics::RenderResourceSchema;
 use crate::rhi::{BufferDesc, TextureDesc};
 
 use super::resource_descriptors::{
-    buffer_desc_from_schema, builtin_buffer_desc_for, builtin_external_texture_desc_for,
-    builtin_texture_desc_for, texture_desc_from_schema,
+    buffer_desc_from_schema, builtin_buffer_desc_for, builtin_external_buffer_desc_for,
+    builtin_external_texture_desc_for, builtin_texture_desc_for, texture_desc_from_schema,
 };
 
 /// Resolves the physical contract for resources authored by a render pipeline.
@@ -48,6 +48,18 @@ impl<'a> RenderResourceSchemaCatalog<'a> {
             Some(schema) => buffer_desc_from_schema(name, schema, minimum_size_bytes),
             None => builtin_buffer_desc_for(name, self.extract, minimum_size_bytes)?
                 .ok_or_else(|| missing_schema_error("transient buffer", name)),
+        }
+    }
+
+    pub(super) fn external_buffer_desc(
+        &self,
+        name: &str,
+        schema: Option<RenderResourceSchema>,
+        minimum_size_bytes: Option<u64>,
+    ) -> Result<Option<BufferDesc>, String> {
+        match schema {
+            Some(schema) => buffer_desc_from_schema(name, schema, minimum_size_bytes).map(Some),
+            None => builtin_external_buffer_desc_for(name, self.extract, minimum_size_bytes),
         }
     }
 

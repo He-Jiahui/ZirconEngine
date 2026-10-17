@@ -1,0 +1,1137 @@
+{
+  "schema": "zircon.source-comments.independent-review.v1",
+  "batch": "R059",
+  "task": "source-comments-20261014-01a13a81",
+  "reviewer": "root",
+  "created_at_utc": "2026-10-16T10:31:14.430559+00:00",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "status": "independently-reviewed-local-validated-managed-gates-open",
+  "child": {
+    "path": "docs/plans/source-comments/reviews/R059.json",
+    "sha256": "4d8ca96062aefbd60e56e16a03d8994d361ce5c5a21cc0ea07e3fe232095e625",
+    "bytes": 128119
+  },
+  "scope": [
+    "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+    "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs"
+  ],
+  "sources": [
+    {
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "before_sha256": "e1b3b2c580f0e2eeac2e30b560b99cf196ecf8e25298f1e9b950b1fdbd59c0a8",
+      "before_bytes": 4166,
+      "before_lines": 97,
+      "after_sha256": "99e0a189c5f2a5a21c453932184892ce73c12437bb5514dac74e6543ea1997b6",
+      "after_bytes": 4950,
+      "after_lines": 106,
+      "all_original_bytes_preserved": true,
+      "comment_insertions": [
+        {
+          "label": "module-boundary",
+          "before_line": 1,
+          "before_offset": 0,
+          "after_offset": 0,
+          "bytes": 305,
+          "sha256": "e21a979b4641053770d4cd5020b67d1a8cd5f1310738fe57adf14795e608b344",
+          "exact_text": "//! 以源码文本和历史文档锚点检查输入管理器的测试归属。\n//!\n//! 读取器统一换行后检查字面包含关系与行数；这里不执行被定位的计时器测试，\n//! 也不据函数名验证行为。文档输入必须先可读，读取失败会阻止后续结构断言。\n\n",
+          "added_lines": 5
+        },
+        {
+          "label": "CR-ZCA-R059-0002",
+          "before_line": 13,
+          "before_offset": 897,
+          "after_offset": 1202,
+          "bytes": 222,
+          "sha256": "50401725995fa164c6966ca381de8f7a50d847618aa84c2c59b06b2fe0a3311a",
+          "exact_text": "    // BUG: [CR-ZCA-R059-0002] 当前检出缺少此处和下一行的两个文档输入；read_repo 的错误分支直接 panic，\n    // 因而先在 module_doc 读取中止，ui_doc 与后续结构断言尚不可达。\n",
+          "added_lines": 2
+        },
+        {
+          "label": "CR-ZCA-R059-0001",
+          "before_line": 25,
+          "before_offset": 1418,
+          "after_offset": 1945,
+          "bytes": 257,
+          "sha256": "52348dae4ff2eaac1148db5144e7ef59afd53e70fc88c3405d81e5e9e3b99cef",
+          "exact_text": "            // BUG: [CR-ZCA-R059-0001] 被读父模块在 cfg 属性与 tests 声明之间还有 path 属性，\n            // 下列连续字串经仅统一换行的读取器处理后仍不存在；若前置文档可读，此正向包含断言会失败。\n",
+          "added_lines": 2
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "before_sha256": "5bc18f42c8dfc65fad94a3cd4a062d3805f92989b2652d3b93a1e0109bc80f8e",
+      "before_bytes": 7594,
+      "before_lines": 181,
+      "after_sha256": "255711f9d54c2c93c51ff98e51c6c2951f83941b2272ad234ffa9d289528b98a",
+      "after_bytes": 8405,
+      "after_lines": 190,
+      "all_original_bytes_preserved": true,
+      "comment_insertions": [
+        {
+          "label": "module-boundary",
+          "before_line": 1,
+          "before_offset": 0,
+          "after_offset": 0,
+          "bytes": 311,
+          "sha256": "befcf15ce529a093b7a275c9e5db11754e3e8687f97c28abc02ee783e479b277",
+          "exact_text": "//! 按源码文本检查绑定文本更新的归属、接口形态和历史文档锚点。\n//!\n//! 完整文本的注释也参与字面匹配与行数预算；只有 profile 字段检查使用生产视图预处理。\n//! 命中名称不等同于执行对应行为、验证清零效果或证明内存安全。\n\n",
+          "added_lines": 5
+        },
+        {
+          "label": "CR-ZCA-R059-0003",
+          "before_line": 8,
+          "before_offset": 359,
+          "after_offset": 670,
+          "bytes": 255,
+          "sha256": "a0d985bcad9ab562cef0ba771454b67f38a36e53a4664ac4562b27f4ef5ec7e3",
+          "exact_text": "    // BUG: [CR-ZCA-R059-0003] 此处事务输入及后续用例输入的旧路径当前不存在；生产模块的 path 挂载指向实际文件。\n    // read_runtime_src 会先在此处读取错误时 panic，后续用例输入及断言尚不可达。\n",
+          "added_lines": 2
+        },
+        {
+          "label": "CR-ZCA-R059-0004",
+          "before_line": 64,
+          "before_offset": 3021,
+          "after_offset": 3587,
+          "bytes": 245,
+          "sha256": "36de9afc4b75710de8ead5c4785f458f8a47fe7c57664424754a53b56633dc66",
+          "exact_text": "    // BUG: [CR-ZCA-R059-0004] 当前清单以带 optional 的表形式声明同版本依赖，下列精确简写字串不存在；\n    // 若前置输入可读，此字面包含检查会失败；这不表示依赖缺失或清零机制失效。\n",
+          "added_lines": 2
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "files": 2,
+    "before_bytes": 11760,
+    "before_lines": 278,
+    "after_bytes": 13355,
+    "after_lines": 296,
+    "changed_files": 2,
+    "insertions": 6,
+    "added_lf_lines": 18,
+    "objects": 5,
+    "members": 0,
+    "original_semantic_regions": 23,
+    "current_gapfree_semantic_regions": 25,
+    "control_points": 48,
+    "tests": 2,
+    "ignored_tests": 0,
+    "original_string_operands": 140,
+    "raw_predicate_groups": 24,
+    "raw_predicate_positions": 127,
+    "raw_predicate_evaluated": 96,
+    "raw_predicate_true": 75,
+    "raw_predicate_false": 21,
+    "raw_predicate_null": 31,
+    "line_budget_positions": 8,
+    "line_budgets_evaluated": 6,
+    "new_BUG": 4,
+    "retained_TODO": 1
+  },
+  "manual_findings": [
+    "Root read both final files completely (296 lines), original278 lines, all5 declarations,25 contiguous partitions and48 controls; imports are not extra public APIs.",
+    "Both private #[test] functions accept no parameters, return unit after assertions, and borrow/own local source Strings only for this invocation. Read failure panics before assertions; no UiInputManager/Surface instance is constructed.",
+    "Mount chain lib86-88 -> tests17-18 -> contracts57-58 -> structure20-21 -> source_size186-189 is native-host cfg(test), not a production dispatch caller.",
+    "read_runtime_src/read_repo perform real filesystem read and panic on Err; normalize_line_endings changes only CRLF/lone CR. assert_contains_all delegates exact full-text contains, retaining comments and literals.",
+    "Input-manager test first fails reading missing module_doc; missing ui_doc is subsequent. Only conditional on all preceding inputs readable does cfg/test adjacency guard fail: manager774-776 includes an intervening path attribute.",
+    "Seven timer names are absent in parent and present in child; nine fixture names exist. These are textual ownership facts, not executed timer behavior.",
+    "Bound-text test first fails reading its old transaction path; old cases path is also missing but later. Current production path mounts point to separate real targets; those are not substituted into the test operands.",
+    "Manifest zeroize table optional=true retains version1.8.2; shorthand string is absent before/current. Only a stale literal guard is proved; no dependency absence or zeroization failure is inferred.",
+    "All24 predicate groups were independently recalculated against actual current inputs:96 evaluable positions=75 true+21 false;31 missing positions remain null. These independent evaluations are not sequential execution traces.",
+    "Eight strict source line budgets: six current counts pass, two missing operands remain null; comments count as source lines.",
+    "production_section uses comment-free view and cfg-test masking, retaining literals; production_code_view is different. Selected helper implementation only blanks bytes to spaces; raw profile four forbidden counts0 imply those non-whitespace needles cannot be manufactured. No Rust helper execution/AST/information-flow proof claimed.",
+    "Existing CR-RUNTIME-TESTS-STRUCT-0110 remains open for authority/archive intent. Four existing document matrices FFFFF/FFFFF/FFTFF/FFFFF and two missing rows null support retaining its wording, not choosing replacement anchors.",
+    "All original bytes, comments, string/assertion/macro inputs are preserved by exact reversal6insertions;140 original ordinary quoted strings are identical and new comments contribute0 to every original operand.",
+    "Foreign Cargo and lib context changed after child pin. Root reread current lib fully and current zeroize lines100/320; native-host tests mount and dependency-shape conclusions unchanged. Child historical evidence retained; current overrides explicit."
+  ],
+  "source_read_evidence": {
+    "source_full_final": "82ef52 exit0; repeated complete current296lines77ac7a exit0",
+    "original_full": "02d2ad exit0",
+    "child_objects_blocks_issues": "0bc97f exit0 full;938e0b exit0 compact25ranges/48controls",
+    "operators_context": "a9e26a exit0;d4b285 exit0 all24groups/16evidence reconciliation",
+    "recovered_context_drift": {
+      "failed": "0054db exit1 assertion at old Cargo context hash; read-only",
+      "recovery": [
+        "43b49c exit0 current Cargo diff",
+        "d4b285 exit0 all25 context reconciliation/updated Cargo",
+        "77ac7a exit0 full current lib+296auditedsource"
+      ]
+    },
+    "root_inverse_raw_operators_guard": {
+      "initial": "8cac5a",
+      "session": 93991,
+      "terminal": "67036f",
+      "exit_code": 0,
+      "output_limit": "Repeated block metadata middle elided; all original object/block data already fully read0bc97f; compact complete recovery938e0b; all unique operator tables/guard/summary visible."
+    }
+  },
+  "contexts": [
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "sha256": "53f765ce0479c1f1775cc62e853251ca65fd7c1d94e1527f3305a761b71332f3",
+      "bytes": 31169,
+      "lines": 796,
+      "exists": true,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+          "before_line": 6,
+          "reader": "runtime_src"
+        },
+        {
+          "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+          "before_line": 6,
+          "reader": "runtime_src"
+        }
+      ],
+      "child_recorded_sha256": "53f765ce0479c1f1775cc62e853251ca65fd7c1d94e1527f3305a761b71332f3",
+      "root_current_sha256": "53f765ce0479c1f1775cc62e853251ca65fd7c1d94e1527f3305a761b71332f3",
+      "root_current_bytes": 31169,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/cases.rs",
+      "sha256": "ddd230fde5e32a88c854fa661157b97dd9cc44d70fcf75e1a65c0c57c5fca74c",
+      "bytes": 21114,
+      "lines": 621,
+      "exists": true,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+          "before_line": 7,
+          "reader": "runtime_src"
+        }
+      ],
+      "child_recorded_sha256": "ddd230fde5e32a88c854fa661157b97dd9cc44d70fcf75e1a65c0c57c5fca74c",
+      "root_current_sha256": "ddd230fde5e32a88c854fa661157b97dd9cc44d70fcf75e1a65c0c57c5fca74c",
+      "root_current_bytes": 21114,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+      "sha256": "c11c6cbb43443420e65cada28a5f36ead939795e5ee72277727113db7b966da9",
+      "bytes": 250461,
+      "lines": 1491,
+      "exists": true,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+          "before_line": 9,
+          "reader": "repo"
+        }
+      ],
+      "child_recorded_sha256": "c11c6cbb43443420e65cada28a5f36ead939795e5ee72277727113db7b966da9",
+      "root_current_sha256": "c11c6cbb43443420e65cada28a5f36ead939795e5ee72277727113db7b966da9",
+      "root_current_bytes": 250461,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "docs/plans/zircon_runtime/runtime/index.md",
+      "sha256": "2a9130c52e16b0cd8524aeb445f9f9c8af9b195ce0b0e0b91eb11d254442632a",
+      "bytes": 67338,
+      "lines": 419,
+      "exists": true,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+          "before_line": 10,
+          "reader": "repo"
+        }
+      ],
+      "child_recorded_sha256": "2a9130c52e16b0cd8524aeb445f9f9c8af9b195ce0b0e0b91eb11d254442632a",
+      "root_current_sha256": "2a9130c52e16b0cd8524aeb445f9f9c8af9b195ce0b0e0b91eb11d254442632a",
+      "root_current_bytes": 67338,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "docs/plans/engine-code-review-findings-2026-06.md",
+      "sha256": "e3c63227cb4fd861b0c40e35fa19ddd50de56de45748aabcf748cd715968af72",
+      "bytes": 408756,
+      "lines": 4346,
+      "exists": true,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+          "before_line": 11,
+          "reader": "repo"
+        },
+        {
+          "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+          "before_line": 17,
+          "reader": "repo"
+        }
+      ],
+      "child_recorded_sha256": "e3c63227cb4fd861b0c40e35fa19ddd50de56de45748aabcf748cd715968af72",
+      "root_current_sha256": "e3c63227cb4fd861b0c40e35fa19ddd50de56de45748aabcf748cd715968af72",
+      "root_current_bytes": 408756,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "docs/plans/engine-code-structure-convention.md",
+      "sha256": "a2e68b952a8a59e026549546e2a6ee4bef0867c3d5ccf8c53b833b66c6c23e50",
+      "bytes": 238173,
+      "lines": 2238,
+      "exists": true,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+          "before_line": 12,
+          "reader": "repo"
+        },
+        {
+          "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+          "before_line": 16,
+          "reader": "repo"
+        }
+      ],
+      "child_recorded_sha256": "a2e68b952a8a59e026549546e2a6ee4bef0867c3d5ccf8c53b833b66c6c23e50",
+      "root_current_sha256": "a2e68b952a8a59e026549546e2a6ee4bef0867c3d5ccf8c53b833b66c6c23e50",
+      "root_current_bytes": 238173,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "docs/zircon_runtime/structure/module-convention.md",
+      "sha256": null,
+      "bytes": null,
+      "lines": null,
+      "exists": false,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+          "before_line": 13,
+          "reader": "repo"
+        }
+      ],
+      "child_recorded_sha256": null,
+      "root_current_sha256": null,
+      "root_current_bytes": null,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "docs/zircon_runtime/ui/architecture.md",
+      "sha256": null,
+      "bytes": null,
+      "lines": null,
+      "exists": false,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+          "before_line": 14,
+          "reader": "repo"
+        }
+      ],
+      "child_recorded_sha256": null,
+      "root_current_sha256": null,
+      "root_current_bytes": null,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates.rs",
+      "sha256": "d166948901f5580a11b165287dfa0879ac0ad5f06674bc4a146510e281c65b72",
+      "bytes": 18584,
+      "lines": 539,
+      "exists": true,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+          "before_line": 7,
+          "reader": "runtime_src"
+        }
+      ],
+      "child_recorded_sha256": "d166948901f5580a11b165287dfa0879ac0ad5f06674bc4a146510e281c65b72",
+      "root_current_sha256": "d166948901f5580a11b165287dfa0879ac0ad5f06674bc4a146510e281c65b72",
+      "root_current_bytes": 18584,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/transaction.rs",
+      "sha256": null,
+      "bytes": null,
+      "lines": null,
+      "exists": false,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+          "before_line": 9,
+          "reader": "runtime_src"
+        }
+      ],
+      "child_recorded_sha256": null,
+      "root_current_sha256": null,
+      "root_current_bytes": null,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/profile.rs",
+      "sha256": "9575fcd0ddae76d8b7322b0774fbdbc19a76475704f2e655980e4c65819121d1",
+      "bytes": 3520,
+      "lines": 108,
+      "exists": true,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+          "before_line": 10,
+          "reader": "runtime_src"
+        }
+      ],
+      "child_recorded_sha256": "9575fcd0ddae76d8b7322b0774fbdbc19a76475704f2e655980e4c65819121d1",
+      "root_current_sha256": "9575fcd0ddae76d8b7322b0774fbdbc19a76475704f2e655980e4c65819121d1",
+      "root_current_bytes": 3520,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/tests/cases.rs",
+      "sha256": null,
+      "bytes": null,
+      "lines": null,
+      "exists": false,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+          "before_line": 12,
+          "reader": "runtime_src"
+        }
+      ],
+      "child_recorded_sha256": null,
+      "root_current_sha256": null,
+      "root_current_bytes": null,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/secure_text_values.rs",
+      "sha256": "9cdc2ee6c3898e7a06684583913b90ce21cb95d6ef38e848da015daf9e098c9d",
+      "bytes": 23585,
+      "lines": 641,
+      "exists": true,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+          "before_line": 13,
+          "reader": "runtime_src"
+        }
+      ],
+      "child_recorded_sha256": "9cdc2ee6c3898e7a06684583913b90ce21cb95d6ef38e848da015daf9e098c9d",
+      "root_current_sha256": "9cdc2ee6c3898e7a06684583913b90ce21cb95d6ef38e848da015daf9e098c9d",
+      "root_current_bytes": 23585,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/Cargo.toml",
+      "sha256": "1ec1a256d36710d17b12e6c63b93e81f2e3b299940e9a1a1b9f81d3fc592f306",
+      "bytes": 11038,
+      "lines": 354,
+      "exists": true,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+          "before_line": 14,
+          "reader": "repo"
+        }
+      ],
+      "child_recorded_sha256": "1ec1a256d36710d17b12e6c63b93e81f2e3b299940e9a1a1b9f81d3fc592f306",
+      "root_current_sha256": "414a82a0b50e1746ef33393b5d4a9fa8ccdaad816ace15746cdd558297c8edd8",
+      "root_current_bytes": 11221,
+      "historical_context_changed": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/text/model_update.rs",
+      "sha256": "14621196582e86e5d248edc817b36ba7356fd34d6954395d8f71606f98d96ab5",
+      "bytes": 8837,
+      "lines": 237,
+      "exists": true,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+          "before_line": 15,
+          "reader": "repo"
+        }
+      ],
+      "child_recorded_sha256": "14621196582e86e5d248edc817b36ba7356fd34d6954395d8f71606f98d96ab5",
+      "root_current_sha256": "14621196582e86e5d248edc817b36ba7356fd34d6954395d8f71606f98d96ab5",
+      "root_current_bytes": 8837,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "docs/plans/zircon_runtime/text/08-ime-and-text-input.md",
+      "sha256": "b3812c2d7f8d67523164f334e6b72831e3f00a2495e9135ce9c1dde4d88bc83b",
+      "bytes": 67471,
+      "lines": 752,
+      "exists": true,
+      "coverage": "context-only; not audited by R059",
+      "used_by": [
+        {
+          "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+          "before_line": 18,
+          "reader": "repo"
+        }
+      ],
+      "child_recorded_sha256": "b3812c2d7f8d67523164f334e6b72831e3f00a2495e9135ce9c1dde4d88bc83b",
+      "root_current_sha256": "b3812c2d7f8d67523164f334e6b72831e3f00a2495e9135ce9c1dde4d88bc83b",
+      "root_current_bytes": 67471,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/structure/rust_source_view.rs",
+      "sha256": "61d32585f680e08ef2fc3a6d0e0f0cf4887ea2ebd8c812689eb37a2107291bee",
+      "bytes": 19204,
+      "lines": 565,
+      "exists": true,
+      "coverage": "context-only; not full-file audit",
+      "read_spans": [
+        [
+          1,
+          47
+        ],
+        [
+          47,
+          205
+        ],
+        [
+          205,
+          340
+        ]
+      ],
+      "child_recorded_sha256": "61d32585f680e08ef2fc3a6d0e0f0cf4887ea2ebd8c812689eb37a2107291bee",
+      "root_current_sha256": "61d32585f680e08ef2fc3a6d0e0f0cf4887ea2ebd8c812689eb37a2107291bee",
+      "root_current_bytes": 19204,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/lib.rs",
+      "sha256": "4db54e8d6c7a61ce33fc411fc28fcc549549e7276516c4ee72de6a7aa6d91243",
+      "bytes": 2325,
+      "lines": 87,
+      "exists": true,
+      "coverage": "context-only; not full-file audit",
+      "read_spans": [
+        [
+          80,
+          87
+        ]
+      ],
+      "child_recorded_sha256": "4db54e8d6c7a61ce33fc411fc28fcc549549e7276516c4ee72de6a7aa6d91243",
+      "root_current_sha256": "3cba255c5db6325f781389745cbe3deadbb3ac2d877066dbcf47537f45b6c713",
+      "root_current_bytes": 2460,
+      "historical_context_changed": true,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/tests/mod.rs",
+      "sha256": "03c721b676e2938efd07f77ae543892d2b31d1d7cd65bb038ec5d1706e66d14f",
+      "bytes": 907,
+      "lines": 32,
+      "exists": true,
+      "coverage": "context-only; not full-file audit",
+      "read_spans": [
+        [
+          1,
+          32
+        ]
+      ],
+      "child_recorded_sha256": "03c721b676e2938efd07f77ae543892d2b31d1d7cd65bb038ec5d1706e66d14f",
+      "root_current_sha256": "03c721b676e2938efd07f77ae543892d2b31d1d7cd65bb038ec5d1706e66d14f",
+      "root_current_bytes": 907,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/mod.rs",
+      "sha256": "8557b62d3d4b22c755a2d0110ec158a192455e9fced8ea90303fc8e206d1dde0",
+      "bytes": 1837,
+      "lines": 62,
+      "exists": true,
+      "coverage": "context-only; not full-file audit",
+      "read_spans": [
+        [
+          52,
+          60
+        ]
+      ],
+      "child_recorded_sha256": "8557b62d3d4b22c755a2d0110ec158a192455e9fced8ea90303fc8e206d1dde0",
+      "root_current_sha256": "8557b62d3d4b22c755a2d0110ec158a192455e9fced8ea90303fc8e206d1dde0",
+      "root_current_bytes": 1837,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/structure.rs",
+      "sha256": "496ead10921b6c7b7711336d2e6f8901482f0289beb69ddc2097efa5119c6902",
+      "bytes": 2408,
+      "lines": 58,
+      "exists": true,
+      "coverage": "context-only; not full-file audit",
+      "read_spans": [
+        [
+          1,
+          58
+        ]
+      ],
+      "child_recorded_sha256": "496ead10921b6c7b7711336d2e6f8901482f0289beb69ddc2097efa5119c6902",
+      "root_current_sha256": "496ead10921b6c7b7711336d2e6f8901482f0289beb69ddc2097efa5119c6902",
+      "root_current_bytes": 2408,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/tests/cases.rs",
+      "sha256": "9b3dba120ec478cf96a126661187cd14135f36b3ecb8580ef376712848f8b68a",
+      "bytes": 27324,
+      "lines": 773,
+      "exists": true,
+      "coverage": "context-only actual migration target; not a substitute for missing guard operands",
+      "read_spans": [
+        [
+          1,
+          70
+        ]
+      ],
+      "child_recorded_sha256": "9b3dba120ec478cf96a126661187cd14135f36b3ecb8580ef376712848f8b68a",
+      "root_current_sha256": "9b3dba120ec478cf96a126661187cd14135f36b3ecb8580ef376712848f8b68a",
+      "root_current_bytes": 27324,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/bound_text_model_updates/transaction.rs",
+      "sha256": "81ea4a02ba4fde662a470aeea09e26a0ec65360b728bd747962abfee997d82eb",
+      "bytes": 9443,
+      "lines": 288,
+      "exists": true,
+      "coverage": "context-only actual migration target; not a substitute for missing guard operands",
+      "read_spans": [
+        [
+          1,
+          90
+        ]
+      ],
+      "child_recorded_sha256": "81ea4a02ba4fde662a470aeea09e26a0ec65360b728bd747962abfee997d82eb",
+      "root_current_sha256": "81ea4a02ba4fde662a470aeea09e26a0ec65360b728bd747962abfee997d82eb",
+      "root_current_bytes": 9443,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/structure/source_size.rs",
+      "sha256": "2fe5681985c52ece0b17d81fdae2d688d24fc7f6cc1516fd20ca564f6bf8189d",
+      "coverage": "context-only reader/operator/mount; not formal source coverage",
+      "read_spans": [
+        [
+          186,
+          189
+        ],
+        [
+          213,
+          229
+        ]
+      ],
+      "child_recorded_sha256": "2fe5681985c52ece0b17d81fdae2d688d24fc7f6cc1516fd20ca564f6bf8189d",
+      "root_current_sha256": "2fe5681985c52ece0b17d81fdae2d688d24fc7f6cc1516fd20ca564f6bf8189d",
+      "root_current_bytes": 11109,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    },
+    {
+      "path": "zircon_runtime/src/tests/contracts/structure/support.rs",
+      "sha256": "bbb3e8385361c8efc1fffe2b680512340b8a1947d46e1d634e2e5681e3dbac16",
+      "coverage": "context-only reader/operator/mount; not formal source coverage",
+      "read_spans": [
+        [
+          1,
+          38
+        ]
+      ],
+      "child_recorded_sha256": "bbb3e8385361c8efc1fffe2b680512340b8a1947d46e1d634e2e5681e3dbac16",
+      "root_current_sha256": "bbb3e8385361c8efc1fffe2b680512340b8a1947d46e1d634e2e5681e3dbac16",
+      "root_current_bytes": 2530,
+      "historical_context_changed": false,
+      "formal_file_coverage": false
+    }
+  ],
+  "current_decisive_evidence": [
+    {
+      "id": "mount-root",
+      "path": "zircon_runtime/src/lib.rs",
+      "sha256": "3cba255c5db6325f781389745cbe3deadbb3ac2d877066dbcf47537f45b6c713",
+      "lines": [
+        86,
+        88
+      ],
+      "fact": "Root test module requires all(test, feature=native-host) and uses tests/mod.rs.",
+      "child_recorded_sha256": "4db54e8d6c7a61ce33fc411fc28fcc549549e7276516c4ee72de6a7aa6d91243",
+      "child_recorded_lines": [
+        85,
+        87
+      ]
+    },
+    {
+      "id": "mount-tests",
+      "path": "zircon_runtime/src/tests/mod.rs",
+      "sha256": "03c721b676e2938efd07f77ae543892d2b31d1d7cd65bb038ec5d1706e66d14f",
+      "lines": [
+        17,
+        18
+      ],
+      "fact": "tests/runtime_absorption uses contracts/mod.rs."
+    },
+    {
+      "id": "mount-contracts",
+      "path": "zircon_runtime/src/tests/contracts/mod.rs",
+      "sha256": "8557b62d3d4b22c755a2d0110ec158a192455e9fced8ea90303fc8e206d1dde0",
+      "lines": [
+        57,
+        58
+      ],
+      "fact": "runtime_absorption/structure_convention uses structure.rs."
+    },
+    {
+      "id": "mount-budget",
+      "path": "zircon_runtime/src/tests/contracts/structure.rs",
+      "sha256": "496ead10921b6c7b7711336d2e6f8901482f0289beb69ddc2097efa5119c6902",
+      "lines": [
+        20,
+        21
+      ],
+      "fact": "structure_convention/production_file_budget uses structure/source_size.rs."
+    },
+    {
+      "id": "mount-R059",
+      "path": "zircon_runtime/src/tests/contracts/structure/source_size.rs",
+      "sha256": "2fe5681985c52ece0b17d81fdae2d688d24fc7f6cc1516fd20ca564f6bf8189d",
+      "lines": [
+        186,
+        189
+      ],
+      "fact": "The two explicit path attributes mount exactly these R059 files; no ownership of adjacent guards."
+    },
+    {
+      "id": "readers",
+      "path": "zircon_runtime/src/tests/contracts/structure/source_size.rs",
+      "sha256": "2fe5681985c52ece0b17d81fdae2d688d24fc7f6cc1516fd20ca564f6bf8189d",
+      "lines": [
+        213,
+        229
+      ],
+      "fact": "Runtime/repository readers call read_to_string(path), unwrap_or_else(panic), then normalize CRLF and lone CR to LF. No comments/attributes removed."
+    },
+    {
+      "id": "contains-operator",
+      "path": "zircon_runtime/src/tests/contracts/structure/support.rs",
+      "sha256": "bbb3e8385361c8efc1fffe2b680512340b8a1947d46e1d634e2e5681e3dbac16",
+      "lines": [
+        2,
+        15
+      ],
+      "fact": "assert_contains_all delegates to exact helper; missing collects !source.contains(anchor), and assert!(missing.is_empty()) fails if any anchor absent."
+    },
+    {
+      "id": "path-resolvers",
+      "path": "zircon_runtime/src/tests/contracts/structure/support.rs",
+      "sha256": "bbb3e8385361c8efc1fffe2b680512340b8a1947d46e1d634e2e5681e3dbac16",
+      "lines": [
+        18,
+        38
+      ],
+      "fact": "With CARGO_MANIFEST_DIR runtime source is manifest/src/relative and repo is manifest parent/relative; fallbacks are zircon_runtime/src and relative repo path."
+    },
+    {
+      "id": "current-manager-mount",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "sha256": "53f765ce0479c1f1775cc62e853251ca65fd7c1d94e1527f3305a761b71332f3",
+      "lines": [
+        774,
+        776
+      ],
+      "fact": "A path attribute exists between cfg(test) and mod tests, breaking only the guard's required adjacency."
+    },
+    {
+      "id": "actual-transaction-mount",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates.rs",
+      "sha256": "d166948901f5580a11b165287dfa0879ac0ad5f06674bc4a146510e281c65b72",
+      "lines": [
+        24,
+        29
+      ],
+      "fact": "Owner uses profile relative child and ../bound_text_model_updates/transaction.rs for transaction, then imports apply_now/committed_document_state/receipt."
+    },
+    {
+      "id": "actual-cases-mount",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates.rs",
+      "sha256": "d166948901f5580a11b165287dfa0879ac0ad5f06674bc4a146510e281c65b72",
+      "lines": [
+        537,
+        539
+      ],
+      "fact": "Under cfg(test), explicit tests/cases.rs path mounts existing input_manager/tests/cases.rs, rather than guard's obsolete bound_text_model_updates/tests/cases.rs."
+    },
+    {
+      "id": "manifest-shape",
+      "path": "zircon_runtime/Cargo.toml",
+      "sha256": "414a82a0b50e1746ef33393b5d4a9fa8ccdaad816ace15746cdd558297c8edd8",
+      "lines": [
+        320,
+        320
+      ],
+      "fact": "zeroize = { version = \"1.8.2\", optional = true } exists. Exact shorthand needle does not. Dependency absence is not inferred.",
+      "child_recorded_sha256": "1ec1a256d36710d17b12e6c63b93e81f2e3b299940e9a1a1b9f81d3fc592f306",
+      "child_recorded_lines": [
+        317,
+        317
+      ]
+    },
+    {
+      "id": "manifest-feature-reference",
+      "path": "zircon_runtime/Cargo.toml",
+      "sha256": "414a82a0b50e1746ef33393b5d4a9fa8ccdaad816ace15746cdd558297c8edd8",
+      "lines": [
+        100,
+        100
+      ],
+      "fact": "Manifest contains dep:zeroize feature reference; no feature activation/build claim.",
+      "child_recorded_sha256": "1ec1a256d36710d17b12e6c63b93e81f2e3b299940e9a1a1b9f81d3fc592f306",
+      "child_recorded_lines": [
+        98,
+        98
+      ]
+    },
+    {
+      "id": "profile-view",
+      "path": "zircon_runtime/src/tests/contracts/structure/rust_source_view.rs",
+      "sha256": "61d32585f680e08ef2fc3a6d0e0f0cf4887ea2ebd8c812689eb37a2107291bee",
+      "lines": [
+        2,
+        18
+      ],
+      "fact": "production_section uses comment_free_source and masks cfg test spans; production_code_view is a separate API."
+    },
+    {
+      "id": "profile-lexing",
+      "path": "zircon_runtime/src/tests/contracts/structure/rust_source_view.rs",
+      "sha256": "61d32585f680e08ef2fc3a6d0e0f0cf4887ea2ebd8c812689eb37a2107291bee",
+      "lines": [
+        21,
+        82
+      ],
+      "fact": "Comments are blanked in both views; raw/quoted literals are blanked only in rendered code, so production_section's comment-free branch retains literals."
+    },
+    {
+      "id": "profile-masking",
+      "path": "zircon_runtime/src/tests/contracts/structure/rust_source_view.rs",
+      "sha256": "61d32585f680e08ef2fc3a6d0e0f0cf4887ea2ebd8c812689eb37a2107291bee",
+      "lines": [
+        496,
+        503
+      ],
+      "fact": "Mask operation changes non-line-separator bytes only to spaces; no new letters/underscores are manufactured. Four forbidden profile needles have raw count zero."
+    }
+  ],
+  "context_reuse": {
+    "unchanged_child_context_pins": 23,
+    "changed_readonly_foreign_contexts": {
+      "zircon_runtime/Cargo.toml": "414a82a0b50e1746ef33393b5d4a9fa8ccdaad816ace15746cdd558297c8edd8",
+      "zircon_runtime/src/lib.rs": "3cba255c5db6325f781389745cbe3deadbb3ac2d877066dbcf47537f45b6c713"
+    },
+    "foreign_changes_preserved": true
+  },
+  "lexical_index_limitations": "All five objects were read as actual import/test declarations. Search indexes do not resolve trait/macro/FFI behavior. No public functions/fields/variants or dynamic/FFI entries are present in these two guarded test files.",
+  "issues": [
+    {
+      "id": "CR-ZCA-R059-0001",
+      "kind": "BUG",
+      "origin": "new-approved",
+      "status": "open-static-proven-not-fixed",
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "marker_after_lines": [
+        32,
+        33
+      ],
+      "affected_before_lines": [
+        25,
+        25
+      ],
+      "affected_after_lines": [
+        34,
+        34
+      ],
+      "trigger": "If preceding source/document reads complete, guard requires cfg attribute and mod tests contiguous after newline normalization.",
+      "observable_effect": "Exact contains count0; helper would collect the missing anchor and panic. This is later than missing-doc read failure in this checkout.",
+      "proof": [
+        "readers",
+        "contains-operator",
+        "current-manager-mount"
+      ],
+      "original_predicate": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "new_comment_contribution": 0,
+      "reproduction": "Static pinned source/reader/operator chain only; Rust test not executed.",
+      "next_action": "Repair guard against actual mounted syntax under a separate behavior-change grant, then run bounded test after first fixing readable input ownership."
+    },
+    {
+      "id": "CR-ZCA-R059-0002",
+      "kind": "BUG",
+      "origin": "new-approved",
+      "status": "open-static-proven-not-fixed",
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "marker_after_lines": [
+        18,
+        19
+      ],
+      "affected_before_lines": [
+        13,
+        14
+      ],
+      "affected_after_lines": [
+        20,
+        21
+      ],
+      "trigger": "Current checkout lacks docs/zircon_runtime/structure/module-convention.md and docs/zircon_runtime/ui/architecture.md.",
+      "observable_effect": "The first missing module_doc read maps std fs read failure to panic before ui_doc read or any structural assertion. Second missing input is not reached.",
+      "proof": [
+        "readers",
+        "path-resolvers"
+      ],
+      "missing_inputs": [
+        "docs/zircon_runtime/structure/module-convention.md",
+        "docs/zircon_runtime/ui/architecture.md"
+      ],
+      "reproduction": "File existence/readability checked by Python; earlier candidate checker 7e1589 exit1 hit first missing doc. No Rust test execution claim.",
+      "next_action": "Determine authoritative document destinations/input ownership in separate scope; do not create documents or alter paths in this comments-only batch."
+    },
+    {
+      "id": "CR-ZCA-R059-0003",
+      "kind": "BUG",
+      "origin": "new-approved",
+      "status": "open-static-proven-not-fixed",
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "marker_after_lines": [
+        13,
+        14
+      ],
+      "affected_before_lines": [
+        8,
+        12
+      ],
+      "affected_after_lines": [
+        15,
+        19
+      ],
+      "trigger": "Guard reads two obsolete paths under input_manager/bound_text_model_updates; neither file exists.",
+      "observable_effect": "After manager and owner load, old transaction read is the first failing input and panics before profile, cases, manifest and all assertions. Production transaction/cases are present at explicit path destinations.",
+      "proof": [
+        "readers",
+        "path-resolvers",
+        "actual-transaction-mount",
+        "actual-cases-mount"
+      ],
+      "missing_inputs": [
+        "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/transaction.rs",
+        "zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/tests/cases.rs"
+      ],
+      "actual_targets": [
+        {
+          "path": "zircon_runtime/src/ui/dispatch/input_manager/tests/cases.rs",
+          "sha256": "9b3dba120ec478cf96a126661187cd14135f36b3ecb8580ef376712848f8b68a",
+          "bytes": 27324,
+          "lines": 773
+        },
+        {
+          "path": "zircon_runtime/src/ui/dispatch/bound_text_model_updates/transaction.rs",
+          "sha256": "81ea4a02ba4fde662a470aeea09e26a0ec65360b728bd747962abfee997d82eb",
+          "bytes": 9443,
+          "lines": 288
+        }
+      ],
+      "reproduction": "Static existence + actual #[path] resolution + reader failure branch; no Rust test was run.",
+      "next_action": "Under later behavior grant point guard at authoritative mounted files and evaluate assertions there. Do not infer missing production modules or replace current null operands with the relocation targets."
+    },
+    {
+      "id": "CR-ZCA-R059-0004",
+      "kind": "BUG",
+      "origin": "new-approved",
+      "status": "open-static-proven-not-fixed",
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "marker_after_lines": [
+        71,
+        72
+      ],
+      "affected_before_lines": [
+        64,
+        68
+      ],
+      "affected_after_lines": [
+        73,
+        77
+      ],
+      "trigger": "If missing inputs and earlier assertions are satisfied, guard requires shorthand zeroize dependency text.",
+      "observable_effect": "Actual same-version optional table declaration does not contain the required shorthand; raw count0 makes exact helper fail. Does not imply dependency or zeroization mechanism absence.",
+      "proof": [
+        "manifest-shape",
+        "manifest-feature-reference",
+        "contains-operator"
+      ],
+      "existing_issue_search": {
+        "sha256": "73ae3d6f44388ea6caf3495078ecdbf78543a2ae0fdc80298fcc9853944234d9",
+        "matched_rows": 0,
+        "scope": "source issue rows containing this guard path, or zeroize and source_tag"
+      },
+      "reproduction": "Static full manifest contains count0; not a Rust test run and not the full entry's first failure.",
+      "next_action": "Review a syntax-aware or authoritative dependency assertion in separate behavior-change scope, retaining dependency/security evidence boundaries."
+    },
+    {
+      "id": "CR-RUNTIME-TESTS-STRUCT-0110",
+      "ledger_id": "LEGACY:zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs:3:TODO",
+      "kind": "TODO",
+      "origin": "preexisting",
+      "status": "retained-open-intent-question",
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "before_lines": [
+        3,
+        3
+      ],
+      "after_lines": [
+        8,
+        8
+      ],
+      "original_source_sha256": "e1b3b2c580f0e2eeac2e30b560b99cf196ecf8e25298f1e9b950b1fdbd59c0a8",
+      "issue_ledger_sha256": "73ae3d6f44388ea6caf3495078ecdbf78543a2ae0fdc80298fcc9853944234d9",
+      "source_tag": "TODO: [CR-RUNTIME-TESTS-STRUCT-0110] 界面输入管理器的计时器行为测试的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。",
+      "evidence_gap": "Four present historical docs do not carry the whole expected five-anchor set. Who owns/archives these historical anchors is still an intent/authority question.",
+      "next_action": "Confirm authoritative plan/archive responsibility before any later correction; do not merge the four newly proven defects into this TODO."
+    }
+  ],
+  "external_issue_mapping": {
+    "CR-RUNTIME-TESTS-STRUCT-0110": "LEGACY:zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs:3:TODO"
+  },
+  "validation_summary": {
+    "guard": {
+      "tool": "zircon-change-guard",
+      "version": 2,
+      "mode": "patch",
+      "status": "passed",
+      "summary": {
+        "errors": 0,
+        "warnings": 0,
+        "suppressed": 0
+      },
+      "paths": [
+        "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+        "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs"
+      ],
+      "base": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+      "patch_bytes": 4432,
+      "patch_sha256": "6005602b1ae4f9b2765667e98d22ae0845217c6063ff028aec6bfac7f60064e9",
+      "receipt": {
+        "outer_cell": "169",
+        "initial_chunk": "8cac5a",
+        "native_session": 93991,
+        "terminal_chunk": "67036f",
+        "exit_code": 0
+      },
+      "write_grant_check": true,
+      "permission_enforcement_claim": false,
+      "opened_markers": [
+        "CR-ZCA-R059-0001",
+        "CR-ZCA-R059-0002",
+        "CR-ZCA-R059-0003",
+        "CR-ZCA-R059-0004"
+      ]
+    },
+    "format": {
+      "reused_source_pinned_child_final_fmt": {
+        "receipt": "6d5735 exit0 PID17060",
+        "paths": [
+          "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+          "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs"
+        ],
+        "each_exit_code": 0,
+        "arguments": [
+          "--check",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true"
+        ]
+      },
+      "root_final_source_pins_equal": true,
+      "rerun_reason": null
+    },
+    "scoped_diff_check": 0,
+    "scoped_index_empty": true,
+    "preservation": [
+      {
+        "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+        "inverse_equals_grant_and_raw_HEAD": true,
+        "original_string_tokens": 48,
+        "original_string_tokens_equal": true,
+        "new_comment_contribution": 0,
+        "LF_unchanged": true
+      },
+      {
+        "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+        "inverse_equals_grant_and_raw_HEAD": true,
+        "original_string_tokens": 92,
+        "original_string_tokens_equal": true,
+        "new_comment_contribution": 0,
+        "LF_unchanged": true
+      }
+    ]
+  },
+  "native_process_lifecycle": {
+    "child_source_and_record_writers_terminal_known": true,
+    "child_independent_readback": "7cd34a exit0 PID11572",
+    "root_own_all_prior_requests_terminal": true,
+    "root_record_prewrite_failure": {
+      "receipt": "d8a30a exit1 at context-pin CAS, before either metadata open",
+      "independent_recovery": "c98726 exit0: both outputs absent; Cargo gained libm declaration shifting zeroize to320, actual414a82...; current manifest fully reread; all audited bytes intact",
+      "source_replayed": false
+    }
+  },
+  "metadata_writer_receipt": {
+    "pid": 14628,
+    "creation_terminal": "must be attached externally after actual tool return, not inferred here"
+  },
+  "formal_acceptance": false,
+  "phase_commit": false,
+  "wecom_notification": false,
+  "released_files": 0,
+  "released_bytes": 0,
+  "retention": "Fixed source/records, necessary failures and pending managed gates; no helper/build/copy created."
+}

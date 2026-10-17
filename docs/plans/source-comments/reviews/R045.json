@@ -1,0 +1,1536 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R045",
+  "owner": "contracts_luna",
+  "review_role": "scoped-source-audit-and-necessary-comments-only-canonical-source",
+  "model": "gpt-6-luna",
+  "reasoning_effort": "max",
+  "status": "local-comments-complete-pending-main-independent-review",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "canonical_checkout": "E:/Git/ZirconEngine",
+  "write_authorization": {
+    "assignment_path": "docs/plans/source-comments/assignments.json",
+    "assignment_sha256_at_metadata_write": "3b70ab5e000f7f7798c6a62bb7880e24cc05c585a1fd31a3d22c96fef57e388a",
+    "metadata_task": "R045",
+    "write_path": "docs/plans/source-comments/reviews/R045.json",
+    "audited_paths": [
+      "zircon_runtime/src/ui/layout/pass/mod.rs",
+      "zircon_runtime/src/ui/layout/pass/engine.rs",
+      "zircon_runtime/src/ui/layout/pass/layout_tree.rs",
+      "zircon_runtime/src/ui/layout/pass/incremental.rs",
+      "zircon_runtime/src/ui/layout/pass/tests/incremental_optimization_tests.rs",
+      "zircon_runtime/src/ui/layout/pass/slot.rs",
+      "zircon_runtime/src/ui/layout/pass/tests/slot.rs",
+      "zircon_runtime/src/ui/layout/pass/virtual_list_layout.rs",
+      "zircon_runtime/src/ui/layout/virtualization.rs",
+      "zircon_runtime/src/ui/layout/virtualization/materialization.rs",
+      "zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs",
+      "zircon_runtime/src/ui/layout/tests/virtualization.rs",
+      "zircon_runtime/src/ui/layout/taffy_bridge/mod.rs",
+      "zircon_runtime/src/ui/layout/taffy_bridge/compute.rs",
+      "zircon_runtime/src/ui/layout/taffy_bridge/product_cache.rs",
+      "zircon_runtime/src/ui/layout/taffy_bridge/tests/product_cache.rs"
+    ],
+    "before_sha256": {
+      "zircon_runtime/src/ui/layout/pass/mod.rs": "c0e7bb393e53e05f7111ee66e70aed8f1d78402ab2f0930e5dee471cf0e381cf",
+      "zircon_runtime/src/ui/layout/pass/engine.rs": "ca531c41d3664a8ddd03dd69f66b7d657595932328d08d5f37229a1f490e3393",
+      "zircon_runtime/src/ui/layout/pass/layout_tree.rs": "16497673e45c5fb519f557cc960858741ec7b4eceb5cf0b2aae5b868cb92d6b1",
+      "zircon_runtime/src/ui/layout/pass/incremental.rs": "023532ffa3951e8b067c9b41a951f01ce02b64ced3a66ccf578ec32067c1d003",
+      "zircon_runtime/src/ui/layout/pass/tests/incremental_optimization_tests.rs": "de9e2a15495a655e7a71b54510773eb83a7d8433b6ca5c097bd2e7e3d820525f",
+      "zircon_runtime/src/ui/layout/pass/slot.rs": "07e85f46087c294a004475835f5d17e08477269baf77de9509be4d925e92474f",
+      "zircon_runtime/src/ui/layout/pass/tests/slot.rs": "64c73e3b9d9cb95b8fcc464237ef8ac288a56605526b937926caef0eb80a09d4",
+      "zircon_runtime/src/ui/layout/pass/virtual_list_layout.rs": "9a9ece98772fc06fd2664ab122771fda4c92decb317cc7a62e156a1f129aacaa",
+      "zircon_runtime/src/ui/layout/virtualization.rs": "c4e39c1e16c149491d0e29f343e11741b558fb9fcbceea3560832e37dcfd9972",
+      "zircon_runtime/src/ui/layout/virtualization/materialization.rs": "1271bef6bed8fc75c3821ded48753cdd649d12945e4308963a14e171a1439809",
+      "zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs": "06cf9eb60df4350d85ec346900d6e7d6be078f52ad1d078d7ac00cea6acac839",
+      "zircon_runtime/src/ui/layout/tests/virtualization.rs": "936145a4ec8eb0ddf1dc61ead98bc42f7fcce9f00d33cf24eadd4db1b2415cb9",
+      "zircon_runtime/src/ui/layout/taffy_bridge/mod.rs": "7d70a22db93e36130d2e356087f89f846b3e620b9859776d4ca45df8fde82750",
+      "zircon_runtime/src/ui/layout/taffy_bridge/compute.rs": "9255b092ad084c81793c2a13ad002682bf5888646b7d608db2a38e530e04e28e",
+      "zircon_runtime/src/ui/layout/taffy_bridge/product_cache.rs": "03b662959cff9b994cf701e5a32431ec79c5266a0d052a2aece17a404d86a2b3",
+      "zircon_runtime/src/ui/layout/taffy_bridge/tests/product_cache.rs": "0a3b0e09f4e759afac43262ee43d4d01181d5d1ef9b5b66c0c1c5bd4172a7a7f"
+    },
+    "original_line_count": 3482,
+    "status": "assigned",
+    "predecessor_batch": "R042",
+    "exact_scope_only": true,
+    "formal_acceptance": false
+  },
+  "scope": {
+    "summary": "审查 Runtime UI 布局 pass 编排、增量索引、虚拟列表映射和 Taffy 父产品缓存及其已挂载测试。16 个精确授权源均逐对象和连续实现块审查；8 个文件只插入中文解释注释，8 个文件保持原字节。materialization.rs 已完整只读审查，但首个多文件补丁在该路径写入失败，未重试；该文件的建议中文边界说明未落盘，见 write_refusal。",
+    "source_count": 16,
+    "original_lines": 3482,
+    "current_lines": 3496,
+    "changed_sources": 8,
+    "unchanged_sources": 8,
+    "inserted_blocks": 10,
+    "inserted_physical_lines": 14,
+    "reviewed_all_objects_and_continuous_blocks": true,
+    "cross_tree_context_is_read_only": true,
+    "no_behavior_api_test_assertion_string_or_source_guard_operand_changed": true,
+    "formal_acceptance": false,
+    "context_files_formal_coverage": false
+  },
+  "source_pins": [
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/mod.rs",
+      "before_sha256": "c0e7bb393e53e05f7111ee66e70aed8f1d78402ab2f0930e5dee471cf0e381cf",
+      "after_sha256": "68d97f28cd606aa97b707a5c35e9f2632310f5be5c5409b037edfbf6573a0f97",
+      "before_bytes": 997,
+      "after_bytes": 1223,
+      "before_lines": 38,
+      "after_lines": 40,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": true,
+      "raw_inverse_sha256": "c0e7bb393e53e05f7111ee66e70aed8f1d78402ab2f0930e5dee471cf0e381cf",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 2,
+      "diff_deleted_lines": 0,
+      "change_kind": "only inserted module documentation"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/engine.rs",
+      "before_sha256": "ca531c41d3664a8ddd03dd69f66b7d657595932328d08d5f37229a1f490e3393",
+      "after_sha256": "a4d2ff60dba53fc0f766f45b6e0412de373949162eb01d5e1982e75e527e9fbe",
+      "before_bytes": 8071,
+      "after_bytes": 8208,
+      "before_lines": 232,
+      "after_lines": 233,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": true,
+      "raw_inverse_sha256": "ca531c41d3664a8ddd03dd69f66b7d657595932328d08d5f37229a1f490e3393",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 1,
+      "diff_deleted_lines": 0,
+      "change_kind": "only inserted struct documentation"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/layout_tree.rs",
+      "before_sha256": "16497673e45c5fb519f557cc960858741ec7b4eceb5cf0b2aae5b868cb92d6b1",
+      "after_sha256": "16497673e45c5fb519f557cc960858741ec7b4eceb5cf0b2aae5b868cb92d6b1",
+      "before_bytes": 4435,
+      "after_bytes": 4435,
+      "before_lines": 134,
+      "after_lines": 134,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": false,
+      "raw_inverse_sha256": "16497673e45c5fb519f557cc960858741ec7b4eceb5cf0b2aae5b868cb92d6b1",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 0,
+      "diff_deleted_lines": 0,
+      "change_kind": "unchanged; entry-point comments and stage order are already explicit"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/incremental.rs",
+      "before_sha256": "023532ffa3951e8b067c9b41a951f01ce02b64ced3a66ccf578ec32067c1d003",
+      "after_sha256": "96d39adce85ebe810f3f9d36c4c9515b60e3be0f4396e0363d60bdf2b9ef4e7c",
+      "before_bytes": 10171,
+      "after_bytes": 10418,
+      "before_lines": 310,
+      "after_lines": 312,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": true,
+      "raw_inverse_sha256": "023532ffa3951e8b067c9b41a951f01ce02b64ced3a66ccf578ec32067c1d003",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 2,
+      "diff_deleted_lines": 0,
+      "change_kind": "only inserted function documentation"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/tests/incremental_optimization_tests.rs",
+      "before_sha256": "de9e2a15495a655e7a71b54510773eb83a7d8433b6ca5c097bd2e7e3d820525f",
+      "after_sha256": "c86a4edf6a838a18d3d0c3e48c576e5e93c2f1e0b08b00c886091abdc50ffafe",
+      "before_bytes": 644,
+      "after_bytes": 763,
+      "before_lines": 17,
+      "after_lines": 18,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": true,
+      "raw_inverse_sha256": "de9e2a15495a655e7a71b54510773eb83a7d8433b6ca5c097bd2e7e3d820525f",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 1,
+      "diff_deleted_lines": 0,
+      "change_kind": "only inserted module documentation"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/slot.rs",
+      "before_sha256": "07e85f46087c294a004475835f5d17e08477269baf77de9509be4d925e92474f",
+      "after_sha256": "bb4c4d8028b4796e4e7aaa729b895e50195531ad29941340a4b15df675e6f160",
+      "before_bytes": 23917,
+      "after_bytes": 24184,
+      "before_lines": 691,
+      "after_lines": 693,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": true,
+      "raw_inverse_sha256": "07e85f46087c294a004475835f5d17e08477269baf77de9509be4d925e92474f",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 2,
+      "diff_deleted_lines": 0,
+      "change_kind": "only inserted struct and Clone documentation"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/tests/slot.rs",
+      "before_sha256": "64c73e3b9d9cb95b8fcc464237ef8ac288a56605526b937926caef0eb80a09d4",
+      "after_sha256": "64c73e3b9d9cb95b8fcc464237ef8ac288a56605526b937926caef0eb80a09d4",
+      "before_bytes": 8573,
+      "after_bytes": 8573,
+      "before_lines": 227,
+      "after_lines": 227,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": false,
+      "raw_inverse_sha256": "64c73e3b9d9cb95b8fcc464237ef8ac288a56605526b937926caef0eb80a09d4",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 0,
+      "diff_deleted_lines": 0,
+      "change_kind": "unchanged; each test name and assertions directly describe ordered-index repair and dependency projection"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/virtual_list_layout.rs",
+      "before_sha256": "9a9ece98772fc06fd2664ab122771fda4c92decb317cc7a62e156a1f129aacaa",
+      "after_sha256": "9a9ece98772fc06fd2664ab122771fda4c92decb317cc7a62e156a1f129aacaa",
+      "before_bytes": 2673,
+      "after_bytes": 2673,
+      "before_lines": 78,
+      "after_lines": 78,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": false,
+      "raw_inverse_sha256": "9a9ece98772fc06fd2664ab122771fda4c92decb317cc7a62e156a1f129aacaa",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 0,
+      "diff_deleted_lines": 0,
+      "change_kind": "unchanged; module docs and projection helper docs already define the layout-index boundary"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization.rs",
+      "before_sha256": "c4e39c1e16c149491d0e29f343e11741b558fb9fcbceea3560832e37dcfd9972",
+      "after_sha256": "c4e39c1e16c149491d0e29f343e11741b558fb9fcbceea3560832e37dcfd9972",
+      "before_bytes": 2438,
+      "after_bytes": 2438,
+      "before_lines": 69,
+      "after_lines": 69,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": false,
+      "raw_inverse_sha256": "c4e39c1e16c149491d0e29f343e11741b558fb9fcbceea3560832e37dcfd9972",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 0,
+      "diff_deleted_lines": 0,
+      "change_kind": "unchanged; existing helper contracts state the half-open window, input assumptions, and lack of clamping/materialization"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization/materialization.rs",
+      "before_sha256": "1271bef6bed8fc75c3821ded48753cdd649d12945e4308963a14e171a1439809",
+      "after_sha256": "1271bef6bed8fc75c3821ded48753cdd649d12945e4308963a14e171a1439809",
+      "before_bytes": 5896,
+      "after_bytes": 5896,
+      "before_lines": 180,
+      "after_lines": 180,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": false,
+      "raw_inverse_sha256": "1271bef6bed8fc75c3821ded48753cdd649d12945e4308963a14e171a1439809",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 0,
+      "diff_deleted_lines": 0,
+      "change_kind": "unchanged after explicit failed write; file and full behavior were read and reviewed, but Chinese boundary annotation was not applied; see write_refusal"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs",
+      "before_sha256": "06cf9eb60df4350d85ec346900d6e7d6be078f52ad1d078d7ac00cea6acac839",
+      "after_sha256": "06cf9eb60df4350d85ec346900d6e7d6be078f52ad1d078d7ac00cea6acac839",
+      "before_bytes": 4009,
+      "after_bytes": 4009,
+      "before_lines": 123,
+      "after_lines": 123,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": false,
+      "raw_inverse_sha256": "06cf9eb60df4350d85ec346900d6e7d6be078f52ad1d078d7ac00cea6acac839",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 0,
+      "diff_deleted_lines": 0,
+      "change_kind": "unchanged; focused tests already state fixed-capacity and mapping-generation behavior"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/tests/virtualization.rs",
+      "before_sha256": "936145a4ec8eb0ddf1dc61ead98bc42f7fcce9f00d33cf24eadd4db1b2415cb9",
+      "after_sha256": "936145a4ec8eb0ddf1dc61ead98bc42f7fcce9f00d33cf24eadd4db1b2415cb9",
+      "before_bytes": 528,
+      "after_bytes": 528,
+      "before_lines": 17,
+      "after_lines": 17,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": false,
+      "raw_inverse_sha256": "936145a4ec8eb0ddf1dc61ead98bc42f7fcce9f00d33cf24eadd4db1b2415cb9",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 0,
+      "diff_deleted_lines": 0,
+      "change_kind": "unchanged; one test explicitly covers non-negative gap and constant-time geometry calculation"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/mod.rs",
+      "before_sha256": "7d70a22db93e36130d2e356087f89f846b3e620b9859776d4ca45df8fde82750",
+      "after_sha256": "7d70a22db93e36130d2e356087f89f846b3e620b9859776d4ca45df8fde82750",
+      "before_bytes": 1636,
+      "after_bytes": 1636,
+      "before_lines": 44,
+      "after_lines": 44,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": false,
+      "raw_inverse_sha256": "7d70a22db93e36130d2e356087f89f846b3e620b9859776d4ca45df8fde82750",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 0,
+      "diff_deleted_lines": 0,
+      "change_kind": "unchanged; Taffy child contract variants and style helper contracts are explicit"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/compute.rs",
+      "before_sha256": "9255b092ad084c81793c2a13ad002682bf5888646b7d608db2a38e530e04e28e",
+      "after_sha256": "5a9d79a58b6f95182d2881aa34a9766f993e65ef9ad46efb221ccd69824aa03b",
+      "before_bytes": 23645,
+      "after_bytes": 24046,
+      "before_lines": 709,
+      "after_lines": 712,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": true,
+      "raw_inverse_sha256": "9255b092ad084c81793c2a13ad002682bf5888646b7d608db2a38e530e04e28e",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 3,
+      "diff_deleted_lines": 0,
+      "change_kind": "only inserted scratch and bridge function documentation"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/product_cache.rs",
+      "before_sha256": "03b662959cff9b994cf701e5a32431ec79c5266a0d052a2aece17a404d86a2b3",
+      "after_sha256": "3542a886295ec0ed413a35e6b1bcad94ecb53a02cfa140eeebc816d829436e9c",
+      "before_bytes": 19964,
+      "after_bytes": 20200,
+      "before_lines": 531,
+      "after_lines": 533,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": true,
+      "raw_inverse_sha256": "03b662959cff9b994cf701e5a32431ec79c5266a0d052a2aece17a404d86a2b3",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 2,
+      "diff_deleted_lines": 0,
+      "change_kind": "only inserted module documentation"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/tests/product_cache.rs",
+      "before_sha256": "0a3b0e09f4e759afac43262ee43d4d01181d5d1ef9b5b66c0c1c5bd4172a7a7f",
+      "after_sha256": "c6f208a1fd0581b84c25c5f722caf6c81152597d02993538f434cd92b91e4b9f",
+      "before_bytes": 2637,
+      "after_bytes": 2757,
+      "before_lines": 82,
+      "after_lines": 83,
+      "before_eol": "LF",
+      "after_eol": "LF",
+      "before_bom": false,
+      "after_bom": false,
+      "changed": true,
+      "raw_inverse_sha256": "0a3b0e09f4e759afac43262ee43d4d01181d5d1ef9b5b66c0c1c5bd4172a7a7f",
+      "raw_inverse_matches_grant": true,
+      "diff_added_lines": 1,
+      "diff_deleted_lines": 0,
+      "change_kind": "only inserted module documentation"
+    }
+  ],
+  "object_audit": [
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/mod.rs",
+      "source_sha256": "68d97f28cd606aa97b707a5c35e9f2632310f5be5c5409b037edfbf6573a0f97",
+      "objects": [
+        {
+          "name": "module-level pass docs",
+          "lines": [
+            1,
+            2
+          ],
+          "result": "新增职责/入口持有方式说明；原有模块挂载不变。"
+        },
+        {
+          "name": "static #[path] module mounts",
+          "lines": [
+            3,
+            34
+          ],
+          "result": "审查 arrange/axis/child_frame/clip/engine/incremental/inline_widgets/layout_tree/material/material/measure/pipeline/responsive_mui/slot/taffy_arrange/virtual_list_layout/workspace 的静态挂载；不含动态注册。"
+        },
+        {
+          "name": "public re-exports compute_layout_tree and pass stage API",
+          "lines": [
+            37,
+            39
+          ],
+          "result": "确认公开 Rust 入口与诊断阶段导出边界；阶段实现留在子模块。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/engine.rs",
+      "source_sha256": "a4d2ff60dba53fc0f766f45b6e0412de373949162eb01d5e1982e75e527e9fbe",
+      "objects": [
+        {
+          "name": "UiLayoutPassEngineContext",
+          "lines": [
+            17,
+            29
+          ],
+          "result": "记录当前布局选择、访问信息和节点几何/回退结果的上下文；供完整与增量路径传递。"
+        },
+        {
+          "name": "impl UiLayoutPassEngineContext: incremental, incremental_with_sources, index_required_children, copy_required_children, can_sparse_arrange_independent_children, taffy_child_contract_scope, can_reuse_geometry, record_arrangement_probe, record_geometry, record_taffy_native, record_taffy_fallback, record_zircon_owned, finish, finish_incremental",
+          "lines": [
+            30,
+            232
+          ],
+          "result": "逐方法审阅状态读取/写入与报告结束行为；增量所需节点来源进入索引，回退原因进入统计，不在此处执行引擎调用。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/layout_tree.rs",
+      "source_sha256": "16497673e45c5fb519f557cc960858741ec7b4eceb5cf0b2aae5b868cb92d6b1",
+      "objects": [
+        {
+          "name": "compute_layout_tree",
+          "lines": [
+            18,
+            28
+          ],
+          "result": "兼容入口创建本次调用的文本缓存和槽索引，再委托 owner-aware 路径。"
+        },
+        {
+          "name": "compute_layout_tree_with_text_measure_cache",
+          "lines": [
+            30,
+            42
+          ],
+          "result": "保留调用方文本度量缓存，并创建单次调用槽索引。"
+        },
+        {
+          "name": "compute_layout_tree_with_text_measure_cache_and_slot_index",
+          "lines": [
+            44,
+            119
+          ],
+          "result": "先解析响应式规则并同步索引，然后测量各根、安排根和 inline widget；计时与统计按实际阶段收尾。"
+        },
+        {
+          "name": "emit_layout_profile",
+          "lines": [
+            121,
+            134
+          ],
+          "result": "仅在 profile 宏启用时记录阶段统计；不改变布局返回值。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/incremental.rs",
+      "source_sha256": "96d39adce85ebe810f3f9d36c4c9515b60e3be0f4396e0363d60bdf2b9ef4e7c",
+      "objects": [
+        {
+          "name": "UiIncrementalLayoutStats",
+          "lines": [
+            23,
+            36
+          ],
+          "result": "描述根尺寸变化、候选/安排根和测量节点统计。"
+        },
+        {
+          "name": "compute_incremental_layout_tree_with_text_measure_cache",
+          "lines": [
+            38,
+            145
+          ],
+          "result": "吸收树变更及脏节点，先拓展布局依赖和测量必需节点，根尺寸变化时重新处理所有根，否则处理受影响根，最终汇总增量状态。"
+        },
+        {
+          "name": "layout_dependency_paths and incremental_layout_roots",
+          "lines": [
+            147,
+            203
+          ],
+          "result": "分别收集依赖祖先闭包与根据根尺寸/变更确定安排根；所有根分支不等同全树每个节点都重新测量。"
+        },
+        {
+          "name": "#[path] optimization_tests module mount",
+          "lines": [
+            204,
+            205
+          ],
+          "result": "模块内 include_str 源断言与当前实现关联。"
+        },
+        {
+          "name": "propagated_layout_root, has_ancestor_in, arrange_layout_root, root_frame",
+          "lines": [
+            207,
+            312
+          ],
+          "result": "逐 helper 审阅祖先传播、根包含检查、分根安排及根框架创建。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/tests/incremental_optimization_tests.rs",
+      "source_sha256": "c86a4edf6a838a18d3d0c3e48c576e5e93c2f1e0b08b00c886091abdc50ffafe",
+      "objects": [
+        {
+          "name": "module-level test-boundary docs",
+          "lines": [
+            1,
+            1
+          ],
+          "result": "说明是源码断言，不将其描述为执行期分配测量。"
+        },
+        {
+          "name": "incremental_layout_root_workspaces_use_existing_upper_bounds",
+          "lines": [
+            3,
+            18
+          ],
+          "result": "审阅对候选根容量上界及安排根 reserve 的源码片段断言；不执行布局、不测量分配次数。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/slot.rs",
+      "source_sha256": "bb4c4d8028b4796e4e7aaa729b895e50195531ad29941340a4b15df675e6f160",
+      "objects": [
+        {
+          "name": "UiLayoutSlotIndex and Clone",
+          "lines": [
+            20,
+            41
+          ],
+          "result": "索引持有 RefCell 状态、工作区、Taffy 产品缓存、虚拟列表投影；Clone 复制派生状态但重置工作区与产品缓存。"
+        },
+        {
+          "name": "UiLayoutSlotIndexState, UiOrderedChildren, UiParentSizeDependencies",
+          "lines": [
+            42,
+            71
+          ],
+          "result": "审阅按树代数/父依赖投影及 ordered-child revision 的状态字段。"
+        },
+        {
+          "name": "UiLayoutSlotIndex methods: for_tree, refresh_for_tree, ensure_initialized, synchronize_ordered_children, ordered_children_for_container, ordered_children_revision_for_container, synchronize_responsive_candidates, responsive_layout_may_change, synchronize_parent_size_dependencies, copy_parent_size_dependent_children, parent_size_dependency_evaluations, with_responsive_candidates, with_measure_workspace, take/recycle scratch, take/recycle hidden stack, with/discard/query Taffy products, first_index_for_edge, index_for_kind",
+          "lines": [
+            72,
+            372
+          ],
+          "result": "覆盖初始化、变更同步、缓存借还、产品版本核对及 slot 查找入口；RefCell 借用在闭包边界内。"
+        },
+        {
+          "name": "UiLayoutSlotIndexState methods: rebuild, patch_layout_order_parents, rebuild_ordered_children, patch_parent_size_dependencies, parent_size_dependencies_need_rebuild, patch_parent_size_dependency_child, rebuild_parent_size_dependencies",
+          "lines": [
+            374,
+            603
+          ],
+          "result": "覆盖全量重建和有界局部修补，依赖边依树节点/slot 配置而非对所有边反复扫描。"
+        },
+        {
+          "name": "free_child_depends_on_parent_size, PartialEq, slot_for_container_child, container_uses_slot_order, has_slot_frame_policy, slot_padding, slot_kind_for_container, indexed_slot_for_container_child",
+          "lines": [
+            605,
+            690
+          ],
+          "result": "逐路径审阅父尺寸依赖条件、索引 first-match 回退及容器 slot 类别；PartialEq 对索引状态恒视为相等，因缓存不代表表面身份。"
+        },
+        {
+          "name": "#[path] slot tests mount",
+          "lines": [
+            692,
+            693
+          ],
+          "result": "同模块测试挂载静态，无动态注册。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/tests/slot.rs",
+      "source_sha256": "64c73e3b9d9cb95b8fcc464237ef8ac288a56605526b937926caef0eb80a09d4",
+      "objects": [
+        {
+          "name": "indexed_lookup_preserves_first_matching_slot_semantics",
+          "lines": [
+            13,
+            35
+          ],
+          "result": "断言重复/匹配 slot 的 first-match 语义。"
+        },
+        {
+          "name": "indexed_lookup_repairs_same_cardinality_edge_replacement",
+          "lines": [
+            37,
+            74
+          ],
+          "result": "断言同数量边替换可修复索引。"
+        },
+        {
+          "name": "ordered_children_reuse_one_generation_and_patch_same_cardinality_order_changes",
+          "lines": [
+            76,
+            113
+          ],
+          "result": "断言一代内复用 ordered children，并修补顺序改变。"
+        },
+        {
+          "name": "ordered_children_patch_same_cardinality_public_child_reordering",
+          "lines": [
+            115,
+            146
+          ],
+          "result": "断言公开 child 顺序变化更新投影。"
+        },
+        {
+          "name": "one_child_dependency_change_patches_only_that_parent_membership",
+          "lines": [
+            148,
+            196
+          ],
+          "result": "1000 子节点夹具中只检查一个节点依赖变化对应的父成员修补。"
+        },
+        {
+          "name": "parent_container_change_rebuilds_the_parent_dependency_projection",
+          "lines": [
+            198,
+            227
+          ],
+          "result": "断言父容器类型变化重建父依赖投影；上述均为私有索引逻辑测试，不是完整帧布局测试。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/virtual_list_layout.rs",
+      "source_sha256": "9a9ece98772fc06fd2664ab122771fda4c92decb317cc7a62e156a1f129aacaa",
+      "objects": [
+        {
+          "name": "UiMaterializedVirtualListLayoutIndex and UiMaterializedVirtualListLayout",
+          "lines": [
+            10,
+            18
+          ],
+          "result": "保存 owner 到逻辑列表投影，以及逻辑数量和物理 child 到逻辑索引映射。"
+        },
+        {
+          "name": "UiLayoutSlotIndex::replace_materialized_virtual_list, clear_materialized_virtual_list, prune_materialized_virtual_lists, with_materialized_virtual_list",
+          "lines": [
+            20,
+            64
+          ],
+          "result": "审阅替换/清理/按 UiTree owner 集合 prune 与闭包读取边界。"
+        },
+        {
+          "name": "UiMaterializedVirtualListLayout::logical_count, logical_index_for_child, assignment_count",
+          "lines": [
+            65,
+            77
+          ],
+          "result": "确认基于当前物理 child 映射回逻辑序号，不负责创建或重绑 UiTree 节点。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization.rs",
+      "source_sha256": "c4e39c1e16c149491d0e29f343e11741b558fb9fcbceea3560832e37dcfd9972",
+      "objects": [
+        {
+          "name": "compute_virtual_list_window",
+          "lines": [
+            12,
+            33
+          ],
+          "result": "已有文档描述半开 overscan 窗口及有限正 step 等调用前提；函数不负责 clamp/实体化。"
+        },
+        {
+          "name": "fixed_extent_virtual_list_step_extent, fixed_extent_virtual_list_content_extent, fixed_extent_virtual_list_item_offset",
+          "lines": [
+            35,
+            67
+          ],
+          "result": "审阅固定步长、内容范围与逻辑索引偏移的几何计算；checked/saturating 分支按函数实际边界记录。"
+        },
+        {
+          "name": "materialization module and tests mounts/re-exports",
+          "lines": [
+            3,
+            69
+          ],
+          "result": "静态路径挂载仅导出 map/capacity helper 与本地测试。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization/materialization.rs",
+      "source_sha256": "1271bef6bed8fc75c3821ded48753cdd649d12945e4308963a14e171a1439809",
+      "objects": [
+        {
+          "name": "UiVirtualListSlotChange, UiVirtualListSlotMap, Clone/clone_from",
+          "lines": [
+            5,
+            39
+          ],
+          "result": "记录有限物理槽位的旧/新逻辑索引及可复用映射状态。"
+        },
+        {
+          "name": "UiVirtualListSlotMap::reconcile and accessors",
+          "lines": [
+            39,
+            114
+          ],
+          "result": "审阅容量与逻辑数量取 min、回填窗口、复用调用方 changes 向量、仅变化时递增 generation，以及 getters 的 None/计数语义。"
+        },
+        {
+          "name": "fixed_extent_slot_capacity, backfill_window_to_slot_count, logical_index_for_slot helpers",
+          "lines": [
+            116,
+            177
+          ],
+          "result": "审阅边界窗口回填与逻辑索引计算；helper 只产出逻辑到物理槽映射，不创建/重绑 UiTree 节点。"
+        },
+        {
+          "name": "#[path] materialization tests mount",
+          "lines": [
+            179,
+            180
+          ],
+          "result": "确认测试为该映射模块内部静态挂载。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs",
+      "source_sha256": "06cf9eb60df4350d85ec346900d6e7d6be078f52ad1d078d7ac00cea6acac839",
+      "objects": [
+        {
+          "name": "slot_count_is_independent_of_logical_count",
+          "lines": [
+            5,
+            11
+          ],
+          "result": "逻辑总数很大时物理槽数量由容量决定。"
+        },
+        {
+          "name": "fractional_scroll_capacity_keeps_both_partial_boundary_items",
+          "lines": [
+            13,
+            24
+          ],
+          "result": "覆盖两端部分可见项容量。"
+        },
+        {
+          "name": "boundary_windows_backfill_to_slot_capacity",
+          "lines": [
+            26,
+            39
+          ],
+          "result": "断言边界窗口回填至槽位容量。"
+        },
+        {
+          "name": "one_row_scroll_rebinds_only_one_boundary_slot",
+          "lines": [
+            41,
+            54
+          ],
+          "result": "断言小幅滚动仅边界槽改变。"
+        },
+        {
+          "name": "large_seek_rebinds_at_most_the_slot_capacity",
+          "lines": [
+            56,
+            68
+          ],
+          "result": "断言大跨度跳转最多更改容量范围槽位。"
+        },
+        {
+          "name": "model_shrink_clears_out_of_range_assignments",
+          "lines": [
+            70,
+            87
+          ],
+          "result": "模型缩小时清理越界映射。"
+        },
+        {
+          "name": "identical_reconcile_preserves_generation_and_emits_no_changes",
+          "lines": [
+            89,
+            100
+          ],
+          "result": "相同输入不增 generation 且不发变更。"
+        },
+        {
+          "name": "clone_from_reuses_slot_storage and window helper",
+          "lines": [
+            102,
+            123
+          ],
+          "result": "断言 clone_from 复用映射存储；helper 仅构造半开测试窗口。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/tests/virtualization.rs",
+      "source_sha256": "936145a4ec8eb0ddf1dc61ead98bc42f7fcce9f00d33cf24eadd4db1b2415cb9",
+      "objects": [
+        {
+          "name": "fixed_extent_geometry_includes_non_negative_gap_without_iterating_items",
+          "lines": [
+            7,
+            17
+          ],
+          "result": "覆盖非负 gap 和 O(1) 固定范围几何公式，不遍历逻辑项。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/mod.rs",
+      "source_sha256": "7d70a22db93e36130d2e356087f89f846b3e620b9859776d4ca45df8fde82750",
+      "objects": [
+        {
+          "name": "static compute/product_cache module mounts and internal re-exports",
+          "lines": [
+            1,
+            23
+          ],
+          "result": "确认 bridge 子模块与父级布局风格映射的静态依赖。"
+        },
+        {
+          "name": "UiTaffyChildContractScope",
+          "lines": [
+            25,
+            30
+          ],
+          "result": "Full 与 Exact 表示产品可更新拓扑或只能复用符合版本的现有拓扑。"
+        },
+        {
+          "name": "taffy_style_for_container, taffy_display_for_family",
+          "lines": [
+            32,
+            44
+          ],
+          "result": "审阅容器样式与引擎族 display 映射；不承诺所有容器可由 Taffy 执行。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/compute.rs",
+      "source_sha256": "5a9d79a58b6f95182d2881aa34a9766f993e65ef9ad46efb221ccd69824aa03b",
+      "objects": [
+        {
+          "name": "TaffyChildLayoutInput, TaffyLayoutChildFrame, TaffyLayoutOutcome, TaffyLayoutBridgeScratch",
+          "lines": [
+            22,
+            49
+          ],
+          "result": "输入借用父子状态，scratch 保存当前父子输入并复用向量容量。"
+        },
+        {
+          "name": "Default and TaffyLayoutBridgeScratch methods begin_children, push_child, child_frames, clear, grid_dimensions",
+          "lines": [
+            50,
+            129
+          ],
+          "result": "审阅新父开始时 clear、子样式收集和 grid 维度累计；文档不把 scratch 与产品缓存混为一体。"
+        },
+        {
+          "name": "TaffyLayoutBridgeError and fallback_reason/tree_build",
+          "lines": [
+            130,
+            160
+          ],
+          "result": "逐变体审阅错误向后端回退原因和建树统计的映射。"
+        },
+        {
+          "name": "compute_taffy_child_frames",
+          "lines": [
+            162,
+            210
+          ],
+          "result": "按可见 children 顺序构造 style/input、请求 parent cache 并生成父坐标系绝对子帧；Exact 不满足由错误交安排方。"
+        },
+        {
+          "name": "Taffy support predicates and style mapping helpers",
+          "lines": [
+            212,
+            709
+          ],
+          "result": "逐函数审阅 parent/container/axis/child/slot/finite/alignment/padding 支持谓词以及父子 style、线性 sizing、grid placement、轴尺寸和统计辅助；未以谓词调用替代运行期 Taffy/后端验收。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/product_cache.rs",
+      "source_sha256": "3542a886295ec0ed413a35e6b1bcad94ecb53a02cfa140eeebc816d829436e9c",
+      "objects": [
+        {
+          "name": "TaffyParentProductCache, TaffyParentProduct, TaffyRetainedChild, TaffyParentProductUpdate, TaffyParentProductError, TaffyParentProductErrorKind",
+          "lines": [
+            14,
+            72
+          ],
+          "result": "审阅缓存映射、每父产品、保留 child 顺序/样式/版本、更新统计与错误种类。"
+        },
+        {
+          "name": "TaffyParentProductCache::compute_child_frames, discard, matches_order_revision, active_children_contain_all, retain, product_counts, last_update",
+          "lines": [
+            73,
+            309
+          ],
+          "result": "cache 按 parent id 取出产品后更新；中途错误不会重新放回旧产品，完整成功后发布新产品和更新统计。"
+        },
+        {
+          "name": "TaffyParentProduct::new, update_exact, update_full, update_parent_style, topology_changed",
+          "lines": [
+            310,
+            487
+          ],
+          "result": "Exact 验证 ordered child ids/revision，不重建拓扑；Full 可协调 child 映射/样式/布局树；更新父 style 后依据脏状态计算布局。"
+        },
+        {
+          "name": "TaffyParentProductUpdateDetails, index_children, absolute_child_frame, product_error, tree_build_stats",
+          "lines": [
+            488,
+            530
+          ],
+          "result": "审阅更新报告、索引建立、父偏移转绝对子帧和错误/建树统计构造。"
+        },
+        {
+          "name": "existing unsafe Send implementation",
+          "lines": [
+            1,
+            13
+          ],
+          "result": "保持既有 SAFETY 注释；确认本批新增内容不改 unsafe 实现或线程安全边界。"
+        },
+        {
+          "name": "#[path] tests module mount",
+          "lines": [
+            532,
+            533
+          ],
+          "result": "静态挂载缓存合同测试。"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/tests/product_cache.rs",
+      "source_sha256": "c6f208a1fd0581b84c25c5f722caf6c81152597d02993538f434cd92b91e4b9f",
+      "objects": [
+        {
+          "name": "product_with_children",
+          "lines": [
+            9,
+            17
+          ],
+          "result": "建立缓存单测用 Taffy 产品和 child 输入。"
+        },
+        {
+          "name": "failed_exact_update_discards_product_and_previous_snapshot",
+          "lines": [
+            19,
+            59
+          ],
+          "result": "断言 Exact revision 不匹配时报错，旧产品/快照未继续保留。"
+        },
+        {
+          "name": "topology_updates_reuse_the_retained_taffy_child_projection",
+          "lines": [
+            61,
+            83
+          ],
+          "result": "断言拓扑更新复用 child projection 的容量/存储地址；不验证完整 UI 帧或最终 arrange fallback。"
+        }
+      ]
+    }
+  ],
+  "assertion_table": [
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/tests/incremental_optimization_tests.rs",
+      "line": 3,
+      "test": "incremental_layout_root_workspaces_use_existing_upper_bounds",
+      "asserts": "检查源码片段中的候选根工作区容量和根安排 reserve。",
+      "limit": "源码字符串谓词，不执行布局、不测分配。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/tests/slot.rs",
+      "line": 13,
+      "test": "indexed_lookup_preserves_first_matching_slot_semantics",
+      "asserts": "重复 slot 查找保留首匹配。",
+      "limit": "索引 helper 级断言。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/tests/slot.rs",
+      "line": 37,
+      "test": "indexed_lookup_repairs_same_cardinality_edge_replacement",
+      "asserts": "同数量 child edge 替换后索引修复。",
+      "limit": "索引 helper 级断言。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/tests/slot.rs",
+      "line": 76,
+      "test": "ordered_children_reuse_one_generation_and_patch_same_cardinality_order_changes",
+      "asserts": "复用 generation 并修补同数量顺序变化。",
+      "limit": "不跑完整布局。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/tests/slot.rs",
+      "line": 115,
+      "test": "ordered_children_patch_same_cardinality_public_child_reordering",
+      "asserts": "公开 child 重排后投影顺序更新。",
+      "limit": "不验最终几何。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/tests/slot.rs",
+      "line": 148,
+      "test": "one_child_dependency_change_patches_only_that_parent_membership",
+      "asserts": "1000-child 场景中的一个依赖变化只修补相关父成员。",
+      "limit": "索引复杂度/行为 fixture，不是 benchmark。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/tests/slot.rs",
+      "line": 198,
+      "test": "parent_container_change_rebuilds_the_parent_dependency_projection",
+      "asserts": "父容器变化重建 dependency projection。",
+      "limit": "不验跨帧产品或最终布局。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs",
+      "line": 5,
+      "test": "slot_count_is_independent_of_logical_count",
+      "asserts": "物理 slot 数受 capacity 约束。",
+      "limit": "映射层，不创建树节点。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs",
+      "line": 13,
+      "test": "fractional_scroll_capacity_keeps_both_partial_boundary_items",
+      "asserts": "fractional scroll 下容量包含两端部分项。",
+      "limit": "不验实际 viewport/materialized widgets。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs",
+      "line": 26,
+      "test": "boundary_windows_backfill_to_slot_capacity",
+      "asserts": "边界窗口向内回填至容量。",
+      "limit": "映射 helper fixture。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs",
+      "line": 41,
+      "test": "one_row_scroll_rebinds_only_one_boundary_slot",
+      "asserts": "滚动一行只重新映射一个边界槽。",
+      "limit": "不验 UI 节点对象身份。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs",
+      "line": 56,
+      "test": "large_seek_rebinds_at_most_the_slot_capacity",
+      "asserts": "大 seek 的变更数量不超过物理槽数。",
+      "limit": "不测真实分配。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs",
+      "line": 70,
+      "test": "model_shrink_clears_out_of_range_assignments",
+      "asserts": "缩小模型时清理越界逻辑映射。",
+      "limit": "不验证调用方树回收时机。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs",
+      "line": 89,
+      "test": "identical_reconcile_preserves_generation_and_emits_no_changes",
+      "asserts": "相同输入不产生 changes 且 generation 不变。",
+      "limit": "不验证并发调用。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs",
+      "line": 102,
+      "test": "clone_from_reuses_slot_storage",
+      "asserts": "clone_from 复用 slots 分配。",
+      "limit": "仅存储复用断言。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/tests/virtualization.rs",
+      "line": 7,
+      "test": "fixed_extent_geometry_includes_non_negative_gap_without_iterating_items",
+      "asserts": "固定 extent 公式包含 gap 并按数量直接求 content extent。",
+      "limit": "不是 scroll integration 测试。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/tests/product_cache.rs",
+      "line": 19,
+      "test": "failed_exact_update_discards_product_and_previous_snapshot",
+      "asserts": "Exact 更新失败后旧产品不留在缓存。",
+      "limit": "不验证上层记录错误后最终帧。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/tests/product_cache.rs",
+      "line": 61,
+      "test": "topology_updates_reuse_the_retained_taffy_child_projection",
+      "asserts": "有拓扑变更时保留并复用 child vector 分配。",
+      "limit": "只审缓存结构与存储地址。"
+    }
+  ],
+  "insertions": [
+    {
+      "id": "R045-I01",
+      "path": "zircon_runtime/src/ui/layout/pass/mod.rs",
+      "byte_offset": 0,
+      "line_range": [
+        1,
+        2
+      ],
+      "byte_length": 226,
+      "inserted_bytes_sha256": "5850a601d541b61c00b17ea9c81d2fc05d88d520989c7da96dc296b24627e3f8",
+      "exact_text": "//! 为 Runtime UI 提供完整与增量布局入口，并导出供诊断读取的阶段顺序。\n//! 独立布局会创建临时槽位索引；保留表面可沿用调用方持有的索引，具体阶段由子模块实现。\n",
+      "line_ending": "LF",
+      "reversal": "唯一精确移除该 UTF-8 块后恢复授权前原始字节 SHA。",
+      "before_byte_offset": 0
+    },
+    {
+      "id": "R045-I02",
+      "path": "zircon_runtime/src/ui/layout/pass/engine.rs",
+      "byte_offset": 505,
+      "line_range": [
+        16,
+        16
+      ],
+      "byte_length": 137,
+      "inserted_bytes_sha256": "81546b224e78de677b631e46402b1c7d818da4e1649859b3ab53ef9643ad37aa",
+      "exact_text": "/// 保存一次布局调用的访问、依赖与几何变化状态；增量调用把扩展后的必需节点集合交给此上下文。\n",
+      "line_ending": "LF",
+      "reversal": "唯一精确移除该 UTF-8 块后恢复授权前原始字节 SHA。",
+      "before_byte_offset": 505
+    },
+    {
+      "id": "R045-I03",
+      "path": "zircon_runtime/src/ui/layout/pass/incremental.rs",
+      "byte_offset": 1270,
+      "line_range": [
+        36,
+        37
+      ],
+      "byte_length": 247,
+      "inserted_bytes_sha256": "5fb6fb5b1c2a710f6d23186452e1ad44139af16a0932bdaa74b120f07844851b",
+      "exact_text": "/// 按脏节点和树内待处理变更更新布局，并先扩展测量所需的依赖路径。\n/// 根尺寸变化会解析全部响应式候选并安排所有根；否则只处理受影响的根。索引由调用方持有以跨调用复用。\n",
+      "line_ending": "LF",
+      "reversal": "唯一精确移除该 UTF-8 块后恢复授权前原始字节 SHA。",
+      "before_byte_offset": 1270
+    },
+    {
+      "id": "R045-I04",
+      "path": "zircon_runtime/src/ui/layout/pass/tests/incremental_optimization_tests.rs",
+      "byte_offset": 0,
+      "line_range": [
+        1,
+        1
+      ],
+      "byte_length": 119,
+      "inserted_bytes_sha256": "d81cc2f860ed727f72257deffe8b12e5c06b5b7de0142adb11d365c56e74ba3a",
+      "exact_text": "//! 这些源码断言检查候选根与安排根容器的保留方式，不执行布局或测量实际分配次数。\n",
+      "line_ending": "LF",
+      "reversal": "唯一精确移除该 UTF-8 块后恢复授权前原始字节 SHA。",
+      "before_byte_offset": 0
+    },
+    {
+      "id": "R045-I05",
+      "path": "zircon_runtime/src/ui/layout/pass/slot.rs",
+      "byte_offset": 532,
+      "line_range": [
+        19,
+        19
+      ],
+      "byte_length": 137,
+      "inserted_bytes_sha256": "73abcca1357ccfdc24dbf39e049d77dfd18d4fb3a710868292aef16a08ef596a",
+      "exact_text": "/// 按树结构派生并由布局所有者持有的索引，缓存子顺序、父尺寸依赖、响应式候选及布局暂存数据。\n",
+      "line_ending": "LF",
+      "reversal": "唯一精确移除该 UTF-8 块后恢复授权前原始字节 SHA。",
+      "before_byte_offset": 532
+    },
+    {
+      "id": "R045-I06",
+      "path": "zircon_runtime/src/ui/layout/pass/slot.rs",
+      "byte_offset": 1019,
+      "line_range": [
+        29,
+        29
+      ],
+      "byte_length": 130,
+      "inserted_bytes_sha256": "61f0c55aadec42e7a04cfa218ee86f80a1d1459b07aa95be851a8e9417dae09f",
+      "exact_text": "    /// 复制索引状态和虚拟列表投影，但重置工作区与 Taffy 产品缓存，避免沿用旧计算暂存结果。\n",
+      "line_ending": "LF",
+      "reversal": "唯一精确移除该 UTF-8 块后恢复授权前原始字节 SHA。",
+      "before_byte_offset": 1019
+    },
+    {
+      "id": "R045-I07",
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/compute.rs",
+      "byte_offset": 1198,
+      "line_range": [
+        40,
+        40
+      ],
+      "byte_length": 143,
+      "inserted_bytes_sha256": "2d6b19855720186cbed3e6d54215320c6b359c1706353408cd4d83c1fd46b329",
+      "exact_text": "/// 暂存当前父节点的子 ID、Taffy 样式和结果帧；开始新容器时清空内容并保留向量容量供安排工作区复用。\n",
+      "line_ending": "LF",
+      "reversal": "唯一精确移除该 UTF-8 块后恢复授权前原始字节 SHA。",
+      "before_byte_offset": 1198
+    },
+    {
+      "id": "R045-I08",
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/compute.rs",
+      "byte_offset": 5169,
+      "line_range": [
+        160,
+        161
+      ],
+      "byte_length": 258,
+      "inserted_bytes_sha256": "981369c9509b37cd018bc169eeff14ad2869a2d12e1a32e6d4bf07d8d873afcc",
+      "exact_text": "/// 将调用方按可见子节点顺序收集的输入交给父产品缓存，并生成相对父布局坐标的绝对子框架。\n/// `Exact` 仅接受已有且顺序版本匹配的产品；不满足时返回错误，由安排调用方记录后端回退。\n",
+      "line_ending": "LF",
+      "reversal": "唯一精确移除该 UTF-8 块后恢复授权前原始字节 SHA。",
+      "before_byte_offset": 5169
+    },
+    {
+      "id": "R045-I09",
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/product_cache.rs",
+      "byte_offset": 0,
+      "line_range": [
+        1,
+        2
+      ],
+      "byte_length": 236,
+      "inserted_bytes_sha256": "4e6486ce6cc71dfd7a835aa73191da5444765fecc8173c389ffc0462fe950901",
+      "exact_text": "//! 按父节点保留 Taffy 树与子节点相对帧：`Full` 可更新拓扑，`Exact` 只接受匹配的子顺序版本。\n//! 更新失败时已取出的旧产品不会重新放回缓存；调用方据错误走布局后端回退。\n",
+      "line_ending": "LF",
+      "reversal": "唯一精确移除该 UTF-8 块后恢复授权前原始字节 SHA。",
+      "before_byte_offset": 0
+    },
+    {
+      "id": "R045-I10",
+      "path": "zircon_runtime/src/ui/layout/taffy_bridge/tests/product_cache.rs",
+      "byte_offset": 0,
+      "line_range": [
+        1,
+        1
+      ],
+      "byte_length": 120,
+      "inserted_bytes_sha256": "5349d116fcd548358144d300b468da11c87af6172e3d46c1ab9c509952f68606",
+      "exact_text": "//! 仅检查父产品缓存的精确版本失败和拓扑向量复用，不验证完整 UI 布局或最终回退帧。\n",
+      "line_ending": "LF",
+      "reversal": "唯一精确移除该 UTF-8 块后恢复授权前原始字节 SHA。",
+      "before_byte_offset": 0
+    }
+  ],
+  "call_trait_macro_ffi_evidence": {
+    "direct_callers": [
+      {
+        "path": "zircon_runtime/src/ui/surface/surface/rebuild.rs",
+        "sha256_at_read": "70047bc5cfd665ddf87a4afe8b3911856ac34888bcc2990bbf0e907aaa2d2d5d",
+        "lines": [
+          421,
+          426
+        ],
+        "evidence": "完整表面重建持有并调用 owner-aware layout pass，复用 surface 的槽索引与 text cache。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs",
+        "sha256_at_read": "037eb3eb8cbf1c9b075a61394fd50ebe306a0d8463e459da70185195083bc3a",
+        "lines": [
+          90,
+          98
+        ],
+        "evidence": "增量重建直接调用 compute_incremental_layout_tree_with_text_measure_cache 并传入变更/脏节点集。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/pipeline.rs",
+        "sha256_at_read": "dbf30eee9f3f62fb561cff860f3c72f2dd09952473b243ebc651359bb6577ca0",
+        "lines": [
+          1,
+          49
+        ],
+        "evidence": "阶段定义为响应式、measurement、backend selection、Taffy/fallback、clips/windows/selection 顺序。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/taffy_arrange.rs",
+        "sha256_at_read": "4b5d1de95d449fdea8171670c7c9fbff9702be5f47daf63cc76627c02ff3bdf8",
+        "lines": [
+          90,
+          202
+        ],
+        "evidence": "安排调用方先收集有效 child 输入，在行162–173调用 compute_taffy_child_frames，错误在行174–184映射至后端回退。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/pass/workspace.rs",
+        "sha256_at_read": "a59265b43c24a4ee06109d62c9662d803d72f2cc92c9055311ccf42da770b048",
+        "lines": [
+          69,
+          78
+        ],
+        "evidence": "安排工作区按 take/recycle 周期借还 Taffy scratch。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/surface/virtual_list_materialization.rs",
+        "sha256_at_read": "cb1d13bcec72dd424d8e1726ce6166b6569b8519c542452110122524f580f0b3",
+        "lines": [
+          227,
+          227
+        ],
+        "evidence": "surface 清理旧 owner 虚拟索引；在400行调用后续映射替换。真实 UiTree 创建/重绑逻辑在该只读消费者而非 SlotMap 内。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/scroll.rs",
+        "sha256_at_read": "42f83285364a690da0a4b89de5eef75a9c7998f20ce79a35e921156775c1b1cb",
+        "lines": [
+          44,
+          60
+        ],
+        "evidence": "scroll plan 在44–47 clamp offset，再在55–60调用 half-open virtual-window helper；说明 helper 本身不 clamp 不构成此处 BUG。"
+      },
+      {
+        "path": "zircon_runtime/src/ui/layout/mod.rs",
+        "sha256_at_read": "f888bce654f37dc6edadb2e7e6bfb30eae29354057031d8fa9addc10df974282",
+        "lines": [
+          18,
+          37
+        ],
+        "evidence": "layout façade re-export pass entry, slot index and scroll helper。"
+      }
+    ],
+    "traits_macros_registration": "精确16源扫描未发现 FFI extern ABI 或动态注册。静态 #[path] 挂载 pass、slot、virtual-list 与 cache 测试；profile_counter! 是既有诊断宏调用。显式 trait 实现包括 UiLayoutSlotIndex 的 Clone/PartialEq、UiVirtualListSlotMap 的 Clone、TaffyParentProductCache 及产品相关 Clone/Send 实现；保留现有 unsafe Send 的 SAFETY 说明。派生与标准 test/assert 宏按实际语义审阅。",
+    "ffi_boundary": "本批所有权范围没有 FFI；surface 和布局消费者是只读 Rust 调用证据，不能据此声称 host ABI、跨目标或完整产品验收。"
+  },
+  "read_only_context_files": [
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/pipeline.rs",
+      "sha256_at_read": "dbf30eee9f3f62fb561cff860f3c72f2dd09952473b243ebc651359bb6577ca0",
+      "bytes": 1917,
+      "line_count": 49,
+      "lines": [
+        1,
+        49
+      ],
+      "claim": "布局阶段的声明顺序及 selection/fallback 的边界。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/taffy_arrange.rs",
+      "sha256_at_read": "4b5d1de95d449fdea8171670c7c9fbff9702be5f47daf63cc76627c02ff3bdf8",
+      "bytes": 10148,
+      "line_count": 281,
+      "lines": [
+        56,
+        202
+      ],
+      "claim": "安排 scratch 生命周期，Full/Exact 条件，Taffy bridge 直接调用和错误后回退。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/pass/workspace.rs",
+      "sha256_at_read": "a59265b43c24a4ee06109d62c9662d803d72f2cc92c9055311ccf42da770b048",
+      "bytes": 3189,
+      "line_count": 97,
+      "lines": [
+        69,
+        78
+      ],
+      "claim": "Taffy scratch 的 owner take/recycle 边界。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/virtual_list_materialization.rs",
+      "sha256_at_read": "cb1d13bcec72dd424d8e1726ce6166b6569b8519c542452110122524f580f0b3",
+      "bytes": 21569,
+      "line_count": 543,
+      "lines": [
+        227,
+        400
+      ],
+      "claim": "调用 slot map 前后的 UiTree 节点物化/重绑位于消费者。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/scroll.rs",
+      "sha256_at_read": "42f83285364a690da0a4b89de5eef75a9c7998f20ce79a35e921156775c1b1cb",
+      "bytes": 2705,
+      "line_count": 70,
+      "lines": [
+        17,
+        60
+      ],
+      "claim": "scroll 消费 helper 前 clamp offset，并构造逻辑窗口。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/mod.rs",
+      "sha256_at_read": "f888bce654f37dc6edadb2e7e6bfb30eae29354057031d8fa9addc10df974282",
+      "bytes": 1571,
+      "line_count": 42,
+      "lines": [
+        18,
+        37
+      ],
+      "claim": "公开 layout façade 对 pass/slot/scroll 的导出边界。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/surface/rebuild.rs",
+      "sha256_at_read": "70047bc5cfd665ddf87a4afe8b3911856ac34888bcc2990bbf0e907aaa2d2d5d",
+      "bytes": 23329,
+      "line_count": 581,
+      "lines": [
+        421,
+        426
+      ],
+      "claim": "完整表面重建的 owner-aware pass 调用。"
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs",
+      "sha256_at_read": "037eb3eb8cbf1c9b075a61394fd50ebe306a0d8463e459da70185195083bc3a",
+      "bytes": 32036,
+      "line_count": 714,
+      "lines": [
+        90,
+        98
+      ],
+      "claim": "增量表面重建传入变更集的 pass 调用。"
+    }
+  ],
+  "issues": {
+    "new_candidates": [],
+    "preexisting": [],
+    "static_only": true,
+    "notes": "R045 未新增 BUG/TODO。跨范围 R042 的已确认测量问题不在本批重复编号或复制标签。Exact 更新失败导致缓存产品丢弃是已有实现契约并有本批内部测试覆盖；未将该行为标为 BUG。"
+  },
+  "write_refusal": {
+    "path": "zircon_runtime/src/ui/layout/virtualization/materialization.rs",
+    "attempt": "首个多文件 apply_patch cell217 退出码1，工具返回 Failed to write file E:\\Git\\ZirconEngine\\zircon_runtime\\src\\ui\\layout\\virtualization\\materialization.rs。该次调用先部分写入5个其他精确授权文件。",
+    "after_readback_sha256": "1271bef6bed8fc75c3821ded48753cdd649d12945e4308963a14e171a1439809",
+    "equals_granted_before": true,
+    "retry": "未重试该路径；随后仅对独立授权路径运行第二次补丁并逐项读回。",
+    "review_status": "全文件只读对象审查已完成；本批必要注释是否补充由父审复核。当前已有英文说明覆盖有限物理映射、caller-owned changes 缓冲及不遍历逻辑项，但没有中文句子明说此处不创建或重绑 UiTree 节点。",
+    "unlanded_documentation_suggestion": "/// 将逻辑窗口限制在逻辑总数和物理槽位容量内，并用调用方缓冲记录映射差异；此处不创建或重绑树节点。"
+  },
+  "validation": {
+    "before_pins_rechecked": true,
+    "exact_grant_rechecked": true,
+    "initial_scoped_status": "fresh grant preflight 对16条路径确认原SHA匹配、staged 与 unstaged 均为空；当前 HEAD 仍为 base_head。",
+    "final_scoped_status": "仅8个获授权源有 unstaged 纯注释 diff；staged 为空；8个其余源保持原 SHA。",
+    "current_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+    "scoped_numstat": [
+      "1\t0\tzircon_runtime/src/ui/layout/pass/engine.rs",
+      "2\t0\tzircon_runtime/src/ui/layout/pass/incremental.rs",
+      "2\t0\tzircon_runtime/src/ui/layout/pass/mod.rs",
+      "2\t0\tzircon_runtime/src/ui/layout/pass/slot.rs",
+      "1\t0\tzircon_runtime/src/ui/layout/pass/tests/incremental_optimization_tests.rs",
+      "3\t0\tzircon_runtime/src/ui/layout/taffy_bridge/compute.rs",
+      "2\t0\tzircon_runtime/src/ui/layout/taffy_bridge/product_cache.rs",
+      "1\t0\tzircon_runtime/src/ui/layout/taffy_bridge/tests/product_cache.rs"
+    ],
+    "all_original_bytes_equal_after_removing_exact_insertions": true,
+    "raw_inverse_matches_grant": true,
+    "unchanged_sources_equal_before_pins": true,
+    "eol_and_bom": "16个当前文件均为 LF、无 BOM、无 CR；raw inverse 逐块使用唯一 UTF-8 字节匹配，恢复每个源的授权前 SHA。",
+    "non_comment_diff": "8源新增10块/14行、0删除；未改函数体、API、属性、断言、字符串、source-guard operand 或任何既有注释/字节。",
+    "raw_inverse_check": {
+      "method": "内存读取16个源文件；对8个变更文件逐一移除每个 exact_text 唯一字节块，再逐字节比较授权 SHA；其余8个文件当前 SHA 直接等于 before。",
+      "exit_code": 0,
+      "receipt": "corrected inverse checker cell223 exit0; all 16 paths match"
+    },
+    "superseded_validation_attempt": {
+      "receipt": "cell222 exit1",
+      "cause": "第一次逆向验证器给 slot.rs Clone 文档构造的块漏了原有4空格缩进，因此精确字节匹配失败。",
+      "source_effect": "没有写源文件；随后修正验证块，cell223 通过全部16个路径。"
+    },
+    "rustfmt": {
+      "command": "rustfmt --check --edition 2021 --config skip_children=true <exact 16 R045 Rust paths>",
+      "exit_code": 0,
+      "chunk_id": "cell230",
+      "scope": "仅16个授权源；只读检查，无格式写回。"
+    },
+    "git_diff_check": {
+      "command": "git --no-optional-locks diff --check -- <exact 16 R045 paths>",
+      "exit_code": 0,
+      "chunk_id": "cell230",
+      "scope": "仅16个授权源；Git 打印 LF→CRLF autocrlf 提示，但 raw bytes 和 inverse 检查确认文件仍为 LF。"
+    },
+    "apply_patch_receipts": [
+      {
+        "cell": "cell217",
+        "exit_code": 1,
+        "result": "部分写入先落到5个授权源；materialization.rs 写入报错。保留该失败事实，不重放整批。"
+      },
+      {
+        "cell": "cell219",
+        "result": "独立授权文件补丁已结束；工具返回空结果。后续完整读回确认额外3源变化、5个部分写入源仍在预期 after 状态，其他8源未变。"
+      }
+    ],
+    "tests_builds_generators": {
+      "cargo_run": false,
+      "rust_tests_run": false,
+      "build_run": false,
+      "generator_run": false,
+      "note": "本批选择 scoped 纯注释验证；未运行 Cargo、Rust 测试、构建或生成器。"
+    },
+    "standard_path": "docs/plans/source-comments/01-standard.md"
+  },
+  "artifact_lifecycle": {
+    "created_build_products": false,
+    "created_source_copies_or_temporary_scripts": false,
+    "cleanup_performed": false,
+    "actual_released_bytes": 0,
+    "foreign_and_shared_artifacts_untouched": true
+  },
+  "handoff": {
+    "sources_frozen_after_child_write": true,
+    "metadata_immutable_after_final_hash": true,
+    "parent_controls_ledgers_main_post_jenkins": true,
+    "global_ledger_written_by_child": false,
+    "formal_jenkins_acceptance": "pending-parent-handoff",
+    "ownership_release_claim": false,
+    "owned_writer_and_validation_commands_terminal": true,
+    "parent_independent_review_pending": true,
+    "unresolved_read_only_command_count": 0,
+    "no_owned_writer_session_in_flight": true,
+    "note": "R042 historical read-only reader lifecycle gap remains outside this R045 work; no R045 process is unresolved."
+  }
+}

@@ -5,6 +5,7 @@
 
 use crate::handles::ZrRuntimeViewportHandle;
 use serde::{Deserialize, Serialize};
+use std::num::NonZeroU64;
 
 use super::{
     ZrRuntimeClipboardHostRequestV1, ZrRuntimeUiActionHostRequestV1, ZrRuntimeUiHostRequestV1,
@@ -63,7 +64,7 @@ impl ZrRuntimeHostRequestBatchV1 {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-/// Runtime 动态会话可交给 App 的六类宿主请求。
+/// Runtime 动态会话可交给 App 的宿主请求；震动的新旧 wire variant 显式区分。
 ///
 /// # 使用时机与生命周期
 /// 该 enum 是 [`ZrRuntimeHostRequestBatchV1::requests`] 的元素类型；App drain 后按 variant 分派。
@@ -75,8 +76,10 @@ impl ZrRuntimeHostRequestBatchV1 {
 pub enum ZrRuntimeHostRequestV1 {
     /// 输入法窗口能力、光标区域或 surrounding text 更新。
     Ime(ZrRuntimeImeHostRequestV1),
-    /// 对指定 gamepad 的振动追加或停止请求。
+    /// Legacy unversioned rumble. Retained for decoding; current hosts reject it without effects.
     GamepadRumble(ZrRuntimeGamepadRumbleRequestV1),
+    /// Rumble bound to the connection captured at input enqueue time.
+    GamepadRumbleV2(ZrRuntimeGamepadRumbleRequestV2),
     /// 光标可见性、抓取、命中测试或位置请求。
     Cursor(ZrRuntimeCursorHostRequestV1),
     /// 带 surface/transfer 身份的剪贴板事务。
@@ -96,6 +99,11 @@ impl ZrRuntimeHostRequestV1 {
     /// 将 gamepad rumble 载体包装为批次 enum variant。
     pub fn gamepad_rumble(request: ZrRuntimeGamepadRumbleRequestV1) -> Self {
         Self::GamepadRumble(request)
+    }
+
+    /// Preserve the captured generation in a distinct serde variant. No legacy fallback is safe.
+    pub fn gamepad_rumble_v2(request: ZrRuntimeGamepadRumbleRequestV2) -> Self {
+        Self::GamepadRumbleV2(request)
     }
 
     /// 将 cursor 载体包装为批次 enum variant。
@@ -367,7 +375,7 @@ impl ZrRuntimeCursorPositionV1 {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-/// 单个 gamepad 的马达振动更新；Runtime 转换器会 clamp Add 强弱马达参数。
+/// Legacy unversioned rumble wire value. Current hosts reject it; its serde shape stays intact.
 pub struct ZrRuntimeGamepadRumbleRequestV1 {
     /// Runtime 输入层使用的 gamepad 身份值。
     pub gamepad_id: u64,
@@ -407,10 +415,56 @@ impl ZrRuntimeGamepadRumbleRequestV1 {
     /// # 参数与返回值
     /// ID 标识设备；返回强弱马达强度和时长均为零的载体。
     /// # 约束
-    /// 仅组装载体，App 消费时才停止马达。
+    /// 仅组装旧载体；当前 App 明确拒绝没有连接代际的震动请求。
     pub const fn stop(gamepad_id: u64) -> Self {
         Self {
             gamepad_id,
+            kind: ZrRuntimeGamepadRumbleRequestKindV1::Stop,
+            strong_motor: 0.0,
+            weak_motor: 0.0,
+            duration_millis: 0,
+        }
+    }
+}
+
+/// Connection-bound rumble JSON payload. This is not passed by value through the C API.
+///
+/// The generation is mandatory and nonzero, encoded as an integer. The V8 C table,
+/// drain function and owned-result layouts remain unchanged; the outer V1 JSON batch uses
+/// the distinct GamepadRumbleV2 tag. Older hosts reject that unknown tag rather than execute
+/// an unversioned fallback. Compatible execution requires a matched host/runtime build.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ZrRuntimeGamepadRumbleRequestV2 {
+    pub gamepad_id: u64,
+    pub generation: NonZeroU64,
+    pub kind: ZrRuntimeGamepadRumbleRequestKindV1,
+    pub strong_motor: f32,
+    pub weak_motor: f32,
+    pub duration_millis: u32,
+}
+
+impl ZrRuntimeGamepadRumbleRequestV2 {
+    pub const fn add(
+        gamepad_id: u64,
+        generation: NonZeroU64,
+        strong_motor: f32,
+        weak_motor: f32,
+        duration_millis: u32,
+    ) -> Self {
+        Self {
+            gamepad_id,
+            generation,
+            kind: ZrRuntimeGamepadRumbleRequestKindV1::Add,
+            strong_motor,
+            weak_motor,
+            duration_millis,
+        }
+    }
+
+    pub const fn stop(gamepad_id: u64, generation: NonZeroU64) -> Self {
+        Self {
+            gamepad_id,
+            generation,
             kind: ZrRuntimeGamepadRumbleRequestKindV1::Stop,
             strong_motor: 0.0,
             weak_motor: 0.0,
@@ -440,6 +494,8 @@ pub enum ZrRuntimeGamepadRumbleRequestKindV1 {
 /// `zircon_runtime::dynamic_api::session::host_requests::runtime_ime_host_request`；
 /// `zircon_app::entry::runtime_entry_app::host_requests::routing::ime_request_targets_viewport`。
 pub struct ZrRuntimeImeHostRequestV1 {
+    /// 选择 IME 操作；`SetCursorArea` 使用 `cursor_area`，`SetSurroundingText` 使用 `surrounding_text`。
+    /// App 执行对应更新时检查对应载荷是否存在；缺失时记录警告并跳过该项。
     pub kind: ZrRuntimeImeHostRequestKindV1,
     /// The host viewport that owns this IME session. Missing only decodes older
     /// serialized output; current runtime producers always set this target.

@@ -1,11 +1,11 @@
 use super::*;
 use crate::service::{
-    cloud::tests::support::{Files, digest, manifest, seed},
+    cloud::tests::support::{digest, manifest, seed, Files},
     config::ServiceConfig,
     identity::now_seconds,
     organization::{self, Mutation, MutationRequest},
 };
-use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
+use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use openidconnect::reqwest;
 use std::sync::atomic::{AtomicBool, Ordering};
 

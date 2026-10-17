@@ -192,10 +192,12 @@ pub(crate) fn setup_theme_project(
     let world = DefaultLevelManager::default()
         .create_default_level()
         .snapshot();
+    let source_document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     EditorProjectDocument::save_scene_to_project(
         &project,
         &project.manifest().default_scene,
         &world,
+        source_document.scene_source_revision.as_ref().unwrap(),
         None,
     )
     .unwrap();

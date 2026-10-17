@@ -20,20 +20,41 @@ fn empty_bundle_spawn_publishes_each_node_record_default_once() {
             let inserts = Arc::clone(&lifecycle_counts);
             world.observe_component_lifecycle::<$component>(
                 LifecycleEventKind::Add,
-                move |_world, _event| {
-                    adds.lock().expect("lifecycle counters")[$add_index] += 1;
+                // SAFETY: Only test-owned fixed counter slots and read-only assertions change;
+                // retained World payload is untouched.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                        move |_world, _event| {
+                            adds.lock().expect("lifecycle counters")[$add_index] += 1;
+                        },
+                    )
                 },
             );
             world.observe_component_lifecycle::<$component>(
                 LifecycleEventKind::Replace,
-                move |_world, _event| {
-                    replacements.lock().expect("lifecycle counters")[$replace_index] += 1;
+                // SAFETY: Only test-owned fixed counter slots and read-only assertions change;
+                // retained World payload is untouched.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                        move |_world, _event| {
+                            replacements.lock().expect("lifecycle counters")[$replace_index] += 1;
+                        },
+                    )
                 },
             );
             world.observe_component_lifecycle::<$component>(
                 LifecycleEventKind::Insert,
-                move |_world, _event| {
-                    inserts.lock().expect("lifecycle counters")[$insert_index] += 1;
+                // SAFETY: Only test-owned fixed counter slots and read-only assertions change;
+                // retained World payload is untouched.
+                unsafe {
+                    use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                    RetainedLifecycleObserverV1::preserves_history_snapshot_v1(
+                        move |_world, _event| {
+                            inserts.lock().expect("lifecycle counters")[$insert_index] += 1;
+                        },
+                    )
                 },
             );
         }};
@@ -100,61 +121,94 @@ fn unprotected_bundle_values_replace_node_record_defaults_without_intermediate_l
     let render_layers_replacements_from_observer = Arc::clone(&lifecycle_counts);
     let observed_name = explicit_name.clone();
 
-    world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |world, event| {
-        name_adds_from_observer.lock().expect("lifecycle counters")[0] += 1;
-        assert_eq!(
-            world
-                .get::<Name>(event.entity())
-                .map(|name| name.0.as_str()),
-            Some(observed_name.as_str())
-        );
-        assert_eq!(
-            world.get::<ActiveSelf>(event.entity()),
-            Some(&explicit_active)
-        );
-        assert_eq!(
-            world.get::<RenderLayerMask>(event.entity()),
-            Some(&explicit_render_layers)
-        );
-    });
+    world.observe_component_lifecycle::<Name>(
+        LifecycleEventKind::Add,
+        // SAFETY: Only test-owned fixed counter slots and read-only assertions change; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                name_adds_from_observer.lock().expect("lifecycle counters")[0] += 1;
+                assert_eq!(
+                    world
+                        .get::<Name>(event.entity())
+                        .map(|name| name.0.as_str()),
+                    Some(observed_name.as_str())
+                );
+                assert_eq!(
+                    world.get::<ActiveSelf>(event.entity()),
+                    Some(&explicit_active)
+                );
+                assert_eq!(
+                    world.get::<RenderLayerMask>(event.entity()),
+                    Some(&explicit_render_layers)
+                );
+            })
+        },
+    );
     world.observe_component_lifecycle::<Name>(
         LifecycleEventKind::Replace,
-        move |_world, _event| {
-            name_replacements_from_observer
-                .lock()
-                .expect("lifecycle counters")[1] += 1;
+        // SAFETY: Only test-owned fixed counter slots and read-only assertions change; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                name_replacements_from_observer
+                    .lock()
+                    .expect("lifecycle counters")[1] += 1;
+            })
         },
     );
     world.observe_component_lifecycle::<ActiveSelf>(
         LifecycleEventKind::Add,
-        move |_world, _event| {
-            active_adds_from_observer
-                .lock()
-                .expect("lifecycle counters")[2] += 1;
+        // SAFETY: Only test-owned fixed counter slots and read-only assertions change; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                active_adds_from_observer
+                    .lock()
+                    .expect("lifecycle counters")[2] += 1;
+            })
         },
     );
     world.observe_component_lifecycle::<ActiveSelf>(
         LifecycleEventKind::Replace,
-        move |_world, _event| {
-            active_replacements_from_observer
-                .lock()
-                .expect("lifecycle counters")[3] += 1;
+        // SAFETY: Only test-owned fixed counter slots and read-only assertions change; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                active_replacements_from_observer
+                    .lock()
+                    .expect("lifecycle counters")[3] += 1;
+            })
         },
     );
     world.observe_component_lifecycle::<RenderLayerMask>(
         LifecycleEventKind::Add,
-        move |_world, _event| {
-            render_layers_adds_from_observer
-                .lock()
-                .expect("lifecycle counters")[4] += 1;
+        // SAFETY: Only test-owned fixed counter slots and read-only assertions change; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                render_layers_adds_from_observer
+                    .lock()
+                    .expect("lifecycle counters")[4] += 1;
+            })
         },
     );
     world.observe_component_lifecycle::<RenderLayerMask>(
         LifecycleEventKind::Replace,
-        move |_world, _event| {
-            render_layers_replacements_from_observer
-                .lock()
-                .expect("lifecycle counters")[5] += 1;
+        // SAFETY: Only test-owned fixed counter slots and read-only assertions change; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                render_layers_replacements_from_observer
+                    .lock()
+                    .expect("lifecycle counters")[5] += 1;
+            })
         },
     );
     world.reset_ecs_frame_performance_diagnostics();
@@ -223,43 +277,88 @@ fn prevalidated_node_record_publishes_authored_parent_and_transform_once() {
     let lifecycle_counts = Arc::new(Mutex::new([0usize; 6]));
 
     let name_adds = Arc::clone(&lifecycle_counts);
-    world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |world, event| {
-        name_adds.lock().expect("lifecycle counters")[0] += 1;
-        assert_eq!(
-            world
-                .get::<Name>(event.entity())
-                .map(|name| name.0.as_str()),
-            Some("Prevalidated authored child")
-        );
-        assert_eq!(world.parent_of(event.entity()), Some(parent));
-        assert_eq!(
-            world
-                .get::<LocalTransform>(event.entity())
-                .map(|local| local.transform),
-            Some(authored_transform)
-        );
-    });
+    world.observe_component_lifecycle::<Name>(
+        LifecycleEventKind::Add,
+        // SAFETY: Only test-owned fixed counter slots and read-only assertions change; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                name_adds.lock().expect("lifecycle counters")[0] += 1;
+                assert_eq!(
+                    world
+                        .get::<Name>(event.entity())
+                        .map(|name| name.0.as_str()),
+                    Some("Prevalidated authored child")
+                );
+                assert_eq!(world.parent_of(event.entity()), Some(parent));
+                assert_eq!(
+                    world
+                        .get::<LocalTransform>(event.entity())
+                        .map(|local| local.transform),
+                    Some(authored_transform)
+                );
+            })
+        },
+    );
     let name_replacements = Arc::clone(&lifecycle_counts);
-    world.observe_component_lifecycle::<Name>(LifecycleEventKind::Replace, move |_, _| {
-        name_replacements.lock().expect("lifecycle counters")[1] += 1;
-    });
+    world.observe_component_lifecycle::<Name>(
+        LifecycleEventKind::Replace,
+        // SAFETY: Only test-owned fixed counter slots and read-only assertions change; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                name_replacements.lock().expect("lifecycle counters")[1] += 1;
+            })
+        },
+    );
     let hierarchy_adds = Arc::clone(&lifecycle_counts);
-    world.observe_component_lifecycle::<Hierarchy>(LifecycleEventKind::Add, move |_, _| {
-        hierarchy_adds.lock().expect("lifecycle counters")[2] += 1;
-    });
+    world.observe_component_lifecycle::<Hierarchy>(
+        LifecycleEventKind::Add,
+        // SAFETY: Only test-owned fixed counter slots and read-only assertions change; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                hierarchy_adds.lock().expect("lifecycle counters")[2] += 1;
+            })
+        },
+    );
     let hierarchy_replacements = Arc::clone(&lifecycle_counts);
-    world.observe_component_lifecycle::<Hierarchy>(LifecycleEventKind::Replace, move |_, _| {
-        hierarchy_replacements.lock().expect("lifecycle counters")[3] += 1;
-    });
+    world.observe_component_lifecycle::<Hierarchy>(
+        LifecycleEventKind::Replace,
+        // SAFETY: Only test-owned fixed counter slots and read-only assertions change; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                hierarchy_replacements.lock().expect("lifecycle counters")[3] += 1;
+            })
+        },
+    );
     let transform_adds = Arc::clone(&lifecycle_counts);
-    world.observe_component_lifecycle::<LocalTransform>(LifecycleEventKind::Add, move |_, _| {
-        transform_adds.lock().expect("lifecycle counters")[4] += 1;
-    });
+    world.observe_component_lifecycle::<LocalTransform>(
+        LifecycleEventKind::Add,
+        // SAFETY: Only test-owned fixed counter slots and read-only assertions change; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                transform_adds.lock().expect("lifecycle counters")[4] += 1;
+            })
+        },
+    );
     let transform_replacements = Arc::clone(&lifecycle_counts);
     world.observe_component_lifecycle::<LocalTransform>(
         LifecycleEventKind::Replace,
-        move |_, _| {
-            transform_replacements.lock().expect("lifecycle counters")[5] += 1;
+        // SAFETY: Only test-owned fixed counter slots and read-only assertions change; retained
+        // World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_, _| {
+                transform_replacements.lock().expect("lifecycle counters")[5] += 1;
+            })
         },
     );
     world.reset_ecs_frame_performance_diagnostics();
@@ -297,35 +396,64 @@ fn tuple_bundle_lifecycle_events_follow_staged_order_after_final_publish() {
     let observed_events_from_mana_add = Arc::clone(&observed_events);
     let observed_events_from_mana_insert = Arc::clone(&observed_events);
 
-    world.observe_component_lifecycle::<Health>(LifecycleEventKind::Add, move |world, event| {
-        assert_eq!(world.get::<Health>(event.entity()), Some(&Health(7)));
-        assert_eq!(world.get::<Mana>(event.entity()), Some(&Mana(9)));
-        observed_events_from_health_add
-            .lock()
-            .expect("lifecycle event order")
-            .push("health:add");
-    });
     world.observe_component_lifecycle::<Health>(
-        LifecycleEventKind::Insert,
-        move |_world, _event| {
-            observed_events_from_health_insert
-                .lock()
-                .expect("lifecycle event order")
-                .push("health:insert");
+        LifecycleEventKind::Add,
+        // SAFETY: Only the external observation log changes after optional World reads;
+        // retained World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |world, event| {
+                assert_eq!(world.get::<Health>(event.entity()), Some(&Health(7)));
+                assert_eq!(world.get::<Mana>(event.entity()), Some(&Mana(9)));
+                observed_events_from_health_add
+                    .lock()
+                    .expect("lifecycle event order")
+                    .push("health:add");
+            })
         },
     );
-    world.observe_component_lifecycle::<Mana>(LifecycleEventKind::Add, move |_world, _event| {
-        observed_events_from_mana_add
-            .lock()
-            .expect("lifecycle event order")
-            .push("mana:add");
-    });
-    world.observe_component_lifecycle::<Mana>(LifecycleEventKind::Insert, move |_world, _event| {
-        observed_events_from_mana_insert
-            .lock()
-            .expect("lifecycle event order")
-            .push("mana:insert");
-    });
+    world.observe_component_lifecycle::<Health>(
+        LifecycleEventKind::Insert,
+        // SAFETY: Only the external observation log changes after optional World reads;
+        // retained World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                observed_events_from_health_insert
+                    .lock()
+                    .expect("lifecycle event order")
+                    .push("health:insert");
+            })
+        },
+    );
+    world.observe_component_lifecycle::<Mana>(
+        LifecycleEventKind::Add,
+        // SAFETY: Only the external observation log changes after optional World reads;
+        // retained World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                observed_events_from_mana_add
+                    .lock()
+                    .expect("lifecycle event order")
+                    .push("mana:add");
+            })
+        },
+    );
+    world.observe_component_lifecycle::<Mana>(
+        LifecycleEventKind::Insert,
+        // SAFETY: Only the external observation log changes after optional World reads;
+        // retained World payload is untouched.
+        unsafe {
+            use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+            RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                observed_events_from_mana_insert
+                    .lock()
+                    .expect("lifecycle event order")
+                    .push("mana:insert");
+            })
+        },
+    );
 
     world
         .spawn((Health(7), Mana(9)))

@@ -55,7 +55,7 @@ mod service_registry_lifecycle;
 #[path = "service_registry_ownership.rs"]
 mod service_registry_ownership;
 #[path = "structure.rs"]
-mod structure_convention;
+pub(crate) mod structure_convention;
 #[path = "tech_stack.rs"]
 mod tech_stack;
 #[path = "ui_architecture.rs"]

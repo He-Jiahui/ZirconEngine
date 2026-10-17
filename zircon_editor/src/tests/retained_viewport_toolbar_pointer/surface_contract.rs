@@ -41,8 +41,7 @@ fn shared_viewport_toolbar_surface_uses_toml_controls_and_rust_callbacks() {
 
 #[test]
 fn viewport_toolbar_pointer_bridge_uses_route_intent_only() {
-    let bridge =
-        source("src/ui/retained/viewport_toolbar_pointer/bridge.rs");
+    let bridge = source("src/ui/retained/viewport_toolbar_pointer/bridge.rs");
     let rebuild = source("src/ui/retained/viewport_toolbar_pointer/rebuild_surface.rs");
     let dispatch = source("src/ui/retained/viewport_toolbar_pointer/dispatch_event.rs");
 

@@ -1,4 +1,4 @@
-use super::{
+use crate::virtual_geometry::{
     VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState, VirtualGeometryPrepareFrame,
     VirtualGeometryPrepareIndirectDraw, VirtualGeometryPreparePage, VirtualGeometryPrepareRequest,
 };

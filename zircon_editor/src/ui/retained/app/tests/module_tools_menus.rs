@@ -6,8 +6,7 @@ use crate::ui::retained_host::host_contract::{
         assert_module_tools_menu_paint_once, assert_retired_source_has_no_paint,
         module_tools_popups,
     },
-    hit_test_workbench_window_template_node_with_index, menu_item_row_frame,
-    HostWorkbenchHitIndex,
+    hit_test_workbench_window_template_node_with_index, menu_item_row_frame, HostWorkbenchHitIndex,
 };
 use zircon_runtime_interface::ui::component::UiValue;
 #[path = "module_tools_menus/binding_owner.rs"]
@@ -775,18 +774,38 @@ fn module_tools_menu_native_cancel_restores_actual_anchor_focus_and_current_sour
             let (popup_id, trigger_id, original_source) = {
                 let host = harness.host.borrow();
                 let bridge = &host.workbench_window_bridge;
-                let popup = bridge.host_projection().node_by_control_id(case.menu).unwrap();
-                let trigger = bridge.host_projection().node_by_control_id(case.trigger).unwrap();
+                let popup = bridge
+                    .host_projection()
+                    .node_by_control_id(case.menu)
+                    .unwrap();
+                let trigger = bridge
+                    .host_projection()
+                    .node_by_control_id(case.trigger)
+                    .unwrap();
                 let popup_id = popup.surface_node_id.unwrap();
                 let trigger_id = trigger.surface_node_id.unwrap();
-                assert_eq!(bridge.surface().focus.focused, Some(popup_id),
-                    "the actual open popup must own focus: {}", case.menu);
-                let restore = bridge.surface().focus.modal_restore_stack.iter()
-                    .find(|entry| entry.modal == popup_id).expect("the real popup focus scope");
-                assert_eq!(restore.restore, Some(trigger_id),
-                    "the authored anchor must own focus restoration: {}", case.menu);
-                let (prepared, _) = bridge.prepared_viewport_toolbar_publication()
-                    .expect("the current toolbar publication remains valid while a module popup is open");
+                assert_eq!(
+                    bridge.surface().focus.focused,
+                    Some(popup_id),
+                    "the actual open popup must own focus: {}",
+                    case.menu
+                );
+                let restore = bridge
+                    .surface()
+                    .focus
+                    .modal_restore_stack
+                    .iter()
+                    .find(|entry| entry.modal == popup_id)
+                    .expect("the real popup focus scope");
+                assert_eq!(
+                    restore.restore,
+                    Some(trigger_id),
+                    "the authored anchor must own focus restoration: {}",
+                    case.menu
+                );
+                let (prepared, _) = bridge.prepared_viewport_toolbar_publication().expect(
+                    "the current toolbar publication remains valid while a module popup is open",
+                );
                 let source = bridge.surface().surface_frame();
                 assert!(std::sync::Arc::ptr_eq(&prepared, &source));
                 (popup_id, trigger_id, source)
@@ -794,31 +813,59 @@ fn module_tools_menu_native_cancel_restores_actual_anchor_focus_and_current_sour
             let before = harness.root_ui.get_host_presentation();
             let journal_before = sequence(&harness);
             if escape {
-                assert!(harness.root_ui.dispatch_native_popup_escape_for_test().request_redraw());
+                assert!(harness
+                    .root_ui
+                    .dispatch_native_popup_escape_for_test()
+                    .request_redraw());
             } else {
                 let bounds = window_bounds(&before);
-                click(&harness, bounds.x + bounds.width - 1.0, bounds.y + bounds.height - 1.0);
+                click(
+                    &harness,
+                    bounds.x + bounds.width - 1.0,
+                    bounds.y + bounds.height - 1.0,
+                );
             }
             harness.host.borrow_mut().recompute_if_dirty();
             assert_current_module_tools_sources(&harness, case, false);
             {
                 let host = harness.host.borrow();
                 let bridge = &host.workbench_window_bridge;
-                assert_eq!(bridge.surface().focus.focused, Some(trigger_id),
-                    "Native cancel must return focus to the actual anchor: {}", case.menu);
-                assert!(!bridge.surface().focus.modal_restore_stack.iter().any(|entry| entry.modal == popup_id));
-                assert!(!bridge.surface().input.popup_stack.iter().any(|popup| popup.popup_node == Some(popup_id)));
+                assert_eq!(
+                    bridge.surface().focus.focused,
+                    Some(trigger_id),
+                    "Native cancel must return focus to the actual anchor: {}",
+                    case.menu
+                );
+                assert!(!bridge
+                    .surface()
+                    .focus
+                    .modal_restore_stack
+                    .iter()
+                    .any(|entry| entry.modal == popup_id));
+                assert!(!bridge
+                    .surface()
+                    .input
+                    .popup_stack
+                    .iter()
+                    .any(|popup| popup.popup_node == Some(popup_id)));
                 let current = bridge.surface().surface_frame();
                 assert!(!std::sync::Arc::ptr_eq(&original_source, &current));
-                let (prepared, _) = bridge.prepared_viewport_toolbar_publication()
+                let (prepared, _) = bridge
+                    .prepared_viewport_toolbar_publication()
                     .expect("focus restoration must publish the current toolbar source");
                 assert!(std::sync::Arc::ptr_eq(&prepared, &current));
             }
-            assert_eq!(sequence(&harness), journal_before,
-                "cancellation cannot execute a module business row");
+            assert_eq!(
+                sequence(&harness),
+                journal_before,
+                "cancellation cannot execute a module business row"
+            );
             let _ = harness.root_ui.dispatch_native_popup_enter_for_test();
-            assert_eq!(sequence(&harness), journal_before,
-                "a cancelled popup cannot retain a keyboard activation target");
+            assert_eq!(
+                sequence(&harness),
+                journal_before,
+                "a cancelled popup cannot retain a keyboard activation target"
+            );
         }
     }
 }

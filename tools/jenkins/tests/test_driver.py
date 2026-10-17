@@ -1,7 +1,10 @@
 """A deployed driver is an immutable, verified input to every workflow."""
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
+import uuid
+from unittest import mock
 
 from tools.jenkins.contracts import JenkinsError
 from tools.jenkins.deployment.driver import (seal_driver, verify_driver, driver_environment,
@@ -28,6 +31,105 @@ class DriverTests(unittest.TestCase):
         second = seal_driver(self.root)
         self.assertNotEqual(first["driverDigest"], second["driverDigest"])
         self.assertEqual("print('sealed')\n", (Path(first["root"]) / "tools/jenkins/__main__.py").read_text())
+
+    def _simulated_windows_rename_error(self, code):
+        error = OSError("simulated Windows rename contention")
+        error.winerror = code
+        return error
+
+    def test_windows_rename_contention_retries_only_until_publication(self):
+        import os
+        failures = [self._simulated_windows_rename_error(code) for code in (5, 32, 33)]
+        real_rename = os.rename
+
+        def contend_then_publish(source, destination):
+            if failures:
+                raise failures.pop(0)
+            return real_rename(source, destination)
+
+        with mock.patch("tools.jenkins.deployment.driver.os.rename",
+                        side_effect=contend_then_publish) as rename, \
+             mock.patch("tools.jenkins.deployment.driver.time.sleep"):
+            snapshot = seal_driver(self.root)
+        self.assertEqual(4, rename.call_count)
+        self.assertEqual(snapshot["driverDigest"], verify_driver(
+            snapshot["root"], expected_digest=snapshot["driverDigest"])["driverDigest"])
+
+    def test_retryable_windows_rename_error_stops_at_deadline_and_cleans_stage(self):
+        error = self._simulated_windows_rename_error(5)
+        clock = [0.0, 1.0, 1.5, 2.0]
+
+        with mock.patch("tools.jenkins.deployment.driver.os.rename", side_effect=error) as rename, \
+             mock.patch("tools.jenkins.deployment.driver.time.monotonic",
+                        side_effect=lambda: clock.pop(0)), \
+             mock.patch("tools.jenkins.deployment.driver.time.sleep") as sleep:
+            with self.assertRaises(OSError):
+                seal_driver(self.root)
+        self.assertEqual(2, rename.call_count)
+        self.assertEqual(1, sleep.call_count)
+        self.assertEqual(0.025, sleep.call_args.args[0])
+        staging = Path(rename.call_args_list[0].args[0])
+        self.assertFalse(staging.exists())
+        self.assertEqual([], list((self.root / ".jenkins/runtime/drivers").glob(".incoming-*")))
+
+    def test_nonretryable_windows_rename_error_fails_without_another_attempt(self):
+        error = self._simulated_windows_rename_error(87)
+        with mock.patch("tools.jenkins.deployment.driver.os.rename", side_effect=error) as rename, \
+             mock.patch("tools.jenkins.deployment.driver.time.sleep") as sleep:
+            with self.assertRaises(OSError):
+                seal_driver(self.root)
+        self.assertEqual(1, rename.call_count)
+        sleep.assert_not_called()
+        staging = Path(rename.call_args.args[0])
+        self.assertFalse(staging.exists())
+
+    def test_missing_staging_without_destination_fails_closed(self):
+        def vanish_then_fail(source, destination):
+            shutil.rmtree(source)
+            raise self._simulated_windows_rename_error(5)
+
+        with mock.patch("tools.jenkins.deployment.driver.os.rename",
+                        side_effect=vanish_then_fail) as rename:
+            with self.assertRaises(JenkinsError) as rejected:
+                seal_driver(self.root)
+        self.assertEqual("driver_publish_source_missing", rejected.exception.code)
+        rename.assert_called_once()
+        self.assertFalse(Path(rename.call_args.args[0]).exists())
+
+    def test_same_digest_parallel_publisher_is_verified_and_owned_stage_is_cleaned(self):
+        import os
+        real_rename = os.rename
+
+        def competing_publisher(source, destination):
+            peer = Path(source).parent / (".incoming-" + uuid.uuid4().hex)
+            shutil.copytree(source, peer)
+            real_rename(peer, destination)
+            raise self._simulated_windows_rename_error(5)
+
+        with mock.patch("tools.jenkins.deployment.driver.os.rename",
+                        side_effect=competing_publisher):
+            snapshot = seal_driver(self.root)
+        self.assertEqual(snapshot["driverDigest"], verify_driver(
+            snapshot["root"], expected_digest=snapshot["driverDigest"])["driverDigest"])
+        incoming = list((self.root / ".jenkins/runtime/drivers").glob(".incoming-*"))
+        self.assertEqual([], incoming)
+
+    def test_invalid_parallel_destination_fails_closed_and_is_not_overwritten(self):
+        def publish_invalid_destination(source, destination):
+            destination.mkdir()
+            marker = destination / "foreign-marker.txt"
+            marker.write_text("preserve", encoding="utf-8")
+            raise self._simulated_windows_rename_error(5)
+
+        with mock.patch("tools.jenkins.deployment.driver.os.rename",
+                        side_effect=publish_invalid_destination):
+            with self.assertRaises(JenkinsError):
+                seal_driver(self.root)
+        snapshots = self.root / ".jenkins/runtime/drivers"
+        destination = next(path for path in snapshots.iterdir()
+                           if len(path.name) == 64 and not path.name.startswith("."))
+        self.assertEqual("preserve", (destination / "foreign-marker.txt").read_text(encoding="utf-8"))
+        self.assertEqual([], list(snapshots.glob(".incoming-*")))
 
     def test_corrupt_deployed_source_cannot_be_reused(self):
         snapshot = seal_driver(self.root)

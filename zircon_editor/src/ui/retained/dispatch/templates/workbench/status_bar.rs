@@ -100,34 +100,30 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         variant: &str,
         tone: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        for control_id in [STATUS_TASK_PROGRESS, STATUS_TASK_LABEL] {
-            self.mutate_control_property(control_id, "text", UiValue::String(text.to_string()))?;
-            self.mutate_control_property(
-                control_id,
-                "value_text",
-                UiValue::String(detail.to_string()),
-            )?;
-            self.mutate_control_property(
-                control_id,
-                "text_tone",
-                UiValue::String(tone.to_string()),
-            )?;
-        }
-        for control_id in [STATUS_TASK_PROGRESS, STATUS_TASK_BAR] {
-            self.mutate_control_property(control_id, "min", UiValue::Float(0.0))?;
-            self.mutate_control_property(control_id, "max", UiValue::Float(100.0))?;
-            self.mutate_control_property(control_id, "value", UiValue::Float(value))?;
-            self.mutate_control_property(
-                control_id,
-                "variant",
-                UiValue::String(variant.to_string()),
-            )?;
-            self.mutate_control_property(
-                control_id,
-                "text_tone",
-                UiValue::String(tone.to_string()),
-            )?;
-        }
+        self.mutate_control_property(STATUS_TASK_LABEL, "text", UiValue::String(text.to_string()))?;
+        self.mutate_control_property(
+            STATUS_TASK_LABEL,
+            "value_text",
+            UiValue::String(detail.to_string()),
+        )?;
+        self.mutate_control_property(
+            STATUS_TASK_LABEL,
+            "text_tone",
+            UiValue::String(tone.to_string()),
+        )?;
+        self.mutate_control_property(STATUS_TASK_BAR, "min", UiValue::Float(0.0))?;
+        self.mutate_control_property(STATUS_TASK_BAR, "max", UiValue::Float(100.0))?;
+        self.mutate_control_property(STATUS_TASK_BAR, "value", UiValue::Float(value))?;
+        self.mutate_control_property(
+            STATUS_TASK_BAR,
+            "variant",
+            UiValue::String(variant.to_string()),
+        )?;
+        self.mutate_control_property(
+            STATUS_TASK_BAR,
+            "text_tone",
+            UiValue::String(tone.to_string()),
+        )?;
         Ok(())
     }
 }

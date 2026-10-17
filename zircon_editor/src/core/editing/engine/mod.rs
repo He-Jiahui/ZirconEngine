@@ -1,3 +1,10 @@
+#[path = "retention.rs"]
+pub(crate) mod retention;
+pub use retention::{
+    CommandRetentionLimitsV1, CommandRetentionPlanV1, HistoryRetentionBudgetV1,
+    HistoryRetentionDomainV1, HistoryRetentionPinV1, HistoryRetentionSnapshotV1,
+    RetentionMaterializationV1, RetentionPhaseV1,
+};
 #[path = "command.rs"]
 mod command;
 #[path = "events.rs"]

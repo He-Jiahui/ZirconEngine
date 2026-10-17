@@ -223,6 +223,24 @@ class DeliveryTests(unittest.TestCase):
             self.assertNotIn("taskCommit", delivery.commit.read_json(f[0] / ".jenkins/state/management/deliveries/delivery-task.json"))
 
 
+class NativeCargoInvocationTests(unittest.TestCase):
+    def test_vsdev_wrapper_preserves_native_flags_and_literal_arguments(self):
+        with tempfile.TemporaryDirectory(prefix="delivery-native-", dir=os.environ["ZR_COMMIT_TEST_ROOT"]) as name:
+            destination = Path(name)
+            arguments = ["-p", "zircon_runtime", "--features", "graphics,ui", "--", "--exact",
+                         "argument with spaces", "single'quote", 'double"quote', "中文",
+                         "$([Environment]::Exit(91))", "`literal", "--profile", "dev"]
+            native_command = [sys.executable, "-B", "-Xutf8", "-c",
+                              "import json,sys; print(json.dumps(sys.argv[1:],ensure_ascii=True))", *arguments]
+            command = delivery.vsdev_command(native_command, destination)
+            cargo = delivery.module("delivery_invocation_native_test", delivery.ROOT / "tools/dev/local_cargo.py")
+            checks = delivery.module("delivery_invocation_checks_test", delivery.ROOT / "tools/jenkins-management/run_checks.py")
+            terminal = cargo._run_owned_command(command, destination, dict(os.environ), destination, 120)
+            self.assertTrue(checks.native_complete(terminal, command, destination), terminal)
+            self.assertEqual(terminal["rootExitCode"], 0, (destination / "stderr.bin").read_bytes())
+            self.assertEqual(json.loads((destination / "stdout.bin").read_text(encoding="utf-8")), arguments)
+
+
 class DeliveryInstallTests(unittest.TestCase):
     def test_extension_preserves_other_routes_and_reinstall_is_idempotent(self):
         class Client:

@@ -14,6 +14,7 @@ fn runtime_snapshot_frame_diagnostics_statuses_preserve_subdomains() {
         },
         animation: RuntimeAnimationDiagnostics::unavailable("animation manager missing"),
         store: Default::default(),
+        identities: Default::default(),
         profile: Default::default(),
     };
 

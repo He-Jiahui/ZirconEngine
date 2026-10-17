@@ -37,8 +37,26 @@ impl DefaultSoundManager {
                 track: source.output_track,
             });
         }
-        // BUG: [CR-SOUND-AUDIT-0001] 显式声源 ID 未检查占用也未推进自动游标；后续匿名分配可复用同一 ID，插入时覆盖旧 voice，活动 Kira 句柄还可能失去管理。证据：storage.rs 与 mixer_configuration/sources.rs。
-        let source_id = source.id.unwrap_or_else(|| state.next_source_id());
+        let source_id = if let Some(source_id) = source.id {
+            if state.sources.contains_key(&source_id) {
+                return Err(SoundError::InvalidParameter(format!(
+                    "sound source id {} is already in use",
+                    source_id.raw()
+                )));
+            }
+            source_id
+        } else {
+            let mut source_id = state.next_source_id()?;
+            while state.sources.contains_key(&source_id) {
+                source_id =
+                    SoundSourceId::new(source_id.raw().checked_add(1).ok_or_else(|| {
+                        SoundError::InvalidParameter(
+                            "sound source id space is exhausted".to_string(),
+                        )
+                    })?);
+            }
+            source_id
+        };
         source.id = Some(source_id);
         let gameplay_emission = source.gameplay_emitter.filter(|_| {
             source.playing && !source.muted && source.gain.is_finite() && source.gain > 0.0
@@ -74,6 +92,7 @@ impl DefaultSoundManager {
             });
         }
         state.sources.insert(source_id, voice);
+        state.next_source_id = state.next_source_id.max(source_id.raw());
         Ok(source_id)
     }
 

@@ -122,7 +122,10 @@ set = { self = { background_color = "$unreal_background", font_size = 10.0, corn
     let mut cache = UiV2PrototypeStoreFileCache::new();
     let initial = cache.load_store([&view_path]).unwrap();
     assert!(initial.unresolved_imports.is_empty());
-    assert!(initial.store.get("res://ui/theme/shared_palette.zui").is_some());
+    assert!(initial
+        .store
+        .get("res://ui/theme/shared_palette.zui")
+        .is_some());
     assert_eq!(initial.source_receipts.len(), 3);
 
     std::fs::write(

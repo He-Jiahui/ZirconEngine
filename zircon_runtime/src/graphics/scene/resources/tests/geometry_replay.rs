@@ -855,3 +855,292 @@ fn render_scene_resource_geometry_replay_stable_frame_without_invalidations_reso
     ));
     assert_eq!(resolver.calls, 0);
 }
+
+#[test]
+fn m6_active_replay_and_new_tickets_survive_failed_source_orphans() {
+    use crate::core::resource::{
+        ResourceSourceMember, ResourceSourceOutcome, ResourceSourcePublication, ResourceState,
+    };
+    use crate::graphics::scene::resources::{
+        RenderAssetDemandGeneration, RenderAssetDeviceEpoch, RenderAssetResidencyManager,
+        RenderAssetResidencyState, RenderAssetResidencyTransitionError,
+    };
+    use crate::graphics::scene::render_scene::RenderSceneResourceReferenceDelta;
+    use zr_rhi::{DeviceId, DeviceGeneration};
+    let resources = ResourceManager::new();
+    let root = ResourceRecord::new(
+        ResourceId::from_stable_label("m6-ticket-root"), ResourceKind::Model,
+        ResourceLocator::parse("res://models/m6-ticket.glb").unwrap(),
+    ).with_state(ResourceState::Ready).with_source_hash("a");
+    let mesh = ResourceRecord::new(
+        ResourceId::from_stable_label("m6-ticket-mesh"), ResourceKind::Mesh,
+        ResourceLocator::parse("res://models/m6-ticket.glb#Mesh0").unwrap(),
+    ).with_state(ResourceState::Ready).with_source_hash("a");
+    resources.register_ready(root.clone(), ()).unwrap();
+    resources.register_ready(mesh.clone(), ()).unwrap();
+    let publication = ResourceSourcePublication::capture(
+        root.id, Vec::new(), vec![
+            ResourceSourceMember { record: root.clone(), payload: Some(std::sync::Arc::new(())) },
+            ResourceSourceMember { record: mesh.clone(), payload: Some(std::sync::Arc::new(())) },
+        ], ResourceSourceOutcome::CompleteSuccess, resources.projection_snapshot().active(),
+    );
+    resources.commit(ResourceMutationBatch::new().publish_source(publication)).unwrap();
+    let before = resources.projection_snapshot();
+    let resource = UntypedResourceHandle::new(mesh.id, ResourceKind::Mesh);
+    let mut replay = RenderSceneGeometryReplayState::new(None);
+    replay.observe_active(before.active(), |_| true);
+    replay.record_event(event("m6-ticket-mesh", ResourceKind::Mesh, 1));
+    replay.commit(true, true);
+    let failed = ResourceSourcePublication::capture(
+        root.id, vec![root.id, mesh.id],
+        vec![ResourceSourceMember { record: root.clone().with_state(ResourceState::Error), payload: None }],
+        ResourceSourceOutcome::Failed, before.active(),
+    );
+    resources.commit(ResourceMutationBatch::new().publish_source(failed)).unwrap();
+    let failure = resources.projection_snapshot();
+    assert!(failure.management().row_by_id(mesh.id).is_none());
+    assert_eq!(failure.active().key(mesh.id), before.active().key(mesh.id));
+    replay.observe_active(failure.active(), |_| true);
+    assert!(replay.drain(0, |_| true).resources.is_empty());
+
+    // This is a new residency manager and a new ticket after failure, not a retained old lease.
+    let mut residency = RenderAssetResidencyManager::new();
+    let device = RenderAssetDeviceEpoch::new(DeviceId::new(19404), DeviceGeneration::new(1));
+    let demand = RenderAssetDemandGeneration::new(1).unwrap();
+    let initial = residency.apply_scene_reference_deltas(
+        &[RenderSceneResourceReferenceDelta::acquire(resource, 1)], &failure, device, demand,
+    ).expect("active-only member can issue a fresh ticket without a current catalog row");
+    let old = initial.requests()[0].clone();
+    for state in [
+        RenderAssetResidencyState::Reading, RenderAssetResidencyState::Decoding,
+        RenderAssetResidencyState::ReadyCpu, RenderAssetResidencyState::QueuedUpload,
+    ] { residency.advance(&old, state).unwrap(); }
+    resources.register_ready(mesh.clone(), ()).unwrap();
+    let fresh = resources.projection_snapshot();
+    assert_eq!(fresh.active().row(mesh.id).unwrap().record.revision, old.asset_revision());
+    assert_ne!(fresh.active().key(mesh.id), failure.active().key(mesh.id));
+    replay.observe_active(fresh.active(), |_| true);
+    assert_eq!(replay.drain(0, |_| true).resources, vec![(resource, old.asset_revision())],
+        "a new active key must replay even when its numeric catalog revision is unchanged");
+    let mutation = residency.reconcile_changed_resources(&[resource], &fresh, device, demand).unwrap();
+    let next = mutation.requests()[0].clone();
+    assert!(matches!(
+        residency.advance(&old, RenderAssetResidencyState::Reading),
+        Err(RenderAssetResidencyTransitionError::StaleTicket { .. })
+    ));
+    assert_eq!(residency.pending_ticket(resource).as_ref(), Some(&next));
+    assert_eq!(residency.reference_count(resource), 1);
+
+    let renderer = MeshRenderer::default();
+    let (mut projector, _) = projector_with_renderers([renderer]);
+    let generation = projector.read().generation();
+    let bounds = projector.read().iter().next().unwrap().1.local_bounds();
+    let result = projector.replay_resource_geometry_with_staging(
+        &[], true, 256, &mut TestResolver::new(2, 4.0), |_| {
+            if resources.projection_snapshot().active().key(mesh.id) != before.active().key(mesh.id) {
+                Err(crate::core::resource::ResourceActiveSnapshotError::Stale)
+            } else { Ok(()) }
+        },
+    );
+    assert!(matches!(result, Err(RenderSceneComponentProjectionTransactionError::Staging(
+        crate::core::resource::ResourceActiveSnapshotError::Stale
+    ))));
+    assert_eq!(projector.read().generation(), generation);
+    assert_eq!(projector.read().iter().next().unwrap().1.local_bounds(), bounds);
+
+
+    // Resource retirement must be an explicit scene delta, not a Missing/Pending resolution.
+    // These CPU assertions isolate the geometry reference; the production watch chain is the
+    // separate runtime glTF case, and this helper does not claim GPU/block-I/O coverage.
+    let mut world = World::empty();
+    let mut direct = MeshRenderer::default();
+    direct.mesh = Some(ResourceHandle::<MeshMarker>::new(mesh.id));
+    let entity = world.spawn(bundle("m6-retirement", direct)).unwrap();
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+    let artifact = world.render_component_change_artifact().unwrap();
+    let mut retired_projector = RenderSceneComponentProjector::new(
+        RenderWorldSnapshotHandle::new(artifact.world().raw()),
+    );
+    retired_projector.project(&artifact, &mut TestResolver::new(3, 3.0)).unwrap();
+    let mut retirement_cursor = RenderSceneGeometryReplayState::new(Some(resources.subscribe()));
+    retirement_cursor.observe_active(fresh.active(), |candidate| candidate == resource);
+    let remove_source = ResourceSourcePublication::capture(
+        root.id, vec![root.id, mesh.id], Vec::new(), ResourceSourceOutcome::Removed,
+        resources.projection_snapshot().active(),
+    );
+    resources.commit(ResourceMutationBatch::new().publish_source(remove_source)).unwrap();
+    let deleted = resources.projection_snapshot();
+    assert!(super::super::render_scene_geometry::projection_geometry_is_absent(&deleted, mesh.id));
+    retirement_cursor.observe_active(deleted.active(), |candidate| candidate == resource);
+    let removed_events = retirement_cursor.drain(256, |candidate| candidate == resource);
+    let removed_resources = removed_events.resources.iter().map(|(resource, _)| *resource).collect::<Vec<_>>();
+    assert_eq!(removed_resources, vec![resource], "the real receiver selects the deletion");
+    let retirement_selection = retired_projector.prepare_geometry_replay(&removed_resources, false, 256, None);
+    assert_eq!(retirement_selection.selected_primitive_count(), 1);
+    let tombstones = HashSet::from([resource]);
+    let still_live_generation = retired_projector.read().generation();
+    let pending_before = residency.pending_ticket(resource);
+    let race = retired_projector.replay_resource_geometry_with_retirements_staging(
+        &removed_resources, false, 256, &tombstones, &mut TestResolver::new(4, 4.0), |_| {
+            // A cold Ready candidate can reappear while both active keys remain None.
+            resources.commit(ResourceMutationBatch::new().upsert_lazy(mesh.clone())).unwrap();
+            let now = resources.projection_snapshot();
+            assert!(now.active().key(mesh.id).is_none());
+            assert!(!super::super::render_scene_geometry::projection_geometry_is_absent(&now, mesh.id));
+            Err::<(), _>(crate::core::resource::ResourceActiveSnapshotError::Stale)
+        },
+    );
+    assert!(matches!(race, Err(RenderSceneComponentProjectionTransactionError::Staging(
+        crate::core::resource::ResourceActiveSnapshotError::Stale
+    ))));
+    assert_eq!(retired_projector.read().generation(), still_live_generation);
+    assert_eq!(retired_projector.read().iter().count(), 1);
+    assert_eq!(residency.pending_ticket(resource), pending_before);
+    assert_eq!(residency.reference_count(resource), 1);
+    assert_eq!(retirement_cursor.drain(0, |_| true).resources.len(), 1);
+    resources.remove_by_locator(&mesh.primary_locator).unwrap();
+    let deleted = resources.projection_snapshot();
+    let removed_events = retirement_cursor.drain(256, |candidate| candidate == resource);
+    let removed_resources = removed_events.resources.iter().map(|(resource, _)| *resource).collect::<Vec<_>>();
+    assert_eq!(removed_resources, vec![resource]);
+    retired_projector.replay_resource_geometry_with_retirements_staging(
+        &removed_resources, false, 256, &tombstones, &mut TestResolver::new(4, 4.0), |deltas| {
+            assert!(super::super::render_scene_geometry::projection_geometry_is_absent(
+                &resources.projection_snapshot(), mesh.id,
+            ));
+            let geometry = deltas.iter().find(|delta| delta.resource() == resource).unwrap();
+            assert_eq!(geometry.released_count(), 1);
+            residency.apply_scene_reference_deltas(std::slice::from_ref(geometry), &deleted, device, demand)
+        },
+    ).unwrap().unwrap();
+    retired_projector.finish_geometry_replay_selection(&retirement_selection);
+    retirement_cursor.commit(true, !retirement_selection.truncated());
+    assert_eq!(retired_projector.read().iter().count(), 0);
+    assert_eq!(residency.reference_count(resource), 0);
+    assert!(residency.pending_ticket(resource).is_none());
+    assert!(residency.advance(&next, RenderAssetResidencyState::Reading).is_err());
+    assert!(retirement_cursor.drain(0, |_| true).resources.is_empty());
+    assert!(retired_projector.has_geometry_dependency(resource),
+        "dormant metadata must retain restoration selection without a live reference");
+    retired_projector.replay_resource_geometry_with_retirements_staging(
+        &[resource], false, 256, &tombstones, &mut TestResolver::new(4, 4.0), |deltas| {
+            assert!(deltas.iter().all(|delta| delta.resource() != resource));
+            Ok::<(), std::convert::Infallible>(())
+        },
+    ).unwrap();
+    assert_eq!(residency.reference_count(resource), 0, "repeated removal never releases twice");
+
+    let removed_revision = deleted.readiness().row_identity(mesh.id)
+        .map(|identity| identity.row().record.revision).unwrap_or(next.asset_revision());
+    let restore = ResourceSourcePublication::capture(
+        root.id, Vec::new(), vec![
+            ResourceSourceMember { record: root.clone(), payload: None },
+            ResourceSourceMember { record: mesh.clone(), payload: None },
+        ], ResourceSourceOutcome::CompleteSuccess, resources.projection_snapshot().active(),
+    );
+    resources.commit(ResourceMutationBatch::new().publish_source(restore)).unwrap();
+    let cold_restored = resources.projection_snapshot();
+    assert!(cold_restored.active().row(mesh.id).is_none());
+    assert!(cold_restored.active().changed_since(deleted.active()).unwrap().is_empty(),
+        "source membership alone provides no active row invalidation");
+    let cold_revision = cold_restored.management().row_by_id(mesh.id).unwrap().revision;
+    assert!(cold_revision <= removed_revision, "this lifecycle must not rely on a greater revision");
+    retirement_cursor.observe_active(cold_restored.active(), |candidate| candidate == resource);
+    let cold_events = retirement_cursor.drain(256, |candidate| candidate == resource);
+    let restored_resources = cold_events.resources.iter().map(|(resource, _)| *resource).collect::<Vec<_>>();
+    assert_eq!(restored_resources, vec![resource],
+        "a real cold Added after committed Removed must escape the old content high-water mark");
+    assert!(retired_projector.has_geometry_dependency(resource));
+    // Cold ticket intent and payload installation use the public residency/resource APIs.
+    // Unit fixture data/TestResolver keep this a CPU lifecycle boundary, not a GPU-load claim.
+    let mut cold_intents = RenderAssetResidencyManager::new();
+    let cold_request = cold_intents.apply_scene_reference_deltas(
+        &[RenderSceneResourceReferenceDelta::acquire(resource, 1)], &cold_restored, device, demand,
+    ).unwrap();
+    let cold_ticket = cold_request.requests()[0].clone();
+    cold_intents.advance(&cold_ticket, RenderAssetResidencyState::Reading).unwrap();
+    resources.commit(ResourceMutationBatch::new().store_payload(mesh.id, cold_revision, ())).unwrap();
+    let restored = resources.projection_snapshot();
+    assert!(restored.active().row(mesh.id).is_some());
+    let loaded_request = cold_intents.reconcile_changed_resources(
+        &restored_resources, &restored, device, demand,
+    ).unwrap();
+    assert_eq!(loaded_request.requests().len(), 1);
+    assert!(matches!(cold_intents.advance(&cold_ticket, RenderAssetResidencyState::Decoding),
+        Err(RenderAssetResidencyTransitionError::StaleTicket { .. })));
+    retirement_cursor.observe_active(restored.active(), |candidate| candidate == resource);
+    let loaded_events = retirement_cursor.drain(256, |candidate| candidate == resource);
+    let restored_resources = loaded_events.resources.iter().map(|(resource, _)| *resource).collect::<Vec<_>>();
+    assert_eq!(restored_resources, vec![resource]);
+    let restore_selection = retired_projector.prepare_geometry_replay(&restored_resources, false, 256, None);
+    assert_eq!(restore_selection.selected_primitive_count(), 1);
+    retired_projector.replay_resource_geometry_with_retirements_staging(
+        &restored_resources, false, 256, &HashSet::new(), &mut TestResolver::new(5, 5.0), |deltas| {
+            let geometry = deltas.iter().find(|delta| delta.resource() == resource).unwrap();
+            assert_eq!(geometry.acquired_count(), 1);
+            residency.apply_scene_reference_deltas(std::slice::from_ref(geometry), &restored, device, demand)
+        },
+    ).unwrap().unwrap();
+    retired_projector.finish_geometry_replay_selection(&restore_selection);
+    retirement_cursor.commit(true, !restore_selection.truncated());
+    assert_eq!(retired_projector.read().iter().count(), 1);
+    assert_eq!(residency.reference_count(resource), 1);
+    assert_ne!(residency.pending_ticket(resource).as_ref(), Some(&next));
+    assert_eq!(retired_projector.read().iter().next().unwrap().1.local_bounds().max, [5.0; 3]);
+    assert!(retirement_cursor.drain(256, |candidate| candidate == resource).resources.is_empty(),
+        "restoration commits once; no per-frame rebuilding");
+    let mut duplicate_added = event("m6-ticket-mesh", ResourceKind::Mesh, cold_revision);
+    duplicate_added.kind = ResourceEventKind::Added;
+    retirement_cursor.record_event(duplicate_added);
+    retirement_cursor.record_event(event("m6-ticket-mesh", ResourceKind::Mesh, 0));
+    assert!(retirement_cursor.drain(0, |_| true).resources.is_empty(),
+        "duplicate Added and stale ordinary content updates remain deduplicated");
+
+    // A real ordered receiver can fold both lifecycle edges into one frame.
+    let ordered = ResourceManager::new();
+    let mut ordered_cursor = RenderSceneGeometryReplayState::new(Some(ordered.subscribe()));
+    ordered.commit(ResourceMutationBatch::new().upsert_lazy(mesh.clone())).unwrap();
+    assert_eq!(ordered_cursor.drain(256, |candidate| candidate == resource).resources,
+        vec![(resource, cold_revision)]);
+    ordered_cursor.commit(true, true);
+    ordered.remove_by_locator(&mesh.primary_locator).unwrap();
+    ordered.commit(ResourceMutationBatch::new().upsert_lazy(mesh.clone())).unwrap();
+    assert_eq!(ordered_cursor.drain(256, |candidate| candidate == resource).resources,
+        vec![(resource, cold_revision)],
+        "Removed then Added in one FIFO drain must retain the final cold recovery responsibility");
+    assert!(!ordered_cursor.removed_resources.contains(&resource));
+    ordered_cursor.commit(true, true);
+    assert!(ordered_cursor.drain(256, |_| true).resources.is_empty());
+    ordered.remove_by_locator(&mesh.primary_locator).unwrap();
+    ordered_cursor.drain(256, |candidate| candidate == resource);
+    assert!(ordered_cursor.removed_resources.contains(&resource));
+    ordered_cursor.retain_dependencies(|_| false);
+    assert!(ordered_cursor.removed_resources.is_empty(), "dependency pruning bounds lifecycle metadata");
+
+    // Successful source membership pruning has the same retirement contract as source removal.
+    let prune = ResourceSourcePublication::capture(
+        root.id, vec![root.id, mesh.id],
+        vec![ResourceSourceMember { record: root.clone(), payload: Some(std::sync::Arc::new(())) }],
+        ResourceSourceOutcome::CompleteSuccess, restored.active(),
+    );
+    resources.commit(ResourceMutationBatch::new().publish_source(prune)).unwrap();
+    let pruned = resources.projection_snapshot();
+    assert!(super::super::render_scene_geometry::projection_geometry_is_absent(&pruned, mesh.id));
+    retired_projector.replay_resource_geometry_with_retirements_staging(
+        &[resource], false, 256, &tombstones, &mut TestResolver::new(6, 6.0), |deltas| {
+            let geometry = deltas.iter().find(|delta| delta.resource() == resource).unwrap();
+            residency.apply_scene_reference_deltas(std::slice::from_ref(geometry), &pruned, device, demand)
+        },
+    ).unwrap();
+    assert_eq!(residency.reference_count(resource), 0);
+    world.remove::<MeshRenderer>(entity).unwrap();
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+    let removed = world.render_component_change_artifact().unwrap();
+    retired_projector.project(&removed, &mut TestResolver::new(6, 6.0)).unwrap();
+    assert!(!retired_projector.has_geometry_dependency(resource),
+        "actual component removal clears dormant source/dependency metadata");
+    resources.register_ready(mesh.clone(), ()).unwrap();
+    assert_eq!(retired_projector.prepare_geometry_replay(&[resource], false, 256, None)
+        .selected_primitive_count(), 0);
+
+}

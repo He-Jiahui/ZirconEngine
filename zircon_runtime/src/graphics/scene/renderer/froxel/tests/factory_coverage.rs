@@ -1,7 +1,6 @@
 #[test]
 fn froxel_pipelines_route_all_native_creates_through_pass_capability() {
-    let recording =
-        include_str!("../../execution/context/gpu/native.rs");
+    let recording = include_str!("../../execution/context/gpu/native.rs");
     let integrate = include_str!("../../advanced_lighting/froxel/integrate.rs");
     let scatter = include_str!("../light_scatter.rs");
     let media = include_str!("../media_inject.rs");

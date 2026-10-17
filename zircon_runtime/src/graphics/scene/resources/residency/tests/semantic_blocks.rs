@@ -147,8 +147,7 @@ fn render_semantic_route_admits_dependency_batches_in_order_and_retains_cpu_budg
     let mutation = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(texture, 1)],
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             device_epoch(17, 1),
             demand_generation(1),
         )
@@ -233,8 +232,7 @@ fn render_semantic_route_owns_manifest_and_blocks_until_cpu_lease_drop() {
     let mutation = residency
         .apply_scene_reference_deltas(
             &[RenderSceneResourceReferenceDelta::acquire(texture, 1)],
-            &resources.management_generation(),
-            &resources.readiness_generation(),
+            &resources.projection_snapshot(),
             device_epoch(18, 1),
             demand_generation(2),
         )

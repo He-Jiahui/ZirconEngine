@@ -258,6 +258,44 @@ pub(crate) struct ModulePluginStatusViewData {
 pub(crate) struct ModulePluginsPaneViewData {
     pub plugins: ModelRc<ModulePluginStatusViewData>,
     pub diagnostics: SharedString,
+    pub detail_generation: u64,
+    pub detail_locale: SharedString,
+    pub selected_plugin_id: SharedString,
+    pub focused_control: SharedString,
+    pub details: Option<std::rc::Rc<ModulePluginDetailsViewData>>,
+}
+
+/// Bounded, localized presentation of one selected package; the status report remains authority.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct ModulePluginDetailsViewData {
+    pub plugin_id: String,
+    pub title: String,
+    pub page: usize,
+    pub total_features: usize,
+    pub rows: Vec<ModulePluginFeatureRowViewData>,
+    pub selected_feature_id: String,
+    pub selected_identity: String,
+    pub selected_name: String,
+    pub selected_states: String,
+    pub selected_reason: String,
+    pub action_label: String,
+    pub action_id: String,
+    pub intent_id: String,
+    pub back_label: String,
+    pub previous_label: String,
+    pub next_label: String,
+    pub page_label: String,
+    pub empty_label: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct ModulePluginFeatureRowViewData {
+    pub feature_id: String,
+    pub label: String,
+    pub desired: bool,
+    pub required: bool,
+    pub blocked: bool,
+    pub effective: String,
 }
 
 #[derive(Clone, Default)]

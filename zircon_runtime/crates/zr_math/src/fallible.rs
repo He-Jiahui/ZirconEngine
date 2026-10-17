@@ -46,6 +46,8 @@ pub struct ValidatedPerspective {
 }
 
 impl ValidatedPerspective {
+    /// 校验弧度制垂直视场角、宽高比和有限近平面范围，并保存对应投影矩阵。
+    /// 返回值只代表当前近到远有限远平面约定下的构造检查通过。
     pub fn new(
         fov_y_radians: Real,
         aspect_ratio: Real,

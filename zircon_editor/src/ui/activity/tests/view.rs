@@ -40,7 +40,7 @@ fn activity_toast_views_localize_immutable_core_snapshots() {
     assert_eq!(views[0].title(), "项目已保存");
     assert_eq!(views[0].message(), "项目状态已写入磁盘。");
     assert_eq!(views[0].severity(), ToastSeverity::Success);
-    assert_eq!(views[0].expires_at(), Duration::from_secs(3));
+    assert_eq!(views[0].expires_at(), Some(Duration::from_secs(3)));
     assert_eq!(views[0].remaining_lifetime(), Duration::from_secs(3));
 }
 

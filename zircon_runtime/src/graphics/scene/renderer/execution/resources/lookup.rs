@@ -30,6 +30,15 @@ impl RenderGraphExecutionResources {
         })
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn probe_owned_buffer(
+        &self,
+        name: &str,
+    ) -> Option<super::super::transient_resource_pool::TransientBufferProbeLease> {
+        self.buffer_backing(name)
+            .and_then(|backing| self.owned_buffers.get(backing))
+            .map(|allocation| allocation.probe_lease())
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn owned_texture(
         &self,
         name: &str,

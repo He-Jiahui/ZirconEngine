@@ -1,3 +1,6 @@
+//! UI 驱动激活、配置快照与停止清理的行为契约。
+//! 夹具为声明依赖注册最小模块；观察器先执行真实清理钩子，再记录驱动拒绝新准入的状态。
+
 use std::sync::{Arc, Mutex};
 
 use crate::core::framework::ui::UI_MODULE_NAME;
@@ -9,6 +12,7 @@ use crate::core::{
 
 use super::{module_descriptor, UiConfig, UiRuntimeDriver, UI_CONFIG_KEY, UI_RUNTIME_DRIVER_NAME};
 
+/// 清理期间记录的驱动地址和拒绝准入标记；地址仅作身份观察，不保存服务引用。
 type CleanupObservations = Arc<Mutex<Vec<(usize, bool)>>>;
 
 #[derive(Debug)]
@@ -18,6 +22,7 @@ struct ObservedUiCleanup {
 
 impl ModuleLifecycle for ObservedUiCleanup {
     fn cleanup(&self, context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
+        // 先执行真实清理，再经停止期借用记录同一驱动是否拒绝新准入。
         super::lifecycle::UiModuleLifecycle.cleanup(context)?;
         context.with_existing_driver::<UiRuntimeDriver>(UI_RUNTIME_DRIVER_NAME, |registered| {
             let rejects_admission = matches!(
@@ -34,6 +39,8 @@ impl ModuleLifecycle for ObservedUiCleanup {
     }
 }
 
+/// 为激活测试注册只含模块身份的依赖，并用清理观察器包装 UI 钩子。
+/// 行为断言聚焦 UI 服务生命周期，依赖模块的业务行为由各自测试负责。
 fn registered_runtime() -> (CoreRuntime, CleanupObservations) {
     let runtime = CoreRuntime::new();
     let observations: CleanupObservations = Arc::new(Mutex::new(Vec::new()));
@@ -52,6 +59,7 @@ fn registered_runtime() -> (CoreRuntime, CleanupObservations) {
     (runtime, observations)
 }
 
+/// 观察注册槽位与代次，用于区分同槽重新激活后的服务身份；不进入服务调用。
 fn driver_identity(runtime: &CoreRuntime) -> (u32, u32) {
     let core = runtime.handle();
     let services = core.inner.services.lock().unwrap();
@@ -142,6 +150,10 @@ fn ui_driver_invalid_config_fails_activation_without_defaulting_to_enabled() {
         CoreError::ModuleActivationRollback { activation, .. } => *activation,
         other => other,
     };
+    // BUG: [CR-ZCA-R069-0001] 非法 enabled 进入工厂后，错误经 Core 包装为 Initialization；
+    // 上方只拆 ModuleActivationRollback，因此此处匹配 ConfigParse 会失败。
+    // 证据：runtime_driver::from_core 返回 ConfigParse，CoreHandle::invoke_service_factory 的
+    // Ok(Err(error)) 分支包装错误，activate_module_once 保留该激活主错。
     assert!(matches!(activation, CoreError::ConfigParse(key, _) if key == UI_CONFIG_KEY));
     assert!(runtime
         .resolve_driver::<UiRuntimeDriver>(UI_RUNTIME_DRIVER_NAME)

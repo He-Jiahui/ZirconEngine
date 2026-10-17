@@ -6,6 +6,7 @@ use crate::scene::{NodeKind, World};
 
 use super::{reflect_component_for_dynamic_descriptor, registration_from_component_descriptor};
 
+/// 同批更新两个字段只发布一次完整动态组件变更，同时核对 JSON 与 World 代数。
 #[test]
 fn dense_batch_write_publishes_one_dynamic_component_mutation() {
     let descriptor = ComponentTypeDescriptor::new(
@@ -49,6 +50,7 @@ fn dense_batch_write_publishes_one_dynamic_component_mutation() {
     );
 }
 
+/// 先恢复稳定实体身份，再暂存所选类型的 JSON 副本；未选类型及其目录项不进入预检 World。
 #[test]
 fn dynamic_component_stage_clone_preserves_json_in_preflight_world() {
     let descriptor = ComponentTypeDescriptor::new(

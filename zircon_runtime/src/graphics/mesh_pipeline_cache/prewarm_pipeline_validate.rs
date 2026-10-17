@@ -31,7 +31,7 @@ pub(crate) fn validate_mesh_prewarm_request_render_pipeline(
         source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(source.wgsl_source.as_str())),
     });
     create_validation_pipeline(device, pipeline_layout, &shader, &pipeline_key, request);
-    match pollster::block_on(error_scope.pop()) {
+    match crate::graphics::validation_scope::finish(device, error_scope) {
         Some(error) => Err(error.to_string()),
         None => Ok(()),
     }

@@ -11,7 +11,7 @@ use crate::core::framework::render::environment::{
 };
 use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::math::Real;
-use std::time::Instant;
+use web_time::Instant;
 
 impl SourceCubemapMipChain {
     /// Projects an equirectangular source and bakes PMREM directly at an

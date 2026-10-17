@@ -293,6 +293,54 @@ class DrainObservationsTests(unittest.TestCase):
             drain.classify_executions(self.manager, self.owner, self.execution(historical=True, status="blocked"))
         native.assert_not_called()
 
+    def test_later_boot_retains_completed_current_stop_and_historical_holds(self):
+        self.history()
+        rows = self.execution(historical=True, status="blocked")
+        holds = [row(domain, domain, {"owner": "execution", "status": "active"})
+                 for domain in ("resource_reservation", "pool_writer_hold")]
+        self.host.update(status="stopped", nativeTerminationProof=proof(self.owner["controller"]),
+                         agentTerminationProof=proof(self.owner["agent"]))
+        self.operation.update(state="stopped", nativeTerminationProof=self.host["nativeTerminationProof"],
+                              agentTerminationProof=self.host["agentTerminationProof"])
+        self.persist_owner()
+        self.boot.return_value = 2000
+        before = copy.deepcopy(rows + holds)
+        with patch.object(drain, "verify_driver"), \
+             patch.object(drain, "observe_departed_identity", side_effect=self.departed) as native:
+            result = drain.classify_executions(self.manager, self.owner, rows + holds)
+        self.assertEqual(before, rows + holds)
+        self.assertEqual(holds, result["protectedHolds"])
+        self.assertEqual([], result["activeExecutions"])
+        self.assertFalse(result["historicalExecutions"][0]["historicalHoldsReleaseAllowed"])
+        self.assertIn(rows[1]["payload"]["launcherIdentity"], [call.args[0] for call in native.call_args_list])
+
+    def test_later_boot_cannot_substitute_for_exact_current_stop_or_launcher_departure(self):
+        self.history()
+        rows = self.execution(historical=True, status="blocked")
+        self.host.update(status="stopped", nativeTerminationProof=proof(self.owner["controller"]),
+                         agentTerminationProof=proof(self.owner["agent"]))
+        self.operation.update(state="stopped", nativeTerminationProof=self.host["nativeTerminationProof"],
+                              agentTerminationProof=self.host["agentTerminationProof"])
+        self.persist_owner()
+        self.boot.return_value = 2000
+        for change in ("missing-eof", "wrong-owner", "running-host", "live-launcher"):
+            self.persist_owner()
+            if change == "missing-eof":
+                bad = copy.deepcopy(self.host)
+                bad["agentTerminationProof"]["stderrEof"] = False
+                self.write(self.paths.state / "deployment/host.json", bad)
+            elif change == "wrong-owner":
+                self.write(self.manager.journal, {**self.operation, "operationId": "other"})
+            elif change == "running-host":
+                self.write(self.paths.state / "deployment/host.json", {**self.host, "status": "running"})
+            def departure(value):
+                if change == "live-launcher" and value["pid"] == 13:
+                    raise JenkinsError("deployment_owner_live", "Launcher alive")
+                return self.departed(value)
+            with self.subTest(change=change), patch.object(drain, "verify_driver"), \
+                 patch.object(drain, "observe_departed_identity", side_effect=departure), self.assertRaises(JenkinsError):
+                drain.classify_executions(self.manager, self.owner, rows)
+
     def test_historical_archive_content_and_broker_mismatch_block(self):
         path, record = self.history()
         record["operation"]["hostPid"] = 77

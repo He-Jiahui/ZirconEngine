@@ -13,28 +13,32 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "theme.promote.asset_id.set" => self.editor_manager
+            "theme.promote.asset_id.set" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
                     manager.set_ui_asset_editor_promote_theme_asset_id(&instance_id, value)
                 })
                 .map(|_| ()),
-            "theme.promote.document_id.set" => self.editor_manager
+            "theme.promote.document_id.set" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
                     manager.set_ui_asset_editor_promote_theme_document_id(&instance_id, value)
                 })
                 .map(|_| ()),
-            "theme.promote.display_name.set" => self.editor_manager
+            "theme.promote.display_name.set" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
                     manager.set_ui_asset_editor_promote_theme_display_name(&instance_id, value)
                 })
                 .map(|_| ()),
-            "theme.rule_helper.apply" => self.editor_manager
+            "theme.rule_helper.apply" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
@@ -44,11 +48,15 @@ impl RetainedEditorHost {
                     )
                 })
                 .map(|_| ()),
-            "theme.refactor.apply" => self.editor_manager
+            "theme.refactor.apply" => self
+                .editor_manager
                 .enter()
                 .map_err(EditorError::from)
                 .and_then(|manager| {
-                    manager.apply_ui_asset_editor_theme_refactor_item(&instance_id, item_index.max(0) as usize)
+                    manager.apply_ui_asset_editor_theme_refactor_item(
+                        &instance_id,
+                        item_index.max(0) as usize,
+                    )
                 })
                 .map(|_| ()),
             other => {

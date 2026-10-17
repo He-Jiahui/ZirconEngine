@@ -30,7 +30,7 @@ impl<K: Eq, V> RenderPassDeviceEpochCache<K, V> {
         if !matches {
             drop(self.entry.take());
             let value = create()?;
-            self.entry.insert(RenderPassDeviceEpochCacheEntry {
+            let _ = self.entry.insert(RenderPassDeviceEpochCacheEntry {
                 device_epoch,
                 key,
                 value,

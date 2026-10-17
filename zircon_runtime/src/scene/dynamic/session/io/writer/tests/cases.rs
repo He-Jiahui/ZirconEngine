@@ -349,15 +349,21 @@ fn resolved(path: impl AsRef<Path>) -> ResolvedProjectPath {
 
 fn unique_workspace_temp_root(label: &str) -> PathBuf {
     let id = FIXTURE_ID.fetch_add(1, Ordering::Relaxed);
-    let root = std::env::current_dir()
-        .expect("dynamic scene tests require a workspace current directory")
-        .join(".codex")
-        .join("tmp")
-        .join(format!(
-            "runtime11_dynamic_scene_{label}_{}_{}",
-            std::process::id(),
-            id
-        ));
-    std::fs::create_dir_all(&root).unwrap();
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("system clock should follow Unix epoch")
+        .as_nanos();
+    let parent = std::env::temp_dir()
+        .canonicalize()
+        .expect("registered temporary parent must already exist");
+    assert!(parent.is_absolute());
+    let root = parent.join(format!(
+        "runtime11_dynamic_scene_{label}_{}_{id}_{nonce}",
+        std::process::id()
+    ));
+    assert_eq!(root.parent(), Some(parent.as_path()));
+    std::fs::create_dir(&root).expect("fixture must exclusively create a new direct child");
+    let root = root.canonicalize().expect("new fixture must resolve");
+    assert_eq!(root.parent(), Some(parent.as_path()));
     root
 }

@@ -1,7 +1,7 @@
 #[path = "budget/mod.rs"]
 mod budget;
 #[path = "capability_summary/mod.rs"]
-mod capability_summary;
+pub(super) mod capability_summary;
 #[path = "capability_validation/mod.rs"]
 mod capability_validation;
 #[path = "capture_frame/mod.rs"]

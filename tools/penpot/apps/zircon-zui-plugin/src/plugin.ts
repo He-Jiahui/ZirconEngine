@@ -255,6 +255,8 @@ async function setReviewCase(
     const document = reviewDocumentForCase(baseline, reviewCase);
     bindFontResources(document,fontResourcesForShape(previous));
     const projection = projectZuiDocument(document);
+    restoreReviewScrollPresentation(previous);
+    assertExportShapeGuard(previous);
     const reuseNativeBoard = canReuseReviewBoard(
       previous,
       original,
@@ -264,10 +266,6 @@ async function setReviewCase(
       // Reuse only when the authored responsive container geometry is stable.
       // Clone the already-materialized board so Penpot does not recreate
       // hundreds of native component copies for equivalent viewport states.
-      // A previous scroll capture temporarily detaches children and clips the
-      // semantic container. Restore that capture-only presentation before
-      // cloning so the next viewport/state starts from authored geometry.
-      restoreReviewScrollPresentation(previous);
       const clone = previous.clone();
       if (clone.type !== 'board')
         throw new Error('Review board clone is not a board');

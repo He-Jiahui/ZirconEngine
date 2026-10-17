@@ -188,3 +188,29 @@ fn empty_scene_snapshot(clear_color: Vec4) -> RenderSceneSnapshot {
         virtual_geometry_debug: None,
     }
 }
+
+#[test]
+fn screen_space_ui_partial_opaque_background_blocks_older_uniform_color() {
+    let viewport = UiFrame::new(0.0, 0.0, 200.0, 100.0);
+    let query = UiFrame::new(10.0, 10.0, 40.0, 20.0);
+    let background = [0.1, 0.2, 0.3, 1.0];
+    for (newer_frame, expected_visits, expected_color) in [
+        (UiFrame::new(20.0, 10.0, 10.0, 20.0), 1, None),
+        (UiFrame::new(80.0, 10.0, 10.0, 20.0), 2, Some(background)),
+    ] {
+        let mut tracker =
+            ScreenSpaceUiBackgroundTracker::with_framebuffer_background(viewport, Some(background));
+        tracker.observe_command(
+            &background_test_command(
+                UiRenderCommandKind::Quad,
+                newer_frame,
+                Some("#6688aa"),
+                None,
+            ),
+            viewport,
+        );
+        let (color, visits) = tracker.color_for_frame_with_visit_count(query, None, viewport);
+        assert_eq!(color, expected_color);
+        assert_eq!(visits, expected_visits);
+    }
+}

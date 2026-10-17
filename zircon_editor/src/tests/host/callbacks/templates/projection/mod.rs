@@ -28,6 +28,8 @@ use zircon_runtime_interface::ui::v2::{
     UI_V2_REPEAT_FIELD_VIRTUAL_CONTROL_PREFIX, UI_V2_REPEAT_KIND_VIRTUAL_ROWS,
 };
 
+#[path = "component_add.rs"]
+mod component_add;
 #[path = "document_module.rs"]
 mod document_module;
 #[path = "interaction.rs"]
@@ -55,6 +57,7 @@ fn workbench_projection_test_owners_stay_within_budget() {
         ("mod.rs", include_str!("mod.rs")),
         ("shell_layout.rs", include_str!("shell_layout.rs")),
         ("document_module.rs", include_str!("document_module.rs")),
+        ("component_add.rs", include_str!("component_add.rs")),
         ("scene_fragment.rs", include_str!("scene_fragment.rs")),
         (
             "scene_node_identity.rs",

@@ -32,7 +32,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     }
     let opacity = field_opacity(node, opacity);
     let style = field_style(node);
-    push_field_label(commands, node, &rect, clip, order + TEXT_OFFSET, opacity, &style);
+    push_field_label(
+        commands,
+        node,
+        &rect,
+        clip,
+        order + TEXT_OFFSET,
+        opacity,
+        &style,
+    );
     let rect = super::geometry::field_value_paint_rect(node, &rect);
     if !has_paintable_field_extent(&rect) {
         return true;

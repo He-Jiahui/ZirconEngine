@@ -3,7 +3,6 @@ use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::super::paint_theme::current_host_metrics;
 use super::super::layout::translated_welcome_frame;
-use super::super::style::WELCOME_TEXT;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 const RECENT_HEADER_TOP_INSET: f32 = 18.0;
@@ -49,7 +48,7 @@ pub(super) fn draw_recent_projects_header(
         },
         "Recent Projects",
         Some(clip),
-        WELCOME_TEXT,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text,
         title_font_size,
         title_line_height,
         UiTextRunPaintStyle::default(),

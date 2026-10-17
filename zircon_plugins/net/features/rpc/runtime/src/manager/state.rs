@@ -14,8 +14,8 @@ use zircon_runtime::core::framework::net::{
 use crate::feature::NET_RPC_FEATURE_CAPABILITY;
 
 use super::{
-    DEFAULT_RPC_QUEUE_DEPTH, RPC_PROTOCOL_VERSION, RpcChannelMessage, RpcHandler,
-    RpcSchemaValidator,
+    RpcChannelMessage, RpcHandler, RpcSchemaValidator, DEFAULT_RPC_QUEUE_DEPTH,
+    RPC_PROTOCOL_VERSION,
 };
 
 #[derive(Clone)]

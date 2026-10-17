@@ -1,0 +1,539 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch_id": "R022",
+  "owner": "contracts_luna",
+  "review_role": "scoped-source-audit-and-comments-only-canonical-text-serialization",
+  "model": "gpt-6-luna",
+  "reasoning_effort": "max",
+  "created_at_utc": "2026-10-15 06:11:59 UTC",
+  "status": "local-comments-complete-pending-main-independent-review",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "canonical_checkout": "E:/Git/ZirconEngine",
+  "write_authorization": {
+    "grant_path": "docs/plans/source-comments/assignments.json",
+    "grant_sha256_reported_at_source_assignment": "1cee0ea894581362f34ff1aadc640d28b4048130f8041d120d39380f26192ca9",
+    "grant_sha256_at_metadata_prewrite_read": "1abab96f2ad168104c7c76706fa9345fc03d6243e8a7ba19979a82547b96cc70",
+    "exact_r022_entry_rechecked": true,
+    "exact_source_paths": [
+      "zircon_runtime_interface/src/serialization/text/canonical_spool.rs",
+      "zircon_runtime_interface/src/serialization/text/tests/canonical_spool.rs",
+      "zircon_runtime_interface/src/serialization/text/canonical_map_key.rs",
+      "zircon_runtime_interface/src/serialization/text/canonical_writer/json_string.rs"
+    ],
+    "exact_before_sha256": {
+      "zircon_runtime_interface/src/serialization/text/canonical_spool.rs": "4084b62706b687499f618899fc40fc5e86b0f98efaa33d9b420bdbb2a80b023e",
+      "zircon_runtime_interface/src/serialization/text/tests/canonical_spool.rs": "d2b0e0b77dffa21ec569dcbbd67dc02d86114c8906078127bb6df65c5556e4e5",
+      "zircon_runtime_interface/src/serialization/text/canonical_map_key.rs": "18767204804d8fcb8fcfba443fd94f1ef170b36c711496d401a6029480fea89c",
+      "zircon_runtime_interface/src/serialization/text/canonical_writer/json_string.rs": "007923a75f09e22aaeb5b153ed22e26ac6279667bb1691a937edf40cc6609008"
+    },
+    "only_metadata_write_path": "docs/plans/source-comments/reviews/R022.json",
+    "source_write_mode": "仅新增有证据的中文解释性注释；不改行为、API、断言、字符串、宏 token、既有注释或原字节。",
+    "metadata_absent_before_write": true,
+    "external_ownership_release_claimed": false
+  },
+  "guidance": [
+    {
+      "path": "docs/plans/source-comments/01-standard.md",
+      "sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3",
+      "read_spans": [
+        "1-25"
+      ],
+      "usage": "逐对象和语句块记录定义、调用、trait、宏、注册、FFI、测试与契约；仅按需新增中文解释并证明原字节保留。"
+    },
+    {
+      "path": ".codex/skills/zircon-dev/SKILL.md",
+      "sha256": "2d699cd12492709facc84079838a836356e4f7dd8b7bac475b65d10a804ed957",
+      "read_spans": [
+        "1-35"
+      ],
+      "usage": "Rust 注释修改只做精确路径格式检查和 diff 检查；本批不构建、不运行测试。"
+    },
+    {
+      "path": "zircon_runtime_interface/AGENTS.md",
+      "exists": false,
+      "usage": "只读搜索模块子树局部 AGENTS.md；未发现。仓库根 AGENTS.md 由用户在对话中提供。"
+    }
+  ],
+  "scope": {
+    "formal_source_paths": [
+      "zircon_runtime_interface/src/serialization/text/canonical_spool.rs",
+      "zircon_runtime_interface/src/serialization/text/tests/canonical_spool.rs",
+      "zircon_runtime_interface/src/serialization/text/canonical_map_key.rs",
+      "zircon_runtime_interface/src/serialization/text/canonical_writer/json_string.rs"
+    ],
+    "metadata_path": "docs/plans/source-comments/reviews/R022.json",
+    "formal_source_count": 4,
+    "original_total_lines": 935,
+    "final_total_lines": 973,
+    "added_source_lines": 38,
+    "added_comment_lines": 35,
+    "added_blank_separator_lines": 3,
+    "context_is_not_formal_coverage": true,
+    "exclusions": [
+      "canonical_writer.rs、canonical_writer/output.rs、canonical_writer/canonical.rs 与 perf 子树属于 R023 等其它归属；本批仅只读跟踪调用，不计覆盖且未修改。",
+      "serialization/write.rs、text/mod.rs、serialization/tests/write_contract.rs 仅为入口、挂载和契约测试上下文，不计 R022 覆盖。",
+      "canonical_spool 测试文件原有用例名称和断言已直接表达边界，本批未添加注释。"
+    ],
+    "excluded_actions": [
+      "Cargo、Rust 测试、构建或生成器",
+      "临时脚本、源码副本、清理或生成测试夹具",
+      "Git 写操作、总账本写入、其它批次源码写入",
+      "Jenkins/退役协调器操作或外部 owner 释放声明"
+    ]
+  },
+  "files": {
+    "zircon_runtime_interface/src/serialization/text/canonical_spool.rs": {
+      "before_sha256": "4084b62706b687499f618899fc40fc5e86b0f98efaa33d9b420bdbb2a80b023e",
+      "after_sha256": "42b4b6566cdf5cb0dbc25dc6bb1d98bd21b816467ea964b4d6975b4f154ab84b",
+      "before_lines": 332,
+      "after_lines": 348,
+      "before_bytes": 11056,
+      "after_bytes": 12551,
+      "status_before": "clean at exact grant preflight",
+      "status_after": "modified only by R022 explanatory comments",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "module, spool resource constants and attempt identifier",
+          "review_span_current": "1-28",
+          "audit": "模块职责、临时根环境变量、日志 magic/version、每 spool 的 64 KiB 阈值、共享工作字节和文件数上限、原子 attempt id 均已核对。溢出条件严格为 buffer.len().saturating_add(bytes.len()) > MEMORY_SPOOL_BYTES，恰好 64 KiB 仍留在内存。"
+        },
+        {
+          "name": "SpoolAttempt and its creation/allocation/journal helpers",
+          "review_span_current": "29-190",
+          "audit": "一次写入共享一个按需创建的目录和文件计数；路径来自配置根或系统临时目录，名称含进程号与原子编号。目录初始化记录版本和标识；文件分配有有限重试及每尝试文件上限。内部文件数哨兵单独映射为资源上限，普通 I/O 错误保持原错误。Drop 对尝试目录尽力清理。"
+        },
+        {
+          "name": "TempSpoolStorage, TempSpool and write/finish/copy/drop paths",
+          "review_span_current": "191-348",
+          "audit": "状态在内存缓冲与文件写端/路径间转换；阈值以上才溢出，分配失败时保留内存状态。finish_write 刷新并关闭文件写端，copy_to 之后按块回读；文件 drop 清理其路径。accounted_bytes 只由 canonical_writer::serialize_to_spool 写入文档预算增量，供对象重复键替换退还；其它 wrapper spool 保持初始化值。输出预算已由调用侧预记账，回读不会重复累计。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 0,
+          "byte_length": 434,
+          "sha256": "ec8ab159f764bd7b9f7c17f6d7c3ad54e69b515d870b2467fe6bf5c61b343b6d",
+          "exact_text": "//! 为规范文本 writer 暂存尚未输出的值；每个 spool 先留在内存，超过 64 KiB 后转为本次写入专属文件。\n//! 多个 spool 共享一个延迟创建的 `SpoolAttempt`；输出字节和临时工作字节预算由调用侧的 `OutputBudget` 记账。\n//! 写句柄关闭后按块回读；文件及尝试目录由各自所有者析构时尽力清理，尝试日志记录格式版本、进程号与编号。\n\n"
+        },
+        {
+          "current_byte_offset": 1421,
+          "byte_length": 216,
+          "sha256": "bba8374ec4c625ad51650bcd3ab9cb888930b16cf66f30f80db9ab17d14f602c",
+          "exact_text": "/// 一次规范文本写入共享的临时目录及溢出文件计数器。\n///\n/// 目录按需创建，所有相关 spool 通过 `Rc` 持有本状态；最后一个所有者释放时尽力删除该尝试目录。\n"
+        },
+        {
+          "current_byte_offset": 6490,
+          "byte_length": 100,
+          "sha256": "bf04a359d7f4a08fde3874ce011ed33078a388797ac8a32800b3717c79678693",
+          "exact_text": "/// 仅从内部文件数哨兵中提取资源上限；普通文件系统 I/O 错误不会匹配。\n"
+        },
+        {
+          "current_byte_offset": 7067,
+          "byte_length": 106,
+          "sha256": "2b643762314026264f398b897bc1bde4504859ff26f4f494cc2e7ba5484d5d39",
+          "exact_text": "/// 内存缓存或溢出文件；文件句柄为 `None` 表示写端已关闭，路径仍可供回读。\n"
+        },
+        {
+          "current_byte_offset": 7269,
+          "byte_length": 327,
+          "sha256": "082e11b5a0c3a525d43a77c028611eb5c82991d3da1c0c9d06ac5ac86e6a33d2",
+          "exact_text": "/// 单个可回读值的暂存区，超过内存阈值后使用所属尝试的临时文件。\n///\n/// `attempt` 延长共享目录的生命周期；writer 的 `serialize_to_spool` 会把该值占用的文档预算增量写入\n/// `accounted_bytes`，供重复键替换时退还；其他 wrapper spool 保持其初始化值。\n"
+        },
+        {
+          "current_byte_offset": 7688,
+          "byte_length": 101,
+          "sha256": "dc5824188de50f4d254fc226ff4aa43929ad906cc08a7bbdaa9d699bd0f686b2",
+          "exact_text": "    /// `serialize_to_spool` 写入的文档预算增量；对象值被替换时供 writer 退还。\n"
+        },
+        {
+          "current_byte_offset": 8051,
+          "byte_length": 78,
+          "sha256": "600df9dc017b60535a3fadb832dcc3c05b8a49a265fe9bc0c943863518037a22",
+          "exact_text": "    /// 对落盘形式刷新并关闭写句柄；内存形式无需处理。\n"
+        },
+        {
+          "current_byte_offset": 8625,
+          "byte_length": 133,
+          "sha256": "b32e9f5cfe8e0e06efeb67d89ef6555ee3d02abfe59a22575562fb0e3eedeb9f",
+          "exact_text": "    /// 完成写入后将暂存内容送入外层 writer；文档预算已在首次序列化时记账，此处避免重复计数。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从精确路径 unified=0 diff 取得每个新增块的原始 LF 文本与当前 raw byte offset/length；按 offset 逆序在内存缓冲中删除，未重写文件或规范化行尾。",
+        "reconstructed_bytes": 11056,
+        "reconstructed_sha256": "4084b62706b687499f618899fc40fc5e86b0f98efaa33d9b420bdbb2a80b023e",
+        "matches_assignment_before": true,
+        "reconstructed_line_ending": "LF only; no BOM; final LF"
+      }
+    },
+    "zircon_runtime_interface/src/serialization/text/tests/canonical_spool.rs": {
+      "before_sha256": "d2b0e0b77dffa21ec569dcbbd67dc02d86114c8906078127bb6df65c5556e4e5",
+      "after_sha256": "d2b0e0b77dffa21ec569dcbbd67dc02d86114c8906078127bb6df65c5556e4e5",
+      "before_lines": 112,
+      "after_lines": 112,
+      "before_bytes": 3893,
+      "after_bytes": 3893,
+      "status_before": "clean at exact grant preflight",
+      "status_after": "byte-identical to before pin",
+      "line_ending": "CRLF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "small_canonical_values_stay_in_memory_without_creating_a_temp_file",
+          "review_span_current": "9-25",
+          "audit": "用例验证小值不分配临时文件，并以目录状态断言内存路径行为。"
+        },
+        {
+          "name": "large_canonical_values_close_the_spill_file_after_serialization",
+          "review_span_current": "27-47",
+          "audit": "用例验证超过阈值后文件溢出，序列化完成后写句柄已关闭。"
+        },
+        {
+          "name": "spilled_attempt_records_versioned_recovery_evidence",
+          "review_span_current": "49-75",
+          "audit": "检查 journal magic/version、pid、attempt id，并在 spool 所有者释放后检查目录清理。"
+        },
+        {
+          "name": "failed_attempt_journal_initialization_rolls_back_the_directory",
+          "review_span_current": "77-89",
+          "audit": "通过使 journal 初始化失败验证新目录回滚。"
+        },
+        {
+          "name": "spill_file_count_is_bounded_per_attempt_before_directory_allocation",
+          "review_span_current": "91-105",
+          "audit": "验证文件数上限在分配下一 spill 文件前生效。"
+        },
+        {
+          "name": "test_root",
+          "review_span_current": "107-112",
+          "audit": "为每个测试创建带测试进程标识的临时根；各测试使用独立标签和作用域。用例名与断言已直述目的，不需新增解释注释。"
+        }
+      ],
+      "insertions": [],
+      "original_byte_reconstruction": {
+        "method": "当前文件 SHA 与授权 before SHA 相同；未改写。",
+        "reconstructed_bytes": 3893,
+        "reconstructed_sha256": "d2b0e0b77dffa21ec569dcbbd67dc02d86114c8906078127bb6df65c5556e4e5",
+        "matches_assignment_before": true,
+        "reconstructed_line_ending": "CRLF only; no BOM; final LF"
+      }
+    },
+    "zircon_runtime_interface/src/serialization/text/canonical_map_key.rs": {
+      "before_sha256": "18767204804d8fcb8fcfba443fd94f1ef170b36c711496d401a6029480fea89c",
+      "after_sha256": "e9931fcd768ac1249f299fba617b5e5bf439483731f6b274d50ab7df164bcf5c",
+      "before_lines": 366,
+      "after_lines": 381,
+      "before_bytes": 10744,
+      "after_bytes": 12081,
+      "status_before": "clean at exact grant preflight",
+      "status_after": "modified only by R022 explanatory comments",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "CanonicalMapKey and constructors",
+          "review_span_current": "1-53",
+          "audit": "持有不带引号的键文本用于排序/查找，并缓存最终 JSON 编码字节数。借用和所有权构造最终都按带引号且经过 JSON 转义后的字节长度执行同一上限验证。"
+        },
+        {
+          "name": "CanonicalMapKeySerializer, key_integer_methods macro and serde::Serializer implementation",
+          "review_span_current": "54-252",
+          "audit": "实现 JSON 对象键支持的标量序列化；整数宏生成各整数入口，Option::Some 递归应用相同规则。unit enum 输出变体名；null/unit/bytes、RawValue token 和复合值被拒绝。错误映射保留键长度预算错误和非法键类别。`is_human_readable` 与文本键格式路径已核对。"
+        },
+        {
+          "name": "CanonicalMapKeyDisplayWriter and fmt::Write implementation",
+          "review_span_current": "253-306",
+          "audit": "增量接收 Display 文本并通过 fmt::Write 写入；由于 fmt::Error 没有错误载荷，adapter 另存预算/格式化失败原因供外层返回。"
+        },
+        {
+          "name": "finite_key and key validation/length helpers",
+          "review_span_current": "307-381",
+          "audit": "非有限浮点数先被拒绝；有限浮点按 JSON 数字拼写形成对象字符串键。RawValue 标记单独拒绝。编码长度计算把引号、UTF-8 原文和与 json_string.rs 对齐的控制字符/特殊字符转义纳入预算；限额和错误构造 helper 均已逐块核对。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 0,
+          "byte_length": 229,
+          "sha256": "f05fd1719beda0483293ce85832d276d2f5d2feb9c885221a26bc041d0170816",
+          "exact_text": "//! 将 Serde 映射键规整为规范 JSON 字符串，并在预聚合时核算其带引号和转义后的字节数。\n//! 仅接纳 JSON 对象键可表示的标量形式；null、RawValue 与复合形式不属于此键域。\n\n"
+        },
+        {
+          "current_byte_offset": 506,
+          "byte_length": 155,
+          "sha256": "7b205118da449e4d5bbbb79a4eba8c7e4f282e9d6c6eabbd4332387b04ef3eee",
+          "exact_text": "///\n/// `value` 保持不带引号的文本供对象排序与查找；`encoded_bytes` 包含引号和转义扩展，供 writer 提前预留输出预算。\n"
+        },
+        {
+          "current_byte_offset": 768,
+          "byte_length": 96,
+          "sha256": "9d56f8f92acabb11de2d4cc19a0e453f51ee62da1b8300d25d4ee143e4fee96e",
+          "exact_text": "    /// 复制借用文本，并按带引号、转义后的 JSON 键长度校验 `max_bytes`。\n"
+        },
+        {
+          "current_byte_offset": 1138,
+          "byte_length": 96,
+          "sha256": "c28514b5a8aaf80d32778dd6c27cae811a94a0b0f88ede00d4d08d8080f84e47",
+          "exact_text": "    /// 接管已格式化的文本，并执行与借用入口相同的 JSON 键长度校验。\n"
+        },
+        {
+          "current_byte_offset": 1860,
+          "byte_length": 293,
+          "sha256": "96705230a6e265c3b55c163c67052d09ae335e14331280858b5c8fa932c05c63",
+          "exact_text": "///\n/// 允许布尔、数字、字符、字符串、单元枚举变体与 `Display` 文本；`Some` 递归使用同一标量规则。\n/// 拒绝 null、RawValue、字节串及复合值。\n/// `max_bytes` 限制最终带引号且转义后的拼写长度，而不只是原始字符串长度。\n"
+        },
+        {
+          "current_byte_offset": 2343,
+          "byte_length": 97,
+          "sha256": "e70b7ce271dd82da93aef952e504eb704bab8ec6925cbdf94994a49b8d3d8b69",
+          "exact_text": "// 整数先转成十进制键文本，再统一校验 JSON 引号和转义所占的字节数。\n"
+        },
+        {
+          "current_byte_offset": 7819,
+          "byte_length": 138,
+          "sha256": "357853f1005ee130351ecddc36f602d35705aa8b5c0ebde2e1ec21bb2fa9a032",
+          "exact_text": "/// 增量收集 Display 文本并计算最终 JSON 键长度；`fmt::Write` 只能返回通用错误，因此另存具体预算错误。\n"
+        },
+        {
+          "current_byte_offset": 9465,
+          "byte_length": 114,
+          "sha256": "1cc1838deea179f85d76e293539dc3dad224d18e31dd0439dd9e78fcb1a473af",
+          "exact_text": "// JSON 对象键仍是字符串；先拒绝非有限值，再将 JSON 数字文本按带引号键长度校验。\n"
+        },
+        {
+          "current_byte_offset": 10790,
+          "byte_length": 119,
+          "sha256": "0210627e5c6a4d91baf070bd294970451c19e89a9f75503552993480bec4434c",
+          "exact_text": "// 此处的转义长度必须与 json_string.rs 的实际输出规则一致，预算才不会低估最终键长度。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从精确路径 unified=0 diff 取得每个新增块的原始 LF 文本与当前 raw byte offset/length；按 offset 逆序在内存缓冲中删除，未重写文件或规范化行尾。",
+        "reconstructed_bytes": 10744,
+        "reconstructed_sha256": "18767204804d8fcb8fcfba443fd94f1ef170b36c711496d401a6029480fea89c",
+        "matches_assignment_before": true,
+        "reconstructed_line_ending": "LF only; no BOM; final LF"
+      }
+    },
+    "zircon_runtime_interface/src/serialization/text/canonical_writer/json_string.rs": {
+      "before_sha256": "007923a75f09e22aaeb5b153ed22e26ac6279667bb1691a937edf40cc6609008",
+      "after_sha256": "9ae6f5483504a4910412d11e97a8c4c57e8ddaa995ed1c7dc041184ff748bb93",
+      "before_lines": 125,
+      "after_lines": 132,
+      "before_bytes": 3796,
+      "after_bytes": 4450,
+      "status_before": "clean at exact grant preflight",
+      "status_after": "modified only by R022 explanatory comments",
+      "line_ending": "LF only; no BOM; final LF",
+      "objects": [
+        {
+          "name": "write_json_string, write_json_string_preaccounted and write_json_display",
+          "review_span_current": "1-64",
+          "audit": "分别处理正常计数、调用方已预留完整编码字节的字符串写出，以及 Display 的流式 JSON 字符串格式化。方法写出开闭引号并把编码内容送入计数 writer；预记账入口要求调用方先预留预算，避免重复计数。"
+        },
+        {
+          "name": "CanonicalJsonDisplayWriter and fmt::Write implementation",
+          "review_span_current": "65-85",
+          "audit": "Display adapter 将 formatter 的 fmt::Write 请求委托给 JSON 内容转义逻辑，并保留输出预算错误供调用方恢复；普通格式器拒绝映射成验证错误。"
+        },
+        {
+          "name": "write_json_string_content and hex_digit",
+          "review_span_current": "86-132",
+          "audit": "按未转义 UTF-8 连续片段和转义字符分段流式写出；正确处理引号、反斜线、常用控制转义及其余 U+0000..U+001F 小写十六进制转义。十六进制 helper 与具体输出字节已核对。"
+        }
+      ],
+      "insertions": [
+        {
+          "current_byte_offset": 0,
+          "byte_length": 228,
+          "sha256": "d1ee3c6a92f1776a174b4cf2703948ef2dc1c8d8de508905ce34814943dd2098",
+          "exact_text": "//! 以流式方式写出规范 JSON 字符串，并把引号、原文和转义字节交给计数 writer。\n//! 对象键已提前预留完整编码长度时使用预记账入口，避免写出阶段重复占用文档预算。\n\n"
+        },
+        {
+          "current_byte_offset": 354,
+          "byte_length": 77,
+          "sha256": "f17e04a54db11f1df641ce0dbffa4260fd6013de32a860f414b4f55f48ba7af4",
+          "exact_text": "/// 写出带引号的 JSON 字符串，并逐段计入实际输出字节。\n"
+        },
+        {
+          "current_byte_offset": 745,
+          "byte_length": 101,
+          "sha256": "35baa1d12788f6a3e894aae162f5fcd34a55683271a7af3dfb4d1be2eb309a09",
+          "exact_text": "/// 写出带引号的 JSON 字符串；调用方必须已为完整编码长度预留文档预算。\n"
+        },
+        {
+          "current_byte_offset": 1188,
+          "byte_length": 142,
+          "sha256": "c565c985a65ff97ca676e7c3c0b687e582bd447b38cb227d25f35692c0c893ed",
+          "exact_text": "/// 将 `Display` 结果作为带引号 JSON 字符串流式格式化；预算错误原样返回，格式化器拒绝则转为验证错误。\n"
+        },
+        {
+          "current_byte_offset": 2774,
+          "byte_length": 106,
+          "sha256": "ac4804f32c34b3e8775396ec003122300664f026c9c77f0ecdcafa5bb9ff5826",
+          "exact_text": "// 调用方负责引号；未转义片段直接输出 UTF-8，控制字符则写为 JSON 转义序列。\n"
+        }
+      ],
+      "original_byte_reconstruction": {
+        "method": "从精确路径 unified=0 diff 取得每个新增块的原始 LF 文本与当前 raw byte offset/length；按 offset 逆序在内存缓冲中删除，未重写文件或规范化行尾。",
+        "reconstructed_bytes": 3796,
+        "reconstructed_sha256": "007923a75f09e22aaeb5b153ed22e26ac6279667bb1691a937edf40cc6609008",
+        "matches_assignment_before": true,
+        "reconstructed_line_ending": "LF only; no BOM; final LF"
+      }
+    }
+  },
+  "context_evidence": [
+    {
+      "path": "zircon_runtime_interface/src/serialization/write.rs",
+      "sha256": "82e8c35a6bc599ac23b8efaae33898a2507721c08fd84482b3ed445a0cb138cb",
+      "read_spans": [
+        "24-79"
+      ],
+      "use": "Format::Text dispatches to text writer; write_versioned_text_to builds the versioned document and maps text writer errors. Read-only public-entry context."
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/mod.rs",
+      "sha256": "2d5e7a01ee621f86ca6b372d11e96f43b7275dd68bfbc41baa620975572320bc",
+      "read_spans": [
+        "1-30"
+      ],
+      "use": "Mounts canonical writer, canonical map key and spool modules; read-only module context."
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/canonical_writer.rs",
+      "sha256": "b512879570b2da9f67d7546ee745f3c5dc8b1de24a4384fa7fae4e5ae7e40c28",
+      "read_spans": [
+        "32-45",
+        "166-224",
+        "649-662",
+        "686-692",
+        "715-739",
+        "761-785"
+      ],
+      "use": "Read-only R023 context: canonical text writer calls the JSON string writer, map key serializer and TempSpool; serialize_to_spool fills the accounted document-budget delta, and duplicate-key replacement refunds the prior value delta."
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/text/canonical_writer/output.rs",
+      "sha256": "f522c9ac94bd76cf7d19b3bd5a8909ec6c67d9243024f554d74bab7a9ca44c81",
+      "read_spans": [
+        "13-27",
+        "56-70",
+        "120-165"
+      ],
+      "use": "Read-only R023 context: one OutputBudget owns shared SpoolAttempt; output and temporary-work budgets are distinct; preaccounted writes avoid charging bytes a second time; private spool sentinel becomes the resource-limit error."
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/tests/write_contract.rs",
+      "sha256": "f1d4bccd23a391a602db885c708ea4a9d9ca0e4b4a94e5fddbf622487101db64",
+      "read_spans": [
+        "147-180",
+        "443-475",
+        "564-580",
+        "657-702"
+      ],
+      "use": "Read-only test context exercises finite numeric/string key spellings, composite and RawValue rejection, partial Display output budget enforcement, duplicate-key last-write-wins charging, and non-finite rejection."
+    }
+  ],
+  "calls_traits_registration": {
+    "direct_contract_path": [
+      "serialization::write::write_versioned_text_to invokes the text canonical writer.",
+      "canonical_writer serializes values into TempSpool for deferred object ordering; its serialize_to_spool path records the document-budget delta in accounted_bytes, write_object emits keys through CanonicalMapKey and values through TempSpool::copy_to.",
+      "CanonicalMapKeySerializer produces the sorted key text and encoded byte count; write_json_string_preaccounted emits that key without charging the document budget twice.",
+      "Display-derived key/value output is streamed through fmt::Write adapters; TempSpool implements std::io::Write for serialization output."
+    ],
+    "traits_macros_lifecycles": [
+      "CanonicalMapKeySerializer implements serde::Serializer; key_integer_methods! generates the integer methods and is present as the only macro_rules! definition in the formal paths.",
+      "CanonicalMapKeyDisplayWriter and CanonicalJsonDisplayWriter implement fmt::Write; TempSpool implements std::io::Write.",
+      "SpoolAttempt and TempSpool implement Drop for best-effort file/directory cleanup; Rc ownership keeps the attempt directory alive until the related spool owners are released.",
+      "No unsafe block, FFI declaration/call, or dynamic registration point occurs in the four formal paths or their direct text-writer context."
+    ],
+    "direct_call_limit": "The canonical writer and output budget files are R023-owned read-only context. The call trace establishes local contract evidence only and does not expand R022 source ownership or coverage."
+  },
+  "test_contracts": [
+    {
+      "test": "small_canonical_values_stay_in_memory_without_creating_a_temp_file",
+      "evidence": "Asserts small serialization does not allocate a spill file."
+    },
+    {
+      "test": "large_canonical_values_close_the_spill_file_after_serialization",
+      "evidence": "Asserts an over-threshold serialization spills and leaves the file writer closed."
+    },
+    {
+      "test": "spilled_attempt_records_versioned_recovery_evidence",
+      "evidence": "Asserts journal identity/version contents and cleanup after owner release."
+    },
+    {
+      "test": "failed_attempt_journal_initialization_rolls_back_the_directory",
+      "evidence": "Asserts failed journal setup removes the newly allocated attempt directory."
+    },
+    {
+      "test": "spill_file_count_is_bounded_per_attempt_before_directory_allocation",
+      "evidence": "Asserts the per-attempt spill file cap is enforced before creating the next attempt directory."
+    }
+  ],
+  "issues": [],
+  "preexisting_context_issues": [],
+  "validation": {
+    "source_before_hashes_verified": true,
+    "sources_clean_before_review": true,
+    "source_changes": "Only explanatory comment lines and their separating blank lines were added to canonical_spool.rs, canonical_map_key.rs, and canonical_writer/json_string.rs. The assigned canonical_spool test file remains byte-identical.",
+    "original_bytes_preserved": true,
+    "byte_reconstruction": {
+      "zircon_runtime_interface/src/serialization/text/canonical_spool.rs": "Removed 8 exact insertion spans in descending raw byte-offset order; reconstructed 11056-byte buffer SHA matches the authorized before pin.",
+      "zircon_runtime_interface/src/serialization/text/canonical_map_key.rs": "Removed 9 exact insertion spans in descending raw byte-offset order; reconstructed 10744-byte buffer SHA matches the authorized before pin.",
+      "zircon_runtime_interface/src/serialization/text/canonical_writer/json_string.rs": "Removed 5 exact insertion spans in descending raw byte-offset order; reconstructed 3796-byte buffer SHA matches the authorized before pin.",
+      "zircon_runtime_interface/src/serialization/text/tests/canonical_spool.rs": "Current 3893-byte CRLF buffer SHA equals the before pin; no rewrite or newline normalization occurred."
+    },
+    "rustfmt_check": {
+      "command": "rustfmt --edition 2021 --check --config skip_children=true zircon_runtime_interface/src/serialization/text/canonical_spool.rs zircon_runtime_interface/src/serialization/text/tests/canonical_spool.rs zircon_runtime_interface/src/serialization/text/canonical_map_key.rs zircon_runtime_interface/src/serialization/text/canonical_writer/json_string.rs",
+      "exit_code": 0
+    },
+    "git_diff_check": {
+      "command": "git --no-optional-locks diff --check -- zircon_runtime_interface/src/serialization/text/canonical_spool.rs zircon_runtime_interface/src/serialization/text/tests/canonical_spool.rs zircon_runtime_interface/src/serialization/text/canonical_map_key.rs zircon_runtime_interface/src/serialization/text/canonical_writer/json_string.rs",
+      "exit_code": 0,
+      "stderr": "Git emitted only configured LF-will-be-replaced-by-CRLF checkout-policy warnings for the three LF-modified files; the CRLF test file was unchanged. No normalization or file write occurred."
+    },
+    "tests": "Not run; the task forbids Cargo and Rust tests. Validation is static source review and scoped formatting/diff checks.",
+    "cargo_build": "Not run.",
+    "git_mutation": "None.",
+    "final_source_pins": {
+      "zircon_runtime_interface/src/serialization/text/canonical_spool.rs": "42b4b6566cdf5cb0dbc25dc6bb1d98bd21b816467ea964b4d6975b4f154ab84b",
+      "zircon_runtime_interface/src/serialization/text/tests/canonical_spool.rs": "d2b0e0b77dffa21ec569dcbbd67dc02d86114c8906078127bb6df65c5556e4e5",
+      "zircon_runtime_interface/src/serialization/text/canonical_map_key.rs": "e9931fcd768ac1249f299fba617b5e5bf439483731f6b274d50ab7df164bcf5c",
+      "zircon_runtime_interface/src/serialization/text/canonical_writer/json_string.rs": "9ae6f5483504a4910412d11e97a8c4c57e8ddaa995ed1c7dc041184ff748bb93"
+    },
+    "independent_review": "pending"
+  },
+  "tooling_history": [
+    {
+      "kind": "authorized_source_comment_insertions",
+      "tool": "apply_patch",
+      "result": "Synchronous patch operations added comments only in the three changed R022 source files. The assigned spool test source was left untouched."
+    },
+    {
+      "kind": "raw_byte_reconstruction",
+      "result": "An in-memory PowerShell verification extracted exact added hunks from scoped unified=0 diffs and removed their byte spans in descending order. All three reconstructed hashes match the assignment; the unchanged CRLF test hash also matches. No source copies or temporary files were created."
+    },
+    {
+      "kind": "process_lifecycle",
+      "result": "All owned apply_patch operations and exec cells completed synchronously. No owned writer session or pending command remains. No claim is made about unattributed external processes or release of other ownership."
+    }
+  ],
+  "artifact_lifecycle": {
+    "actual_new_artifacts": [
+      "docs/plans/source-comments/reviews/R022.json"
+    ],
+    "build_cache_or_generated_fixture_created": false,
+    "temporary_script_or_source_copy_created": false,
+    "cleanup_bytes": 0,
+    "retained": "仅获授权三源新增的解释性注释及 R022 审查记录；测试文件保持原始字节。",
+    "process_lifecycle": "No Cargo/test/build/long-running process. The R022 metadata write is synchronous; its final SHA will be verified after creation."
+  },
+  "handoff": {
+    "main_independent_review": "pending",
+    "jenkins_formal_acceptance": "pending",
+    "external_owner_release_claimed": false,
+    "next_action": "主审独立复核四个授权路径的注释、对象/语句块与直接调用证据、原字节反演及 scoped checks；R022 owner 停止编辑这四个文件，不更新全局账本。"
+  }
+}

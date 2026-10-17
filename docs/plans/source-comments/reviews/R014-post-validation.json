@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R014",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T03:26:53.406030+00:00",
+  "status": "passed-scoped-local-static-validation-formal-coordinator-open",
+  "files": [
+    {
+      "path": "zircon_runtime/src/scene/world/generation.rs",
+      "before_sha256": "e39e6153ab3a590911ed0260c0de52dca04a6d89edca61ff76cfab441b8613e6",
+      "current_sha256": "6e209662a405ae253755b5e380c05346108f2b661e92f05da617a7b1f9890f06",
+      "before_lines": 148,
+      "current_lines": 179,
+      "before_bytes": 5044,
+      "current_bytes": 7477,
+      "insertion_blocks": 10,
+      "added_lines": 31,
+      "all_original_bytes_preserved": true,
+      "normalized_before_equals_pinned_HEAD": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/generation/tests/cases.rs",
+      "before_sha256": "992d4a762b419b996e074d8db82271884111cb4a4ddfa664cc08f37367061cae",
+      "current_sha256": "cbe196a8d7ddfccb139580c19f3bcb328ab42a67de776910a14575f9c787a450",
+      "before_lines": 261,
+      "current_lines": 271,
+      "before_bytes": 8554,
+      "current_bytes": 9334,
+      "insertion_blocks": 7,
+      "added_lines": 10,
+      "all_original_bytes_preserved": true,
+      "normalized_before_equals_pinned_HEAD": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/generation/tests/alloc_free_root_advance.rs",
+      "before_sha256": "73977aa6a8991025bbb87c513561796c899be1041f7f6c7aa18a50fc96ad7b06",
+      "current_sha256": "04933d47ccf6c88cc9cde023b894401655215044bcb40bb17c712e404b32ba22",
+      "before_lines": 135,
+      "current_lines": 146,
+      "before_bytes": 4955,
+      "current_bytes": 5880,
+      "insertion_blocks": 7,
+      "added_lines": 11,
+      "all_original_bytes_preserved": true,
+      "normalized_before_equals_pinned_HEAD": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/tests/schema_generation_hash.rs",
+      "before_sha256": "522f3a5a5ee96d4b6e1053f68f181c704b19ebab8c707f439934b0c1dc821755",
+      "current_sha256": "b0ba810312004a5f816d6ad1cc5b8ab3aec1cb7fcf3236c464168f28f1f99e28",
+      "before_lines": 150,
+      "current_lines": 162,
+      "before_bytes": 5249,
+      "current_bytes": 6251,
+      "insertion_blocks": 8,
+      "added_lines": 12,
+      "all_original_bytes_preserved": true,
+      "normalized_before_equals_pinned_HEAD": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/compiled_binding/compiled_scene_dynamic_field.rs",
+      "before_sha256": "41a65e24d35cac511c24f65ce03de5282811a43c96fb3088a5599d6abb4daf0b",
+      "current_sha256": "618301c2bb5bff8f5b472a7d14cc7601429869965cdb291cb4299f04c436abff",
+      "before_lines": 51,
+      "current_lines": 63,
+      "before_bytes": 1925,
+      "current_bytes": 2894,
+      "insertion_blocks": 3,
+      "added_lines": 12,
+      "all_original_bytes_preserved": true,
+      "normalized_before_equals_pinned_HEAD": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/compiled_binding/generation.rs",
+      "before_sha256": "ff8185992398b2b52930d9c21c7c5864c219241695c14a0ea00857dd0d2ddf97",
+      "current_sha256": "3805d1b56fb86e9451d3822eece255ed1d1ec8dde2652a2b1acecc932cec9ff9",
+      "before_lines": 125,
+      "current_lines": 141,
+      "before_bytes": 4022,
+      "current_bytes": 5389,
+      "insertion_blocks": 7,
+      "added_lines": 16,
+      "all_original_bytes_preserved": true,
+      "normalized_before_equals_pinned_HEAD": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/compiled_binding/property_path/model.rs",
+      "before_sha256": "dd61964a873c96c1810f18bf03729e82eef843dc8c1925681ade521bc674bf79",
+      "current_sha256": "44bc53f8d0504f9c47054703f2968c6ee9c9e8e404e72ecdc56caefe0e34e88a",
+      "before_lines": 218,
+      "current_lines": 253,
+      "before_bytes": 7709,
+      "current_bytes": 10599,
+      "insertion_blocks": 16,
+      "added_lines": 35,
+      "all_original_bytes_preserved": true,
+      "normalized_before_equals_pinned_HEAD": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/compiled_binding/property_path/compile.rs",
+      "before_sha256": "1a835b0de46da31d57f3b1b4e5277c4e91cd85a4f564cd1b08487624f17e921e",
+      "current_sha256": "cad8cd16d8c49774a6606c3e8932ad634e3b51ed804919c213ecbe9c8cd4bd30",
+      "before_lines": 135,
+      "current_lines": 164,
+      "before_bytes": 5625,
+      "current_bytes": 8022,
+      "insertion_blocks": 7,
+      "added_lines": 29,
+      "all_original_bytes_preserved": true,
+      "normalized_before_equals_pinned_HEAD": true
+    }
+  ],
+  "actual_root_validation": {
+    "raw_65_insertions_and_normalized_pinned_HEAD_receipt": {
+      "chunk_id": "506148",
+      "exit_code": 0
+    },
+    "scoped_checks_and_independent_35_source_predicates_receipt": {
+      "chunk_id": "77ca40",
+      "exit_code": 0
+    },
+    "check_results": [
+      {
+        "kind": "rustfmt-exact-eight",
+        "exit_code": 0
+      },
+      {
+        "kind": "diff-check-exact-eight",
+        "exit_code": 0,
+        "stderr": "Only configured LF-to-CRLF checkout warnings for two owned LF files; no source normalization performed."
+      },
+      {
+        "kind": "staged-exact-eight-empty",
+        "exit_code": 0
+      },
+      {
+        "kind": "change-guard-exact-eight",
+        "exit_code": 0,
+        "status": "passed",
+        "errors": 0,
+        "warnings": 0
+      }
+    ],
+    "patch_sha256": "c88da70b1fa351367423f5c5b3edc3ac4297bd46fb553b86cabb29f175f9aeef",
+    "patch_bytes": 29274,
+    "static_source_predicates": {
+      "alloc": 6,
+      "schema": 3,
+      "neighbor": 26,
+      "total": 35,
+      "before_and_after_values_and_selections_equal": true,
+      "all_selected_assertions_satisfied": true,
+      "Rust_tests_executed": false
+    },
+    "unchanged_R011_source_reuse": "Root R011 actual 0b3fd3 before/after 159 contains,8 find,7 order and preserved failures are reused only for identical six current source hashes checked again before this write."
+  },
+  "all_original_bytes_and_comments_preserved": true,
+  "source_tests_or_Cargo_executed": false,
+  "managed_coordinator_format": "pending-actual-implemented-handler-original-task-binding-and-runtime-recovery",
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

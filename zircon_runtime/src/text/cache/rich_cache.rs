@@ -3,7 +3,7 @@ use std::collections::hash_map::RandomState;
 use std::fmt::{Debug, Formatter};
 use std::hash::{BuildHasher, Hash, Hasher};
 use std::sync::{Arc, Mutex, OnceLock};
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::text::rich::{
     CompiledRichText, RichTextContentTrust, RichTextParseError, RichTextParserGeneration,

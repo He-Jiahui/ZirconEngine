@@ -33,7 +33,8 @@ fn runtime08c_batch_animation_reference_uses_borrowed_hash_dedup() {
     let reference_source = include_str!("../../../../framework/animation/asset/reference.rs");
     let graph_source = include_str!("../../../../framework/animation/asset/graph.rs");
     let state_kind_source = include_str!("../../../../framework/animation/asset/state_kind.rs");
-    let state_machine_source = include_str!("../../../../framework/animation/asset/state_machine.rs");
+    let state_machine_source =
+        include_str!("../../../../framework/animation/asset/state_machine.rs");
 
     assert!(reference_source.contains("HashSet<&'a AssetReference>"));
     assert!(reference_source.contains("if self.seen.insert(reference)"));

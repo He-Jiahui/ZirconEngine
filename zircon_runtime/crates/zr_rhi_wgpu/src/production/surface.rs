@@ -543,11 +543,15 @@ pub(crate) fn create_native_surface(
 }
 
 #[cfg(not(target_os = "windows"))]
-fn create_native_surface(
+pub(crate) fn create_native_surface(
     _instance: &wgpu::Instance,
     target: RenderNativeSurfaceTarget,
 ) -> Result<wgpu::Surface<'static>, RhiError> {
     match target {
+        #[cfg(target_arch = "wasm32")]
+        RenderNativeSurfaceTarget::Canvas { .. } => Err(RhiError::SurfaceUnavailable(
+            "create a browser surface through WgpuSurfaceBootstrap::from_canvas".into(),
+        )),
         RenderNativeSurfaceTarget::Win32 { .. } => Err(RhiError::SurfaceUnavailable(
             "Win32 surface sessions are only supported on Windows".to_string(),
         )),

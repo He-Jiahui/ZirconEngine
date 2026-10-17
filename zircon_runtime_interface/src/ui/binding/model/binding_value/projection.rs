@@ -1,3 +1,9 @@
+//! 绑定值的 Editor JSON 投影与原生文本追加。
+//!
+//! 两种投影均只读借用拥有值树，返回新 JSON 或追加到调用方字符串，不改变树本身。
+//! 回调 JSON 将扩展类型写为标签对象，空可选值会折叠为空值；它不同于 Serde 枚举编码。
+//! 文本路径按静态变体递归写入一个缓冲区；此处不执行预算、身份或有限性准入。
+
 use std::fmt::Write as _;
 
 use serde_json::{json, Map, Value};
@@ -10,6 +16,14 @@ mod native_repr_performance_tests;
 
 impl UiBindingValue {
     /// 投影为编辑器回调边界使用的 JSON；扩展类型用标签对象承载，空可选值与非有限浮点按契约投影为 null。
+    ///
+    /// # 使用时机与返回
+    /// 供 Editor 回调边界消费，返回独立拥有的 JSON 树；借用在本次遍历结束后即可释放。
+    /// 数组和记录递归投影，扩展载荷写成标签对象；可选载荷不保留独立类别标签。
+    ///
+    /// # 约束
+    /// 非有限浮点会成为空值，结果不保证可恢复原始绑定值类别；需要保留类别时使用结构化编码。
+    /// 本方法不做整树预算检查，也不获取资产、实体或集合内容。
     pub fn to_json_value(&self) -> Value {
         match self {
             Self::String(value) => Value::String(value.clone()),
@@ -78,6 +92,9 @@ impl UiBindingValue {
     }
 
     /// 为已校验的绑定值生成原生文本；解析器按文本语法重建值，整数类别不在文本中单独编码。
+    ///
+    /// # 约束
+    /// 仅供本 crate 的测试对照使用，返回独立文本；不证明类别无损往返或性能阈值已通过。
     #[cfg(test)]
     pub(crate) fn native_repr(&self) -> String {
         let mut output = String::new();
@@ -85,6 +102,15 @@ impl UiBindingValue {
         output
     }
 
+    /// 将当前值的原生文本追加到既有缓冲区。
+    ///
+    /// # 参数与生命周期
+    /// `output` 可已有前缀；递归子值共享该独占借用，退出后由调用方继续拥有全部文本。
+    /// 不清空缓冲区，也不留下对树或输出的借用。
+    ///
+    /// # 约束
+    /// 调用方需要受控且可重新解析的输入时，应先校验整个根值。
+    /// 数字字面量不为非负整型单独编码类别；字符串只使用与解析器对应的有限转义集合。
     pub(crate) fn native_repr_into(&self, output: &mut String) {
         match self {
             Self::String(value) => quoted_into(value, output),

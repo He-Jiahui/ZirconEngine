@@ -42,9 +42,8 @@ fn every_native_context_has_one_render_device_and_typed_completion_owner() {
 #[test]
 fn standalone_and_offscreen_devices_share_the_initial_profile_factory() {
     let surface_setup = include_str!("../surface_setup.rs");
-    let offscreen = include_str!(
-        "../../../../../src/graphics/backend/backend/render_backend_new_offscreen.rs"
-    );
+    let offscreen =
+        include_str!("../../../../../src/graphics/backend/backend/render_backend_new_offscreen.rs");
     let profile = include_str!("../../device_profile.rs");
 
     assert!(profile.contains("pub fn initial_wgpu_render_device_profile("));
@@ -82,8 +81,7 @@ fn image_pins_retire_with_their_submission_ticket() {
 
 #[test]
 fn shared_surface_present_uses_the_arc_device_owner_and_keeps_its_ticket() {
-    let backend =
-        include_str!("../../../../../src/graphics/backend/backend/backend.rs");
+    let backend = include_str!("../../../../../src/graphics/backend/backend/backend.rs");
     let device = include_str!("../../production/device.rs");
     let source = include_str!("../../ui_surface.rs");
     let presentation = include_str!("../presentation.rs");

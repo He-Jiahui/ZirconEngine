@@ -10,26 +10,32 @@ const LIFECYCLE_EVENTS_PER_COMPONENT_PUBLICATION: u64 = 2;
 
 #[derive(Debug, PartialEq, Eq)]
 struct BundleSlotOne;
+zircon_runtime_interface::impl_retained_owner_v1!(BundleSlotOne {});
 impl Component for BundleSlotOne {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct BundleSlotTwo;
+zircon_runtime_interface::impl_retained_owner_v1!(BundleSlotTwo {});
 impl Component for BundleSlotTwo {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct BundleSlotThree;
+zircon_runtime_interface::impl_retained_owner_v1!(BundleSlotThree {});
 impl Component for BundleSlotThree {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct BundleSlotFour;
+zircon_runtime_interface::impl_retained_owner_v1!(BundleSlotFour {});
 impl Component for BundleSlotFour {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct BundleSlotFive;
+zircon_runtime_interface::impl_retained_owner_v1!(BundleSlotFive {});
 impl Component for BundleSlotFive {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct BundleSlotSix;
+zircon_runtime_interface::impl_retained_owner_v1!(BundleSlotSix {});
 impl Component for BundleSlotSix {}
 
 #[test]

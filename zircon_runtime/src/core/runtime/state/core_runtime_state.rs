@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Barrier;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::ThreadId;
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::core::diagnostics::{DiagnosticStore, RuntimeDevtoolsPluginCatalogEntry};
 use crate::core::{CoreError, RuntimeModuleLifecycleObserver};
@@ -223,8 +223,11 @@ impl LifecycleCoordinator {
                             *opposite_waiters += 1;
                         }
                     }
-                    // Historical audit text is retained; the caller now holds its exact receipt.
-                    // BUG: [CR-RUNTIME-LIFECYCLE-0001] 完成值按计数而非等待者身份分发；迟到调用可抢走结果，原等待者重试后再次成为 Owner。
+                    // Each waiter keeps the completion receipt for the operation it joined.
+                    // Each operation owns a distinct completion Arc retained by the waiters that joined it.
+                    // Regression contracts cover late retries, unrelated or spurious wakes, and an opposite
+                    // command that waits for the active owner before executing its own operation.
+                    // lifecycle_joiner_keeps_its_result_after_unrelated_and_spurious_wakes covers receipt retention.
                     // 当前实现已消解此历史问题：等待者保留加入时的 completion Arc 与 joined_command，醒后读取该轮回执；
                     // 异命令等待者则在原操作完成后重新申请执行权。对应并发回归见 tests/activation/behavior/activation/contention.rs 的
                     // lifecycle_joiner_keeps_its_result_after_unrelated_and_spurious_wakes、

@@ -85,8 +85,7 @@ fn pointer_handlers_do_not_force_slow_path_rebuilds() {
 
 #[test]
 fn host_dirty_flags_route_through_invalidation_root_outside_lifecycle_owner() {
-    let lifecycle =
-        source("src/ui/retained/app/invalidation_bridge/dirty_marking.rs");
+    let lifecycle = source("src/ui/retained/app/invalidation_bridge/dirty_marking.rs");
     for required in [
         "fn mark_presentation_dirty(&mut self)",
         "HostInvalidationMask::PRESENTATION_DATA",
@@ -96,8 +95,7 @@ fn host_dirty_flags_route_through_invalidation_root_outside_lifecycle_owner() {
             "host lifecycle missing invalidation entrypoint marker `{required}`"
         );
     }
-    let dirty_flags =
-        source("src/ui/retained/app/invalidation_bridge/dirty_flags.rs");
+    let dirty_flags = source("src/ui/retained/app/invalidation_bridge/dirty_flags.rs");
     assert!(dirty_flags.contains("self.invalidation.invalidate(mask);"));
     assert!(dirty_flags.contains("self.invalidation.invalidate_shell_content(scope, mask);"));
 
@@ -164,8 +162,7 @@ fn retained_event_effects_route_dirty_domains_through_invalidation_mask() {
     );
 
     let drawer_resize = source("src/ui/retained/drawer_resize.rs");
-    let resize_movement =
-        source("src/ui/retained/app/workspace_docking/drawer_resize/movement.rs");
+    let resize_movement = source("src/ui/retained/app/workspace_docking/drawer_resize/movement.rs");
     assert!(
         drawer_resize.contains("dispatch_resize_to_group(")
             && drawer_resize.contains("Result<UiHostEventEffects, String>")

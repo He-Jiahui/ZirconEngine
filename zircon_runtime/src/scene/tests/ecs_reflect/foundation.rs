@@ -87,6 +87,7 @@ fn fixed_component_address(entity: EntityId, short_type_path: &str) -> ReflectOb
     ReflectObjectAddress::component(entity, short_type_path).expect("fixed component address")
 }
 
+// 组件回调同时提供字段名和稠密槽位接口；写入回调只比较并报告 changed，不保存新值。
 fn dummy_component_adapter() -> ReflectComponent {
     ReflectComponent::new(
         "plugin_a::ProbeComponent",
@@ -101,6 +102,7 @@ fn dummy_component_adapter() -> ReflectComponent {
     )
 }
 
+// 此虚拟 contains 只以实体是否存活作为判断，不模拟实体上具体组件的存储。
 fn dummy_component_contains(world: &World, entity: EntityId, _type_path: &str) -> bool {
     world.contains_entity(entity)
 }
@@ -163,6 +165,7 @@ fn dummy_component_write_field_by_slot(
     Ok(current != value)
 }
 
+// 测试 remove 回调仅返回实体存在性，不会从 World 中移除组件。
 fn dummy_component_remove(
     world: &mut World,
     entity: EntityId,
@@ -171,6 +174,7 @@ fn dummy_component_remove(
     Ok(world.contains_entity(entity))
 }
 
+// 资源 fixture 固定返回存在和 enabled=true；写回只比较输入，不持久化资源状态。
 fn dummy_resource_adapter() -> ReflectResource {
     ReflectResource {
         estimate_stage_clone_bytes: None,

@@ -55,10 +55,11 @@ fn optimization_batch_ey_editor387_preserves_notification_header_bytes() {
         );
     }
 
-    let production = include_str!("../../../retained/contract/paint/notification_center/identity.rs")
-        .split("#[cfg(test)]")
-        .next()
-        .expect("production source");
+    let production =
+        include_str!("../../../retained/contract/paint/notification_center/identity.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production source");
     assert!(!production.contains("format!("));
     assert!(production.contains("String::with_capacity(capacity)"));
 }

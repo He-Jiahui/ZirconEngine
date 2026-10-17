@@ -1,3 +1,6 @@
+//! 从作者属性、运行时组件状态和控件契约投影快照状态，不执行输入动作或回写这些来源。
+//! 各状态的回退顺序独立；安全文本输入在这里隐去值与选区，名称/描述由文本解析模块负责。
+
 use std::collections::BTreeMap;
 
 use zircon_runtime_interface::ui::{
@@ -15,6 +18,8 @@ use crate::ui::{
 
 use super::widget_behavior;
 
+/// 按行为读取展开状态：Disclosure/Popup 使用各自的 open 属性及运行时回退，其他行为读取作者展开属性。
+/// 缺少元数据时返回无状态；两个展开类行为总能得到各自默认值。
 pub(super) fn expanded_state_for(
     surface: &UiSurface,
     node: &UiTreeNode,
@@ -111,6 +116,7 @@ fn default_expanded_state(metadata: &UiTemplateNodeMetadata) -> bool {
     )
 }
 
+/// 使用 Surface 的统一禁用判定，快照提取不维护另一份禁用状态。
 pub(super) fn disabled_state_for(
     surface: &UiSurface,
     node: &UiTreeNode,
@@ -119,6 +125,7 @@ pub(super) fn disabled_state_for(
     ui_surface_effective_disabled(surface, node.node_id, node, metadata)
 }
 
+/// 作者选中属性优先于组件值/标志；所有来源缺省时返回未选中。
 pub(super) fn selected_state_for(
     surface: &UiSurface,
     node: &UiTreeNode,
@@ -138,6 +145,7 @@ pub(super) fn selected_state_for(
         .unwrap_or(false)
 }
 
+/// 合并组件、作者属性及节点按下标志；存在肯定证据才返回按下状态，否则不设置该可选状态。
 pub(super) fn pressed_state_for(
     surface: &UiSurface,
     node: &UiTreeNode,
@@ -160,6 +168,8 @@ pub(super) fn pressed_state_for(
     pressed.then_some(true)
 }
 
+/// 依次采用作者 checked 属性、组件状态、控件契约与节点标志。
+/// Checkbox/Radio 缺省为未勾选，其他角色没有来源时不设置该可选状态。
 pub(super) fn checked_state_for(
     surface: &UiSurface,
     node: &UiTreeNode,
@@ -211,6 +221,11 @@ fn checked_component_state_value_for(
     bool_component_state_value(state, property)
 }
 
+/// 按属性、组件状态、控件初值的顺序取得快照值，返回独立拥有的显示文本。
+///
+/// # 参数与返回
+/// `role` 决定文本输入的回退与安全检查；缺少元数据或有效来源时返回无值。
+/// 安全文本输入直接返回无值，此约束只作用于状态值，文本命名路径另行处理。
 pub(super) fn value_state_for(
     surface: &UiSurface,
     node: &UiTreeNode,
@@ -255,6 +270,11 @@ fn value_attribute_text(metadata: &UiTemplateNodeMetadata, role: UiA11yRole) -> 
         })
 }
 
+/// 为非安全文本输入投影选区；其他角色、安全输入或缺少元数据时不提供选区。
+///
+/// # 参数与返回
+/// `value_text` 是本次快照值，缺省按空串处理。作者偏移优先于组件状态，未给出时使用末尾光标。
+/// 偏移以 UTF-8 字节计，并收敛到该值的字素边界；返回数据不借用输入字符串。
 pub(super) fn text_selection_state_for(
     surface: &UiSurface,
     node: &UiTreeNode,

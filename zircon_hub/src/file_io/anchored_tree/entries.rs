@@ -1,4 +1,4 @@
-use super::{AnchoredDirectory, ChildKind, child_kind, remove_open_child, validate_component};
+use super::{child_kind, remove_open_child, validate_component, AnchoredDirectory, ChildKind};
 use std::{
     ffi::{OsStr, OsString},
     fs::File,

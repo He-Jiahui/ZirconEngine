@@ -24,9 +24,39 @@ class CiGatesContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
 
+    def assert_workspace_member_fmt_gate(self, rust: str, manifest: str) -> None:
+        step_name = "Check Rust formatting" if manifest == "Cargo.toml" else "Check plugin workspace formatting"
+        match = re.search(
+            rf"(?ms)^      - name: {re.escape(step_name)}\s*$\n(?P<step>.*?)(?=^      - name:|\Z)",
+            rust,
+        )
+        self.assertIsNotNone(match, f"missing formatting step for {manifest}")
+        step = match.group("step")
+        for required in (
+            "shell: pwsh",
+            f"$manifest = '{manifest}'",
+            "cargo +1.94.1 metadata --manifest-path $manifest --format-version 1 --no-deps --locked",
+            "$LASTEXITCODE -ne 0",
+            "$metadata.workspace_members",
+            "$memberIdSet.Contains([string]$_.id)",
+            "$members.Count -ne $memberIds.Count",
+            "Duplicate workspace member ID",
+            "Missing or duplicate workspace package name",
+            "foreach ($name in $names) { $fmtArguments += @('--package', $name) }",
+            "@('--', '--check')",
+        ):
+            self.assertIn(required, step)
+        self.assertNotIn("--all", step)
+        self.assertNotIn("workspace_default_members", step)
+
+    def test_both_rust_workspaces_format_every_metadata_member(self) -> None:
+        rust = job_body(self.workflow, "rust")
+        self.assert_workspace_member_fmt_gate(rust, "Cargo.toml")
+        self.assert_workspace_member_fmt_gate(rust, "zircon_plugins/Cargo.toml")
+
     def test_rust_job_runs_format_clippy_and_path_audit(self) -> None:
         rust = job_body(self.workflow, "rust")
-        self.assertIn("invoke-cargo-msvc.ps1 cargo +1.94.1 fmt --all -- --check", rust)
+        self.assert_workspace_member_fmt_gate(rust, "Cargo.toml")
         self.assertIn(
             "invoke-cargo-msvc.ps1 cargo clippy --workspace --all-targets --locked -- -D warnings",
             rust,
@@ -36,10 +66,7 @@ class CiGatesContractTests(unittest.TestCase):
 
     def test_plugins_workspace_has_its_own_format_and_lint_gates(self) -> None:
         rust = job_body(self.workflow, "rust")
-        self.assertIn(
-            "invoke-cargo-msvc.ps1 cargo +1.94.1 fmt --manifest-path zircon_plugins/Cargo.toml --all -- --check",
-            rust,
-        )
+        self.assert_workspace_member_fmt_gate(rust, "zircon_plugins/Cargo.toml")
         self.assertIn(
             "invoke-cargo-msvc.ps1 cargo clippy --manifest-path zircon_plugins/Cargo.toml --workspace --all-targets --locked -- -D warnings",
             rust,
@@ -48,6 +75,10 @@ class CiGatesContractTests(unittest.TestCase):
     def test_miri_executes_storage_table_and_mutable_query_tests(self) -> None:
         miri = job_body(self.workflow, "scene-ecs-miri")
         self.assertIn("invoke-cargo-msvc.ps1 cargo +nightly-2026-10-10 miri setup --target x86_64-unknown-linux-gnu", miri)
+        self.assertLess(
+            miri.index("install-zig-linux-tools.ps1"),
+            miri.index("miri setup --target x86_64-unknown-linux-gnu"),
+        )
         self.assertIn("--target x86_64-unknown-linux-gnu", miri)
         self.assertIn("--features native-host", miri)
         self.assertEqual(miri.count("-RequireMatchingTests"), 3)
@@ -92,6 +123,37 @@ class CiGatesContractTests(unittest.TestCase):
             r'(?s)#\[cfg\(feature = "native-host"\)\]\s*#\[path = "scene/mod.rs"\]\s*pub mod scene;',
         )
         self.assertIn("#[cfg(all(test, feature = \"native-host\"))]", runtime_lib)
+
+    def test_miri_uses_pinned_zig_frontends_and_validates_cached_archive(self) -> None:
+        miri = job_body(self.workflow, "scene-ecs-miri")
+        script_root = REPO_ROOT / ".github" / "scripts"
+        bootstrap = (script_root / "install-zig-linux-tools.ps1").read_text(encoding="utf-8")
+        self.assertIn("https://ziglang.org/download/0.14.1/zig-x86_64-windows-0.14.1.zip", bootstrap)
+        self.assertIn("554f5378228923ffd558eac35e21af020c73789d87afeabf4bfd16f2e6feed2c", bootstrap)
+        self.assertIn("82229343L", bootstrap)
+        self.assertIn("E:\\cargo-targets\\zircon-local\\ci\\miri-scene-ecs", bootstrap)
+        self.assertIn("Assert-NoReparseAncestors", bootstrap)
+        self.assertIn("Assert-InstallMatchesArchive", bootstrap)
+        env_frontends = {
+            "CC_x86_64_unknown_linux_gnu": "zig-cc-x86_64-unknown-linux-gnu.cmd",
+            "CXX_x86_64_unknown_linux_gnu": "zig-cxx-x86_64-unknown-linux-gnu.cmd",
+            "AR_x86_64_unknown_linux_gnu": "zig-ar-x86_64-unknown-linux-gnu.cmd",
+            "RANLIB_x86_64_unknown_linux_gnu": "zig-ranlib-x86_64-unknown-linux-gnu.cmd",
+        }
+        for variable, frontend in env_frontends.items():
+            self.assertIn(f"{variable}:", miri)
+            self.assertIn(f".github\\scripts\\{frontend}", miri)
+            contents = (script_root / frontend).read_text(encoding="utf-8")
+            self.assertIn("zig-0.14.1\\zig.exe", contents)
+        for frontend in (
+            "zig-cc-x86_64-unknown-linux-gnu.cmd",
+            "zig-cxx-x86_64-unknown-linux-gnu.cmd",
+        ):
+            contents = (script_root / frontend).read_text(encoding="utf-8")
+            self.assertIn("%* -target x86_64-linux-gnu", contents)
+        self.assertIn("ZIG_LOCAL_CACHE_DIR:", miri)
+        self.assertIn("ZIG_GLOBAL_CACHE_DIR:", miri)
+        self.assertNotIn("MIRIFLAGS:", miri)
 
     def test_cargo_jobs_use_separate_physical_output_roots(self) -> None:
         for name in (

@@ -34,10 +34,7 @@ const COMPACT_HIDDEN_MODULE_TABS: &[&str] = &[
     "WorkbenchModuleHud",
 ];
 
-const ULTRA_HIDDEN_FILE_CONTROLS: &[&str] = &[
-    "WorkbenchToolbarOpen",
-    "WorkbenchToolbarSave",
-];
+const ULTRA_HIDDEN_FILE_CONTROLS: &[&str] = &["WorkbenchToolbarOpen", "WorkbenchToolbarSave"];
 
 const ULTRA_HIDDEN_MODULE_TABS: &[&str] = &["WorkbenchModulePerception", "WorkbenchModuleMaterial"];
 

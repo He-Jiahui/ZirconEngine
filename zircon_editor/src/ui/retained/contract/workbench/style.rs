@@ -1,18 +1,32 @@
+#[cfg(test)]
 use super::super::paint_theme::PALETTE;
 
 // BUG: [CR-EDITOR-PAINT-WORKBENCH-0001] 原生工作台的层级行、空 pane 与 Welcome 仍取默认静态颜色；主题更新后这些元素与当前宿主调色板不一致。
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const TOP_BAR: [u8; 4] = PALETTE.popup;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const CENTER_BAND: [u8; 4] = PALETTE.surface;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const SIDE_PANEL: [u8; 4] = PALETTE.surface_inset;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const DOCUMENT_PANEL: [u8; 4] =
     PALETTE.surface_inset;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const VIEWPORT_PANEL: [u8; 4] =
     PALETTE.shell_background;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const TOOLBAR: [u8; 4] = PALETTE.surface;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const STATUS_BAR: [u8; 4] = PALETTE.surface_hover;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const FLOATING_SHADOW: [u8; 4] = PALETTE.shadow;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const FLOATING_PANEL: [u8; 4] = PALETTE.surface;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const PANE_EMPTY: [u8; 4] = PALETTE.surface_inset;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const SEPARATOR: [u8; 4] = PALETTE.border;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const ACCENT: [u8; 4] = PALETTE.focus_ring;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) const MUTED_TEXT: [u8; 4] = PALETTE.text_muted;

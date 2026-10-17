@@ -393,7 +393,7 @@ fn contention(
                 // A real worker failure closes queues to wake peers. Their
                 // terminal results still have to arrive; do not call a failed
                 // worker a successful fixed-count completion.
-                bus.close_admission();
+                let _ = bus.close_admission();
             }
         }
     }

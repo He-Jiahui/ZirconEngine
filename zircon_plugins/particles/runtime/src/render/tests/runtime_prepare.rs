@@ -80,9 +80,7 @@ fn neutral_runtime_prepare_splits_frame_from_mutable_context_borrows() {
     assert!(neutral.contains("context.frame_extract()"));
     assert!(neutral.contains("context.gpu_recording_context()"));
     assert!(!neutral.contains("context.frame_extract;"));
-    assert!(!neutral.contains("context.device"));
-    assert!(!neutral.contains("context.queue"));
-    assert!(!neutral.contains("context.encoder"));
+    assert!(!contains_raw_context_member(neutral));
     let outputs = neutral
         .find("let particles = neutral_readback_outputs_from_frame(frame);")
         .expect("bounded outputs must be materialized before mutating context bindings");
@@ -144,9 +142,7 @@ fn real_runtime_prepare_uses_queue_free_uploads_and_registers_rollback_before_re
         .find("enqueue_particle_readback(")
         .expect("particle readback registration");
 
-    assert!(!real.contains("context.queue"));
-    assert!(!real.contains("context.device"));
-    assert!(!real.contains("context.encoder"));
+    assert!(!contains_raw_context_member(real));
     assert!(recording < transaction);
     assert!(transaction < readback);
     let readback_publish = real[readback..]
@@ -200,4 +196,93 @@ fn device_epoch_is_activated_before_particle_early_returns_and_old_readbacks() {
     assert!(completed_readback < admission);
     assert!(real[activation..completed_readback].contains("if device_epoch_changed"));
     assert!(real[activation..completed_readback].contains(".clear();"));
+}
+
+fn contains_raw_context_member(source: &str) -> bool {
+    let bytes = source.as_bytes();
+    let mut tokens: Vec<&[u8]> = Vec::new();
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        if bytes[cursor].is_ascii_whitespace() {
+            cursor += 1;
+        } else if bytes[cursor..].starts_with(b"//") {
+            while cursor < bytes.len() && bytes[cursor] != b'\n' {
+                cursor += 1;
+            }
+        } else if bytes[cursor..].starts_with(b"/*") {
+            cursor += 2;
+            let mut depth = 1;
+            while cursor < bytes.len() && depth > 0 {
+                if bytes[cursor..].starts_with(b"/*") {
+                    depth += 1;
+                    cursor += 2;
+                } else if bytes[cursor..].starts_with(b"*/") {
+                    depth -= 1;
+                    cursor += 2;
+                } else {
+                    cursor += 1;
+                }
+            }
+            assert_eq!(depth, 0, "source guard requires complete Rust comments");
+        } else {
+            let raw = bytes[cursor..].starts_with(b"r#")
+                && bytes
+                    .get(cursor + 2)
+                    .is_some_and(|b| b.is_ascii_alphabetic() || *b == b'_');
+            if raw {
+                cursor += 2;
+            }
+            let start = cursor;
+            if bytes[cursor].is_ascii_alphabetic() || bytes[cursor] == b'_' {
+                cursor += 1;
+                while cursor < bytes.len()
+                    && (bytes[cursor].is_ascii_alphanumeric() || bytes[cursor] == b'_')
+                {
+                    cursor += 1;
+                }
+            } else {
+                cursor += 1;
+            }
+            tokens.push(&bytes[start..cursor]);
+        }
+    }
+    tokens.windows(3).any(|window| {
+        window[0] == b"context"
+            && window[1] == b"."
+            && [
+                b"device".as_slice(),
+                b"queue".as_slice(),
+                b"encoder".as_slice(),
+            ]
+            .contains(&window[2])
+    })
+}
+
+#[test]
+fn raw_context_member_guard_distinguishes_identifiers() {
+    for source in [
+        "context.device",
+        "context.queue",
+        "context.encoder",
+        "context . device",
+        "context\n.\nqueue",
+        "context /* outer /* nested */ comment */ . /* member */ encoder",
+        "context // member follows\n . device",
+        "context.r#device",
+        "r#context . r#queue",
+        "context /* comment */ . r#encoder",
+    ] {
+        assert!(contains_raw_context_member(source), "{source}");
+    }
+    for source in [
+        "context.device_epoch()",
+        "context.queue_epoch()",
+        "context.encoder_state",
+        "other_context.device",
+        "context.device_extra",
+        "context.devices",
+        "context.gpu_recording_context()",
+    ] {
+        assert!(!contains_raw_context_member(source), "{source}");
+    }
 }

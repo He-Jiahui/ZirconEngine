@@ -30,6 +30,49 @@ fn fail_migration(_value: Value) -> Result<Value, MigrateError> {
 }
 
 #[test]
+fn fixture_migration_reports_count_overflow_through_the_loader() {
+    let bytes = serde_json::to_vec(&serde_json::json!({
+        "$zircon": {
+            "header": {
+                "schema_id": "zircon.tests.fixture-document",
+                "schema_version": 1
+            },
+            "payload": { "label": "maximum", "count": u64::MAX }
+        }
+    }))
+    .unwrap();
+
+    let error =
+        super::super::load_versioned::<super::FixtureDocument>(&bytes, Format::Text).unwrap_err();
+    assert!(matches!(
+        error,
+        LoadError::Migration(MigrateError::StepFailed {
+            from_version: 1,
+            source,
+            ..
+        }) if matches!(*source, MigrateError::InvalidPayload(ref message) if message == "fixture v1 count overflow")
+    ));
+}
+
+#[test]
+fn fixture_migration_preserves_the_largest_representable_document_count() {
+    let bytes = serde_json::to_vec(&serde_json::json!({
+        "$zircon": {
+            "header": {
+                "schema_id": "zircon.tests.fixture-document",
+                "schema_version": 1
+            },
+            "payload": { "label": "maximum", "count": u32::MAX - 1 }
+        }
+    }))
+    .unwrap();
+
+    let document =
+        super::super::load_versioned::<super::FixtureDocument>(&bytes, Format::Text).unwrap();
+    assert_eq!(document.value.count, u32::MAX);
+}
+
+#[test]
 fn migration_step_failure_preserves_schema_version_and_source() {
     let error =
         load_versioned_legacy_schema_zero::<FailingStepDocument>(b"{}", Format::Text).unwrap_err();

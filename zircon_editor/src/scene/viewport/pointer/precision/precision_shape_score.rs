@@ -36,15 +36,13 @@ impl PrecisionShape {
                 let mut best = f32::MAX;
                 for (start, end) in segments {
                     best = best.min(distance_to_segment(point, *start, *end));
-                    if *threshold_px >= 0.0 {
-                        if best <= *thickness_px {
-                            return Some(0.0);
-                        }
-                        // BUG: [CR-EDITOR-SP-0006] 容差内首段的非零分数还不是整环最小值；此处早退使候选排序依赖环的分段起点。
-                        if best <= *thickness_px + *threshold_px {
-                            return Some(best - *thickness_px);
-                        }
+                    // BUG: [CR-EDITOR-SP-0006] 容差内首段的非零分数还不是整环最小值；此处早退使候选排序依赖环的分段起点。
+                    if *threshold_px >= 0.0 && best <= *thickness_px {
+                        return Some(0.0);
                     }
+                }
+                if *threshold_px >= 0.0 && best <= *thickness_px + *threshold_px {
+                    return Some(best - *thickness_px);
                 }
                 let score = best - *thickness_px;
                 (score <= *threshold_px).then_some(score.max(0.0))
@@ -60,3 +58,23 @@ mod early_exit_tests;
 #[cfg(test)]
 #[path = "tests/threshold_exit.rs"]
 mod threshold_exit_tests;
+
+#[cfg(test)]
+mod finite_p2_regression_tests {
+    use super::*;
+    #[test]
+    fn ring_nonzero_score_is_independent_of_segment_start_order() {
+        let far = (Vec2::new(-1.0, 5.5), Vec2::new(1.0, 5.5));
+        let near = (Vec2::new(-1.0, 4.5), Vec2::new(1.0, 4.5));
+        for segments in [vec![far, near], vec![near, far]] {
+            let shape = PrecisionShape::Ring {
+                segments,
+                radius_px: 1.0,
+                thickness_px: 4.0,
+                threshold_px: 2.0,
+                depth: 0.0,
+            };
+            assert_eq!(shape.score(Vec2::ZERO), Some(0.5));
+        }
+    }
+}

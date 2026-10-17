@@ -30,15 +30,23 @@ fn workbench_status_metrics_project_from_host_control_metrics() {
 
 #[test]
 fn status_caption_uses_authored_size_ratio_and_single_dpi_scale() {
-    let host = HostControlMetrics { scale_factor: 1.5, ..METRICS };
+    let host = HostControlMetrics {
+        scale_factor: 1.5,
+        ..METRICS
+    };
     let mut node = crate::ui::retained_host::host_contract::data::TemplatePaneNodeData {
-        font_size: 10.666667, line_height_ratio: 1.2, ..Default::default()
+        font_size: 10.666667,
+        line_height_ratio: 1.2,
+        ..Default::default()
     };
     let (font, line) = super::status_text_metrics_for_node_from_host(&node, host);
     assert!((font - 16.0).abs() < 0.0001);
     assert!((line - 19.2).abs() < 0.0001);
     node.line_height = 20.0;
-    assert_eq!(super::status_text_metrics_for_node_from_host(&node, host).1, 30.0);
+    assert_eq!(
+        super::status_text_metrics_for_node_from_host(&node, host).1,
+        30.0
+    );
     let defaults = super::status_text_metrics_for_node_from_host(&Default::default(), host);
     assert_eq!(defaults, (host.font_body, host.line_height(host.font_body)));
 }

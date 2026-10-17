@@ -1,3 +1,7 @@
+//! 层级绑定的失效代数与 World 内字符串驻留表。
+//!
+//! 根修订和目录修订用于不同粒度的缓存失效；两类驻留编号只在所属运行时表内解释。
+
 use std::collections::HashMap;
 
 use crate::scene::EntityId;
@@ -16,6 +20,7 @@ pub(in crate::scene::world) struct SceneBindingGenerations {
     component_field_ids: HashMap<Box<str>, ComponentFieldId>,
 }
 
+/// 创建空目录：修订从零开始，两类驻留编号均从一开始。
 impl Default for SceneBindingGenerations {
     fn default() -> Self {
         Self {
@@ -31,6 +36,7 @@ impl Default for SceneBindingGenerations {
 }
 
 impl SceneBindingGenerations {
+    /// 返回指定根的已发布修订；未知根为零，读取不会创建条目。
     pub(super) fn for_root(&self, root: EntityId) -> u64 {
         self.by_root.get(&root).copied().unwrap_or_default()
     }
@@ -39,6 +45,8 @@ impl SceneBindingGenerations {
         self.catalog_generation
     }
 
+    /// 消费 `roots` 并为本次非空输入中的所有根发布同一个新修订，同时推进目录修订。
+    /// 空输入保持全部计数不变；重复根只重复写同一条目。目录计数耗尽时 panic，无可恢复错误返回。
     pub(super) fn advance_roots<I>(&mut self, roots: I)
     where
         I: IntoIterator<Item = EntityId>,
@@ -58,6 +66,10 @@ impl SceneBindingGenerations {
         }
     }
 
+    /// 替换发布时用两侧计数的上界续接修订，再写入本次提供的根。
+    /// 只续接代数，不复制旧侧驻留表；空输入直接返回。计数耗尽时 panic。
+    /// 参考 `World::advance_scene_binding_generations_after` 在候选发布前的调用。
+    ///
     /// Invalidates replacement-world bindings past every generation published
     /// by the retired world, including when entity identifiers are reused.
     pub(super) fn advance_roots_after<I>(&mut self, previous: &Self, roots: I)
@@ -84,6 +96,8 @@ impl SceneBindingGenerations {
         }
     }
 
+    /// 按输入文本精确复用或分配 `PathId`；新键复制为表内拥有的字符串，不保留 `path` 借用。
+    /// 返回编号随所属 World 的运行时驻留表使用；计数耗尽时 panic。
     pub(super) fn intern_path(&mut self, path: &str) -> PathId {
         if let Some(id) = self.path_ids.get(path).copied() {
             return id;
@@ -98,6 +112,8 @@ impl SceneBindingGenerations {
         id
     }
 
+    /// 按已准备的字段身份键复用或分配编号，不在此执行规范化或字段准入。
+    /// 新键由表拥有；内建别名归一化和动态键保真由编译入口完成，计数耗尽时 panic。
     pub(super) fn intern_component_field(&mut self, field: &str) -> ComponentFieldId {
         if let Some(id) = self.component_field_ids.get(field).copied() {
             return id;

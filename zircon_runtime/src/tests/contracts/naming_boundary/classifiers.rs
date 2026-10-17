@@ -101,9 +101,7 @@ pub(super) fn classify_editor_reference(relative_path: &str) -> Option<&'static 
     if relative_path.starts_with("src/asset/") {
         return Some("runtime-asset-editor-metadata");
     }
-    if relative_path.starts_with("src/core/")
-        || relative_path.starts_with("src/core/runtime/")
-    {
+    if relative_path.starts_with("src/core/") || relative_path.starts_with("src/core/runtime/") {
         return Some("framework-editor-facing-descriptor");
     }
     if relative_path.starts_with("src/graphics/") {

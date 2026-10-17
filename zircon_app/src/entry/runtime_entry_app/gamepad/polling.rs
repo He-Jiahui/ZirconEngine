@@ -3,6 +3,8 @@
 
 use gilrs::EventType;
 use winit::event_loop::ActiveEventLoop;
+use zircon_runtime::diagnostic_log::write_warn;
+use crate::entry::runtime_library::RuntimeLibraryError;
 
 #[path = "polling/drain_budget.rs"]
 mod drain_budget;
@@ -34,6 +36,7 @@ impl RuntimeEntryApp {
         let mut drain_budget = GamepadDrainBudget::begin(std::time::Instant::now());
         let session = &self.session;
         let viewport = self.viewport;
+        let producer = &mut self.gamepad_producer;
         {
             let Some(gamepads) = self.gamepads.as_mut() else {
                 return;
@@ -52,22 +55,19 @@ impl RuntimeEntryApp {
                 let result = match event.event {
                     EventType::Connected => {
                         let pad = gamepads.gamepad(event.id);
-                        send_connection(
-                            session,
-                            viewport,
-                            runtime_gamepad_id,
-                            true,
-                            pad.name(),
-                            pad.vendor_id(),
-                            pad.product_id(),
-                        )
+                        producer.connect(runtime_gamepad_id)
+                            .map_err(RuntimeLibraryError::new)
+                            .and_then(|stamp| send_connection(
+                                session, viewport, stamp, true,
+                                pad.name(), pad.vendor_id(), pad.product_id(),
+                            ))
                     }
                     EventType::Disconnected => {
                         disconnected_gamepads.push(runtime_gamepad_id);
                         send_connection(
                             session,
                             viewport,
-                            runtime_gamepad_id,
+                            producer.disconnect(runtime_gamepad_id),
                             false,
                             "",
                             None,
@@ -75,16 +75,40 @@ impl RuntimeEntryApp {
                         )
                     }
                     EventType::ButtonPressed(button, _) | EventType::ButtonRepeated(button, _) => {
-                        send_button(session, viewport, runtime_gamepad_id, button, 1.0, true)
+                        let Some(stamp) = producer.capture_sample(runtime_gamepad_id) else {
+                            write_warn("runtime_gamepad", format!(
+                                "runtime_gamepad_sample_dropped_without_open_connection gamepad_id={runtime_gamepad_id}"
+                            ));
+                            continue;
+                        };
+                        send_button(session, viewport, stamp, button, 1.0, true)
                     }
                     EventType::ButtonReleased(button, _) => {
-                        send_button(session, viewport, runtime_gamepad_id, button, 0.0, false)
+                        let Some(stamp) = producer.capture_sample(runtime_gamepad_id) else {
+                            write_warn("runtime_gamepad", format!(
+                                "runtime_gamepad_sample_dropped_without_open_connection gamepad_id={runtime_gamepad_id}"
+                            ));
+                            continue;
+                        };
+                        send_button(session, viewport, stamp, button, 0.0, false)
                     }
                     EventType::ButtonChanged(button, value, _) => {
-                        send_raw_button(session, viewport, runtime_gamepad_id, button, value)
+                        let Some(stamp) = producer.capture_sample(runtime_gamepad_id) else {
+                            write_warn("runtime_gamepad", format!(
+                                "runtime_gamepad_sample_dropped_without_open_connection gamepad_id={runtime_gamepad_id}"
+                            ));
+                            continue;
+                        };
+                        send_raw_button(session, viewport, stamp, button, value)
                     }
                     EventType::AxisChanged(axis, value, _) => {
-                        send_axis(session, viewport, runtime_gamepad_id, axis, value)
+                        let Some(stamp) = producer.capture_sample(runtime_gamepad_id) else {
+                            write_warn("runtime_gamepad", format!(
+                                "runtime_gamepad_sample_dropped_without_open_connection gamepad_id={runtime_gamepad_id}"
+                            ));
+                            continue;
+                        };
+                        send_axis(session, viewport, stamp, axis, value)
                     }
                     EventType::Dropped | EventType::ForceFeedbackEffectCompleted => Ok(()),
                     _ => Ok(()),
@@ -122,20 +146,19 @@ impl RuntimeEntryApp {
     fn announce_connected_gamepads(&mut self, event_loop: &dyn ActiveEventLoop) -> bool {
         let session = &self.session;
         let viewport = self.viewport;
+        let producer = &mut self.gamepad_producer;
         let Some(gamepads) = self.gamepads.as_mut() else {
             return true;
         };
         let mut dispatch_error = None;
         for (id, pad) in gamepads.gamepads() {
-            if let Err(error) = send_connection(
-                session,
-                viewport,
-                gamepad_id(id),
-                true,
-                pad.name(),
-                pad.vendor_id(),
-                pad.product_id(),
-            ) {
+            let result = producer.connect(gamepad_id(id))
+                .map_err(RuntimeLibraryError::new)
+                .and_then(|stamp| send_connection(
+                    session, viewport, stamp, true,
+                    pad.name(), pad.vendor_id(), pad.product_id(),
+                ));
+            if let Err(error) = result {
                 dispatch_error = Some(error);
                 break;
             }

@@ -5,7 +5,31 @@ use crate::core::notifications::{NotificationId, NotificationSource};
 
 use super::ToastNotificationError;
 
-const MAX_TOAST_LIFETIME_SECS: u64 = 60 * 60;
+pub(super) struct ToastLifetimePolicy {
+    minimum_exclusive: Duration,
+    maximum_inclusive: Duration,
+}
+
+pub(super) const TOAST_LIFETIME_POLICY: ToastLifetimePolicy = ToastLifetimePolicy {
+    minimum_exclusive: Duration::ZERO,
+    maximum_inclusive: Duration::from_secs(60 * 60),
+};
+
+impl ToastLifetimePolicy {
+    fn accepts(&self, lifetime: Duration) -> bool {
+        lifetime > self.minimum_exclusive && lifetime <= self.maximum_inclusive
+    }
+}
+
+impl std::fmt::Display for ToastLifetimePolicy {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            formatter,
+            "greater than {:?} and at most {:?}",
+            self.minimum_exclusive, self.maximum_inclusive
+        )
+    }
+}
 const MAX_TOAST_KEY_BYTES: usize = 256;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -51,7 +75,7 @@ impl ToastNotification {
         message_key: impl Into<String>,
         lifetime: Duration,
     ) -> Result<Self, ToastNotificationError> {
-        if lifetime.is_zero() || lifetime > Duration::from_secs(MAX_TOAST_LIFETIME_SECS) {
+        if !TOAST_LIFETIME_POLICY.accepts(lifetime) {
             return Err(ToastNotificationError::InvalidLifetime);
         }
         Ok(Self {

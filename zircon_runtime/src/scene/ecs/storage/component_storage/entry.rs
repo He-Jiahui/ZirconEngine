@@ -35,3 +35,9 @@ pub(crate) struct PreflightedTransferredComponentRow {
     pub(super) component_id: ComponentId,
     pub(super) row: TransferredComponentRow,
 }
+
+impl TransferredComponentRow {
+    pub(crate) fn retained_value_v1(&self) -> &(dyn std::any::Any + Send + Sync) {
+        self.value.as_ref()
+    }
+}

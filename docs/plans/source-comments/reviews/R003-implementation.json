@@ -1,0 +1,397 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R003",
+  "implementer": "main",
+  "created_at_utc": "2026-10-14T17:52:23.520715+00:00",
+  "review_record": "docs/plans/source-comments/reviews/R003.json",
+  "review_record_sha256": "85cd23a375b6cc8cd2fd3814bae12aa7cf900c7913d78eefc7ad5dd2afd56a55",
+  "scope": [
+    "zircon_runtime/reflection_macros/src/lib.rs",
+    "zircon_runtime/reflection_macros/src/derive_type.rs",
+    "zircon_runtime/reflection_macros/src/function.rs",
+    "zircon_runtime/reflection_macros/src/module.rs"
+  ],
+  "authority": "Current user whole-source audit request and explicit independent module assignment; no foreign canonical changes observed. Historical macro evidence was read-only.",
+  "source_status_before": "git status exact 8 files empty",
+  "context_hash_checks": [
+    {
+      "key": "workspace",
+      "path": "Cargo.toml",
+      "original_review_sha256": "2b8fbbd523ce4f6416a15215aaf37769ef6fda653fe1a8a930b88add66d69f0a",
+      "current_sha256": "2b8fbbd523ce4f6416a15215aaf37769ef6fda653fe1a8a930b88add66d69f0a",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "dependency",
+      "path": "zircon_runtime/Cargo.toml",
+      "original_review_sha256": "9bd81600c618a38c95fc7211d54ee299e03d70cf74560917ce4c9acf0534ad0b",
+      "current_sha256": "1ec1a256d36710d17b12e6c63b93e81f2e3b299940e9a1a1b9f81d3fc592f306",
+      "status": "reconciled-current-relevant-spans",
+      "reconciliation": "Observed diff adds Linux libc dependency and its lock-list entry only; macro dependency and referenced proc-macro2/quote packages unchanged; preserve foreign edits."
+    },
+    {
+      "key": "runtime_surface",
+      "path": "zircon_runtime/src/lib.rs",
+      "original_review_sha256": "0dec0ee6e7ebd0280a1f04653e1aa1026d754bc08dc1c7d5e91f69d5243ed774",
+      "current_sha256": "0dec0ee6e7ebd0280a1f04653e1aa1026d754bc08dc1c7d5e91f69d5243ed774",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "framework_surface",
+      "path": "zircon_runtime/src/core/framework/script.rs",
+      "original_review_sha256": "aed479b2d0aa9a5725c7478bacaec3832fc90812346a9b48f5c7ed4fb3db9e57",
+      "current_sha256": "aed479b2d0aa9a5725c7478bacaec3832fc90812346a9b48f5c7ed4fb3db9e57",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "descriptors",
+      "path": "zircon_runtime/src/core/framework/script/descriptors.rs",
+      "original_review_sha256": "33e84d0df42db43f986be9694bff0ae74b158651bd26183a9079d1705e6fdb06",
+      "current_sha256": "33e84d0df42db43f986be9694bff0ae74b158651bd26183a9079d1705e6fdb06",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "argument_source",
+      "path": "zircon_runtime/src/core/framework/script/argument_views/argument_source.rs",
+      "original_review_sha256": "107e5ba0943cd917c527c7b8ea421401f0350a73cb6709450f15cb09b9de6f82",
+      "current_sha256": "107e5ba0943cd917c527c7b8ea421401f0350a73cb6709450f15cb09b9de6f82",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "argument_conversion",
+      "path": "zircon_runtime/src/core/framework/script/argument_views/typed_conversion.rs",
+      "original_review_sha256": "f4003e944cbe65172488d75d505584e479d9403361794d84ea419ad60339aa9e",
+      "current_sha256": "f4003e944cbe65172488d75d505584e479d9403361794d84ea419ad60339aa9e",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "return_conversion",
+      "path": "zircon_runtime/src/core/framework/script/value_contracts.rs",
+      "original_review_sha256": "41372acff29f071298d8126831a93bc6aa279776f33a93afaf0c122990e6a9fb",
+      "current_sha256": "41372acff29f071298d8126831a93bc6aa279776f33a93afaf0c122990e6a9fb",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "export_registry",
+      "path": "zircon_runtime/src/script/vm/host/host_export_registry.rs",
+      "original_review_sha256": "e5dc3b051ba5fb7b9c3ca88adeb3430d7f8af349b3d587be4d092376b27b78a9",
+      "current_sha256": "e5dc3b051ba5fb7b9c3ca88adeb3430d7f8af349b3d587be4d092376b27b78a9",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "call_table",
+      "path": "zircon_runtime/src/script/vm/host/script_call_table.rs",
+      "original_review_sha256": "303430e39920d9da7b9c0b2c38c2b42e1d0bc80694afadccea69d06577270552",
+      "current_sha256": "303430e39920d9da7b9c0b2c38c2b42e1d0bc80694afadccea69d06577270552",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "call_frame",
+      "path": "zircon_runtime/src/core/framework/script/call_frame.rs",
+      "original_review_sha256": "7d98e9042e2e50ca2c51991e69cf973ac952cdeeadd9a55708b5e1ecb65941ca",
+      "current_sha256": "7d98e9042e2e50ca2c51991e69cf973ac952cdeeadd9a55708b5e1ecb65941ca",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "type_path",
+      "path": "zircon_runtime_interface/src/reflect/type_path.rs",
+      "original_review_sha256": "fd3a5e503eb45ffbfb4befc3bdc042f12e34480b004001cb92e6ef76dba80711",
+      "current_sha256": "fd3a5e503eb45ffbfb4befc3bdc042f12e34480b004001cb92e6ef76dba80711",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "path_validation",
+      "path": "zircon_runtime_interface/src/reflect/type_path/validation.rs",
+      "original_review_sha256": "339e66dcdd7f0a8934209eaa9a6d28c1de66ac5f380883edbeb943fb9a39d5b4",
+      "current_sha256": "339e66dcdd7f0a8934209eaa9a6d28c1de66ac5f380883edbeb943fb9a39d5b4",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "field_identity",
+      "path": "zircon_runtime_interface/src/reflect/field_id.rs",
+      "original_review_sha256": "92653007b099df4e6ddc861e8f33170d0bf95d7cc1958c63078241b786f8098d",
+      "current_sha256": "92653007b099df4e6ddc861e8f33170d0bf95d7cc1958c63078241b786f8098d",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "field_metadata",
+      "path": "zircon_runtime_interface/src/reflect/field_info.rs",
+      "original_review_sha256": "8824d277465d382ec001afe65b465eae433ab516eba1c6a00cfb1c48fac5e8c9",
+      "current_sha256": "8824d277465d382ec001afe65b465eae433ab516eba1c6a00cfb1c48fac5e8c9",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "type_metadata",
+      "path": "zircon_runtime_interface/src/reflect/type_info.rs",
+      "original_review_sha256": "070f51c57e6144aec7395dee84b7af6bc5669d44a26c50ccedd4b433feda918c",
+      "current_sha256": "070f51c57e6144aec7395dee84b7af6bc5669d44a26c50ccedd4b433feda918c",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "type_registration",
+      "path": "zircon_runtime_interface/src/reflect/type_registration.rs",
+      "original_review_sha256": "83f9fbefe89e20d157cba170e8ac1b3b18ec67561b8b6c9ce98eb67b9bf09070",
+      "current_sha256": "83f9fbefe89e20d157cba170e8ac1b3b18ec67561b8b6c9ce98eb67b9bf09070",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "builtin",
+      "path": "zircon_runtime/src/script/vm/host/builtin_host_modules.rs",
+      "original_review_sha256": "2d13c1bf04ce3ea33a8d0eba539881c78e45f971af238620d4d613b748b875c6",
+      "current_sha256": "2d13c1bf04ce3ea33a8d0eba539881c78e45f971af238620d4d613b748b875c6",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "macro_tests",
+      "path": "zircon_runtime/reflection_macros/src/tests/cases.rs",
+      "original_review_sha256": "578beccb8f4a2d5e9747c993dc01a5b0e5c876616e493b42ce64f15a4eee3804",
+      "current_sha256": "578beccb8f4a2d5e9747c993dc01a5b0e5c876616e493b42ce64f15a4eee3804",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "integration_tests",
+      "path": "zircon_runtime/src/script/vm/tests/reflection_docs.rs",
+      "original_review_sha256": "324cf4a7bab6c172d55df7d3dd59d64c6910b8d9f9bf7d43b28abba1b8f36f18",
+      "current_sha256": "324cf4a7bab6c172d55df7d3dd59d64c6910b8d9f9bf7d43b28abba1b8f36f18",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "dispatch_tests",
+      "path": "zircon_runtime/src/script/vm/tests/host_exports.rs",
+      "original_review_sha256": "e7129e31ee5e44a503dfe3d123db0c8d7ac13a76dc9f9e473b11ed536c9f2677",
+      "current_sha256": "e7129e31ee5e44a503dfe3d123db0c8d7ac13a76dc9f9e473b11ed536c9f2677",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "return_tests",
+      "path": "zircon_runtime/src/core/framework/tests/script.rs",
+      "original_review_sha256": "aebb03920e772f8a308c40d3149e464d40907038e021d7e4e18d841e60949450",
+      "current_sha256": "aebb03920e772f8a308c40d3149e464d40907038e021d7e4e18d841e60949450",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "framework_mount",
+      "path": "zircon_runtime/src/core/framework/mod.rs",
+      "original_review_sha256": "26be3e27f5149f16b4bb2f199bc97c8b21192e0b2c8ff4a6433a797336d07153",
+      "current_sha256": "26be3e27f5149f16b4bb2f199bc97c8b21192e0b2c8ff4a6433a797336d07153",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "resolved_versions",
+      "path": "Cargo.lock",
+      "original_review_sha256": "ee0fbaec4e4bfd3f158f023e36ca8598d807a4ffad5f476104f1d10f8f20c2e6",
+      "current_sha256": "196861241f54d9405c436ca256dc6c89d8fbd91626f3758eb1fe080f3fc6d49b",
+      "status": "reconciled-current-relevant-spans",
+      "reconciliation": "Observed diff adds Linux libc dependency and its lock-list entry only; macro dependency and referenced proc-macro2/quote packages unchanged; preserve foreign edits."
+    },
+    {
+      "key": "quote_hygiene",
+      "path": "E:/cargo-targets/zircon-local/cache/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/quote-1.0.47/src/lib.rs",
+      "original_review_sha256": "e01ca26adfe51a087813d1fc1154efd8a8c9cb5b5a81f314194b4904a4422c71",
+      "current_sha256": "e01ca26adfe51a087813d1fc1154efd8a8c9cb5b5a81f314194b4904a4422c71",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "quote_ident_emitter",
+      "path": "E:/cargo-targets/zircon-local/cache/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/quote-1.0.47/src/runtime.rs",
+      "original_review_sha256": "fdb7986b31141627408b51381607f66ef4b69dd81b080c2f6489da267e96b2ba",
+      "current_sha256": "fdb7986b31141627408b51381607f66ef4b69dd81b080c2f6489da267e96b2ba",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "quote_ident_clone",
+      "path": "E:/cargo-targets/zircon-local/cache/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/quote-1.0.47/src/to_tokens.rs",
+      "original_review_sha256": "1b07b676afce2f666bac6f454758d066758033fc85e9cd9d2d12d58ad2eb36e1",
+      "current_sha256": "1b07b676afce2f666bac6f454758d066758033fc85e9cd9d2d12d58ad2eb36e1",
+      "status": "unchanged",
+      "reconciliation": null
+    },
+    {
+      "key": "span_resolution",
+      "path": "E:/cargo-targets/zircon-local/cache/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107/src/lib.rs",
+      "original_review_sha256": "ed6bf5e3c3b4fc952d4bdf9b48b149087bceaebf5392befce0bc6cae590a008d",
+      "current_sha256": "ed6bf5e3c3b4fc952d4bdf9b48b149087bceaebf5392befce0bc6cae590a008d",
+      "status": "unchanged",
+      "reconciliation": null
+    }
+  ],
+  "changes": [
+    {
+      "path": "zircon_runtime/reflection_macros/src/lib.rs",
+      "before_sha256": "a4788f762e3ed05274c26dbe3892eb896c94a5bd9764614bab452991b54a13f6",
+      "after_sha256": "54d751930b169a3cdfed4c32e936bf9b3a404a4fe31378a26092e7fd728d69e0",
+      "before_bytes": 1344,
+      "after_bytes": 5645,
+      "line_ending": "LF",
+      "proof": "Removing only the exact recorded insertions in memory reconstructs the original bytes and SHA; all original source/comments retained. This does not claim raw Rust doc attributes or compiler tokens are identical.",
+      "insertions": [
+        {
+          "before_line": 1,
+          "symbol": "crate root",
+          "kind": "//!",
+          "content_sha256": "c3a569fd71bea151caf93f9c715ee512aff476154da0bfa3f226dde088367753",
+          "original_byte_offset": 0,
+          "after_byte_offset": 0,
+          "after_line": 1,
+          "line_count": 6
+        },
+        {
+          "before_line": 21,
+          "symbol": "derive_zircon_script_type",
+          "kind": "///",
+          "content_sha256": "e4a592f620aaecc11afbfad8c6259e15399b3f36a1ec94595e3ef6e3a15a9422",
+          "original_byte_offset": 323,
+          "after_byte_offset": 706,
+          "after_line": 27,
+          "line_count": 17
+        },
+        {
+          "before_line": 29,
+          "symbol": "zircon_host_function",
+          "kind": "///",
+          "content_sha256": "5a9d29ba482e11449a908f9d3bcab4e669fb692c3b28f0f91389381bf8b40799",
+          "original_byte_offset": 652,
+          "after_byte_offset": 2402,
+          "after_line": 52,
+          "line_count": 17
+        },
+        {
+          "before_line": 38,
+          "symbol": "zircon_host_module",
+          "kind": "///",
+          "content_sha256": "94a9feb794017b11bbf6bbc2151e3d34fa7dac41ecfca9b650fc9d175af844f5",
+          "original_byte_offset": 1002,
+          "after_byte_offset": 4106,
+          "after_line": 78,
+          "line_count": 17
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/derive_type.rs",
+      "before_sha256": "84d6e1450a700445e5a1e068a875632e0b4633770624c8fcf590d8a92e6796e1",
+      "after_sha256": "94696beeb5be481aec989e836008bdebc2309c690ff94c1d165c5e2519db6964",
+      "before_bytes": 7129,
+      "after_bytes": 10017,
+      "line_ending": "LF",
+      "proof": "Removing only the exact recorded insertions in memory reconstructs the original bytes and SHA; all original source/comments retained. This does not claim raw Rust doc attributes or compiler tokens are identical.",
+      "insertions": [
+        {
+          "before_line": 11,
+          "symbol": "derive_zircon_script_type_impl",
+          "kind": "///",
+          "content_sha256": "9d73fa3989f20bd8f9ad4d7f2bab6752adbf7a4b445a341a6ca22bc80dce567d",
+          "original_byte_offset": 409,
+          "after_byte_offset": 409,
+          "after_line": 11,
+          "line_count": 17
+        },
+        {
+          "before_line": 71,
+          "symbol": "ReflectTypePath::new",
+          "kind": "BUG",
+          "issue_id": "CR-ZCA-R003-0001",
+          "content_sha256": "e1f09f6b3bd640e9eba9d7f7eb2b88afbfa8b9dc7a1a492bc522c8dcc18687b5",
+          "original_byte_offset": 3133,
+          "after_byte_offset": 4518,
+          "after_line": 88,
+          "line_count": 3
+        },
+        {
+          "before_line": 100,
+          "symbol": "field_tokens",
+          "kind": "///",
+          "content_sha256": "643a98808ba2a6aea2246685523676854e8c8cdc597639feac36685063c08156",
+          "original_byte_offset": 4503,
+          "after_byte_offset": 6273,
+          "after_line": 120,
+          "line_count": 17
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/function.rs",
+      "before_sha256": "d5adab3ced932f9a338923a4736e28d69cb182a0ac8a0f8c33cb60b06590a7e6",
+      "after_sha256": "49f99ff2e51912c72dfacac3de76af6a81797fb6f2a82646edf88a28b5156c3a",
+      "before_bytes": 6567,
+      "after_bytes": 8473,
+      "line_ending": "LF",
+      "proof": "Removing only the exact recorded insertions in memory reconstructs the original bytes and SHA; all original source/comments retained. This does not claim raw Rust doc attributes or compiler tokens are identical.",
+      "insertions": [
+        {
+          "before_line": 11,
+          "symbol": "host_function_impl",
+          "kind": "///",
+          "content_sha256": "73c08ff6ce01d85f6231d60902c5c60e28d5ab5a251a0630959a2df53ead6aae",
+          "original_byte_offset": 390,
+          "after_byte_offset": 390,
+          "after_line": 11,
+          "line_count": 17
+        },
+        {
+          "before_line": 96,
+          "symbol": "argument conversions",
+          "kind": "TODO",
+          "issue_id": "CR-ZCA-R003-0002",
+          "content_sha256": "fe7fbaa1536cb3b1ee9bced61695f04e5695529be5d846a06a6ec23ae111b663",
+          "original_byte_offset": 3755,
+          "after_byte_offset": 5259,
+          "after_line": 113,
+          "line_count": 3
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/reflection_macros/src/module.rs",
+      "before_sha256": "77ee67fc89eda911748531ff7a2d52bf6bd651e477e7c40cbef17a24efdca9f3",
+      "after_sha256": "d3d374e9f9787b2932c1ca928724798908ec098d7adcf279a6aa8089b4ab420e",
+      "before_bytes": 3624,
+      "after_bytes": 4985,
+      "line_ending": "LF",
+      "proof": "Removing only the exact recorded insertions in memory reconstructs the original bytes and SHA; all original source/comments retained. This does not claim raw Rust doc attributes or compiler tokens are identical.",
+      "insertions": [
+        {
+          "before_line": 10,
+          "symbol": "host_module_impl",
+          "kind": "///",
+          "content_sha256": "b428a0184676665ade6b14eaa06aaf598622dc3ebad4f1699c6321bb86cb0286",
+          "original_byte_offset": 342,
+          "after_byte_offset": 342,
+          "after_line": 10,
+          "line_count": 17
+        }
+      ]
+    }
+  ],
+  "compiler_or_runtime_tests_run": false,
+  "formal_acceptance": false,
+  "existing_comments_preserved": true,
+  "source_backup_or_copy_created": false,
+  "status": "comments-written-awaiting-post-review-and-checks",
+  "written_at_utc": "2026-10-14T17:52:23.993588+00:00"
+}

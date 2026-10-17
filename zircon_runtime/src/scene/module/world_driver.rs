@@ -45,15 +45,8 @@ impl WorldDriver {
         level: &LevelSystem,
         snapshot: FrameTimeSnapshot,
     ) -> Result<(), LevelTickError> {
-        let world_time = level.advance_world_time(snapshot)?;
+        let (world_time, world_generation, execution) = level.begin_world_frame(snapshot)?;
         let fixed_step_plan = world_time.fixed_step_plan();
-        let (world_generation, execution) = level.with_world_mut(|world| {
-            let world_generation = world.world_generation();
-            let execution = world.begin_schedule_execution();
-            world.reclaim_dropped_runtime_event_mirrors();
-            world.reset_ecs_frame_performance_diagnostics();
-            (world_generation, execution)
-        });
         let schedule = execution.plan();
         for stage in schedule.stages() {
             if *stage == SystemStage::FixedFirst {

@@ -86,3 +86,67 @@ fn toast_content_keys_distinguish_empty_and_oversized_input() {
         })
     ));
 }
+
+#[test]
+fn toast_lifetime_policy_preserves_subsecond_deadlines_and_inclusive_hour() {
+    for (index, lifetime) in [
+        Duration::from_nanos(1),
+        Duration::from_millis(999),
+        Duration::from_secs(3_600),
+    ]
+    .iter()
+    .copied()
+    .enumerate()
+    {
+        let notification = toast(&format!("lifetime_boundary_{index}"), lifetime);
+        assert_eq!(notification.lifetime(), lifetime);
+        let center = ToastNotificationCenter::new(ToastCenterConfig::new(1).unwrap());
+        let now = Duration::from_secs(7);
+        let expires_at = now + lifetime;
+
+        center.publish_at(notification, now).unwrap();
+        let snapshots = center.snapshot_at(expires_at - Duration::from_nanos(1));
+        assert_eq!(snapshots.len(), 1);
+        assert_eq!(snapshots[0].notification().lifetime(), lifetime);
+        assert_eq!(snapshots[0].expires_at(), expires_at);
+        assert!(center.snapshot_at(expires_at).is_empty());
+    }
+}
+
+#[test]
+fn toast_lifetime_policy_rejects_zero_and_over_hour_with_matching_diagnostic() {
+    let expected = concat!(
+        "toast lifetime must be greater than 0ns and at most 3600s; ",
+        "publication time plus lifetime must not overflow"
+    );
+    for lifetime in [
+        Duration::ZERO,
+        Duration::from_secs(3_600) + Duration::from_nanos(1),
+    ] {
+        let error = ToastNotification::new(
+            NotificationId::parse("editor.toast.invalid_lifetime").unwrap(),
+            NotificationSource::builtin("editor17").unwrap(),
+            ToastSeverity::Info,
+            "editor.toast.title",
+            "editor.toast.message",
+            lifetime,
+        )
+        .unwrap_err();
+
+        assert_eq!(error, ToastNotificationError::InvalidLifetime);
+        assert_eq!(error.to_string(), expected);
+    }
+}
+
+#[test]
+fn toast_expiry_overflow_rejects_without_consuming_identity_or_capacity() {
+    let center = ToastNotificationCenter::new(ToastCenterConfig::new(1).unwrap());
+    let notification = toast("expiry_overflow", Duration::from_nanos(1));
+
+    assert_eq!(
+        center.publish_at(notification.clone(), Duration::MAX),
+        Err(ToastNotificationError::InvalidLifetime)
+    );
+    center.publish_at(notification, Duration::ZERO).unwrap();
+    assert_eq!(center.snapshot_at(Duration::ZERO).len(), 1);
+}

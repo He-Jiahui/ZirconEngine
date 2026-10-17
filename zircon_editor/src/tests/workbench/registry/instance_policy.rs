@@ -100,14 +100,18 @@ fn workbench_slots_materialize_their_single_canonical_view_hosts() {
 #[test]
 /// 源码前缀守卫配合实际单例打开、移除及恢复，约束元数据借用优化同时保持结果身份。
 fn view_registry_open_and_restore_borrow_descriptor_metadata() {
-    let open_source = include_str!("../../../ui/workbench/view/view_registry_open_descriptor.rs");
-    let open_lookup = open_source
+    let source = include_str!("../../../ui/workbench/view/view_registry_instance_mutation.rs");
+    let open_lookup = source
+        .split_once("pub fn open_descriptor(")
+        .expect("open descriptor owner")
+        .1
         .split("if let Some(error)")
         .next()
         .expect("open descriptor lookup section");
-    let restore_source =
-        include_str!("../../../ui/workbench/view/view_registry_restore_instance.rs");
-    let restore_lookup = restore_source
+    let restore_lookup = source
+        .split_once("pub fn restore_instance(")
+        .expect("restore instance owner")
+        .1
         .split("if let Some(error)")
         .next()
         .expect("restore descriptor lookup section");

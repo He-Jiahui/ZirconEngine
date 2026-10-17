@@ -7,11 +7,13 @@ use crate::scene::World;
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(Health { 0 });
 impl Component for Health {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct Marker;
 
+zircon_runtime_interface::impl_retained_owner_v1!(Marker {});
 impl Component for Marker {}
 
 #[test]
@@ -496,6 +498,7 @@ fn unsafe_custom_mutable_query_preserves_real_borrows_and_change_ticks() {
 #[derive(Debug, PartialEq, Eq)]
 struct SparseHealth(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(SparseHealth { 0 });
 impl Component for SparseHealth {
     const STORAGE_TYPE: crate::scene::ecs::StorageType = crate::scene::ecs::StorageType::SparseSet;
 }

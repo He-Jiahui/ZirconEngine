@@ -15,5 +15,8 @@ fn mixer_graph_rejects_playback_to_missing_output_track() {
             },
         )
         .unwrap_err();
-    assert!(missing.to_string().contains("unknown track"));
+    assert!(matches!(
+        missing,
+        SoundError::UnknownTrack { track } if track == SoundTrackId::new(99)
+    ));
 }

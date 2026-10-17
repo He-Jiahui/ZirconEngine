@@ -20,6 +20,7 @@ impl EntryConfig {
         Self {
             role,
             runtime_profile: None,
+            runtime_plugin_minimum_maturity: None,
             target_mode: None,
             project_plugins: None,
             project_plugins_source: None,
@@ -41,6 +42,16 @@ impl EntryConfig {
 
     pub fn with_runtime_profile(mut self, profile_id: RuntimeProfileId) -> Self {
         self.runtime_profile = Some(profile_id);
+        self
+    }
+
+    /// Explicitly overrides the selected Runtime profile's plugin maturity floor.
+    /// Optional plugin requests alone never lower that floor.
+    pub fn with_runtime_plugin_minimum_maturity(
+        mut self,
+        minimum: zircon_runtime::plugin::PluginMaturity,
+    ) -> Self {
+        self.runtime_plugin_minimum_maturity = Some(minimum);
         self
     }
 

@@ -10,11 +10,11 @@ use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::render::{
     render_mesh_stable_instance_key, render_mesh_transform_revision, DisplayMode,
     FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
-    RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderVirtualGeometryCluster,
-    RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryDebugState,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
-    RenderWorldSnapshotHandle, RendererCommon, ViewportCameraSnapshot,
+    RenderFramework, RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
+    RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryDebugSnapshot,
+    RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract, RenderVirtualGeometryInstance,
+    RenderVirtualGeometryPage, RenderWorldSnapshotHandle, RendererCommon, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};

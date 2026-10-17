@@ -19,9 +19,7 @@ fn environment_only_pbr_reuses_caller_normalized_surface_inputs() {
         "fn shade_forward(",
     );
     let deferred_shading = wgsl_function_source(
-        include_str!(
-            "../../../scene/deferred/shaders/environment_only_pbr.wgsl"
-        ),
+        include_str!("../../../scene/deferred/shaders/environment_only_pbr.wgsl"),
         "fn shade_deferred_environment_only_pbr(",
     );
 
@@ -179,9 +177,7 @@ fn pbr_view_direction_has_one_owner_and_skips_redundant_endpoint_work() {
         ),
         (
             "environment-only deferred",
-            include_str!(
-                "../../../scene/deferred/shaders/environment_only_pbr.wgsl"
-            ),
+            include_str!("../../../scene/deferred/shaders/environment_only_pbr.wgsl"),
             "fn scene_view_dir_ws(",
             "let view_dir = zr_pbr_view_direction_ws(world_position);",
         ),
@@ -247,9 +243,7 @@ fn normalizer_contract_has_one_finite_length_owner() {
         ),
         (
             "environment-only Deferred",
-            include_str!(
-                "../../../scene/deferred/shaders/environment_only_pbr.wgsl"
-            ),
+            include_str!("../../../scene/deferred/shaders/environment_only_pbr.wgsl"),
             "fn normalize_or_zero(",
         ),
         (

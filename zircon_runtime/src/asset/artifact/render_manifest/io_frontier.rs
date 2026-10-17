@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::hash::Hash;
-use std::time::Instant;
+use web_time::Instant;
 
 use super::RenderArtifactIoPriority;
 

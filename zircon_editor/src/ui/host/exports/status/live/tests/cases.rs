@@ -10,6 +10,7 @@ use crate::ui::host::{EditorPluginStatus, EditorPluginStatusReport};
 
 fn report() -> EditorPluginStatusReport {
     EditorPluginStatusReport {
+        enablement: None,
         plugins: ["native.demo", "native.other"]
             .into_iter()
             .map(|id| EditorPluginStatus {

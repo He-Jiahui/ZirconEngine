@@ -4,6 +4,8 @@ use zircon_runtime_interface::ui::dispatch::{
 use zircon_runtime_interface::ui::layout::UiPoint;
 use zircon_runtime_interface::ui::surface::{UiPointerButton, UiPointerEventKind};
 use zircon_runtime_interface::{
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V2, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V2,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V2,
     ui::accessibility::UiAccessibilityActionRequest, ZrRuntimeClipboardResultV1,
     ZrRuntimeEditorTransformWriteV1, ZrRuntimeEventV1, ZrRuntimeViewportCameraV1, ZrStatus,
     ZR_RUNTIME_ACCESSIBILITY_ACTION_REQUEST_LIMIT_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
@@ -166,9 +168,14 @@ impl RuntimeDynamicSession {
             }
             ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1 => self.handle_file_drag_drop(event),
             ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1 => self.handle_window_status(event),
-            ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1 => self.handle_gamepad_connection(event),
-            ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1 => self.handle_gamepad_button(event),
-            ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1 => self.handle_gamepad_axis(event),
+            ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1
+            | ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1
+            | ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1 => {
+                invalid_argument(b"runtime gamepad events require generation V2")
+            }
+            ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V2 => self.handle_gamepad_connection(event),
+            ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V2 => self.handle_gamepad_button(event),
+            ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V2 => self.handle_gamepad_axis(event),
             ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1 => {
                 self.handle_accessibility_action(event)
             }

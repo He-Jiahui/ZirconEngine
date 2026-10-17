@@ -80,7 +80,8 @@ fn optimization_batch_20260829bs_editor291_timeline_color_variants_preserve_resu
 
 #[test]
 fn optimization_batch_20260829bs_editor291_timeline_color_uses_one_scan() {
-    let source = include_str!("../../../../../retained/contract/paint/primitives/timeline/style/tokens.rs");
+    let source =
+        include_str!("../../../../../retained/contract/paint/primitives/timeline/style/tokens.rs");
     let production = source.split_once("#[cfg(test)]").expect("test boundary").0;
     assert!(production.contains("for part in component_variant.split"));
     assert!(production.contains("best = best.min"));

@@ -7,6 +7,8 @@ param(
     [Parameter(Mandatory)]
     [string]$EngineAssetRoot,
     [string]$ProjectRoot,
+    [ValidateSet('none', 'f2-lit-mesh')]
+    [string]$RuntimeProductProof = 'none',
     [string]$AuthoringAutomationRequest,
     [string]$ReopenAutomationRequest,
     [switch]$CreateProject,
@@ -679,6 +681,7 @@ function Get-MvpRuntimeProductDiagnosticsEvidence {
 
     $fields = [ordered]@{}
     foreach ($name in @(
+        'proof_policy',
         'frame_index',
         'viewport',
         'project_identity',
@@ -717,6 +720,10 @@ function Get-MvpRuntimeProductDiagnosticsEvidence {
         $fields[$name] = $value
     }
     $fields['render_adapter'] = $adapter
+
+    if ($fields.proof_policy -cne 'f2-lit-mesh') {
+        throw "Runtime product diagnostic reports proof_policy '$($fields.proof_policy)' instead of 'f2-lit-mesh'."
+    }
 
     if ($fields.viewport -notmatch '^[1-9][0-9]*x[1-9][0-9]*$') {
         throw "Runtime product diagnostic reports invalid viewport '$($fields.viewport)'."
@@ -848,6 +855,8 @@ function Invoke-MvpStagedProduct {
         [Parameter(Mandatory)][string]$StageRoot,
         [Parameter(Mandatory)][string]$RunId,
         [string]$ProjectRoot,
+        [ValidateSet('none', 'f2-lit-mesh')]
+        [string]$RuntimeProductProof = 'none',
         [ValidateRange(0, [int]::MaxValue)]
         [int]$AttemptOffset = 0,
         [Nullable[int]]$RunCount,
@@ -937,12 +946,17 @@ function Invoke-MvpStagedProduct {
         $progressProbe = { Read-MvpProcessLivenessProgress -State $progressState }.GetNewClosure()
         Assert-MvpStagingCancellationNotRequested -CancellationProbe $CancellationProbe
         try {
+            [string[]]$productArguments = @()
+            if ($Product -eq 'runtime' -and $RuntimeProductProof -eq 'f2-lit-mesh') {
+                $productArguments = @('--runtime-product-proof', 'f2-lit-mesh')
+            }
             $processLaunch = New-MvpStagedProcessLaunch `
                 -ExecutablePath $ExecutablePath `
                 -WorkingDirectory $WorkingDirectory `
                 -Environment $environment `
                 -StageRoot $StageRoot `
-                -ProjectRoot $ProjectRoot
+                -ProjectRoot $ProjectRoot `
+                -Arguments $productArguments
             $processState = Start-MvpSupervisedProcess `
                 -StartInfo $processLaunch.start_info `
                 -StageRoot $processLaunch.staged_product_root `
@@ -1028,6 +1042,8 @@ function Invoke-MvpStagedProduct {
                 throw "Staged runtime attempt $attempt exited without the runtime_product_frame_capture_written diagnostic under '$diagnosticRoot'. See $stdout and $stderr."
             }
             $frameCapture = Get-MvpRuntimeFrameCaptureEvidence -Path $frameCapturePath -StageRoot $StageRoot
+        }
+        if ($Product -eq 'runtime' -and $RuntimeProductProof -eq 'f2-lit-mesh') {
             $runtimeProductDiagnostics = Get-MvpRuntimeProductDiagnosticsEvidence -DiagnosticText $diagnosticText
         }
         if ($null -ne $editorWindowCapturePath) {
@@ -1816,6 +1832,7 @@ function Invoke-MvpProductStagingCore {
                 -StageRoot $stageDirectory `
                 -RunId $RunId `
                 -ProjectRoot $stagedProjectRoot `
+                -RuntimeProductProof $RuntimeProductProof `
                 -ScenarioRegistration $runtimeScenario `
                 -ExecutionPolicy $runtimeExecutionPolicy `
                 -QualificationContext $runtimeQualificationContext `
@@ -1892,6 +1909,7 @@ function Invoke-MvpProductStagingCore {
                     -StageRoot $stageDirectory `
                     -RunId $RunId `
                     -ProjectRoot $stagedProjectRoot `
+                    -RuntimeProductProof $RuntimeProductProof `
                     -AttemptOffset $runtimeExecutionPolicy.attempt_count `
                     -RunCount 1 `
                     -ScenarioRegistration $runtimeScenario `
@@ -2054,6 +2072,14 @@ function Invoke-MvpProductStaging {
         throw "MVP staging run '$RunId' already has a terminal receipt at '$terminalReceiptPath'; choose a new RunId."
     }
     try {
+        if ($RuntimeProductProof -eq 'f2-lit-mesh') {
+            if ([string]::IsNullOrWhiteSpace($ProjectRoot) -and -not $CreateProject) {
+                throw 'RuntimeProductProof f2-lit-mesh requires ProjectRoot or CreateProject.'
+            }
+            if ($NoLaunch) {
+                throw 'RuntimeProductProof f2-lit-mesh requires a runtime product launch; NoLaunch is not supported.'
+            }
+        }
         return Invoke-MvpProductStagingCore `
             -StagingRootPath $stagingRootPath `
             -StagingStartedAtUtc $stagingStartedAtUtc `

@@ -330,10 +330,7 @@ fn resolve_visbuffer64_entries_for_store_rebuilds_when_pass_entries_are_missing(
             RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections,
         ),
         vec![
-            RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
-                0,
-                &selected_clusters[0],
-            )
+            RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(0, &selected_clusters[0],)
         ],
         "expected store_last_runtime_outputs to fall back to execution-backed selected-cluster rebuild when the render path claims execution ownership but the pass-owned VisBuffer64 entry stream is still empty"
     );

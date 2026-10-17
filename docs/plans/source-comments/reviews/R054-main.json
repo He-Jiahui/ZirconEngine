@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R054",
+  "owner": "root",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "status": "reviewed-local-pending-ledger-booking-and-actual-managed-gates",
+  "formal_acceptance": false,
+  "fixed_child_record": {
+    "path": "docs/plans/source-comments/reviews/R054.json",
+    "sha256": "b8ae869534581a6d8baf33c96a28bf74432ae33091f9e6b92bd0c0681b6316b2",
+    "bytes": 122759
+  },
+  "source_pins": [
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+      "before_sha256": "1a78860761d9f7dde18c047c50ed33fc71ef6340aa46542936e70e82c46bbb1c",
+      "after_sha256": "c3109871964871af8f37a4719cc534af5504616ad5250c3bff5b55fe39b1a359",
+      "before_bytes": 10267,
+      "after_bytes": 12824,
+      "before_lines": 285,
+      "after_lines": 333,
+      "raw_inverse_matches_grant_and_raw_HEAD": true,
+      "changed": true,
+      "objects": 11,
+      "blocks": 29,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 333,
+        "bom": false
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+      "before_sha256": "79384c4942fe95fd50463fe8819f1c0cc8fe1c373743b604e8e54d2033f1bf95",
+      "after_sha256": "7530c7c96293c8a2dbd1717b35bf37e890e51e0952248d4b3ac0f6b4748316be",
+      "before_bytes": 7977,
+      "after_bytes": 8537,
+      "before_lines": 243,
+      "after_lines": 249,
+      "raw_inverse_matches_grant_and_raw_HEAD": true,
+      "changed": true,
+      "objects": 15,
+      "blocks": 19,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 249,
+        "bom": false
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+      "before_sha256": "a93c4c53ff3c8580b787073624e22ff877bc2cb3260eb24e4ad232772d1d9cbe",
+      "after_sha256": "2e8fef09dd43b6a5b418063d7a4b95bbba89fadc9aa5da15367834de3dcd39aa",
+      "before_bytes": 2699,
+      "after_bytes": 2883,
+      "before_lines": 73,
+      "after_lines": 76,
+      "raw_inverse_matches_grant_and_raw_HEAD": true,
+      "changed": true,
+      "objects": 8,
+      "blocks": 8,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 76,
+        "bom": false
+      }
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+      "before_sha256": "02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298",
+      "after_sha256": "02afb4728c81b08db7b9c49c142d417b40f813835a786a291d35b810d319f298",
+      "before_bytes": 4371,
+      "after_bytes": 4371,
+      "before_lines": 132,
+      "after_lines": 132,
+      "raw_inverse_matches_grant_and_raw_HEAD": true,
+      "changed": false,
+      "objects": 5,
+      "blocks": 10,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 132,
+        "bom": false
+      }
+    }
+  ],
+  "scope": [
+    "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+    "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+    "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+    "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs"
+  ],
+  "root_read_receipts": [
+    {
+      "receipt": "6513b4 exit0",
+      "read": "Production333L andsibling132Lfullyvisible;source/caller/schema/contextpinsread."
+    },
+    {
+      "receipt": "224f3b creation native12539 -> b3e4f3 exit0",
+      "read": "Bothownedtestfiles249L+76Lfullyvisible beforeoutputelision;metadataauditgapnotcounteduntilrecovery."
+    },
+    {
+      "receipt": "8e9a18 exit0",
+      "read": "All39objectauditfacts andall66blockentry/state/downstream/controlfacts recoveredcompact;C1full141L,C0/C2/C3/C4/G2/G3/support/mountsactualspans read."
+    }
+  ],
+  "independent_review": {
+    "objects": 39,
+    "members": 2,
+    "functions": 29,
+    "types": 1,
+    "modules": 3,
+    "constants": 6,
+    "blocks": 66,
+    "control_points": 31,
+    "all4_fully_read": true,
+    "all_objects_and_blocks_reviewed": true,
+    "final_byte_spans_recomputed": true,
+    "mechanical_range_checks_support_not_replace_semantic_review": true
+  },
+  "file_findings": [
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+      "conclusion": "Reviewedfull333L andall7productionfunctions/privatephasefields/testmounts. Borrowedresultsprojecttoownedeffectrecords afterSurfacealreadyappliedstate;handler useshandled_by beforeblocked_by butdispositionBlockedhaspriority. Componentlastnodefillsmissinghandler. PhasefallbackBubble/Target isinterpretation,notproofexecution. Capture/release/focus effects precedeoneforwardscan;dirty-onlyeffectsappend,RequestDamageonlysetsphase. AggregateddirtyfallbackonlyifnoDirtyRedraw;capacityfixed+max(invocations,fallback) thereforeupperhintandnotmemorybudget."
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+      "conclusion": "Mergeconsumestextownedvectors afterpointerresult. Blockedonlyprotectsreplyheader;collections/drag/diagnosticscontinueappend/merge. Offsetispriorreplyeffectlen;onlyindicesstrictlylessthantext_countrebase. Hostrequestsandapplied/rejectedstatusesarepreserved,notexecutedagain. Callerdoesnotvalidateeventidentityhere;unchangedotherfields remainpointerrecord. Public/privateChinesecommentsmatchtheseexactownershipandindexconstraints."
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+      "conclusion": "Full249L reviewed. Three testsincludeoneignoredperformancecase. T1coverssyntheticphase+dirty/damageprojection. T2usesrawbounded_source anditsfirstpositiveassertisprovablyfalse:wrapperdelegatesoutsidebound. MarkedCR0540001 besideunchangedassert75,notfixed. Helperrequiresstartbutmissingenddoesnotpanic. Perfcaseuses16384allHandledrecords,128repetitions,17alternatingpairs;onlythisfixturechecksumcomparisonismeaningful,notgeneralsemantic equivalence orfullpipelineperformance."
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/capacity_tests.rs",
+      "conclusion": "Full76L reviewed. Fourfinitecapacityformulaassertions do not proveallusizeinputs;ignoredcase timesindependentVecfill1024items/17pairs,modeldoublinggrowth isnotallocatorobservation. MERGED_PROJECTIONS8onlyprinted,not8actualmerges;noactualtimingadvantageassertion. Percentileneedsnonemptysamples,currentlyfixed17and95."
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/tests/pointer_reply.rs",
+      "conclusion": "Full132L/1test4fixtures reviewed unchanged. Testconstructseffects/statuses/host/widgetrecords thenchecksappendorderandvalid0/1localindicesoffsetto1/2. Tenassertions do notcoverBlockedheader,outofrangeindices,identityvalidation,notes/drag/bindingoractualSurfaceexecution. Simpleconstructorsalreadyclear,nonewcommentsneeded."
+    }
+  ],
+  "traits_macros_ffi": {
+    "handwritten_trait_impls": [],
+    "derive": "Clone,Copy,Debug,Default,PartialEq,Eqonprivate2-Optionphasecarrier.",
+    "macros": "6tests,2ignore,27asserts,1debugassert,include_str,black_boxcalls;alloldinputs preserved. NoSerde/FFI/unsafe/dynamicregistrationlocal.",
+    "callback_lifecycle": "OnlysyncFnMutlocaltimerclosure. ExternalPointerArcHRTBcallbacksbelongtoR053nowrootreviewed."
+  },
+  "new_issues": [
+    {
+      "id": "CR-ZCA-R054-0001",
+      "kind": "BUG",
+      "origin": "this-audit",
+      "status": "confirmed-static-source-guard-boundary-mismatch-pending-separate-fix",
+      "source_path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+      "before_source_sha256": "79384c4942fe95fd50463fe8819f1c0cc8fe1c373743b604e8e54d2033f1bf95",
+      "current_source_sha256": "7530c7c96293c8a2dbd1717b35bf37e890e51e0952248d4b3ac0f6b4748316be",
+      "before_assertion_line": 69,
+      "current_tag_line": 73,
+      "current_assertion_line": 75,
+      "tag_text": "    // BUG: [CR-ZCA-R054-0001] 该切片只取包装函数；扫描已委派给切片终点后的 helper，故下方正向 contains 在当前源码为 false。\n    // 后续应按真实委派边界修正守卫；不能靠在包装函数注释中加入目标字串使其通过。\n",
+      "root_approval": "Root exact R054 grant reserved this ID solely for stale wrapper-slice positive contains; original assertion preserved.",
+      "trigger": "include_str读取当前主源，bounded_source以wrapper签名到component helper签名为边界。",
+      "decisive_path": [
+        {
+          "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+          "sha256": "1a78860761d9f7dde18c047c50ed33fc71ef6340aa46542936e70e82c46bbb1c",
+          "spans": [
+            [
+              10,
+              46
+            ],
+            [
+              58,
+              134
+            ],
+            [
+              150,
+              177
+            ]
+          ],
+          "evidence": "wrapper16调用效果helper；真正scan调用106不在wrapper切片。",
+          "version": "before"
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/input/pointer_reply.rs",
+          "sha256": "c3109871964871af8f37a4719cc534af5504616ad5250c3bff5b55fe39b1a359",
+          "spans": [
+            [
+              29,
+              65
+            ],
+            [
+              77,
+              153
+            ],
+            [
+              186,
+              213
+            ]
+          ],
+          "evidence": "对应原代码位置保留；helper调用125仍在wrapper结束/下一个声明67之外。",
+          "version": "after"
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/input/pointer_reply/tests/single_pass_tests.rs",
+          "sha256": "7530c7c96293c8a2dbd1717b35bf37e890e51e0952248d4b3ac0f6b4748316be",
+          "spans": [
+            [
+              59,
+              86
+            ],
+            [
+              226,
+              234
+            ]
+          ],
+          "evidence": "四个字面边界仍恰一次；assert75对不含扫描字串的片段做正向contains。",
+          "version": "after"
+        }
+      ],
+      "observed_static_value": false,
+      "before_vector": [
+        false,
+        true,
+        1,
+        true,
+        true,
+        true
+      ],
+      "current_vector": [
+        false,
+        true,
+        1,
+        true,
+        true,
+        true
+      ],
+      "new_comment_contribution": 0,
+      "proof_kind": "静态源码/字符串求值，未运行Rust测试",
+      "impact_limit": "只确认此源码守卫与委派边界失配；不推断生产重复扫描或回复行为错误。",
+      "next_action": "后续独立测试修复按实际helper委派确定检查范围并验证，禁止用注释匹配目标字串掩盖断言。"
+    }
+  ],
+  "existing_context_issue": "CR-DISPATCH0004 remainsR052legacyTODO;localdamagenonprojectiondoesnotproveglobalconsumerabsence.",
+  "context_limits": [
+    "Contextspansnotwholefilesformallyreviewed.",
+    "OnlyreplyoperandsfromexternalG2/G3evaluated;otherasserts/docs pathsremainoutsideR054checks.",
+    "No performanceexecution/profilegate orreleaseenforcementinferredfromignoremessage."
+  ],
+  "validation": {
+    "rawinverse": true,
+    "rawHEAD": true,
+    "guard_exit": 0,
+    "samehash_exactfmt_reused": true,
+    "rawoperands": 14,
+    "singlepassvector": [
+      false,
+      true,
+      1,
+      true,
+      true,
+      true
+    ],
+    "tests_run": false
+  },
+  "acceptance": {
+    "reviewed_local_files": 4,
+    "root_full_read_files": 4,
+    "formal_acceptance": false,
+    "phase_commit": false,
+    "attached_wecom_receipt": false,
+    "push": false,
+    "gates": [
+      "Exactsnapshot designatedJenkinsintake+actualscopedvalidation.",
+      "Existingindexlockownershipdiagnosticbeforefirststage/commit;nobypass.",
+      "Preserveprovedoldtestfailure;do notreportalltestspassed."
+    ]
+  },
+  "artifact_lifecycle": {
+    "registry": "E:/cargo-targets/zircon-local/reports/source-comments-20261014-01a13a81/artifacts.json",
+    "registered_before_creation": true,
+    "source_copies": false,
+    "builds": false,
+    "temporary_helpers": false,
+    "deleted_files": 0,
+    "freed_bytes": 0,
+    "retained": "Canonicaldocs,fixedchild/main/post,staticBUGevidenceandpendingmanagedreceipts;foreignartifacts/caches/Gitpreserved."
+  },
+  "reviewed_at_utc": "2026-10-16T07:15:14.973664+00:00",
+  "record_writer": {
+    "pid": 32720,
+    "write_set": [
+      "docs/plans/source-comments/reviews/R054-main.json",
+      "docs/plans/source-comments/reviews/R054-post-validation.json"
+    ],
+    "terminal": "Actualnativeexit,notthisrecord,closeswriter."
+  }
+}

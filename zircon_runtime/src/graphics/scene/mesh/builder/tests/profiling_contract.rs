@@ -1,10 +1,12 @@
 const BUILDER_SOURCE: &str = include_str!("../../../renderer/mesh/mesh_pass/commands/builder.rs");
-const MATERIALIZATION_PROFILE_SOURCE: &str = include_str!("../../commands/materialization_profile.rs");
-const PARALLEL_ADMISSION_SOURCE: &str = include_str!("../../commands/builder/parallel_admission.rs");
-const PARALLEL_PREPARATION_SOURCE: &str = include_str!("../../commands/builder/parallel_preparation.rs");
-const FINAL_SUBMISSION_SOURCE: &str = include_str!(
-    "../../../../../core/scene_renderer_core_render_compiled_scene/render/prepare_compiled_scene_mesh_submission.rs",
-);
+const MATERIALIZATION_PROFILE_SOURCE: &str =
+    include_str!("../../commands/materialization_profile.rs");
+const PARALLEL_ADMISSION_SOURCE: &str =
+    include_str!("../../commands/builder/parallel_admission.rs");
+const PARALLEL_PREPARATION_SOURCE: &str =
+    include_str!("../../commands/builder/parallel_preparation.rs");
+const FINAL_SUBMISSION_SOURCE: &str =
+    include_str!("../../../../render/prepare_compiled_scene_mesh_submission.rs",);
 
 use super::parallel_admission::ParallelPreparationMode;
 

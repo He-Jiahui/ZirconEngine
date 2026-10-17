@@ -1006,6 +1006,9 @@ function isPreviewHidden(
   node: ZuiNode,
   isRoot: boolean,
 ): boolean {
+  // PopupMenu remains a semantic host; the open surface is painted as an
+  // auxiliary sibling so this generic frame never appears as a gray card.
+  if (node.component.toLowerCase() === 'popupmenu') return true;
   // Native painter hosts are retained in the product tree so their runtime
   // state can be opened without rebuilding the shell.  A design projection
   // must still honour that state, even when the painter is the review root.
@@ -1079,16 +1082,13 @@ function isPreviewHidden(
     ['scrollablebox', 'scrollbox'].includes(
       String(valueAt(node.layout, 'container', 'kind') ?? '').toLowerCase(),
     );
-  // A clipped zero-sized host has no visible projection surface. Keep its
-  // authored node and descendants in the semantic snapshot, but omit their
-  // canvas shapes from the visual preview until the runtime opens the host.
+  // Either zero-sized axis leaves a clipped host with no visible surface.
+  // Keep its authored node and descendants in the semantic snapshot, but omit
+  // their canvas shapes from the preview until the runtime opens the host.
   if (
     clipsChildren &&
     node.children?.length &&
-    width !== null &&
-    height !== null &&
-    width <= 0 &&
-    height <= 0
+    ((width !== null && width <= 0) || (height !== null && height <= 0))
   )
     return true;
   if (

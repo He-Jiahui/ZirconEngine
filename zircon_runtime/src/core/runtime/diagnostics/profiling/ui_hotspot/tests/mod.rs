@@ -4,11 +4,16 @@ use std::hint::black_box;
 use std::time::Instant;
 
 const PARENT_SOURCE: &str = include_str!("../../ui_hotspot.rs");
-const AGGREGATION_TESTS_SOURCE: &str = include_str!("../../../../profiling/ui_hotspot/tests/aggregation.rs");
-const EVIDENCE_TESTS_SOURCE: &str = include_str!("../../../../profiling/ui_hotspot/tests/evidence.rs");
-const GPU_ALERTS_TESTS_SOURCE: &str = include_str!("../../../../profiling/ui_hotspot/tests/gpu_alerts.rs");
-const INTERACTION_ALERTS_TESTS_SOURCE: &str = include_str!("../../../../profiling/ui_hotspot/tests/interaction_alerts.rs");
-const SUPPORT_TESTS_SOURCE: &str = include_str!("../../../../profiling/ui_hotspot/tests/support.rs");
+const AGGREGATION_TESTS_SOURCE: &str =
+    include_str!("../../../../profiling/ui_hotspot/tests/aggregation.rs");
+const EVIDENCE_TESTS_SOURCE: &str =
+    include_str!("../../../../profiling/ui_hotspot/tests/evidence.rs");
+const GPU_ALERTS_TESTS_SOURCE: &str =
+    include_str!("../../../../profiling/ui_hotspot/tests/gpu_alerts.rs");
+const INTERACTION_ALERTS_TESTS_SOURCE: &str =
+    include_str!("../../../../profiling/ui_hotspot/tests/interaction_alerts.rs");
+const SUPPORT_TESTS_SOURCE: &str =
+    include_str!("../../../../profiling/ui_hotspot/tests/support.rs");
 
 #[path = "../../../../profiling/ui_hotspot/tests/support.rs"]
 mod support;

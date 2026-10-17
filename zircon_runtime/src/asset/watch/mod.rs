@@ -50,3 +50,14 @@ pub use asset_watcher::{
 pub(crate) use watch_loop::{watch_ingress, watch_loop_for_test};
 #[cfg(test)]
 pub(crate) use watched_asset_uri_for_path::watched_asset_uri_for_path;
+
+#[path = "event_stream.rs"]
+mod event_stream;
+pub(crate) use event_stream::{
+    change_bytes, error_bytes, AssetEventLog, CHANGE_LOG_LIMITS, ERROR_LOG_LIMITS,
+};
+pub use event_stream::{
+    AssetChangeSnapshot, AssetChangeSubscription, AssetEventGap, AssetEventRecvTimeoutError,
+    AssetEventStreamDiagnostics, AssetEventSubscription, AssetEventTryRecvError,
+    AssetWatchErrorSubscription,
+};

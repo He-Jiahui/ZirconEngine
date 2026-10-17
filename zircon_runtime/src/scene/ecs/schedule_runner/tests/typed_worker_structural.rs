@@ -4,11 +4,13 @@ use crate::scene::ecs::Commands;
 #[derive(Debug, Eq, PartialEq)]
 struct TypedWorkerHealth(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(TypedWorkerHealth { 0 });
 impl Component for TypedWorkerHealth {}
 
 #[derive(Debug, Eq, PartialEq)]
 struct TypedWorkerMarker;
 
+zircon_runtime_interface::impl_retained_owner_v1!(TypedWorkerMarker {});
 impl Component for TypedWorkerMarker {}
 
 #[derive(Debug, Eq, PartialEq)]
@@ -57,12 +59,20 @@ fn typed_worker_structural_snapshot(parallelism: usize) -> TypedWorkerStructural
     let marker_events = Arc::new(Mutex::new(Vec::new()));
     for kind in [LifecycleEventKind::Add, LifecycleEventKind::Insert] {
         let marker_events = Arc::clone(&marker_events);
-        world.observe_component_lifecycle::<TypedWorkerMarker>(kind, move |_world, _event| {
-            marker_events
-                .lock()
-                .expect("typed worker marker lifecycle events")
-                .push(kind);
-        });
+        world.observe_component_lifecycle::<TypedWorkerMarker>(
+            kind,
+            // SAFETY: Only the external observation log changes after optional World reads;
+            // retained World payload is untouched.
+            unsafe {
+                use crate::core::framework::retained_memory::RetainedLifecycleObserverV1;
+                RetainedLifecycleObserverV1::preserves_history_snapshot_v1(move |_world, _event| {
+                    marker_events
+                        .lock()
+                        .expect("typed worker marker lifecycle events")
+                        .push(kind);
+                })
+            },
+        );
     }
     let zeta_handle = Arc::clone(&zeta);
     world

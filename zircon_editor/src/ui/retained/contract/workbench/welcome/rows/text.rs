@@ -5,6 +5,7 @@ use super::super::super::super::super::paint_text::{
     draw_text_with_size_and_style, measure_runtime_text_width,
 };
 use super::super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+#[cfg(test)]
 use super::super::super::style::{WELCOME_MUTED_TEXT, WELCOME_TEXT, WELCOME_WARNING};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -46,7 +47,7 @@ pub(super) fn draw_recent_project_row_text(
         },
         clip,
         display_name,
-        WELCOME_TEXT,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text,
         font_size,
         line_height,
     );
@@ -60,7 +61,7 @@ pub(super) fn draw_recent_project_row_text(
         },
         clip,
         path,
-        WELCOME_MUTED_TEXT,
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text_muted,
         font_size,
         line_height,
     );
@@ -78,9 +79,9 @@ pub(super) fn draw_recent_project_row_text(
         clip,
         status,
         if invalid {
-            WELCOME_WARNING
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette().warning
         } else {
-            WELCOME_MUTED_TEXT
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text_muted
         },
         font_size,
         line_height,

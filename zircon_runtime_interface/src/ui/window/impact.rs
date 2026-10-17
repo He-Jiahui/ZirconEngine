@@ -9,13 +9,19 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiWindowEventImpact {
+    /// 输入状态需要重新处理的提示。
     pub input_state_dirty: bool,
+    /// 布局所用窗口度量有变化的提示。
     pub layout_metrics_dirty: bool,
+    /// 应清除悬停状态；当前 Runtime 窗口泵读取此位。
     pub clears_hover: bool,
+    /// 请求重绘的提示，不代表已经排入宿主绘制队列。
     pub requests_redraw: bool,
+    /// 关闭请求提示，不代表窗口已关闭。
     pub close_requested: bool,
 }
 
+/// 构造或叠加提示位；这些方法不执行窗口、布局或输入操作。
 impl UiWindowEventImpact {
     pub const fn clean() -> Self {
         Self {

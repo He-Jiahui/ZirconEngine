@@ -11,7 +11,7 @@ use crate::ui::host::editor_asset_manager::{
 };
 
 pub(super) struct StartupChangeEvents {
-    pub(super) asset_change_events: ChannelReceiver<AssetChange>,
+    pub(super) asset_change_events: zircon_runtime::asset::watch::AssetChangeSubscription,
     pub(super) editor_asset_change_events: EditorAssetChangeSubscription,
     pub(super) resource_change_events: ResourceEventReceiver,
 }
@@ -25,9 +25,10 @@ pub(super) fn subscribe_startup_change_events(
 ) -> StartupChangeEvents {
     let asset_change_events = {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_subscribe_asset_changes");
-        asset_manager.subscribe_asset_changes_with_wake(
-            capture_trace::wake_callback("runtime_asset_change", background_event_wake.clone()),
-        )
+        asset_manager.subscribe_asset_changes_with_wake(capture_trace::wake_callback(
+            "runtime_asset_change",
+            background_event_wake.clone(),
+        ))
     };
     let editor_asset_change_events = {
         zircon_runtime::profile_scope!(
@@ -35,9 +36,10 @@ pub(super) fn subscribe_startup_change_events(
             "retained_host",
             "new_subscribe_editor_asset_changes"
         );
-        editor_asset_manager.subscribe_editor_asset_changes_with_wake(
-            capture_trace::wake_callback("editor_asset_change", background_event_wake),
-        )
+        editor_asset_manager.subscribe_editor_asset_changes_with_wake(capture_trace::wake_callback(
+            "editor_asset_change",
+            background_event_wake,
+        ))
     };
     let resource_change_events = {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_subscribe_resource_changes");

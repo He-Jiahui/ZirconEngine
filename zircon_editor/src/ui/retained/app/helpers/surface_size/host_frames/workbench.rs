@@ -15,43 +15,43 @@ pub(super) fn resolve_workbench_host_frame_backed_size_for_kind(
     let workbench_layout_frames = host.workbench_window_bridge.layout_frames();
     let chrome = host.runtime.chrome_snapshot()?;
     Ok((|| {
-    let workbench = &chrome.workbench;
-    if let Some(region) = active_drawer_region_for_kind(workbench, kind) {
-        return workbench_layout_frames
-            .drawer_content_frame(region)
-            .and_then(ui_frame_size);
-    }
+        let workbench = &chrome.workbench;
+        if let Some(region) = active_drawer_region_for_kind(workbench, kind) {
+            return workbench_layout_frames
+                .drawer_content_frame(region)
+                .and_then(ui_frame_size);
+        }
 
-    if active_workbench_main_page_matches_kind(workbench, kind) {
-        if matches!(kind, ViewContentKind::Scene | ViewContentKind::Game) {
+        if active_workbench_main_page_matches_kind(workbench, kind) {
+            if matches!(kind, ViewContentKind::Scene | ViewContentKind::Game) {
+                if let Some(size) = workbench_layout_frames
+                    .viewport_content_frame
+                    .and_then(ui_frame_size)
+                {
+                    return Some(size);
+                }
+            }
             if let Some(size) = workbench_layout_frames
-                .viewport_content_frame
+                .document_region_frame
                 .and_then(ui_frame_size)
             {
                 return Some(size);
             }
+            return None;
         }
-        if let Some(size) = workbench_layout_frames
-            .document_region_frame
-            .and_then(ui_frame_size)
-        {
-            return Some(size);
+
+        if active_main_page_matches_kind(workbench, kind) {
+            let root_shell_frames = host.template_bridge.root_shell_frames();
+            return root_shell_frames
+                .pane_surface_frame
+                .and_then(ui_frame_size)
+                .or_else(|| {
+                    root_shell_frames
+                        .document_host_frame
+                        .and_then(ui_frame_size)
+                });
         }
-        return None;
-    }
 
-    if active_main_page_matches_kind(workbench, kind) {
-        let root_shell_frames = host.template_bridge.root_shell_frames();
-        return root_shell_frames
-            .pane_surface_frame
-            .and_then(ui_frame_size)
-            .or_else(|| {
-                root_shell_frames
-                    .document_host_frame
-                    .and_then(ui_frame_size)
-            });
-    }
-
-    None
+        None
     })())
 }

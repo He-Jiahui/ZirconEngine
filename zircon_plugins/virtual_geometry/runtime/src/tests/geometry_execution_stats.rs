@@ -3,14 +3,11 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_runtime::asset::assets::{AlphaMode, MaterialAsset};
 use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{AssetReference, AssetUri};
-use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
-use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
-use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_runtime::core::framework::render::{
     DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
     RenderFramework, RenderLayerSet, RenderMeshSnapshot, RenderOverlayExtract,
@@ -18,21 +15,25 @@ use zircon_runtime::core::framework::render::{
     RenderViewportDescriptor, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
     RenderVirtualGeometryPage, RenderWorldSnapshotHandle, RendererCommon, ViewportCameraSnapshot,
 };
+use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
+use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
 
 use crate::{
     test_support::render_feature_fixtures::{
         pluginized_wgpu_render_framework_with_asset_manager,
+        pluginized_wgpu_render_framework_with_existing_project_and_gpu_test_collector,
         virtual_geometry_render_feature_descriptor,
     },
-    virtual_geometry::types::{
-        ViewportRenderFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
+    virtual_geometry::{
+        VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
         VirtualGeometryPrepareDrawSegment, VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
         VirtualGeometryPrepareRequest,
     },
 };
 use zircon_runtime::graphics::{
     BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderPipelineAsset,
-    RenderPipelineCompileOptions, SceneRenderer,
+    RenderPipelineCompileOptions,
 };
 
 #[test]
@@ -103,109 +104,108 @@ fn renderer_execution_stats_follow_actual_virtual_geometry_cluster_states() {
         )
         .unwrap();
 
-    let mut renderer = SceneRenderer::new_with_plugin_render_features(
-        asset_manager,
-        [virtual_geometry_descriptor],
-    )
-    .unwrap();
-    renderer
-        .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
-                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
-                    visible_entities: vec![2, 3],
-                    visible_clusters: vec![
-                        VirtualGeometryPrepareCluster {
-                            entity: 2,
-                            cluster_id: 20,
-                            page_id: 300,
-                            lod_level: 0,
-                            resident_slot: Some(1),
-                            state: VirtualGeometryPrepareClusterState::Resident,
-                        },
-                        VirtualGeometryPrepareCluster {
-                            entity: 3,
-                            cluster_id: 30,
-                            page_id: 301,
-                            lod_level: 0,
-                            resident_slot: None,
-                            state: VirtualGeometryPrepareClusterState::PendingUpload,
-                        },
-                    ],
-                    cluster_draw_segments: vec![
-                        VirtualGeometryPrepareDrawSegment {
-                            entity: 2,
-                            cluster_id: 20,
-                            page_id: 300,
-                            resident_slot: Some(1),
-                            cluster_ordinal: 0,
-                            cluster_span_count: 1,
-                            cluster_count: 1,
-                            lineage_depth: 0,
-                            lod_level: 0,
-                            state: VirtualGeometryPrepareClusterState::Resident,
-                        },
-                        VirtualGeometryPrepareDrawSegment {
-                            entity: 3,
-                            cluster_id: 30,
-                            page_id: 301,
-                            resident_slot: None,
-                            cluster_ordinal: 0,
-                            cluster_span_count: 1,
-                            cluster_count: 1,
-                            lineage_depth: 0,
-                            lod_level: 0,
-                            state: VirtualGeometryPrepareClusterState::PendingUpload,
-                        },
-                    ],
-                    resident_pages: vec![VirtualGeometryPreparePage {
+    let mut renderer =
+        pluginized_wgpu_render_framework_with_existing_project_and_gpu_test_collector(
+            asset_manager,
+        );
+    let snapshot = renderer
+        .render_compiled_virtual_geometry_test_frame(
+            viewport_size,
+            extract,
+            Some(VirtualGeometryPrepareFrame {
+                visible_entities: vec![2, 3],
+                visible_clusters: vec![
+                    VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 20,
                         page_id: 300,
-                        slot: 1,
-                        size_bytes: 4096,
-                    }],
-                    pending_page_requests: vec![VirtualGeometryPrepareRequest {
+                        lod_level: 0,
+                        resident_slot: Some(1),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    },
+                    VirtualGeometryPrepareCluster {
+                        entity: 3,
+                        cluster_id: 30,
                         page_id: 301,
-                        size_bytes: 4096,
-                        generation: 1,
-                        frontier_rank: 0,
-                        assigned_slot: None,
-                        recycled_page_id: None,
-                    }],
-                    available_slots: Vec::new(),
-                    evictable_pages: Vec::new(),
-                })),
+                        lod_level: 0,
+                        resident_slot: None,
+                        state: VirtualGeometryPrepareClusterState::PendingUpload,
+                    },
+                ],
+                cluster_draw_segments: vec![
+                    VirtualGeometryPrepareDrawSegment {
+                        entity: 2,
+                        cluster_id: 20,
+                        page_id: 300,
+                        resident_slot: Some(1),
+                        cluster_ordinal: 0,
+                        cluster_span_count: 1,
+                        cluster_count: 1,
+                        lineage_depth: 0,
+                        lod_level: 0,
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    },
+                    VirtualGeometryPrepareDrawSegment {
+                        entity: 3,
+                        cluster_id: 30,
+                        page_id: 301,
+                        resident_slot: None,
+                        cluster_ordinal: 0,
+                        cluster_span_count: 1,
+                        cluster_count: 1,
+                        lineage_depth: 0,
+                        lod_level: 0,
+                        state: VirtualGeometryPrepareClusterState::PendingUpload,
+                    },
+                ],
+                resident_pages: vec![VirtualGeometryPreparePage {
+                    page_id: 300,
+                    slot: 1,
+                    size_bytes: 4096,
+                }],
+                pending_page_requests: vec![VirtualGeometryPrepareRequest {
+                    page_id: 301,
+                    size_bytes: 4096,
+                    generation: 1,
+                    frontier_rank: 0,
+                    assigned_slot: None,
+                    recycled_page_id: None,
+                }],
+                available_slots: Vec::new(),
+                evictable_pages: Vec::new(),
+            }),
             &compiled,
-            None,
         )
-        .unwrap();
+        .unwrap()
+        .expect("runtime publishes the actual virtual geometry frame snapshot");
 
     assert_eq!(
-        renderer.last_virtual_geometry_execution_segment_count(),
+        snapshot.execution_segment_count,
         2,
         "expected renderer execution stats to count the real submitted segment subset instead of only the prepare-owned superset buffers"
     );
     assert_eq!(
-        renderer.last_virtual_geometry_execution_page_count(),
+        snapshot.execution_page_count,
         2,
         "expected renderer execution stats to expose how many distinct virtual-geometry pages actually reached the cluster-raster execution subset"
     );
     assert_eq!(
-        renderer.last_virtual_geometry_execution_resident_segment_count(),
+        snapshot.execution_resident_segment_count,
         1,
         "expected renderer execution stats to classify resident execution segments from the actual submitted subset"
     );
     assert_eq!(
-        renderer.last_virtual_geometry_execution_pending_segment_count(),
+        snapshot.execution_pending_segment_count,
         1,
         "expected renderer execution stats to classify pending-upload execution segments from the actual submitted subset"
     );
     assert_eq!(
-        renderer.last_virtual_geometry_execution_missing_segment_count(),
+        snapshot.execution_missing_segment_count,
         0,
         "expected renderer execution stats to avoid inventing missing segments when the execution subset only contains resident and pending draws"
     );
     assert_eq!(
-        renderer.last_virtual_geometry_execution_repeated_draw_count(),
-        0,
+        snapshot.execution_repeated_draw_count, 0,
         "expected one draw per execution segment in this single-primitive scenario"
     );
 
@@ -290,38 +290,31 @@ fn render_framework_stats_expose_actual_virtual_geometry_execution_compaction() 
         "expected the two-primitive model to execute two real indirect draws"
     );
     assert_eq!(
-        stats.last_virtual_geometry_execution_segment_count,
-        1,
+        stats.last_virtual_geometry_execution_segment_count, 1,
         "expected render-framework stats to expose the single execution-segment truth even when repeated primitive draws expand into multiple GPU indirect args"
     );
     assert_eq!(
-        stats.last_virtual_geometry_execution_page_count,
-        1,
+        stats.last_virtual_geometry_execution_page_count, 1,
         "expected render-framework stats to expose the execution subset page count rather than only the prepare-owned page universe"
     );
     assert_eq!(
-        stats.last_virtual_geometry_execution_resident_segment_count,
-        1,
+        stats.last_virtual_geometry_execution_resident_segment_count, 1,
         "expected render-framework stats to classify the repeated primitive execution subset as resident"
     );
     assert_eq!(
-        stats.last_virtual_geometry_execution_pending_segment_count,
-        0,
+        stats.last_virtual_geometry_execution_pending_segment_count, 0,
         "expected render-framework stats to keep pending-upload execution counts at zero for the fully resident repeated-primitive case"
     );
     assert_eq!(
-        stats.last_virtual_geometry_execution_missing_segment_count,
-        0,
+        stats.last_virtual_geometry_execution_missing_segment_count, 0,
         "expected render-framework stats to keep missing execution counts at zero for the fully resident repeated-primitive case"
     );
     assert_eq!(
-        stats.last_virtual_geometry_execution_repeated_draw_count,
-        1,
+        stats.last_virtual_geometry_execution_repeated_draw_count, 1,
         "expected render-framework stats to surface the repeated primitive compaction delta between execution draws and unique execution segments"
     );
     assert_eq!(
-        stats.last_virtual_geometry_selected_cluster_count,
-        1,
+        stats.last_virtual_geometry_selected_cluster_count, 1,
         "expected render-framework stats to expose the executed selected-cluster count rather than the expanded repeated-draw indirect workload"
     );
 
@@ -720,7 +713,7 @@ fn write_material(path: PathBuf, shader_uri: &str, texture_uri: &str) {
         texture_slots: Default::default(),
         validation_diagnostics: Vec::new(),
     };
-    fs::write(path, material.to_toml_string().unwrap()).unwrap();
+    fs::write(path, toml::to_string_pretty(&material).unwrap()).unwrap();
 }
 
 fn asset_reference(uri: &str) -> AssetReference {

@@ -65,3 +65,11 @@ pub use render_pass_executor_registry::{RenderPassExecutorFn, RenderPassExecutor
 pub(in crate::graphics::scene::scene_renderer) use transient_resource_pool::{
     TransientBufferAllocation, TransientResourcePool, TransientTextureAllocation,
 };
+
+pub(in crate::graphics) use render_pass_execution_context::{
+    VirtualGeometryNativeReadbackPacket, VirtualGeometryReadbackBudget,
+    VirtualGeometryReadbackScope, VirtualGeometryReadyReadback, VirtualGeometryTicketedReadback,
+};
+pub use render_pass_execution_context::{
+    VirtualGeometryReadbackDecoder, VirtualGeometryReadbackReservation,
+};

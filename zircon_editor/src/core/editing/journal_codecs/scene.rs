@@ -28,6 +28,7 @@ pub(crate) fn register_scene_command_codecs(
     codecs.register(UpdateNodeCodec)?;
     codecs.register(BatchTransformCodec)?;
     codecs.register(SetReflectedSceneFieldCodec)?;
+    codecs.register(AddDynamicComponentCodec)?;
     Ok(())
 }
 
@@ -120,6 +121,21 @@ impl EditCommandCodec for SetReflectedSceneFieldCodec {
     fn decode(&self, payload: &serde_json::Value) -> Result<CommandBox, JournalCodecDecodeError> {
         let payload = decode_payload(payload, SET_REFLECTED_FIELD_COMMAND_TYPE)?;
         EditorCommand::from_journal_reflected_field(payload)
+            .map(|command| Box::new(command) as CommandBox)
+            .map_err(command_decode_error)
+    }
+}
+
+struct AddDynamicComponentCodec;
+
+impl EditCommandCodec for AddDynamicComponentCodec {
+    fn command_type(&self) -> &str { "zircon.editor.scene.add_dynamic_component" }
+    fn schema_version(&self) -> u16 { SCHEMA_VERSION }
+    fn decode(&self, payload: &serde_json::Value) -> Result<CommandBox, JournalCodecDecodeError> {
+        let payload = decode_payload::<crate::core::editing::command::AddComponentPayload>(
+            payload, self.command_type(),
+        )?;
+        crate::core::editing::command::AddDynamicComponentCommand::from_journal(payload)
             .map(|command| Box::new(command) as CommandBox)
             .map_err(command_decode_error)
     }

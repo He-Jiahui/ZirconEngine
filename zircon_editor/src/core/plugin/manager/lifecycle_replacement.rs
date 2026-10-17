@@ -80,11 +80,11 @@ pub(super) fn retire_replaced_active_entries(
             EditorPluginLifecycleStage::Disabled,
             EditorPluginLifecycleStage::Unloaded,
         ] {
-            // BUG: [CR-EDITOR-SERVICES-0002] 这里的成功标记覆盖插件整个登记历史，不代表当前激活周期已完成清理。Active→Disabled→Active 后替换会误跳过本轮 Disabled 回调。
-            if catalog.lifecycle_stage_succeeded(entry.package_id(), &stage) {
+            // 仅复用本轮真实退役已完成的步骤；历史成功和普通生命周期通知不能代替清理。
+            if catalog.retirement_stage_succeeded(entry.package_id(), &stage) {
                 continue;
             }
-            let report = catalog.record_lifecycle_event(
+            let report = catalog.record_retirement_lifecycle_event(
                 entry.package_id(),
                 EditorPluginLifecycleEvent::new(stage.clone()),
             );

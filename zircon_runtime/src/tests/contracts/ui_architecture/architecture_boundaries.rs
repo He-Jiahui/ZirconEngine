@@ -152,8 +152,7 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
     }
 
     let surface_entries = top_level_entry_names("zircon_runtime/src/ui", true);
-    let source_surface_entries =
-        source_backed_top_level_entry_names("zircon_runtime/src/ui", true);
+    let source_surface_entries = source_backed_top_level_entry_names("zircon_runtime/src/ui", true);
     assert_eq!(
         source_surface_entries.len(),
         EXPECTED_SURFACE_SOURCE_ENTRY_COUNT,

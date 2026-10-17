@@ -9,6 +9,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 /// to one project, while the launch session binds it to the Hub child process that requested it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 启动里程碑使用固定枚举值，回执必须覆盖实现要求的全部阶段。
 pub enum HubEditorStartupMilestoneV1 {
     SessionCommitted,
     NativeWindowCreated,
@@ -33,6 +34,7 @@ impl HubEditorStartupMilestoneV1 {
 
 /// A path-redacted proof that a Hub-launched Editor has completed the startup milestones.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+/// 路径脱敏的完成证明；邮箱位置和会话令牌共同限定所属启动。
 pub struct HubEditorReadyReceiptV1 {
     editor_process_id: u32,
     editor_instance_id: String,
@@ -43,6 +45,7 @@ pub struct HubEditorReadyReceiptV1 {
 impl HubEditorReadyReceiptV1 {
     /// Creates the only Ready receipt shape: a committed session, created native window, submitted
     /// first frame, generation-qualified focus inbox, and interactive Editor.
+    /// 从首帧呈现后的进程身份和阶段集合构造回执。
     pub fn after_first_present(
         editor_process_id: u32,
         editor_instance_id: impl Into<String>,

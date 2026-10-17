@@ -1,5 +1,5 @@
-use std::collections::BTreeSet;
 use super::viewport_state::ViewportRenderFrameworkCall;
+use std::collections::BTreeSet;
 
 use crate::scene::viewport::{
     RenderFramework, RenderFrameworkError, RenderViewportDescriptor, RenderViewportHandle,

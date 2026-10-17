@@ -617,6 +617,7 @@ function New-FixtureRuntimeProductDiagnosticText {
     param([Parameter(Mandatory)]$Diagnostics)
 
     $fields = @(
+        'proof_policy',
         'frame_index',
         'viewport',
         'project_identity',
@@ -894,6 +895,7 @@ try {
                 first_frame_presented = $true
                 teardown_complete = $true
                 runtime_product_diagnostics = [ordered]@{
+                    proof_policy = 'f2-lit-mesh'
                     frame_index = 1
                     viewport = '16x16'
                     project_identity = 'fixture-project'
@@ -930,6 +932,7 @@ try {
                 first_frame_presented = $true
                 teardown_complete = $true
                 runtime_product_diagnostics = [ordered]@{
+                    proof_policy = 'f2-lit-mesh'
                     frame_index = 2
                     viewport = '16x16'
                     project_identity = 'fixture-project'
@@ -1180,6 +1183,7 @@ try {
     Assert-True ($runtimeDiagnostics.render_adapter -eq 'Fixture WGPU Adapter') 'Evidence manifest lost the adapter identity.'
     Assert-True ($runtimeDiagnostics.render_adapter_type -eq 'discrete_gpu') 'Evidence manifest lost the adapter type.'
     Assert-True ($runtimeDiagnostics.device_max_bind_groups -eq 5) 'Evidence manifest lost actual device limits.'
+    Assert-True ($runtimeDiagnostics.proof_policy -ceq 'f2-lit-mesh') 'Evidence manifest lost the explicit runtime product proof policy.'
 
     $productEvidenceRuns = Copy-FixtureProductRuns -Runs $manifest.product_runs
     Assert-True (
@@ -1242,6 +1246,9 @@ try {
             -Json
     ) | ConvertFrom-FixtureJson
     Assert-True ($productEvidence.product_runs.Count -eq 4) 'Acceptance output lost independently verified staged product evidence.'
+    Assert-True (@($productEvidence.product_runs | Where-Object {
+        $_.product -eq 'runtime' -and $_.runtime_product_diagnostics.proof_policy -ceq 'f2-lit-mesh'
+    }).Count -eq 2) 'Product evidence lost the verified proof policy from a runtime attempt.'
     Assert-True (Test-Path -LiteralPath $logsRoot -PathType Container) 'Acceptance package publication must retain the source staging logs directory.'
     Assert-True (Test-Path -LiteralPath $processJournalPath -PathType Leaf) 'Acceptance package publication must retain the source process execution journal.'
     foreach ($productRun in $productEvidenceRuns) {
@@ -1249,6 +1256,100 @@ try {
             $diagnosticPath = Join-Path $stagingRoot ([string]$diagnosticLog.path)
             Assert-True (Test-Path -LiteralPath $diagnosticPath -PathType Leaf) "Acceptance package publication must retain staged diagnostic log '$($diagnosticLog.path)'."
         }
+    }
+
+    $runtimeProofPolicyCases = @(
+        [pscustomobject]@{
+            name = 'missing-summary-policy'
+            summary_policy = $null
+            log_policy = 'f2-lit-mesh'
+            expected_error = 'proof_policy'
+        },
+        [pscustomobject]@{
+            name = 'missing-log-policy'
+            summary_policy = 'f2-lit-mesh'
+            log_policy = $null
+            expected_error = "runtime diagnostic is missing 'proof_policy'"
+        },
+        [pscustomobject]@{
+            name = 'wrong-log-policy'
+            summary_policy = 'f2-lit-mesh'
+            log_policy = 'f2-other-proof'
+            expected_error = 'proof_policy.*instead of.*f2-lit-mesh'
+        },
+        [pscustomobject]@{
+            name = 'none-log-policy'
+            summary_policy = 'f2-lit-mesh'
+            log_policy = 'none'
+            expected_error = 'proof_policy.*instead of.*f2-lit-mesh'
+        },
+        [pscustomobject]@{
+            name = 'matching-none-policy'
+            summary_policy = 'none'
+            log_policy = 'none'
+            expected_error = 'proof_policy.*instead of.*f2-lit-mesh'
+        }
+    )
+    foreach ($proofPolicyCase in $runtimeProofPolicyCases) {
+        $proofPolicyRuns = Copy-FixtureProductRuns -Runs $productEvidenceRuns
+        $proofPolicyFailure = $null
+        try {
+            foreach ($runtimeRun in @($proofPolicyRuns | Where-Object { $_.product -eq 'runtime' })) {
+                $diagnostics = $runtimeRun.runtime_product_diagnostics
+                Assert-True (
+                    $diagnostics.mesh_draw_count -gt 0 -and $diagnostics.directional_light_count -gt 0 -and
+                    -not [string]::IsNullOrWhiteSpace([string]$diagnostics.selected_model_resource_id) -and
+                    -not [string]::IsNullOrWhiteSpace([string]$diagnostics.selected_material_resource_id)
+                ) 'Proof-policy rejection fixtures must retain positive mesh/light counts and selected resource IDs.'
+                $diagnosticPath = Join-Path $stagingRoot ([string]$runtimeRun.diagnostic_logs[0].path)
+                $diagnosticText = New-FixtureRuntimeProductDiagnosticText -Diagnostics $diagnostics
+                if ($null -eq $proofPolicyCase.log_policy) {
+                    $diagnosticText = $diagnosticText -replace ' proof_policy=\S+', ''
+                }
+                else {
+                    $diagnosticText = $diagnosticText -replace 'proof_policy=\S+', "proof_policy=$($proofPolicyCase.log_policy)"
+                }
+                [IO.File]::WriteAllText($diagnosticPath, $diagnosticText, [Text.UTF8Encoding]::new($false))
+                $runtimeRun.diagnostic_logs[0] = Get-FixtureFileEvidence -Path $diagnosticPath -RelativePath ([string]$runtimeRun.diagnostic_logs[0].path)
+                if ($null -eq $proofPolicyCase.summary_policy) {
+                    [void]$diagnostics.PSObject.Properties.Remove('proof_policy')
+                }
+                else {
+                    $diagnostics.proof_policy = $proofPolicyCase.summary_policy
+                }
+            }
+            Write-FixtureJson -Path (Join-Path $stagingRoot 'startup-summary.json') -Value ([ordered]@{
+                run_id = 'fixture-stage'
+                source_fingerprint = 'fixture-source-fingerprint'
+                staged_project_root = 'project'
+                products = $proofPolicyRuns
+            })
+            try {
+                & $driver -StagingRoot $stagingRoot -EvidenceRoot (Join-Path $fixtureRoot "product-evidence-$($proofPolicyCase.name)") -ExpectedSourceFingerprint 'fixture-source-fingerprint' -RequireProductEvidence | Out-Null
+            }
+            catch {
+                $proofPolicyFailure = $_.Exception.Message
+            }
+        }
+        finally {
+            foreach ($runtimeRun in @($productEvidenceRuns | Where-Object { $_.product -eq 'runtime' })) {
+                $diagnosticPath = Join-Path $stagingRoot ([string]$runtimeRun.diagnostic_logs[0].path)
+                [IO.File]::WriteAllText(
+                    $diagnosticPath,
+                    (New-FixtureRuntimeProductDiagnosticText -Diagnostics $runtimeRun.runtime_product_diagnostics),
+                    [Text.UTF8Encoding]::new($false)
+                )
+            }
+            Write-FixtureJson -Path (Join-Path $stagingRoot 'startup-summary.json') -Value ([ordered]@{
+                run_id = 'fixture-stage'
+                source_fingerprint = 'fixture-source-fingerprint'
+                staged_project_root = 'project'
+                products = $productEvidenceRuns
+            })
+        }
+        Assert-True (
+            $null -ne $proofPolicyFailure -and $proofPolicyFailure -match $proofPolicyCase.expected_error
+        ) "Product evidence did not reject runtime proof case '$($proofPolicyCase.name)' at its policy gate; failure=$proofPolicyFailure"
     }
 
     Write-FixtureProcessJournal `

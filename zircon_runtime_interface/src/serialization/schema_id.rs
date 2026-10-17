@@ -82,6 +82,7 @@ impl TryFrom<&str> for SchemaId {
 
 impl<'de> Deserialize<'de> for SchemaId {
     /// 先读取拥有型字符串，再套用与 [`SchemaId::new`] 相同的命名校验。
+    /// 返回值不借用反序列化输入缓冲区，之后可独立于该输入继续使用。
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

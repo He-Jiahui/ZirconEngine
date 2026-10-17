@@ -14,7 +14,15 @@ use super::pointer_mapping::map_viewport_pointer_event;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn native_window_focus_lost(&mut self) {
-        if !self.runtime.play_preview_input_active() || !(match self.runtime.play_preview_view_focused() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }) {
+        if !self.runtime.play_preview_input_active()
+            || !(match self.runtime.play_preview_view_focused() {
+                Ok(value) => value,
+                Err(error) => {
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            })
+        {
             return;
         }
         self.route_play_preview_focus_lost();

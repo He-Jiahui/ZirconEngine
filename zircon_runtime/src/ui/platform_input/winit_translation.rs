@@ -27,6 +27,20 @@ use window::{input_event, window_event, window_metrics_from_physical_size};
 
 /// 将宿主事件交给共享窗口输入泵；宿主须提供当前窗口指标、修饰键及有序元数据。
 /// 此处只解释平台载荷，不更新表面状态；返回 None 表示该事件仍由宿主处理。
+///
+/// # 调用时机与参数
+/// 由宿主收到窗口通知时调用；`context` 是本次身份、修饰键及缓存的拥有快照。
+/// `event` 仅在调用期间借用；需要跨越此调用的文本会复制到返回载荷。
+///
+/// # 返回与生命周期
+/// 返回拥有载荷的窗口泵事件，不借用平台通知或适配器状态。
+/// 空值也包含无对应共享输入的能力通知、触摸进入通知或无法表示的按钮。
+///
+/// # 约束与参考
+/// 不保存缓存或推进序号；这些状态由宿主为后续调用维护。
+/// 滚轮无位置时使用光标缓存，缺省为零点；指针位置不在此按 DPI 缩放。
+/// 缩放通知不会就地更新环境，后续尺寸通知须由宿主提供新的度量快照。
+/// 参见 [`UiWindowInputContext`] 与 [`UiWindowInputPumpEvent`]。
 pub fn translate_winit_window_event(
     context: UiWindowInputContext,
     event: &WindowEvent,

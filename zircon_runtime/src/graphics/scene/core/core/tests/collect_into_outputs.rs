@@ -71,10 +71,8 @@ fn cpu_only_plugin_owners_do_not_borrow_the_native_device() {
                 .next()
         })
         .expect("advanced-plugin CPU capability owner");
-    let output_caller =
-        include_str!("../../outputs/store_last_runtime_outputs.rs");
-    let construct_source =
-        include_str!("../../../renderer/core/construct/construct/construct.rs");
+    let output_caller = include_str!("../../outputs/store_last_runtime_outputs.rs");
+    let construct_source = include_str!("../../../renderer/core/construct/construct/construct.rs");
     let construct_caller = construct_source
         .split("let advanced_plugin_resources =")
         .nth(1)

@@ -5,6 +5,7 @@ use super::{HubEditorFocusSignalV1, HubProtocolVersionV1, HubSessionToken};
 /// Owner-authored terminal disposition for one sequenced Hub focus request.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 聚焦处置结果只描述本次请求终态，不表明目标进程后续仍存活。
 pub enum HubEditorFocusAckDispositionV1 {
     Focused,
     RejectedExpired,
@@ -16,6 +17,7 @@ pub enum HubEditorFocusAckDispositionV1 {
 /// Typed acknowledgement written only by the addressed Editor owner.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// 应答携带请求标识、目标实例、会话代和序号，供读取方核对关联关系。
 pub struct HubEditorFocusAckV1 {
     pub protocol_version: HubProtocolVersionV1,
     pub request_id: HubSessionToken,
@@ -30,6 +32,7 @@ impl HubEditorFocusAckV1 {
         Self::from_request(request, HubEditorFocusAckDispositionV1::Focused)
     }
 
+    /// 按请求关联身份、会话代和序号，由调用方选择应答处置结果。
     pub fn from_request(
         request: &HubEditorFocusSignalV1,
         disposition: HubEditorFocusAckDispositionV1,

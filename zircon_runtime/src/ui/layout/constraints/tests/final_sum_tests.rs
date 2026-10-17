@@ -35,6 +35,8 @@ fn optimization_batch_20260830bl_runtime_constraint_final_sum_source_contract() 
     assert!(source.contains("} else {\n        false\n    }"));
 }
 
+// 仅比较精确匹配时是否跳过最后求和的循环片段，不代表完整求解器或整帧性能。
+// 17 组交替顺序样本的最近秩 P95 为排序末项；阈值断言属于该忽略夹具。
 #[test]
 #[ignore = "release performance evidence"]
 fn optimization_batch_20260830bl_runtime_constraint_final_sum_p95() {

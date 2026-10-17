@@ -5,6 +5,7 @@ use super::*;
 #[derive(Debug, PartialEq, Eq)]
 struct DeferredMarker;
 
+zircon_runtime_interface::impl_retained_owner_v1!(DeferredMarker {});
 impl Component for DeferredMarker {}
 
 fn resource_store_source() -> &'static str {

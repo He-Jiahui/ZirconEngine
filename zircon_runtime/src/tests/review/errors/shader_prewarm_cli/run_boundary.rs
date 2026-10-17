@@ -11,21 +11,20 @@ fn review_f5_shader_prewarm_cli_typed_error_sweep_is_closed_at_run_boundary() {
     let resource_registry =
         include_str!("../../../../bin/zircon_shader_prewarm/manifest/resource_registry.rs");
     let run = include_str!("../../../../bin/zircon_shader_prewarm/run.rs");
-    let review_findings =
+    let _review_findings =
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_15_plan = include_str!(
+    let _runtime_15_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
-    let runtime_index =
+    let _runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
+    let _convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let render_doc = include_str!(
+    let _render_doc = include_str!(
         "../../../../../../docs/crates/zircon_runtime/graphics/render-product-submit.md"
     );
-    let module_doc = include_str!(
-        "../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
-    );
+    let _module_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
     for required in [
         "pub type ShaderPrewarmArgsResult",

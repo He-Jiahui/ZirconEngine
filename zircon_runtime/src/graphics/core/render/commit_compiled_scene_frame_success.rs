@@ -84,6 +84,7 @@ impl SceneRendererCore {
             shadow_atlas_prepared_upload.commit(&mut self.shadow_atlas_resources);
         gpu_scene_prepared_upload.commit(&mut self.gpu_scene);
         advanced_plugin_readbacks.commit_runtime_prepare_frame_transactions();
+        let native_virtual_geometry_packets = advanced_plugin_readbacks.take_native_packets();
         let mut renderer_outputs = advanced_plugin_readbacks.into_outputs();
         merge_plugin_renderer_outputs(&mut renderer_outputs, graph_plugin_outputs);
         let prepared_mesh_queue_stats =
@@ -100,7 +101,8 @@ impl SceneRendererCore {
                 compiled_scene_draws.virtual_geometry_indirect_stats(),
             );
         let outputs = SceneRendererCompiledSceneOutputs::new(
-            SceneRendererAdvancedPluginReadbacks::from_outputs(renderer_outputs),
+            SceneRendererAdvancedPluginReadbacks::from_outputs(renderer_outputs)
+                .with_ticketed_native_packets(native_virtual_geometry_packets),
             graph_execution_record,
             prepared_mesh_queue_stats,
             prepared_sprite_queue_stats,

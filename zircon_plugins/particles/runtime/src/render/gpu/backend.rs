@@ -30,6 +30,7 @@ pub enum ParticleGpuBackendError {
     EmptyProgram,
     FrameEmitterCountMismatch { expected: u32, actual: usize },
     TransparentRendererUnavailable,
+    PreparedFrameMismatch,
     ReadbackMap(String),
     ReadbackDecode(ParticleGpuReadbackDecodeError),
 }
@@ -41,6 +42,10 @@ impl fmt::Display for ParticleGpuBackendError {
             Self::FrameEmitterCountMismatch { expected, actual } => write!(
                 f,
                 "particle GPU frame has {actual} emitters but layout expects {expected}"
+            ),
+            Self::PreparedFrameMismatch => write!(
+                f,
+                "particle GPU prepared frame no longer matches the active buffers"
             ),
             Self::TransparentRendererUnavailable => {
                 write!(f, "particle GPU transparent renderer has not been created")
@@ -59,6 +64,12 @@ impl From<ParticleGpuReadbackDecodeError> for ParticleGpuBackendError {
     fn from(value: ParticleGpuReadbackDecodeError) -> Self {
         Self::ReadbackDecode(value)
     }
+}
+
+/// A resolved, binding-free material function compiled by the owning feature.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ParticleGpuFragmentMaterial {
+    pub wgsl: String,
 }
 
 pub struct ParticleGpuBuffers<'a> {
@@ -344,6 +355,16 @@ impl ParticleGpuBackend {
         frame: &ParticleGpuFrameParams,
         readback: ParticleGpuReadbackRequest,
     ) -> Result<ParticleGpuBackendFrameCommit, ParticleGpuBackendError> {
+        let prepared = self.prepare_frame_uploads(buffer_uploads, frame)?;
+        self.record_prepared_frame(encoder, prepared, readback)?;
+        Ok(prepared)
+    }
+
+    pub(crate) fn prepare_frame_uploads(
+        &self,
+        buffer_uploads: &mut dyn RenderPassBufferUploadSink,
+        frame: &ParticleGpuFrameParams,
+    ) -> Result<ParticleGpuBackendFrameCommit, ParticleGpuBackendError> {
         let expected = self.program.layout.emitter_count;
         if frame.emitters.len() != expected as usize {
             return Err(ParticleGpuBackendError::FrameEmitterCountMismatch {
@@ -356,7 +377,21 @@ impl ParticleGpuBackend {
         buffer_uploads.write_buffer(&self.emitter_params_buffer, 0, &emitter_bytes);
         buffer_uploads.write_buffer(&self.counters_buffer, 0, &zeroed_counters(expected));
 
-        let output_buffer_index = 1 - self.active_buffer_index;
+        Ok(ParticleGpuBackendFrameCommit {
+            input_buffer_index: self.active_buffer_index,
+            output_buffer_index: 1 - self.active_buffer_index,
+        })
+    }
+
+    pub(crate) fn record_prepared_frame(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        prepared: ParticleGpuBackendFrameCommit,
+        readback: ParticleGpuReadbackRequest,
+    ) -> Result<(), ParticleGpuBackendError> {
+        if prepared.input_buffer_index != self.active_buffer_index {
+            return Err(ParticleGpuBackendError::PreparedFrameMismatch);
+        }
         let workgroups = self
             .program
             .layout
@@ -367,7 +402,11 @@ impl ParticleGpuBackend {
                 timestamp_writes: None,
             });
             pass.set_pipeline(&self.spawn_update_pipeline);
-            pass.set_bind_group(0, &self.update_bind_groups[self.active_buffer_index], &[]);
+            pass.set_bind_group(
+                0,
+                &self.update_bind_groups[prepared.input_buffer_index],
+                &[],
+            );
             pass.dispatch_workgroups(workgroups, 1, 1);
         }
         {
@@ -376,7 +415,11 @@ impl ParticleGpuBackend {
                 timestamp_writes: None,
             });
             pass.set_pipeline(&self.compact_alive_pipeline);
-            pass.set_bind_group(0, &self.compact_bind_groups[output_buffer_index], &[]);
+            pass.set_bind_group(
+                0,
+                &self.compact_bind_groups[prepared.output_buffer_index],
+                &[],
+            );
             pass.dispatch_workgroups(workgroups, 1, 1);
             pass.set_pipeline(&self.indirect_args_pipeline);
             pass.dispatch_workgroups(1, 1, 1);
@@ -401,10 +444,16 @@ impl ParticleGpuBackend {
         }
         #[cfg(not(test))]
         let _ = readback;
-        Ok(ParticleGpuBackendFrameCommit {
-            input_buffer_index: self.active_buffer_index,
-            output_buffer_index,
-        })
+        Ok(())
+    }
+
+    pub(crate) fn set_fragment_material(&mut self, material: Option<&ParticleGpuFragmentMaterial>) {
+        self.program.shader.transparent_wgsl =
+            super::shaders::generate_particle_gpu_transparent_wgsl_with_material(
+                &self.program.layout,
+                material.map(|material| material.wgsl.as_str()),
+            );
+        self.transparent_renderer = None;
     }
 
     pub(crate) fn commit_prepared_frame(

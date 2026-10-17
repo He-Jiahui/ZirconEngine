@@ -398,15 +398,27 @@ fn compact_status_signals_keep_full_runtime_text_inside_their_authored_widths() 
 
 #[test]
 fn unreal_footer_signal_paints_authored_caption_without_resizing_its_icon() {
-    for id in ["WorkbenchStatusErrors", "WorkbenchStatusWarnings", "WorkbenchStatusMessages"] {
+    for id in [
+        "WorkbenchStatusErrors",
+        "WorkbenchStatusWarnings",
+        "WorkbenchStatusMessages",
+    ] {
         let mut node = status_node(id, "0", 116.0, 32.0);
         node.font_size = 10.666667;
         node.line_height_ratio = 1.2;
         node.font_family = "Roboto".into();
-        let rect = FrameRect { x: 0.0, y: 0.0, width: 116.0, height: 32.0 };
+        let rect = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 116.0,
+            height: 32.0,
+        };
         let mut commands = Vec::new();
         push_status_control_commands(&mut commands, &node, &rect, &rect, 0, 1.0);
-        let text = commands.iter().find(|command| command.text.is_some()).expect("footer caption");
+        let text = commands
+            .iter()
+            .find(|command| command.text.is_some())
+            .expect("footer caption");
         assert!((text.font_size - 10.666667).abs() < 0.0001);
         assert!((text.line_height - 12.8).abs() < 0.0001);
         assert!((text.frame.y - 9.6).abs() < 0.0001);
@@ -416,7 +428,9 @@ fn unreal_footer_signal_paints_authored_caption_without_resizing_its_icon() {
             StatusControlKind::Signal(kind) => kind,
             _ => panic!("signal expected"),
         };
-        assert_eq!(status_signal_icon_rect(&node, &rect, kind),
-            status_signal_icon_rect(&default_node, &rect, kind));
+        assert_eq!(
+            status_signal_icon_rect(&node, &rect, kind),
+            status_signal_icon_rect(&default_node, &rect, kind)
+        );
     }
 }

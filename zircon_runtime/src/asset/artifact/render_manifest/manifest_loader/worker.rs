@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::core::runtime::TaskCancellationToken;
 
@@ -23,6 +23,7 @@ pub(super) struct RenderArtifactManifestLoaderMetrics {
 }
 
 // 读取前后均检查任务取消；成功向共享 entry 发布同一个 Arc 清单，失败区分缺失、大小限制、无效清单与存储不可用。
+#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn run_manifest_io_task(
     entry: Arc<RenderArtifactManifestEntry>,
     store: RenderArtifactStore,
@@ -45,6 +46,45 @@ pub(super) fn run_manifest_io_task(
         entry.key().target_platform(),
         limits,
     );
+    finish_io(entry, metrics, cancellation, result, started);
+}
+
+#[cfg(target_arch = "wasm32")]
+pub(super) async fn run_manifest_io_task_async(
+    entry: Arc<RenderArtifactManifestEntry>,
+    store: RenderArtifactStore,
+    limits: RenderArtifactStoreLimits,
+    metrics: Arc<RenderArtifactManifestLoaderMetrics>,
+    cancellation: TaskCancellationToken,
+) {
+    if cancellation.is_cancellation_requested() {
+        cancellation.acknowledge_cancellation();
+        record_cancelled(&entry, &metrics);
+        return;
+    }
+    if !entry.begin_io() {
+        return;
+    }
+    let started = Instant::now();
+    let result = store
+        .read_manifest_async(
+            entry.key().resource(),
+            entry.key().asset_revision(),
+            entry.key().target_platform(),
+            limits,
+            &cancellation,
+        )
+        .await;
+    finish_io(entry, metrics, cancellation, result, started);
+}
+
+fn finish_io(
+    entry: Arc<RenderArtifactManifestEntry>,
+    metrics: Arc<RenderArtifactManifestLoaderMetrics>,
+    cancellation: TaskCancellationToken,
+    result: Result<super::super::RenderArtifactManifest, RenderArtifactStoreError>,
+    started: Instant,
+) {
     atomic_add_duration(&metrics.io_worker_wall_ns, started.elapsed());
     if cancellation.is_cancellation_requested() {
         cancellation.acknowledge_cancellation();

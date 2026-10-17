@@ -2,6 +2,9 @@
 
 use super::*;
 
+#[path = "component_registry/creation.rs"]
+mod creation;
+
 #[test]
 fn fixed_component_setters_and_dynamic_components_share_component_id_presence() {
     let mut world = World::empty();
@@ -115,7 +118,7 @@ fn typed_component_presence_rebuild_aggregates_dynamic_ids_into_final_rows() {
             .join("projection_rebuild.rs"),
     );
     let rebuild = source
-        .split("pub(super) fn rebuild_component_storage_projection_with_owned_components")
+        .split("pub(in super::super) fn rebuild_component_storage_projection_with_owned_components")
         .nth(1)
         // BUG: [CR-R02-runtime_ecs_commands_bundle_commit-0006] 执行到此调用必 panic；重建入口已改变限定可见性，旧文本无法定位，nth(1) 返回 None。证据：projection_rebuild.rs 的当前定义；同因另站点见本批 0003。
         .expect("read component projection rebuild body");
@@ -188,8 +191,11 @@ fn typed_world_presence_and_tracker_helpers_use_direct_branches() {
             && contains_component_id.contains("return false;")
             && contains_component_id
                 .contains("self.component_storage.contains(component_id, internal)")
-            // BUG: [CR-R02-runtime_ecs_commands_bundle_commit-0004] 此条件必为 false；当前 Table 分支使用被守卫禁止的 Option 判定，remove 也已改用 let-else。证据：typed_api.rs 的实际存储分区与缺失返回路径。
-            && !contains_component_id.contains(".is_some_and(")
+            && contains_component_id.contains("Some(StorageType::Table) => self")
+            && contains_component_id
+                .contains(".entity_archetype_signature(entity)\n                .is_some_and(|signature| signature.contains(component_id))")
+            && contains_component_id.contains("Some(StorageType::SparseSet) => self.component_storage.contains(component_id, internal)")
+            && contains_component_id.contains("None => false")
             && contains_component
                 .contains("let Some(component_id) = self.registered_component_id::<T>() else")
             && contains_component.contains("self.contains_component_id(entity, component_id)")
@@ -204,7 +210,7 @@ fn typed_world_presence_and_tracker_helpers_use_direct_branches() {
             && is_component_changed
                 .contains("ticks.is_changed(crate::scene::ecs::ChangeTickWindow::new")
             && !is_component_changed.contains(".is_some_and(")
-            && remove.contains("if let Some(component_id) = component_id")
+            && remove.contains("let Some(component_id) = component_id else")
             && remove.contains("if self.contains_component_id(entity, component_id)")
             && !remove.contains("component_id\n                .is_some_and(")
             && !remove.contains("component_id.expect(\"checked component id must be present\")")
@@ -251,7 +257,7 @@ fn typed_world_component_insert_remove_route_dense_rows_and_sparse_values_explic
     assert!(
         insert.contains("let old = match T::STORAGE_TYPE")
             && insert.contains("StorageType::Table if was_present")
-            && insert.contains("self.archetype_index")
+            && insert.contains(".archetype_index")
             && insert.contains(".replace(")
             && insert.contains("StorageType::Table =>")
             && insert.contains("transition_entity_archetype_row(entity, signature, updates)")
@@ -299,15 +305,16 @@ fn dynamic_component_presence_updates_use_direct_result_branches() {
 
     assert!(
         // BUG: [CR-R02-runtime_ecs_commands_bundle_commit-0005] 执行到该断言必失败；动态存在性插入已走共享组件行，旧稀疏直接写入文本不存在。证据：typed_api.rs 的暂存/提交路径。
-        insert_presence.contains("let old = self.component_storage.insert_at_tick(")
-            && insert_presence.contains("DynamicComponentPresence")
-            && insert_presence.contains(")?;")
-            && !insert_presence.contains(".map_err(|error| error.to_string())")
-            && remove_presence.contains("let removed = self")
+        insert_presence.contains("let mut row = self.begin_component_row(entity);")
+            && insert_presence
+                .contains("self.stage_component_row_value_with_id(&mut row, component_id, DynamicComponentPresence::default());")
+            && insert_presence.contains("self.commit_component_row(entity, row, false)")
             && remove_presence
-                .contains(".remove::<DynamicComponentPresence>(component_id, internal)")
-            && remove_presence.contains(")?;")
+                .contains(".remove::<DynamicComponentPresence>(component_id, internal)?")
+            && remove_presence.contains("transition_entity_archetype_row(entity, signature, BTreeMap::new())")
+            && insert_presence.contains("return Err(SceneError::missing_entity(")
+            && !insert_presence.contains(".map_err(|error| error.to_string())")
             && !remove_presence.contains(".map_err(|error| error.to_string())"),
-        "dynamic component presence updates must propagate typed SceneResult errors instead of map_err adapters"
+        "dynamic component presence updates must publish staged rows and propagate typed SceneResult errors"
     );
 }

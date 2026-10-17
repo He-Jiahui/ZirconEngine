@@ -16,7 +16,8 @@ mod job_handle;
 mod job_scheduler;
 #[path = "parallel_for.rs"]
 mod parallel_for;
-#[path = "pool.rs"]
+#[cfg_attr(not(target_arch = "wasm32"), path = "pool.rs")]
+#[cfg_attr(target_arch = "wasm32", path = "pool/web.rs")]
 mod pool;
 #[path = "pools.rs"]
 mod pools;
@@ -46,8 +47,15 @@ mod thread_assignment;
 mod thread_budget;
 #[path = "thread_completion.rs"]
 mod thread_completion;
+#[cfg(not(target_arch = "wasm32"))]
 #[path = "timer.rs"]
 mod timer;
+#[cfg(target_arch = "wasm32")]
+#[path = "timer/web.rs"]
+mod timer;
+#[cfg(all(test, not(target_arch = "wasm32")))]
+#[path = "pool/web.rs"]
+mod web_pool_tests;
 
 use std::thread::{self, JoinHandle};
 

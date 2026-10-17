@@ -81,3 +81,5 @@ impl PlayTransformCommand {
         Err(CommandJournalUnavailable::new("Transform Play scene node"))
     }
 }
+
+zircon_runtime_interface::impl_retained_owner_v1!(PlayTransformCommand {});

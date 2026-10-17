@@ -1,3 +1,6 @@
+//! 验证差量历史的撤销/重做、组合提交交互状态恢复及条目预算。
+//! 这里直接驱动历史值与队列；文档/属性事务的提交顺序属于调用方实现的独立边界。
+
 use super::*;
 use zircon_runtime_interface::ui::surface::UiTextRange;
 

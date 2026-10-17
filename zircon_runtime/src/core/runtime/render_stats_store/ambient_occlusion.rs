@@ -1,6 +1,6 @@
 use crate::core::framework::render::{RenderAmbientOcclusionExecutionStatus, RenderStats};
 
-use super::{record_bool, record_count, DiagnosticStore};
+use super::{record_bool, record_count, record_identity_u64, DiagnosticStore};
 
 /// 保留环境光遮蔽管线的候选、最终产物与失败回执，帮助定位降级阶段。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
@@ -36,7 +36,7 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         report.failure_flags.bits() as usize,
         tags,
     );
-    // BUG: [CR-RENDER-STATS-0002] 64 位产物指纹经 usize 和 f64 记录后可能丢失低位精度，快照不能可靠标识原始产物；证据：下列指纹进入 record_count -> record_static。
+    // Keep generation counters in the normal metric stream, while fingerprints use exact u64 identities.
     for (path, value) in [
         (
             "render.ambient_occlusion.execution.frame_generation",
@@ -58,6 +58,16 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
             "render.ambient_occlusion.execution.device_generation",
             report.device_generation.unwrap_or(0),
         ),
+    ] {
+        record_count(
+            store,
+            path,
+            frame_index,
+            usize::try_from(value).unwrap_or(usize::MAX),
+            tags,
+        );
+    }
+    for (path, value) in [
         (
             "render.ambient_occlusion.execution.evaluate_candidate_artifact_fingerprint",
             report.evaluate_candidate_artifact_fingerprint,
@@ -83,13 +93,7 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
             report.upsample_resolved_artifact_fingerprint,
         ),
     ] {
-        record_count(
-            store,
-            path,
-            frame_index,
-            usize::try_from(value).unwrap_or(usize::MAX),
-            tags,
-        );
+        record_identity_u64(store, path, frame_index, value, tags);
     }
     for (path, value) in [
         (

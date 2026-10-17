@@ -45,7 +45,8 @@ fn optimization_batch_20260826dc_editor92_tooltip_text_borrows_node_storage() {
 
     let text_source = include_str!("../../../../../retained/contract/paint/tooltips/text.rs");
     let layout_source = include_str!("../../../../../retained/contract/paint/tooltips/layout.rs");
-    let title_source = include_str!("../../../../../retained/contract/paint/tooltips/text/title.rs");
+    let title_source =
+        include_str!("../../../../../retained/contract/paint/tooltips/text/title.rs");
     let body_source = include_str!("../../../../../retained/contract/paint/tooltips/text/body.rs");
     assert!(!text_source.contains("trim().to_string()"));
     assert!(layout_source.contains("measure_runtime_text_width(tooltip_title(node)"));

@@ -14,10 +14,10 @@ use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_text_preferences, HostTextPreferences,
 };
 
-#[path = "font/metrics.rs"]
-mod metrics;
 #[path = "font/authored.rs"]
 mod authored;
+#[path = "font/metrics.rs"]
+mod metrics;
 
 pub(in crate::ui::retained_host::host_contract) use authored::{
     active_authored_font_request, authored_font_request_for_node, HostTextFontRequestScope,

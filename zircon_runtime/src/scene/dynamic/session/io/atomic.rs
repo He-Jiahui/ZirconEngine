@@ -33,6 +33,7 @@ struct CommittedPathRevision {
 pub(super) struct ArchivePathWriteReservation {
     state: Arc<ArchivePathWriteState>,
     write_generation: u64,
+    expected_read_commit: Option<u64>,
 }
 
 pub(super) struct ArchivePathWriteTicket {
@@ -190,7 +191,24 @@ pub(super) fn reserve_archive_path_write(
     Ok(ArchivePathWriteReservation {
         state,
         write_generation,
+        expected_read_commit: None,
     })
+}
+
+pub(super) fn reserve_archive_path_mutation(
+    identity: ResolvedProjectPathIdentity,
+) -> ArchivePathWriteReservation {
+    let state = archive_path_write_authority().state_for(identity);
+    let (write_generation, expected_commit) = {
+        let mut committed = state.lock_revision();
+        committed.next_write_generation = committed.next_write_generation.saturating_add(1);
+        (committed.next_write_generation, committed.commit)
+    };
+    ArchivePathWriteReservation {
+        state,
+        write_generation,
+        expected_read_commit: Some(expected_commit),
+    }
 }
 
 pub(super) fn admit_archive_path_write(
@@ -200,6 +218,14 @@ pub(super) fn admit_archive_path_write(
     reject_stale_lineage_revision(artifact)?;
     let expected_commit = {
         let mut committed = reservation.state.lock_revision();
+        if let Some(expected_commit) = reservation.expected_read_commit {
+            if committed.commit != expected_commit {
+                return Err(RuntimeSessionArchiveError::StalePathCommit {
+                    expected_commit,
+                    committed_commit: committed.commit,
+                });
+            }
+        }
         if reservation.write_generation <= committed.admitted_write_generation {
             return Err(RuntimeSessionArchiveError::StalePathWrite {
                 write_generation: reservation.write_generation,

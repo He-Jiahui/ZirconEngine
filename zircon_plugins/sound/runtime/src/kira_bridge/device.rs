@@ -68,7 +68,8 @@ pub(crate) fn admit_exact_output_config(
             })
         }
     };
-    let admitted = supported.into_iter().any(|range| {
+    let supported = supported.into_iter().collect::<Vec<_>>();
+    let admitted = supported.iter().any(|range| {
         range.channels() == requested.channels
             && range.min_sample_rate() <= requested.sample_rate
             && requested.sample_rate <= range.max_sample_rate()
@@ -84,7 +85,7 @@ pub(crate) fn admit_exact_output_config(
     } else {
         Err(SoundError::BackendUnavailable {
             detail: format!(
-                "Kira/CPAL device does not support exact f32 output {} Hz, {} channels, {} frames",
+                "Kira/CPAL device does not support exact f32 output {} Hz, {} channels, {} frames; reported configurations: {supported:?}",
                 requested.sample_rate, requested.channels, requested_buffer
             ),
         })

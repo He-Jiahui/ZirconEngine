@@ -14,10 +14,11 @@ use super::ViewportOverlayPointerRouter;
 impl ViewportOverlayPointerRouter {
     pub(crate) fn clear_scene(&mut self) -> bool {
         // BUG: [CR-EDITOR-SP-0005] 带副作用的清理串在短路条件里；提取存在时后续代际和渲染快照不会被取走，清场后仍保留旧空间来源。
-        let had_scene = self.interaction_extract.take().is_some()
-            || self.scene_world_generation.take().is_some()
-            || self.renderer_visible_spatial_snapshot.take().is_some()
-            || !self.renderable_candidates.is_empty();
+        let had_extract = self.interaction_extract.take().is_some();
+        let had_generation = self.scene_world_generation.take().is_some();
+        let had_snapshot = self.renderer_visible_spatial_snapshot.take().is_some();
+        let had_scene =
+            had_extract || had_generation || had_snapshot || !self.renderable_candidates.is_empty();
         self.renderable_candidates = Vec::new().into();
         let layout_changed = self.sync(ViewportPointerLayout::default());
         let source_changed = self.refresh_renderer_visible_spatial_pick_source();
@@ -70,5 +71,43 @@ impl ViewportOverlayPointerRouter {
         self.interaction_extract = Some(interaction_extract);
         self.refresh_renderer_visible_spatial_pick_source();
         changed
+    }
+}
+
+#[cfg(test)]
+mod finite_p2_regression_tests {
+    use super::*;
+    use crate::scene::viewport::{
+        render_packet::build_render_packet, SceneViewportSettings, ViewportInteractionExtractCache,
+    };
+    use zircon_runtime::scene::Scene;
+    #[test]
+    fn clearing_extract_also_retires_its_world_generation() {
+        let scene = Scene::new();
+        let settings = SceneViewportSettings::default();
+        let camera = ViewportCameraSnapshot::default();
+        let viewport = UVec2::new(320, 240);
+        let cache = ViewportInteractionExtractCache::default();
+        let packet = build_render_packet(&scene, &settings, &camera, None, viewport);
+        let extract = cache.resolve_from_render_packet(
+            &scene,
+            None,
+            &settings,
+            &camera,
+            viewport,
+            &packet.scene.meshes,
+            Vec::new,
+            Vec::new,
+        );
+        let mut router = ViewportOverlayPointerRouter::new();
+        router.sync_scene(&camera, viewport, scene.world_generation(), extract);
+        assert!(router.interaction_extract.is_some());
+        assert!(router.scene_world_generation.is_some());
+        assert!(router.clear_scene());
+        assert!(router.interaction_extract.is_none());
+        assert_eq!(router.scene_world_generation, None);
+        assert!(router.renderer_visible_spatial_snapshot.is_none());
+        assert!(router.renderable_candidates.is_empty());
+        assert!(!router.clear_scene(), "already cleared state is idempotent");
     }
 }

@@ -1,5 +1,5 @@
 //! 给源码扫描守卫提供忽略注释、字符串和测试专用项的生产视图；它只处理受支持的词法形态，不等同编译器语义分析。
-pub(super) fn production_section(source: &str) -> String {
+pub(crate) fn production_section(source: &str) -> String {
     let (code, comment_free_source) = rust_lexical_views(source);
     let spans = cfg_test_item_spans(&code, &comment_free_source);
     mask_cfg_test_spans(comment_free_source.into_bytes(), &spans)

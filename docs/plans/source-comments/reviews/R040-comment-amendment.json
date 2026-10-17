@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R040",
+  "kind": "root-safety-comment-amendment",
+  "created_at_utc": "2026-10-15T18:11:36.586028+00:00",
+  "immutable_child": {
+    "path": "docs/plans/source-comments/reviews/R040.json",
+    "sha256": "8bd6e9b6b4bbe94921b2a3a7a943c30c87a81648b0daf9c942d43cc836d7f32e",
+    "bytes": 85187
+  },
+  "source": {
+    "path": "zircon_runtime_interface/src/tests/contracts.rs",
+    "grant_sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+    "child_source_sha256": "bbadbfd7c5303d6e69b8bf8dace1cfcc65dd8989350dc261352f6d6e76bb30c3",
+    "final_sha256": "be9322b111bc32b26da5fae4fca62a5ec542fda2ba144ab92e76fecf9764aaa7",
+    "before_bytes": 121249,
+    "child_bytes": 122283,
+    "final_bytes": 122746,
+    "before_lines": 2992,
+    "child_lines": 3004,
+    "final_lines": 3008,
+    "all_eol_CRLF": true,
+    "no_BOM": true
+  },
+  "insertions": [
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "byte_offset_in_prior_current": 32188,
+      "byte_length": 109,
+      "sha256": "8a6fa159d6944c694f5c0c8b889e3fddc35a6ecd03a7e5fb833c0a8b20e006c0",
+      "exact_text": "    // SAFETY: 视图来自静态字节，长度与预算均为 7；只读借用期间存储始终有效。\r\n",
+      "source_line_at_insert": 703
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "byte_offset_in_prior_current": 32560,
+      "byte_length": 107,
+      "sha256": "6a31a6617d92696c8ec7881a1d7ea1ea13e5b66cfc353247359ddd538142dc5d",
+      "exact_text": "    // SAFETY: 已核实实现先拒绝空指针与非零长度的组合，不会构造或读取切片。\r\n",
+      "source_line_at_insert": 713
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "byte_offset_in_prior_current": 32952,
+      "byte_length": 119,
+      "sha256": "cea0ef7c7806f81a254c98a185f7a98f7ba24427efb461c014bd680c69acfec6",
+      "exact_text": "    // SAFETY: 长度超过地址空间限制会在构造切片前被拒绝；不会按该长度读取局部字节。\r\n",
+      "source_line_at_insert": 724
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "byte_offset_in_prior_current": 33378,
+      "byte_length": 128,
+      "sha256": "98a5e20cc7620f6f598607d4326aaf41fa9b55a9b58376a39cb72a0c12b9cd0c",
+      "exact_text": "    // SAFETY: 两字节请求超过一字节预算，会在构造切片前返回；局部存储只需保持到调用结束。\r\n",
+      "source_line_at_insert": 736
+    }
+  ],
+  "reason": "主审读 buffer.rs 的数值/空指针提前返回分支，确认几个故意失真长度的测试不会进入 from_raw_parts；补充 SAFETY 前提，避免被理解为长切片已建立。",
+  "context": {
+    "path": "zircon_runtime_interface/src/buffer.rs",
+    "sha256": "4f311bf8fb2e1c436581e2f96f9b54567127644a121ac3ca6890b7ce05c4dad7",
+    "lines": [
+      200,
+      237
+    ],
+    "observed": "checked_slice 先检查零长度、null、isize::MAX、limit，然后才调用 from_raw_parts；四条注释限定各自夹具。"
+  },
+  "reversal": {
+    "amendment_removed_equals_child_bytes": true,
+    "then_child_insertions_removed_equals_exact_grant": true,
+    "normalized_original_equals_HEAD": true,
+    "old_source_bytes_deleted_or_rewritten": 0
+  },
+  "issues": [],
+  "formal_acceptance": false,
+  "validation": "Pending final scoped main-review verification against final source pin;previous child evidence remains historical for its exact prior pin.",
+  "artifacts": {
+    "source_copies": 0,
+    "temporary_files": 0,
+    "builds": 0,
+    "cleanup_bytes": 0
+  }
+}

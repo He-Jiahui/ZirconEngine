@@ -167,7 +167,8 @@ fn real_workbench_scene_split_routes_each_toolbar_to_its_leaf_and_rejects_retire
     let saved_sessions = harness.runtime.scene_viewport_workspace_sessions().unwrap();
     harness
         .runtime
-        .restore_scene_viewport_workspace_sessions(&saved_sessions, Some(&second_core)).unwrap();
+        .restore_scene_viewport_workspace_sessions(&saved_sessions, Some(&second_core))
+        .unwrap();
     let restored_sessions = harness.runtime.scene_viewport_workspace_sessions().unwrap();
     assert_eq!(restored_sessions.len(), 2);
     assert!(restored_sessions.contains_key(&first_core));

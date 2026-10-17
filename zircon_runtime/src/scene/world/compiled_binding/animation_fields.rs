@@ -112,71 +112,125 @@ impl World {
     ) -> SceneResult<bool> {
         let changed = match property {
             CompiledAnimationRuntimeProperty::PlayerPlaybackSpeed => {
-                let Some(player) = self.get_mut::<AnimationPlayerComponent>(entity) else {
-                    return missing_animation_component(entity, "AnimationPlayer");
-                };
-                update_scalar_field(&mut player.playback_speed, value, property_path)
+                update_scalar_field::<AnimationPlayerComponent>(
+                    self,
+                    entity,
+                    "AnimationPlayer",
+                    |player| player.playback_speed,
+                    |player, next| player.playback_speed = next,
+                    value,
+                    property_path,
+                )
             }
             CompiledAnimationRuntimeProperty::PlayerTimeSeconds => {
-                let Some(player) = self.get_mut::<AnimationPlayerComponent>(entity) else {
-                    return missing_animation_component(entity, "AnimationPlayer");
-                };
-                update_scalar_field(&mut player.time_seconds, value, property_path)
+                update_scalar_field::<AnimationPlayerComponent>(
+                    self,
+                    entity,
+                    "AnimationPlayer",
+                    |player| player.time_seconds,
+                    |player, next| player.time_seconds = next,
+                    value,
+                    property_path,
+                )
             }
             CompiledAnimationRuntimeProperty::PlayerWeight => {
-                let Some(player) = self.get_mut::<AnimationPlayerComponent>(entity) else {
-                    return missing_animation_component(entity, "AnimationPlayer");
-                };
-                update_scalar_field(&mut player.weight, value, property_path)
+                update_scalar_field::<AnimationPlayerComponent>(
+                    self,
+                    entity,
+                    "AnimationPlayer",
+                    |player| player.weight,
+                    |player, next| player.weight = next,
+                    value,
+                    property_path,
+                )
             }
             CompiledAnimationRuntimeProperty::PlayerLooping => {
-                let Some(player) = self.get_mut::<AnimationPlayerComponent>(entity) else {
-                    return missing_animation_component(entity, "AnimationPlayer");
-                };
-                update_bool_field(&mut player.looping, value, property_path)
+                update_bool_field::<AnimationPlayerComponent>(
+                    self,
+                    entity,
+                    "AnimationPlayer",
+                    |player| player.looping,
+                    |player, next| player.looping = next,
+                    value,
+                    property_path,
+                )
             }
             CompiledAnimationRuntimeProperty::PlayerPlaying => {
-                let Some(player) = self.get_mut::<AnimationPlayerComponent>(entity) else {
-                    return missing_animation_component(entity, "AnimationPlayer");
-                };
-                update_bool_field(&mut player.playing, value, property_path)
+                update_bool_field::<AnimationPlayerComponent>(
+                    self,
+                    entity,
+                    "AnimationPlayer",
+                    |player| player.playing,
+                    |player, next| player.playing = next,
+                    value,
+                    property_path,
+                )
             }
             CompiledAnimationRuntimeProperty::SequencePlayerPlaybackSpeed => {
-                let Some(player) = self.get_mut::<AnimationSequencePlayerComponent>(entity) else {
-                    return missing_animation_component(entity, "AnimationSequencePlayer");
-                };
-                update_scalar_field(&mut player.playback_speed, value, property_path)
+                update_scalar_field::<AnimationSequencePlayerComponent>(
+                    self,
+                    entity,
+                    "AnimationSequencePlayer",
+                    |player| player.playback_speed,
+                    |player, next| player.playback_speed = next,
+                    value,
+                    property_path,
+                )
             }
             CompiledAnimationRuntimeProperty::SequencePlayerTimeSeconds => {
-                let Some(player) = self.get_mut::<AnimationSequencePlayerComponent>(entity) else {
-                    return missing_animation_component(entity, "AnimationSequencePlayer");
-                };
-                update_scalar_field(&mut player.time_seconds, value, property_path)
+                update_scalar_field::<AnimationSequencePlayerComponent>(
+                    self,
+                    entity,
+                    "AnimationSequencePlayer",
+                    |player| player.time_seconds,
+                    |player, next| player.time_seconds = next,
+                    value,
+                    property_path,
+                )
             }
             CompiledAnimationRuntimeProperty::SequencePlayerLooping => {
-                let Some(player) = self.get_mut::<AnimationSequencePlayerComponent>(entity) else {
-                    return missing_animation_component(entity, "AnimationSequencePlayer");
-                };
-                update_bool_field(&mut player.looping, value, property_path)
+                update_bool_field::<AnimationSequencePlayerComponent>(
+                    self,
+                    entity,
+                    "AnimationSequencePlayer",
+                    |player| player.looping,
+                    |player, next| player.looping = next,
+                    value,
+                    property_path,
+                )
             }
             CompiledAnimationRuntimeProperty::SequencePlayerPlaying => {
-                let Some(player) = self.get_mut::<AnimationSequencePlayerComponent>(entity) else {
-                    return missing_animation_component(entity, "AnimationSequencePlayer");
-                };
-                update_bool_field(&mut player.playing, value, property_path)
+                update_bool_field::<AnimationSequencePlayerComponent>(
+                    self,
+                    entity,
+                    "AnimationSequencePlayer",
+                    |player| player.playing,
+                    |player, next| player.playing = next,
+                    value,
+                    property_path,
+                )
             }
             CompiledAnimationRuntimeProperty::GraphPlayerPlaying => {
-                let Some(player) = self.get_mut::<AnimationGraphPlayerComponent>(entity) else {
-                    return missing_animation_component(entity, "AnimationGraphPlayer");
-                };
-                update_bool_field(&mut player.playing, value, property_path)
+                update_bool_field::<AnimationGraphPlayerComponent>(
+                    self,
+                    entity,
+                    "AnimationGraphPlayer",
+                    |player| player.playing,
+                    |player, next| player.playing = next,
+                    value,
+                    property_path,
+                )
             }
             CompiledAnimationRuntimeProperty::StateMachinePlayerPlaying => {
-                let Some(player) = self.get_mut::<AnimationStateMachinePlayerComponent>(entity)
-                else {
-                    return missing_animation_component(entity, "AnimationStateMachinePlayer");
-                };
-                update_bool_field(&mut player.playing, value, property_path)
+                update_bool_field::<AnimationStateMachinePlayerComponent>(
+                    self,
+                    entity,
+                    "AnimationStateMachinePlayer",
+                    |player| player.playing,
+                    |player, next| player.playing = next,
+                    value,
+                    property_path,
+                )
             }
         }?;
         if changed {
@@ -186,29 +240,49 @@ impl World {
     }
 }
 
-fn update_scalar_field(
-    field: &mut crate::core::math::Real,
+fn update_scalar_field<T: crate::scene::ecs::Component>(
+    world: &mut World,
+    entity: EntityId,
+    component: &'static str,
+    read: impl FnOnce(&T) -> crate::core::math::Real,
+    assign: impl FnOnce(&mut T, crate::core::math::Real),
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
 ) -> SceneResult<bool> {
+    let Some(current) = world.get::<T>(entity) else {
+        return missing_animation_component(entity, component);
+    };
     let next = World::compiled_property_expect_scalar(value, property_path)?;
-    if *field == next {
+    if read(current) == next {
         return Ok(false);
     }
-    *field = next;
+    let Some(current) = world.get_mut::<T>(entity) else {
+        return missing_animation_component(entity, component);
+    };
+    assign(current, next);
     Ok(true)
 }
 
-fn update_bool_field(
-    field: &mut bool,
+fn update_bool_field<T: crate::scene::ecs::Component>(
+    world: &mut World,
+    entity: EntityId,
+    component: &'static str,
+    read: impl FnOnce(&T) -> bool,
+    assign: impl FnOnce(&mut T, bool),
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
 ) -> SceneResult<bool> {
+    let Some(current) = world.get::<T>(entity) else {
+        return missing_animation_component(entity, component);
+    };
     let next = World::compiled_property_expect_bool(value, property_path)?;
-    if *field == next {
+    if read(current) == next {
         return Ok(false);
     }
-    *field = next;
+    let Some(current) = world.get_mut::<T>(entity) else {
+        return missing_animation_component(entity, component);
+    };
+    assign(current, next);
     Ok(true)
 }
 

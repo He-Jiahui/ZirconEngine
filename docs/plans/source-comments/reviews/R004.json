@@ -1,0 +1,822 @@
+{
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R004",
+  "owner": "reflection_luna",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "reviewed_on": "2026-10-14",
+  "status": "read_only_review_complete",
+  "source_edit_status": "no_source_edits_authorized",
+  "scope_policy": "完整对象/语句块覆盖仅限 audited_files 的11个文件。其他文件仅作调用、注册、挂载或测试上下文；value_budget.rs 属 H001，本批不计覆盖。只写 R004 元数据。",
+  "audited_files": [
+    {
+      "path": "zircon_runtime_interface/src/reflect/mod.rs",
+      "lines": 78,
+      "before_sha256": "a7fd6a34ad0f8d841e3091b26c07b63bfb578d37fdbe4e315c766efbc0cbf6c5",
+      "after_sha256": "a7fd6a34ad0f8d841e3091b26c07b63bfb578d37fdbe4e315c766efbc0cbf6c5",
+      "changed": false,
+      "hash_basis": "开审前及写记录前实算 SHA-256；本批未写源文件。",
+      "objects": [
+        {
+          "symbol": "//! module docs",
+          "lines": "1-2",
+          "facts": "说明此层承载可传输契约，Runtime 负责目录接纳/对象适配；DTO 局部校验不等于注册兼容性或远程值预算。",
+          "docs": "模块边界已有中文说明。"
+        },
+        {
+          "symbol": "private submodule declarations",
+          "lines": "4-40",
+          "facts": "挂载 DTO、path、registration、traits、schema、validators；也声明 value_budget。",
+          "docs": "整体边界足够；value_budget.rs 属 H001，本批不审、不计覆盖。"
+        },
+        {
+          "symbol": "public re-export block",
+          "lines": "42-78",
+          "facts": "导出公共反射类型、路径常量、schema catalog、ZrReflect 与 ZrReflectValue。",
+          "docs": "列表直接可读，无需逐 pub use 注释。"
+        }
+      ],
+      "block_audit": [
+        {
+          "block": "module graph and exports",
+          "lines": "4-78",
+          "assessment": "核对 module/re-export 对应；validation.rs 由 type_path.rs 私有挂载。"
+        }
+      ],
+      "test_contract_refs": [
+        "T-interface-mount"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_path.rs",
+      "lines": 120,
+      "before_sha256": "fd3a5e503eb45ffbfb4befc3bdc042f12e34480b004001cb92e6ef76dba80711",
+      "after_sha256": "fd3a5e503eb45ffbfb4befc3bdc042f12e34480b004001cb92e6ef76dba80711",
+      "changed": false,
+      "hash_basis": "开审前及写记录前实算 SHA-256；本批未写源文件。",
+      "objects": [
+        {
+          "symbol": "ReflectTypePath and fields",
+          "lines": "15-24",
+          "facts": "私有保存完整路径、短名及可选模块路径/plugin ID；Serialize derive、手写 Deserialize。",
+          "docs": "类型和字段文档说明已校验及 wire 解码重走校验。"
+        },
+        {
+          "symbol": "ReflectTypePath::new",
+          "lines": "26-45",
+          "facts": "接收两个 Into<String>，校验完整路径语法/长度与短名终段后构造；模块/plugin 初始 None。",
+          "docs": "已有中文文档说明 Rust/VM 分隔符、终段短名与统一校验。"
+        },
+        {
+          "symbol": "path accessors",
+          "lines": "47-65",
+          "facts": "返回内部字符串借用，模块/plugin getter 返回 Option<&str>。",
+          "docs": "返回含义和 None 条件已明示；签名表达借用生命周期。"
+        },
+        {
+          "symbol": "with_module_path / with_plugin_id",
+          "lines": "67-84",
+          "facts": "按值消费并返回更新后的 Self 或 ReflectError；模块要求严格前缀，plugin key 只做语法检查，VM 注册另查 full path prefix。",
+          "docs": "现有说明已表达这层分工。"
+        },
+        {
+          "symbol": "Deserialize and ReflectTypePathWire",
+          "lines": "87-120",
+          "facts": "wire DTO deny_unknown_fields；依次调用 new、模块 builder、plugin builder，错误映射到 serde error。",
+          "docs": "方法 doc 和 DTO 前行注释足够。"
+        }
+      ],
+      "block_audit": [
+        {
+          "block": "storage and serde boundary",
+          "lines": "17-120",
+          "assessment": "反序列化重建局部不变量，不是字段直灌；Serialize 与 Deserialize 分开。"
+        }
+      ],
+      "test_contract_refs": [
+        "T-path-json",
+        "T-path-validation"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_path/validation.rs",
+      "lines": 231,
+      "before_sha256": "339e66dcdd7f0a8934209eaa9a6d28c1de66ac5f380883edbeb943fb9a39d5b4",
+      "after_sha256": "339e66dcdd7f0a8934209eaa9a6d28c1de66ac5f380883edbeb943fb9a39d5b4",
+      "changed": false,
+      "hash_basis": "开审前及写记录前实算 SHA-256；本批未写源文件。",
+      "objects": [
+        {
+          "symbol": "module docs and MAX_REFLECT_*_BYTES",
+          "lines": "1-11",
+          "facts": "Rust/VM path 与 plugin key 校验；type/short/module/plugin 上限依次 512/128/384/128 UTF-8 bytes。",
+          "docs": "模块与常量均有准确文档。"
+        },
+        {
+          "symbol": "validate_type_path",
+          "lines": "13-48",
+          "facts": "限长、非空、无首尾空白、ASCII；拒绝 :: 与 . 混用；Rust 每段为 ASCII identifier；VM namespace 可含连字符、末段仍是严格 identifier。",
+          "docs": "函数文档和先选 separator 的行注释充分。"
+        },
+        {
+          "symbol": "validate_short_type_path",
+          "lines": "50-77",
+          "facts": "限 128 bytes，canonical ASCII identifier，且须精确等于 full path terminal。",
+          "docs": "函数文档覆盖完整。"
+        },
+        {
+          "symbol": "validate_module_path",
+          "lines": "80-102",
+          "facts": "限 384 bytes，必须是完整路径终端前缀；单段路径不能附 module。",
+          "docs": "函数文档覆盖严格条件。"
+        },
+        {
+          "symbol": "validate_plugin_id",
+          "lines": "105-132",
+          "facts": "限 128 bytes；首位为小写 ASCII 字母/数字，后续只允许小写字母/数字/_/./-；不检查 key 与路径的 prefix 关系，type_path 参数用于错误上下文。",
+          "docs": "key 语法已有说明；type_path builder 明说 Runtime 另核对 plugin prefix。"
+        },
+        {
+          "symbol": "validate_length / validate_canonical_text",
+          "lines": "135-172",
+          "facts": "str::len 按 UTF-8 bytes 比较；拒绝空、首尾空白和非 ASCII。",
+          "docs": "已有行注释解释字节与规范文本。"
+        },
+        {
+          "symbol": "is_identifier / validate_vm_type_path / is_vm_namespace_segment",
+          "lines": "174-207",
+          "facts": "Rust identifier 为 [A-Za-z_][A-Za-z0-9_]*；VM namespace 首位字母/数字/_，后续可有连字符；terminal 仍严格 identifier。",
+          "docs": "算法注释已经说明差异。"
+        },
+        {
+          "symbol": "terminal_segment / module_prefix / invalid_type_path",
+          "lines": "208-231",
+          "facts": "按 separator 取 terminal 和 module prefix；统一构造携带完整路径与原因的 InvalidTypePath。",
+          "docs": "每块均有局部注释。"
+        }
+      ],
+      "block_audit": [
+        {
+          "block": "four path/key validators",
+          "lines": "13-132",
+          "assessment": "分别审查 full path、short path、module prefix、plugin key；只有 module validator 做严格 prefix 检查。"
+        },
+        {
+          "block": "private grammar/error helpers",
+          "lines": "135-231",
+          "assessment": "字节、文本、分段、终段/前缀和错误映射均已核对。"
+        }
+      ],
+      "test_contract_refs": [
+        "T-path-validation"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_registration.rs",
+      "lines": 137,
+      "before_sha256": "83f9fbefe89e20d157cba170e8ac1b3b18ec67561b8b6c9ce98eb67b9bf09070",
+      "after_sha256": "83f9fbefe89e20d157cba170e8ac1b3b18ec67561b8b6c9ce98eb67b9bf09070",
+      "changed": false,
+      "hash_basis": "开审前及写记录前实算 SHA-256；本批未写源文件。",
+      "objects": [
+        {
+          "symbol": "ReflectSerializationStrategy",
+          "lines": "7-20",
+          "facts": "None/Value/Json/ResourceHandle/EntityReference 是声明标签；实际持久化由消费系统负责。",
+          "docs": "enum 与 variants 有中文说明。"
+        },
+        {
+          "symbol": "ReflectTypeRegistration and fields",
+          "lines": "22-48",
+          "facts": "路径、显示名、文档、type info、strategy、role、serializable、Editor/remote/script visibility；deny_unknown_fields。",
+          "docs": "字段 docs 完备，Runtime 校验/适配器边界清楚。"
+        },
+        {
+          "symbol": "ReflectTypeRegistration::new",
+          "lines": "50-74",
+          "facts": "接收 path/name/info/strategy；serializable 初值 strategy != None；role Value、Editor true、remote false、script Private。",
+          "docs": "参数、默认值及 Runtime 后续接纳已有说明。"
+        },
+        {
+          "symbol": "registration builders and predicates",
+          "lines": "76-135",
+          "facts": "设置 Component/Resource 声明角色、documentation、serializable 和可见性；is_* 只读；with_plugin_id 委托路径 builder。",
+          "docs": "每个方法有中文职责，且不夸大为自动绑定适配器或授权。"
+        }
+      ],
+      "block_audit": [
+        {
+          "block": "registration transitions",
+          "lines": "50-135",
+          "assessment": "按值 builder 返回 Self，plugin builder 可失败；构造器只建声明 DTO。"
+        }
+      ],
+      "test_contract_refs": [
+        "T-registration-wire",
+        "T-derived-registration"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_info.rs",
+      "lines": 34,
+      "before_sha256": "070f51c57e6144aec7395dee84b7af6bc5669d44a26c50ccedd4b433feda918c",
+      "after_sha256": "070f51c57e6144aec7395dee84b7af6bc5669d44a26c50ccedd4b433feda918c",
+      "changed": false,
+      "hash_basis": "开审前及写记录前实算 SHA-256；本批未写源文件。",
+      "objects": [
+        {
+          "symbol": "ReflectTypeInfo and fields",
+          "lines": "5-12",
+          "facts": "kind 高层形状；fields 顺序用于当前 catalog slot；重名/身份/slot 由 admission 检验。",
+          "docs": "类型及字段文档充分。"
+        },
+        {
+          "symbol": "new / struct_with_fields / json_with_fields / opaque",
+          "lines": "14-34",
+          "facts": "纯组合、不做 admission；构造 Struct、Json 或无字段 Opaque。",
+          "docs": "方法文档逐项说明结果和校验边界。"
+        }
+      ],
+      "block_audit": [
+        {
+          "block": "type-info constructors",
+          "lines": "14-34",
+          "assessment": "保留字段顺序；catalog 校验不是构造器副作用。"
+        }
+      ],
+      "test_contract_refs": [
+        "T-kind-and-type-info",
+        "T-derived-registration"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_kind.rs",
+      "lines": 25,
+      "before_sha256": "ba01e15b69f04c2cfc6a5ec36ce066e6a3781d7241d8779e253f27b0cf2700ec",
+      "after_sha256": "ba01e15b69f04c2cfc6a5ec36ce066e6a3781d7241d8779e253f27b0cf2700ec",
+      "changed": false,
+      "hash_basis": "开审前及写记录前实算 SHA-256；本批未写源文件。",
+      "objects": [
+        {
+          "symbol": "ReflectTypeKind and variants",
+          "lines": "5-25",
+          "facts": "snake_case serde 的 Struct/TupleStruct/Tuple/Enum/List/Map/Scalar/Opaque/Json 标签；标签不定义访问或编码行为。",
+          "docs": "总述和各变体均有中文解释。"
+        }
+      ],
+      "block_audit": [
+        {
+          "block": "type-kind wire labels",
+          "lines": "1-25",
+          "assessment": "文档完整；测试仅断言 TupleStruct、Opaque、Json 子集。"
+        }
+      ],
+      "test_contract_refs": [
+        "T-kind-and-type-info"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/type_role.rs",
+      "lines": 14,
+      "before_sha256": "9821edeb5bd41b9e5dbaf16fbdd888591c71ab0a72b6c461ff13ad47d4761919",
+      "after_sha256": "9821edeb5bd41b9e5dbaf16fbdd888591c71ab0a72b6c461ff13ad47d4761919",
+      "changed": false,
+      "hash_basis": "开审前及写记录前实算 SHA-256；本批未写源文件。",
+      "objects": [
+        {
+          "symbol": "ReflectTypeRole and variants",
+          "lines": "5-14",
+          "facts": "snake_case Copy/Default role；默认 Value，另有 Component/Resource，供目录过滤和 adapter 类别匹配。",
+          "docs": "总述和 variants 有说明，不声称标签创建适配器。"
+        }
+      ],
+      "block_audit": [
+        {
+          "block": "role tags",
+          "lines": "1-14",
+          "assessment": "测试直接检查 Component wire/role，不穷举全部 role 过滤组合。"
+        }
+      ],
+      "test_contract_refs": [
+        "T-registration-wire",
+        "T-derived-registration"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/read_write.rs",
+      "lines": 143,
+      "before_sha256": "f7bef6da11c021a8f7acbb26c468ff6a9f6b8e2d4f03e7bf379bff7f39e65be4",
+      "after_sha256": "f7bef6da11c021a8f7acbb26c468ff6a9f6b8e2d4f03e7bf379bff7f39e65be4",
+      "changed": false,
+      "hash_basis": "开审前及写记录前实算 SHA-256；本批未写源文件。",
+      "objects": [
+        {
+          "symbol": "ReflectFieldValue and new",
+          "lines": "7-31",
+          "facts": "稳定 field ID、当前显示名和拥有的 ReflectedValue；new 只组装。",
+          "docs": "字段/构造文档完整，身份与显示名区分明确。"
+        },
+        {
+          "symbol": "ReflectFieldsRequest/Response and new",
+          "lines": "34-62",
+          "facts": "全字段请求与按当前 schema slot 顺序的快照；构造不解析地址或重新读取。",
+          "docs": "类型、字段、构造器都有说明。"
+        },
+        {
+          "symbol": "ReflectReadRequest/Response and new",
+          "lines": "65-95",
+          "facts": "单字段按 stable ID 请求；响应为当前字段名和值；运行路径负责查找与预算。",
+          "docs": "参数用途和 Runtime 边界清楚。"
+        },
+        {
+          "symbol": "ReflectWriteRequest and new",
+          "lines": "98-120",
+          "facts": "按地址/ID携带拥有的新值；Runtime 先预算检查，再交 adapter 检验可写与类型。",
+          "docs": "组包和运行时校验职责分开。"
+        },
+        {
+          "symbol": "ReflectWriteResponse and new",
+          "lines": "124-143",
+          "facts": "返回地址、接受的字段记录、adapter 的 changed；构造不提交/隐式回读。",
+          "docs": "changed 有中文说明；field 仅英文说明，待补中文候选。"
+        }
+      ],
+      "block_audit": [
+        {
+          "block": "request/response constructors",
+          "lines": "18-143",
+          "assessment": "new 方法仅组消息；对象/slot/预算/写入/发布在 Runtime。"
+        },
+        {
+          "block": "serde restrictions",
+          "lines": "7-143",
+          "assessment": "FieldValue/ReadRequest/WriteRequest deny_unknown_fields；测试覆盖部分 name-only wire 拒绝。"
+        }
+      ],
+      "test_contract_refs": [
+        "T-read-write-wire",
+        "T-read-write-roundtrip",
+        "T-runtime-world-reflection"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/zr_reflect.rs",
+      "lines": 32,
+      "before_sha256": "6eeb0e0f3e53014a566b69bd8d5f848ca3f82464bf49fd549a422864c1600f47",
+      "after_sha256": "6eeb0e0f3e53014a566b69bd8d5f848ca3f82464bf49fd549a422864c1600f47",
+      "changed": false,
+      "hash_basis": "开审前及写记录前实算 SHA-256；本批未写源文件。",
+      "objects": [
+        {
+          "symbol": "ZrReflect trait",
+          "lines": "3-5",
+          "facts": "#[derive(ZrReflect)] 的 Sized 静态注册/name-slot access contract；Runtime adapter 使用。",
+          "docs": "中英 trait 文档已覆盖。"
+        },
+        {
+          "symbol": "reflect_type_registration",
+          "lines": "6-8",
+          "facts": "静态返回注册声明或 ReflectError，registry 后续校验/接纳。",
+          "docs": "调用者和边界明确。"
+        },
+        {
+          "symbol": "read_reflected_field",
+          "lines": "9-11",
+          "facts": "借用字段名，返回拥有值；未知字段报 UnknownField。",
+          "docs": "现有中文说明充分。"
+        },
+        {
+          "symbol": "write_reflected_field",
+          "lines": "12-20",
+          "facts": "可变 self/name/拥有值，转换并返回变化标志；名称/类型/取值无效报错。",
+          "docs": "参数、返回、错误与 adapter 用途均写明。"
+        },
+        {
+          "symbol": "read/write_reflected_field_by_slot",
+          "lines": "21-32",
+          "facts": "u32 slot 仅在当前字段顺序有效；读返回值，写返回 changed；缺失或转换失败报错，持久引用用 field ID。",
+          "docs": "slot 生命周期和稳定 ID 区别充分。"
+        }
+      ],
+      "block_audit": [
+        {
+          "block": "five generated trait methods",
+          "lines": "5-32",
+          "assessment": "逐项检查注册、按名读写、按 slot 读写 contract。"
+        }
+      ],
+      "test_contract_refs": [
+        "T-derive-token",
+        "T-derived-registration",
+        "T-derived-accessors",
+        "T-runtime-world-reflection"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/zr_reflect_value.rs",
+      "lines": 312,
+      "before_sha256": "3c6cb7c4a88186f4af254efcd299f700042f236fc8e540fc081b14977c60c638",
+      "after_sha256": "3c6cb7c4a88186f4af254efcd299f700042f236fc8e540fc081b14977c60c638",
+      "changed": false,
+      "hash_basis": "开审前及写记录前实算 SHA-256；本批未写源文件。",
+      "objects": [
+        {
+          "symbol": "ZrReflectValue trait/methods",
+          "lines": "5-29",
+          "facts": "Rust 字段与 ReflectedValue 双向转换；to 借用字段且不做预算/有限性保证；from 消费值，owner path/field name 只供错误上下文。",
+          "docs": "用途、参数、返回、错误和预算边界均有说明。"
+        },
+        {
+          "symbol": "impl_integer_value and integer impls",
+          "lines": "30-92",
+          "facts": "i8/i16/i32/i64<->Integer，u8/u16/u32/u64<->Unsigned；try_from 检查目标位宽。",
+          "docs": "宏注释和 trait mismatch docs 充分。"
+        },
+        {
+          "symbol": "bool/f32/String implementations",
+          "lines": "63-142",
+          "facts": "Bool/String 对应同名 variants；f32<->Scalar，反向拒绝非有限值。",
+          "docs": "普通映射直接，trait docs 覆盖错误/有限性。"
+        },
+        {
+          "symbol": "Option<u64> implementation",
+          "lines": "144-165",
+          "facts": "写出 Entity(Option<u64>)；读入 Entity 返回内部 Option，Null 也映射 None。",
+          "docs": "此特殊映射未由 trait 文档表达，建议局部说明。"
+        },
+        {
+          "symbol": "Vec2/Vec3/Vec4 implementations",
+          "lines": "167-234",
+          "facts": "映射对应维度 variants；反向逐分量拒绝非有限值。",
+          "docs": "trait docs 已说明非有限值错误，variant 对应直观。"
+        },
+        {
+          "symbol": "Vec<T> implementation",
+          "lines": "236-268",
+          "facts": "T: ZrReflectValue；递归映射 List、传播元素错误；不执行预算。",
+          "docs": "预算边界由 trait 文档说明，循环/约束清楚。"
+        },
+        {
+          "symbol": "type mismatch helpers",
+          "lines": "270-293",
+          "facts": "统一构造含 owner/field/expected/actual 的 TypeMismatch。",
+          "docs": "已有中文注释说明错误上下文集中。"
+        },
+        {
+          "symbol": "non_finite_vector/values_are_finite",
+          "lines": "295-312",
+          "facts": "非有限向量转结构化错误；const N helper 检查每个分量。",
+          "docs": "现有注释说明调用时机和用途。"
+        }
+      ],
+      "block_audit": [
+        {
+          "block": "conversion impls",
+          "lines": "30-268",
+          "assessment": "审查整数模板、bool/f32/String/Option/向量/Vec<T> 两向映射。"
+        },
+        {
+          "block": "error and finite helpers",
+          "lines": "270-312",
+          "assessment": "审查上下文错误和定长数组有限性 helper。"
+        }
+      ],
+      "test_contract_refs": [
+        "T-derived-accessors",
+        "T-reflected-value-wire"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/schema.rs",
+      "lines": 109,
+      "before_sha256": "628bacb061980a36b660afa732e71c65fe4f98a4a5306ec042630681d1c5ecae",
+      "after_sha256": "628bacb061980a36b660afa732e71c65fe4f98a4a5306ec042630681d1c5ecae",
+      "changed": false,
+      "hash_basis": "开审前及写记录前实算 SHA-256；本批未写源文件。",
+      "objects": [
+        {
+          "symbol": "ReflectSchemaFilter and fields",
+          "lines": "7-23",
+          "facts": "路径、Component/Resource 任一、Editor/remote 可见性和插件纳入过滤；Default bool 全关。",
+          "docs": "总述/字段 docs 说明组合和默认。"
+        },
+        {
+          "symbol": "Filter constructors",
+          "lines": "25-56",
+          "facts": "editor/remote 构造器开启对应可见标记且包含两类角色；for_type 存路径并包含两类角色。",
+          "docs": "每个方法职责清楚。"
+        },
+        {
+          "symbol": "ReflectSchemaRequest and constructors",
+          "lines": "58-84",
+          "facts": "请求包装 filter；new 原样保存，便捷方法委托 Filter 构造器，构造本身不查目录。",
+          "docs": "已有中文文档明确。"
+        },
+        {
+          "symbol": "ReflectSchemaResponse and fields",
+          "lines": "86-96",
+          "facts": "携带算法版本、完整 catalog fingerprint 和过滤后的 registrations 子集。",
+          "docs": "类型/字段 docs 明确 fingerprint 仍覆盖全目录。"
+        },
+        {
+          "symbol": "ReflectSchemaResponse::new",
+          "lines": "97-109",
+          "facts": "接收拥有的 fingerprint 和 registration Vec，并设置当前算法版本。",
+          "docs": "构造职责和版本来源已有说明。"
+        }
+      ],
+      "block_audit": [
+        {
+          "block": "schema filters and response",
+          "lines": "25-109",
+          "assessment": "filter 是声明式 DTO，Runtime 执行查询；响应 fingerprint 与筛选列表范围不同。"
+        }
+      ],
+      "test_contract_refs": [
+        "T-read-write-roundtrip",
+        "T-schema-filter-and-fingerprint"
+      ]
+    }
+  ],
+  "context_files": [
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+      "depth": "test_mount_context",
+      "evidence": "33-34 挂载 reflect_contracts.rs；测试模块 doc 说明测试接口 serde/校验而非 Runtime 对象访问。"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/reflect_contracts.rs",
+      "sha256": "384eb1061f0ae15131109362978628c6011ad4498f665f516de18de8432a0647",
+      "depth": "related_contract_tests",
+      "evidence": "提供 T-* wire/path/type/registration 断言，仅上下文。"
+    },
+    {
+      "path": "zircon_reflect_derive/src/derive.rs",
+      "sha256": "7351e19214f9ff5fcdd539503cd94de8aebcc8c2113b030be151e51ec1da5a55",
+      "depth": "macro_call_context",
+      "evidence": "115-131 生成反射注册并调用 Path/Registration/Info 构造器；生成 ZrReflect 方法。"
+    },
+    {
+      "path": "zircon_reflect_derive/src/fields.rs",
+      "sha256": "faad588c0123f1c6af93020bf91aee886926ca4ea0b7d1c3f76d9791c63bacee",
+      "depth": "macro_call_context",
+      "evidence": "183-217、261-318 生成 to_reflected_value/from_reflected_value 调用；context only，本批不声称完整审查。"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs",
+      "sha256": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+      "depth": "direct_consumer_context",
+      "evidence": "18、41 调 T::reflect_type_registration，适配器转发字段访问。"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs",
+      "sha256": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+      "depth": "runtime_test_context",
+      "evidence": "27-49 检查 Health registration；52-80 检查按名 f32 访问。"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/type_registry.rs",
+      "sha256": "2fa88aa63872b836b2622a8674d25b5681f1b80b75823a374b400d019a86b829",
+      "depth": "registration_boundary_context",
+      "evidence": "278-316 检查 plugin-owned/key/full path prefix/VM field types/backing role；不扩展正式范围。"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/world_reflection.rs",
+      "sha256": "641e3f66f37065c0ee70c84336229e136956239577ff4bb43e4d7a1b60689eba",
+      "depth": "dto_consumer_context",
+      "evidence": "20-117 消费 schema/read/write DTO，执行地址/slot/预算/adapter 路径后构造应答。"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/dynamic_component.rs",
+      "sha256": "fef7bc43f25c2e61dc12ae2dcbbb2293a662c916b47f7d0abea577aab0815890",
+      "depth": "registration_call_context",
+      "evidence": "动态组件调用 ReflectTypeRegistration::new。"
+    },
+    {
+      "path": "zircon_reflect_derive/src/tests/cases.rs",
+      "sha256": "9637d257aa51f5f31387f130a15fe6948c5d2c4da2083d06a4bf7d5e84901bb1",
+      "depth": "macro_test_context",
+      "evidence": "8-49 检查 token 字符串包含注册与方法；不编译/执行展开。"
+    }
+  ],
+  "call_graph": [
+    {
+      "from": "derive.rs:115-131 and generated impl",
+      "to": "ReflectTypePath/ReflectTypeRegistration/ReflectTypeInfo/ZrReflect",
+      "relation": "derive 生成注册声明与静态 trait methods，context only。"
+    },
+    {
+      "from": "fields.rs:183-217,261-318",
+      "to": "ZrReflectValue",
+      "relation": "生成 name/slot 读写调用转换 trait，context only。"
+    },
+    {
+      "from": "component_adapter.rs:18,41",
+      "to": "ZrReflect",
+      "relation": "Runtime adapter 获取 registration 并转发访问。"
+    },
+    {
+      "from": "world_reflection.rs:20-117",
+      "to": "schema/read-write DTOs",
+      "relation": "Runtime 消费请求，执行地址/slot/budget/adapter 操作并回响应。"
+    },
+    {
+      "from": "type_registry.rs:278-316",
+      "to": "registration/type path",
+      "relation": "VM admission 对 plugin ownership 与路径前缀施加额外检查。"
+    }
+  ],
+  "trait_contracts": [
+    "ZrReflect：派生注册与按名/slot 访问；Runtime adapters 调用。",
+    "ZrReflectValue：Rust 字段与拥有的 ReflectedValue 双向转换；递归预算另行检查。"
+  ],
+  "macro_context": [
+    "derive 生成 Path/Registration/Info 构造和 ZrReflect impl。",
+    "fields helper 生成 ZrReflectValue 调用，但不属于正式覆盖。",
+    "serde derive 与 ReflectTypePath 自定义 Deserialize 构成 wire 边界。"
+  ],
+  "registration_context": [
+    "registration/type info DTO 是声明；Runtime catalog 校验字段、角色、适配器和路径。",
+    "plugin key 语法不等同 VM 路径归属；Runtime 另要求 full path 以 plugin_id 加点开头。"
+  ],
+  "ffi_audit": {
+    "scope": "仅以上11个 audited_files",
+    "query": "extern C/system、no_mangle、export_name",
+    "result": "无命中；不据此否定整个 crate/跨仓存在 FFI。"
+  },
+  "test_contracts": [
+    {
+      "id": "T-interface-mount",
+      "source": "zircon_runtime_interface/src/tests/mod.rs:33-34",
+      "assertion": "reflect_contracts.rs 被挂载。",
+      "boundary": "源码挂载证据，未运行。"
+    },
+    {
+      "id": "T-registration-wire",
+      "source": "zircon_runtime_interface/src/tests/reflect_contracts.rs:59-129",
+      "symbols": [
+        "type_registration_serializes_canonical_role_and_owner",
+        "script_visibility_is_independent_from_remote_visibility"
+      ],
+      "assertion": "canonical role/owner wire、字段顺序、旧字段拒绝、roundtrip、script/remote visibility 独立。",
+      "boundary": "不证明 Runtime admission、adapter 绑定或持久化。"
+    },
+    {
+      "id": "T-reflected-value-wire",
+      "source": "zircon_runtime_interface/src/tests/reflect_contracts.rs:131-165",
+      "symbols": [
+        "reflected_value_tagged_json_roundtrips_all_supported_shapes"
+      ],
+      "assertion": "ReflectedValue tagged JSON 形状 roundtrip。",
+      "boundary": "不调用 ZrReflectValue 转换。"
+    },
+    {
+      "id": "T-read-write-wire",
+      "source": "zircon_runtime_interface/src/tests/reflect_contracts.rs:167-314",
+      "symbols": [
+        "reflect_contract_dtos_use_expected_json_shapes",
+        "reflected_field_value_rejects_legacy_name_only_wire",
+        "stable_id_read_write_requests_reject_legacy_field_name_wire"
+      ],
+      "assertion": "DTO JSON 和部分旧 name-only wire 拒绝。",
+      "boundary": "不执行对象访问、预算、写入或发布。"
+    },
+    {
+      "id": "T-read-write-roundtrip",
+      "source": "zircon_runtime_interface/src/tests/reflect_contracts.rs:434-545",
+      "symbols": [
+        "reflect_object_address_schema_and_read_write_dtos_roundtrip"
+      ],
+      "assertion": "地址、读写 DTO、schema 请求/响应 roundtrip；filter helpers、算法版本和 fingerprint。",
+      "boundary": "不验证 Runtime World 的真实过滤/访问。"
+    },
+    {
+      "id": "T-kind-and-type-info",
+      "source": "zircon_runtime_interface/src/tests/reflect_contracts.rs:608-620",
+      "symbols": [
+        "type_paths_and_type_kinds_use_approved_json_contract"
+      ],
+      "assertion": "可选 path 字段省略、TupleStruct wire、Opaque/Json constructors。",
+      "boundary": "未穷举 TypeKind 或 catalog admission。"
+    },
+    {
+      "id": "T-path-validation",
+      "source": "zircon_runtime_interface/src/tests/reflect_contracts.rs:624-700",
+      "symbols": [
+        "reflect_type_path_uses_one_validated_constructor_and_wire_grammar"
+      ],
+      "assertion": "Rust/VM 路径 roundtrip；拒绝混分隔符、短名不符、泛型语法、VM terminal 连字符、超长完整路径、错误模块前缀、plugin key 空白/大写。",
+      "boundary": "不穷举语法和长度边界；VM ownership prefix 另在 Runtime admission 检查。"
+    },
+    {
+      "id": "T-derive-token",
+      "source": "zircon_reflect_derive/src/tests/cases.rs:8-49",
+      "symbols": [
+        "derive_round_trips_reflect_type_info"
+      ],
+      "assertion": "展开文本包含 registration、字段元数据、五个 ZrReflect 方法和 slot 0/1。",
+      "boundary": "token string only，不编译/执行。"
+    },
+    {
+      "id": "T-derived-registration",
+      "source": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs:27-49",
+      "symbols": [
+        "derive_round_trips_reflect_type_info"
+      ],
+      "assertion": "Health derive 实际生成 Struct/Component registration、字段顺序/editability，并建 adapter。",
+      "boundary": "仅该 fixture/Component。"
+    },
+    {
+      "id": "T-derived-accessors",
+      "source": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs:52-80",
+      "symbols": [
+        "derive_generated_field_accessors_round_trip_values"
+      ],
+      "assertion": "按名 f32 Scalar read/write、changed/no-op 和 readonly 错误。",
+      "boundary": "不测 slot，也不穷举整数/Option/向量/Vec<T>。"
+    },
+    {
+      "id": "T-runtime-world-reflection",
+      "source": "zircon_runtime/src/scene/reflect/world_reflection.rs:20-117",
+      "assertion": "静态调用路径显示 Runtime 消费 DTO 并做地址/slot/budget/adapter 工作。",
+      "boundary": "源码关系证据，不是测试执行结果。"
+    }
+  ],
+  "evidence_boundaries": [
+    "只读审查；未运行 Cargo/build/generation/cleanup/tests。",
+    "接口 tests 证明 wire 与局部校验，不证明 Runtime 对象访问。",
+    "derive token 用例只检查字符串；Health runtime fixture 有限覆盖按名 f32。",
+    "ReflectedValue serde roundtrip 不证明 ZrReflectValue 类型转换。",
+    "value_budget.rs 不在正式覆盖；registry/derive/adapter/tests 是 pinned context。"
+  ],
+  "comment_intents": [
+    {
+      "location": "zircon_runtime_interface/src/reflect/read_write.rs:131 ReflectWriteResponse.field",
+      "issue_id": null,
+      "status": "draft_pending_main_allocation",
+      "rationale": "现有英文说明 accepted request field 不等于隐式发布后回读；建议补中文同义句。"
+    },
+    {
+      "location": "zircon_runtime_interface/src/reflect/zr_reflect_value.rs:144 Option<u64> impl",
+      "issue_id": null,
+      "status": "draft_pending_main_allocation",
+      "suggested_chinese": "该实现把 Option<u64> 写为 Entity（包括 None）；反向转换也接受 Null 并映射为 None。",
+      "evidence": "to_reflected_value 构造 Entity(*self)；from_reflected_value 接受 Entity 与 Null。"
+    }
+  ],
+  "no_additional_comments": [
+    {
+      "paths": [
+        "reflect/mod.rs"
+      ],
+      "reason": "//! 已说明模块责任/边界；pub use 列表直接可读。"
+    },
+    {
+      "paths": [
+        "type_path.rs",
+        "type_path/validation.rs"
+      ],
+      "reason": "构造、serde、accessors、path grammar 和私有 helper 均已有准确说明；Runtime prefix 另有现存 builder docs。"
+    },
+    {
+      "paths": [
+        "type_registration.rs",
+        "type_info.rs",
+        "type_kind.rs",
+        "type_role.rs"
+      ],
+      "reason": "字段、默认值、标签和校验边界已有充分中文文档。"
+    },
+    {
+      "paths": [
+        "read_write.rs"
+      ],
+      "reason": "除 ReflectWriteResponse.field 外，其余 DTO/构造器及 Runtime 边界均有说明。"
+    },
+    {
+      "paths": [
+        "zr_reflect.rs"
+      ],
+      "reason": "五个 trait methods 的时机、参数、返回、错误、slot 时效和调用者已说明。"
+    },
+    {
+      "paths": [
+        "zr_reflect_value.rs"
+      ],
+      "reason": "trait、整数宏、finite check、错误 helper 已说明；Option 特殊映射另列。"
+    },
+    {
+      "paths": [
+        "schema.rs"
+      ],
+      "reason": "filter/default、builder、完整目录 fingerprint 与 filtered list 区别均已说明。"
+    }
+  ],
+  "issues": [],
+  "validation": {
+    "review_json": "Jenkins Python JSON parse passed; all 11 audited source SHA-256 values match recorded before/after values.",
+    "source_hashes": "Verified immediately after record write; each audited file is unchanged.",
+    "tests": "Not run; this was a read-only source audit.",
+    "git": "No Git write or commit operation."
+  }
+}

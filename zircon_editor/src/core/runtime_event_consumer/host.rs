@@ -116,7 +116,7 @@ pub struct EditorRuntimeEventConsumerHost {
     retained_bytes: AtomicUsize,
     quarantined_consumers: Mutex<BTreeMap<String, EditorRuntimeEventConsumerQuarantineReason>>,
     user_disabled_consumers: Mutex<BTreeSet<String>>,
-    pending_remote_cleanup: Mutex<BTreeMap<String, PendingRemoteCleanup>>,
+    pending_remote_cleanup: Mutex<BTreeMap<String, Vec<PendingRemoteCleanup>>>,
     execution_state: AtomicU8,
 }
 
@@ -590,14 +590,12 @@ impl EditorRuntimeEventConsumerHost {
                 })
                 .collect::<Vec<_>>()
         };
-        let mut first_error = None;
+        // 每次结束只重试先前遗留的订阅；本轮新失败项留给下一次清理，避免同一次调用重复退订。
+        let mut first_error = self.flush_pending_remote_cleanup();
         for identity in consumers {
             if let Err(error) = self.retire_active_consumer(&identity, play_session_id) {
                 first_error.get_or_insert(error);
             }
-        }
-        if let Some(error) = self.flush_pending_remote_cleanup() {
-            first_error.get_or_insert(error);
         }
         if self.active_consumer_count() == 0 {
             *self
@@ -627,7 +625,9 @@ impl EditorRuntimeEventConsumerHost {
         self.pending_remote_cleanup
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .len()
+            .values()
+            .map(Vec::len)
+            .sum()
     }
 
     pub fn quarantined_consumer_count(&self) -> usize {

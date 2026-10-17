@@ -1,3 +1,6 @@
+//! 验证列收缩中的最小值、禁止收缩列和无界约束的局部求解夹具。
+//! 不执行产品性能测量，也不要求不可行宽度下违反最小值。
+
 use crate::text::{RichTableColumn, TextLayoutAxisConstraint, TextLayoutGeometryBudget};
 
 use super::{fit_columns_to_available_width, resolve_column_extents};

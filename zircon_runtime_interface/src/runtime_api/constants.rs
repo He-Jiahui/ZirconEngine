@@ -1,3 +1,6 @@
+//! 固定事件布局复用的整数标签与请求位；具体字段须结合事件 kind 和构造器解释。
+//! 这些数值不是能力协商结果，也不替调用入口验证未知标签、字节载荷或会话归属。
+
 pub const ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1: u32 = 0;
 pub const ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1: u32 = 1;
 

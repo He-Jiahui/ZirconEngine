@@ -40,8 +40,7 @@ impl RenderPassBufferUploadSink for QueueUploadSink<'_> {
 #[test]
 fn trace_probe_tiles_pipeline_keeps_diagnostics_entrypoint_in_the_output_owner() {
     let trace_source = include_str!("../../../shaders/trace_probe_tiles.wgsl");
-    let global_sdf_source =
-        include_str!("../../../../trace_probe_tiles_global_sdf.wgsl");
+    let global_sdf_source = include_str!("../../../../trace_probe_tiles_global_sdf.wgsl");
     let aggregate_source = include_str!("../../../../shaders/trace_probe_tiles_aggregate.wgsl");
     let output_source = include_str!("../../../../shaders/trace_probe_tiles_output.wgsl");
     let voxel_source = include_str!("../../../../shaders/trace_probe_tiles_voxel.wgsl");
@@ -69,8 +68,7 @@ fn trace_probe_tiles_pipeline_keeps_diagnostics_entrypoint_in_the_output_owner()
 #[test]
 fn trace_probe_tiles_global_sdf_lookup_is_bounded_by_clipmap_count() {
     let trace_source = include_str!("../../../shaders/trace_probe_tiles.wgsl");
-    let global_sdf_source =
-        include_str!("../../../../trace_probe_tiles_global_sdf.wgsl");
+    let global_sdf_source = include_str!("../../../../trace_probe_tiles_global_sdf.wgsl");
 
     assert!(trace_source.contains("var<storage, read> global_sdf_page_table: array<u32>;"));
     assert!(trace_source.contains("const GLOBAL_SDF_CLIPMAP_COUNT: u32 = 4u;"));

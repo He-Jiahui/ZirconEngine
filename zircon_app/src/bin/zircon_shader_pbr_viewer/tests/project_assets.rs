@@ -1,8 +1,9 @@
 use super::{
-    viewer_project_assets_are_ready_for_fixture, write_viewer_material,
-    write_viewer_project_assets_for_fixture, AssetMetaDocument, AssetReference, MaterialAsset,
-    ReferenceResolutionError, SceneAsset, SPHERE_RINGS, SPHERE_SEGMENTS,
-    VIEWER_PROJECT_ASSET_PATHS, VIEWER_PROJECT_ASSET_ROOT, VIEWER_PROJECT_SOURCE_PATHS,
+    viewer_material_matches_fixture, viewer_project_assets_are_ready_for_fixture,
+    write_viewer_material, write_viewer_project_assets_for_fixture, AssetMetaDocument,
+    AssetReference, MaterialAsset, ReferenceResolutionError, SceneAsset, SPHERE_RINGS,
+    SPHERE_SEGMENTS, VIEWER_PROJECT_ASSET_PATHS, VIEWER_PROJECT_ASSET_ROOT,
+    VIEWER_PROJECT_SOURCE_PATHS,
 };
 use zircon_runtime::asset::assets::ZMaterialDocument;
 
@@ -385,9 +386,9 @@ fn dielectric_ior_fixture_serializes_the_routed_standard_material_input() {
         overrides.get("ior").and_then(toml::Value::as_float),
         Some(2.0)
     );
-    assert_eq!(
-        overrides.get("metallic").and_then(toml::Value::as_float),
-        Some(0.0)
+    assert!(
+        !overrides.contains_key("metallic"),
+        "the project writer omits the schema-default metallic value rather than persisting an implicit zero"
     );
     assert_eq!(
         overrides.get("roughness").and_then(toml::Value::as_float),
@@ -405,6 +406,11 @@ fn dielectric_ior_fixture_serializes_the_routed_standard_material_input() {
     })
     .map(MaterialAsset::from_zmaterial_document)
     .expect("viewer dielectric material should deserialize into its runtime asset");
+    assert_eq!(
+        material.standard_material_descriptor().metallic,
+        ViewerMaterialFixture::DielectricIor.metallic(),
+        "the generated project must route the dielectric metallic value into the runtime descriptor"
+    );
     let features = material.advanced_pbr_features();
     assert_eq!(features.ior, 2.0);
     assert!(

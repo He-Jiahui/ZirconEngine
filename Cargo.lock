@@ -9677,6 +9677,7 @@ version = "0.1.0"
 dependencies = [
  "gilrs",
  "image",
+ "js-sys",
  "libloading 0.9.0",
  "serde",
  "serde_json",
@@ -9684,11 +9685,15 @@ dependencies = [
  "softbuffer",
  "toml 1.1.4+spec-1.1.0",
  "tracing",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
  "windows-sys 0.61.2",
  "winit",
  "zircon_editor",
  "zircon_first_party_editor_catalog",
  "zircon_first_party_runtime_catalog",
+ "zircon_plugin_animation_runtime",
  "zircon_runtime",
  "zircon_runtime_host",
  "zircon_runtime_interface",
@@ -9750,6 +9755,9 @@ dependencies = [
  "zircon_plugin_obj_importer_runtime",
  "zircon_plugin_particles_runtime",
  "zircon_plugin_physics_runtime",
+ "zircon_plugin_rendering_baked_lighting_runtime",
+ "zircon_plugin_rendering_post_process_runtime",
+ "zircon_plugin_rendering_reflection_probes_runtime",
  "zircon_plugin_rendering_runtime",
  "zircon_plugin_shader_wgsl_importer_runtime",
  "zircon_plugin_solari_runtime",
@@ -9925,6 +9933,7 @@ dependencies = [
  "zircon_plugin_neural_runtime",
  "zircon_plugin_sdk",
  "zircon_runtime",
+ "zircon_runtime_interface",
 ]
 
 [[package]]
@@ -9978,9 +9987,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_plugin_rendering_baked_lighting_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_rendering_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
 name = "zircon_plugin_rendering_post_process_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_rendering_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_rendering_reflection_probes_runtime"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
  "zircon_plugin_rendering_runtime",
  "zircon_runtime",
 ]
@@ -10073,9 +10101,11 @@ dependencies = [
  "bytemuck",
  "image",
  "pollster",
+ "toml 1.1.4+spec-1.1.0",
  "wgpu",
  "zircon_plugin_sdk",
  "zircon_runtime",
+ "zircon_runtime_interface",
 ]
 
 [[package]]
@@ -10121,6 +10151,8 @@ dependencies = [
  "icu_locale_core",
  "icu_properties",
  "image",
+ "js-sys",
+ "libc",
  "libloading 0.9.0",
  "libm",
  "meshopt",
@@ -10159,6 +10191,10 @@ dependencies = [
  "unicode-segmentation",
  "unicode-vo",
  "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "web-time",
  "wgpu",
  "windows-sys 0.61.2",
  "winit",
@@ -10258,6 +10294,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.20",
  "toml 1.1.4+spec-1.1.0",
+ "web-time",
  "zircon_runtime_interface",
 ]
 
@@ -10268,6 +10305,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.20",
+ "web-time",
  "winit",
 ]
 
@@ -10279,6 +10317,8 @@ dependencies = [
  "glyphon",
  "pollster",
  "thiserror 2.0.20",
+ "web-sys",
+ "web-time",
  "wgpu",
  "winit",
  "zircon_runtime_interface",

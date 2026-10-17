@@ -5,6 +5,7 @@ use super::*;
 const CONTRACTS: &[RenderPassExecutorContract] = &[
     PREPARE_CONTRACT,
     NODE_CLUSTER_CULL_CONTRACT,
+    INDIRECT_ARGS_CONTRACT,
     PAGE_FEEDBACK_CONTRACT,
     VISBUFFER_CONTRACT,
     DEBUG_OVERLAY_CONTRACT,
@@ -35,7 +36,11 @@ fn virtual_geometry_plugin_registrations_require_gpu_recording_context() {
 
 #[test]
 fn virtual_geometry_async_executors_accept_graphics_queue_fallback() {
-    for contract in [NODE_CLUSTER_CULL_CONTRACT, PAGE_FEEDBACK_CONTRACT] {
+    for contract in [
+        NODE_CLUSTER_CULL_CONTRACT,
+        INDIRECT_ARGS_CONTRACT,
+        PAGE_FEEDBACK_CONTRACT,
+    ] {
         let mut context = context_for_contract(&contract);
         context.queue = QueueLane::Graphics;
 

@@ -1,5 +1,5 @@
 use std::hint::black_box;
-use std::time::Instant;
+use web_time::Instant;
 
 const BLOCK_COUNT: usize = 65_536;
 const SAMPLE_PAIRS: usize = 17;

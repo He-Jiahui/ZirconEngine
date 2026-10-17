@@ -61,7 +61,7 @@ fn validate_manifest(manifest: &NetDownloadManifest) -> Option<String> {
             return Some(format!("download chunk byte range overflow: {}", chunk.id));
         };
         if chunk.resume_from_byte.is_some_and(|resume_from_byte| {
-            resume_from_byte < chunk.byte_offset || resume_from_byte > chunk_end
+            resume_from_byte < chunk.byte_offset || resume_from_byte >= chunk_end
         }) {
             return Some(format!(
                 "download chunk resume offset outside range: {}",

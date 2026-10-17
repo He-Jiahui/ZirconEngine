@@ -8,7 +8,7 @@ use zircon_runtime::core::framework::animation::AnimationPoseOutput;
 use zircon_runtime::core::{CoreHandle, ServiceCallGuard};
 use zircon_runtime::scene::EntityId;
 
-use super::clip_sample::sample_pose_requests;
+use super::clip_sample::sample_pose_requests_with_demand;
 use super::requests::PendingPoseSample;
 use super::AnimationEvaluationPipeline;
 use crate::AnimationClipEvaluator;
@@ -46,6 +46,7 @@ pub struct DirectClipWorkerStats {
 struct DirectClipWorkerResult {
     evaluator: AnimationClipEvaluator,
     poses: BTreeMap<EntityId, AnimationPoseOutput>,
+    requires_continuous_frame: bool,
 }
 
 struct DirectClipWorkerTask {
@@ -60,9 +61,18 @@ pub(super) fn sample_direct_clip_pose_requests(
     asset_manager: Arc<ServiceCallGuard<ProjectAssetManager>>,
     pending_samples: Vec<PendingPoseSample>,
 ) -> BTreeMap<EntityId, AnimationPoseOutput> {
+    sample_direct_clip_pose_requests_with_demand(core, pipeline, asset_manager, pending_samples).0
+}
+
+pub(super) fn sample_direct_clip_pose_requests_with_demand(
+    core: &CoreHandle,
+    pipeline: &mut AnimationEvaluationPipeline,
+    asset_manager: Arc<ServiceCallGuard<ProjectAssetManager>>,
+    pending_samples: Vec<PendingPoseSample>,
+) -> (BTreeMap<EntityId, AnimationPoseOutput>, bool) {
     if pending_samples.is_empty() {
         pipeline.record_direct_clip_worker_batches(std::iter::empty(), 0);
-        return BTreeMap::new();
+        return (BTreeMap::new(), false);
     }
 
     let shard_count = core
@@ -84,8 +94,13 @@ pub(super) fn sample_direct_clip_pose_requests(
         let (result_sender, result_receiver) = sync_channel(1);
         let _ = core.scheduler().schedule(move || {
             evaluator.bind_resources(&asset_manager.resource_manager());
-            let poses = sample_pose_requests(&mut evaluator, asset_manager.as_ref(), batch);
-            let _ = result_sender.send(DirectClipWorkerResult { evaluator, poses });
+            let (poses, requires_continuous_frame) =
+                sample_pose_requests_with_demand(&mut evaluator, asset_manager.as_ref(), batch);
+            let _ = result_sender.send(DirectClipWorkerResult {
+                evaluator,
+                poses,
+                requires_continuous_frame,
+            });
         });
         tasks.push(DirectClipWorkerTask {
             shard_index,
@@ -94,6 +109,7 @@ pub(super) fn sample_direct_clip_pose_requests(
     }
 
     let mut poses = BTreeMap::new();
+    let mut requires_continuous_frame = false;
     for task in tasks {
         let result = task.result.recv().unwrap_or_else(|_| {
             panic!(
@@ -103,8 +119,9 @@ pub(super) fn sample_direct_clip_pose_requests(
         });
         pipeline.restore_direct_clip_worker_evaluator(task.shard_index, result.evaluator);
         poses.extend(result.poses);
+        requires_continuous_frame |= result.requires_continuous_frame;
     }
-    poses
+    (poses, requires_continuous_frame)
 }
 
 #[cfg(test)]

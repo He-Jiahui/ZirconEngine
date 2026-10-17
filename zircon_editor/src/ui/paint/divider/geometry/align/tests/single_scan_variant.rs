@@ -80,7 +80,8 @@ fn optimization_batch_20260829bq_editor289_divider_text_align_preserves_results(
 
 #[test]
 fn optimization_batch_20260829bq_editor289_divider_text_align_uses_one_scan() {
-    let source = include_str!("../../../../../contract/paint/divider/geometry/label_bounds/align.rs");
+    let source =
+        include_str!("../../../../../contract/paint/divider/geometry/label_bounds/align.rs");
     let production = source.split_once("#[cfg(test)]").expect("test boundary").0;
     assert!(production.contains("for part in component_variant.split"));
     assert!(production.contains("has_right"));

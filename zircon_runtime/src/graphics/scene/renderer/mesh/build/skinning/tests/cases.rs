@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 use super::{
     prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
-    skin_mesh_asset_primitive, skin_model_primitive, SkinnedMeshJointPalette,
+    prepare_skinned_owned_model_primitive, skin_mesh_asset_primitive, skin_model_primitive,
+    skin_owned_model_primitive_with_palette, SkinnedMeshJointPalette,
 };
 use crate::asset::{
     AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshVertex,
@@ -16,7 +17,72 @@ use crate::core::framework::animation::{
 use crate::core::framework::animation::{AnimationSkeletonAsset, AnimationSkeletonBoneAsset};
 use crate::core::framework::render::RenderMeshTopology;
 use crate::core::math::{Quat, Transform, Vec2, Vec3};
-use crate::graphics::scene::scene_renderer::mesh::skinning::SKINNED_MESH_MAX_JOINT_MATRICES;
+use crate::graphics::scene::scene_renderer::mesh::skinning::{
+    SkinnedMeshJointPaletteStorage, SKINNED_MESH_MAX_JOINT_MATRICES,
+};
+
+#[test]
+fn owned_skinning_reuses_vertex_and_index_allocations() {
+    let primitive = memory_test_primitive();
+    let vertex_pointer = primitive.vertices.as_ptr();
+    let index_pointer = primitive.indices.as_ptr();
+    let palette = SkinnedMeshJointPalette::from_skeleton_pose(
+        &unit_test_skeleton(),
+        &joint_quarter_turn_pose(),
+    )
+    .unwrap();
+
+    let skinned = skin_owned_model_primitive_with_palette(primitive, &palette);
+
+    assert_eq!(skinned.vertices.as_ptr(), vertex_pointer);
+    assert_eq!(skinned.indices.as_ptr(), index_pointer);
+    assert_eq!(skinned.indices, [0]);
+    assert!(Vec3::from_array(skinned.vertices[0].position)
+        .abs_diff_eq(Vec3::new(1.0, 1.0, 0.0), 1.0e-4));
+}
+
+#[test]
+fn owned_skinning_preparation_retains_source_allocations() {
+    let primitive = memory_test_primitive();
+    let vertex_pointer = primitive.vertices.as_ptr();
+    let index_pointer = primitive.indices.as_ptr();
+    let palette = SkinnedMeshJointPalette::from_skeleton_pose(
+        &unit_test_skeleton(),
+        &joint_quarter_turn_pose(),
+    )
+    .unwrap();
+
+    let prepared = prepare_skinned_owned_model_primitive(primitive, &palette);
+
+    assert_eq!(
+        prepared.shader_skinning_source_primitive.vertices.as_ptr(),
+        vertex_pointer
+    );
+    assert_eq!(
+        prepared.shader_skinning_source_primitive.indices.as_ptr(),
+        index_pointer
+    );
+    assert_eq!(
+        prepared.shader_skinning_source_primitive.vertices[0].position,
+        [2.0, 0.0, 0.0]
+    );
+    assert!(Vec3::from_array(prepared.primitive.vertices[0].position)
+        .abs_diff_eq(Vec3::new(1.0, 1.0, 0.0), 1.0e-4));
+    assert!(prepared.joint_palette_storage.is_some());
+}
+
+fn memory_test_primitive() -> ModelPrimitiveAsset {
+    ModelPrimitiveAsset {
+        vertices: vec![
+            MeshVertex::new(Vec3::new(2.0, 0.0, 0.0), Vec3::X, Vec2::ZERO)
+                .with_skinning([1, 0, 0, 0], [1.0, 0.0, 0.0, 0.0]),
+        ],
+        indices: vec![0],
+        mesh: None,
+        mesh_sdf: None,
+        virtual_geometry: None,
+    }
+}
 
 #[test]
 fn joint_palette_composes_pose_world_against_bind_world_matrices() {
@@ -69,27 +135,20 @@ fn joint_palette_storage_packs_gpu_matrices_and_count() {
 
     assert_eq!(storage.joint_count(), 2);
     assert_eq!(
-        storage.joint_matrices()[1],
-        palette.matrices()[1].to_cols_array_2d()
-    );
-    assert_eq!(
-        storage.joint_matrices()[2],
-        crate::core::math::Mat4::IDENTITY.to_cols_array_2d(),
-        "unused joint slots stay identity so accidental zero-weight reads are neutral"
+        storage.joint_matrices(),
+        &[
+            palette.matrices()[0].to_cols_array_2d(),
+            palette.matrices()[1].to_cols_array_2d(),
+        ],
+        "the snapshot contains exactly the active matrices, with no padded slots"
     );
 }
 
 #[test]
 fn joint_palette_storage_rejects_current_storage_limit_overflow() {
-    let palette = SkinnedMeshJointPalette {
-        joint_matrices: vec![
-            crate::core::math::Mat4::IDENTITY;
-            SKINNED_MESH_MAX_JOINT_MATRICES + 1
-        ],
-    };
-
-    let error = palette
-        .to_storage()
+    let joint_matrices =
+        vec![crate::core::math::Mat4::IDENTITY; SKINNED_MESH_MAX_JOINT_MATRICES + 1];
+    let error = SkinnedMeshJointPaletteStorage::from_matrices(&joint_matrices)
         .expect_err("expected oversized palette to reject the fixed storage ABI");
 
     assert!(
@@ -392,4 +451,21 @@ fn joint_quarter_turn_pose() -> AnimationPoseOutput {
             },
         ],
     }
+}
+
+#[test]
+fn multiple_primitives_share_the_same_pose_snapshot() {
+    let palette = SkinnedMeshJointPalette::from_skeleton_pose(
+        &unit_test_skeleton(),
+        &joint_quarter_turn_pose(),
+    )
+    .unwrap();
+    let first =
+        super::prepare_skinned_model_primitive_with_palette(&memory_test_primitive(), &palette);
+    let second =
+        super::prepare_skinned_model_primitive_with_palette(&memory_test_primitive(), &palette);
+    assert!(std::sync::Arc::ptr_eq(
+        first.joint_palette_storage.as_ref().unwrap(),
+        second.joint_palette_storage.as_ref().unwrap()
+    ));
 }

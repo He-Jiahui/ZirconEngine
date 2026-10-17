@@ -8,7 +8,7 @@ use crate::core::jobs::JobId;
 use crate::core::logging::{LogJump, LogRecord, LogSeverity, LogSource};
 use crate::core::notifications::{
     present_progress, present_toast, LocalizedProgressNotification, LocalizedToastNotification,
-    ProgressNotificationSnapshot, ToastNotificationSnapshot, ToastSeverity,
+    ProgressNotificationSnapshot, ToastNotificationSnapshot, ToastSeverity, ToastDeliverySnapshot,
 };
 
 use super::slot::ActivityDrawerSlotPreference;
@@ -19,8 +19,10 @@ pub(crate) struct ActivityToastView {
     title: String,
     message: String,
     severity: ToastSeverity,
-    expires_at: Duration,
+    expires_at: Option<Duration>,
     remaining_lifetime: Duration,
+    delivery_token: Option<u64>,
+    awaiting_presentation: bool,
 }
 
 impl ActivityToastView {
@@ -36,8 +38,10 @@ impl ActivityToastView {
             title: title.into(),
             message: message.into(),
             severity,
-            expires_at,
+            expires_at: Some(expires_at),
             remaining_lifetime: expires_at,
+            delivery_token: None,
+            awaiting_presentation: false,
         }
     }
 
@@ -57,17 +61,45 @@ impl ActivityToastView {
         self.severity
     }
 
-    pub(crate) const fn expires_at(&self) -> Duration {
+    pub(crate) const fn expires_at(&self) -> Option<Duration> {
         self.expires_at
     }
 
     pub(crate) const fn remaining_lifetime(&self) -> Duration {
         self.remaining_lifetime
     }
+    pub(crate) const fn delivery_token(&self) -> Option<u64> { self.delivery_token }
+    pub(crate) const fn awaiting_presentation(&self) -> bool { self.awaiting_presentation }
 }
 
-pub(crate) fn activity_toast_views(
-    snapshots: &[ToastNotificationSnapshot],
+/// Supports the unchanged publish-timed center as well as service delivery snapshots.
+pub(crate) trait ActivityToastSnapshot {
+    fn activity_view(&self, i18n: &EditorI18nService, now: Duration) -> ActivityToastView;
+}
+impl ActivityToastSnapshot for ToastNotificationSnapshot {
+    fn activity_view(&self, i18n: &EditorI18nService, now: Duration) -> ActivityToastView {
+        activity_toast_view(&present_toast(self, i18n), now)
+    }
+}
+impl ActivityToastSnapshot for ToastDeliverySnapshot {
+    fn activity_view(&self, i18n: &EditorI18nService, now: Duration) -> ActivityToastView {
+        let notification = self.notification();
+        let locale = i18n.active_locale();
+        ActivityToastView {
+            id: notification.id().as_str().to_owned(),
+            title: i18n.translate_for_locale(&locale, notification.title_key()).to_string(),
+            message: i18n.translate_for_locale(&locale, notification.message_key()).to_string(),
+            severity: notification.severity(),
+            expires_at: self.expires_at(),
+            remaining_lifetime: self.remaining_lifetime_at(now),
+            delivery_token: Some(self.delivery_token()),
+            awaiting_presentation: self.expires_at().is_none(),
+        }
+    }
+}
+
+pub(crate) fn activity_toast_views<S: ActivityToastSnapshot>(
+    snapshots: &[S],
     i18n: &EditorI18nService,
     now: Duration,
 ) -> Vec<ActivityToastView> {
@@ -75,7 +107,7 @@ pub(crate) fn activity_toast_views(
     views.extend(
         snapshots
             .iter()
-            .map(|snapshot| activity_toast_view(&present_toast(snapshot, i18n), now)),
+            .map(|snapshot| snapshot.activity_view(i18n, now)),
     );
     views
 }

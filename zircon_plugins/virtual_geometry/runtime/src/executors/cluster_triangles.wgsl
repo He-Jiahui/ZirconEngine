@@ -1,7 +1,12 @@
 struct ClusterVertex {
     clip_position: vec4<f32>,
     cluster_id: u32,
-    padding: array<u32, 3>,
+    candidate_index: u32,
+    authority_index: u32,
+    instance_index: u32,
+    lineage_depth: u32,
+    frontier_rank: u32,
+    padding: array<u32, 2>,
 }
 
 struct VertexOutput {

@@ -6,9 +6,9 @@ const LOCK_UNWRAP_CALL: &str = concat!(".lock().", "unwrap()");
 
 #[test]
 fn runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_binding_registry() {
-    let bridge_methods =
-        read_runtime_src("plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs");
-    let structure_parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
+    let bridge_methods = read_runtime_src("plugin/loader/live/bridge_methods.rs");
+    let structure_parent = read_runtime_src("tests/contracts/structure.rs");
+    let bridge_tests = read_runtime_src("plugin/loader/live/tests/bridge_methods.rs");
 
     assert_contains_all_exact(
         "native live host bridge methods poison recovery",
@@ -20,14 +20,18 @@ fn runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_
             "MutexGuard<'_, NativePluginLiveRegistry<ValidatedRuntimeBridgeMethodBindings>>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "self.lock_runtime_bridge_method_bindings()",
-            "native_live_host_bridge_method_bindings_recover_poisoned_lock",
         ],
+    );
+    assert_contains_all_exact(
+        "native live host binding recovery test",
+        &bridge_tests,
+        &["native_live_host_bridge_method_bindings_recover_poisoned_lock"],
     );
     assert_contains_all_exact(
         "native live host lock poison guard mount",
         &structure_parent,
         &[
-            "#[path = \"structure_convention/native_live_host_lock_poison.rs\"]",
+            "#[path = \"structure/native_live_host_lock_poison.rs\"]",
             "mod native_live_host_lock_poison;",
         ],
     );

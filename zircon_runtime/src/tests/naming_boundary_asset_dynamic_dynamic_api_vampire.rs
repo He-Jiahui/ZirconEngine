@@ -72,7 +72,7 @@ fn runtime_15_asset_dynamic_dynamic_api_vampire_guard_is_child_owner() {
     let current_anchor_owner = read_repo(
         "docs/plans/zircon_runtime/runtime/15/2026-07-19-dynamic-api-filter-plan-anchor-current-owner.md",
     );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert_contains_all_exact(
         "Runtime 15 dynamic-API filter current child owner",

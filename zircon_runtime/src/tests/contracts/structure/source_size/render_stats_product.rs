@@ -14,13 +14,13 @@ fn runtime_15_render_stats_product_diagnostics_tests_are_child_owners() {
     let mesh_gpu_scene = read_runtime_src(
         "core/runtime/diagnostics/render_stats_store/product/tests/mesh_gpu_scene.rs",
     );
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let large_file_doc = read_repo("docs/engine-architecture/large-file-ownership-m1.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _large_file_doc = read_repo("docs/engine-architecture/large-file-ownership-m1.md");
 
     assert_contains_all(
         "render-stats product parent mounts test child owner",

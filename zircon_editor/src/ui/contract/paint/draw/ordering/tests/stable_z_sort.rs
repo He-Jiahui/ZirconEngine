@@ -22,7 +22,8 @@ fn optimization_batch_20260826el_editor127_host_paint_sort_preserves_equal_z_ord
 
 #[test]
 fn optimization_batch_20260826el_editor127_host_paint_sort_drops_redundant_indices() {
-    let source = include_str!("../../../../../retained/contract/paint/render_commands/draw/ordering.rs");
+    let source =
+        include_str!("../../../../../retained/contract/paint/render_commands/draw/ordering.rs");
     let helper_start = source.find("fn fallback_ordered_commands").unwrap();
     let helper_end = source[helper_start..]
         .find("fn z_indices_are_ordered")

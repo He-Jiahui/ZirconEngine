@@ -13,6 +13,7 @@ use super::{ProductConfigSource, ProductRoleRequest};
 pub struct EntryConfig {
     pub(super) role: ProductRoleRequest,
     pub(super) runtime_profile: Option<RuntimeProfileId>,
+    pub(super) runtime_plugin_minimum_maturity: Option<zircon_runtime::plugin::PluginMaturity>,
     pub(super) target_mode: Option<RuntimeTargetMode>,
     pub(super) project_plugins: Option<ProjectPluginManifest>,
     pub(super) project_plugins_source: Option<ProductConfigSource>,

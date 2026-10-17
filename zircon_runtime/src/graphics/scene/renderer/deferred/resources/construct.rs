@@ -10,7 +10,7 @@ use crate::graphics::scene::scene_renderer::environment::{
 use crate::graphics::scene::scene_renderer::shadow::slot::{GpuShadowGlobals, GpuShadowSlot};
 use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::types::GraphicsError;
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 use wgpu::util::DeviceExt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

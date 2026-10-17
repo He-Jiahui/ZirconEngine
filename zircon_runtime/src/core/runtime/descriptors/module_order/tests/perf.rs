@@ -46,6 +46,7 @@ fn optimization_batch_im_runtime623_module_closures_preallocate_graph_membership
     assert_eq!(production.matches("if !closure.insert(current)").count(), 2);
 }
 
+// 该微基准只比较闭包成员集合的预分配；生产闭包的关联由上方源码谓词核对。
 #[test]
 #[ignore = "release performance evidence"]
 fn optimization_batch_im_runtime623_preallocated_module_closure_performance_evidence() {

@@ -1,10 +1,14 @@
 use std::collections::{HashMap, VecDeque};
 use std::time::Duration;
 
+#[cfg(feature = "test-support")]
+use crate::core::framework::render::RenderVirtualGeometryReadbackOutputs;
 use crate::core::framework::render::{
     FrameHistoryHandle, RenderFrameSubmissionReceipt, RenderGpuTimingStatus, RenderMeshBounds,
     RenderMeshSnapshot, RenderMeshSubmissionProfile,
 };
+#[cfg(feature = "test-support")]
+use crate::graphics::VirtualGeometryGpuCompletion;
 
 use super::super::scene_renderer_core::SceneRendererCore;
 use super::super::scene_submission_completion_journal::SceneSubmissionCompletionJournal;
@@ -75,6 +79,14 @@ pub struct SceneRenderer {
         SceneRendererFrameTimingReport,
     pub(in crate::graphics::scene::scene_renderer::core) advanced_plugin_outputs:
         SceneRendererAdvancedPluginOutputs,
+    #[cfg(feature = "test-support")]
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_readback_for_test:
+        Option<RenderVirtualGeometryReadbackOutputs>,
+    #[cfg(feature = "test-support")]
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_completion_for_test:
+        Option<VirtualGeometryGpuCompletion>,
+    pub(in crate::graphics::scene::scene_renderer::core) virtual_geometry_native_handoff:
+        Vec<crate::graphics::scene::VirtualGeometryTicketedReadback>,
     // The backend owns the submission timeline and device generation, so it must drop last.
     pub(in crate::graphics::scene::scene_renderer::core) backend: RenderBackend,
 }
@@ -180,6 +192,8 @@ pub enum SceneRendererDeferredLightingProfile {
     StandardPbrPreview,
     /// Viewer-only Standard PBR path with IBL and emissive but no direct lights.
     EnvironmentOnlyPbrPreview,
+    /// Environment-lit opaque geometry and screen-space UI with deferred optional resources.
+    PortableScene,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -189,27 +203,33 @@ pub(in crate::graphics::scene::scene_renderer::core) enum ScenePostProcessStartu
 }
 
 impl SceneRendererDeferredLightingProfile {
+    pub(in crate::graphics::scene::scene_renderer) const fn uses_environment_only_lighting(
+        self,
+    ) -> bool {
+        matches!(self, Self::EnvironmentOnlyPbrPreview | Self::PortableScene)
+    }
+
     pub(in crate::graphics::scene::scene_renderer) const fn uses_gpu_scene(self) -> bool {
-        !matches!(self, Self::EnvironmentOnlyPbrPreview)
+        !self.uses_environment_only_lighting()
     }
 
     pub(in crate::graphics::scene::scene_renderer) const fn uses_full_lighting_bind_group(
         self,
     ) -> bool {
-        !matches!(self, Self::EnvironmentOnlyPbrPreview)
+        !self.uses_environment_only_lighting()
     }
 
     /// The fixed environment preview still uses GPU scene transforms, but its specialized
     /// shader has no direct-light consumer or light-buffer lookup.
     pub(in crate::graphics::scene::scene_renderer::core) const fn uses_direct_lights(self) -> bool {
-        !matches!(self, Self::EnvironmentOnlyPbrPreview)
+        !self.uses_environment_only_lighting()
     }
 
     /// Particle, sprite and HZB resources are irrelevant to the fixed PBR viewer scene.
     pub(in crate::graphics::scene::scene_renderer) const fn uses_auxiliary_scene_effects(
         self,
     ) -> bool {
-        !matches!(self, Self::EnvironmentOnlyPbrPreview)
+        !self.uses_environment_only_lighting()
     }
 
     /// A compiled scene graph can schedule arbitrary effects, while the fixed PBR viewer
@@ -235,7 +255,9 @@ impl SceneRendererDeferredLightingProfile {
     ) -> ScenePostProcessStartupMode {
         match self {
             Self::FullScene | Self::StandardPbrPreview => ScenePostProcessStartupMode::Full,
-            Self::EnvironmentOnlyPbrPreview => ScenePostProcessStartupMode::OutputTransferOnly,
+            Self::EnvironmentOnlyPbrPreview | Self::PortableScene => {
+                ScenePostProcessStartupMode::OutputTransferOnly
+            }
         }
     }
 
@@ -248,13 +270,13 @@ impl SceneRendererDeferredLightingProfile {
     pub(in crate::graphics::scene::scene_renderer::core) const fn defers_local_reflection_provider_resources(
         self,
     ) -> bool {
-        matches!(self, Self::EnvironmentOnlyPbrPreview)
+        self.uses_environment_only_lighting()
     }
 
     pub(in crate::graphics::scene::scene_renderer::core) const fn uses_full_shadow_atlas_resources(
         self,
     ) -> bool {
-        !matches!(self, Self::EnvironmentOnlyPbrPreview)
+        !self.uses_environment_only_lighting()
     }
 
     /// Shadow-map recording exists only in the compiled scene graph, which the fixed viewer
@@ -270,7 +292,7 @@ impl SceneRendererDeferredLightingProfile {
     pub(in crate::graphics::scene::scene_renderer::core) const fn uses_interaction_overlays(
         self,
     ) -> bool {
-        !matches!(self, Self::EnvironmentOnlyPbrPreview)
+        !self.uses_environment_only_lighting()
     }
 }
 
@@ -284,6 +306,13 @@ pub struct SceneRendererStartupOptions {
 }
 
 impl SceneRendererStartupOptions {
+    pub const fn portable_scene() -> Self {
+        Self {
+            deferred_lighting_profile: SceneRendererDeferredLightingProfile::PortableScene,
+            ..Self::environment_only_pbr_preview()
+        }
+    }
+
     pub const fn standard_pbr_preview() -> Self {
         Self {
             deferred_lighting_profile: SceneRendererDeferredLightingProfile::StandardPbrPreview,
@@ -346,6 +375,7 @@ impl SceneRendererStartupOptions {
         matches!(
             self.deferred_lighting_profile,
             SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+                | SceneRendererDeferredLightingProfile::PortableScene
         ) && self.environment_only_base_prewarm
             && !self.async_pipeline_compile
     }
@@ -356,6 +386,7 @@ impl SceneRendererStartupOptions {
         matches!(
             self.deferred_lighting_profile,
             SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+                | SceneRendererDeferredLightingProfile::PortableScene
         ) && self.environment_only_base_prewarm
             && self.async_pipeline_compile
     }

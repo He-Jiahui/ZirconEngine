@@ -5,6 +5,7 @@ use crate::graphics::types::GraphicsError;
 use zr_rhi::{DeviceGeneration, DeviceId};
 
 use super::super::super::deferred::DeferredSceneResources;
+#[cfg(feature = "native-host")]
 use super::super::super::environment::ibl_bake_runtime_writeback::IblBakeRuntimeGraphWritebackQueue;
 use super::super::super::environment::realtime_ibl_capture_wgpu::RealtimeIblCaptureWgpuPipelines;
 use super::super::super::environment::realtime_ibl_time_slice::IblRealtimeBufferSlot;
@@ -72,6 +73,8 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core) neutral_graph_buffers:
         SceneRendererNeutralGraphBuffers,
     pub(in crate::graphics::scene::scene_renderer::core) gpu_scene: GpuScene,
+    #[cfg(target_arch = "wasm32")]
+    pub(in crate::graphics::scene::scene_renderer::core) browser_scene_history_pending: bool,
     pub(in crate::graphics::scene::scene_renderer::core) hit_proxy_resources:
         SceneHitProxyResources,
     pub(in crate::graphics::scene::scene_renderer::core) hzb_occlusion_culler:
@@ -97,6 +100,8 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core) transient_resource_pool:
         TransientResourcePool,
     pub(in crate::graphics::scene::scene_renderer::core) diagnostic_frame_index: u64,
+    #[cfg(feature = "native-host")]
+    #[cfg(feature = "native-host")]
     pub(in crate::graphics::scene::scene_renderer::core) ibl_bake_runtime_writebacks:
         IblBakeRuntimeGraphWritebackQueue,
     pub(in crate::graphics::scene::scene_renderer::core) advanced_plugin_resources:

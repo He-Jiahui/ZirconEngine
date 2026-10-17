@@ -18,6 +18,8 @@ FOCUSED_SCOPE = "explicit-current-Jenkins-support-pytest-modules"
 SCOPED_SCOPE = "baseline-plus-focused-Jenkins-support"
 _TESTS = "tools/jenkins/tests/"
 _CLOSURE = {
+    "startup_observations.py": ("test_runtime_owner_inventory.py", "test_abandoned_startup.py"),
+    "runtime_roles.py": ("test_runtime_roles.py",),
     "drain_observations.py": ("test_drain_observations.py",),
     "bootstrap.py": ("test_agent_bootstrap_protocol.py", "test_agent_bootstrap_timeout.py", "test_agent_node_migration.py"),
     "execution_activation.py": ("test_execution_activation.py", "test_execution_recovery.py"),
@@ -34,6 +36,7 @@ _CLOSURE = {"tools/jenkins/deployment/" + name: {_TESTS + test for test in tests
 _CLOSURE["tools/jenkins/tray/formal_startup.py"] = {"tools/jenkins/tray/tests/test_formal_safety.py"}
 _CLOSURE["tools/dev/jenkins_desktop_tray.py"] = {_TESTS + "test_desktop_tray.py"}
 _ALLOWED_TESTS = set().union(*_CLOSURE.values())
+_EXPANDED_FULL_ROOTS = ('tools/jenkins/tests', 'tools/jenkins/tray/tests', 'tools/jenkins/governance/tests.py', 'tools/jenkins-management/tests/test_checkout_validation.py', 'tools/jenkins-management/tests/test_entry_bootstrap.py', 'tools/jenkins-management/tests/test_ordinary_flow.py', 'tools/jenkins-management/tests/test_toolchain_facts.py', 'tools/tests/test_build_editor_independent.py', 'tools/tests/test_jenkins_checkout_product.py', 'tools/jenkins-management/tests/test_authorization_owner.py', 'tools/tests/test_jenkins_editor_source_root.py', 'tools/tests/test_jenkins_editor_entry.py', 'tools/tests/test_install_jenkins_management_codex_migration.py')
 _SPECS = {".jenkins/deployment-spec.json", ".jenkins/workflow-spec.json"}
 
 
@@ -163,7 +166,8 @@ def _scoped(repo, root, receipt, *, depth=0):
         before = _scoped(repo, root, base, depth=depth + 1)
     else:
         before = _passing(root, base, FULL_SCOPE)
-        _need(base.get("testRoots") == [str(repo / "tools/jenkins/tests"), str(repo / "tools/jenkins/tray/tests")],
+        _need(base.get("testRoots") in ([str(repo / "tools/jenkins/tests"), str(repo / "tools/jenkins/tray/tests")],
+                                       [str(repo / name) for name in _EXPANDED_FULL_ROOTS]),
               "Scoped reuse requires the original complete support discovery roots")
         _results(base, focused=False)
     focused = _reference(root, receipt.get("focusedRegression"))

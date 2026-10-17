@@ -6,9 +6,9 @@ use zircon_runtime::core::framework::net::{
     SyncReplicationScheduleReport,
 };
 
-use super::NetReplicationRuntimeManager;
 use super::budget::update_interval_ms;
 use super::snapshot::snapshot_payload_bytes;
+use super::NetReplicationRuntimeManager;
 
 #[derive(Clone, Debug)]
 struct ScheduledSnapshotCandidate {

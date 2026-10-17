@@ -1,0 +1,1533 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "C003",
+  "reviewer": "main",
+  "at_utc": "2026-10-14T17:00:49.435042+00:00",
+  "status": "accepted-local-review-and-scoped-static-validation",
+  "scope": "10 exact files; session contract historical revalidation and full budget graph/value review with related tests",
+  "source_files_modified": [
+    "zircon_runtime_interface/src/reflect/reflected_value.rs"
+  ],
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+      "sha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "lines": 76,
+      "objects_and_members_reviewed": [
+        "ZrRuntimeViewportCameraV1: abi_version, transform, projection_kind, fov_y_radians, ortho_size, z_near, z_far.",
+        "new: stores all seven inputs; no semantic admission."
+      ],
+      "blocks_and_call_contracts_reviewed": [
+        "Serde/constructor shape does not certify finite transform, normalized quaternion, nonzero scale, projection kind or clipping range.",
+        "Editor creates the DTO from the Simulate preview snapshot and holds encoded Vec until synchronous event handling returns. Runtime bounded-decodes then validates before copying into extraction/snapshot camera, without writing the Scene camera node."
+      ],
+      "all_objects_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-docs-and-explicit-assertions-adequate",
+      "review_status": "accepted-local-review",
+      "source_modified": false,
+      "declared_function_names": [
+        "new"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+      "sha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "lines": 149,
+      "objects_and_members_reviewed": [
+        "ZrRuntimeWakeSinkV1: abi_version/token/wake; disabled, new, is_valid.",
+        "ZrRuntimeSessionConfigV3: abi_version/profile/project_root/play_scene/play_report_pipe/wake_sink; empty, is_valid."
+      ],
+      "blocks_and_call_contracts_reviewed": [
+        "Wake validity checks V1 and either zero+None or nonzero+Some; it cannot prove function-address liveness or registration ownership.",
+        "Configuration byte slices are borrowed for synchronous create; the consumer parses owned configuration. The copied wake callback/token outlive create and require retained host registration until successful session teardown.",
+        "Config empty selects V3 and disabled wake. is_valid checks version and wake shape, not all text, profile or project semantics.",
+        "Runtime disables new wake entries, drains actions/callbacks, rejects outstanding allocation census and requires owner Joined before registry removal; failure retains retry state and host resources."
+      ],
+      "all_objects_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-docs-and-explicit-assertions-adequate",
+      "review_status": "accepted-local-review",
+      "source_modified": false,
+      "declared_function_names": [
+        "disabled",
+        "new",
+        "is_valid",
+        "empty",
+        "is_valid"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+      "sha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "lines": 155,
+      "objects_and_members_reviewed": [
+        "GatewaySessionIdentity: runtime_instance, runtime_session, gateway_generation, transport_epoch, project, play_instance.",
+        "new/detached; runtime_instance/runtime_session/gateway_generation/transport_epoch/project/play_instance getters; with_gateway_generation/with_play_instance.",
+        "Derived Clone/Debug/PartialEq/Eq/Hash include every identity dimension."
+      ],
+      "blocks_and_call_contracts_reviewed": [
+        "The value separates provider instance, raw ABI session, publication generation, transport and optional project/play identity. No numerical validity or session liveness is established by construction.",
+        "Only project Arc<str> owns shared text; identity does not hold Library/session resources. Builders consume the value and leave other dimensions intact.",
+        "App begins transport epoch at 1; publication/admission users must retain the complete identity rather than only raw handle."
+      ],
+      "all_objects_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-docs-and-explicit-assertions-adequate",
+      "review_status": "accepted-local-review",
+      "source_modified": false,
+      "declared_function_names": [
+        "new",
+        "detached",
+        "runtime_instance",
+        "runtime_session",
+        "gateway_generation",
+        "transport_epoch",
+        "project",
+        "play_instance",
+        "with_gateway_generation",
+        "with_play_instance"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+      "sha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "lines": 208,
+      "objects_and_members_reviewed": [
+        "ZrRuntimeViewportSizeV1: width/height; new.",
+        "ZrRuntimeViewportMetricsV1: logical_size/device_scale_factor/physical_size; new.",
+        "ZrRuntimeNativeSurfaceTargetV1: abi_version/kind/window_handle/display_handle; none/win32.",
+        "ZrRuntimeBindViewportSurfaceRequestV1: abi_version/viewport/size/target; new."
+      ],
+      "blocks_and_call_contracts_reviewed": [
+        "All constructors wrap input; caller/consumer owns compatibility, scale/geometry and native resource admission.",
+        "Runtime bind consumer verifies request/target V1, requires the default viewport, clamps size to at least one pixel, accepts Win32 nonzero HWND and treats zero HINSTANCE as absent. This is not a live-window ownership probe.",
+        "Native handles are borrowed throughout binding; none is a descriptor placeholder and does not execute unbind.",
+        "Resize event carries copied physical size; metrics constructor does not check logical*scale consistency."
+      ],
+      "all_objects_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-docs-and-explicit-assertions-adequate",
+      "review_status": "accepted-local-review",
+      "source_modified": false,
+      "declared_function_names": [
+        "new",
+        "new",
+        "none",
+        "win32",
+        "new"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+      "sha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "lines": 96,
+      "objects_and_members_reviewed": [
+        "Private module mounts: app_session_configuration_v2, camera, editor_transform, editor_transform_tests, events, ime_composition_capability_v2, ime_composition_v2, operation, plugin_event_mirror, requests, session, session_identity, translated_events, viewport, session_identity_tests.",
+        "Corresponding public re-export declarations and cfg(test) test mounts; each actual module source resolved."
+      ],
+      "blocks_and_call_contracts_reviewed": [
+        "This module is a facade for session-related types; module declarations/reexports do not create sessions, install a runtime API or execute FFI.",
+        "All named source modules/test mounts were resolved in the checkout. They are context only unless listed in this exact batch."
+      ],
+      "all_objects_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-docs-and-explicit-assertions-adequate",
+      "review_status": "accepted-local-review",
+      "source_modified": false,
+      "declared_function_names": [],
+      "module_mounts": [
+        "app_session_configuration_v2",
+        "camera",
+        "editor_transform",
+        "editor_transform_tests",
+        "events",
+        "ime_composition_capability_v2",
+        "ime_composition_v2",
+        "operation",
+        "plugin_event_mirror",
+        "requests",
+        "session",
+        "session_identity",
+        "translated_events",
+        "viewport",
+        "session_identity_tests"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/value_budget.rs",
+      "sha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "lines": 159,
+      "objects_and_members_reviewed": [
+        "ReflectValueBudget: max_depth/max_nodes/max_string_bytes/max_container_entries; new and four by-value getters.",
+        "ReflectValueFloatKind: Scalar/Vec2/Vec3/Vec4/Quaternion.",
+        "ReflectValueBudgetDimension: Depth/Nodes/StringBytes.",
+        "ReflectValueValidationError: depth/node/string/container limits, arithmetic overflow dimension and nonfinite kind/component variants plus all payload fields."
+      ],
+      "blocks_and_call_contracts_reviewed": [
+        "Constructor records four independent usize limits, including zero; it does not install a Runtime default or a global budget.",
+        "The limits apply to an already constructed borrowed value graph; they are distinct from serialized bytes, parse-time allocation, schema, field type, permissions or resource resolution.",
+        "Errors report the first traversal failure and own diagnostic numbers, not a partial mutated value."
+      ],
+      "all_objects_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-docs-and-explicit-assertions-adequate",
+      "review_status": "accepted-local-review",
+      "source_modified": false,
+      "declared_function_names": [
+        "new",
+        "max_depth",
+        "max_nodes",
+        "max_string_bytes",
+        "max_container_entries"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+      "sha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "lines": 28,
+      "objects_and_members_reviewed": [
+        "gateway_session_identity_preserves_runtime_owner_and_editor_projection test."
+      ],
+      "blocks_and_call_contracts_reviewed": [
+        "Constructs identity with distinct runtime/session/generation/transport/play numbers and project Arc, then checks all six getters.",
+        "No real provider, gateway, session create, lifecycle or equality/hash isolation scenario is executed by the assertions."
+      ],
+      "all_objects_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-docs-and-explicit-assertions-adequate",
+      "review_status": "accepted-local-review",
+      "source_modified": false,
+      "declared_function_names": [
+        "gateway_session_identity_preserves_runtime_owner_and_editor_projection"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs",
+      "sha256": "680001c80b90bed6cf17118a8f47aa6b12a4df5dc6e5c392434a4b35aae241ff",
+      "lines": 131,
+      "objects_and_members_reviewed": [
+        "limits helper creates four explicit independent limits.",
+        "All five tests: getter preservation, mixed reflected/JSON tree success, four budget rejection dimensions, quaternion nonfinite component, additional JSON-wrapper depth."
+      ],
+      "blocks_and_call_contracts_reviewed": [
+        "Mixed-tree success proves admission under generous limits, not exact accounting at every boundary.",
+        "Depth 3 versus 2, node 3 versus 2, UTF-8 key/value byte sum 5 versus 4 and container length 2 versus 1 are independently asserted.",
+        "Quaternion NaN reports kind Quaternion and component 1; no claim covers every float-kind input.",
+        "JSON array root inside ReflectedValue::Json makes the child depth 3 and fails maximum 2. No arithmetic-overflow or parser-memory test occurs."
+      ],
+      "all_objects_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-docs-and-explicit-assertions-adequate",
+      "review_status": "accepted-local-review",
+      "source_modified": false,
+      "declared_function_names": [
+        "budget",
+        "reflected_value_budget_exposes_caller_owned_limits",
+        "reflected_value_budget_counts_reflected_and_embedded_json_graphs",
+        "reflected_value_budget_rejects_each_bounded_dimension",
+        "reflected_value_budget_rejects_non_finite_vector_components",
+        "embedded_json_root_is_a_child_of_the_reflected_json_wrapper"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/value_validation.rs",
+      "sha256": "a23fdbb38a4037caa9226bd7c3b8abd5b79a21e4642867abdc9992fea9fe5882",
+      "lines": 333,
+      "objects_and_members_reviewed": [
+        "PendingValue borrowed Reflected/Json variants and depth payloads.",
+        "ReflectedValue::validate_with_budget; validate_reflected; validate_json.",
+        "ValidationState nodes/string_bytes and Default; visit/add_string.",
+        "validate_container; child_depth; validate_finite."
+      ],
+      "blocks_and_call_contracts_reviewed": [
+        "Each call initializes private counters and a root at depth 1; a LIFO Vec stores borrowed children without mutating input.",
+        "Each pop visits depth/node count before kind-specific checks. Reverse insertion preserves container traversal order.",
+        "Reflected scalar/vector/quaternion finite checks return the first bad component; string/enum/resource text and all map/object keys add UTF-8 bytes.",
+        "List/map and JSON array/object enforce per-container entry limits, then depth before scheduling children. JSON wrapper contributes an additional node/depth.",
+        "Node/string/depth checked_add errors precede updated counter publication. Local intermediate state is discarded on error.",
+        "The explicit stack avoids recursive validator calls but is not an allocation cap for the preexisting graph, JSON parser or queued children."
+      ],
+      "all_objects_and_blocks_read_by_main": true,
+      "annotation_decision": "no-addition-existing-docs-and-explicit-assertions-adequate",
+      "review_status": "accepted-local-review",
+      "source_modified": false,
+      "declared_function_names": [
+        "validate_with_budget",
+        "validate_reflected",
+        "validate_json",
+        "visit",
+        "add_string",
+        "validate_container",
+        "child_depth",
+        "validate_finite"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/reflected_value.rs",
+      "sha256": "8e16e84748660b8187d9865bf07854de34a61fd86253333f35467dc0cfd362c3",
+      "lines": 77,
+      "objects_and_members_reviewed": [
+        "ReflectedValue owned enum, serde tag=kind/content=value; sixteen variants Null/Bool/Integer/Unsigned/Scalar/String/Enum/Vec2/Vec3/Vec4/Quaternion/Entity/Resource/List/Map/Json and all payloads.",
+        "ReflectedValue::type_name exhaustive match returns static diagnostic labels."
+      ],
+      "blocks_and_call_contracts_reviewed": [
+        "Serde and enum construction describe value shape; budget validation is a separate inherent method and field conversion is ZrReflectValue.",
+        "Entity stores Option<u64> only; there is no entity/world/resource lifetime owner in this value. Resource stores text; schema and resolution checks belong to consumers.",
+        "type_name feeds mismatch/default-value diagnostics, not canonical ReflectTypePath identity."
+      ],
+      "all_objects_and_blocks_read_by_main": true,
+      "annotation_decision": "approved-draft-implemented-main-final-diff-reviewed",
+      "review_status": "accepted-local-review",
+      "source_modified": true,
+      "declared_function_names": [
+        "type_name"
+      ],
+      "reviewed_sha256": "8e16e84748660b8187d9865bf07854de34a61fd86253333f35467dc0cfd362c3"
+    }
+  ],
+  "historical_inputs": [
+    {
+      "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+      "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32"
+    },
+    {
+      "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+      "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9"
+    },
+    {
+      "path": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+      "sha256": "4a5807013f499b974ee2666dd474e76c6c9a286a0baa711e980dd62a76f2f66f"
+    },
+    {
+      "path": "docs/plans/source-comments/reviews/H001.json",
+      "sha256": "4a65ab82b82fadb25b59f245fc617f15582d35c087c4393de37a0540a95fc925"
+    }
+  ],
+  "historical_reuse_limits": [
+    "Historical source/comment and independent-review evidence is reused only after actual byte pins match; current public call contracts were rechecked by main at their relevant paths.",
+    "No historical coordinator/Git/native validation acceptance is inferred. No full-file coverage is awarded to 47 caller contexts.",
+    "Eight initially formatted files and two extension files have separate actual rustfmt/diff check receipts; source bytes match these receipts."
+  ],
+  "caller_reconciliation": {
+    "entries": [
+      {
+        "id": "CAM",
+        "path": "zircon_runtime/src/dynamic_api/camera_controller.rs",
+        "historical_review_sha256": "8ef920b817492b46ae453c98a05fca66b579f9d4604491793723000fd80ade35",
+        "current_sha256": "8ef920b817492b46ae453c98a05fca66b579f9d4604491793723000fd80ade35",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=CAM]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            201
+          ]
+        ],
+        "proven_relationships": [
+          "apply_editor_camera:51-61 在保存值前调用 validate_editor_camera:148-180；相同值返回 false。",
+          "validate 检查V1、变换有限性、scale绝对值最小值阈值、rotation长度平方容差；几何分支按投影种类检查，其余投影标量均有限且0<near<far。",
+          "apply_editor_camera_to_extract:63-70 与 apply_editor_camera_to_snapshot:183-197 只更新extract的相机描述，保留core_pipeline/exposure，不改Scene节点。"
+        ]
+      },
+      {
+        "id": "EVENT",
+        "path": "zircon_runtime/src/dynamic_api/session/events.rs",
+        "historical_review_sha256": "3de66fd03293517a05fd4e2361808dfba3a089336d50f45a012357c983ad450c",
+        "current_sha256": "3de66fd03293517a05fd4e2361808dfba3a089336d50f45a012357c983ad450c",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=EVENT]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            65
+          ],
+          [
+            75,
+            123
+          ],
+          [
+            146,
+            209
+          ]
+        ],
+        "proven_relationships": [
+          "handle_event:77-102 先要求DEFAULT_VIEWPORT，resize消费event.size。",
+          "handle_viewport_camera:180-200 bounded_json::decode以VIEWPORT_CAMERA_REQUEST_LIMIT及 |_|1 计数解码，再apply_editor_camera；解码/预算/语义错误各自返回状态。"
+        ]
+      },
+      {
+        "id": "SIM",
+        "path": "zircon_editor/src/ui/host/editor_host_event_controller/simulate_camera.rs",
+        "historical_review_sha256": "ceb340dd0999e588b54abcfc0311004640463aaa64b9879cc0228e1cc24f0e89",
+        "current_sha256": "ceb340dd0999e588b54abcfc0311004640463aaa64b9879cc0228e1cc24f0e89",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=SIM]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            57
+          ]
+        ],
+        "proven_relationships": [
+          "simulate_preview_camera:14-48 仅Simulate且附着Play world时取得编辑器camera snapshot，映射投影种类并new相机DTO；未有快照返回None。"
+        ]
+      },
+      {
+        "id": "ROUTE",
+        "path": "zircon_editor/src/core/play/controller/preview_routing.rs",
+        "historical_review_sha256": "e2bd9e0524a59e01315aa84093e5fa84c87d6132c99aed65e71bf5ffb25d9269",
+        "current_sha256": "e2bd9e0524a59e01315aa84093e5fa84c87d6132c99aed65e71bf5ffb25d9269",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=ROUTE]"
+        },
+        "historical_ranges": [
+          [
+            70,
+            142
+          ]
+        ],
+        "proven_relationships": [
+          "route_simulate_camera:88-137 在transition锁下确认Simulate/world/gateway；to_vec编码并检查字节预算，保留Vec直到handle_event_at_identity同步调用结束；构造viewport_camera事件。"
+        ]
+      },
+      {
+        "id": "SURFACE",
+        "path": "zircon_runtime/src/dynamic_api/surface.rs",
+        "historical_review_sha256": "5327ad19929a3fb955e4f1bec55be73a4f8429ee565536ba271f8c61cd29125a",
+        "current_sha256": "5327ad19929a3fb955e4f1bec55be73a4f8429ee565536ba271f8c61cd29125a",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=SURFACE]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            54
+          ]
+        ],
+        "proven_relationships": [
+          "render_surface_descriptor:10-39 分别验证request/target V1；仅Win32且HWND非0，hinstance0变None，width/height各max(1)；不查询句柄实际存活。"
+        ]
+      },
+      {
+        "id": "TARGET",
+        "path": "zircon_app/src/entry/runtime_entry_app/window_surface/native_target.rs",
+        "historical_review_sha256": "b47a6f5e546665e7403d068d78248e77fb78989caddbeb4f953d4a69a775b8b2",
+        "current_sha256": "b47a6f5e546665e7403d068d78248e77fb78989caddbeb4f953d4a69a775b8b2",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=TARGET]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            57
+          ]
+        ],
+        "proven_relationships": [
+          "runtime_native_surface_target:33-56 从借用Window取得window/display raw pair，仅Win32+Windows配对可创建target；hinstance缺失编码0。"
+        ]
+      },
+      {
+        "id": "BIND",
+        "path": "zircon_app/src/entry/runtime_entry_app/surface_present/binding.rs",
+        "historical_review_sha256": "73fa6ffac6d875a83d8a8b0c48cbf6a2793d33c30c48ea379aa9b8f7bdf19c51",
+        "current_sha256": "73fa6ffac6d875a83d8a8b0c48cbf6a2793d33c30c48ea379aa9b8f7bdf19c51",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=BIND]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            63
+          ]
+        ],
+        "proven_relationships": [
+          "bind_current_window_surface:18-24 clone宿主window引用；bind_window_surface:28-54 检查诊断模式/能力，取得target并把session viewport/size传入请求；attempted在FFI前置位。"
+        ]
+      },
+      {
+        "id": "APP",
+        "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+        "historical_review_sha256": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+        "current_sha256": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=APP]"
+        },
+        "historical_ranges": [
+          [
+            89,
+            225
+          ],
+          [
+            224,
+            274
+          ]
+        ],
+        "proven_relationships": [
+          "create_with_profile_and_project:126-205 将profile静态bytes及project/play借用字符串转为切片，借用贯穿同步create；成功状态及valid handle后new(runtime_instance,handle,1,projectArc)。",
+          "editor_gateway:91-115 把self Arc作为实际runtime_owner，完整identity单独传入；identity自身不保活会话。",
+          "try_destroy:224-244 先释放表面、调用destroy、ensure_status成功后才unregister wake、invalidate handle和runtime.take；失败保留资源。"
+        ]
+      },
+      {
+        "id": "HOSTWAKE",
+        "path": "zircon_app/src/entry/runtime_library/wake_registry.rs",
+        "historical_review_sha256": "534e8afb4004382ecf391c46af0d00ddc1b0c5ecb26c4d45cb73bcbbef13d8dc",
+        "current_sha256": "534e8afb4004382ecf391c46af0d00ddc1b0c5ecb26c4d45cb73bcbbef13d8dc",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=HOSTWAKE]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            109
+          ]
+        ],
+        "proven_relationships": [
+          "register_target:45-58 分配非0且不占用的token并保存Arc target；sink:60-62 new(token,trampoline)。",
+          "trampoline:85-93 catch_unwind包住token lookup，lookup clone Arc后释放registry锁才唤醒；unregister:70-76 删除路由，但既有克隆须等Runtime回调静止才可结束关联资源责任。"
+        ]
+      },
+      {
+        "id": "WAKE",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/wake_registration.rs",
+        "historical_review_sha256": "c111421756bc15681b53a74fbaf327c6be2116f0e0cdc18d6983b547f2577fe1",
+        "current_sha256": "c111421756bc15681b53a74fbaf327c6be2116f0e0cdc18d6983b547f2577fe1",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=WAKE]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            168
+          ]
+        ],
+        "proven_relationships": [
+          "from_abi:50-70 只验证V1及(0,None)/(nonzero,Some)配对后保存callback/token。",
+          "wake:72-90 enabled检查和inflight计数在锁内，释放该锁后调用复制的unsafe C函数；guard Drop:152-162 递减并notify。",
+          "channel_wake:92-97 克隆注册用于异步通知；disable:99-101 阻止新调用，wait:103-111 等已有调用；线程栈标识用于同会话同步销毁拒绝。"
+        ]
+      },
+      {
+        "id": "ACTIVITY",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/frame_activity.rs",
+        "historical_review_sha256": "2a0c57613a38b5d0e61834fa855cb91eb172ac38d05f63739ddbc10a38f4cb3b",
+        "current_sha256": "2a0c57613a38b5d0e61834fa855cb91eb172ac38d05f63739ddbc10a38f4cb3b",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=ACTIVITY]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            57
+          ]
+        ],
+        "proven_relationships": [
+          "RuntimeFrameActivity::disable_wake_entries/wait_for_wake_callbacks/callback_active依次转发至注册对象；唤醒与帧需求有独立状态。"
+        ]
+      },
+      {
+        "id": "DESTROY",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+        "historical_review_sha256": "216e26966462be7c7e036aecbc845add0260317a56525150bb751d7184d762ce",
+        "current_sha256": "a94f1038a2bb9fdce338f8c19564e4e9c2cabefe4d25ecace8f0410967d8174f",
+        "same_bytes_as_historical_review": false,
+        "relationship_evidence_mode": "changed-source-reconciled-by-main-current-affected-path-read",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=DESTROY]"
+        },
+        "historical_ranges": [
+          [
+            344,
+            405
+          ]
+        ],
+        "proven_relationships": [
+          "destroy_session_slot_with_timeout:350-402 同线程active callback先返回InvalidArgument；begin_close之后disable_wake_entries，先drain actions再drain wake callbacks；超时或未归还allocation preserve_failed_teardown_for_retry并返回失败。"
+        ],
+        "current_recheck": {
+          "range": [
+            450,
+            600
+          ],
+          "finding": "Current destroy rejects current-thread wake callback, closes admission, drains actions/wake, checks allocations, requires owner Joined, removes matching Arc/census under both locks; failures retain retry. Existing CR-SESSION-0001 remains unconfirmed about admissible external concurrency, not a new BUG."
+        }
+      },
+      {
+        "id": "FFI",
+        "path": "zircon_runtime/src/dynamic_api/session/ffi.rs",
+        "historical_review_sha256": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+        "current_sha256": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=FFI]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            165
+          ],
+          [
+            251,
+            306
+          ],
+          [
+            345,
+            407
+          ],
+          [
+            905,
+            924
+          ]
+        ],
+        "proven_relationships": [
+          "create_session:47-109 输出先置invalid，检查V3、wake配对、四切片预算，再解析profile与startup config并尝试创建；成功才发布handle。",
+          "bind_viewport_surface:345-368 先with_session admission，查两层version、DEFAULT_VIEWPORT，再descriptor/actualbind。",
+          "unbind:370-384 是独立操作；NONE target并非解绑。",
+          "capture/present分别在FFI内调用validate_frame_dimensions；905-915 用单维预算及u64饱和RGBA乘积预算，不把零尺寸误写成这里已拒绝。"
+        ]
+      },
+      {
+        "id": "PROFILE",
+        "path": "zircon_runtime/src/dynamic_api/session/profile.rs",
+        "historical_review_sha256": "7aeed46a2249997215d3fdff2ca299081cc9ef83c007e9303368ce88ffca88f6",
+        "current_sha256": "7aeed46a2249997215d3fdff2ca299081cc9ef83c007e9303368ce88ffca88f6",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=PROFILE]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            82
+          ]
+        ],
+        "proven_relationships": [
+          "from_bytes:26-35 空profile与b\"runtime\"均为Runtime；其余已列静态名称映射相应模式，未知None。"
+        ]
+      },
+      {
+        "id": "PROJECT",
+        "path": "zircon_runtime/src/dynamic_api/session/project.rs",
+        "historical_review_sha256": "4b801d1036577e6676a73fe725203c37d0ea85425f8ed8735071c3e7b945c77f",
+        "current_sha256": "4b801d1036577e6676a73fe725203c37d0ea85425f8ed8735071c3e7b945c77f",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=PROJECT]"
+        },
+        "historical_ranges": [
+          [
+            23,
+            162
+          ]
+        ],
+        "proven_relationships": [
+          "from_abi_slice:63-82 空root为None；checked_slice→UTF8→trim→resolve physical root。",
+          "from_abi_startup_config:84-115 先检查三切片；无root但非空play_scene/report为错误，有root则解析scene并验证report名称；config持有解析后的路径/相对scene，不保存输入裸指针；report transport属App。"
+        ]
+      },
+      {
+        "id": "EXPORT",
+        "path": "zircon_runtime/src/dynamic_api/exports.rs",
+        "historical_review_sha256": "fb6564729a8cc2457f7eb5b356bb4cfee3e359f39caad61d2f9fab1b3f5f23a8",
+        "current_sha256": "fb6564729a8cc2457f7eb5b356bb4cfee3e359f39caad61d2f9fab1b3f5f23a8",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=EXPORT]"
+        },
+        "historical_ranges": [
+          [
+            18,
+            107
+          ],
+          [
+            137,
+            160
+          ]
+        ],
+        "proven_relationships": [
+          "RUNTIME_API_V8:25-54 注册create/destroy/handle_event/bind/unbind/present等真实函数槽。",
+          "zircon_runtime_get_api_v8:56-75 宿主形状验证后返回静态表；create_session_ffi:92-97及bind/unbind:142-154 用catch_ffi_panic委派至FFI实现。"
+        ]
+      },
+      {
+        "id": "API",
+        "path": "zircon_runtime_interface/src/runtime_api/abi/api_table.rs",
+        "historical_review_sha256": "82064916edc1aa4a74821e3b3aa91c1775f071fc84570a68248d621747992856",
+        "current_sha256": "0329f195d190a8a1c539e47ade2365ecc1a0bae7514f5031421eed4be407e735",
+        "same_bytes_as_historical_review": false,
+        "relationship_evidence_mode": "changed-source-reconciled-by-main-current-affected-path-read",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=API]"
+        },
+        "historical_ranges": [
+          [
+            44,
+            86
+          ]
+        ],
+        "proven_relationships": [
+          "当前create alias:45-46 值传递V3 config及输出handle指针；bind:81-82 值请求加会话；unbind:85-86 独立viewport操作。",
+          "本批首次读曾为06d97bb681c596c958a28237c1fd5590ca8f88d70128a5b1aa67094487487a39/210行，此次为320行；该外部变化未由本agent写入，引用以本次快照为准，不恢复旧核心范围。"
+        ],
+        "current_recheck": {
+          "batch": "C001",
+          "record": "docs/plans/source-comments/reviews/C001-main.json",
+          "finding": "Current drift is this task exact nine documentation lines, independently verified byte removal recovers initial source; release admission/Closing/retry contract was re-traced."
+        }
+      },
+      {
+        "id": "HANDLE",
+        "path": "zircon_editor/src/core/gateway/handle.rs",
+        "historical_review_sha256": "589c4313f9a369060e0fec40b8c9b85c68ee01a6e340385ef06be8fd7d2443a8",
+        "current_sha256": "589c4313f9a369060e0fec40b8c9b85c68ee01a6e340385ef06be8fd7d2443a8",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=HANDLE]"
+        },
+        "historical_ranges": [
+          [
+            104,
+            213
+          ],
+          [
+            112,
+            203
+          ],
+          [
+            230,
+            279
+          ]
+        ],
+        "proven_relationships": [
+          "GatewayGeneration::new:115-129 从endpoint完整identity添加generation与play_instance；replace_for_play:150-163 锁住replacement后分配generation并发布Arc。",
+          "detach_at_identity:168-187 在同一replacement锁内比较完整值，错误返回StaleGeneration，成功发布detached generation。",
+          "with_world_at_identity:239-251 与mutable:259-271 取得同一个不可变lease并比较完整值后调用，replacement不会把原请求改发到新会话。"
+        ]
+      },
+      {
+        "id": "GATEWAY",
+        "path": "zircon_editor/src/core/gateway/session/gateway.rs",
+        "historical_review_sha256": "88faab5e235123154d281829f4a0fff212566e26a602cbabb62b44068336faec",
+        "current_sha256": "88faab5e235123154d281829f4a0fff212566e26a602cbabb62b44068336faec",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=GATEWAY]"
+        },
+        "historical_ranges": [
+          [
+            34,
+            127
+          ]
+        ],
+        "proven_relationships": [
+          "new_with_identity:59-98 先要求session valid且identity.runtime_session==session；实际runtime_owner Arc独立保活提供方。兼容new:39-54 以(0,session,0,None)创建基础identity，不证明new本身分配全局身份。"
+        ]
+      },
+      {
+        "id": "TRAIT",
+        "path": "zircon_editor/src/core/gateway/contract.rs",
+        "historical_review_sha256": "f51967115b4b45d83016dee3b784d478225e75e84b4aa75efffe2fb196484192",
+        "current_sha256": "f51967115b4b45d83016dee3b784d478225e75e84b4aa75efffe2fb196484192",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=TRAIT]"
+        },
+        "historical_ranges": [
+          [
+            217,
+            226
+          ]
+        ],
+        "proven_relationships": [
+          "EditorRuntimeGateway::session_identity:220-225 要求完整App/transport身份；detached仅用于故意无Runtime会话的endpoint，rawhandle可能被其他Runtime复用。"
+        ]
+      },
+      {
+        "id": "RESOURCE",
+        "path": "zircon_editor/src/core/play/preview_frame.rs",
+        "historical_review_sha256": "c7dad4d93adb43a16bd200f4c6feaada82bb8e425606c4e27de0a1128a3c6d57",
+        "current_sha256": "c7dad4d93adb43a16bd200f4c6feaada82bb8e425606c4e27de0a1128a3c6d57",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=RESOURCE]"
+        },
+        "historical_ranges": [
+          [
+            16,
+            69
+          ]
+        ],
+        "proven_relationships": [
+          "PlayPreviewFrameIdentity::resource_scope:45-65 使用全部六身份字段及frame/PIE尺寸代次组成来源scope；project借用str后仅格式化字符串。"
+        ]
+      },
+      {
+        "id": "DETACHED",
+        "path": "zircon_editor/src/core/gateway/detached.rs",
+        "historical_review_sha256": "d656ba7d2c97ffa8baae3023efee63bbd729b83e5ed27dda28442282bf0fb085",
+        "current_sha256": "d656ba7d2c97ffa8baae3023efee63bbd729b83e5ed27dda28442282bf0fb085",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=DETACHED]"
+        },
+        "historical_ranges": [
+          [
+            13,
+            22
+          ]
+        ],
+        "proven_relationships": [
+          "session_handle无效且session_identity:17-19 返回GatewaySessionIdentity::detached，不调用资源销毁。"
+        ]
+      },
+      {
+        "id": "INPROCESS",
+        "path": "zircon_editor/src/core/gateway/in_process.rs",
+        "historical_review_sha256": "04ed091822184dbd3b5b7400f9a5c43137af144ea5ba95504eeac55cafb8217b",
+        "current_sha256": "04ed091822184dbd3b5b7400f9a5c43137af144ea5ba95504eeac55cafb8217b",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=INPROCESS]"
+        },
+        "historical_ranges": [
+          [
+            77,
+            86
+          ]
+        ],
+        "proven_relationships": [
+          "此直接World endpoint的ABI session invalid，session_identity:81-83 返回detached；World访问生命由自己的gateway owner管理。"
+        ]
+      },
+      {
+        "id": "WIRE",
+        "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+        "historical_review_sha256": "b44a63486795ddbd2e28ff7bf5a174a25a689d1cfb287f0978b114328ef4cc09",
+        "current_sha256": "b44a63486795ddbd2e28ff7bf5a174a25a689d1cfb287f0978b114328ef4cc09",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=WIRE]"
+        },
+        "historical_ranges": [
+          [
+            4,
+            88
+          ]
+        ],
+        "proven_relationships": [
+          "ZrViewportEventV1::new at current lines 35-56 retains its original caller-visible scalar/default/payload construction contract without validation.",
+          "ZrViewportEventV1::viewport_metrics at current lines 73-87 retains physical_size projection and supplied metrics through Self::new(VIEWPORT_RESIZED), without validation.",
+          "The old relationship text is retained separately with explicitly historical line anchors; fresh current ranges are 1-90 and mapped original read range is 4-88."
+        ]
+      },
+      {
+        "id": "TRANSLATED",
+        "path": "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+        "historical_review_sha256": "76a6df697cfef4a3ebe400ab7ea020576e248fdc87de2edb38dd26e7ffc68d5d",
+        "current_sha256": "76a6df697cfef4a3ebe400ab7ea020576e248fdc87de2edb38dd26e7ffc68d5d",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=TRANSLATED]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            58
+          ]
+        ],
+        "proven_relationships": [
+          "viewport_metrics:25-35 包装标准事件并附静态host reason，不额外验证度量。"
+        ]
+      },
+      {
+        "id": "UIEVENT",
+        "path": "zircon_runtime_interface/src/ui/window/runtime_event.rs",
+        "historical_review_sha256": "aec82080f076e4f767b0f7adbd63174231dfad246b4c68b53561b6e8714474f2",
+        "current_sha256": "aec82080f076e4f767b0f7adbd63174231dfad246b4c68b53561b6e8714474f2",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=UIEVENT]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            86
+          ]
+        ],
+        "proven_relationships": [
+          "UiRuntimeEvent::new:39-65 复制metrics metadata，payload改用真实Rust借用；unsafe from_abi先checked_slice再new，字段copy不构成裸指针安全证明。"
+        ]
+      },
+      {
+        "id": "UIADAPTER",
+        "path": "zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs",
+        "historical_review_sha256": "975e04ad2d26e4179927b46032e62421fa1e62b76ec4b2b599f9114653c3162e",
+        "current_sha256": "975e04ad2d26e4179927b46032e62421fa1e62b76ec4b2b599f9114653c3162e",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=UIADAPTER]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            120
+          ],
+          [
+            250,
+            289
+          ]
+        ],
+        "proven_relationships": [
+          "viewport_metrics:256-278 任一尺寸分量非0时分别复制logical/physical并sanitized_scale_factor；所有分量0时回退event.size和scale1。",
+          "sanitized_scale_factor:280-286 finite且>0则转f64，否则1；不验证physical==logical*scale，未虚构这项不变量。"
+        ]
+      },
+      {
+        "id": "CONFIGTEST",
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "historical_review_sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+        "current_sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=CONFIGTEST]"
+        },
+        "historical_ranges": [
+          [
+            596,
+            651
+          ],
+          [
+            1147,
+            1181
+          ]
+        ],
+        "proven_relationships": [
+          "runtime_v3_session_config_and_wake_sink_layout_and_validity_are_stable:606-647 验证disabled/new/empty以及错版/缺token/缺fn失败，固定size/offset断言；仅源码审阅，未运行。",
+          "1153-1157 用不同logical/physical及scale2构造metrics，其他事件契约夹具保存该值；没有据此声称任意尺寸一致性被验证。"
+        ]
+      },
+      {
+        "id": "CAMTEST",
+        "path": "zircon_runtime/src/dynamic_api/tests/camera_controller.rs",
+        "historical_review_sha256": "4766f7a7c035e346a57484a025ae6a19b08f19acf603ee688d89554f39df9d1a",
+        "current_sha256": "4766f7a7c035e346a57484a025ae6a19b08f19acf603ee688d89554f39df9d1a",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=CAMTEST]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            62
+          ]
+        ],
+        "proven_relationships": [
+          "editor_camera_override_changes_only_the_render_extract_view:30-62 断言transform/projection覆盖，core_pipeline/exposure及Scene world transform不变；未执行。"
+        ]
+      },
+      {
+        "id": "EVENTTEST",
+        "path": "zircon_runtime/src/dynamic_api/session/tests/events.rs",
+        "historical_review_sha256": "59745045329cc336657535dd2bf9ccbb4223857a6f414c7a2424e9a7af5777c3",
+        "current_sha256": "59745045329cc336657535dd2bf9ccbb4223857a6f414c7a2424e9a7af5777c3",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=EVENTTEST]"
+        },
+        "historical_ranges": [
+          [
+            116,
+            153
+          ]
+        ],
+        "proven_relationships": [
+          "simulate_camera_event_overrides_render_extract_without_mutating_the_play_world:118-153 用真实serde JSON借用经过handle_event，断言Ok、extract变而World不变；未执行。"
+        ]
+      },
+      {
+        "id": "SURFACETEST",
+        "path": "zircon_runtime/src/dynamic_api/tests/viewport.rs",
+        "historical_review_sha256": "cd8d0ba6004ea17df39539d23889bbd9bf2a9f5e2dadd97a0b592f05774f2192",
+        "current_sha256": "cd8d0ba6004ea17df39539d23889bbd9bf2a9f5e2dadd97a0b592f05774f2192",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=SURFACETEST]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            98
+          ]
+        ],
+        "proven_relationships": [
+          "4-95 测试wrong request/target version、unknown viewport、invalid session、NONE unsupported的具体返回路径；只读了这些测试，不声称执行或看过文件余部。"
+        ]
+      },
+      {
+        "id": "METRICSTEST",
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+        "historical_review_sha256": "61b9c9dcad27c05acdbfb14126fc14dcdfe5b7ec7afb53eee33e9b1526446d63",
+        "current_sha256": "61b9c9dcad27c05acdbfb14126fc14dcdfe5b7ec7afb53eee33e9b1526446d63",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=METRICSTEST]"
+        },
+        "historical_ranges": [
+          [
+            45,
+            113
+          ]
+        ],
+        "proven_relationships": [
+          "runtime_event_adapter_maps_viewport_and_window_events_to_window_pump_facts:61-113 用640×360/1280×720/scale2构造事件，匹配转换后的UiWindowMetrics三字段；窗口适配调用上下文已读。"
+        ]
+      },
+      {
+        "id": "UITEST",
+        "path": "zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/batch_adapter.rs",
+        "historical_review_sha256": "011d2875440cffc48a5c0f777c81af89eaef1f2242ba9f8596e4473290d7a7d6",
+        "current_sha256": "011d2875440cffc48a5c0f777c81af89eaef1f2242ba9f8596e4473290d7a7d6",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=UITEST]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            44
+          ]
+        ],
+        "proven_relationships": [
+          "runtime_ui_manager_dispatches_runtime_event_batch_through_window_adapter:6-44 把DTO metrics作为viewport事件批项送入真实window pump，检查路由/diagnostic；不声称读过其余测试。"
+        ]
+      },
+      {
+        "id": "ABIGUARD",
+        "path": "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
+        "historical_review_sha256": "727355154d092d305e004b83e52af7d23982469e9608a5004d6b3eff98b5a9d7",
+        "current_sha256": "727355154d092d305e004b83e52af7d23982469e9608a5004d6b3eff98b5a9d7",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=ABIGUARD]"
+        },
+        "historical_ranges": [
+          [
+            114,
+            199
+          ],
+          [
+            401,
+            506
+          ]
+        ],
+        "proven_relationships": [
+          "runtime_play_startup_dtos_keep_explicit_c_layout_and_raw_kind:161-199 核对session两DTO reprC/字段顺序。",
+          "assert_repr_c_before_struct:406-421 以准确pub struct锚点和先前struct区分repr归属；discover_struct_fields:444-473 只读取pub字段行，新增注释不被解析为字段。"
+        ]
+      },
+      {
+        "id": "BOUNDARY",
+        "path": "zircon_runtime_interface/src/tests/boundary.rs",
+        "historical_review_sha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+        "current_sha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=BOUNDARY]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            144
+          ],
+          [
+            455,
+            572
+          ],
+          [
+            981,
+            1013
+          ]
+        ],
+        "proven_relationships": [
+          "FORBIDDEN_SOURCE_NEEDLES:33-50 全文禁串含实现crate路径、系统模块；identity:71/530 仅准许Arc同步导入。",
+          "child预算:114-115/986-995 包含注释与空行，总700；本批4owner全部低于预算。",
+          "域门面997-1008 禁pub use wildcard；本批mod继续显式63绑定；未声称全仓边界测试执行成功。"
+        ]
+      },
+      {
+        "id": "APIFACADE",
+        "path": "zircon_runtime_interface/src/runtime_api/mod.rs",
+        "historical_review_sha256": "55a90c9da8bf19ca4ff8bc6383b29ca6857e99f4e015fbd8cc0f41d7edc22b63",
+        "current_sha256": "55a90c9da8bf19ca4ff8bc6383b29ca6857e99f4e015fbd8cc0f41d7edc22b63",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=APIFACADE]"
+        },
+        "historical_ranges": [
+          [
+            112,
+            145
+          ]
+        ],
+        "proven_relationships": [
+          "pub use session:114-145 显式转出本域合同至runtime_api；未修改此路径。"
+        ]
+      },
+      {
+        "id": "ROOTFACADE",
+        "path": "zircon_runtime_interface/src/lib.rs",
+        "historical_review_sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+        "current_sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=ROOTFACADE]"
+        },
+        "historical_ranges": [
+          [
+            137,
+            174
+          ]
+        ],
+        "proven_relationships": [
+          "crate根pub use runtime_api:137-174 转出身份、session、viewport、camera与FFI alias，支持新增rustdoc链接的导出目标；未修改此路径。"
+        ]
+      },
+      {
+        "id": "BUDGET-CALLER-001",
+        "path": "zircon_runtime_interface/src/reflect/mod.rs",
+        "historical_review_sha256": "a7fd6a34ad0f8d841e3091b26c07b63bfb578d37fdbe4e315c766efbc0cbf6c5",
+        "current_sha256": "a7fd6a34ad0f8d841e3091b26c07b63bfb578d37fdbe4e315c766efbc0cbf6c5",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime_interface/src/reflect/mod.rs]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            78
+          ]
+        ],
+        "proven_relationships": "Includes budget and validator implementation modules and publicly re-exports ReflectedValue, budget dimensions/float kind/errors. No direct FFI entry or Runtime implementation import is introduced."
+      },
+      {
+        "id": "BUDGET-CALLER-002",
+        "path": "zircon_runtime_interface/src/lib.rs",
+        "historical_review_sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+        "current_sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime_interface/src/lib.rs]"
+        },
+        "historical_ranges": [
+          [
+            35,
+            35
+          ]
+        ],
+        "proven_relationships": "Publishes the reflect contract module through the interface crate. Exact public module declaration was re-identified under the unchanged file pin."
+      },
+      {
+        "id": "BUDGET-CALLER-003",
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "historical_review_sha256": "cf9aa41b68a7537b2bcf3b9d65d38033815b957503fe7eb12e5dd9a99fe2ee4d",
+        "current_sha256": "6d4318fe60f3f8624a6428e698a9fa5e1dd73c1ec087a56d95b51da8a851d58a",
+        "same_bytes_as_historical_review": false,
+        "relationship_evidence_mode": "changed-source-reconciled-by-main-current-affected-path-read",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime_interface/src/tests/mod.rs]"
+        },
+        "historical_ranges": [
+          [
+            30,
+            32
+          ]
+        ],
+        "proven_relationships": "Registers the existing budget contract test module. Its tests were reviewed historically; no test execution is claimed by this transfer.",
+        "current_recheck": {
+          "range": [
+            1,
+            52
+          ],
+          "finding": "The actual budget test mount is now lines 35-36; still cfg(test) path mount. Historical line 30-32 is not reused as the current line."
+        }
+      },
+      {
+        "id": "BUDGET-CALLER-004",
+        "path": "zircon_runtime_interface/src/reflect/zr_reflect_value.rs",
+        "historical_review_sha256": "3c6cb7c4a88186f4af254efcd299f700042f236fc8e540fc081b14977c60c638",
+        "current_sha256": "3c6cb7c4a88186f4af254efcd299f700042f236fc8e540fc081b14977c60c638",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime_interface/src/reflect/zr_reflect_value.rs]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            45
+          ]
+        ],
+        "proven_relationships": "Field conversion trait and integer macro implementations form a separate conversion contract. to_reflected_value does not apply Runtime recursive budget and need not establish finite floats. Conversion errors do not replace ReflectedValue graph validation."
+      },
+      {
+        "id": "BUDGET-CALLER-005",
+        "path": "zircon_runtime/src/scene/reflect/value_admission.rs",
+        "historical_review_sha256": "d23257966d617a81a137d2e0573c4ba6ee8c25b2f8be89dd1a165dd0b7b7950a",
+        "current_sha256": "d23257966d617a81a137d2e0573c4ba6ee8c25b2f8be89dd1a165dd0b7b7950a",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime/src/scene/reflect/value_admission.rs]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            61
+          ]
+        ],
+        "proven_relationships": "Runtime sets depth 128, nodes 16384, string bytes 1 MiB, per-container entries 4096. Borrowed values use validate_with_budget; field-facing wrapper maps rejection to ReflectError::InvalidValue with type/field context. Each field is checked independently; graph budgets do not establish schema/permission correctness."
+      },
+      {
+        "id": "BUDGET-CALLER-006",
+        "path": "zircon_runtime/src/scene/reflect/json_document/read.rs",
+        "historical_review_sha256": "d161b84acb0bd35e76c30735a9f9c181ac77a93cd2680f836fbf4afee77ad471",
+        "current_sha256": "d161b84acb0bd35e76c30735a9f9c181ac77a93cd2680f836fbf4afee77ad471",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime/src/scene/reflect/json_document/read.rs]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            20
+          ]
+        ],
+        "proven_relationships": "Versioned or historical schema-zero JSON is loaded before the constructed ReflectedValue is budget-validated. The budget does not cap JSON parser input bytes or allocation that occurred before validation."
+      },
+      {
+        "id": "BUDGET-CALLER-007",
+        "path": "zircon_runtime/src/scene/reflect/json_document/write.rs",
+        "historical_review_sha256": "36839cdf434bfaa08909806bb3b67a76a112be5f918510ba05c6b6f2722abae6",
+        "current_sha256": "36839cdf434bfaa08909806bb3b67a76a112be5f918510ba05c6b6f2722abae6",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime/src/scene/reflect/json_document/write.rs]"
+        },
+        "historical_ranges": [
+          [
+            1,
+            14
+          ]
+        ],
+        "proven_relationships": "Validates the borrowed graph before cloning it into a versioned JSON document and serializing. Validation failure prevents that serialization; schema and authorization remain separate concerns."
+      },
+      {
+        "id": "BUDGET-CALLER-008",
+        "path": "zircon_runtime/src/script/vm/plugin/vm_state_blob.rs",
+        "historical_review_sha256": "09f379d6f3367c87bfd764116c713e134b2e0b97148c6a9cc9443a97cca9e624",
+        "current_sha256": "09f379d6f3367c87bfd764116c713e134b2e0b97148c6a9cc9443a97cca9e624",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime/src/script/vm/plugin/vm_state_blob.rs]"
+        },
+        "historical_ranges": [
+          [
+            152,
+            178
+          ]
+        ],
+        "proven_relationships": "In reflected object validation, duplicate source fields are rejected before the current field value is graph-validated under the Runtime budget. Graph rejection carries type and field context through VmStateMigrationError::ReflectedValueRejected. Each value validation borrows input and keeps local budget state."
+      },
+      {
+        "id": "BUDGET-CALLER-009",
+        "path": "zircon_runtime/src/script/vm/plugin/state_migration.rs",
+        "historical_review_sha256": "3871f252035ad96deb985019f4e1fc939d730a656f43838d184349f55d0b0b17",
+        "current_sha256": "3871f252035ad96deb985019f4e1fc939d730a656f43838d184349f55d0b0b17",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime/src/script/vm/plugin/state_migration.rs]"
+        },
+        "historical_ranges": [
+          [
+            144,
+            170
+          ],
+          [
+            210,
+            241
+          ]
+        ],
+        "proven_relationships": "Target type indexing and schema default validation route present default values through the same Runtime graph budget. Fields without defaults are skipped; rejection includes target type and field. This is distinct from UiBindingValue::validate_with_budget."
+      },
+      {
+        "id": "BUDGET-CALLER-010",
+        "path": "zircon_runtime_interface/src/tests/boundary.rs",
+        "historical_review_sha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+        "current_sha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+        "same_bytes_as_historical_review": true,
+        "relationship_evidence_mode": "reuse-exact-pinned-historical-caller-evidence",
+        "historical_evidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime_interface/src/tests/boundary.rs]"
+        },
+        "historical_ranges": [
+          [
+            33,
+            50
+          ],
+          [
+            575,
+            639
+          ]
+        ],
+        "proven_relationships": "Forbidden Runtime source-path substrings are gated by the actual Rust-code-position scanner. // comments set line_comment and are excluded before newline; budget source paths in documentation do not by themselves violate this guard. This is static source inspection, not execution of the boundary test."
+      }
+    ],
+    "counts": {
+      "total": 47,
+      "same_physical_sha": 44,
+      "changed_and_semantically_reconciled": 3
+    },
+    "main_current_reads": [
+      "camera_controller validation/extract snapshot:145-197",
+      "session/events bounded camera decode:178-208",
+      "surface.rs:1-54",
+      "App session create/destroy/host resource retention:126-274",
+      "Runtime wake_registration.rs:1-168",
+      "frame_activity.rs:1-57",
+      "App wake_registry.rs:40-109",
+      "session_store.rs:450-600",
+      "Runtime value_admission.rs:1-61",
+      "json_document/read.rs:1-20",
+      "json_document/write.rs:1-14",
+      "interface tests/mod.rs:1-52",
+      "WorldReflection value admission context from R002 main review"
+    ],
+    "current_caller_read_limit": "Other identical caller evidence is reused as historical evidence, not falsely described as a fresh full-file read."
+  },
+  "pending_annotations": [
+    {
+      "path": "zircon_runtime_interface/src/reflect/reflected_value.rs",
+      "anchor": "after existing enum summary at current line 7",
+      "kind": "type-contract-doc-addition",
+      "preserve_existing": true,
+      "draft": [
+        "///",
+        "/// # 使用时机与生命周期",
+        "/// 在反射字段读写、持久化和 VM 状态迁移之间传递拥有型值树；文本和容器由值持有。",
+        "/// `Entity` 携带可选实体 ID，不持有实体对象或保证它仍存在；`Resource` 的文本解析由使用方负责。",
+        "///",
+        "/// # 约束",
+        "/// 构造和派生 serde 只描述值形状，不代替运行时预算、字段类型或访问策略检查。",
+        "/// 值的准入方负责选择预算并调用校验，再按字段合同处理引用。",
+        "/// 派生 serde 使用 `kind`/`value` 标签；运行时持久化文档的版本由文档层管理。",
+        "///",
+        "/// # 参考",
+        "/// [`Self::validate_with_budget`]；[`super::ZrReflectValue`] 的字段转换合同。"
+      ],
+      "state": "implemented-and-validated",
+      "implementation_record": "docs/plans/source-comments/reviews/C003-implementation.json"
+    }
+  ],
+  "validation": {
+    "path": "docs/plans/source-comments/reviews/C003-validation.json",
+    "sha256": "3b2236e008c85b744a93addda00380d57630add61f375181cd02f293f7c71ea4",
+    "all_rustfmt_and_scoped_diff_exit_codes": 0,
+    "scoped_current_diff_empty": true,
+    "tag_scan": {
+      "argv": [
+        "rg",
+        "-n",
+        "BUG:|TODO:|SAFETY:",
+        "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+        "zircon_runtime_interface/src/runtime_api/session/session.rs",
+        "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+        "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+        "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+        "zircon_runtime_interface/src/reflect/value_budget.rs",
+        "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+        "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs",
+        "zircon_runtime_interface/src/reflect/value_validation.rs",
+        "zircon_runtime_interface/src/reflect/reflected_value.rs"
+      ],
+      "exit_code": 1,
+      "matches": []
+    },
+    "tests_read": 6,
+    "tests_executed": 0,
+    "cargo_run": false
+  },
+  "issues": [],
+  "formal_acceptance": false,
+  "source_write_release_claimed": false,
+  "supplemental_independent_review": {
+    "reviewer": "/root/reflection_luna",
+    "mode": "direct-message-full-source-review-no-write",
+    "source_path": "zircon_runtime_interface/src/reflect/reflected_value.rs",
+    "sha256": "6a60c0ad5029755a32024d1da2dc0563c594454a9ece9ef4d4eabb56be4367ca",
+    "reviewed_variants": 16,
+    "findings": [
+      "Owned recursive tree and shape-versus-budget/schema/access-policy boundary are supported and useful.",
+      "type_name returns static labels used by conversion and registry diagnostics.",
+      "Entity is Option<u64>; docs should describe ID storage/no existence guarantee. No deletion lifecycle test was run."
+    ],
+    "applied_to_draft": true
+  },
+  "updated_at_utc": "2026-10-14T18:46:33.890009+00:00",
+  "post_implementation": {
+    "record": "docs/plans/source-comments/reviews/C003-implementation.json",
+    "sha256": "b21d8f520eac43e1b9963b18c600ddbc2b10572b78c7ad2abf3ec8be1c7b3ee8",
+    "validation_record": "docs/plans/source-comments/reviews/C003-post-validation.json",
+    "validation_sha256": "9934ee474026305c430e64cee47191a13dd12bcf9b99a2e43be72f48c634a737",
+    "main_review": "Entire exact final source diff independently read; only approved comments added, original bytes/comment retained.",
+    "guard_summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "patch_sha256": "3fa86411e3b005d7e2f55ba154f7e337d4f8c3f02cc753836977ff25bb422c87",
+    "formal_acceptance": false
+  }
+}

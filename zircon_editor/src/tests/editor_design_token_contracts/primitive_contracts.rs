@@ -3,16 +3,16 @@ use toml::Value;
 
 macro_rules! workbench_asset {
     ($path:literal) => {
-        include_str!(concat!(
-            "../../../assets/ui/editor/",
-            $path
-        ))
+        include_str!(concat!("../../../assets/ui/editor/", $path))
     };
 }
 
 macro_rules! unreal_asset {
     ($path:literal) => {
-        include_str!(concat!("../../../assets/ui/editor/unreal/components/", $path))
+        include_str!(concat!(
+            "../../../assets/ui/editor/unreal/components/",
+            $path
+        ))
     };
 }
 

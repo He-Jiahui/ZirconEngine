@@ -2,7 +2,9 @@ use zircon_runtime::asset::{
     project::{EditorDocumentScope, ProjectManager},
     AssetUri,
 };
-use zircon_runtime::scene::world::SceneProjectError;
+use zircon_runtime::scene::world::{
+    SceneProjectError, ScenePublicationReceipt, SceneSourceRevision,
+};
 use zircon_runtime::scene::Scene;
 
 use super::editor_project_document::EditorProjectDocument;
@@ -14,8 +16,9 @@ impl EditorProjectDocument {
         project: &ProjectManager,
         scene_uri: &AssetUri,
         world: &Scene,
+        expected: &SceneSourceRevision,
         editor_workspace: Option<&ProjectEditorWorkspace>,
-    ) -> Result<(), SceneProjectError> {
+    ) -> Result<ScenePublicationReceipt, SceneProjectError> {
         let root = project.paths().root();
         let scope = EditorDocumentScope::new(
             root.to_path_buf(),
@@ -28,10 +31,15 @@ impl EditorProjectDocument {
             Some(workspace) => {
                 let workspace_document =
                     encode_editor_workspace_document(workspace).map_err(std::io::Error::other)?;
-                scoped.commit_scene_workspace(scene_uri, world, workspace_document.as_bytes())?
+                scoped.commit_scene_workspace(
+                    scene_uri,
+                    world,
+                    expected,
+                    workspace_document.as_bytes(),
+                )?
             }
-            None => scoped.commit_scene_without_workspace(scene_uri, world)?,
+            None => scoped.commit_scene_without_workspace(scene_uri, world, expected)?,
         };
-        outcome.ensure_durable()
+        Ok(outcome)
     }
 }

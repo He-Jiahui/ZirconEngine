@@ -1,0 +1,1834 @@
+{
+  "schema": "zircon-source-comments-root-review-v1",
+  "batch": "R057",
+  "task": "source-comments-20261014-01a13a81",
+  "reviewer": "root",
+  "created_at_utc": "2026-10-16T09:49:43.501564+00:00",
+  "base_head": "f28ba39a5095f4964c046ecc702778627f80cfd5",
+  "status": "independently-reviewed-local-validated-managed-gates-open",
+  "child": {
+    "path": "docs/plans/source-comments/reviews/R057.json",
+    "sha256": "bbc40fb7fa3a084612977ac464ea3057c909372e1c02d514231ec6de45a30828",
+    "bytes": 1179195
+  },
+  "scope": [
+    "zircon_runtime/src/ui/dispatch/mod.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/mod.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/manager/toast_timer_queue.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/cases.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/toast_timer_queue.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/routing.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/routing/tests/route_stage_names.rs",
+    "zircon_runtime/src/ui/dispatch/input_manager/outcome.rs",
+    "zircon_runtime/src/ui/dispatch/outcome/tests/single_pass_metadata.rs",
+    "zircon_runtime/src/ui/dispatch/outcome/tests/host_request_capacity.rs",
+    "zircon_runtime/src/ui/dispatch/visited_node_set.rs",
+    "zircon_runtime/src/ui/dispatch/tests/visited_node_set.rs"
+  ],
+  "sources": [
+    {
+      "path": "zircon_runtime/src/ui/dispatch/mod.rs",
+      "before_sha256": "3a4728cf7a2c6cc39b94027fbb761e252ffbc7563069f56e915c86965aeae3cd",
+      "after_sha256": "e67edf6c955fa4b3e71840eda052b05c41d90223048f38e79fa681c79c0b8d04",
+      "before_bytes": 739,
+      "after_bytes": 1190,
+      "before_lines": 20,
+      "after_lines": 28,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            8
+          ],
+          "byte_offset": 0,
+          "bytes": 451,
+          "sha256": "480073256506db4b301c82dcefe07fe6279357ff01123b90b9d233b82bfbab3d"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/mod.rs",
+      "before_sha256": "36ea23fa813b41c17240ad9612e1a21c71d2b2daac5854ffa6258c83dee78b4b",
+      "after_sha256": "34e208ea2439c40f95e9da698d4c02ab4e32ed1ad283675386e49d5fbf8250f1",
+      "before_bytes": 1112,
+      "after_bytes": 1575,
+      "before_lines": 34,
+      "after_lines": 42,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            8
+          ],
+          "byte_offset": 0,
+          "bytes": 463,
+          "sha256": "920d661e4f6eb909875a6df028d49104a66f45bb5418b19821fc3b819c48dcf2"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "before_sha256": "e357e4fba530a7f71a87351cfbc4907f9e9a39679006fa1138974d001ca867b3",
+      "after_sha256": "53f765ce0479c1f1775cc62e853251ca65fd7c1d94e1527f3305a761b71332f3",
+      "before_bytes": 27557,
+      "after_bytes": 31169,
+      "before_lines": 756,
+      "after_lines": 796,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 42,
+          "after_lines": [
+            43,
+            51
+          ],
+          "byte_offset": 1562,
+          "bytes": 581,
+          "sha256": "463f753a9ff063ce2300de98d0c45b35f7e474092a8b6e673242945790eb8086"
+        },
+        {
+          "before_line_boundary": 43,
+          "after_lines": [
+            53,
+            53
+          ],
+          "byte_offset": 2171,
+          "bytes": 98,
+          "sha256": "625d29f0c69f2e4af814978ead33609d87baf0733c4f386cc9c3906a97580af6"
+        },
+        {
+          "before_line_boundary": 48,
+          "after_lines": [
+            59,
+            59
+          ],
+          "byte_offset": 2456,
+          "bytes": 92,
+          "sha256": "0d377e0b88bf3deb61019a65407adf1eeb0a1de3ebabe9f7be594b411b17bac9"
+        },
+        {
+          "before_line_boundary": 50,
+          "after_lines": [
+            62,
+            62
+          ],
+          "byte_offset": 2650,
+          "bytes": 98,
+          "sha256": "bd9d58c9d57931a39a26f21e55a720d38fda5e81660f8051901a044fc3f50a73"
+        },
+        {
+          "before_line_boundary": 73,
+          "after_lines": [
+            86,
+            86
+          ],
+          "byte_offset": 3641,
+          "bytes": 102,
+          "sha256": "f8feec3b424478d46c9396a0f495401409abf13f5b2e8008917ac18001edbdb4"
+        },
+        {
+          "before_line_boundary": 80,
+          "after_lines": [
+            94,
+            94
+          ],
+          "byte_offset": 3899,
+          "bytes": 75,
+          "sha256": "2b22b4415a00102262a1087297019bce41b54dd4edab177c00b8b6748ec85555"
+        },
+        {
+          "before_line_boundary": 84,
+          "after_lines": [
+            99,
+            99
+          ],
+          "byte_offset": 4074,
+          "bytes": 87,
+          "sha256": "c971e82b2e4b142f38705f6fa88b8c2106615248494fc9ea3fa16477bfdb4098"
+        },
+        {
+          "before_line_boundary": 88,
+          "after_lines": [
+            104,
+            104
+          ],
+          "byte_offset": 4305,
+          "bytes": 90,
+          "sha256": "ef8805375fa0d531af3ec11206bdae7f03498b935d68e2ac8186d3c64fc1f378"
+        },
+        {
+          "before_line_boundary": 92,
+          "after_lines": [
+            109,
+            109
+          ],
+          "byte_offset": 4487,
+          "bytes": 96,
+          "sha256": "7ed4583cdf4a5761c5cfa6b43265fcddd3af76187a8c348cb91ea11e4f9a2378"
+        },
+        {
+          "before_line_boundary": 96,
+          "after_lines": [
+            114,
+            114
+          ],
+          "byte_offset": 4691,
+          "bytes": 90,
+          "sha256": "900456a4d64e223d0f3c8807c6714d480ff5271374a4d29e3e3f99d95239a2b1"
+        },
+        {
+          "before_line_boundary": 100,
+          "after_lines": [
+            119,
+            119
+          ],
+          "byte_offset": 4882,
+          "bytes": 96,
+          "sha256": "199a86171193ae3dfd96032e5c8317709c20366ee4883ad8541bd310c557cd3a"
+        },
+        {
+          "before_line_boundary": 104,
+          "after_lines": [
+            124,
+            124
+          ],
+          "byte_offset": 5095,
+          "bytes": 87,
+          "sha256": "e628c047fdca4fc4edcda980b687b7a6350d3e00366c78740074d18003946f5e"
+        },
+        {
+          "before_line_boundary": 108,
+          "after_lines": [
+            129,
+            129
+          ],
+          "byte_offset": 5273,
+          "bytes": 90,
+          "sha256": "fba0e65f68f3c3a480854e75ff7e2abfc4298be0e5b09f950eb56167dcffd75f"
+        },
+        {
+          "before_line_boundary": 112,
+          "after_lines": [
+            134,
+            134
+          ],
+          "byte_offset": 5470,
+          "bytes": 87,
+          "sha256": "318aef62f1b77220bd42de23820527fa296c2fdeecba9f162a896fe404d7ed0d"
+        },
+        {
+          "before_line_boundary": 116,
+          "after_lines": [
+            139,
+            139
+          ],
+          "byte_offset": 5634,
+          "bytes": 108,
+          "sha256": "bb14c266e833d933b81bb1a531d5d95c055c4648c5e66ba606fe97039fa700be"
+        },
+        {
+          "before_line_boundary": 120,
+          "after_lines": [
+            144,
+            144
+          ],
+          "byte_offset": 5887,
+          "bytes": 99,
+          "sha256": "94218789fecac6182f32bc62732f43765dcb92210ae58752f449bc1d0772e93a"
+        },
+        {
+          "before_line_boundary": 128,
+          "after_lines": [
+            153,
+            153
+          ],
+          "byte_offset": 6405,
+          "bytes": 120,
+          "sha256": "6fb96e5ccbb59adb43ac8f877f41afd117d72285201204aa7818289666d041ce"
+        },
+        {
+          "before_line_boundary": 144,
+          "after_lines": [
+            170,
+            170
+          ],
+          "byte_offset": 7077,
+          "bytes": 105,
+          "sha256": "80b98c8779b93e7f47f5d48fed9a4f4a2406f6efa01776922b0e40bbd2bfd34a"
+        },
+        {
+          "before_line_boundary": 152,
+          "after_lines": [
+            179,
+            179
+          ],
+          "byte_offset": 7490,
+          "bytes": 87,
+          "sha256": "94ee7cb532d9619c6a9ee8677338bf10d0c63374c6dbc0251d08fcc13cef9c68"
+        },
+        {
+          "before_line_boundary": 156,
+          "after_lines": [
+            184,
+            184
+          ],
+          "byte_offset": 7707,
+          "bytes": 108,
+          "sha256": "09b5daf133a54cf89bb40cb29e19206404078c7205f7ecb1ff463e35956508e8"
+        },
+        {
+          "before_line_boundary": 163,
+          "after_lines": [
+            192,
+            193
+          ],
+          "byte_offset": 8046,
+          "bytes": 201,
+          "sha256": "a099bd95ea6498c4979e29cf4b64a96993ab484f9951bc30cdbb5d4ff93640ab"
+        },
+        {
+          "before_line_boundary": 171,
+          "after_lines": [
+            202,
+            202
+          ],
+          "byte_offset": 8489,
+          "bytes": 117,
+          "sha256": "8d968ffafe4697055535f2e30a6814ef90add501953c906a3d40331ff835617f"
+        },
+        {
+          "before_line_boundary": 200,
+          "after_lines": [
+            232,
+            232
+          ],
+          "byte_offset": 9914,
+          "bytes": 114,
+          "sha256": "98a5def245a811f78c90c812df16d0e3d44f6cb589ae7f10f255ecd79d99da63"
+        },
+        {
+          "before_line_boundary": 222,
+          "after_lines": [
+            255,
+            256
+          ],
+          "byte_offset": 10855,
+          "bytes": 204,
+          "sha256": "c9ebb20a773b5e3aadee7f2c4aa5dcab31f12190dbd61128dd7079207d6c1eb5"
+        },
+        {
+          "before_line_boundary": 234,
+          "after_lines": [
+            269,
+            270
+          ],
+          "byte_offset": 11518,
+          "bytes": 234,
+          "sha256": "f42d285aac0ec1656086757c8a48ce7117e16e40bef92f11a64d1162e075f656"
+        },
+        {
+          "before_line_boundary": 358,
+          "after_lines": [
+            395,
+            395
+          ],
+          "byte_offset": 16684,
+          "bytes": 78,
+          "sha256": "9c00af5b7f1061f408e6da759fd6fb5212f9c2108beb2629ae1b8bb0fefd1578"
+        },
+        {
+          "before_line_boundary": 587,
+          "after_lines": [
+            625,
+            625
+          ],
+          "byte_offset": 24826,
+          "bytes": 108,
+          "sha256": "e3c3ef07f1b9c5a215e12003ebbae099a4ce9049dcd63713397dc6bfa137b6da"
+        },
+        {
+          "before_line_boundary": 654,
+          "after_lines": [
+            693,
+            693
+          ],
+          "byte_offset": 27500,
+          "bytes": 83,
+          "sha256": "01224bc18e33e5bb96323a656a11111be40356b47bb4842de3ab74617339c9c6"
+        },
+        {
+          "before_line_boundary": 664,
+          "after_lines": [
+            704,
+            704
+          ],
+          "byte_offset": 27829,
+          "bytes": 77,
+          "sha256": "b96d4997ae6856861b229f4299595d4e3e2c7c15fbd168dfea82e9bf5c1eafd9"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager/toast_timer_queue.rs",
+      "before_sha256": "18ea911a0227401768a4cc88f265c76656223cda103150c8b62432f988b641bd",
+      "after_sha256": "6fd354151cde36e9be0f8158374b951a5dccb2643aaeafa443028127bc22220d",
+      "before_bytes": 2543,
+      "after_bytes": 3635,
+      "before_lines": 83,
+      "after_lines": 99,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            6
+          ],
+          "byte_offset": 0,
+          "bytes": 306,
+          "sha256": "cd5ce7dcd9d84291f92bdc54ea13fe60c308e7ed3ef5a809afb5ff77029f0550"
+        },
+        {
+          "before_line_boundary": 2,
+          "after_lines": [
+            9,
+            13
+          ],
+          "byte_offset": 361,
+          "bytes": 317,
+          "sha256": "98d6b83697f1e707a1f5956414e383ba8c185b42b1b3bd0fc537d293b6c4192e"
+        },
+        {
+          "before_line_boundary": 24,
+          "after_lines": [
+            36,
+            36
+          ],
+          "byte_offset": 1495,
+          "bytes": 125,
+          "sha256": "79dff5fcd8f7faad24d3626dd35fbf117daff2f2940b01003cd899c383b221da"
+        },
+        {
+          "before_line_boundary": 46,
+          "after_lines": [
+            59,
+            59
+          ],
+          "byte_offset": 2251,
+          "bytes": 74,
+          "sha256": "6f7f96b8b5cc49648e8f489597bde2d5c68d1f232f0fa3dd57867ce14f4e4e22"
+        },
+        {
+          "before_line_boundary": 55,
+          "after_lines": [
+            69,
+            69
+          ],
+          "byte_offset": 2582,
+          "bytes": 101,
+          "sha256": "d5c9c4cb612b3aac5bdf213082fa3a8cd2b50798f02501e55816af69ce8e9388"
+        },
+        {
+          "before_line_boundary": 64,
+          "after_lines": [
+            79,
+            79
+          ],
+          "byte_offset": 2916,
+          "bytes": 71,
+          "sha256": "d99f0c6de720b4a55607090f6820a15d358b517579dceeb796224965b934115d"
+        },
+        {
+          "before_line_boundary": 71,
+          "after_lines": [
+            87,
+            87
+          ],
+          "byte_offset": 3163,
+          "bytes": 98,
+          "sha256": "57d7aa9ca7d082f02721b10baea62047fc3ef982fdbcd2faa026e56efa5292b0"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/cases.rs",
+      "before_sha256": "740324e667bdf709ab7fbed80c7a75c17c5652a192fdeae6bcc94c969178efe7",
+      "after_sha256": "ddd230fde5e32a88c854fa661157b97dd9cc44d70fcf75e1a65c0c57c5fca74c",
+      "before_bytes": 19609,
+      "after_bytes": 21114,
+      "before_lines": 603,
+      "after_lines": 621,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            2
+          ],
+          "byte_offset": 0,
+          "bytes": 87,
+          "sha256": "0290ab8dcefce5c0220b84ce76731226dd7a68c12bea87153d44b8062f5a2015"
+        },
+        {
+          "before_line_boundary": 20,
+          "after_lines": [
+            23,
+            23
+          ],
+          "byte_offset": 775,
+          "bytes": 74,
+          "sha256": "f18b087dafdc4ceb0049094cbcd815aadb8607dca8eb5d4e3ea121473d24ecf9"
+        },
+        {
+          "before_line_boundary": 49,
+          "after_lines": [
+            53,
+            53
+          ],
+          "byte_offset": 1742,
+          "bytes": 71,
+          "sha256": "f918a7838b463093aa699cf0a848c5bbc26d09446a1d6efb0a8e7dd5902b4aa7"
+        },
+        {
+          "before_line_boundary": 71,
+          "after_lines": [
+            76,
+            76
+          ],
+          "byte_offset": 2401,
+          "bytes": 95,
+          "sha256": "b8c601cf427fa8a8773ed2b86abb7ca4630996f69c6394a673952f7ec59d2d82"
+        },
+        {
+          "before_line_boundary": 127,
+          "after_lines": [
+            133,
+            133
+          ],
+          "byte_offset": 4455,
+          "bytes": 83,
+          "sha256": "8b8a99eb42960bed52533640a3353bd2b9f7ec4e19d51695e55eb026b4842745"
+        },
+        {
+          "before_line_boundary": 145,
+          "after_lines": [
+            152,
+            152
+          ],
+          "byte_offset": 5161,
+          "bytes": 98,
+          "sha256": "e2e02e1c8651711f0b05cbf7f7cf1d49172bcf36b063fbd820cd76902a3251d5"
+        },
+        {
+          "before_line_boundary": 200,
+          "after_lines": [
+            208,
+            208
+          ],
+          "byte_offset": 7135,
+          "bytes": 92,
+          "sha256": "6afa5c09ebc30c95884683812dc2e76067cc9b18ed67a80f5e082b90f666b3cc"
+        },
+        {
+          "before_line_boundary": 268,
+          "after_lines": [
+            277,
+            277
+          ],
+          "byte_offset": 9450,
+          "bytes": 83,
+          "sha256": "7ad12291a365ab1b465ce00104a04e2e0c807e762b5388120a3aeb1bc5444823"
+        },
+        {
+          "before_line_boundary": 305,
+          "after_lines": [
+            315,
+            315
+          ],
+          "byte_offset": 10766,
+          "bytes": 104,
+          "sha256": "caf239662ea3f6d0b4eaa6bbb647c97e32531d7b8d114c64d46259456a8f0e64"
+        },
+        {
+          "before_line_boundary": 365,
+          "after_lines": [
+            376,
+            376
+          ],
+          "byte_offset": 12949,
+          "bytes": 110,
+          "sha256": "56f3134405057b9abbc3712b320cca0dc0241e2484dfc3d6927fe9ce001b8364"
+        },
+        {
+          "before_line_boundary": 440,
+          "after_lines": [
+            452,
+            452
+          ],
+          "byte_offset": 15307,
+          "bytes": 71,
+          "sha256": "918bc3015b263a02142d08badad7d9c343844b11f02c9625d8d0ce0fd826b01b"
+        },
+        {
+          "before_line_boundary": 472,
+          "after_lines": [
+            485,
+            485
+          ],
+          "byte_offset": 16463,
+          "bytes": 89,
+          "sha256": "994fd5ab276cdfac3cc1800d5f2689cafbe3e52b35feb5cc8abf2076ec3ea79a"
+        },
+        {
+          "before_line_boundary": 498,
+          "after_lines": [
+            512,
+            512
+          ],
+          "byte_offset": 17274,
+          "bytes": 86,
+          "sha256": "50dcafe6ea58cc19425385e34f66b8cad3029f1743dc21a987e92a1f165ddc43"
+        },
+        {
+          "before_line_boundary": 529,
+          "after_lines": [
+            544,
+            544
+          ],
+          "byte_offset": 18381,
+          "bytes": 80,
+          "sha256": "43e1eb39e56dd11d7ab2e2ff6584860fc18045f6a2bae0ff8fde8739dd254d04"
+        },
+        {
+          "before_line_boundary": 558,
+          "after_lines": [
+            574,
+            574
+          ],
+          "byte_offset": 19370,
+          "bytes": 92,
+          "sha256": "46ca165ac02c2f39e414ba59ac2697713d8a6790f3176cf764d2862957c2f9c3"
+        },
+        {
+          "before_line_boundary": 568,
+          "after_lines": [
+            585,
+            585
+          ],
+          "byte_offset": 19767,
+          "bytes": 104,
+          "sha256": "e3a597024fe40f591b582d3b56cd68ffe7ed1c5e01465af19421df6fa6bb3654"
+        },
+        {
+          "before_line_boundary": 589,
+          "after_lines": [
+            607,
+            607
+          ],
+          "byte_offset": 20492,
+          "bytes": 86,
+          "sha256": "a0f280bac68707665316aef871f74f22a88294ef070b38b34ca5f710a6d281da"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/toast_timer_queue.rs",
+      "before_sha256": "d6f247233e18e3f5a797bc4c69369860af3ad4d3954ff632008a72b7d50d2927",
+      "after_sha256": "68efff9d862a7c906d87f543b61659fea64e7125044c0d2a2c1a4ed35a4106b7",
+      "before_bytes": 1940,
+      "after_bytes": 2264,
+      "before_lines": 55,
+      "after_lines": 60,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            2
+          ],
+          "byte_offset": 0,
+          "bytes": 81,
+          "sha256": "f6b80ec8e6a8371db70945dd9a699634bb19f1f8e389f5cbe12742be54fd6d0e"
+        },
+        {
+          "before_line_boundary": 4,
+          "after_lines": [
+            7,
+            7
+          ],
+          "byte_offset": 129,
+          "bytes": 71,
+          "sha256": "efbcfca503b892ad1e8be201b6f16dd47a08dad0799a7c74d63d8b1e3a442e76"
+        },
+        {
+          "before_line_boundary": 23,
+          "after_lines": [
+            27,
+            27
+          ],
+          "byte_offset": 816,
+          "bytes": 80,
+          "sha256": "9d5f68959eb093860850659630ba1555d81a23aef3e6d70adc432a888459950e"
+        },
+        {
+          "before_line_boundary": 46,
+          "after_lines": [
+            51,
+            51
+          ],
+          "byte_offset": 1720,
+          "bytes": 92,
+          "sha256": "cff52446c70576f3797976d261c31852d5838016b74a8100011771bef1e3f1ff"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/routing.rs",
+      "before_sha256": "bc53b35e6c123a87ed295ebaf60339819b37e706d92bf7cb392c38b87c8bcc65",
+      "after_sha256": "1a74346ae9a4da7a384eded164d38504ab164028fb87ed03f659e94ea3fe5027",
+      "before_bytes": 2895,
+      "after_bytes": 4122,
+      "before_lines": 80,
+      "after_lines": 98,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            3
+          ],
+          "byte_offset": 0,
+          "bytes": 185,
+          "sha256": "1473f5144a68e449723b3d3684149c84251c047cc62d03b6e8626235c7174a1e"
+        },
+        {
+          "before_line_boundary": 6,
+          "after_lines": [
+            10,
+            12
+          ],
+          "byte_offset": 340,
+          "bytes": 239,
+          "sha256": "90e27b9c964c1f6aebdfb651557f47bb07aee5f086963117b712d8490f05b417"
+        },
+        {
+          "before_line_boundary": 8,
+          "after_lines": [
+            15,
+            15
+          ],
+          "byte_offset": 653,
+          "bytes": 48,
+          "sha256": "88638dc7916b0127228889d3b1d41ba30e94c6edad22fd3b62905586d8db93f9"
+        },
+        {
+          "before_line_boundary": 9,
+          "after_lines": [
+            17,
+            17
+          ],
+          "byte_offset": 721,
+          "bytes": 48,
+          "sha256": "52ab0c47e703bdf80d9481cfd38d1aa1766dbb5b0a1e4e29a9d18e3f6ebcfd31"
+        },
+        {
+          "before_line_boundary": 10,
+          "after_lines": [
+            19,
+            19
+          ],
+          "byte_offset": 785,
+          "bytes": 84,
+          "sha256": "b6d8895e806c8ba430fb6cfeffd32c1cf0518cdaee2c9f4b2b8d2f271a9d7e33"
+        },
+        {
+          "before_line_boundary": 11,
+          "after_lines": [
+            21,
+            21
+          ],
+          "byte_offset": 888,
+          "bytes": 33,
+          "sha256": "6179a6dd62fd5ed3259f3c1b2c885740f5e8befc7cdc0cf612659dc44ab02ab8"
+        },
+        {
+          "before_line_boundary": 12,
+          "after_lines": [
+            23,
+            23
+          ],
+          "byte_offset": 939,
+          "bytes": 27,
+          "sha256": "b677a7f9410b3055300c305e0a1b82d3b4fbd184a4f424504eb366fa5f2e3010"
+        },
+        {
+          "before_line_boundary": 13,
+          "after_lines": [
+            25,
+            25
+          ],
+          "byte_offset": 982,
+          "bytes": 39,
+          "sha256": "6c5fdcd9690550cc8215e5719d4bce9cf69709df82cc2a2ca8223872d45d6967"
+        },
+        {
+          "before_line_boundary": 14,
+          "after_lines": [
+            27,
+            27
+          ],
+          "byte_offset": 1036,
+          "bytes": 48,
+          "sha256": "45af8f98e28669f0d1b06948e8b9cbbbee8ae03141c5c45a4b54e7b33d03b92d"
+        },
+        {
+          "before_line_boundary": 17,
+          "after_lines": [
+            31,
+            31
+          ],
+          "byte_offset": 1106,
+          "bytes": 74,
+          "sha256": "98f55dfc0353b68ef6022dcca16e9a3e33d0e212f53f810478d84fa4aa262769"
+        },
+        {
+          "before_line_boundary": 29,
+          "after_lines": [
+            44,
+            44
+          ],
+          "byte_offset": 1661,
+          "bytes": 123,
+          "sha256": "994fc317e26e5b0d863e3ab5b699e1292678dc8a9da40a4ab27be603b8ede3d9"
+        },
+        {
+          "before_line_boundary": 40,
+          "after_lines": [
+            56,
+            57
+          ],
+          "byte_offset": 2197,
+          "bytes": 184,
+          "sha256": "46d96c98d5d6930342cf16af8bc2963f1059529155353123d886d0a6201c2da1"
+        },
+        {
+          "before_line_boundary": 69,
+          "after_lines": [
+            87,
+            87
+          ],
+          "byte_offset": 3513,
+          "bytes": 95,
+          "sha256": "ff885a462d468b14ba4e14366c5d32c5f2583f6baae7a236eaffedea2b3c73f6"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/routing/tests/route_stage_names.rs",
+      "before_sha256": "f484c555b0ab58b4d32d3a22dd2cd631fc85612cb263e06497e353c7b5b99637",
+      "after_sha256": "f0e17c4e818c3a4d3b834e3afb1843fd66b1e81e4cee3a1f0defb2478b9aedcf",
+      "before_bytes": 2713,
+      "after_bytes": 3052,
+      "before_lines": 76,
+      "after_lines": 81,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            2
+          ],
+          "byte_offset": 0,
+          "bytes": 66,
+          "sha256": "567fa8eb4b7bdc0f8c7ce767b0388c1a7fe605a66fd557ef1b3889a7dedf27b7"
+        },
+        {
+          "before_line_boundary": 9,
+          "after_lines": [
+            12,
+            12
+          ],
+          "byte_offset": 325,
+          "bytes": 86,
+          "sha256": "bd0d54ead83bcf4db4e835c7fd9326fecab25b9d70e4bf102f19b3bd71cf460a"
+        },
+        {
+          "before_line_boundary": 26,
+          "after_lines": [
+            30,
+            30
+          ],
+          "byte_offset": 862,
+          "bytes": 92,
+          "sha256": "acbb598204e8e9639b91816e0d3a76ff194b82c3ebc2142af13dccd8be81c2af"
+        },
+        {
+          "before_line_boundary": 33,
+          "after_lines": [
+            38,
+            38
+          ],
+          "byte_offset": 1233,
+          "bytes": 95,
+          "sha256": "75e8f4e4dcf7eb93256072f5ada11f9bbe8334f500dff61045c21c24af3e7cbe"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/outcome.rs",
+      "before_sha256": "009a527f049a4d606aa1b64a38dbbabc92e1a6a31d7f4fc7a6f66e03de2c17cd",
+      "after_sha256": "537ef5cea8ba102077ce2c4f3e92b111d6f26d0a74d9a2a5a52cd03121f95471",
+      "before_bytes": 1871,
+      "after_bytes": 3100,
+      "before_lines": 58,
+      "after_lines": 74,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            3
+          ],
+          "byte_offset": 0,
+          "bytes": 182,
+          "sha256": "9c7c696ee5060b7a8030945b0ba0d49ea5f425a7a0503c363d41689eb2b1a901"
+        },
+        {
+          "before_line_boundary": 6,
+          "after_lines": [
+            10,
+            15
+          ],
+          "byte_offset": 336,
+          "bytes": 406,
+          "sha256": "53d45a2e67608d5a79112427e67a410a704a309b45407cb87916aa6d0626cf3b"
+        },
+        {
+          "before_line_boundary": 8,
+          "after_lines": [
+            18,
+            18
+          ],
+          "byte_offset": 822,
+          "bytes": 48,
+          "sha256": "33277297a71ad0cfa250a2ba272f83eb036d58971e08dfb3ba1534f4bf358aca"
+        },
+        {
+          "before_line_boundary": 9,
+          "after_lines": [
+            20,
+            20
+          ],
+          "byte_offset": 915,
+          "bytes": 84,
+          "sha256": "6e118d131a54966fd94903d934b8634701e65b2d59c92e31d795cc3978766516"
+        },
+        {
+          "before_line_boundary": 10,
+          "after_lines": [
+            22,
+            22
+          ],
+          "byte_offset": 1050,
+          "bytes": 93,
+          "sha256": "919b428f143e6b42aa2bdae17e693d91e65ebf17d367aad829582dd7433b4351"
+        },
+        {
+          "before_line_boundary": 13,
+          "after_lines": [
+            26,
+            27
+          ],
+          "byte_offset": 1178,
+          "bytes": 187,
+          "sha256": "520420b31fa0881586994e49f723307a8a1241af8187af646dba6b8f57abd199"
+        },
+        {
+          "before_line_boundary": 22,
+          "after_lines": [
+            37,
+            37
+          ],
+          "byte_offset": 1758,
+          "bytes": 115,
+          "sha256": "36330090b9f6d298daec559827b34f0323b91ea6a00c62301fdc3d30adb921b5"
+        },
+        {
+          "before_line_boundary": 39,
+          "after_lines": [
+            55,
+            55
+          ],
+          "byte_offset": 2439,
+          "bytes": 114,
+          "sha256": "2fc3a0bb95af99b0afb189a244a71bf89fe4c0407a4d6476735b014fa8b2f7eb"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/outcome/tests/single_pass_metadata.rs",
+      "before_sha256": "f112e58377cb8b5e6cfa6f0097e8af09f9786f657c0b340ad75d96bd329cf0c4",
+      "after_sha256": "4cabaadff602949f16b7e66f5ac26c455d055e8f1cf97e95b14e9c28cf075722",
+      "before_bytes": 6673,
+      "after_bytes": 7242,
+      "before_lines": 189,
+      "after_lines": 196,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 21,
+          "after_lines": [
+            22,
+            22
+          ],
+          "byte_offset": 648,
+          "bytes": 95,
+          "sha256": "805e35baaaf97cf30531e399a3a29c460d557598ad65292affe604c080140659"
+        },
+        {
+          "before_line_boundary": 51,
+          "after_lines": [
+            53,
+            53
+          ],
+          "byte_offset": 1740,
+          "bytes": 74,
+          "sha256": "477af751a9921b89914531c009b052b5bd1fe31a754da56d4e21827f58711e08"
+        },
+        {
+          "before_line_boundary": 66,
+          "after_lines": [
+            69,
+            69
+          ],
+          "byte_offset": 2511,
+          "bytes": 101,
+          "sha256": "72446d483b4896fb3ba1ae57906d9bf6f42bcd8964aa29b5b34f79bd3b4724f4"
+        },
+        {
+          "before_line_boundary": 101,
+          "after_lines": [
+            105,
+            105
+          ],
+          "byte_offset": 4252,
+          "bytes": 89,
+          "sha256": "9899b6851687e6af335d244e61388ef14a6767708c204e7b6d533e14af83a5a5"
+        },
+        {
+          "before_line_boundary": 111,
+          "after_lines": [
+            116,
+            116
+          ],
+          "byte_offset": 4617,
+          "bytes": 65,
+          "sha256": "fa89b4b1d4516e7585e8962dd45f49a55b40937ee6c57d4c136c3e0974cacef8"
+        },
+        {
+          "before_line_boundary": 122,
+          "after_lines": [
+            128,
+            128
+          ],
+          "byte_offset": 5010,
+          "bytes": 68,
+          "sha256": "0d7b527a2325d417b983f68a5a1fc21345b1227535cf2b772ce0ffb11f0f75e8"
+        },
+        {
+          "before_line_boundary": 134,
+          "after_lines": [
+            141,
+            141
+          ],
+          "byte_offset": 5373,
+          "bytes": 77,
+          "sha256": "46d9434b2fdca840db58fd556f1bf8b9ea6491305708a3dd36a14a9a185ee261"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/outcome/tests/host_request_capacity.rs",
+      "before_sha256": "a3c10d5a5b535764d784a9572a535d66fe2687b50c316581b916e062cb0ece41",
+      "after_sha256": "92268dbecb6036bd7fc8306e5d9ce037c93b482ca0f9a5337f0712ded44aea56",
+      "before_bytes": 6546,
+      "after_bytes": 7167,
+      "before_lines": 198,
+      "after_lines": 206,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            2
+          ],
+          "byte_offset": 0,
+          "bytes": 102,
+          "sha256": "5513ccabb64d387a0475eee816c180fcf4453bd969f4c9e8f807b8f942adc825"
+        },
+        {
+          "before_line_boundary": 17,
+          "after_lines": [
+            20,
+            20
+          ],
+          "byte_offset": 549,
+          "bytes": 89,
+          "sha256": "9f021b9c93db7cd6426aed72a2ff2b0472007662d9540880044bee70a2e53844"
+        },
+        {
+          "before_line_boundary": 38,
+          "after_lines": [
+            42,
+            42
+          ],
+          "byte_offset": 1321,
+          "bytes": 83,
+          "sha256": "d90490d633b61c628fce6bc04dcc0be3370898e30cbf4ba36223c142ee848a97"
+        },
+        {
+          "before_line_boundary": 49,
+          "after_lines": [
+            54,
+            54
+          ],
+          "byte_offset": 1784,
+          "bytes": 80,
+          "sha256": "d2a21808168ce6b14b9532c45b3c636eedc2a2607a8f07d071fef5ff0c698786"
+        },
+        {
+          "before_line_boundary": 63,
+          "after_lines": [
+            69,
+            69
+          ],
+          "byte_offset": 2334,
+          "bytes": 95,
+          "sha256": "913617a41c75ca8a793be25f8882ffd76d23a00b077b8127ac7124944c20769b"
+        },
+        {
+          "before_line_boundary": 128,
+          "after_lines": [
+            135,
+            135
+          ],
+          "byte_offset": 4833,
+          "bytes": 83,
+          "sha256": "a6d05ba56565d094a342d04c9fe1909c80d7e0ac95c18d29d00c38ea751efb07"
+        },
+        {
+          "before_line_boundary": 168,
+          "after_lines": [
+            176,
+            176
+          ],
+          "byte_offset": 6323,
+          "bytes": 89,
+          "sha256": "2c35fd7274c9a7fb89d9901b512e74f296906141514d6324c71cd2b9f273ed44"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/visited_node_set.rs",
+      "before_sha256": "6171b105b0d386330765302e8a814b51696019fe92c06ef675eb3df49849c63d",
+      "after_sha256": "7112f5cdb6dbdc850d04c60bf0641cf6dfb9fd5c85e10eca2bcf2413544d6c10",
+      "before_bytes": 1847,
+      "after_bytes": 3232,
+      "before_lines": 57,
+      "after_lines": 74,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            3
+          ],
+          "byte_offset": 0,
+          "bytes": 206,
+          "sha256": "32b0960b444401e3d35d09bef522b5a7a7f5a906ac0a666a48446bbcb3936c7f"
+        },
+        {
+          "before_line_boundary": 4,
+          "after_lines": [
+            8,
+            8
+          ],
+          "byte_offset": 293,
+          "bytes": 92,
+          "sha256": "1761439df75e0f0df4d34ffbdd20f2a848735a3df9da5dbb930cb2e680f6d011"
+        },
+        {
+          "before_line_boundary": 8,
+          "after_lines": [
+            13,
+            19
+          ],
+          "byte_offset": 689,
+          "bytes": 540,
+          "sha256": "90d119067cd0a4bb9d7db3e084c9b17376c5475b0e300ddf91aa2b5a3b12e2c0"
+        },
+        {
+          "before_line_boundary": 9,
+          "after_lines": [
+            21,
+            21
+          ],
+          "byte_offset": 1274,
+          "bytes": 95,
+          "sha256": "89be4528085f0fe456ba3b5e543f65c8a6dca889af6ff2d2479d09d20b76edf2"
+        },
+        {
+          "before_line_boundary": 12,
+          "after_lines": [
+            25,
+            25
+          ],
+          "byte_offset": 1483,
+          "bytes": 86,
+          "sha256": "bb4dd024f7fe9ab5485a1ec0f3e94e36680d1bfe0cdd43543bb3bbb01482b7ce"
+        },
+        {
+          "before_line_boundary": 16,
+          "after_lines": [
+            30,
+            30
+          ],
+          "byte_offset": 1645,
+          "bytes": 78,
+          "sha256": "5e870261caf9104e480f39c0079626a509f7e82439f9a1fdb741595188b58007"
+        },
+        {
+          "before_line_boundary": 25,
+          "after_lines": [
+            40,
+            40
+          ],
+          "byte_offset": 1985,
+          "bytes": 84,
+          "sha256": "06ab7fc2a80aaa59ab94ef2bcf2c3b1c4b0bb8932415ca2b556a7119a46d3d64"
+        },
+        {
+          "before_line_boundary": 38,
+          "after_lines": [
+            54,
+            54
+          ],
+          "byte_offset": 2539,
+          "bytes": 114,
+          "sha256": "beb95f54037de0aa4d10b339683fff5fae78f13c5cd71b62c89bcf563905db1e"
+        },
+        {
+          "before_line_boundary": 48,
+          "after_lines": [
+            65,
+            65
+          ],
+          "byte_offset": 2980,
+          "bytes": 90,
+          "sha256": "0103e9446913372bace177827ba91db466bf00800d18731c1fae9f13b266c529"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/tests/visited_node_set.rs",
+      "before_sha256": "f7b1ef19a5f0122b670e50a6990be2bc88d2e54ed10b4e2929f83278c4b988b3",
+      "after_sha256": "cff95f487a7e0676f2b497ec6a954a39e11ae826bb895267d0eda2cf5031f699",
+      "before_bytes": 902,
+      "after_bytes": 1150,
+      "before_lines": 27,
+      "after_lines": 31,
+      "changed": true,
+      "insertion_runs": [
+        {
+          "before_line_boundary": 0,
+          "after_lines": [
+            1,
+            2
+          ],
+          "byte_offset": 0,
+          "bytes": 87,
+          "sha256": "8287a6195b1ca9e6bcc1017219a0c52e260785c7f05cce5e938a4e1b5f3b3c1b"
+        },
+        {
+          "before_line_boundary": 2,
+          "after_lines": [
+            5,
+            5
+          ],
+          "byte_offset": 102,
+          "bytes": 79,
+          "sha256": "5badca94483209f308b6fe343a55835ec3d28ddee497d5d872c90e50c1ec554c"
+        },
+        {
+          "before_line_boundary": 13,
+          "after_lines": [
+            17,
+            17
+          ],
+          "byte_offset": 507,
+          "bytes": 82,
+          "sha256": "c16754bc6d53988022627c363ee882c016fddc04b393a7a13f2d8c61e68401c9"
+        }
+      ],
+      "inverse_equals_checkout_grant_and_raw_HEAD": true,
+      "full_source_root_read": true,
+      "eol": "LF preserved"
+    }
+  ],
+  "counts": {
+    "files": 13,
+    "changed_files": 13,
+    "before_bytes": 76947,
+    "after_bytes": 90012,
+    "before_lines": 2236,
+    "after_lines": 2406,
+    "insertion_runs": 110,
+    "added_lines": 170,
+    "objects": 123,
+    "functions": 102,
+    "members": 36,
+    "gapfree_original_partitions": 379,
+    "macro_ranges": 152,
+    "tests": 25,
+    "ignored_tests": 3,
+    "raw_operations": 94
+  },
+  "manual_findings": [
+    {
+      "range": "facades all; routing all",
+      "finding": "Facade path attributes assemble and reexport types. Stage names are policy/diagnostic projections, not a scheduler. Bubble projection order and Capture-only projection match tests. Stage variants and all wire strings are original bytes."
+    },
+    {
+      "range": "manager52-200",
+      "finding": "Default owns Full diagnostics plus persistent dispatchers/pointer/timer/text/request states. summary only changes diagnostics. Getter borrows are scoped; mutable pointer access requires coordination with Surface capture. Tooltip arming clears prior transient candidate/timers then duplicates ID into independent Surface/timer owners; drains transfer ownership."
+    },
+    {
+      "range": "manager203-267",
+      "finding": "Ordinary dispatch synchronizes text owner and snapshots physical pointer facts before mutable touch semantics, tooltip clearing and release click-count preparation. Fallible Surface call follows those changes; no blanket rollback. Success alone arms click candidate, updates table, arms delivered component timers and records text/IME/clipboard lifecycles. Window branch delegates its own lifecycle path without ordinary pointer-table postprocessing. Batch exits on first Err, preserves earlier effects and drops local result vector; outcome is constructed only on all-success."
+    },
+    {
+      "range": "manager271-387",
+      "finding": "tick records time, expires click/intro state, drains typeahead/submenu/tooltip/toast in order and dispatches sequence0 events before deferred focus lifecycle. Actual current Surface dispatch Timer branches return ordinary results with infallible convergence, so no invented mid-timer Err/lost-queue defect. Focus lifecycle receipt is synthetic IME Cancel with delivered component reports; queues own outputs until drained."
+    },
+    {
+      "range": "manager389-547",
+      "finding": "Undelivered component reports are ignored for arming. KeyboardText uses authored timeout; hovered_option_id replaces/removes submenu timer. Tooltip Hover and Surface candidate change together. Toast queue parser borrows event ID; invalid queue falls back to Surface state, selected property changes/OpenPopup resample state and ClosePopup clears timer. Input activity kinds exclude timer/popup and dismiss tooltip before dispatch."
+    },
+    {
+      "range": "manager549-796",
+      "finding": "Primary release must still hit previously pressed node before double-click count is max-merged; candidate stored only after success. Physical pointer snapshot retains button/source/identity even when secondary touch button is suppressed. Cancel removes pointer entry; all other events use actual pointer_routing for physical hover, routed press and capture, independent of diagnostics. Existing primary entry wins; new touch-like source checks source counter. Owner-filtered tooltip clearing preserves other owners. Timestamp match exhaustively borrows all input variants."
+    },
+    {
+      "range": "toast parser all",
+      "finding": "Array uses first valid nested value; map first nonempty string/enum ID and first convertible duration then positive filter. String splits pipe, trims ID/fields, skips unknown fields, but first recognized invalid/zero duration returns None. Int negatives clamp0; Float round().max(0) as u64; string parses u64. Borrowed &str lasts with original UiValue, timer storage owns only when needed. No blanket format validation or arbitrary allocation claim."
+    },
+    {
+      "range": "outcome all; two direct test files all",
+      "finding": "Owned per-result requests remain intact; collector clones in input order with duplicates. It reserves only at first nonempty request using remaining results/current request count; capacity is a hint, not a one-allocation guarantee. Redraw uses initial Surface flag or applied DirtyRedraw and stops further effect scans once true. The four owned source assertions evaluate [true,true,true,true] from raw [1,false,false,true]. from_results takes an instant snapshot, not a live binding."
+    },
+    {
+      "range": "visited all; direct tests all",
+      "finding": "Only inline_len prefix is valid; node0 sentinel is not a member. Duplicates return false, first16 stay inline,17th migrates all16 into HashSet using max(expected_len,17) capacity then inserts. Expected length is not a limit. Pointer preview runs separately before the shared target/bubble visited set; navigation deduplicates one selected candidate list. Two tests only prove current shallow and promoted cases, not arbitrary traversal or exact allocator behavior."
+    },
+    {
+      "range": "all 25 direct tests,3 ignored",
+      "finding": "Manager10 tests validate timers and Surface candidates using authored fixtures/delivered reports; parser3 cover pointer identity/source probes; routing3 cover policy order/text probes and fixed capacity timing; outcome3+4 cover behavior/text probes and sparse/dense timing; visited2 cover inline/promotion. Benchmarks were not executed. Single-pass bench21 alternating pairs*2048 batches*256 results uses one request at tail and asserts95th<=70%; capacity bench17*1024*4096 uses first request and models growth events without allocator sampling; route bench17*2M compares Vec strategies, not full event dispatch. Ignore labels do not enforce release configuration."
+    }
+  ],
+  "source_read_evidence": [
+    "82ef52 exact facades/toast/full13 pins",
+    "25b70f manager1-420/routing/visited full",
+    "d1d79e manager421-796/outcome/toast tests full",
+    "fb18df manager cases621 full",
+    "fb824b remaining four tests514 full",
+    "cfc8fa compact123objects/36members/all379range mappings; recovered64a8d6 elided output and did not count unread portions",
+    "53650d +4cd434 actual94 operation table andcontext pins",
+    "2468e5 actual caller/timer/lifecycle contexts",
+    "409a6e actual dispatch/window/guards/operators/readers",
+    "afd658 root13inverse/94domain/count and remaining source-binding contexts"
+  ],
+  "context_reuse": [
+    {
+      "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+      "sha256": "e85516b855b09752b815f3f9e3aef9274a33dbb2cf20d90ec50485857f247576",
+      "root_review": "R053 fixed full-source root review, same pin"
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/navigation/dispatcher.rs",
+      "sha256": "2fda28e310bc1f79878ddcdb7570ec109c65186bfb979b97d424e13be429f54a",
+      "root_review": "R056 fixed full-source root review, same pin"
+    }
+  ],
+  "contexts": [
+    {
+      "id": "C01",
+      "path": "zircon_runtime/src/ui/surface/surface/event_routing.rs",
+      "sha256": "7f5cdcaaa8cd96607e6b41f6de8e1d9302a2fa014895dc1958b6cb632de404ef",
+      "selected_ranges": [
+        [
+          1,
+          135
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C02",
+      "path": "zircon_runtime/src/dynamic_api/session/runtime_ui/input_routing.rs",
+      "sha256": "d15074484f71058baf475926e910cc0f6f43cb2dcd1e5286c70bfb5f3bcc98bf",
+      "selected_ranges": [
+        [
+          365,
+          425
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C03",
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs",
+      "sha256": "1981b6e92352fd3f49b7c3fc468c27e63612a30403e57eb8eea66c57a4df74d7",
+      "selected_ranges": [
+        [
+          85,
+          150
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C04",
+      "path": "zircon_runtime/src/ui/surface/input/route_authority.rs",
+      "sha256": "b5962dce3c06fc8f43c8bf42bc14d3f177c846846cd7cf195d90c4a872678fa3",
+      "selected_ranges": [
+        [
+          1,
+          64
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C05",
+      "path": "zircon_runtime/src/tests/structure/source_size/ui_dispatch_input_manager.rs",
+      "sha256": "99e0a189c5f2a5a21c453932184892ce73c12437bb5514dac74e6543ea1997b6",
+      "selected_ranges": [
+        [
+          1,
+          97
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C06",
+      "path": "zircon_runtime/src/tests/contracts/structure/source_size.rs",
+      "sha256": "2fe5681985c52ece0b17d81fdae2d688d24fc7f6cc1516fd20ca564f6bf8189d",
+      "selected_ranges": [
+        [
+          180,
+          229
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C07",
+      "path": "zircon_runtime/src/tests/source_size/ui_dispatch_bound_text_model_updates.rs",
+      "sha256": "255711f9d54c2c93c51ff98e51c6c2951f83941b2272ad234ffa9d289528b98a",
+      "selected_ranges": [
+        [
+          1,
+          180
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C08",
+      "path": "zircon_runtime/src/tests/contracts/ui_architecture/legacy_renames.rs",
+      "sha256": "1e896590478d97663d7def9263d50d10efc4d90f5242ffad57177f20a54bd6e1",
+      "selected_ranges": [
+        [
+          430,
+          534
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C09",
+      "path": "zircon_runtime/src/tests/contracts/ui_architecture/support.rs",
+      "sha256": "565bc026c67c6cebff72fd05f644846586ab06ac93217528d078faaafbfea7c3",
+      "selected_ranges": [
+        [
+          1,
+          40
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C10",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/timers.rs",
+      "sha256": "9e2746e30710c279616b9a2ba7b162c2bda79ada4f3e14c0c99c9823cc081ae6",
+      "selected_ranges": [
+        [
+          1,
+          110
+        ],
+        [
+          315,
+          430
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C11",
+      "path": "zircon_runtime/src/ui/surface/input/dispatch.rs",
+      "sha256": "011682ab9b27cac2f3814530888648f19d3cc8a55a83a3f799ae8d24ef41d6bd",
+      "selected_ranges": [
+        [
+          1,
+          105
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C12",
+      "path": "zircon_runtime/src/ui/surface/input/window_pump.rs",
+      "sha256": "80956e4bf02d6f8f6b3a98ae5e60531d3171990dbf28d9188c3ae31d394bb2ce",
+      "selected_ranges": [
+        [
+          1,
+          165
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C13",
+      "path": "zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs",
+      "sha256": "e85516b855b09752b815f3f9e3aef9274a33dbb2cf20d90ec50485857f247576",
+      "selected_ranges": [
+        [
+          1,
+          335
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C14",
+      "path": "zircon_runtime/src/ui/dispatch/navigation/dispatcher.rs",
+      "sha256": "2fda28e310bc1f79878ddcdb7570ec109c65186bfb979b97d424e13be429f54a",
+      "selected_ranges": [
+        [
+          1,
+          143
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C15",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/text_focus_lifecycle.rs",
+      "sha256": "a588fc4882d4657df975c0f62a8b733e81f84daf199ad736fba742ce44c28c56",
+      "selected_ranges": [
+        [
+          1,
+          24
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C16",
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/clipboard_host_requests.rs",
+      "sha256": "5a4e2b53825dd67ce6cc438c42947db815e28ea8a8efe32836b78501c6011126",
+      "selected_ranges": [
+        [
+          50,
+          58
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C17",
+      "path": "tools/tests/test_editor_zui_runtime_tooltip_contract.py",
+      "sha256": "52d057150d2598577aa3591ea10c1c29f979b56014a610af7de1aaf7d0b8a46a",
+      "selected_ranges": [
+        [
+          87,
+          99
+        ],
+        [
+          125,
+          163
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C18",
+      "path": "tools/tests/test_runtime_ui_input_routing_receipt_contract.py",
+      "sha256": "ad3640b9142e1cd7cb0a35d34b32aa27531f0613da9ac414387eadc796931fea",
+      "selected_ranges": [
+        [
+          90,
+          100
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C19",
+      "path": "tools/tests/test_runtime_ui_primary_pointer_source_counter_performance_contract.py",
+      "sha256": "0db2e2bf171b7cc10a326d95a6647b9284c3011971418b0ed8ccf3428d285e4c",
+      "selected_ranges": [
+        [
+          1,
+          75
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C20",
+      "path": "tools/tests/test_runtime_ui_surface_input_publication_design_contract.py",
+      "sha256": "58e5873c93862a38baa29192da39cb1ac65955be833d35d78142fd008ce7bc77",
+      "selected_ranges": [
+        [
+          241,
+          294
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C21",
+      "path": "tools/tests/test_runtime_input_manager_metadata_capacity_performance_contract.py",
+      "sha256": "33b7cf314911b2669dd3dc1864e4bbc4bb9a3f4b773212da6b36450d5c0046c9",
+      "selected_ranges": [
+        [
+          25,
+          43
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C22",
+      "path": "tools/tests/test_runtime_dispatch_host_request_capacity_performance_contract.py",
+      "sha256": "5a3016a4501375b1bb37740d29b5a0fb6102f3dcaf7432d7dc080b2259391452",
+      "selected_ranges": [
+        [
+          26,
+          50
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C23",
+      "path": "tools/tests/test_runtime_ui_dispatch_route_sharing_pressure.py",
+      "sha256": "8b52d8f161ecf439f3c77a8bb05f0f8c63580fa2c7de29c96a1e46636744518d",
+      "selected_ranges": [
+        [
+          175,
+          191
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C24",
+      "path": "tools/analysis/performance/runtime/runtime_ui_surface_input_publication_pressure.py",
+      "sha256": "a2b8382a284761915bd5c34efa11222eaf21935d29743e67eff3ee29fff16b0a",
+      "selected_ranges": [
+        [
+          94,
+          107
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C25",
+      "path": "tools/analysis/performance/runtime/runtime_ui_dispatch_route_sharing_pressure.py",
+      "sha256": "bcdddf7e880c12288048a92a88420b118767e8f25b259d9607103f5d8c3b3558",
+      "selected_ranges": [
+        [
+          313,
+          351
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C26",
+      "path": "tools/analysis/performance/runtime/runtime_input_manager_metadata_capacity_pressure.py",
+      "sha256": "dbebfdfa54c249795a2bb84904e238768c1d10946bd7b45b3ff63e2fce224625",
+      "selected_ranges": [
+        [
+          1,
+          66
+        ]
+      ],
+      "formal_coverage": false
+    },
+    {
+      "id": "C27",
+      "path": "tools/analysis/performance/runtime/runtime_ui_pointer_diagnostics_pressure.py",
+      "sha256": "be156c15573713baf3cbd84cd8e307d061138cfeeb0273697141287d5c326038",
+      "selected_ranges": [
+        [
+          18,
+          32
+        ],
+        [
+          40,
+          40
+        ]
+      ],
+      "formal_coverage": false
+    }
+  ],
+  "lexical_index_limitations": "Child constructor/call token lists include qualifiers and keywords; they are search indexes, not resolved call/parameter contracts. Root actual source/caller/manual findings govern. Const/table header coordinates do not by themselves cover array bodies; root read whole files and all table elements. Generic child block labels are not substitutes for manual entry/state/downstream review. Context selected ranges do not grant whole-file coverage. R059 consumer coordinates are explicitly translated in validation.",
+  "issues": [],
+  "external_issue_mapping": {
+    "S006": "CR-ZCA-R059-0001 in guard owner; missing documentation inputs CR-ZCA-R059-0002 are an earlier blocking read. No duplicate R057 tag; original TODO0110 remains separate."
+  },
+  "validation_summary": {
+    "guard_summary": {
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0
+    },
+    "fmt": "734e5c exact13 fmt exit0 reused;69eb31 affected5 final fmt exit0,other8 same pin;090e5d final13 fixedpins. No redundant formatter invocation.",
+    "diff_check": 0,
+    "raw94_preserved": true,
+    "all_new_comment_contributions_zero": true,
+    "runtime_tests_executed": false
+  },
+  "native_process_lifecycle": {
+    "receipts": {
+      "first_writer": "265adf native exit0 exact13",
+      "first_validation": "734e5c exit0/session3945 fmt13/diff/staged/inverse",
+      "failed_refinement": {
+        "receipt": "9d9d95 native exit1",
+        "argv": [
+          "E:/Git/ZirconEngine/.jenkins/runtime/python/python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          "-"
+        ],
+        "write_set": [
+          "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+          "zircon_runtime/src/ui/dispatch/input_manager/manager/toast_timer_queue.rs",
+          "zircon_runtime/src/ui/dispatch/input_manager/manager/tests/cases.rs",
+          "zircon_runtime/src/ui/dispatch/input_manager/routing.rs",
+          "zircon_runtime/src/ui/dispatch/tests/visited_node_set.rs"
+        ],
+        "exception": "OSError: [Errno22] Invalid argument E:\\Git\\ZirconEngine\\zircon_runtime\\src\\ui\\dispatch\\input_manager\\manager.rs at Path.write_bytes/open wb",
+        "replayed": false,
+        "no_effect_proof": "02657c exit0 all13 unchanged; open error alone insufficient"
+      },
+      "patch": "8831cf exit0 precheck5;cell25 normal apply_patch terminal {} (no native PID/exit);69eb31 exit0/session68797 readback six exact replacements,13pins,inverse,budgets,fmt5,diff13,stagedempty",
+      "record206": "cell30 CreateProcessAsUserW206 command length: no native/PID/writer; not replayed",
+      "readbacks": "8d9ae4 exit0 child absent/all13pins;9932ba exit0 bounded guards/schema; separately both had nonterminating restricted-language PS encoding errors",
+      "scope": "50cd38 exit0/session90838 grant13==rawHEAD/clean scopedGit;51d8ae exit0 manifest;ad4754 exit0/session94834 pending unowned/62recursive arrays647entries/no overlap",
+      "source_reads": "8a1dfb limited output recovered a2e2ec/8763e4;003a33/dfd46f/275232/822c8c/1532d7/f485a0 exit0;two pure-read spawn_ready rejections no native;af1ee7 session84216→170b8c exit0; core context receipts listed separately",
+      "compile_failure": "d8335b native exit1/session58041: full memory composer SHA91bbc92c1f6b891409ce3d95ef67ee4e6f7f5d6013046ee373d688f24451c3da/25421bytes/24003chars; actualcmd19602chars; SyntaxError unmatched right brace before body; d76381 exit0 independently child absent/13pins unchanged; a35f6e and ba8bf6 exit0 bounded scanner closure",
+      "prior_native_all_terminal": true,
+      "this_record_writer": "Constructed fully in memory, one final write; actual terminal reconciled in final handoff, not self-attested.",
+      "final_record_input": "854bd5 session46710 single stdin Python, finite 800-character JSON parts then explicit run boundary; exact UTF8 body length/hash asserted before original body; no helper, draft or source write; actual terminal external."
+    },
+    "fmt": "734e5c exact13 rustfmt --check --edition2021 --config skip_children=true exit0;69eb31 affected5 same exit0,other8 samepin reused",
+    "diff": "69eb31 exact13 diff --check0/stagedempty",
+    "limits": "No Cargo/build/test/performance execution. Static predicates are not consumer runs. LF physical bytes preserved despite Git future-conversion warnings. Lexical ledger is not Rust typecheck.",
+    "draft_history": [
+      {
+        "sha256": "fbe7806fd3e107a329784a94c5e994c11771f254a9075b53fe9acd3d06df6e45",
+        "bytes": 1070894,
+        "lines": 29590,
+        "state": "unfixed metadata draft; whole-file receipt domain and seven shortened legacy operands corrected before final handoff",
+        "writer": "bb6791 native exit0/session46710",
+        "independent_readback": "4150f6 native exit0 all13 fixedpins and parsed draft",
+        "readback_failure": "74a159 native exit1: expected SHA manually had65characters from VT wrap duplicate; actual first-line64SHA known; no mutations"
+      }
+    ],
+    "finalization": {
+      "time_utc": "2026-10-16T09:07:06.766366+00:00",
+      "scope": "Only R057.json changed; exact13 source bytes frozen. Bind all94 actual raw operators/domains/expectations, recompute counts and contributions, check rawHEAD inverse and per-range hashes.",
+      "all94_counts_before_current_equal": true,
+      "all94_new_comment_contributions_zero": true,
+      "only_unsatisfied_constraint": "external cfg/mod baseline",
+      "future_terminal": "reported after actual process exit in final handoff"
+    }
+  },
+  "fixed_child_actual_receipts": {
+    "final_writer": "3b3962 exit0",
+    "independent_readback": "090e5d exit0",
+    "all_child_owned_native_terminal": true
+  },
+  "metadata_writer_receipt": "Actual native terminal must be reconciled externally before coverage booking; this record is not its own terminal proof.",
+  "formal_acceptance": false,
+  "phase_commit": false,
+  "wecom_notification": false,
+  "released_files": 0,
+  "released_bytes": 0,
+  "retention": "13 sources and3 fixed records; necessary failure history; no helper/source copy/build output."
+}

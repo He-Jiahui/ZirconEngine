@@ -182,13 +182,19 @@ pub(super) fn create_surface(
 
 #[cfg(not(target_os = "windows"))]
 pub(super) fn create_surface(
-    _instance: &wgpu::Instance,
+    instance: &wgpu::Instance,
     target: RenderNativeSurfaceTarget,
 ) -> Result<wgpu::Surface<'static>, RhiError> {
     match target {
         RenderNativeSurfaceTarget::Win32 { .. } => Err(RhiError::SurfaceUnavailable(
             "win32 retained UI surfaces are only supported on windows".to_string(),
         )),
+        #[cfg(target_arch = "wasm32")]
+        RenderNativeSurfaceTarget::Canvas { identity } => instance
+            .create_surface(wgpu::SurfaceTarget::Canvas(
+                crate::canvas_surface::canvas_for_surface(identity)?,
+            ))
+            .map_err(|error| RhiError::SurfaceUnavailable(error.to_string())),
     }
 }
 

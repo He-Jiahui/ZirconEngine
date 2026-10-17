@@ -19,6 +19,7 @@ use std::time::Duration;
 pub struct FixedStepPlan {
     /// 预算内计划执行的完整步数；生成或读取此值不代表任何一步已提交。
     pub step_count: u32,
+    /// 解释此计划及其预计债务的步长；公开手工构造或默认值可为零。
     pub timestep: Duration,
     /// 计划中所有步骤成功时预计消费的时长；实际扣债由逐步提交完成。
     pub consumed: Duration,
@@ -55,6 +56,7 @@ impl FixedStepPlan {
     }
 
     /// Total unconsumed fixed-step debt after this outer frame.
+    /// 读取计划全部成功后的预计余债副本；不回读 World 当前的实际欠债。
     pub fn debt_duration(&self) -> Duration {
         self.remaining_overstep
     }

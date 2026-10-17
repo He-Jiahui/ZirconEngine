@@ -171,7 +171,9 @@ impl ViewportState {
     ) -> Result<Option<ViewportRenderFrameworkCall>, RenderFrameworkError> {
         #[cfg(test)]
         if let Some(render_framework) = &self.test_render_framework {
-            return Ok(Some(ViewportRenderFrameworkCall::Test(Arc::clone(render_framework))));
+            return Ok(Some(ViewportRenderFrameworkCall::Test(Arc::clone(
+                render_framework,
+            ))));
         }
 
         let Some(handle) = &self.render_framework else {

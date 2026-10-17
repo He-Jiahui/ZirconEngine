@@ -4,20 +4,20 @@ use super::*;
 #[test]
 fn runtime_15_plugin_importer_dx_structure_guard_root_inventory_is_child_owned() {
     let parent = read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_CHILD);
-    let runtime_15_plan =
+    let _runtime_15_plan =
         read_repo(
             "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
         );
-    let runtime_index = read_repo(
+    let _runtime_index = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let review_findings = read_repo(
+    let _review_findings = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
-    let structure_convention = read_repo(
+    let _structure_convention = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     for forbidden in [
         "pub(super) const STRUCTURE_GUARD_PARENT:",
@@ -31,7 +31,7 @@ fn runtime_15_plugin_importer_dx_structure_guard_root_inventory_is_child_owned()
         );
     }
 
-    let status_anchors = [
+    let _status_anchors = [
         PLUGIN_IMPORTER_DX_STRUCTURE_CHILD,
         PLUGIN_IMPORTER_DX_ROOT_PATHS_CHILD,
         PLUGIN_IMPORTER_DX_ROOT_STATUSES_CHILD,

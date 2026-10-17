@@ -33,6 +33,7 @@ fn optimization_batch_fn_runtime470_lock_step_clones_only_shared_owner() {
     assert!(Arc::ptr_eq(&shared, stored));
 }
 
+// 计时从屏障放行前开始，覆盖完整加载、值释放和线程 join；不是单次持锁耗时。
 #[test]
 #[ignore = "release performance gate"]
 fn optimization_batch_fn_runtime470_short_config_load_lock_benchmark() {

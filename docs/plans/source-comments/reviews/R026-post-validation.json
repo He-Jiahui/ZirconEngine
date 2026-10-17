@@ -1,0 +1,393 @@
+{
+  "schema_version": 1,
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R026",
+  "reviewer": "root",
+  "validated_at_utc": "2026-10-15T08:00:34.460263+00:00",
+  "status": "scoped-static-validation-passed",
+  "files": {
+    "zircon_runtime/src/core/framework/time/clock.rs": {
+      "before_sha256": "56863f2213275b84653c47c40e29c2d0c65ce8088cf9b3f94515fa45205677cb",
+      "reviewed_sha256": "29f6bfa463f9b5eed8f23a5d3de53a72054f8aef8b0367c332cbab4b939cc111",
+      "bytes": 11064,
+      "lines": 266,
+      "full_source_review_spans": [
+        [
+          1,
+          266
+        ]
+      ],
+      "child_object_groups_reviewed": 49,
+      "child_named_objects_reviewed": 61,
+      "continuous_block_partitions": 33,
+      "insertion_blocks": 36,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 266
+    },
+    "zircon_runtime/src/core/framework/time/domain/descriptor.rs": {
+      "before_sha256": "bf122c4dbe41d8177472325a4f4400f4e16b676019f7330e2d0f038ef29ea951",
+      "reviewed_sha256": "bf122c4dbe41d8177472325a4f4400f4e16b676019f7330e2d0f038ef29ea951",
+      "bytes": 1108,
+      "lines": 33,
+      "full_source_review_spans": [
+        [
+          1,
+          33
+        ]
+      ],
+      "child_object_groups_reviewed": 8,
+      "child_named_objects_reviewed": 9,
+      "continuous_block_partitions": 5,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 33
+    },
+    "zircon_runtime/src/core/framework/time/domain/id.rs": {
+      "before_sha256": "05f8d726251c8cc216d50111d78185d3b1ffa3b0c42d246795f91e641d359d46",
+      "reviewed_sha256": "05f8d726251c8cc216d50111d78185d3b1ffa3b0c42d246795f91e641d359d46",
+      "bytes": 1378,
+      "lines": 32,
+      "full_source_review_spans": [
+        [
+          1,
+          32
+        ]
+      ],
+      "child_object_groups_reviewed": 11,
+      "child_named_objects_reviewed": 11,
+      "continuous_block_partitions": 3,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 32
+    },
+    "zircon_runtime/src/core/framework/time/domain/marker.rs": {
+      "before_sha256": "7ef033b5595070d1d8ebbdc2588accc41004cc4562eeae0387fb71092b79ab0f",
+      "reviewed_sha256": "7ef033b5595070d1d8ebbdc2588accc41004cc4562eeae0387fb71092b79ab0f",
+      "bytes": 1256,
+      "lines": 32,
+      "full_source_review_spans": [
+        [
+          1,
+          32
+        ]
+      ],
+      "child_object_groups_reviewed": 6,
+      "child_named_objects_reviewed": 12,
+      "continuous_block_partitions": 5,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 32
+    },
+    "zircon_runtime/src/core/framework/time/domain/mod.rs": {
+      "before_sha256": "5fbafa9ece5f230c0c63e5525c3a13f760b37b75a9d00a5b0ad1711704159b5b",
+      "reviewed_sha256": "5fbafa9ece5f230c0c63e5525c3a13f760b37b75a9d00a5b0ad1711704159b5b",
+      "bytes": 895,
+      "lines": 25,
+      "full_source_review_spans": [
+        [
+          1,
+          25
+        ]
+      ],
+      "child_object_groups_reviewed": 13,
+      "child_named_objects_reviewed": 13,
+      "continuous_block_partitions": 3,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 25
+    },
+    "zircon_runtime/src/core/framework/time/domain/registry.rs": {
+      "before_sha256": "0f2bbb59539e60e74a4d538cb40585326fb9dc0d5fadde2a5b56c211add7853f",
+      "reviewed_sha256": "0f2bbb59539e60e74a4d538cb40585326fb9dc0d5fadde2a5b56c211add7853f",
+      "bytes": 2758,
+      "lines": 67,
+      "full_source_review_spans": [
+        [
+          1,
+          67
+        ]
+      ],
+      "child_object_groups_reviewed": 7,
+      "child_named_objects_reviewed": 9,
+      "continuous_block_partitions": 6,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 67
+    },
+    "zircon_runtime/src/core/framework/time/domain/stamp.rs": {
+      "before_sha256": "2341cb4f1759886f6a62fe5bf1db586f98ab707b206f451565ae08d9e0b54034",
+      "reviewed_sha256": "2341cb4f1759886f6a62fe5bf1db586f98ab707b206f451565ae08d9e0b54034",
+      "bytes": 3165,
+      "lines": 75,
+      "full_source_review_spans": [
+        [
+          1,
+          75
+        ]
+      ],
+      "child_object_groups_reviewed": 15,
+      "child_named_objects_reviewed": 17,
+      "continuous_block_partitions": 9,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 75
+    },
+    "zircon_runtime/src/core/framework/time/domain/unit.rs": {
+      "before_sha256": "61d3246fbb27bb2e2b7ad1f1093393ac0098c17315b8c5a53c1db364944bbbc9",
+      "reviewed_sha256": "61d3246fbb27bb2e2b7ad1f1093393ac0098c17315b8c5a53c1db364944bbbc9",
+      "bytes": 824,
+      "lines": 14,
+      "full_source_review_spans": [
+        [
+          1,
+          14
+        ]
+      ],
+      "child_object_groups_reviewed": 3,
+      "child_named_objects_reviewed": 3,
+      "continuous_block_partitions": 2,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 14
+    },
+    "zircon_runtime/src/core/framework/time/fixed.rs": {
+      "before_sha256": "dc72cf6a8790a677f0ccc32e4a59653166f47d305465e721d3edcbc9fbb1cc68",
+      "reviewed_sha256": "b85405c36f6be5b6934a1e082e9530f93974ab86ab71dcca3fa196a1f0ccc0d0",
+      "bytes": 3117,
+      "lines": 71,
+      "full_source_review_spans": [
+        [
+          1,
+          71
+        ]
+      ],
+      "child_object_groups_reviewed": 13,
+      "child_named_objects_reviewed": 15,
+      "continuous_block_partitions": 9,
+      "insertion_blocks": 3,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 71
+    },
+    "zircon_runtime/src/core/framework/time/fixed_step_plan.rs": {
+      "before_sha256": "b9116b33fabda9bb03f32234b0686f3f7bfa1f7b21091f4a2697034703b6da74",
+      "reviewed_sha256": "422d0279a5a3304e213500d27042a5a668bacf48cf22f522b6fa324f1d9ac48b",
+      "bytes": 4746,
+      "lines": 102,
+      "full_source_review_spans": [
+        [
+          1,
+          102
+        ]
+      ],
+      "child_object_groups_reviewed": 13,
+      "child_named_objects_reviewed": 14,
+      "continuous_block_partitions": 7,
+      "insertion_blocks": 2,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 102
+    },
+    "zircon_runtime/src/core/framework/time/mod.rs": {
+      "before_sha256": "6e4ac5b373afcbc157b86f2dc861dba1b096e718c55c8242e47bc1c1d14f7e9a",
+      "reviewed_sha256": "a11e451d0d03a7f92a6e391025c1520f3b172e53b3c254d3ab53fbd11e5fdbe8",
+      "bytes": 1097,
+      "lines": 33,
+      "full_source_review_spans": [
+        [
+          1,
+          33
+        ]
+      ],
+      "child_object_groups_reviewed": 17,
+      "child_named_objects_reviewed": 26,
+      "continuous_block_partitions": 3,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 33
+    },
+    "zircon_runtime/src/core/framework/time/monotonic_real.rs": {
+      "before_sha256": "caa05e53a06f9752e0693497f3b84da3a001b1d758247dcec0fc9369e8141012",
+      "reviewed_sha256": "a680606820db548c51f1508e11663be5657d7fb774be14fde34357303ad3e76c",
+      "bytes": 283,
+      "lines": 4,
+      "full_source_review_spans": [
+        [
+          1,
+          4
+        ]
+      ],
+      "child_object_groups_reviewed": 1,
+      "child_named_objects_reviewed": 1,
+      "continuous_block_partitions": 1,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 4
+    },
+    "zircon_runtime/src/core/framework/time/policy.rs": {
+      "before_sha256": "58315b6c658c42c67eeb19174ead3f2af4342802aa1141927714d6e3b53a8e4a",
+      "reviewed_sha256": "58315b6c658c42c67eeb19174ead3f2af4342802aa1141927714d6e3b53a8e4a",
+      "bytes": 7890,
+      "lines": 198,
+      "full_source_review_spans": [
+        [
+          1,
+          198
+        ]
+      ],
+      "child_object_groups_reviewed": 30,
+      "child_named_objects_reviewed": 34,
+      "continuous_block_partitions": 17,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 198
+    },
+    "zircon_runtime/src/core/framework/time/product_policy.rs": {
+      "before_sha256": "01953bf4c0db198768d3ca0b73ebda450d0042bc9ea3782eed6dd4b5598edae4",
+      "reviewed_sha256": "6cd5e0a59e23f3df184533e37f230df390b188add774532fc217d00e6dc5f603",
+      "bytes": 6057,
+      "lines": 151,
+      "full_source_review_spans": [
+        [
+          1,
+          151
+        ]
+      ],
+      "child_object_groups_reviewed": 27,
+      "child_named_objects_reviewed": 30,
+      "continuous_block_partitions": 13,
+      "insertion_blocks": 1,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 151
+    },
+    "zircon_runtime/src/core/framework/time/tests/product_policy.rs": {
+      "before_sha256": "1403e12a197ace2d6e40bd2452948e624edd252462b64675097595bd41dc032d",
+      "reviewed_sha256": "1403e12a197ace2d6e40bd2452948e624edd252462b64675097595bd41dc032d",
+      "bytes": 1433,
+      "lines": 53,
+      "full_source_review_spans": [
+        [
+          1,
+          53
+        ]
+      ],
+      "child_object_groups_reviewed": 6,
+      "child_named_objects_reviewed": 12,
+      "continuous_block_partitions": 5,
+      "insertion_blocks": 0,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 53
+    },
+    "zircon_runtime/src/core/framework/time/virtual_clock.rs": {
+      "before_sha256": "2601fc095b45e22ea8c7929282dcfd66ef0b4a765a5e83aa42624f92a4e0ebf8",
+      "reviewed_sha256": "efbea363ce85e02f2efce8185be5394c0506985d01919ab3f0a5775d23304e36",
+      "bytes": 3654,
+      "lines": 96,
+      "full_source_review_spans": [
+        [
+          1,
+          96
+        ]
+      ],
+      "child_object_groups_reviewed": 17,
+      "child_named_objects_reviewed": 18,
+      "continuous_block_partitions": 12,
+      "insertion_blocks": 14,
+      "all_original_raw_bytes_reconstructed": true,
+      "crlf_count": 0,
+      "lone_lf_count": 96
+    }
+  },
+  "root_actual_validation": {
+    "receipt": {
+      "chunk_id": "f374d1",
+      "exit_code": 0,
+      "initial_native_session": 3107,
+      "launch_chunk_id": "42e16f"
+    },
+    "same_source_pins_reverified_at_booking": true,
+    "raw_reverse_insertion_sources": 16,
+    "raw_reverse_insertion_blocks": 58,
+    "all_original_bytes_restored": true,
+    "normalized_HEAD_match": true,
+    "all_sources_LF_and_BOM_preserved": true,
+    "object_groups_range_checked": 236,
+    "named_objects_range_checked": 285,
+    "continuous_partitions_before_and_current": 133,
+    "blocks_with_branches": 22,
+    "branch_entries": 35,
+    "file_reference_ranges": 707,
+    "context_finding_reference_ranges": 26,
+    "handoff_reference_ranges": 3,
+    "total_reference_ranges": 736,
+    "all_context_reference_ranges_within_actual_child_read_spans": true,
+    "all28_current_context_pins_match": true,
+    "direct_source_predicates_before_and_current": [
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      2,
+      1,
+      7,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "local_boundary_absence_contributions": 75,
+    "all_local_contributions_zero": true,
+    "whole_crate_boundary_test_executed": false,
+    "checks": [
+      {
+        "name": "rustfmt16",
+        "exit_code": 0
+      },
+      {
+        "name": "diff16",
+        "exit_code": 0
+      },
+      {
+        "name": "staged16-empty",
+        "exit_code": 0
+      },
+      {
+        "name": "change-guard16",
+        "exit_code": 0,
+        "errors": 0,
+        "warnings": 0,
+        "changed_paths": 7,
+        "declared_paths": 16,
+        "opened_markers": [],
+        "closed_markers": []
+      }
+    ],
+    "patch_sha256": "4e5f1b4435754cead8f2241ccff0f2f9736dc06232d66d2f78d95ccf2276106a",
+    "patch_bytes": 17709,
+    "Rust_tests_Cargo_build_generators_run": false
+  },
+  "managed_coordinator_format": "pending",
+  "formal_acceptance": false,
+  "coordinator_commit": "pending"
+}

@@ -12,6 +12,7 @@ pub enum NetError {
     UnknownRoute { route: NetRouteId },
     RouteNotFound { method: String, path: String },
     InvalidBudget { budget: usize },
+    EventQueueFull { capacity: usize },
     SecurityPolicyViolation { reason: String },
     ProtocolUnavailable { capability: String },
     SharedStatePoisoned { resource: String },

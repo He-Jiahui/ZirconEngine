@@ -1,14 +1,12 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_ds8_d3_native_fixture_uses_sdk_macro_and_single_manifest() {
-    let fixture = include_str!(
-        "../../../../../../zircon_plugins/native_dynamic_fixture/native/src/lib.rs"
-    );
+    let fixture =
+        include_str!("../../../../../../zircon_plugins/native_dynamic_fixture/native/src/lib.rs");
     let plugin_toml =
         include_str!("../../../../../../zircon_plugins/native_dynamic_fixture/plugin.toml");
-    let native_cargo = include_str!(
-        "../../../../../../zircon_plugins/native_dynamic_fixture/native/Cargo.toml"
-    );
+    let native_cargo =
+        include_str!("../../../../../../zircon_plugins/native_dynamic_fixture/native/Cargo.toml");
     let sdk_dist = include_str!("../../../../../../zircon_plugins/plugin_sdk/src/dist.rs");
     let review_findings = concat!(
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),

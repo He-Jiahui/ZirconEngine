@@ -127,3 +127,11 @@ pub(crate) use shadow::cascade::{
     CascadeSplitConfig,
 };
 pub(crate) use shadow::{build_shadow_frame_plan, ShadowLightSlotAssignment};
+
+pub(in crate::graphics) use graph_execution::{
+    VirtualGeometryNativeReadbackPacket, VirtualGeometryReadbackBudget,
+    VirtualGeometryReadbackScope, VirtualGeometryReadyReadback, VirtualGeometryTicketedReadback,
+};
+pub use graph_execution::{VirtualGeometryReadbackDecoder, VirtualGeometryReadbackReservation};
+
+pub use graph_execution::RenderPassGpuRecordingContext;

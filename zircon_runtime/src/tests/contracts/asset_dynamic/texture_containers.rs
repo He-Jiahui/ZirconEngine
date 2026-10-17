@@ -4,8 +4,7 @@ use super::*;
 #[test]
 fn runtime_15_asset_texture_upload_readiness_container_fixtures_uses_owner_name() {
     let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let texture_readiness_dir =
-        manifest_root.join("src/asset/tests/texture_upload_readiness");
+    let texture_readiness_dir = manifest_root.join("src/asset/tests/texture_upload_readiness");
     let retired_common = texture_readiness_dir.join("common.rs");
     let texture_readiness_parent = read_text(
         &manifest_root.join("src/asset/tests/assets/texture_upload_readiness.rs"),
@@ -120,8 +119,7 @@ fn runtime_15_dds_upload_policy_uses_classic_container_names() {
         &manifest_root.join("src/asset/assets/texture/upload_support/dds.rs"),
         "DDS upload support owner should be readable",
     );
-    let texture_readiness_dir =
-        manifest_root.join("src/asset/tests/texture_upload_readiness");
+    let texture_readiness_dir = manifest_root.join("src/asset/tests/texture_upload_readiness");
     let container_fixtures = read_text(
         &texture_readiness_dir.join("container_fixtures.rs"),
         "texture upload readiness container fixtures should be readable",

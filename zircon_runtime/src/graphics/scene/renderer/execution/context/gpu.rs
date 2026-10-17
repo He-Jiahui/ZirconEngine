@@ -66,6 +66,8 @@ mod reports;
 mod resource_lookup;
 #[path = "gpu/surface.rs"]
 mod surface;
+#[path = "gpu/virtual_geometry_probe.rs"]
+mod virtual_geometry_probe;
 
 pub use buffer_uploads::{RenderPassBufferUploadRecorder, RenderPassBufferUploadSink};
 pub(in crate::graphics::scene::scene_renderer) use mesh_command_lists::RenderPassMeshCommandLists;
@@ -131,6 +133,7 @@ pub struct RenderPassGpuExecutionContext<'a> {
     texture_uploads: WgpuTextureUploadBatch,
     screen_space_ui_upload_commits: Vec<ScreenSpaceUiPreparedUpload>,
     hzb_occlusion_params_commits: Vec<HzbOcclusionParamsCommit>,
+    virtual_geometry_readbacks: Vec<VirtualGeometryNativeReadbackPacket>,
 }
 
 impl std::fmt::Debug for RenderPassGpuExecutionContext<'_> {
@@ -215,6 +218,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             texture_uploads: WgpuTextureUploadBatch::new(),
             screen_space_ui_upload_commits: Vec::new(),
             hzb_occlusion_params_commits: Vec::new(),
+            virtual_geometry_readbacks: Vec::new(),
         }
     }
 
@@ -248,6 +252,84 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 
     pub fn frame_extract(&self) -> &RenderFrameExtract {
         &self.frame.extract
+    }
+
+    pub fn reserve_virtual_geometry_readback(
+        &self,
+        bytes: u64,
+    ) -> Result<Option<VirtualGeometryReadbackReservation>, String> {
+        let Some(scope) = self.frame.virtual_geometry_readback_scope.as_ref() else {
+            return Ok(None);
+        };
+        let epoch = self
+            .device_epoch()
+            .ok_or("virtual geometry readback requires materialized device epoch")?;
+        if bytes == 0
+            || bytes > VirtualGeometryReadbackBudget::LIMIT_BYTES
+            || bytes % wgpu::COPY_BUFFER_ALIGNMENT != 0
+        {
+            return Err(
+                "virtual geometry readback length is not a bounded aligned payload".to_string(),
+            );
+        }
+        let Some(credit) = scope.try_acquire_credit(bytes) else {
+            return Ok(None);
+        };
+        Ok(Some(VirtualGeometryReadbackReservation { credit, epoch }))
+    }
+
+    pub fn enqueue_reserved_virtual_geometry_readback(
+        &mut self,
+        reservation: VirtualGeometryReadbackReservation,
+        staging: wgpu::Buffer,
+        range: std::ops::Range<u64>,
+        decoder: VirtualGeometryReadbackDecoder,
+    ) -> Result<(), String> {
+        let Some(scope) = self.frame.virtual_geometry_readback_scope.as_ref() else {
+            return Err("virtual geometry readback frame scope is absent".to_string());
+        };
+        if reservation.credit.scope.scope_id != scope.scope_id
+            || self.device_epoch() != Some(reservation.epoch)
+            || range.start != 0
+            || range.end != reservation.credit.bytes
+            || staging.size() != reservation.credit.bytes
+            || range.end.checked_sub(range.start) != Some(reservation.credit.bytes)
+            || range.end > staging.size()
+            || !staging
+                .usage()
+                .contains(wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST)
+        {
+            return Err("virtual geometry readback reservation or staging range does not match the recording frame".to_string());
+        }
+        self.virtual_geometry_readbacks
+            .push(VirtualGeometryNativeReadbackPacket {
+                scope: scope.clone(),
+                epoch: reservation.epoch,
+                staging,
+                range,
+                decoder,
+                credit: reservation.credit,
+                native_probe: None,
+            });
+        Ok(())
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn take_virtual_geometry_readbacks(
+        &mut self,
+    ) -> Vec<VirtualGeometryNativeReadbackPacket> {
+        std::mem::take(&mut self.virtual_geometry_readbacks)
+    }
+
+    pub fn virtual_geometry_execution_data(
+        &self,
+    ) -> Option<&crate::core::framework::render::RenderVirtualGeometryExecutionData> {
+        self.frame.virtual_geometry_execution_data.as_deref()
+    }
+
+    pub fn virtual_geometry_execution_inputs(
+        &self,
+    ) -> &crate::core::framework::render::RenderVirtualGeometryExecutionInputs {
+        &self.frame.virtual_geometry_execution_inputs
     }
 
     pub fn virtual_geometry_debug_snapshot(&self) -> Option<&RenderVirtualGeometryDebugSnapshot> {
@@ -656,3 +738,370 @@ pub(in crate::graphics::scene::scene_renderer) fn writes_physical_output_resourc
 #[cfg(test)]
 #[path = "gpu/tests/cases.rs"]
 mod tests;
+
+/// Native feedback allocation remains charged until its decoded payload is consumed or dropped.
+#[derive(Debug)]
+pub(in crate::graphics) struct VirtualGeometryReadbackBudget {
+    live_bytes: std::sync::atomic::AtomicU64,
+    next_scope: std::sync::atomic::AtomicU64,
+    skipped: std::sync::atomic::AtomicU64,
+}
+
+impl VirtualGeometryReadbackBudget {
+    const LIMIT_BYTES: u64 = 64 * 1024 * 1024;
+
+    pub(in crate::graphics) fn new() -> std::sync::Arc<Self> {
+        std::sync::Arc::new(Self {
+            live_bytes: std::sync::atomic::AtomicU64::new(0),
+            next_scope: std::sync::atomic::AtomicU64::new(0),
+            skipped: std::sync::atomic::AtomicU64::new(0),
+        })
+    }
+
+    pub(in crate::graphics) fn scope(
+        self: &std::sync::Arc<Self>,
+        viewport: crate::core::framework::render::RenderViewportHandle,
+        viewport_generation: u64,
+        frame_generation: u64,
+        slots: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    ) -> Option<VirtualGeometryReadbackScope> {
+        use std::sync::atomic::Ordering;
+        let scope_id = self
+            .next_scope
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
+                value.checked_add(1)
+            })
+            .ok()?
+            .checked_add(1)?;
+        Some(VirtualGeometryReadbackScope {
+            scope_id,
+            viewport,
+            viewport_generation,
+            frame_generation,
+            budget: std::sync::Arc::clone(self),
+            slots,
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(in crate::graphics) struct VirtualGeometryReadbackScope {
+    pub(in crate::graphics) scope_id: u64,
+    pub(in crate::graphics) viewport: crate::core::framework::render::RenderViewportHandle,
+    pub(in crate::graphics) viewport_generation: u64,
+    pub(in crate::graphics) frame_generation: u64,
+    budget: std::sync::Arc<VirtualGeometryReadbackBudget>,
+    slots: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+}
+
+#[derive(Debug)]
+struct VirtualGeometryReadbackCredit {
+    scope: VirtualGeometryReadbackScope,
+    bytes: u64,
+}
+
+impl Drop for VirtualGeometryReadbackCredit {
+    fn drop(&mut self) {
+        use std::sync::atomic::Ordering;
+        self.scope
+            .budget
+            .live_bytes
+            .fetch_sub(self.bytes, Ordering::AcqRel);
+        self.scope.slots.fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
+/// The admitted payload and viewport slot must be reserved before allocating staging storage.
+pub struct VirtualGeometryReadbackReservation {
+    credit: VirtualGeometryReadbackCredit,
+    epoch: RenderPassDeviceEpoch,
+}
+
+pub type VirtualGeometryReadbackDecoder =
+    NativeReadbackDecoder<crate::core::framework::render::RenderVirtualGeometryReadbackOutputs>;
+type NativeReadbackDecoder<T> = Box<dyn FnOnce(&[u8]) -> Result<T, String> + Send + 'static>;
+pub(in crate::graphics) type VirtualGeometryNativeReadbackPacket =
+    NativeReadbackPacket<crate::core::framework::render::RenderVirtualGeometryReadbackOutputs>;
+pub(in crate::graphics) type VirtualGeometryReadyReadback =
+    NativeReadyReadback<crate::core::framework::render::RenderVirtualGeometryReadbackOutputs>;
+pub(in crate::graphics) type VirtualGeometryTicketedReadback =
+    NativeTicketedReadback<crate::core::framework::render::RenderVirtualGeometryReadbackOutputs>;
+pub(in crate::graphics) struct NativeReadbackPacket<T> {
+    pub(in crate::graphics) scope: VirtualGeometryReadbackScope,
+    pub(in crate::graphics) epoch: RenderPassDeviceEpoch,
+    staging: wgpu::Buffer,
+    range: std::ops::Range<u64>,
+    decoder: NativeReadbackDecoder<T>,
+    credit: VirtualGeometryReadbackCredit,
+    native_probe: Option<std::sync::Arc<virtual_geometry_probe::NativeProbe>>,
+}
+pub(in crate::graphics) struct NativeReadyReadback<T> {
+    pub(in crate::graphics) outputs: T,
+    _credit: Option<VirtualGeometryReadbackCredit>,
+    native_probe: Option<std::sync::Arc<virtual_geometry_probe::NativeProbe>>,
+}
+pub(in crate::graphics) struct NativeTicketedReadback<T> {
+    pub(in crate::graphics) scope: VirtualGeometryReadbackScope,
+    pub(in crate::graphics) epoch: RenderPassDeviceEpoch,
+    pub(in crate::graphics) ticket: crate::rhi::SubmissionTicket,
+    submission_completed: bool,
+    completion: std::sync::Arc<std::sync::Mutex<Option<Result<NativeReadyReadback<T>, String>>>>,
+    cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+impl<T: Send + 'static> NativeReadbackPacket<T> {
+    /// Actual submission transfers physical credit and source leases to the map callback.
+    pub(in crate::graphics) fn bind_ticket(
+        self,
+        ticket: crate::rhi::SubmissionTicket,
+    ) -> NativeTicketedReadback<T> {
+        if let Some(probe) = &self.native_probe {
+            probe.bind_origin(ticket);
+        }
+        let completion = std::sync::Arc::new(std::sync::Mutex::new(None));
+        let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let result = NativeTicketedReadback {
+            scope: self.scope.clone(),
+            epoch: self.epoch,
+            ticket,
+            submission_completed: false,
+            completion: std::sync::Arc::clone(&completion),
+            cancelled: std::sync::Arc::clone(&cancelled),
+        };
+        let NativeReadbackPacket {
+            staging,
+            range,
+            decoder,
+            credit,
+            native_probe,
+            ..
+        } = self;
+        let callback_buffer = staging.clone();
+        staging
+            .slice(range.clone())
+            .map_async(wgpu::MapMode::Read, move |mapped| {
+                use std::sync::atomic::Ordering;
+                let delivery = match mapped {
+                    Ok(()) if !cancelled.load(Ordering::Acquire) => {
+                        let view = callback_buffer.slice(range).get_mapped_range();
+                        let decoded = decoder(&view);
+                        drop(view);
+                        callback_buffer.unmap();
+                        decoded.map(|outputs| NativeReadyReadback {
+                            outputs,
+                            _credit: Some(credit),
+                            native_probe,
+                        })
+                    }
+                    Ok(()) => {
+                        callback_buffer.unmap();
+                        Err("virtual geometry readback cancelled".to_string())
+                    }
+                    Err(error) => Err(format!("virtual geometry native mapping failed: {error}")),
+                };
+                if !cancelled.load(Ordering::Acquire) {
+                    *completion.lock().unwrap_or_else(|e| e.into_inner()) = Some(delivery);
+                }
+            });
+        result
+    }
+}
+impl<T> NativeTicketedReadback<T> {
+    pub(in crate::graphics) fn observe_status(
+        &mut self,
+        status: Option<crate::rhi::SubmissionStatus>,
+    ) {
+        match status {
+            Some(crate::rhi::SubmissionStatus::Completed) => self.submission_completed = true,
+            Some(status) if status.is_terminal() => {
+                self.cancelled
+                    .store(true, std::sync::atomic::Ordering::Release);
+                *self.completion.lock().unwrap_or_else(|e| e.into_inner()) = Some(Err(
+                    "virtual geometry scene submission did not complete".to_string(),
+                ));
+            }
+            _ => {}
+        }
+    }
+    pub(in crate::graphics) fn take_ready(
+        &mut self,
+    ) -> Option<Result<NativeReadyReadback<T>, String>> {
+        let mut delivery = self.completion.lock().unwrap_or_else(|e| e.into_inner());
+        if self.submission_completed || delivery.as_ref().is_some_and(Result::is_err) {
+            delivery.take()
+        } else {
+            None
+        }
+    }
+}
+impl<T> Drop for NativeTicketedReadback<T> {
+    fn drop(&mut self) {
+        self.cancelled
+            .store(true, std::sync::atomic::Ordering::Release);
+    }
+}
+
+impl VirtualGeometryReadbackScope {
+    fn try_acquire_credit(&self, bytes: u64) -> Option<VirtualGeometryReadbackCredit> {
+        use std::sync::atomic::Ordering;
+        let scope = self;
+        if scope
+            .slots
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
+                (value < 3).then_some(value + 1)
+            })
+            .is_err()
+        {
+            scope.budget.skipped.fetch_add(1, Ordering::Relaxed);
+            return None;
+        }
+        if scope
+            .budget
+            .live_bytes
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
+                value
+                    .checked_add(bytes)
+                    .filter(|next| *next <= VirtualGeometryReadbackBudget::LIMIT_BYTES)
+            })
+            .is_err()
+        {
+            scope.slots.fetch_sub(1, Ordering::AcqRel);
+            scope.budget.skipped.fetch_add(1, Ordering::Relaxed);
+            return None;
+        }
+        Some(VirtualGeometryReadbackCredit {
+            scope: self.clone(),
+            bytes,
+        })
+    }
+}
+
+#[cfg(test)]
+mod virtual_geometry_native_readback_tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    #[test]
+    fn submitted_cancelled_readback_holds_credit_until_native_map_terminal() {
+        let backend = crate::graphics::backend::RenderBackend::new_offscreen().unwrap();
+        let budget = VirtualGeometryReadbackBudget::new();
+        let slots = Arc::new(AtomicUsize::new(0));
+        let scope = budget
+            .scope(
+                crate::core::framework::render::RenderViewportHandle::new(7),
+                1,
+                1,
+                Arc::clone(&slots),
+            )
+            .unwrap();
+        let credit = scope.try_acquire_credit(16).unwrap();
+        let staging = backend.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("zircon-vg-cancel-credit-regression"),
+            size: 16,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let mut encoder = backend
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+        encoder.clear_buffer(&staging, 0, None);
+        let ticket = backend
+            .submit_graphics_command_buffers(vec![encoder.finish()])
+            .unwrap();
+        let decoded = Arc::new(AtomicUsize::new(0));
+        let decoded_callback = Arc::clone(&decoded);
+        let packet = VirtualGeometryNativeReadbackPacket {
+            scope,
+            epoch: RenderPassDeviceEpoch::from_profile(backend.device_profile()),
+            staging,
+            range: 0..16,
+            credit,
+            native_probe: None,
+            decoder: Box::new(move |_| {
+                decoded_callback.fetch_add(1, Ordering::SeqCst);
+                Ok(Default::default())
+            }),
+        };
+        let owner = packet.bind_ticket(ticket);
+        assert_eq!(budget.live_bytes.load(Ordering::Acquire), 16);
+        drop(owner);
+        assert_eq!(
+            budget.live_bytes.load(Ordering::Acquire),
+            16,
+            "viewport cancellation must not release callback-owned physical credit"
+        );
+        assert_eq!(slots.load(Ordering::Acquire), 1);
+        let next_scope = budget
+            .scope(
+                crate::core::framework::render::RenderViewportHandle::new(7),
+                2,
+                2,
+                Arc::new(AtomicUsize::new(0)),
+            )
+            .unwrap();
+        assert!(
+            next_scope
+                .try_acquire_credit(VirtualGeometryReadbackBudget::LIMIT_BYTES)
+                .is_none(),
+            "recreated viewport or new epoch cannot reset framework live bytes"
+        );
+        backend
+            .device
+            .poll(wgpu::PollType::wait_indefinitely())
+            .unwrap();
+        assert_eq!(
+            decoded.load(Ordering::SeqCst),
+            0,
+            "cancelled callback must not decode or publish"
+        );
+        assert_eq!(budget.live_bytes.load(Ordering::Acquire), 0);
+        assert_eq!(slots.load(Ordering::Acquire), 0);
+    }
+
+    #[test]
+    fn viewport_readback_cap_spans_histories_and_ready_credit() {
+        let budget = VirtualGeometryReadbackBudget::new();
+        let slots = Arc::new(AtomicUsize::new(0));
+        let make_scope = |generation| {
+            budget
+                .scope(
+                    crate::core::framework::render::RenderViewportHandle::new(8),
+                    1,
+                    generation,
+                    Arc::clone(&slots),
+                )
+                .unwrap()
+        };
+        let first = make_scope(1).try_acquire_credit(16).unwrap();
+        let second = make_scope(2).try_acquire_credit(16).unwrap();
+        let third = make_scope(3).try_acquire_credit(16).unwrap();
+        assert!(make_scope(4).try_acquire_credit(16).is_none());
+        let ready = VirtualGeometryReadyReadback {
+            outputs: Default::default(),
+            _credit: Some(first),
+            native_probe: None,
+        };
+        assert!(
+            make_scope(5).try_acquire_credit(16).is_none(),
+            "clear-only ready output still owns a slot"
+        );
+        drop(ready);
+        assert!(make_scope(6).try_acquire_credit(16).is_some());
+        drop((second, third));
+        assert_eq!(slots.load(Ordering::Acquire), 0);
+        assert_eq!(budget.live_bytes.load(Ordering::Acquire), 0);
+    }
+}
+
+impl RenderPassGpuExecutionContext<'_> {
+    /// Author topology and full identities from this frame's actual bound mesh plan.
+    /// Visibility and live command counts remain GPU-produced.
+    pub fn virtual_geometry_indexed_author_runs(
+        &self,
+    ) -> Option<&[crate::graphics::VirtualGeometryIndexedAuthorRun]> {
+        self.resources
+            .virtual_geometry_indexed_plan
+            .as_ref()
+            .map(|plan| plan.authors())
+    }
+}

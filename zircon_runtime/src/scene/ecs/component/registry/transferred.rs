@@ -5,7 +5,9 @@ use crate::scene::ecs::StorageType;
 
 use super::super::id::ComponentId;
 use super::super::table_column::TableColumnLayout;
-use super::{ComponentDescriptor, ComponentDescriptorSource, ComponentRegistry};
+use super::{
+    ComponentDescriptor, ComponentDescriptorSource, ComponentRegistry, ComponentRetentionProviderV1,
+};
 
 /// A descriptor-owned capability carried out of an isolated World. Its
 /// numeric component id remains local to that World and is never reused by a
@@ -14,6 +16,7 @@ use super::{ComponentDescriptor, ComponentDescriptorSource, ComponentRegistry};
 pub(crate) struct TransferredComponentDescriptor {
     pub(super) descriptor: ComponentDescriptor,
     pub(super) table_column_layout: Option<TableColumnLayout>,
+    pub(super) retention_provider: Option<ComponentRetentionProviderV1>,
 }
 
 /// A transaction-local import log for descriptors transferred out of an
@@ -30,6 +33,7 @@ pub(crate) struct PreflightedTransferredDescriptorImports {
 struct PendingTransferredDescriptor {
     descriptor: ComponentDescriptor,
     table_column_layout: Option<TableColumnLayout>,
+    retention_provider: Option<ComponentRetentionProviderV1>,
 }
 
 impl PreflightedTransferredDescriptorImports {
@@ -89,6 +93,7 @@ impl PreflightedTransferredDescriptorImports {
         self.pending.push(PendingTransferredDescriptor {
             descriptor,
             table_column_layout: transfer.table_column_layout.clone(),
+            retention_provider: transfer.retention_provider,
         });
         component_id
     }
@@ -108,6 +113,7 @@ impl PreflightedTransferredDescriptorImports {
                 source: ComponentDescriptorSource::DynamicPlugin { component_type_id },
             },
             table_column_layout: None,
+            retention_provider: None,
         });
         component_id
     }
@@ -126,6 +132,7 @@ impl ComponentRegistry {
         Some(TransferredComponentDescriptor {
             descriptor,
             table_column_layout,
+            retention_provider: self.retention_provider_v1(component_id),
         })
     }
 
@@ -150,7 +157,9 @@ impl ComponentRegistry {
             self.component_id_for_transferred_source(&transfer.descriptor.source)
         {
             let descriptor = self.descriptor(component_id)?;
-            if descriptor_matches_transfer(descriptor, &transfer.descriptor) {
+            if descriptor_matches_transfer(descriptor, &transfer.descriptor)
+                && self.retention_provider_v1(component_id) == transfer.retention_provider
+            {
                 imports.reused_descriptor_resolves += 1;
                 return Some(component_id);
             }
@@ -159,13 +168,30 @@ impl ComponentRegistry {
 
         if let Some(component_id) = imports.component_id_for_source(&transfer.descriptor.source) {
             let descriptor = imports.descriptor(component_id)?;
-            if descriptor_matches_transfer(descriptor, &transfer.descriptor) {
+            if descriptor_matches_transfer(descriptor, &transfer.descriptor)
+                && imports
+                    .pending
+                    .get(
+                        component_id
+                            .index()
+                            .checked_sub(imports.base_descriptor_count)?,
+                    )?
+                    .retention_provider
+                    == transfer.retention_provider
+            {
                 imports.reused_descriptor_resolves += 1;
                 return Some(component_id);
             }
             return None;
         }
 
+        if matches!(
+            transfer.descriptor.source,
+            ComponentDescriptorSource::RustType { .. }
+        ) && transfer.retention_provider.is_none()
+        {
+            return None;
+        }
         if transfer.descriptor.storage_type == StorageType::Table
             && transfer.table_column_layout.is_none()
         {
@@ -229,6 +255,9 @@ impl ComponentRegistry {
             if let Some(layout) = pending.table_column_layout {
                 let previous = self.table_column_layouts.insert(component_id, layout);
                 debug_assert!(previous.is_none());
+            }
+            if let Some(provider) = pending.retention_provider {
+                self.retention_providers.insert(component_id, provider);
             }
             self.descriptors.push(pending.descriptor);
         }

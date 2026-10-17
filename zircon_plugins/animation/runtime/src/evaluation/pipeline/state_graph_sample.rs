@@ -4,8 +4,10 @@ use zircon_runtime::core::framework::animation::{AnimationPoseOutput, AnimationP
 use zircon_runtime::core::math::Real;
 use zircon_runtime::scene::EntityId;
 
-use super::clip_sample::sample_pose_request;
-use super::graph_evaluate::{sample_compiled_graph_clip_event_samples, sample_compiled_graph_pose};
+use super::clip_sample::sample_pose_request_with_demand;
+use super::graph_evaluate::{
+    sample_compiled_graph_clip_event_samples, sample_compiled_graph_pose_with_demand,
+};
 use super::machine_instance_key::MachineInstanceKey;
 use super::pose_blend::blend_weighted_poses;
 use super::requests::{PendingClipEventSample, PendingPoseSample, StateMachineParameterProjection};
@@ -111,15 +113,40 @@ pub(super) fn sample_state_clip_pose(
     skeleton_id: zircon_runtime::asset::AssetId,
     time_seconds: Real,
 ) -> Option<(EntityId, AnimationPoseOutput)> {
+    sample_state_clip_pose_with_demand(
+        pipeline,
+        asset_manager,
+        state_machine,
+        state_name,
+        entity,
+        skeleton_id,
+        time_seconds,
+        false,
+    )
+    .map(|(entity, pose, _)| (entity, pose))
+}
+
+pub(super) fn sample_state_clip_pose_with_demand(
+    pipeline: &mut AnimationEvaluationPipeline,
+    asset_manager: &ProjectAssetManager,
+    state_machine: &CompiledAnimationStateMachine,
+    state_name: &str,
+    entity: EntityId,
+    skeleton_id: zircon_runtime::asset::AssetId,
+    time_seconds: Real,
+    playing: bool,
+) -> Option<(EntityId, AnimationPoseOutput, bool)> {
     let clip = state_machine.clip_for_state(state_name)?;
     let clip_id = asset_manager.resolve_asset_id(&clip.locator)?;
-    sample_pose_request(
+    sample_pose_request_with_demand(
         pipeline.clip_evaluator_mut(),
         asset_manager,
         PendingPoseSample {
             entity,
             skeleton_id,
             clip_id,
+            playing,
+            playback_speed: 1.0,
             time_seconds,
             looping: false,
             source: AnimationPoseSource::StateMachine,
@@ -176,8 +203,35 @@ pub(super) fn sample_state_pose(
     skeleton_id: zircon_runtime::asset::AssetId,
     time_seconds: Real,
 ) -> Option<(EntityId, AnimationPoseOutput)> {
+    sample_state_pose_with_demand(
+        pipeline,
+        asset_manager,
+        instance,
+        state_machine,
+        state_name,
+        parameters,
+        entity,
+        skeleton_id,
+        time_seconds,
+        false,
+    )
+    .map(|(entity, pose, _)| (entity, pose))
+}
+
+pub(super) fn sample_state_pose_with_demand(
+    pipeline: &mut AnimationEvaluationPipeline,
+    asset_manager: &ProjectAssetManager,
+    instance: &MachineInstanceKey,
+    state_machine: &CompiledAnimationStateMachine,
+    state_name: &str,
+    parameters: StateMachineParameterProjection<'_>,
+    entity: EntityId,
+    skeleton_id: zircon_runtime::asset::AssetId,
+    time_seconds: Real,
+    playing: bool,
+) -> Option<(EntityId, AnimationPoseOutput, bool)> {
     if state_machine.clip_for_state(state_name).is_some() {
-        return sample_state_clip_pose(
+        return sample_state_clip_pose_with_demand(
             pipeline,
             asset_manager,
             state_machine,
@@ -185,6 +239,7 @@ pub(super) fn sample_state_pose(
             entity,
             skeleton_id,
             time_seconds,
+            playing,
         );
     }
     let samples = pipeline.graph_samples_for_state_with_sampling(
@@ -193,7 +248,7 @@ pub(super) fn sample_state_pose(
         state_name,
         parameters,
     )?;
-    sample_state_graph_pose(
+    sample_state_graph_pose_with_demand(
         pipeline,
         asset_manager,
         samples,
@@ -202,6 +257,7 @@ pub(super) fn sample_state_pose(
         skeleton_id,
         time_seconds,
         Some(state_name.to_string()),
+        playing,
     )
 }
 
@@ -249,7 +305,33 @@ pub(super) fn sample_state_graph_pose(
     time_seconds: Real,
     active_state: Option<String>,
 ) -> Option<(EntityId, AnimationPoseOutput)> {
+    sample_state_graph_pose_with_demand(
+        pipeline,
+        asset_manager,
+        graph_samples,
+        parameters,
+        entity,
+        skeleton_id,
+        time_seconds,
+        active_state,
+        false,
+    )
+    .map(|(entity, pose, _)| (entity, pose))
+}
+
+pub(super) fn sample_state_graph_pose_with_demand(
+    pipeline: &mut AnimationEvaluationPipeline,
+    asset_manager: &ProjectAssetManager,
+    graph_samples: CompiledGraphSamples<'_>,
+    parameters: StateMachineParameterProjection<'_>,
+    entity: EntityId,
+    skeleton_id: zircon_runtime::asset::AssetId,
+    time_seconds: Real,
+    active_state: Option<String>,
+    playing: bool,
+) -> Option<(EntityId, AnimationPoseOutput, bool)> {
     let mut weighted_poses = Vec::new();
+    let mut requires_continuous_frame = false;
     for (graph_reference, weight) in graph_samples.into_iter().flatten() {
         if weight <= 0.0 {
             continue;
@@ -257,7 +339,7 @@ pub(super) fn sample_state_graph_pose(
         let graph_id = asset_manager.resolve_asset_id(&graph_reference.locator)?;
         let graph_evaluation =
             pipeline.evaluate_graph(asset_manager, graph_id, skeleton_id, parameters.values)?;
-        let (_, pose) = sample_compiled_graph_pose(
+        let (_, pose, requires_frame) = sample_compiled_graph_pose_with_demand(
             pipeline.clip_evaluator_mut(),
             asset_manager,
             entity,
@@ -266,16 +348,20 @@ pub(super) fn sample_state_graph_pose(
             AnimationPoseSource::StateMachine,
             active_state.clone(),
             &graph_evaluation,
+            playing,
         )?;
+        requires_continuous_frame |= requires_frame && weight.is_finite() && weight > 0.0;
         weighted_poses.push((pose, weight));
     }
     if weighted_poses.len() == 1 {
-        return weighted_poses.pop().map(|(pose, _)| (entity, pose));
+        return weighted_poses
+            .pop()
+            .map(|(pose, _)| (entity, pose, requires_continuous_frame));
     }
     blend_weighted_poses(
         weighted_poses,
         AnimationPoseSource::StateMachine,
         active_state,
     )
-    .map(|pose| (entity, pose))
+    .map(|pose| (entity, pose, requires_continuous_frame))
 }

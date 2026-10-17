@@ -531,6 +531,20 @@ impl SceneRendererCore {
                 .is_some_and(|renderer| renderer.commit_prepared_upload(prepared_upload));
             debug_assert!(committed);
         }
+        #[cfg(not(target_arch = "wasm32"))]
+        self.commit_scene_history_after_validation();
+        #[cfg(target_arch = "wasm32")]
+        {
+            self.browser_scene_history_pending = true;
+        }
+        self.mesh_pipelines
+            .emit_forward_receiver_binding_profile_frame();
+        self.mesh_pipelines.light_cookies.emit_profile_frame();
+        Ok(scene_submission)
+    }
+    pub(in crate::graphics::scene::scene_renderer::core) fn commit_scene_history_after_validation(
+        &mut self,
+    ) {
         let _prev_transform_roll_report = self.gpu_scene.roll_prev_transforms_after_success();
         let _prev_skinned_palette_roll_report =
             self.gpu_scene.roll_prev_skinned_palettes_after_success();
@@ -538,10 +552,6 @@ impl SceneRendererCore {
             self.gpu_scene.roll_prev_skinned_gpu_sources_after_success();
         let _prev_morph_weights_roll_report =
             self.gpu_scene.roll_prev_morph_weights_after_success();
-        self.mesh_pipelines
-            .emit_forward_receiver_binding_profile_frame();
-        self.mesh_pipelines.light_cookies.emit_profile_frame();
-        Ok(scene_submission)
     }
 }
 

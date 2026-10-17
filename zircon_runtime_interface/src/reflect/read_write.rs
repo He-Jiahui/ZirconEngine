@@ -126,6 +126,7 @@ pub struct ReflectWriteResponse {
     /// 实际完成写入的对象地址。
     pub address: ReflectObjectAddress,
     /// The accepted request field, not an implicit post-publication readback.
+    /// 已接纳请求中的字段记录；需要观察写入后的值时，应另行发起读取请求。
     pub field: ReflectFieldValue,
     /// 是否发生了实际变更；值由对应对象适配器返回，具体发布策略由适配器实现决定。
     pub changed: bool,

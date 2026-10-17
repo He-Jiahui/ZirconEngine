@@ -4,6 +4,10 @@
 #[path = "io/mod.rs"]
 pub mod io;
 
+pub use zr_resource::{
+    ResourceActiveGeneration, ResourceActiveRow, ResourceActiveSnapshotError, ResourceActiveVersionKey,
+    ResourceSourceMember, ResourceSourceOutcome, ResourceSourcePublication,
+};
 pub use zr_resource::ResourceData;
 pub use zr_resource::ResourceLease;
 #[cfg(feature = "profiling")]

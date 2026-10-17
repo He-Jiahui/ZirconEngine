@@ -55,7 +55,6 @@ impl SceneViewportController {
             pointer_bridge: ViewportOverlayPointerRouter::new(),
             settings_mutations,
             overlay_providers: Default::default(),
-            runtime_overlay_ui_cache: Default::default(),
             tool_scheduler,
             scene_tool_identity: SceneToolIdentity::Pending,
             scene_tool_resources,

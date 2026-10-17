@@ -6,7 +6,7 @@ use serde::Serialize;
 use crate::settings::HubLanguage;
 use crate::state::{HubActionRecord, HubActionStatus, HubSnapshot};
 
-use super::{HubTextBundle, path_text_en, relative_time};
+use super::{path_text_en, relative_time, HubTextBundle};
 
 /// 跨端历史项的显示协议；稳定分类供页面筛选，已渲染文本供当前语言界面使用。
 #[derive(Debug, Clone, Serialize)]
@@ -50,7 +50,6 @@ pub(crate) fn action_history_rows(
         .collect()
 }
 
-#[cfg(test)]
 fn action_history_row(
     record: &HubActionRecord,
     now_ms: u64,

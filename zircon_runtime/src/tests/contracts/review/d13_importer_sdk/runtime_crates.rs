@@ -5,15 +5,11 @@ pub(super) const IMPORTER_RUNTIME_CRATES: &[(&str, &str, &str)] = &[
         include_str!(
             "../../../../../../zircon_plugins/asset_importers/audio/runtime/src/plugin.rs"
         ),
-        include_str!(
-            "../../../../../../zircon_plugins/asset_importers/audio/runtime/Cargo.toml"
-        ),
+        include_str!("../../../../../../zircon_plugins/asset_importers/audio/runtime/Cargo.toml"),
     ),
     (
         "asset_importers/data",
-        include_str!(
-            "../../../../../../zircon_plugins/asset_importers/data/runtime/src/plugin.rs"
-        ),
+        include_str!("../../../../../../zircon_plugins/asset_importers/data/runtime/src/plugin.rs"),
         include_str!("../../../../../../zircon_plugins/asset_importers/data/runtime/Cargo.toml"),
     ),
     (
@@ -21,27 +17,21 @@ pub(super) const IMPORTER_RUNTIME_CRATES: &[(&str, &str, &str)] = &[
         include_str!(
             "../../../../../../zircon_plugins/asset_importers/model/runtime/src/plugin.rs"
         ),
-        include_str!(
-            "../../../../../../zircon_plugins/asset_importers/model/runtime/Cargo.toml"
-        ),
+        include_str!("../../../../../../zircon_plugins/asset_importers/model/runtime/Cargo.toml"),
     ),
     (
         "asset_importers/shader",
         include_str!(
             "../../../../../../zircon_plugins/asset_importers/shader/runtime/src/plugin.rs"
         ),
-        include_str!(
-            "../../../../../../zircon_plugins/asset_importers/shader/runtime/Cargo.toml"
-        ),
+        include_str!("../../../../../../zircon_plugins/asset_importers/shader/runtime/Cargo.toml"),
     ),
     (
         "asset_importers/texture",
         include_str!(
             "../../../../../../zircon_plugins/asset_importers/texture/runtime/src/plugin.rs"
         ),
-        include_str!(
-            "../../../../../../zircon_plugins/asset_importers/texture/runtime/Cargo.toml"
-        ),
+        include_str!("../../../../../../zircon_plugins/asset_importers/texture/runtime/Cargo.toml"),
     ),
     (
         "audio_importer",
@@ -65,9 +55,7 @@ pub(super) const IMPORTER_RUNTIME_CRATES: &[(&str, &str, &str)] = &[
     ),
     (
         "shader_wgsl_importer",
-        include_str!(
-            "../../../../../../zircon_plugins/shader_wgsl_importer/runtime/src/plugin.rs"
-        ),
+        include_str!("../../../../../../zircon_plugins/shader_wgsl_importer/runtime/src/plugin.rs"),
         include_str!("../../../../../../zircon_plugins/shader_wgsl_importer/runtime/Cargo.toml"),
     ),
     (
@@ -77,9 +65,7 @@ pub(super) const IMPORTER_RUNTIME_CRATES: &[(&str, &str, &str)] = &[
     ),
     (
         "ui_document_importer",
-        include_str!(
-            "../../../../../../zircon_plugins/ui_document_importer/runtime/src/plugin.rs"
-        ),
+        include_str!("../../../../../../zircon_plugins/ui_document_importer/runtime/src/plugin.rs"),
         include_str!("../../../../../../zircon_plugins/ui_document_importer/runtime/Cargo.toml"),
     ),
 ];

@@ -5,6 +5,8 @@ mod center;
 mod error;
 #[path = "model.rs"]
 mod model;
+#[path = "delivery.rs"]
+mod delivery;
 
 #[cfg(test)]
 #[path = "tests/cases.rs"]
@@ -13,3 +15,4 @@ mod tests;
 pub use center::{ToastCenterConfig, ToastNotificationCenter, ToastNotificationSnapshot};
 pub use error::ToastNotificationError;
 pub use model::{ToastNotification, ToastSeverity};
+pub use delivery::{ToastDeliveryQueue, ToastDeliverySnapshot};

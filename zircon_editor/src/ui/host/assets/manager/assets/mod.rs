@@ -93,6 +93,45 @@ impl DefaultEditorAssetManager {
         }
     }
 
+
+    pub(super) fn model_import_projection_record(
+        &self,
+        activation: &zircon_runtime::asset::project::ProjectActivationIdentity,
+        receipt: &zircon_runtime::asset::ProjectImportReceipt,
+    ) -> crate::ui::host::editor_asset_manager::EditorModelImportProjection {
+        use crate::ui::host::editor_asset_manager::EditorModelImportProjection as Projection;
+        let _publish = lock_editor_asset_gate_recovering_poison(self.publish_gate.as_ref());
+        let state = self.read_state_recovering_poison();
+        let Some(project) = state.project.as_ref() else {
+            return Projection::Superseded;
+        };
+        if project.activation_identity() != activation {
+            return Projection::Superseded;
+        }
+        let Some(index) = state.asset_index.as_ref() else {
+            return Projection::AwaitingPublication;
+        };
+        let index = index.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if index.project_activation_identity() != Some(activation) {
+            return Projection::AwaitingPublication;
+        }
+        let Some(input) = index.catalog_input_generation() else {
+            return Projection::AwaitingPublication;
+        };
+        let published = project.catalog_input_generation();
+        if !Arc::ptr_eq(input, &published) || input.sequence() < receipt.generation_sequence() {
+            return Projection::AwaitingPublication;
+        }
+        // The published ProjectManager includes labeled records as well as catalog rows.
+        // Compare the entire record: an unchanged id with replaced content is insufficient.
+        if receipt.committed_records().iter().any(|record| {
+            project.registry().get_by_locator(record.primary_locator()) != Some(record)
+        }) {
+            return Projection::Superseded;
+        }
+        Projection::Published { generation_sequence: input.sequence() }
+    }
+
     pub fn refresh_from_runtime_project(&self) -> Result<(), CoreError> {
         let Some(access) = self.project_asset_manager.as_ref() else {
             return Ok(());
@@ -103,12 +142,8 @@ impl DefaultEditorAssetManager {
             return Ok(());
         };
         let (project, generation) = snapshot.into_parts();
-        self.sync_from_runtime_project_generation(
-            &*project_asset_manager,
-            project,
-            &generation,
-        )
-        .map_err(editor_asset_error::editor_asset_error)
+        self.sync_from_runtime_project_generation(&*project_asset_manager, project, &generation)
+            .map_err(editor_asset_error::editor_asset_error)
     }
 
     pub fn submit_model_import(

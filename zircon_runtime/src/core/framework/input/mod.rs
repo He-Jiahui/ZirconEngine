@@ -76,7 +76,9 @@ pub use input_button::InputButton;
 pub use input_event::InputEvent;
 pub use input_event_record::InputEventRecord;
 pub use input_frame_snapshot::InputFrameSnapshot;
-pub use input_manager::InputManager;
+pub use input_manager::{
+    GamepadInputRejection, InputEventAdmission, InputManager, QueuedGamepadRumbleRequest,
+};
 pub use input_snapshot::InputSnapshot;
 pub use module_identity::INPUT_MODULE_NAME;
 pub use mouse_wheel::{MouseScrollUnit, MouseWheelEvent, PIXEL_SCROLL_LINE_DELTA_SCALE};

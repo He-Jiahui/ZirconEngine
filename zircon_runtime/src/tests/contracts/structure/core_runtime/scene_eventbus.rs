@@ -11,22 +11,23 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
     let event_prune = read_runtime_src("core/runtime/events/prune.rs");
     let event_subscriber = read_runtime_src("core/runtime/events/subscriber.rs");
     let event_topic = read_runtime_src("core/runtime/events/topic.rs");
-    let structure_parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
-    let runtime_15_plan =
+    let structure_parent =
+        read_runtime_src("tests/contracts/structure/lock_poison_policy/core_runtime.rs");
+    let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let level_doc = read_repo("docs/zircon_runtime/scene/level_system.md");
-    let event_doc = read_repo("docs/zircon_runtime/core/runtime/events.md");
+    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let _module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
+    let _level_doc = read_repo("docs/crates/zircon_runtime/scene/level_system.md");
+    let _event_doc = read_repo("docs/crates/zircon_runtime/core/runtime/events.md");
 
     assert_contains_all(
         "structure convention parent lock-poison mount",
         &structure_parent,
         &[
-            "#[path = \"structure_convention/lock_poison_policy.rs\"]",
-            "mod lock_poison_policy;",
+            "#[path = \"../core_runtime/scene_eventbus.rs\"]",
+            "mod scene_eventbus;",
         ],
     );
 
@@ -37,11 +38,13 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
             "fn lock_poison_recovered<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "fn lock_world(&self) -> MutexGuard<'_, World>",
-            "fn lock_runtime_state(&self) -> MutexGuard<'_, WorldRuntimeState>",
+            "fn lock_physics_state(&self) -> MutexGuard<'_, PhysicsRuntimeState>",
+            "fn lock_animation_state(&self) -> MutexGuard<'_, AnimationRuntimeState>",
+            "fn lock_script_state(&self) -> MutexGuard<'_, ScriptRuntimeState>",
+            "fn lock_frame_state(&self) -> MutexGuard<'_, Arc<LevelFrameStateSnapshot>>",
             "fn lock_metadata(&self) -> MutexGuard<'_, LevelMetadata>",
             "fn lock_lifecycle(&self) -> MutexGuard<'_, LevelLifecycleState>",
-            "fn lock_subsystems(&self) -> MutexGuard<'_, Vec<String>>",
-            "level_system_accessors_recover_poisoned_state_locks",
+            "fn lock_subsystems(&self) -> MutexGuard<'_, Arc<[String]>>",
         ],
     );
     assert_contains_all(
@@ -111,4 +114,10 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
     ] {
         assert_no_direct_lock_unwrap_in_production(label, source);
     }
+    let recovery_tests = read_runtime_src("scene/tests/level_system.rs");
+    assert_contains_all(
+        "mounted poison recovery regression",
+        &recovery_tests,
+        &["fn level_system_accessors_recover_poisoned_state_locks("],
+    );
 }

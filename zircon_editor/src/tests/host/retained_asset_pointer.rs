@@ -571,11 +571,10 @@ fn asset_surface_templates_expose_physics_and_animation_kind_filters() {
 #[test]
 fn asset_surface_templates_map_no_preview_physics_and_animation_assets_to_specific_icons() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let sequence_descriptor =
-        std::fs::read_to_string(root.join(
-            "src/ui/host/activity_windows/animation_sequence_view_desc.rs",
-        ))
-        .expect("animation sequence descriptor");
+    let sequence_descriptor = std::fs::read_to_string(
+        root.join("src/ui/host/activity_windows/animation_sequence_view_desc.rs"),
+    )
+    .expect("animation sequence descriptor");
     let graph_descriptor = std::fs::read_to_string(
         root.join("src/ui/host/activity_windows/animation_graph_view_desc.rs"),
     )

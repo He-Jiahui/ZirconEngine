@@ -1,0 +1,30 @@
+{
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R001",
+  "reviewer": "root",
+  "at_utc": "2026-10-14T15:21:34.024074+00:00",
+  "status": "needs-doc-corrections-pending-source-ownership",
+  "subreview": {
+    "path": "docs/plans/source-comments/reviews/R001.json",
+    "sha256": "4ab147db579dc6bf4e325ad4070562ec1b5aa258b366787f7e2ba42ca6f8cd1c"
+  },
+  "source_hashes": {
+    "zircon_reflect_derive/src/lib.rs": "700988240f23c9d388569aeb162b1a55d0d88c24a1eccef79df94a37e0976793",
+    "zircon_reflect_derive/src/derive.rs": "7351e19214f9ff5fcdd539503cd94de8aebcc8c2113b030be151e51ec1da5a55",
+    "zircon_reflect_derive/src/attributes.rs": "14ccb1d43969b9178bc0f125acd031b9c2f967de13db1a868787e4f3d33a4eef",
+    "zircon_reflect_derive/src/fields.rs": "faad588c0123f1c6af93020bf91aee886926ca4ea0b7d1c3f76d9791c63bacee"
+  },
+  "full_baseline_sources_read": [
+    "zircon_reflect_derive/src/lib.rs",
+    "zircon_reflect_derive/src/derive.rs",
+    "zircon_reflect_derive/src/attributes.rs",
+    "zircon_reflect_derive/src/fields.rs"
+  ],
+  "current_comment_diffs_read": true,
+  "followups": [
+    "attributes.rs 的 validate_field_attributes 成功条件应覆盖普通字段；删除 parse_string/parse_bool 新增孤立空文档行。"
+  ],
+  "block_audit": "Primary reviewer read full definitions and contexts, then additions. R001 field metadata/slots/generated access branches share ordered fields; M001 checked constructors differ from derived policy/receipt decoding. Existing comments must be preserved.",
+  "formal_acceptance": false,
+  "builds": 0
+}

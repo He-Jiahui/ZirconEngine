@@ -21,6 +21,17 @@ use super::super::support::{availability_contains, linked_runtime_registration};
 
 const MANIFEST_FILTER_IMPORTER_ID: &str = "runtime42.manifest_filter_fixture";
 
+// These registration fixtures provide only the plugin under test. The UI document
+// importer is a separate default provider and is explicitly disabled here.
+fn manifest_for_registration_fixture(mut manifest: ProjectPluginManifest) -> ProjectPluginManifest {
+    manifest.set_enabled(ProjectPluginSelection::runtime_plugin(
+        RuntimePluginId::UiDocumentImporter,
+        false,
+        false,
+    ));
+    manifest
+}
+
 fn registration_with_manifest_filter_importer(
     plugin_id: RuntimePluginId,
 ) -> RuntimePluginRegistrationReport {
@@ -40,7 +51,7 @@ fn registration_with_manifest_filter_importer(
     registration
 }
 
-fn registration_with_modules(
+pub(super) fn registration_with_modules(
     plugin_id: RuntimePluginId,
     modules: impl IntoIterator<Item = ModuleDescriptor>,
 ) -> RuntimePluginRegistrationReport {
@@ -174,9 +185,9 @@ fn compiled_project_plan_topologically_sorts_the_combined_module_graph() {
 fn compiled_project_plan_rejects_a_mismatched_runtime_profile_target() {
     let catalog =
         RuntimePluginCatalog::from_registration_reports(std::iter::empty(), std::iter::empty());
-    let plan = catalog.compiled_project_plan(
+    let plan = catalog.compiled_project_plan_for_runtime_profile(
         &ProjectPluginManifest::default(),
-        RuntimeTargetMode::ClientRuntime,
+        &crate::plugin::RuntimeProfileDescriptor::for_id(RuntimeProfileId::Client3d),
     );
 
     let report = runtime_modules_for_runtime_profile_compiled_project_plugin_plan(
@@ -200,6 +211,7 @@ fn target_linked_plugin_report_surfaces_structured_availability() {
             true,
         )],
     };
+    let manifest = manifest_for_registration_fixture(manifest);
     let report = runtime_modules_for_target_with_linked_plugins(
         RuntimeTargetMode::ClientRuntime,
         Some(&manifest),
@@ -253,6 +265,7 @@ fn target_module_loading_does_not_treat_selection_spelling_as_provider_identity(
     let manifest = ProjectPluginManifest {
         selections: vec![selection],
     };
+    let manifest = manifest_for_registration_fixture(manifest);
 
     let report = runtime_modules_for_target_with_linked_plugins(
         RuntimeTargetMode::ClientRuntime,
@@ -280,6 +293,7 @@ fn target_native_dynamic_registration_report_preserves_availability_category() {
             true,
         )],
     };
+    let manifest = manifest_for_registration_fixture(manifest);
     let registration = RuntimePluginRegistrationReport::from_native_package_manifest(
         PluginPackageManifest::new("virtual_geometry", "Virtual Geometry")
             .with_supported_targets([RuntimeTargetMode::ClientRuntime])
@@ -339,6 +353,7 @@ fn target_registration_extensions_follow_effective_project_manifest() {
             false,
         )],
     };
+    let manifest = manifest_for_registration_fixture(manifest);
 
     let report = runtime_modules_for_target_with_plugin_and_feature_registration_reports(
         RuntimeTargetMode::ClientRuntime,
@@ -364,6 +379,7 @@ fn disabled_manifest_registration_cannot_contribute_extensions() {
             ProjectPluginSelection::runtime_plugin(RuntimePluginId::Animation, false, false),
         ],
     };
+    let manifest = manifest_for_registration_fixture(manifest);
 
     let report = runtime_modules_for_target_with_plugin_and_feature_registration_reports(
         RuntimeTargetMode::ClientRuntime,
@@ -487,21 +503,46 @@ fn target_required_missing_has_one_structured_availability_owner() {
 #[test]
 fn runtime_profile_plugin_and_feature_bootstrap_uses_profile_availability() {
     let sound_registration = linked_runtime_registration(RuntimePluginId::Sound);
-    let report = runtime_modules_for_runtime_profile_with_plugin_and_feature_registration_reports(
+    let rendering_registration = linked_runtime_registration(RuntimePluginId::Rendering);
+    let result = runtime_modules_for_runtime_profile_with_plugin_and_feature_registration_reports(
         RuntimeProfileId::Client2d,
-        [&sound_registration],
+        [&sound_registration, &rendering_registration],
         std::iter::empty::<&crate::plugin::RuntimePluginFeatureRegistrationReport>(),
-    )
-    .expect("profile providers should compile");
-
-    assert!(availability_contains(
-        &report.runtime_plugin_availability().linked,
-        RuntimePluginId::Sound
-    ));
-    assert!(!availability_contains(
-        &report.runtime_plugin_availability().missing_required,
-        RuntimePluginId::Sound
-    ));
+    );
+    if cfg!(feature = "ui") {
+        let report = result.expect("registered providers should compile with UI enabled");
+        assert!(availability_contains(
+            &report.runtime_plugin_availability().linked,
+            RuntimePluginId::Sound
+        ));
+        assert!(availability_contains(
+            &report.runtime_plugin_availability().linked,
+            RuntimePluginId::Rendering
+        ));
+        assert!(!availability_contains(
+            &report.runtime_plugin_availability().missing_required,
+            RuntimePluginId::Sound
+        ));
+        assert!(!availability_contains(
+            &report.runtime_plugin_availability().missing_required,
+            RuntimePluginId::Rendering
+        ));
+    } else {
+        let rejection = result.expect_err("required UI must remain fail-closed when disabled");
+        assert!(availability_contains(
+            &rejection.runtime_plugin_availability().linked,
+            RuntimePluginId::Sound
+        ));
+        assert!(availability_contains(
+            &rejection.runtime_plugin_availability().linked,
+            RuntimePluginId::Rendering
+        ));
+        assert_eq!(rejection.required_missing().len(), 1);
+        assert!(availability_contains(
+            rejection.required_missing(),
+            RuntimePluginId::Ui
+        ));
+    }
 }
 
 #[test]
@@ -515,25 +556,59 @@ fn runtime_profile_manifest_bootstrap_reports_manifest_optional_provider_availab
             true,
             false,
         ));
+    let sound_registration = linked_runtime_registration(RuntimePluginId::Sound);
+    let rendering_registration = linked_runtime_registration(RuntimePluginId::Rendering);
     let animation_registration = linked_runtime_registration(RuntimePluginId::Animation);
 
-    let report =
+    let result =
         runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports(
             RuntimeProfileId::Client3d,
             &manifest,
-            [&animation_registration],
+            [
+                &animation_registration,
+                &sound_registration,
+                &rendering_registration,
+            ],
             std::iter::empty::<&crate::plugin::RuntimePluginFeatureRegistrationReport>(),
-        )
-        .expect("profile manifest providers should compile");
-
-    assert!(availability_contains(
-        &report.runtime_plugin_availability().linked,
-        RuntimePluginId::Animation
-    ));
-    assert!(!availability_contains(
-        &report.runtime_plugin_availability().externalized_missing,
-        RuntimePluginId::Animation
-    ));
+        );
+    if cfg!(feature = "ui") {
+        let report = result.expect("registered providers should compile with UI enabled");
+        for plugin in [
+            RuntimePluginId::Animation,
+            RuntimePluginId::Sound,
+            RuntimePluginId::Rendering,
+        ] {
+            assert!(availability_contains(
+                &report.runtime_plugin_availability().linked,
+                plugin
+            ));
+        }
+        assert!(!availability_contains(
+            &report.runtime_plugin_availability().externalized_missing,
+            RuntimePluginId::Animation
+        ));
+    } else {
+        let rejection = result.expect_err("required UI must remain fail-closed when disabled");
+        for plugin in [
+            RuntimePluginId::Animation,
+            RuntimePluginId::Sound,
+            RuntimePluginId::Rendering,
+        ] {
+            assert!(availability_contains(
+                &rejection.runtime_plugin_availability().linked,
+                plugin
+            ));
+        }
+        assert!(!availability_contains(
+            &rejection.runtime_plugin_availability().externalized_missing,
+            RuntimePluginId::Animation
+        ));
+        assert_eq!(rejection.required_missing().len(), 1);
+        assert!(availability_contains(
+            rejection.required_missing(),
+            RuntimePluginId::Ui
+        ));
+    }
 }
 
 #[test]

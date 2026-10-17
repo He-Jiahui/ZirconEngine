@@ -1,3 +1,7 @@
+//! 动态类型登记的错误原子性回归，以及显式忽略的发布性能门槛。
+//!
+//! 性能夹具只比较成功批量登记的耗时与目录复制量，不能替代错误路径验证。
+
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -8,11 +12,13 @@ use crate::scene::reflect::{
 };
 use crate::scene::World;
 
+// 成对交替测量两种登记策略；基础目录、批次规模与耗时上限固定用于此性能夹具。
 const BENCHMARK_SAMPLE_PAIRS: usize = 11;
 const BENCHMARK_BASE_TYPES: usize = 512;
 const BENCHMARK_BATCH_TYPES: usize = 64;
 const MAX_OPTIMIZED_BATCH_NS: u128 = 3_000_000_000;
 
+/// 重复字段导致预检失败时核对三个目录及两个模式代数不变，再用同一路径成功重试。
 #[test]
 fn component_type_registration_failure_is_atomic_and_retryable() {
     let mut world = World::empty();
@@ -65,6 +71,8 @@ fn component_type_registration_failure_is_atomic_and_retryable() {
         .is_some());
 }
 
+/// 比较克隆目录基线与预检发布策略的批次 P95，同时约束绝对批次预算。
+/// 此测试保持显式忽略；日志中的复制量是按目录项数推导的指标，不是分配器实测。
 #[test]
 #[ignore = "release performance gate; run through the Runtime63 managed validator"]
 fn atomic_component_type_registration_benchmark() {
@@ -142,6 +150,7 @@ fn benchmark_world(type_count: usize) -> World {
     world
 }
 
+/// 仅供成功路径性能对照的克隆目录基线，不是生产登记入口的完整错误语义模型。
 fn clone_transactional_register(
     world: &mut World,
     descriptor: ComponentTypeDescriptor,
@@ -166,6 +175,7 @@ fn clone_transactional_register(
     Ok(())
 }
 
+/// 消费独立 World 测量一个登记批次，计时包含每个输入描述符的克隆和登记操作。
 fn measure_registration_batch(
     mut world: World,
     descriptors: &[ComponentTypeDescriptor],
@@ -180,6 +190,7 @@ fn measure_registration_batch(
     started.elapsed().as_nanos()
 }
 
+/// 对非空样本使用最近秩百分位；本夹具以固定正样本数调用。
 fn nearest_rank(samples: &[u128], percentile: usize) -> u128 {
     let mut sorted = samples.to_vec();
     sorted.sort_unstable();

@@ -42,7 +42,13 @@ fn reload_installs_only_while_the_exact_scene_identity_is_active() {
     let mut reloader = RecordingReloader::default();
 
     assert_eq!(
-        coordinator.reload(&expected, &mut reloader).unwrap(),
+        coordinator
+            .reload(
+                &expected,
+                &zircon_runtime::scene::world::SceneSourceRevision::Missing,
+                &mut reloader
+            )
+            .unwrap(),
         SceneDocumentReloadOutcome::Reloaded {
             document: expected.document()
         }
@@ -54,7 +60,13 @@ fn reload_installs_only_while_the_exact_scene_identity_is_active() {
         .activate_scene(session, root, "res://scenes/secondary.scene.toml")
         .unwrap();
     assert_eq!(
-        coordinator.reload(&expected, &mut reloader).unwrap(),
+        coordinator
+            .reload(
+                &expected,
+                &zircon_runtime::scene::world::SceneSourceRevision::Missing,
+                &mut reloader
+            )
+            .unwrap(),
         SceneDocumentReloadOutcome::Superseded
     );
     assert_eq!(reloader.prepare_count, 1);
@@ -64,7 +76,13 @@ fn reload_installs_only_while_the_exact_scene_identity_is_active() {
         .activate_scene(session, root, "res://scenes/main.scene.toml")
         .unwrap();
     assert_eq!(
-        coordinator.reload(&expected, &mut reloader).unwrap(),
+        coordinator
+            .reload(
+                &expected,
+                &zircon_runtime::scene::world::SceneSourceRevision::Missing,
+                &mut reloader
+            )
+            .unwrap(),
         SceneDocumentReloadOutcome::Superseded
     );
     assert_eq!(reloader.prepare_count, 1);
@@ -86,7 +104,11 @@ fn dirty_reload_rejection_never_reaches_installation() {
     };
 
     let error = SceneDocumentReloadCoordinator::new(&lifecycle)
-        .reload(&expected, &mut reloader)
+        .reload(
+            &expected,
+            &zircon_runtime::scene::world::SceneSourceRevision::Missing,
+            &mut reloader,
+        )
         .unwrap_err();
 
     assert!(matches!(

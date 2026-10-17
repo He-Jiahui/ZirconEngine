@@ -142,22 +142,31 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
         )
         .expect("the built-in autosave-interval definition is unique");
     register_viewport_snap_enabled(
-        &mut registry, VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY,
-        presentation("settings.editor.viewport.translate_snap_enabled.label",
+        &mut registry,
+        VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY,
+        presentation(
+            "settings.editor.viewport.translate_snap_enabled.label",
             "settings.editor.viewport.translate_snap_enabled.description",
-            &["settings.category.viewport", "settings.category.snapping"]),
+            &["settings.category.viewport", "settings.category.snapping"],
+        ),
     );
     register_viewport_snap_enabled(
-        &mut registry, VIEWPORT_ROTATE_SNAP_ENABLED_KEY,
-        presentation("settings.editor.viewport.rotate_snap_enabled.label",
+        &mut registry,
+        VIEWPORT_ROTATE_SNAP_ENABLED_KEY,
+        presentation(
+            "settings.editor.viewport.rotate_snap_enabled.label",
             "settings.editor.viewport.rotate_snap_enabled.description",
-            &["settings.category.viewport", "settings.category.snapping"]),
+            &["settings.category.viewport", "settings.category.snapping"],
+        ),
     );
     register_viewport_snap_enabled(
-        &mut registry, VIEWPORT_SCALE_SNAP_ENABLED_KEY,
-        presentation("settings.editor.viewport.scale_snap_enabled.label",
+        &mut registry,
+        VIEWPORT_SCALE_SNAP_ENABLED_KEY,
+        presentation(
+            "settings.editor.viewport.scale_snap_enabled.label",
             "settings.editor.viewport.scale_snap_enabled.description",
-            &["settings.category.viewport", "settings.category.snapping"]),
+            &["settings.category.viewport", "settings.category.snapping"],
+        ),
     );
     register_viewport_snap_step(
         &mut registry,
@@ -204,11 +213,18 @@ fn register_viewport_snap_enabled(
 ) {
     // UE BaseEditorPerProjectUserSettings.ini enables all three snap types.
     // Reuse the existing snap settings scopes and persistence owner.
-    registry.register(SettingDefinition::new(
-        SettingsKey::parse(key).expect("the built-in snap-enable key is valid"),
-        SettingsScope::Project, SettingSchema::Bool, SettingValue::Bool(true),
-        false, presentation,
-    ).expect("the built-in snap-enable definition is valid"))
+    registry
+        .register(
+            SettingDefinition::new(
+                SettingsKey::parse(key).expect("the built-in snap-enable key is valid"),
+                SettingsScope::Project,
+                SettingSchema::Bool,
+                SettingValue::Bool(true),
+                false,
+                presentation,
+            )
+            .expect("the built-in snap-enable definition is valid"),
+        )
         .expect("the built-in snap-enable definition is unique");
 }
 

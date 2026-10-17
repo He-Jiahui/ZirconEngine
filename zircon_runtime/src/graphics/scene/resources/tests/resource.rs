@@ -3,11 +3,38 @@ use crate::core::framework::render::{
 };
 
 use super::{
-    standard_material_uniform_contents_from_values,
+    padded_uniform_contents, standard_material_uniform_contents_from_values,
     standard_material_uniform_contents_from_values_with_normal_details,
     standard_material_uniform_contents_from_values_with_normal_scale,
     GPU_MATERIAL_UNIFORM_MIN_SIZE, STANDARD_TEXTURE_TRANSFORM_COUNT,
 };
+
+#[test]
+fn property_uniform_borrows_payload_at_abi_floor_and_above() {
+    let mut padding = [0xff; GPU_MATERIAL_UNIFORM_MIN_SIZE];
+    for byte_len in [
+        GPU_MATERIAL_UNIFORM_MIN_SIZE,
+        GPU_MATERIAL_UNIFORM_MIN_SIZE + 1,
+        4096,
+    ] {
+        let bytes = vec![0x5a; byte_len];
+        let contents = padded_uniform_contents(&bytes, &mut padding);
+        assert_eq!(contents.as_ptr(), bytes.as_ptr());
+        assert_eq!(contents, bytes.as_slice());
+    }
+}
+
+#[test]
+fn property_uniform_zero_fills_reused_padding_for_short_and_empty_payloads() {
+    let mut padding = [0xff; GPU_MATERIAL_UNIFORM_MIN_SIZE];
+    for byte_len in [GPU_MATERIAL_UNIFORM_MIN_SIZE - 1, 1, 0] {
+        let bytes = vec![0x5a; byte_len];
+        let contents = padded_uniform_contents(&bytes, &mut padding);
+        assert_eq!(contents.len(), GPU_MATERIAL_UNIFORM_MIN_SIZE);
+        assert_eq!(&contents[..byte_len], bytes.as_slice());
+        assert!(contents[byte_len..].iter().all(|byte| *byte == 0));
+    }
+}
 
 #[test]
 fn standard_material_uniform_packs_pbr_scalars_without_property_schema_offsets() {
@@ -191,9 +218,9 @@ fn standard_material_uniform_packs_clearcoat_normal_without_growing_the_256_byte
     assert_eq!(vec4_at(&bytes, 112), [32.0, 0.5, 0.75, 0.1]);
     assert_eq!(f32_at(&bytes, 192), 0.8);
     assert_eq!(f32_at(&bytes, 200), 0.35);
-    // BUG: [CR-R02-runtime_wave12_graphics_resource_residency-0001] 此 0.4 弧度夹具把 cos/sin 期望交换，首个近似断言必失败；helper、生产打包与 WGSL 均约定 204 字节为 cos、248 字节为 sin。
-    assert_f32_near(f32_at(&bytes, 204), 0.4_f32.sin());
-    assert_f32_near(f32_at(&bytes, 248), 0.4_f32.cos());
+    // The 256-byte ABI stores clearcoat rotation as cos at 204 and sin at 248.
+    assert_f32_near(f32_at(&bytes, 204), 0.4_f32.cos());
+    assert_f32_near(f32_at(&bytes, 248), 0.4_f32.sin());
 }
 
 #[test]

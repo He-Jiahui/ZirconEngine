@@ -4,7 +4,7 @@ use std::fmt;
 use std::sync::Barrier;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::ThreadId;
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::core::diagnostics::RuntimeDevtoolsPluginCatalogEntry;
 use crate::core::{CoreError, RuntimeModuleLifecycleObserver};

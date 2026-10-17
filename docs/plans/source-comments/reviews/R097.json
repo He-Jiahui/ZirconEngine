@@ -1,0 +1,1272 @@
+{
+  "schema": "zircon-source-comments-review/v1",
+  "batch": "R097",
+  "owner": "reflection_luna",
+  "model": "gpt-6-luna",
+  "reasoning_effort": "max",
+  "audited_paths": [
+    "zircon_runtime/src/text/model/geometry.rs"
+  ],
+  "authority": {
+    "assignment": "docs/plans/source-comments/assignments.json#metadata_tasks.R097",
+    "canonical_sha256": "e5d429090a202ad7a1635c026b0dd39142a36d246ea8e3f14366bda6b6fe03cb",
+    "activation_assignment_file_sha256": "dfa5298780460d9e7b7e85e555e7d8ad9b111e49b33ee0c5257beaaab7910fd7",
+    "root_grant": "root863/50be94 native84458 -> root864/29cdf0 exit0 PID49268",
+    "root_independent": "root865/52475b exit0 PID11196",
+    "allowed_outputs": [
+      "zircon_runtime/src/text/model/geometry.rs",
+      "docs/plans/source-comments/reviews/R097.json"
+    ],
+    "root_owned": "globals, main and post records; no Git or external acceptance action authorized",
+    "standard_sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3",
+    "artifact_registry": "E:/cargo-targets/zircon-local/reports/source-comments-20261014-01a13a81/artifacts.json",
+    "artifact_match": "Only retained rows resolved to the exact child/main/post destinations; all three planned-not-created with original source dependency at source-write gate."
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/src/text/model/geometry.rs",
+      "before_sha256": "d9785a9d6a4f352060039e50796900abc78674445d5b1742fb45b423561a0c21",
+      "after_sha256": "891e2ceab711d86a82d849a93d587b4ce40b9c6b4db31405c76285e6515b8202",
+      "before_bytes": 1336,
+      "after_bytes": 2083,
+      "before_LF": 43,
+      "after_LF": 57,
+      "before_CRLF": 0,
+      "after_CRLF": 0,
+      "BOM": false,
+      "insertions": [
+        {
+          "before_line": 1,
+          "exact_text": "//! 文本核心共享的字节区间、尺寸和矩形值。\n//! 此处仅保存数值，坐标空间、文本所有者与验证时机由消费方决定。\n\n",
+          "before_offset": 0,
+          "after_offset": 0,
+          "after_line": 1,
+          "length": 158,
+          "sha256": "7aa95e91a3e69f7fc8a6f2fa745e789ae812f442f0c1428ff117be03f9272d4b",
+          "LF": 3
+        },
+        {
+          "before_line": 5,
+          "exact_text": "///\n/// 两个数值不持有文本；派生 Serde 不绑定文档或验证其边界。\n/// 空区间的准入由实际操作决定，字节偏移不自动转换为字符或字素索引。\n",
+          "before_offset": 265,
+          "after_offset": 423,
+          "after_line": 8,
+          "length": 189,
+          "sha256": "317e9ab68918a997c6c125502fad1c34033dba1224c584df2249ff7b66f69754",
+          "LF": 3
+        },
+        {
+          "before_line": 19,
+          "exact_text": "    /// 按调用方给定的宽高组装尺寸。\n    ///\n    /// # 参数与返回\n    /// `width`、`height` 原值写入返回值；不在此检查有限性、非负性或布局预算。\n",
+          "before_offset": 679,
+          "after_offset": 1026,
+          "after_line": 25,
+          "length": 191,
+          "sha256": "ae4399d91ced522f62773c47f62d971b431e0682bc32a61b4fd88c3e5e9dadd0",
+          "LF": 4
+        },
+        {
+          "before_line": 35,
+          "exact_text": "    /// 按调用方坐标空间中的分量组装矩形。\n    ///\n    /// # 参数与返回\n    /// `x`、`y`、`width`、`height` 原值写入返回值；不在此转换坐标空间或验证布局约束。\n",
+          "before_offset": 1155,
+          "after_offset": 1693,
+          "after_line": 45,
+          "length": 209,
+          "sha256": "1e17ad5f0214b36cae5388ad779650adf2f6d03429a69f5c39724fe0d9dc027a",
+          "LF": 4
+        }
+      ],
+      "inverse_sha256": "d9785a9d6a4f352060039e50796900abc78674445d5b1742fb45b423561a0c21",
+      "rawHEAD_sha256": "d9785a9d6a4f352060039e50796900abc78674445d5b1742fb45b423561a0c21",
+      "head_observed": "ee18dfd3dda74ea8d12b19036d55fab5143bff7b",
+      "physical_lines_before": 43,
+      "physical_lines_after": 57,
+      "coverage_basis": "Manual whole-file review of all 43 original physical lines, all declarations/fields and both constructor bodies. Eight object groups include one import group and seven declarations. Not a regex-derived AST completeness claim.",
+      "objects": [
+        {
+          "name": "serde imports",
+          "kind": "import-group",
+          "before_lines": [
+            1,
+            2
+          ],
+          "after_lines": [
+            4,
+            5
+          ],
+          "audit": "Deserialize/Serialize are used by the three derive attributes; this import does not register a runtime type.",
+          "documentation_decision": "Added module responsibility and validation/ownership boundary; no redundant import comment.",
+          "before_span_sha256": "1ed38751c1fac4cecd41f6d3575754cfe12599bf8935b0b71da62c82514577b4",
+          "after_span_sha256": "1ed38751c1fac4cecd41f6d3575754cfe12599bf8935b0b71da62c82514577b4"
+        },
+        {
+          "name": "TextRange",
+          "kind": "public-struct",
+          "before_lines": [
+            3,
+            9
+          ],
+          "after_lines": [
+            6,
+            15
+          ],
+          "declaration_before": 6,
+          "declaration_after": 12,
+          "members": [
+            {
+              "name": "start",
+              "type": "usize",
+              "before_line": 7,
+              "after_line": 13,
+              "role": "inclusive UTF-8 byte offset in the consumer-selected coordinate space"
+            },
+            {
+              "name": "end",
+              "type": "usize",
+              "before_line": 8,
+              "after_line": 14,
+              "role": "exclusive UTF-8 byte offset in the same coordinate space"
+            }
+          ],
+          "audit": "Copy value containing two offsets, without text owner or document identity. Construction/derived Serde does not validate order, text length, UTF-8 or grapheme boundaries. Nonzero source identities and paragraph-local ranges both occur; empty ranges depend on the consuming operation.",
+          "evidence": [
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ],
+          "documentation_decision": "Preserved both existing type-doc lines; added three doc lines about ownership, derived Serde, empty ranges and byte versus character/grapheme indices. Field names and existing half-open type contract suffice individually.",
+          "before_span_sha256": "20294c2e20dbd7db68c306be24286c628464d938d5f4c26ff5345914f9f863ed",
+          "after_span_sha256": "b414ec91eea3ca9ce051f6baf2363581e8df030cbc8d1aa3f9d4fb7fe81d469f"
+        },
+        {
+          "name": "TextSize",
+          "kind": "crate-struct",
+          "before_lines": [
+            11,
+            16
+          ],
+          "after_lines": [
+            17,
+            22
+          ],
+          "declaration_before": 13,
+          "declaration_after": 19,
+          "members": [
+            {
+              "name": "width",
+              "type": "f32",
+              "before_line": 14,
+              "after_line": 20,
+              "role": "stored width component"
+            },
+            {
+              "name": "height",
+              "type": "f32",
+              "before_line": 15,
+              "after_line": 21,
+              "role": "stored height component"
+            }
+          ],
+          "audit": "Plain measured-size value; no control position or owner. Its derive accepts field values without a geometry-budget operation; finite/nonnegative values are not established here.",
+          "evidence": [
+            "E7",
+            "E9"
+          ],
+          "documentation_decision": "Existing local-size/no-position type documentation is sufficient; constructor documents pass-through values, so no duplicate field comments.",
+          "before_span_sha256": "9e78591da060712ae6b82e93d4cdc9c855da6f55478dc6030c9c62fd4ff673a6",
+          "after_span_sha256": "9e78591da060712ae6b82e93d4cdc9c855da6f55478dc6030c9c62fd4ff673a6"
+        },
+        {
+          "name": "impl TextSize",
+          "kind": "inherent-impl",
+          "before_lines": [
+            18,
+            22
+          ],
+          "after_lines": [
+            24,
+            32
+          ],
+          "audit": "Contains only const new; no runtime registration, mutation protocol or trait implementation.",
+          "documentation_decision": "Method-specific parameter/return documentation is more useful than an impl summary.",
+          "before_span_sha256": "6891c925c64577ef7b91ffa1bfad9451b4cbe6c59d6cdd9bd99795b0a2fa0542",
+          "after_span_sha256": "c8780fa7319825328e5cb33bc2d82f4e05ea914b6a6353883b1fc9f3db485cf9"
+        },
+        {
+          "name": "TextSize::new",
+          "kind": "crate-const-fn",
+          "before_lines": [
+            19,
+            21
+          ],
+          "after_lines": [
+            29,
+            31
+          ],
+          "parameters": [
+            {
+              "name": "width",
+              "type": "f32"
+            },
+            {
+              "name": "height",
+              "type": "f32"
+            }
+          ],
+          "returns": "Self",
+          "audit": "At invocation the two arguments are copied unchanged into Self. No branch, allocation, normalization, finite check or layout-budget validation; the returned value is independent of caller borrows.",
+          "control_points": [
+            {
+              "before_lines": [
+                20,
+                20
+              ],
+              "after_lines": [
+                30,
+                30
+              ],
+              "effect": "Self { width, height } stores both input values directly"
+            }
+          ],
+          "evidence": [
+            "E7",
+            "E9"
+          ],
+          "documentation_decision": "Added summary and Markdown parameter/return section covering pass-through and validation boundary.",
+          "before_span_sha256": "351a630a775a9c1b3f610d557133466960d87010b9f1a2b033cde8add495c05d",
+          "after_span_sha256": "351a630a775a9c1b3f610d557133466960d87010b9f1a2b033cde8add495c05d"
+        },
+        {
+          "name": "TextFrame",
+          "kind": "crate-struct",
+          "before_lines": [
+            24,
+            32
+          ],
+          "after_lines": [
+            34,
+            42
+          ],
+          "declaration_before": 27,
+          "declaration_after": 37,
+          "members": [
+            {
+              "name": "x",
+              "type": "f32",
+              "before_line": 28,
+              "after_line": 38,
+              "role": "stored coordinate component"
+            },
+            {
+              "name": "y",
+              "type": "f32",
+              "before_line": 29,
+              "after_line": 39,
+              "role": "stored coordinate component"
+            },
+            {
+              "name": "width",
+              "type": "f32",
+              "before_line": 30,
+              "after_line": 40,
+              "role": "stored extent component"
+            },
+            {
+              "name": "height",
+              "type": "f32",
+              "before_line": 31,
+              "after_line": 41,
+              "role": "stored extent component"
+            }
+          ],
+          "audit": "Rectangular value in the coordinate space chosen by its caller. Existing docs delegate finite/layout bounds to the geometry consumer; this declaration and derived Serde do not enforce those semantics.",
+          "evidence": [
+            "E8",
+            "E9"
+          ],
+          "documentation_decision": "Preserved existing coordinate/budget docs; constructor makes pass-through explicit. Eight scalar fields across the DTOs do not need mechanically repeated comments.",
+          "before_span_sha256": "04abccda015b145607a8a27367e65c620ff4b68e3a12d6cc5db8b3c5a7018763",
+          "after_span_sha256": "04abccda015b145607a8a27367e65c620ff4b68e3a12d6cc5db8b3c5a7018763"
+        },
+        {
+          "name": "impl TextFrame",
+          "kind": "inherent-impl",
+          "before_lines": [
+            34,
+            43
+          ],
+          "after_lines": [
+            44,
+            57
+          ],
+          "audit": "Contains only const new; no hidden coordinate transform or geometry validation path.",
+          "documentation_decision": "Document the constructor rather than repeat the type summary.",
+          "before_span_sha256": "4bf6e9e364c3520936cc5a4c7c1e6f7f495adb961d1fc2ebbc028a25d0036d4c",
+          "after_span_sha256": "4318908250ef50f46bece72198f69cccbe33677ff7b4d9cc13a9c5998c85f22f"
+        },
+        {
+          "name": "TextFrame::new",
+          "kind": "crate-const-fn",
+          "before_lines": [
+            35,
+            42
+          ],
+          "after_lines": [
+            49,
+            56
+          ],
+          "parameters": [
+            {
+              "name": "x",
+              "type": "f32"
+            },
+            {
+              "name": "y",
+              "type": "f32"
+            },
+            {
+              "name": "width",
+              "type": "f32"
+            },
+            {
+              "name": "height",
+              "type": "f32"
+            }
+          ],
+          "returns": "Self",
+          "audit": "Stores four argument values directly and returns an owned Copy value. No borrow/lifetime extension, coordinate conversion or layout constraint validation.",
+          "control_points": [
+            {
+              "before_lines": [
+                36,
+                41
+              ],
+              "after_lines": [
+                50,
+                55
+              ],
+              "effect": "Self literal assigns x, y, width and height unchanged"
+            }
+          ],
+          "evidence": [
+            "E8",
+            "E9"
+          ],
+          "documentation_decision": "Added summary and Markdown parameter/return section; caller-defined coordinate space is explicit.",
+          "before_span_sha256": "f86fd18c05a31eb215f49b7c723771df24ff9c124d06749fdca1367f685537f1",
+          "after_span_sha256": "f86fd18c05a31eb215f49b7c723771df24ff9c124d06749fdca1367f685537f1"
+        }
+      ],
+      "block_audit": [
+        {
+          "name": "module boundary and serde imports",
+          "before_lines": [
+            1,
+            2
+          ],
+          "after_lines": [
+            1,
+            5
+          ],
+          "entry": "compile-time module/import processing",
+          "effect": "Added module docs explain passive values; imports support external derives.",
+          "next": "three value declarations",
+          "documentation_decision": "module docs added",
+          "before_span_sha256": "1ed38751c1fac4cecd41f6d3575754cfe12599bf8935b0b71da62c82514577b4",
+          "after_span_sha256": "92b9eb7772deed5d08e73efa3c9674c9bedf4a31011637ebf2613b41f57a7bcd"
+        },
+        {
+          "name": "range value and derives",
+          "before_lines": [
+            3,
+            10
+          ],
+          "after_lines": [
+            6,
+            16
+          ],
+          "entry": "construct/copy/deserialize two scalar offsets",
+          "effect": "No validation branch or text ownership; consumer determines coordinates and empty-range admission.",
+          "next": "source identity, bidi and line-break consumers",
+          "documentation_decision": "existing docs retained; ownership/Serde/empty boundary added",
+          "before_span_sha256": "2a961334783c8e403d2df36dc2651e3f12b291547e1dc0135b0a6156c23c2829",
+          "after_span_sha256": "259ca378b240151563ca211f9dd92fc05ce9648b883d5a58efc2d835e1cf1d84"
+        },
+        {
+          "name": "measured size value",
+          "before_lines": [
+            11,
+            17
+          ],
+          "after_lines": [
+            17,
+            23
+          ],
+          "entry": "size fields/derived value operations",
+          "effect": "Two f32 components; no widget position or geometric validation.",
+          "next": "size constructor and transport",
+          "documentation_decision": "existing type docs sufficient",
+          "before_span_sha256": "b1b2649133b0a584a87aa5b127c15e0ebfcee9aafe9d3e12a49e806d55493a87",
+          "after_span_sha256": "b1b2649133b0a584a87aa5b127c15e0ebfcee9aafe9d3e12a49e806d55493a87"
+        },
+        {
+          "name": "size constructor",
+          "before_lines": [
+            18,
+            23
+          ],
+          "after_lines": [
+            24,
+            33
+          ],
+          "entry": "width and height parameters",
+          "effect": "Store original inputs with no branch or external call.",
+          "next": "returned Self",
+          "documentation_decision": "parameter/return and validation boundary added",
+          "before_span_sha256": "c451818664c8b51cebfff09b9f3c00d4439169b2fa2f3ca913004d78f9e58758",
+          "after_span_sha256": "eccacd684c1c0e15e4559fa3ecfbb8c051cfdd34973a5726dc2ff837b0e67e46"
+        },
+        {
+          "name": "frame value",
+          "before_lines": [
+            24,
+            33
+          ],
+          "after_lines": [
+            34,
+            43
+          ],
+          "entry": "frame fields/derived value operations",
+          "effect": "Four components preserve caller coordinates; existing validation responsibility remains external.",
+          "next": "frame constructor and decoration/transport consumers",
+          "documentation_decision": "existing type docs sufficient",
+          "before_span_sha256": "db08145f95b3c57fc6f2963f4b0b179046dc9d63821c3b7b05741042c1afdb24",
+          "after_span_sha256": "db08145f95b3c57fc6f2963f4b0b179046dc9d63821c3b7b05741042c1afdb24"
+        },
+        {
+          "name": "frame constructor",
+          "before_lines": [
+            34,
+            43
+          ],
+          "after_lines": [
+            44,
+            57
+          ],
+          "entry": "x, y, width and height parameters",
+          "effect": "Self literal directly assigns each component; no coordinate conversion or budget check.",
+          "next": "returned Self",
+          "documentation_decision": "parameter/return and coordinate boundary added",
+          "before_span_sha256": "4bf6e9e364c3520936cc5a4c7c1e6f7f495adb961d1fc2ebbc028a25d0036d4c",
+          "after_span_sha256": "4318908250ef50f46bece72198f69cccbe33677ff7b4d9cc13a9c5998c85f22f"
+        }
+      ],
+      "attributes": [
+        {
+          "name": "TextRange derive",
+          "before_line": 5,
+          "after_line": 11,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "Default",
+            "PartialEq",
+            "Eq",
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "name": "TextSize derive",
+          "before_line": 12,
+          "after_line": 18,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "Default",
+            "PartialEq",
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "name": "TextFrame derive",
+          "before_line": 26,
+          "after_line": 36,
+          "traits": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "Default",
+            "PartialEq",
+            "Serialize",
+            "Deserialize"
+          ]
+        }
+      ],
+      "registration_ffi_boundary": "No unsafe block, extern function, repr(C), local proc-macro definition or dynamic registration in this complete leaf. Serde external derives generate serialization implementations; builtin derives generate value traits. Rust From conversions in C10 do not establish a stable FFI ABI.",
+      "tests": {
+        "owned_normal": 0,
+        "owned_ignored": 0,
+        "owned_assertions": 0,
+        "direct_mount": false,
+        "context_test_ids": [
+          "T1",
+          "T2"
+        ]
+      }
+    }
+  ],
+  "counts": {
+    "audited_files": 1,
+    "original_physical_lines": 43,
+    "final_physical_lines": 57,
+    "object_groups": 8,
+    "declarations_excluding_imports": 7,
+    "fields": 8,
+    "inherent_impls": 2,
+    "const_methods": 2,
+    "constructor_parameters": 6,
+    "derive_attributes": 3,
+    "conditional_branches": 0,
+    "semantic_blocks": 6,
+    "insertions": 4,
+    "inserted_LF": 14,
+    "inserted_bytes": 747,
+    "owned_tests": 0,
+    "context_test_functions_read": 2,
+    "context_assertions_described": 4
+  },
+  "status": "source-audit-complete-parent-review-pending",
+  "assembly": {
+    "complete": true,
+    "method": "Two bounded CAS writes to the same sole authorized record; actual second-writer and final-readback receipts are delivered in the terminal handoff."
+  },
+  "context_files": [
+    {
+      "id": "C1",
+      "path": "zircon_runtime/src/text/model/mod.rs",
+      "sha256": "65930050e4fb75c674a6993e8f0fd800fa3ef009d9730fe676066903e0d22b73",
+      "bytes": 1787,
+      "LF": 41,
+      "read_spans": [
+        [
+          1,
+          41
+        ]
+      ],
+      "scope": "whole parent read for mount/reexports; no geometry test mount",
+      "coverage": "context-only",
+      "read_span_hashes": [
+        {
+          "lines": [
+            1,
+            41
+          ],
+          "sha256": "65930050e4fb75c674a6993e8f0fd800fa3ef009d9730fe676066903e0d22b73"
+        }
+      ]
+    },
+    {
+      "id": "C2",
+      "path": "zircon_runtime/src/text/model/shaped_run.rs",
+      "sha256": "9b5a75ad0c2b0d29ec500fcd6e50c0bd8927d32e53820106c1d9cc90b2399b44",
+      "bytes": 24808,
+      "LF": 758,
+      "read_spans": [
+        [
+          395,
+          429
+        ],
+        [
+          469,
+          583
+        ],
+        [
+          628,
+          699
+        ]
+      ],
+      "scope": "source identity and actual hard_line_text method; test mount757-758 was a locator result",
+      "coverage": "context-only",
+      "read_span_hashes": [
+        {
+          "lines": [
+            395,
+            429
+          ],
+          "sha256": "d6519de0b1605f1f470648fa81d1f718338a24372fda20bc916e1b90ef8d9511"
+        },
+        {
+          "lines": [
+            469,
+            583
+          ],
+          "sha256": "9dfc37cdda9b37be94a68a76e6c952e867aea0cf143c0621fba00a9d66e4fc33"
+        },
+        {
+          "lines": [
+            628,
+            699
+          ],
+          "sha256": "73e91782df128b129e84fe64942588de07e8a18dc60cb7756fa0553da0fb4dd9"
+        }
+      ]
+    },
+    {
+      "id": "C3",
+      "path": "zircon_runtime/src/text/model/shaped_run/tests/cases.rs",
+      "sha256": "e15596380e3a541bd01f21ab02be5e80cccb049cef4cec98987278ed0460e424",
+      "bytes": 12468,
+      "LF": 335,
+      "read_spans": [
+        [
+          112,
+          153
+        ]
+      ],
+      "scope": "only T1 and surrounding snippet",
+      "coverage": "context-only",
+      "read_span_hashes": [
+        {
+          "lines": [
+            112,
+            153
+          ],
+          "sha256": "12978195ff0584be8708f55b62731602f179370989f1a9807de58d84635a9c35"
+        }
+      ]
+    },
+    {
+      "id": "C4",
+      "path": "zircon_runtime/src/text/shaping/bidi.rs",
+      "sha256": "225fde696824af8c88ee9a264d27f17c173f0626ef0e0b36f6604487a8e2b8c4",
+      "bytes": 20709,
+      "LF": 576,
+      "read_spans": [
+        [
+          268,
+          290
+        ]
+      ],
+      "scope": "level_for_range actual checks",
+      "coverage": "context-only",
+      "read_span_hashes": [
+        {
+          "lines": [
+            268,
+            290
+          ],
+          "sha256": "6163538497afe6d644c1dda2d8dfdd855e6463ca570dc5027caf98fb37a446ea"
+        }
+      ]
+    },
+    {
+      "id": "C5",
+      "path": "zircon_runtime/src/text/shaping/tests/cases.rs",
+      "sha256": "0b19ad3a003b3dd9820c4dd34171a4f6741d9fe6a72184ff0ef0a38fb6be7ff5",
+      "bytes": 19037,
+      "LF": 634,
+      "read_spans": [
+        [
+          180,
+          225
+        ]
+      ],
+      "scope": "T2 and neighboring mixed bidi case; claim only T2 assertion",
+      "coverage": "context-only",
+      "read_span_hashes": [
+        {
+          "lines": [
+            180,
+            225
+          ],
+          "sha256": "7c92ecbdfce00f71c5a3035c567a873f53c8803683a8b20c7a753f5674566de4"
+        }
+      ]
+    },
+    {
+      "id": "C6",
+      "path": "zircon_runtime/src/text/layout/line_break/mod.rs",
+      "sha256": "bc035119ac696b0eb86d8593fcca5e9ea822e8c27aeda527eabb38e5e7b24a6b",
+      "bytes": 8957,
+      "LF": 262,
+      "read_spans": [
+        [
+          85,
+          140
+        ]
+      ],
+      "scope": "virtual-glyph empty range and ordinary range checks",
+      "coverage": "context-only",
+      "read_span_hashes": [
+        {
+          "lines": [
+            85,
+            140
+          ],
+          "sha256": "759f732f7082c34082114ce32620d5030338d10eb160d2e56717c84b7821d48a"
+        }
+      ]
+    },
+    {
+      "id": "C7",
+      "path": "zircon_runtime/src/text/document/storage.rs",
+      "sha256": "a6315ea6c5a9bbdaf0a5bcf163d126e1cd92b12abdc5992dd6e841ec36483770",
+      "bytes": 15659,
+      "LF": 428,
+      "read_spans": [
+        [
+          1,
+          24
+        ],
+        [
+          190,
+          215
+        ]
+      ],
+      "scope": "std::ops::Range document validator; different type",
+      "coverage": "context-only",
+      "read_span_hashes": [
+        {
+          "lines": [
+            1,
+            24
+          ],
+          "sha256": "3b0b5b9d6d00fbbdd2be4fbbc1f202d8de71175e74da31d8223f207b2a0266bf"
+        },
+        {
+          "lines": [
+            190,
+            215
+          ],
+          "sha256": "48a8612f0dd1a75b01d0c8ff529ce6430726d14f1cb25b46544c3e5cc4322be1"
+        }
+      ]
+    },
+    {
+      "id": "C8",
+      "path": "zircon_runtime/src/text/layout/measure.rs",
+      "sha256": "8100c706b889a03820d9cdf2c00bf100704ba91f7b668d97bb3ee61ca1dd671d",
+      "bytes": 25324,
+      "LF": 802,
+      "read_spans": [
+        [
+          88,
+          143
+        ]
+      ],
+      "scope": "production TextSize construction",
+      "coverage": "context-only",
+      "read_span_hashes": [
+        {
+          "lines": [
+            88,
+            143
+          ],
+          "sha256": "d47f24163e8def9899c41b0c6122e3beb8e802265481caa618af80679d2138ab"
+        }
+      ]
+    },
+    {
+      "id": "C9",
+      "path": "zircon_runtime/src/text/font/decoration_metrics.rs",
+      "sha256": "0211d7f78bb6b3f065cd2cfc32c61ecd6824e0cef157514a0cfb3c45f83e12ec",
+      "bytes": 5654,
+      "LF": 176,
+      "read_spans": [
+        [
+          100,
+          149
+        ]
+      ],
+      "scope": "production TextFrame construction, no tests claimed",
+      "coverage": "context-only",
+      "read_span_hashes": [
+        {
+          "lines": [
+            100,
+            149
+          ],
+          "sha256": "466fd868f8a8462e54433eba9178d19a6f66db35fbc1406ff30532f482b83bfa"
+        }
+      ]
+    },
+    {
+      "id": "C10",
+      "path": "zircon_runtime/src/graphics/text_transport/conversion.rs",
+      "sha256": "1591ce6a64882b62b99a90755a88e1c1092244c101daa3e8e3a5d47aed8fbd16",
+      "bytes": 4489,
+      "LF": 146,
+      "read_spans": [
+        [
+          1,
+          21
+        ],
+        [
+          126,
+          146
+        ]
+      ],
+      "scope": "actual value conversions; line21 reverse-range signature only",
+      "coverage": "context-only",
+      "read_span_hashes": [
+        {
+          "lines": [
+            1,
+            21
+          ],
+          "sha256": "f03d003711715922c736d089b036c21b812c5f392a3bd0d60bced85bb3f1123e"
+        },
+        {
+          "lines": [
+            126,
+            146
+          ],
+          "sha256": "23ef718363231cc77e833019b279b0bc6e17c7ffeecc6171a08d785cd8675c36"
+        }
+      ]
+    },
+    {
+      "id": "C11",
+      "path": ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py",
+      "sha256": "bbf991fdfc3caf46478c0372d511d27e346803fec1add372e8a95ee17e19100a",
+      "bytes": 36537,
+      "LF": 953,
+      "read_spans": [
+        [
+          268,
+          269
+        ],
+        [
+          282,
+          286
+        ],
+        [
+          876,
+          915
+        ]
+      ],
+      "scope": "raw reader domain and operators; not a full audit execution",
+      "coverage": "context-only",
+      "read_span_hashes": [
+        {
+          "lines": [
+            268,
+            269
+          ],
+          "sha256": "a4c850865c4c931d9de3664ddd5779af60c3bfe4aa3925f3f5e4bf73ef8f20c8"
+        },
+        {
+          "lines": [
+            282,
+            286
+          ],
+          "sha256": "39cfcf10643085083238484fac47b1417136cca4710587bb0f1d6f96bbc094ab"
+        },
+        {
+          "lines": [
+            876,
+            915
+          ],
+          "sha256": "61d6e5c3b61c4d9db9e5e299547618346b318bb968e44788e9f7eb52307464ab"
+        }
+      ]
+    }
+  ],
+  "call_edges": [
+    {
+      "id": "E1",
+      "context": "C1",
+      "lines": [
+        3,
+        15
+      ],
+      "from": "text::model",
+      "to": "geometry and TextRange/TextSize/TextFrame reexports",
+      "contract": "Geometry is mounted directly; TextRange is public and size/frame crate-visible. No direct geometry test mount in the whole parent."
+    },
+    {
+      "id": "E2",
+      "context": "C2",
+      "lines": [
+        663,
+        671
+      ],
+      "from": "BackendShapeRequest::canonicalized",
+      "to": "TextRange source identity",
+      "contract": "checked_sub verifies order and span equals local text.len(); nonzero start remains allowed. Does not prove a whole-document coordinate space or grapheme validation."
+    },
+    {
+      "id": "E3",
+      "context": "C2",
+      "lines": [
+        411,
+        418
+      ],
+      "from": "ShapedGlyphRun::hard_line_text",
+      "to": "line.source_range and self.source_range",
+      "contract": "Subtract run source start with checked_sub, then str::get(start..end). This actual method establishes source-coordinate to stored-string slicing at this consumer."
+    },
+    {
+      "id": "E4",
+      "context": "C4",
+      "lines": [
+        277,
+        286
+      ],
+      "from": "bidi level_for_range",
+      "to": "TextRange",
+      "contract": "Paragraph-local validator rejects empty/reversed, out-of-bounds or non-UTF8 boundaries. This is not a DTO method and does not check grapheme boundaries."
+    },
+    {
+      "id": "E5",
+      "context": "C6",
+      "lines": [
+        93,
+        132
+      ],
+      "from": "append_shaped_line_break_chunks",
+      "to": "glyph TextRange values",
+      "contract": "Input std::Range checks precede iteration. Empty virtual-glyph ranges have a separate bounded UTF8-boundary path; ordinary ranges must be nonempty and within the chunk."
+    },
+    {
+      "id": "E6",
+      "context": "C7",
+      "lines": [
+        197,
+        207
+      ],
+      "from": "document storage validate_range",
+      "to": "std::ops::Range<usize>",
+      "contract": "Related document boundary, explicitly a different range type: order/length then UTF8 endpoints. Do not call this a TextRange validator."
+    },
+    {
+      "id": "E7",
+      "context": "C8",
+      "lines": [
+        138,
+        140
+      ],
+      "from": "text measure",
+      "to": "TextSize::new",
+      "contract": "Measured width and height/line-height are passed as value components; this call alone does not establish finite values or DTO validation."
+    },
+    {
+      "id": "E8",
+      "context": "C9",
+      "lines": [
+        121,
+        145
+      ],
+      "from": "text_decoration_frame",
+      "to": "TextFrame::new",
+      "contract": "Caller chooses vertical/horizontal component geometry; the constructor only stores its arguments."
+    },
+    {
+      "id": "E9",
+      "context": "C10",
+      "lines": [
+        130,
+        146
+      ],
+      "from": "From conversions for UiFrame/TextFrame/UiSize",
+      "to": "TextFrame::new and UiSize::new",
+      "contract": "Fields pass by value, with no coordinate transform or semantic validation in the inspected conversions."
+    },
+    {
+      "id": "E10",
+      "context": "C10",
+      "lines": [
+        12,
+        18
+      ],
+      "from": "From<UiTextRange> for TextRange",
+      "to": "TextRange field literal",
+      "contract": "Copies start and end unchanged; does not acquire text ownership or validate endpoint semantics."
+    }
+  ],
+  "test_contracts": [
+    {
+      "id": "T1",
+      "context": "C3",
+      "name": "backend_shape_request_rejects_source_range_that_does_not_cover_text",
+      "lines": [
+        116,
+        151
+      ],
+      "mount_context": "C2:757-758 identifies the shaped_run cases mount; this is not a geometry.rs direct test.",
+      "assertions": [
+        {
+          "lines": [
+            126,
+            126
+          ],
+          "proves": "locale with source identity 11..17 canonicalizes successfully"
+        },
+        {
+          "lines": [
+            135,
+            138
+          ],
+          "proves": "11..18 length mismatch returns BidiInvariant"
+        },
+        {
+          "lines": [
+            147,
+            150
+          ],
+          "proves": "18..11 reversed span returns BidiInvariant"
+        }
+      ],
+      "limits": "Synthetic request assertions, not executed here. No proof of empty/mid-codepoint/grapheme validation, Serde invariants, real fonts or whole-document ownership."
+    },
+    {
+      "id": "T2",
+      "context": "C5",
+      "name": "text_bidi_level_rejects_invalid_source_ranges",
+      "lines": [
+        193,
+        202
+      ],
+      "assertions": [
+        {
+          "lines": [
+            198,
+            201
+          ],
+          "proves": "paragraph abc with 0..4 returns InvalidResolvedRange"
+        }
+      ],
+      "limits": "Only this out-of-bounds assertion is claimed; not empty or multibyte boundary coverage. Parent shaping cases mount was located, not counted as audited coverage; no tests run."
+    }
+  ],
+  "raw_source_consumers": [
+    {
+      "context": "C11",
+      "reader": "runtime_naming_boundary.py",
+      "domain": "Runtime src/**/*.rs; production/test classification occurs after raw per-line matching; no comment stripping before matches.",
+      "reader_lines": [
+        [
+          268,
+          269
+        ],
+        [
+          282,
+          286
+        ],
+        [
+          876,
+          915
+        ]
+      ],
+      "operators": "UTF8 read(errors=replace), splitlines(), case-insensitive per-line regex.finditer, sorted unique tokens",
+      "patterns": [
+        {
+          "term": "editor",
+          "regex": "\\b[A-Za-z0-9_]*editor[A-Za-z0-9_]*\\b",
+          "before": [],
+          "current": [],
+          "inserted_comments": []
+        },
+        {
+          "term": "legacy",
+          "regex": "\\b[A-Za-z0-9_]*legacy[A-Za-z0-9_]*\\b",
+          "before": [],
+          "current": [],
+          "inserted_comments": []
+        }
+      ],
+      "new_contribution": 0,
+      "limits": "Re-evaluated these actual reader operands only; did not execute the complete naming audit. Targeted tools/tests and Runtime structure locator found no explicit geometry.rs input within that searched scope. R015 interface scanner does not cover this Runtime leaf."
+    }
+  ],
+  "validation": {
+    "source": {
+      "sha256": "891e2ceab711d86a82d849a93d587b4ce40b9c6b4db31405c76285e6515b8202",
+      "bytes": 2083,
+      "LF": 57,
+      "inverse_sha256": "d9785a9d6a4f352060039e50796900abc78674445d5b1742fb45b423561a0c21",
+      "rawHEAD_equal": true,
+      "insertions": 4,
+      "inserted_LF": 14,
+      "old_bytes_retained": true,
+      "diff_additions": 14,
+      "diff_deletions": 0,
+      "naming_reader_sha256": "bbf991fdfc3caf46478c0372d511d27e346803fec1add372e8a95ee17e19100a",
+      "raw_tokens": [
+        {
+          "term": "editor",
+          "before": [],
+          "current": [],
+          "new": []
+        },
+        {
+          "term": "legacy",
+          "before": [],
+          "current": [],
+          "new": []
+        }
+      ],
+      "new_contribution": 0,
+      "child_absent": true,
+      "tests_executed": 0
+    },
+    "checks": [
+      {
+        "argv": [
+          "rustfmt",
+          "--check",
+          "--edition",
+          "2021",
+          "--config",
+          "skip_children=true",
+          "zircon_runtime/src/text/model/geometry.rs"
+        ],
+        "exit": 0,
+        "stdout_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "show",
+          "HEAD:zircon_runtime/src/text/model/geometry.rs"
+        ],
+        "exit": 0,
+        "stdout_bytes": 1336,
+        "stdout_sha256": "d9785a9d6a4f352060039e50796900abc78674445d5b1742fb45b423561a0c21",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--check",
+          "--",
+          "zircon_runtime/src/text/model/geometry.rs"
+        ],
+        "exit": 0,
+        "stdout_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/model/geometry.rs.\nThe file will have its original line endings in your working directory\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "zircon_runtime/src/text/model/geometry.rs"
+        ],
+        "exit": 0,
+        "stdout_bytes": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "--no-optional-locks",
+          "diff",
+          "--unified=3",
+          "--",
+          "zircon_runtime/src/text/model/geometry.rs"
+        ],
+        "exit": 0,
+        "stdout_bytes": 1759,
+        "stdout_sha256": "5c70ba299bc6809cddde54a83936130258b50a5c726808e36a2b6d8b4704e2c7",
+        "stderr": "warning: LF will be replaced by CRLF in zircon_runtime/src/text/model/geometry.rs.\nThe file will have its original line endings in your working directory\n"
+      }
+    ],
+    "rust_tests_executed": 0,
+    "cargo_commands": 0,
+    "generated_helpers": 0,
+    "source_copies": 0,
+    "git_mutations": 0,
+    "formal_acceptance": "pending; local static/doc validation only",
+    "child_readback": "Must be tied to the actual final child hash in the terminal handoff; not predicted at serialization."
+  },
+  "receipts": [
+    {
+      "phase": "initial preflight",
+      "outer": 1,
+      "terminal_chunk": "899ec8",
+      "exit": 1,
+      "pid": 33952,
+      "result": "0 writes. Source/grant/policies and child absence passed, then generic recursive registry reference count incorrectly expected 3 rather than 4. Git section not reached."
+    },
+    {
+      "phase": "exact retained artifact locator",
+      "outer": 2,
+      "terminal_chunk": "5d02f7",
+      "exit": 0,
+      "pid": 2188,
+      "result": "retained.377-.379 are the exact three plans; record_write_observations.124.grants.1 is an ordinary fourth reference, not an extra artifact."
+    },
+    {
+      "phase": "fresh CAS source writer",
+      "outer": 3,
+      "initial_chunk": "53b1fd",
+      "native_session": 57870,
+      "terminal_chunk": "59cb32",
+      "exit": 0,
+      "pid": 43632,
+      "result": "Fresh exact grant/source/rawHEAD/stage/filter/scoped status+diff+cached+three plans/child absent, then four pure insertions."
+    },
+    {
+      "phase": "source independent check",
+      "outer": 4,
+      "terminal_chunk": "ca0de3",
+      "exit": 0,
+      "pid": 33376,
+      "result": "Exact rustfmt/diff/rawHEAD/inverse/14 additions 0 deletions/cached0/raw reader operands passed."
+    },
+    {
+      "phase": "actual hard_line_text locator/read",
+      "outer": 6,
+      "terminal_chunk": "98a83e",
+      "exit": 0,
+      "pid": 36212,
+      "result": "rg located shaped_run.rs411; read395-429 at unchanged C2 pin. Corrected path evidence, no writes."
+    },
+    {
+      "phase": "sole child draft CAS creation",
+      "outer": 10,
+      "terminal_chunk": "12ac9e",
+      "exit": 0,
+      "pid": 3044,
+      "command_chars": 19931,
+      "created_sha256": "99dcb7b8ad3469c45003e83cd5fa3a8427d3b5f4ef08373d58b4acc8e2f164e0",
+      "bytes": 20893,
+      "LF": 560,
+      "result": "Created the sole preregistered record in incomplete/draft state with source model; no other artifact."
+    }
+  ],
+  "evidence_limits": [
+    "The check also read layout_session.rs43986fbac9bd3854e0cb45f9f706b5391066d68c72284f26ac71532fb3fbc858 (28701B705LF)411-417. Those lines are a parallel-shaping call, not hard_line_text. This unsuccessful stale-line reference is not subtraction evidence; E3 is the actual locator-backed method.",
+    "Candidate locator subprocesses for old text/storage.rs, text/edit.rs and text/transport returned rg exit2 for missing guessed paths. Subsequent rg located document/storage.rs and graphics/text_transport/conversion.rs; wrapper commands themselves exited0. Missing guesses were not product defects.",
+    "Git warned LF may be replaced by CRLF; actual original and final bytes both contain only LF. No EOL normalization was performed.",
+    "Scope is the one geometry leaf; context reads and context assertions do not add source or test coverage. No allocator, shaping, layout, transport or FFI execution is claimed."
+  ],
+  "issues": [],
+  "reserved_issue_id": "CR-ZCA-R097-0001 unused",
+  "handoff": {
+    "source_frozen": true,
+    "root_review": "pending",
+    "formal_acceptance": false,
+    "temporary_artifacts_created": 0,
+    "space_released_bytes": 0,
+    "retained": "canonical source and sole review record; no helper/build/source snapshot created",
+    "child_writer_and_final_readback": "Actual receipts and final artifact SHA are reported after those requests reach terminal; no invented self-referential exit."
+  }
+}

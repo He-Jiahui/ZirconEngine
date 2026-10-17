@@ -10,6 +10,7 @@ use crate::scene::{NodeKind, SystemStage, World};
 #[derive(Debug, PartialEq, Eq)]
 struct RenderValue(u32);
 
+zircon_runtime_interface::impl_retained_owner_v1!(RenderValue { 0 });
 impl Component for RenderValue {}
 
 // 测试走正式提取阶段，使层级派生状态先就绪，再观察发布工件；不能直接清理脏标记替代该边界。

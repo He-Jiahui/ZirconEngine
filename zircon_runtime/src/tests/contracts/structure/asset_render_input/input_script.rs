@@ -5,13 +5,10 @@ use super::*;
 fn runtime_15_input_runtime_manager_lock_poison_recovery_guard_covers_input_state() {
     let input_manager = read_runtime_src("input/runtime/default_input_manager.rs");
     let input_action_manager = read_runtime_src("input/runtime/default_input_action_manager.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let input_doc = read_repo("docs/zircon_runtime/input/input_state.md");
+    let input_manager_tests =
+        read_runtime_src("input/runtime/default_input_manager/tests/cases.rs");
+    let input_action_manager_tests =
+        read_runtime_src("input/runtime/tests/default_input_action_manager.rs");
 
     assert_contains_all(
         "DefaultInputManager state poison recovery",
@@ -22,7 +19,7 @@ fn runtime_15_input_runtime_manager_lock_poison_recovery_guard_covers_input_stat
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "let mut state = self.lock_state();",
             "let state = self.lock_state();",
-            "input_manager_accessors_recover_poisoned_state_lock",
+            "#[path = \"default_input_manager/tests/cases.rs\"]",
         ],
     );
     assert_contains_all(
@@ -34,7 +31,30 @@ fn runtime_15_input_runtime_manager_lock_poison_recovery_guard_covers_input_stat
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "self.lock_evaluator().action_map().clone()",
             "self.lock_evaluator().set_action_map(action_map);",
-            "input_action_manager_accessors_recover_poisoned_evaluator_lock",
+            "#[path = \"tests/default_input_action_manager.rs\"]",
+        ],
+    );
+
+    assert_contains_all(
+        "input state lock recovery regression",
+        &input_manager_tests,
+        &[
+            "fn runtime56_recovery_batch_input_manager_accessors_recover_poisoned_state_lock()",
+            "let _guard = manager.lock_state();",
+            "manager.submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));",
+            "manager.drain_events()",
+            "manager.begin_frame();",
+        ],
+    );
+    assert_contains_all(
+        "input evaluator lock recovery regression",
+        &input_action_manager_tests,
+        &[
+            "fn input_action_manager_accessors_recover_poisoned_evaluator_lock()",
+            "let _guard = manager.lock_evaluator();",
+            "manager.set_action_map(action_map.clone());",
+            "assert_eq!(manager.action_map(), action_map);",
+            ".evaluate_actions(&InputFrameSnapshot::default())",
         ],
     );
 
@@ -58,13 +78,10 @@ fn runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries
     let hot_reload_coordinator = read_runtime_src("script/vm/runtime/hot_reload_coordinator.rs");
     let hot_reload_coordinator_tests =
         read_runtime_src("script/vm/runtime/hot_reload_coordinator/tests/cases.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let script_vm_doc = read_repo("docs/zircon_runtime/script/vm/zr_vm_host_reflection.md");
+    let backend_registry_tests = read_runtime_src("script/vm/backend/tests/backend_registry.rs");
+    let host_registry_tests = read_runtime_src("script/vm/host/tests/host_registry.rs");
+    let host_export_registry_tests =
+        read_runtime_src("script/vm/host/tests/host_export_registry.rs");
 
     assert_contains_all(
         "VM backend registry poison recovery",
@@ -75,7 +92,7 @@ fn runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "self.lock_families().insert(name.clone(), family);",
             "let families = self.lock_families()",
-            "vm_backend_registry_accessors_recover_poisoned_family_lock",
+            "#[path = \"tests/backend_registry.rs\"]",
         ],
     );
     assert_contains_all(
@@ -87,7 +104,7 @@ fn runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "let mut state = self.lock_state();",
             "let state = self.lock_state();",
-            "host_registry_accessors_recover_poisoned_handle_lock",
+            "#[path = \"tests/host_registry.rs\"]",
         ],
     );
     assert_contains_all(
@@ -95,11 +112,38 @@ fn runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries
         &host_export_registry,
         &[
             "use std::sync::{Arc, Mutex, MutexGuard};",
-            "fn lock_modules(&self) -> MutexGuard<'_, HashMap<String, HostExportModuleEntry>>",
+            "fn lock_state(&self) -> MutexGuard<'_, HostExportRegistryState>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
-            "let mut modules = self.lock_modules();",
-            "let modules = self.lock_modules();",
-            "host_export_registry_accessors_recover_poisoned_module_lock",
+            "let mut state = self.lock_state();",
+            "current_script_call_table(&mut self.lock_state())",
+            "#[path = \"tests/host_export_registry.rs\"]",
+        ],
+    );
+    assert_contains_all(
+        "VM backend registry recovery regression",
+        &backend_registry_tests,
+        &[
+            "fn vm_backend_registry_accessors_recover_poisoned_family_lock()",
+            "let _guard = registry.families.lock().unwrap();",
+            "assert!(registry.contains(\"test:backend\"));",
+        ],
+    );
+    assert_contains_all(
+        "VM host registry recovery regression",
+        &host_registry_tests,
+        &[
+            "fn host_registry_accessors_recover_poisoned_handle_lock()",
+            "let _guard = registry.state.lock().unwrap();",
+            "assert!(registry.is_valid(handle));",
+        ],
+    );
+    assert_contains_all(
+        "VM host export registry recovery regression",
+        &host_export_registry_tests,
+        &[
+            "fn host_export_registry_accessors_recover_poisoned_module_lock()",
+            "let _guard = registry.state.lock().unwrap();",
+            "registry.call(\"test.host\", \"ping\", Vec::new()).unwrap()",
         ],
     );
     assert_contains_all(

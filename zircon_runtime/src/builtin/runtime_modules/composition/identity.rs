@@ -46,6 +46,7 @@ pub(in crate::builtin::runtime_modules) struct RuntimeModuleCompositionIdentityS
     source_manifest_fingerprint: Option<u64>,
     target_mode: RuntimeTargetMode,
     runtime_profile: Option<RuntimeProfileId>,
+    admission: Option<(RuntimeProfileId, crate::plugin::PluginMaturity)>,
 }
 
 impl RuntimeModuleCompositionIdentitySeed {
@@ -58,6 +59,7 @@ impl RuntimeModuleCompositionIdentitySeed {
             source_manifest_fingerprint: Some(plan.source_manifest_fingerprint()),
             target_mode: plan.target_mode(),
             runtime_profile,
+            admission: plan.runtime_profile_admission(),
         }
     }
 
@@ -70,6 +72,7 @@ impl RuntimeModuleCompositionIdentitySeed {
             source_manifest_fingerprint: None,
             target_mode,
             runtime_profile,
+            admission: None,
         }
     }
 
@@ -83,6 +86,11 @@ impl RuntimeModuleCompositionIdentitySeed {
         write_optional_u64(&mut hasher, self.source_manifest_fingerprint);
         write_bytes(&mut hasher, runtime_target_key(self.target_mode));
         write_optional_profile(&mut hasher, self.runtime_profile);
+        if let Some((id, minimum)) = self.admission {
+            write_bytes(&mut hasher, b"profile-admission");
+            write_optional_profile(&mut hasher, Some(id));
+            write_str(&mut hasher, &format!("{minimum:?}"));
+        }
         write_len(&mut hasher, descriptors.len());
         for descriptor in descriptors {
             write_descriptor(&mut hasher, descriptor);

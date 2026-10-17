@@ -16,6 +16,7 @@ mod environment_capture_wgpu_recorder;
 pub(in crate::graphics::scene::scene_renderer) mod ibl_bake_compute_executor;
 #[path = "ibl_bake_graph_plan.rs"]
 pub(in crate::graphics) mod ibl_bake_graph_plan;
+#[cfg(feature = "native-host")]
 #[path = "../../environment/ibl_bake_runtime_writeback.rs"]
 pub(in crate::graphics::scene::scene_renderer) mod ibl_bake_runtime_writeback;
 #[path = "ibl_bake_shader_plan.rs"]

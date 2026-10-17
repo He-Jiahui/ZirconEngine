@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::mem::size_of;
 use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 
 use crate::scene::World;
 

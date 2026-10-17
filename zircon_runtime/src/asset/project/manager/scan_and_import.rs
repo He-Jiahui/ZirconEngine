@@ -48,12 +48,55 @@ pub(crate) use source_plan::{ImportSourcePlan, ImportSourceWatchEcho};
 pub(crate) use targeted::refresh_runtime_dependency_closure;
 pub(crate) use targeted::{PreparedProjectImportBatch, PreparedTargetedGeneration};
 
+/// One complete primary importer source and its explicit sidecar member identities.
+#[derive(Clone, Debug)]
+pub(crate) struct WatchSourceCandidate {
+    pub(crate) owner: crate::core::resource::ResourceId,
+    pub(crate) previous_members: Vec<crate::core::resource::ResourceId>,
+    pub(crate) members: Vec<crate::core::resource::ResourceSourceMember>,
+    pub(crate) outcome: crate::core::resource::ResourceSourceOutcome,
+}
+
+impl WatchSourceCandidate {
+    pub(crate) fn requires_geometry_reprepare(
+        &self,
+        demand: &crate::core::resource::ResourceActiveGeneration,
+        active: &crate::core::resource::ResourceActiveGeneration,
+    ) -> bool {
+        self.outcome == crate::core::resource::ResourceSourceOutcome::CompleteSuccess
+            && self.members.iter().any(|member| {
+                matches!(member.record.kind, crate::core::resource::ResourceKind::Model | crate::core::resource::ResourceKind::Mesh)
+                    && member.payload.is_none()
+                    && demand.row(member.record.id).is_none()
+                    && active.row(member.record.id).is_some()
+            })
+    }
+
+    pub(crate) fn publication(
+        &self, active: &crate::core::resource::ResourceActiveGeneration,
+    ) -> crate::core::resource::ResourceSourcePublication {
+        crate::core::resource::ResourceSourcePublication::capture(
+            self.owner, self.previous_members.clone(), self.members.clone(), self.outcome, active,
+        )
+    }
+}
+
 pub(crate) enum PreparedWatchFileGeneration {
     Targeted(PreparedTargetedWatchChanges),
     Full(full_generation::PreparedFullProjectGeneration),
 }
 
 impl PreparedWatchFileGeneration {
+    pub(crate) fn take_sources(
+        &mut self, geometry_demand: &crate::core::resource::ResourceActiveGeneration,
+    ) -> Vec<WatchSourceCandidate> {
+        match self {
+            Self::Full(prepared) => std::mem::take(&mut prepared.watch_sources),
+            Self::Targeted(PreparedTargetedWatchChanges::Source(prepared)) => vec![prepared.take_watch_source(geometry_demand)],
+            Self::Targeted(PreparedTargetedWatchChanges::Removal(prepared)) => std::mem::take(&mut prepared.watch_sources),
+        }
+    }
+
     pub(crate) fn commit(self) -> Result<ProjectFileCommitOutcome, AssetImportError> {
         match self {
             Self::Targeted(prepared) => prepared.commit(),
@@ -77,6 +120,7 @@ impl PreparedTargetedWatchChanges {
 }
 
 pub(crate) struct PreparedTargetedWatchRemoval {
+    watch_sources: Vec<WatchSourceCandidate>,
     journal_directory: std::path::PathBuf,
     writes: Vec<PreparedFileWrite>,
 }
@@ -157,13 +201,22 @@ impl ProjectManager {
         changes: &[crate::asset::watch::AssetChange],
         use_incremental: bool,
     ) -> Result<(Vec<ResourceRecord>, PreparedWatchFileGeneration), AssetImportError> {
+        self.prepare_watch_file_generation_with_geometry_demand(changes, use_incremental, None)
+    }
+
+    pub(crate) fn prepare_watch_file_generation_with_geometry_demand(
+        &mut self,
+        changes: &[crate::asset::watch::AssetChange],
+        use_incremental: bool,
+        geometry_demand: Option<&crate::core::resource::ResourceActiveGeneration>,
+    ) -> Result<(Vec<ResourceRecord>, PreparedWatchFileGeneration), AssetImportError> {
         if use_incremental {
             self.prepare_targeted_watch_changes(changes)
                 .map(|(records, prepared)| {
                     (records, PreparedWatchFileGeneration::Targeted(prepared))
                 })
         } else {
-            self.prepare_full_generation(Some(changes))
+            self.prepare_full_generation_with_geometry_demand(Some(changes), geometry_demand)
                 .map(|(records, prepared)| (records, PreparedWatchFileGeneration::Full(prepared)))
         }
     }
@@ -216,6 +269,7 @@ impl ProjectManager {
                 PreparedTargetedWatchRemoval {
                     journal_directory: journal_directory(&self.paths),
                     writes: Vec::new(),
+                    watch_sources: Vec::new(),
                 },
             ));
         }
@@ -223,6 +277,13 @@ impl ProjectManager {
             .iter()
             .map(|entry| AssetId::from_asset_uuid(entry.uuid()))
             .collect::<HashSet<_>>();
+        let owner = removed_entries.iter().find(|entry| entry.path().label().is_none())
+            .map(|entry| AssetId::from_asset_uuid(entry.uuid()))
+            .ok_or_else(|| AssetImportError::Parse("removed source has no explicit root member".into()))?;
+        let watch_sources = vec![WatchSourceCandidate {
+            owner, previous_members: removed_ids.iter().copied().collect(), members: Vec::new(),
+            outcome: crate::core::resource::ResourceSourceOutcome::Removed,
+        }];
         let mut registry = self.registry.begin_staging();
         for entry in &removed_entries {
             registry.stage_remove_locator(entry.path());
@@ -274,6 +335,7 @@ impl ProjectManager {
             PreparedTargetedWatchRemoval {
                 journal_directory: journal_directory(&self.paths),
                 writes: vec![PreparedFileWrite::new(persisted.path, persisted.bytes)],
+                watch_sources,
             },
         ))
     }

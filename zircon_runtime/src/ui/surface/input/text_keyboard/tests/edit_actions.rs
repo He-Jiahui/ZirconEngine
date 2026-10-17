@@ -1,3 +1,6 @@
+//! 有序动作容器的单项、双项与耗尽行为，以及固定负载性能对比。
+//! 性能夹具保留旧列表作为比较实现，生产容器的迭代语义由普通测试单独锁定。
+
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -7,6 +10,7 @@ use zircon_runtime_interface::ui::surface::UiTextEditAction;
 const ACTION_SEQUENCES_PER_SAMPLE: usize = 262_144;
 const SAMPLE_PAIRS: usize = 17;
 
+// 消费动作所有权并生成可观察校验和；此辅助函数不执行文本状态转换。
 fn consume(actions: impl IntoIterator<Item = UiTextEditAction>) -> u64 {
     actions.into_iter().fold(0_u64, |checksum, action| {
         checksum.wrapping_add(match action {
@@ -32,6 +36,7 @@ fn legacy_actions(index: usize) -> Vec<UiTextEditAction> {
     }
 }
 
+// 与旧样本使用相同索引规则，每八项中构造一条双动作序列。
 fn inline_actions(index: usize) -> super::KeyboardTextEditActions {
     let move_caret = UiTextEditAction::MoveCaret {
         offset: index,
@@ -44,6 +49,7 @@ fn inline_actions(index: usize) -> super::KeyboardTextEditActions {
     }
 }
 
+// 每个样本独立计时并折叠所有序列；返回纳秒数与校验和，采样顺序由外层交替。
 fn measure(optimized: bool) -> (u128, u64) {
     let started = Instant::now();
     let mut checksum = 0_u64;
@@ -57,6 +63,7 @@ fn measure(optimized: bool) -> (u128, u64) {
     (started.elapsed().as_nanos().max(1), black_box(checksum))
 }
 
+// 这里只用非空样本求第 50/95 百分位，排序不改变原采样记录。
 fn nearest_rank(samples: &[u128], percentile: usize) -> u128 {
     let mut sorted = samples.to_vec();
     sorted.sort_unstable();
@@ -105,6 +112,7 @@ fn runtime82_batch_inline_action_iterator_stays_exhausted() {
 
 #[test]
 #[ignore = "managed Windows release performance evidence"]
+// 在受管 release 环境启用；交替采样顺序，阈值仅约束这组固定工作负载。
 fn runtime82_batch_inline_keyboard_edit_actions_p95() {
     for _ in 0..3 {
         black_box(measure(false));
@@ -134,6 +142,7 @@ fn runtime82_batch_inline_keyboard_edit_actions_p95() {
     let legacy_p95_ns = nearest_rank(&legacy_samples, 95);
     let inline_p50_ns = nearest_rank(&inline_samples, 50);
     let inline_p95_ns = nearest_rank(&inline_samples, 95);
+    // 下列容器与载荷字节数按构造规则推导，不是分配器实际观测值。
     let action_size_bytes = std::mem::size_of::<UiTextEditAction>();
     let legacy_sequence_payload_bytes = action_size_bytes
         .saturating_mul(ACTION_SEQUENCES_PER_SAMPLE + ACTION_SEQUENCES_PER_SAMPLE / 8);

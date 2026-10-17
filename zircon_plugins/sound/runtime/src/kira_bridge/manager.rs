@@ -16,6 +16,8 @@ use super::cpal_owner::OwnerCpalBackend;
 mod graph;
 #[path = "manager/lifecycle.rs"]
 mod lifecycle;
+#[cfg(test)]
+pub(crate) use lifecycle::fail_next_retirement_reservation_for_test;
 #[path = "manager/playback.rs"]
 mod playback;
 

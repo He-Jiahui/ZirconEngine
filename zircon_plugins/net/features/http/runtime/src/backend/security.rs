@@ -43,7 +43,9 @@ fn http_url_host(url: &str) -> Option<String> {
         .strip_prefix("http://")
         .or_else(|| url.strip_prefix("https://"))
         .map(|rest| rest.split(['/', '?', '#']).next().unwrap_or_default())?;
-    let authority = authority.rsplit_once('@').map_or(authority, |(_, host)| host);
+    let authority = authority
+        .rsplit_once('@')
+        .map_or(authority, |(_, host)| host);
     let host = if let Some(bracketed) = authority.strip_prefix('[') {
         let (host, suffix) = bracketed.split_once(']')?;
         if !suffix.is_empty() {
@@ -75,7 +77,10 @@ mod host_tests {
 
     #[test]
     fn parses_bracketed_ipv6_host_with_or_without_port() {
-        assert_eq!(http_url_host("https://[::1]/health"), Some("::1".to_string()));
+        assert_eq!(
+            http_url_host("https://[::1]/health"),
+            Some("::1".to_string())
+        );
         assert_eq!(
             http_url_host("https://[2001:db8::1]:8443/health"),
             Some("2001:db8::1".to_string())
@@ -98,8 +103,8 @@ mod host_tests {
             NetHttpMethod::Get,
             "https://[::1]/health",
         );
-        request.security = NetSecurityPolicy::production_tls()
-            .with_certificate_pin("::1", "sha256/example");
+        request.security =
+            NetSecurityPolicy::production_tls().with_certificate_pin("::1", "sha256/example");
 
         assert_eq!(validate_http_security_policy(&request), Ok(()));
         request.security.certificate_pins.clear();

@@ -99,13 +99,15 @@ fn node_and_cluster_cull_pass_derives_dispatch_setup_from_global_state_and_seed_
 
     assert_eq!(
         output.dispatch_setup(),
-        Some(RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot {
-            instance_seed_count: 1,
-            cluster_budget: 1,
-            page_budget: 2,
-            workgroup_size: 64,
-            dispatch_group_count: [1, 1, 1],
-        }),
+        Some(
+            RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot {
+                instance_seed_count: 1,
+                cluster_budget: 1,
+                page_budget: 2,
+                workgroup_size: 64,
+                dispatch_group_count: [1, 1, 1],
+            }
+        ),
         "expected the first explicit NodeAndClusterCull dispatch/setup seam to consume the typed global-state budget inputs together with the derived root-seed count instead of leaving dispatch dimensions as implicit host logic"
     );
     assert!(
@@ -148,16 +150,18 @@ fn node_and_cluster_cull_pass_publishes_launch_worklist_from_global_state_dispat
 
     assert_eq!(
         output.launch_worklist(),
-        Some(&RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot {
-            global_state: output
-                .global_state()
-                .cloned()
-                .expect("expected cull global state"),
-            dispatch_setup: output
-                .dispatch_setup()
-                .expect("expected cull dispatch setup"),
-            instance_seeds: output.instance_seeds().to_vec(),
-        }),
+        Some(
+            &RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot {
+                global_state: output
+                    .global_state()
+                    .cloned()
+                    .expect("expected cull global state"),
+                dispatch_setup: output
+                    .dispatch_setup()
+                    .expect("expected cull dispatch setup"),
+                instance_seeds: output.instance_seeds().to_vec(),
+            }
+        ),
         "expected NodeAndClusterCull to publish one explicit launch/worklist contract that combines the global-state buffer, dispatch/setup record, and root seed rows before the baseline execution path or a future compute traversal consumes them"
     );
 }
@@ -398,7 +402,11 @@ fn node_and_cluster_cull_global_state_uses_viewport_and_camera_from_frame() {
         snapshot.camera_translation
     );
     assert!(
-        snapshot.view_proj.iter().flatten().any(|value| *value != 0.0),
+        snapshot
+            .view_proj
+            .iter()
+            .flatten()
+            .any(|value| *value != 0.0),
         "expected the upgraded NodeAndClusterCull startup record to carry a non-empty view-projection matrix derived from the frame camera"
     );
     assert_eq!(snapshot.previous_view_proj, snapshot.view_proj);

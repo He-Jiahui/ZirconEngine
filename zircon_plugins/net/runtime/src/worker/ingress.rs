@@ -25,17 +25,32 @@ impl NetIngress {
 /// Cancellation wakes blocked producers during worker shutdown; already queued events remain drainable.
 #[derive(Debug)]
 pub(crate) struct NetWorkerIngress {
-    queue: Mutex<VecDeque<NetIngress>>,
+    queue: Mutex<IngressQueue>,
     capacity: usize,
     cancelled: AtomicBool,
     space_available: Condvar,
+}
+
+#[derive(Debug)]
+struct IngressQueue {
+    events: VecDeque<NetIngress>,
+    reserved: usize,
+}
+
+#[derive(Debug)]
+pub(crate) struct NetIngressPermit {
+    ingress: Arc<NetWorkerIngress>,
+    committed: bool,
 }
 
 impl NetWorkerIngress {
     pub(crate) fn new(capacity: usize) -> Arc<Self> {
         assert!(capacity > 0, "worker ingress capacity must be non-zero");
         Arc::new(Self {
-            queue: Mutex::new(VecDeque::with_capacity(capacity)),
+            queue: Mutex::new(IngressQueue {
+                events: VecDeque::with_capacity(capacity),
+                reserved: 0,
+            }),
             capacity,
             cancelled: AtomicBool::new(false),
             space_available: Condvar::new(),
@@ -47,7 +62,9 @@ impl NetWorkerIngress {
             .queue
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        while queue.len() >= self.capacity && !self.cancelled.load(Ordering::Acquire) {
+        while queue.events.len() + queue.reserved >= self.capacity
+            && !self.cancelled.load(Ordering::Acquire)
+        {
             queue = self
                 .space_available
                 .wait(queue)
@@ -56,8 +73,25 @@ impl NetWorkerIngress {
         if self.cancelled.load(Ordering::Acquire) {
             return false;
         }
-        queue.push_back(ingress);
+        queue.events.push_back(ingress);
         true
+    }
+
+    pub(crate) fn try_reserve(self: &Arc<Self>) -> Option<NetIngressPermit> {
+        let mut queue = self
+            .queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if self.cancelled.load(Ordering::Acquire)
+            || queue.events.len() + queue.reserved >= self.capacity
+        {
+            return None;
+        }
+        queue.reserved += 1;
+        Some(NetIngressPermit {
+            ingress: Arc::clone(self),
+            committed: false,
+        })
     }
 
     pub(crate) fn drain(&self, max_events: usize) -> Vec<NetEvent> {
@@ -65,8 +99,12 @@ impl NetWorkerIngress {
             .queue
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let count = max_events.min(queue.len());
-        let events = queue.drain(..count).map(NetIngress::into_event).collect();
+        let count = max_events.min(queue.events.len());
+        let events = queue
+            .events
+            .drain(..count)
+            .map(NetIngress::into_event)
+            .collect();
         drop(queue);
         if count != 0 {
             self.space_available.notify_all();
@@ -78,6 +116,7 @@ impl NetWorkerIngress {
         self.queue
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .events
             .len()
     }
 
@@ -88,6 +127,39 @@ impl NetWorkerIngress {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         self.cancelled.store(true, Ordering::Release);
         self.space_available.notify_all();
+    }
+}
+
+impl NetIngressPermit {
+    pub(crate) fn commit(mut self, ingress: NetIngress) {
+        let mut queue = self
+            .ingress
+            .queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        debug_assert!(queue.reserved > 0, "reservation must be counted");
+        queue.reserved -= 1;
+        self.committed = true;
+        queue.events.push_back(ingress);
+        drop(queue);
+        self.ingress.space_available.notify_all();
+    }
+}
+
+impl Drop for NetIngressPermit {
+    fn drop(&mut self) {
+        if self.committed {
+            return;
+        }
+        let mut queue = self
+            .ingress
+            .queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        debug_assert!(queue.reserved > 0, "reservation must be counted");
+        queue.reserved -= 1;
+        drop(queue);
+        self.ingress.space_available.notify_all();
     }
 }
 
@@ -156,6 +228,50 @@ mod tests {
             "producer must wait until a slot is drained"
         );
         assert_eq!(ingress.drain(1).len(), 1);
+        assert!(producer.join().unwrap());
+        assert_eq!(ingress.drain(1).len(), 1);
+    }
+
+    #[test]
+    fn reservation_counts_toward_capacity_and_commit_survives_cancel() {
+        let ingress = NetWorkerIngress::new(1);
+        let permit = ingress.try_reserve().expect("first slot should reserve");
+        assert!(ingress.try_reserve().is_none());
+
+        ingress.cancel();
+        permit.commit(event(7));
+
+        assert_eq!(ingress.len(), 1);
+        assert_eq!(ingress.drain(1).len(), 1);
+        assert_eq!(ingress.len(), 0);
+    }
+
+    #[test]
+    fn dropping_reservation_releases_capacity() {
+        let ingress = NetWorkerIngress::new(1);
+        let permit = ingress.try_reserve().expect("first slot should reserve");
+        assert!(ingress.try_reserve().is_none());
+        drop(permit);
+        assert!(ingress.try_reserve().is_some());
+    }
+
+    #[test]
+    fn worker_producer_waits_for_reserved_capacity() {
+        let ingress = NetWorkerIngress::new(1);
+        let permit = ingress.try_reserve().expect("slot should reserve");
+        let (started_tx, started_rx) = mpsc::channel();
+        let producer_ingress = Arc::clone(&ingress);
+        let producer = thread::spawn(move || {
+            started_tx.send(()).unwrap();
+            producer_ingress.push(event(9))
+        });
+        started_rx.recv().unwrap();
+        thread::sleep(Duration::from_millis(10));
+        assert!(
+            !producer.is_finished(),
+            "reservation must count as occupied"
+        );
+        drop(permit);
         assert!(producer.join().unwrap());
         assert_eq!(ingress.drain(1).len(), 1);
     }

@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
+use std::fmt;
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::fmt;
 
 use serde::de::{self, DeserializeOwned, MapAccess, SeqAccess, Visitor};
 use serde::Deserialize;
@@ -12,7 +12,7 @@ use sha2::{Digest, Sha256};
 pub(crate) const READY_FRAME_EVIDENCE_IDENTITY_SCHEMA: &str =
     "zircon_shader_pbr_viewer_evidence_identity_v1";
 pub(crate) const READY_FRAME_EVIDENCE_VALIDATION_POLICY: &str =
-    "zircon_shader_pbr_viewer_ready_frame_v18";
+    "zircon_shader_pbr_viewer_ready_frame_v19";
 const INDEPENDENT_COMMAND_RECEIPT_SCHEMA: &str = "zircon_local_cargo_command_evidence_v1";
 const INDEPENDENT_COMMAND_ORIGIN: &str = "independent-local-command";
 const INDEPENDENT_COMMAND_STATUS: &str = "completed-selected-input-command";
@@ -195,10 +195,7 @@ impl<'de> Deserialize<'de> for UniqueJson {
     }
 }
 
-fn parse_unique_json<T: DeserializeOwned>(
-    contents: &str,
-    description: &str,
-) -> Result<T, String> {
+fn parse_unique_json<T: DeserializeOwned>(contents: &str, description: &str) -> Result<T, String> {
     let mut deserializer =
         serde_json::Deserializer::from_str(contents.trim_start_matches('\u{feff}'));
     let value = UniqueJson::deserialize(&mut deserializer)
@@ -347,7 +344,11 @@ fn validate_independent_build_provenance(
         ));
     }
     if json_string(object, "provenance_scope", "build provenance")? != "identity-transport"
-        || json_bool(object, "compiler_input_closure_verified", "build provenance")?
+        || json_bool(
+            object,
+            "compiler_input_closure_verified",
+            "build provenance",
+        )?
         || json_bool(object, "capture_admission", "build provenance")?
     {
         return Err(format!(
@@ -355,8 +356,7 @@ fn validate_independent_build_provenance(
             provenance_path.display()
         ));
     }
-    let source_manifest_sha256 =
-        json_string(object, "source_manifest_sha256", "build provenance")?;
+    let source_manifest_sha256 = json_string(object, "source_manifest_sha256", "build provenance")?;
     if !is_sha256(source_manifest_sha256)
         || source_manifest_sha256 != expected_source_manifest_sha256
     {
@@ -376,8 +376,9 @@ fn validate_independent_build_provenance(
         ));
     }
 
-    let binary = json_object(json_field(object, "binary", "build provenance")?, "binary")?;
-    verify_json_file_fingerprint(binary, expected_binary, "build provenance binary")?;
+    let binary_value = json_field(object, "binary", "build provenance")?;
+    let _binary = json_object(binary_value, "binary")?;
+    verify_json_file_fingerprint(binary_value, expected_binary, "build provenance binary")?;
 
     let repository = json_object(
         json_field(object, "repository", "build provenance")?,
@@ -420,18 +421,14 @@ fn validate_independent_build_provenance(
         &receipt_contents,
         &format!("independent command receipt {}", receipt_path.display()),
     )?;
-    let receipt_binding = validate_command_receipt(
-        &receipt_path,
-        &receipt,
-        expected_binary,
-        &repository_root,
-    )?;
+    let receipt_binding =
+        validate_command_receipt(&receipt_path, &receipt, expected_binary, &repository_root)?;
     if receipt_binding.sha256 != source_manifest_sha256
         || receipt_binding.protocol != source_manifest_protocol
         || receipt_binding.scope != source_scope
-        || source_manifest.iter().any(|(name, hash)| {
-            receipt_binding.manifest.get(name) != Some(hash)
-        })
+        || source_manifest
+            .iter()
+            .any(|(name, hash)| receipt_binding.manifest.get(name) != Some(hash))
     {
         return Err(format!(
             "independent Shader PBR provenance and command receipt source identity differ: {}",
@@ -451,6 +448,11 @@ fn validate_independent_build_provenance(
     Ok(())
 }
 
+fn matches_canonical_path(declared: &str, expected: &Path) -> bool {
+    let declared = Path::new(declared);
+    declared.is_absolute() && evidence_transport_path(declared) == evidence_transport_path(expected)
+}
+
 fn validate_command_receipt(
     receipt_path: &Path,
     receipt: &Value,
@@ -460,8 +462,10 @@ fn validate_command_receipt(
     let object = json_object(receipt, "independent command receipt")?;
     if json_string(object, "schema", "independent command receipt")?
         != INDEPENDENT_COMMAND_RECEIPT_SCHEMA
-        || json_string(object, "origin", "independent command receipt")? != INDEPENDENT_COMMAND_ORIGIN
-        || json_string(object, "status", "independent command receipt")? != INDEPENDENT_COMMAND_STATUS
+        || json_string(object, "origin", "independent command receipt")?
+            != INDEPENDENT_COMMAND_ORIGIN
+        || json_string(object, "status", "independent command receipt")?
+            != INDEPENDENT_COMMAND_STATUS
         || json_u64(object, "rootExitCode", "independent command receipt")? != 0
     {
         return Err(format!(
@@ -484,7 +488,11 @@ fn validate_command_receipt(
             ));
         }
     }
-    for field in ["selectedInputsUnchanged", "compilerUnchanged", "driversUnchanged"] {
+    for field in [
+        "selectedInputsUnchanged",
+        "compilerUnchanged",
+        "driversUnchanged",
+    ] {
         if !json_bool(object, field, "independent command receipt")? {
             return Err(format!(
                 "independent command receipt does not retain {field}: {}",
@@ -493,8 +501,11 @@ fn validate_command_receipt(
         }
     }
     let source_scope = json_string(object, "sourceScope", "independent command receipt")?;
-    let source_manifest_protocol =
-        json_string(object, "sourceManifestProtocol", "independent command receipt")?;
+    let source_manifest_protocol = json_string(
+        object,
+        "sourceManifestProtocol",
+        "independent command receipt",
+    )?;
     if source_scope != SELECTED_SOURCE_SCOPE || source_manifest_protocol != SELECTED_SOURCE_PROTOCOL
     {
         return Err(format!(
@@ -502,9 +513,12 @@ fn validate_command_receipt(
             receipt_path.display()
         ));
     }
-    let receipt_directory = receipt_path
-        .parent()
-        .ok_or_else(|| format!("independent command receipt has no parent: {}", receipt_path.display()))?;
+    let receipt_directory = receipt_path.parent().ok_or_else(|| {
+        format!(
+            "independent command receipt has no parent: {}",
+            receipt_path.display()
+        )
+    })?;
     let request = read_reference_json(
         receipt_directory,
         json_field(object, "request", "independent command receipt")?,
@@ -541,13 +555,27 @@ fn validate_command_receipt(
     }
 
     let request_object = json_object(&request, "independent command request")?;
-    if json_u64(request_object, "schemaVersion", "independent command request")? != 1
+    if json_u64(
+        request_object,
+        "schemaVersion",
+        "independent command request",
+    )? != 1
         || json_string(request_object, "origin", "independent command request")?
             != INDEPENDENT_COMMAND_ORIGIN
-        || json_string(request_object, "cwd", "independent command request")?
-            != repository_root.to_string_lossy().as_ref()
-        || json_bool(request_object, "immutableInputSeal", "independent command request")?
-        || json_bool(request_object, "formalAcceptance", "independent command request")?
+        || !matches_canonical_path(
+            json_string(request_object, "cwd", "independent command request")?,
+            repository_root,
+        )
+        || json_bool(
+            request_object,
+            "immutableInputSeal",
+            "independent command request",
+        )?
+        || json_bool(
+            request_object,
+            "formalAcceptance",
+            "independent command request",
+        )?
     {
         return Err(format!(
             "independent command request does not bind its repository or scope: {}",
@@ -561,7 +589,11 @@ fn validate_command_receipt(
     if command.len() < 2
         || !matches!(command[1].as_str(), "build" | "test")
         || !command.iter().any(|value| value == "--locked")
-        || command.iter().filter(|value| *value == "--message-format=json").count() != 1
+        || command
+            .iter()
+            .filter(|value| *value == "--message-format=json")
+            .count()
+            != 1
         || command.iter().any(|value| value == "--")
         || (command[1] == "test" && !command.iter().any(|value| value == "--no-run"))
     {
@@ -589,42 +621,65 @@ fn validate_command_receipt(
         ));
     }
     let target_directory = canonical_existing_path(
-        json_string(request_object, "targetDirectory", "independent command request")?,
+        json_string(
+            request_object,
+            "targetDirectory",
+            "independent command request",
+        )?,
         "independent Cargo target directory",
     )?;
     let build_directory = canonical_existing_path(
-        json_string(request_object, "buildDirectory", "independent command request")?,
+        json_string(
+            request_object,
+            "buildDirectory",
+            "independent command request",
+        )?,
         "independent Cargo build directory",
     )?;
     if !is_allowed_target_directory(&target_directory)
-        || build_directory != target_directory.parent().unwrap_or(Path::new("")).join("build")
+        || build_directory
+            != target_directory
+                .parent()
+                .unwrap_or(Path::new(""))
+                .join("build")
     {
         return Err(format!(
             "independent command request uses an unapproved target/build root: {}",
             receipt_path.display()
         ));
     }
-    if json_string_array(
-        json_field(request_object, "artifactOutputDirectories", "independent command request")?,
+    let artifact_output_directories = json_string_array(
+        json_field(
+            request_object,
+            "artifactOutputDirectories",
+            "independent command request",
+        )?,
         "artifact output directories",
-    )? != vec![
-        target_directory.to_string_lossy().into_owned(),
-        build_directory.to_string_lossy().into_owned(),
-    ] {
+    )?;
+    if artifact_output_directories.len() != 2
+        || !matches_canonical_path(&artifact_output_directories[0], &target_directory)
+        || !matches_canonical_path(&artifact_output_directories[1], &build_directory)
+    {
         return Err(format!(
             "independent command request output roots differ from target/build: {}",
             receipt_path.display()
         ));
     }
     let environment = json_object(
-        json_field(request_object, "buildEnvironment", "independent command request")?,
+        json_field(
+            request_object,
+            "buildEnvironment",
+            "independent command request",
+        )?,
         "build environment",
     )?;
-    if json_string(environment, "CARGO_TARGET_DIR", "build environment")?
-        != target_directory.to_string_lossy().as_ref()
-        || json_string(environment, "CARGO_BUILD_BUILD_DIR", "build environment")?
-            != build_directory.to_string_lossy().as_ref()
-    {
+    if !matches_canonical_path(
+        json_string(environment, "CARGO_TARGET_DIR", "build environment")?,
+        &target_directory,
+    ) || !matches_canonical_path(
+        json_string(environment, "CARGO_BUILD_BUILD_DIR", "build environment")?,
+        &build_directory,
+    ) {
         return Err(format!(
             "independent command request environment differs from target/build: {}",
             receipt_path.display()
@@ -633,9 +688,15 @@ fn validate_command_receipt(
     let target_flag = command
         .iter()
         .position(|value| value == "--target-dir")
-        .ok_or_else(|| format!("independent command request has no --target-dir: {}", receipt_path.display()))?;
-    if command.get(target_flag + 1).map(String::as_str)
-        != Some(target_directory.to_string_lossy().as_ref())
+        .ok_or_else(|| {
+            format!(
+                "independent command request has no --target-dir: {}",
+                receipt_path.display()
+            )
+        })?;
+    if !command
+        .get(target_flag + 1)
+        .is_some_and(|declared| matches_canonical_path(declared, &target_directory))
     {
         return Err(format!(
             "independent command request --target-dir differs from targetDirectory: {}",
@@ -670,7 +731,11 @@ fn validate_command_receipt(
     )?;
     let source_before = read_reference_json(
         receipt_directory,
-        json_field(request_object, "inputsBefore", "independent command request")?,
+        json_field(
+            request_object,
+            "inputsBefore",
+            "independent command request",
+        )?,
         "inputs-before.json",
     )?;
     let source_before_binding = json_object(&source_before, "inputs-before")?;
@@ -687,9 +752,13 @@ fn validate_command_receipt(
         || sha256_json_object(&source_before_manifest)?
             != json_string(source_before_binding, "manifestSha256", "inputs-before")?
         || json_string(source_before_binding, "scope", "inputs-before")? != source_scope
-        || json_string(source_before_binding, "protocol", "inputs-before")? != source_manifest_protocol
-        || json_string(object, "sourceManifestSha256", "independent command receipt")?
-            != json_string(source_before_binding, "manifestSha256", "inputs-before")?
+        || json_string(source_before_binding, "protocol", "inputs-before")?
+            != source_manifest_protocol
+        || json_string(
+            object,
+            "sourceManifestSha256",
+            "independent command receipt",
+        )? != json_string(source_before_binding, "manifestSha256", "inputs-before")?
     {
         return Err(format!(
             "independent command selected source map changed or has mismatched protocol: {}",
@@ -697,9 +766,19 @@ fn validate_command_receipt(
         ));
     }
     let selected_input_object = json_object(&selected_input_request, "selected input request")?;
-    if json_u64(selected_input_object, "schemaVersion", "selected input request")? != 1
-        || json_string(selected_input_object, "repositoryRoot", "selected input request")?
-            != repository_root.to_string_lossy().as_ref()
+    if json_u64(
+        selected_input_object,
+        "schemaVersion",
+        "selected input request",
+    )? != 1
+        || !matches_canonical_path(
+            json_string(
+                selected_input_object,
+                "repositoryRoot",
+                "selected input request",
+            )?,
+            repository_root,
+        )
     {
         return Err(format!(
             "independent selected-input request does not bind its repository: {}",
@@ -742,7 +821,13 @@ fn validate_command_receipt(
         .filter(|artifact| {
             json_object(artifact, "executable artifact")
                 .and_then(|value| json_field(value, "binary", "executable artifact"))
-                .and_then(|value| verify_json_file_fingerprint(value, expected_binary, "executable artifact binary"))
+                .and_then(|value| {
+                    verify_json_file_fingerprint(
+                        value,
+                        expected_binary,
+                        "executable artifact binary",
+                    )
+                })
                 .is_ok()
         })
         .count();
@@ -759,8 +844,10 @@ fn validate_command_receipt(
             json_field(native_object, "command", "native terminal")?,
             "native command",
         )? != command
-        || json_string(native_object, "cwd", "native terminal")?
-            != repository_root.to_string_lossy().as_ref()
+        || !matches_canonical_path(
+            json_string(native_object, "cwd", "native terminal")?,
+            repository_root,
+        )
         || json_u64(native_object, "pid", "native terminal")? == 0
         || json_string(native_object, "creationTime", "native terminal")?
             .bytes()
@@ -837,7 +924,10 @@ fn json_string_array(value: &Value, description: &str) -> Result<Vec<String>, St
         .collect::<Result<Vec<_>, _>>()?)
 }
 
-fn parse_file_fingerprint(value: &Value, description: &str) -> Result<ManifestFileFingerprint, String> {
+fn parse_file_fingerprint(
+    value: &Value,
+    description: &str,
+) -> Result<ManifestFileFingerprint, String> {
     let object = json_object(value, description)?;
     let path = PathBuf::from(json_string(object, "path", description)?);
     let sha256 = json_string(object, "sha256", description)?.to_owned();
@@ -896,7 +986,10 @@ fn verify_reference_file_fact(
     }
     if let Some(directory) = expected_directory {
         let expected = fs::canonicalize(directory).map_err(|error| {
-            format!("resolve expected {description} directory {}: {error}", directory.display())
+            format!(
+                "resolve expected {description} directory {}: {error}",
+                directory.display()
+            )
         })?;
         if canonical.parent() != Some(expected.as_path()) {
             return Err(format!(
@@ -965,20 +1058,25 @@ fn parse_source_manifest(
                 )
             })
         {
-            return Err(format!("source manifest has an unsafe path: {relative_path}"));
+            return Err(format!(
+                "source manifest has an unsafe path: {relative_path}"
+            ));
         }
         let expected = repository_root.join(path);
-        let expected = fs::canonicalize(&expected).map_err(|error| {
-            format!("resolve source manifest file {relative_path}: {error}")
-        })?;
+        let expected = fs::canonicalize(&expected)
+            .map_err(|error| format!("resolve source manifest file {relative_path}: {error}"))?;
         if !expected.starts_with(repository_root) {
-            return Err(format!("source manifest escaped repository root: {relative_path}"));
+            return Err(format!(
+                "source manifest escaped repository root: {relative_path}"
+            ));
         }
         let declared_hash = value
             .as_str()
             .ok_or_else(|| format!("source manifest hash for {relative_path} must be a string"))?;
         if !is_sha256(declared_hash) {
-            return Err(format!("source manifest hash for {relative_path} is invalid"));
+            return Err(format!(
+                "source manifest hash for {relative_path} is invalid"
+            ));
         }
         let actual = fingerprint_file(&expected, "source manifest input")?;
         if actual.sha256 != declared_hash {
@@ -998,19 +1096,33 @@ fn sha256_json_object(manifest: &BTreeMap<String, String>) -> Result<String, Str
 }
 
 fn is_allowed_target_directory(path: &Path) -> bool {
-    let value = path.to_string_lossy().replace('/', "\\").to_ascii_lowercase();
-    ["d:\\cargo-targets\\", "e:\\cargo-targets\\", "f:\\cargo-targets\\"]
-        .iter()
-        .any(|prefix| value.starts_with(prefix))
+    let value = evidence_transport_path(path)
+        .to_string_lossy()
+        .replace('/', "\\")
+        .to_ascii_lowercase();
+    [
+        "d:\\cargo-targets\\",
+        "e:\\cargo-targets\\",
+        "f:\\cargo-targets\\",
+    ]
+    .iter()
+    .any(|prefix| value.starts_with(prefix))
         && !value.contains("\\targets\\")
         && !value.contains("\\zirconbuilds\\")
 }
 
 fn is_allowed_evidence_path(path: &Path) -> bool {
-    let value = path.to_string_lossy().replace('/', "\\").to_ascii_lowercase();
-    ["d:\\cargo-targets\\", "e:\\cargo-targets\\", "f:\\cargo-targets\\"]
-        .iter()
-        .any(|prefix| value.starts_with(prefix))
+    let value = evidence_transport_path(path)
+        .to_string_lossy()
+        .replace('/', "\\")
+        .to_ascii_lowercase();
+    [
+        "d:\\cargo-targets\\",
+        "e:\\cargo-targets\\",
+        "f:\\cargo-targets\\",
+    ]
+    .iter()
+    .any(|prefix| value.starts_with(prefix))
 }
 
 fn validate_compiler_facts(
@@ -1021,7 +1133,10 @@ fn validate_compiler_facts(
         json_field(request, "compiler", "independent command request")?,
         "compiler facts",
     )?;
-    let binaries = json_object(json_field(compiler, "binaries", "compiler facts")?, "compiler binaries")?;
+    let binaries = json_object(
+        json_field(compiler, "binaries", "compiler facts")?,
+        "compiler binaries",
+    )?;
     for name in ["cargo", "rustc", "rustdoc"] {
         let binary = parse_file_fingerprint(
             json_field(binaries, name, "compiler binaries")?,
@@ -1029,7 +1144,10 @@ fn validate_compiler_facts(
         )?;
         let actual = fingerprint_file(&binary.path, "compiler binary")?;
         if actual.sha256 != binary.sha256 || actual.byte_length != binary.byte_length {
-            return Err(format!("compiler binary changed: {}", binary.path.display()));
+            return Err(format!(
+                "compiler binary changed: {}",
+                binary.path.display()
+            ));
         }
     }
     let drivers = json_object(
@@ -1050,10 +1168,8 @@ fn validate_compiler_facts(
         return Err("independent command driver set is incomplete".to_owned());
     }
     for name in expected {
-        let declared = parse_file_fingerprint(
-            json_field(drivers, name, "driver files")?,
-            "driver file",
-        )?;
+        let declared =
+            parse_file_fingerprint(json_field(drivers, name, "driver files")?, "driver file")?;
         let actual_path = repository_root.join(name);
         let actual = fingerprint_file(&actual_path, "driver file")?;
         if actual.sha256 != declared.sha256 || actual.byte_length != declared.byte_length {
@@ -1063,50 +1179,105 @@ fn validate_compiler_facts(
     Ok(())
 }
 
-fn validate_native_terminal(native: &Map<String, Value>, receipt_path: &Path) -> Result<(), String> {
-    let process_tree = json_object(json_field(native, "processTree", "native terminal")?, "process tree")?;
+fn validate_native_terminal(
+    native: &Map<String, Value>,
+    receipt_path: &Path,
+) -> Result<(), String> {
+    let process_tree = json_object(
+        json_field(native, "processTree", "native terminal")?,
+        "process tree",
+    )?;
     if json_string(process_tree, "scope", "process tree")? != "retained-windows-job"
-        || !["terminal", "nativeWaiterJoined", "readersFinished", "pipeEOF"]
-            .iter()
-            .all(|field| json_bool(process_tree, field, "process tree").unwrap_or(false))
-        || json_bool(process_tree, "jobHandleRetainedUntilCliExit", "process tree")?
+        || ![
+            "terminal",
+            "nativeWaiterJoined",
+            "readersFinished",
+            "pipeEOF",
+        ]
+        .iter()
+        .all(|field| json_bool(process_tree, field, "process tree").unwrap_or(false))
+        || json_bool(
+            process_tree,
+            "jobHandleRetainedUntilCliExit",
+            "process tree",
+        )?
     {
-        return Err(format!("native process tree is incomplete: {}", receipt_path.display()));
+        return Err(format!(
+            "native process tree is incomplete: {}",
+            receipt_path.display()
+        ));
     }
-    let pipes = json_object(json_field(process_tree, "pipes", "process tree")?, "process pipes")?;
+    let pipes = json_object(
+        json_field(process_tree, "pipes", "process tree")?,
+        "process pipes",
+    )?;
     for name in ["stdout", "stderr"] {
         let pipe = json_object(json_field(pipes, name, "process pipes")?, "process pipe")?;
         if !json_bool(pipe, "eof", "process pipe")? || !json_bool(pipe, "closed", "process pipe")? {
-            return Err(format!("native {name} pipe did not reach EOF: {}", receipt_path.display()));
+            return Err(format!(
+                "native {name} pipe did not reach EOF: {}",
+                receipt_path.display()
+            ));
         }
     }
-    if !json_array(json_field(native, "terminalErrors", "native terminal")?, "terminal errors")?.is_empty()
+    if !json_array(
+        json_field(native, "terminalErrors", "native terminal")?,
+        "terminal errors",
+    )?
+    .is_empty()
         || json_bool(native, "formalAcceptance", "native terminal")?
     {
-        return Err(format!("native terminal contains an error or acceptance upgrade: {}", receipt_path.display()));
+        return Err(format!(
+            "native terminal contains an error or acceptance upgrade: {}",
+            receipt_path.display()
+        ));
     }
     let job = json_object(
         json_field(native, "nativeJobEvidence", "native terminal")?,
         "native Job evidence",
     )?;
     if json_string(job, "access", "native Job evidence")? != "JOB_OBJECT_QUERY"
-        || !json_array(json_field(job, "errors", "native Job evidence")?, "native Job errors")?.is_empty()
+        || !json_array(
+            json_field(job, "errors", "native Job evidence")?,
+            "native Job errors",
+        )?
+        .is_empty()
     {
-        return Err(format!("native Job evidence is incomplete: {}", receipt_path.display()));
+        return Err(format!(
+            "native Job evidence is incomplete: {}",
+            receipt_path.display()
+        ));
     }
-    let records = json_object(json_field(job, "records", "native Job evidence")?, "native Job records")?;
+    let records = json_object(
+        json_field(job, "records", "native Job evidence")?,
+        "native Job records",
+    )?;
     for stage in ["afterTerminal", "afterClose"] {
-        let record = json_object(json_field(records, stage, "native Job records")?, "native Job record")?;
+        let record = json_object(
+            json_field(records, stage, "native Job records")?,
+            "native Job record",
+        )?;
         if json_u64(record, "activeProcesses", "native Job record")? != 0 {
-            return Err(format!("native Job retained an active process: {}", receipt_path.display()));
+            return Err(format!(
+                "native Job retained an active process: {}",
+                receipt_path.display()
+            ));
         }
     }
     let before_resume = json_object(
         json_field(records, "beforeResume", "native Job records")?,
         "native Job before-resume record",
     )?;
-    if json_u64(before_resume, "activeProcesses", "native Job before-resume record")? < 1 {
-        return Err(format!("native Job did not record a started process: {}", receipt_path.display()));
+    if json_u64(
+        before_resume,
+        "activeProcesses",
+        "native Job before-resume record",
+    )? < 1
+    {
+        return Err(format!(
+            "native Job did not record a started process: {}",
+            receipt_path.display()
+        ));
     }
     let pid = json_u64(native, "pid", "native terminal")?;
     let creation_time = json_string(native, "creationTime", "native terminal")?;
@@ -1119,8 +1290,7 @@ fn validate_native_terminal(native: &Map<String, Value>, receipt_path: &Path) ->
             return false;
         };
         json_u64(member, "pid", "native Job member").ok() == Some(pid)
-            && json_string(member, "creationTime", "native Job member").ok()
-                == Some(creation_time)
+            && json_string(member, "creationTime", "native Job member").ok() == Some(creation_time)
             && json_bool(member, "member", "native Job member").ok() == Some(true)
             && json_field(member, "error", "native Job member").is_err()
     }) {

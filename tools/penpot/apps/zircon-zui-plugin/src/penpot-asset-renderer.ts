@@ -154,7 +154,9 @@ export async function createAssetBoard(
     assetBoard.resize(geometry.width, geometry.height);
     assetBoard.x = penpot.viewport.center.x - assetBoard.width / 2;
     assetBoard.y = penpot.viewport.center.y - assetBoard.height / 2;
-    assetBoard.clipContent = false;
+    // A view is a bounded engine surface, including before its first resize.
+    // Keep initial import consistent with resizeAssetReviewViewport.
+    assetBoard.clipContent = document.asset.kind === 'view';
     assetBoard.fills = [{ fillColor: PENPOT_PALETTE.canvas, fillOpacity: 1 }];
     setMetadata(assetBoard, ZUI_METADATA_ROLE, ZUI_ROLE_ASSET);
     setMetadata(
@@ -967,11 +969,13 @@ export function refreshAssetTextLayout(
   const toolbar = prepareViewportToolbarLayout(asset, document, projection, desiredSizes);
   if (toolbar) document = toolbar.document;
   const visit = (board: Board) => {
-    applyPublishedViewportToolbarBoard(asset, board, toolbar);
-    refreshImageContent(board);
     const currentProjection = projected.get(
       metadata(board, ZUI_METADATA_NODE_ID),
     );
+    // Collapsed source nodes have no painter content during creation.
+    if (currentProjection?.previewHidden) return;
+    applyPublishedViewportToolbarBoard(asset, board, toolbar);
+    refreshImageContent(board);
     const currentNode = document.nodes?.[currentProjection?.nodeId ?? ''];
     if (!refreshTreeRowContent(board, currentNode, document))
       refreshControlContent(board);

@@ -17,9 +17,7 @@ const D9_EDITOR_RUNTIME_MIRROR_CRATES: &[(&str, &str, &str, &str, &str)] = &[
     (
         "net",
         include_str!("../../../../../zircon_plugins/net/editor/src/plugin.rs"),
-        include_str!(
-            "../../../../../zircon_plugins/net/editor/src/tests/authoring_extensions.rs"
-        ),
+        include_str!("../../../../../zircon_plugins/net/editor/src/tests/authoring_extensions.rs"),
         include_str!("../../../../../zircon_plugins/net/editor/Cargo.toml"),
         "zircon_plugin_net_runtime::NET_RUNTIME_CAPABILITY",
     ),

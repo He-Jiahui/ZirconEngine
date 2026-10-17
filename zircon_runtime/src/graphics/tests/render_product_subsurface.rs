@@ -7,7 +7,9 @@ use std::{
 
 use image::{ImageBuffer, ImageFormat, Rgba};
 
-use crate::asset::assets::{AlphaMode, MaterialAsset, ModelAsset, ModelPrimitiveAsset};
+use crate::asset::assets::{
+    AlphaMode, MaterialAsset, ModelAsset, ModelPrimitiveAsset, ShaderAsset,
+};
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AssetReference, AssetUri, MeshVertex};
 use crate::core::framework::render::{
@@ -282,9 +284,32 @@ fn register_skin_material(
 ) -> ResourceHandle<MaterialMarker> {
     let uri = AssetUri::parse("res://materials/plan18-skin-sss.zmaterial").unwrap();
     let id = ResourceId::from_locator(&uri);
+    let builtin_shader_uri = AssetUri::parse("builtin://shader/pbr.wgsl").unwrap();
+    let shader_reference = if subsurface {
+        // Surface shaders own the shading-model declaration. Keep the real builtin PBR
+        // surface and layout, with the model registered by this SSS product fixture.
+        let mut shader = asset_manager
+            .load_shader_asset_by_uri(&builtin_shader_uri)
+            .expect("SSS fixture should load the builtin PBR surface shader");
+        let shader_uri = AssetUri::parse("res://shaders/plan18-skin-subsurface.zshader").unwrap();
+        let shader_id = ResourceId::from_locator(&shader_uri);
+        shader.uri = shader_uri.clone();
+        shader.shading_model = Some("custom:subsurface".to_string());
+        asset_manager
+            .assets::<ShaderAsset>()
+            .insert(
+                ResourceRecord::new(shader_id, ResourceKind::Shader, shader_uri.clone())
+                    .with_source_hash("plan18-skin-subsurface-shader-v1"),
+                shader,
+            )
+            .expect("SSS surface shader should register");
+        AssetReference::from_locator(shader_uri)
+    } else {
+        AssetReference::from_locator(builtin_shader_uri)
+    };
     let mut material = MaterialAsset {
         name: Some("Plan18 Skin SSS".to_string()),
-        shader: AssetReference::from_locator(AssetUri::parse("builtin://shader/pbr.wgsl").unwrap()),
+        shader: shader_reference,
         parent: None,
         options: Default::default(),
         queue: None,

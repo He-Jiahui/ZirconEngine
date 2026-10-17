@@ -1,0 +1,2849 @@
+{
+  "schema": "zircon.source-comment.root-independent-review.v1",
+  "task_id": "source-comments-20261014-01a13a81",
+  "batch": "R074",
+  "owner": "root",
+  "status": "independently-reviewed-local-formal-pending",
+  "created_at_utc": "2026-10-16T18:13:03.762808+00:00",
+  "formal_acceptance": false,
+  "module_phase_handoff_ready": false,
+  "audited_paths": [
+    "tools/tests/test_editor_zui_runtime_tooltip_contract.py"
+  ],
+  "source_files": [
+    {
+      "path": "tools/tests/test_editor_zui_runtime_tooltip_contract.py",
+      "before_sha256": "52d057150d2598577aa3591ea10c1c29f979b56014a610af7de1aaf7d0b8a46a",
+      "sha256": "8cae463a875697d63a45282c29f19a749bfedd68f06775d15f1b9750a94306de",
+      "bytes": 15531,
+      "lines": 305,
+      "eol": {
+        "crlf": 0,
+        "lf_only": 305
+      },
+      "before_bytes": 13568,
+      "before_lines": 285
+    }
+  ],
+  "fixed_child": {
+    "path": "docs/plans/source-comments/reviews/R074.json",
+    "sha256": "66d0a2627cd597d57650827a9edeb8e046078d4ccb59a236cdf95fa9a4a43ef6",
+    "bytes": 295631,
+    "lines": 9789
+  },
+  "review": {
+    "summary": "逐项独立复核单个Python源码契约测试文件。仅新增16组20行中文#注释，完整保留原13568字节/285行、旧中文说明、所有字符串/路径/断言、API和docstring状态；不修复现存失败。",
+    "objects_and_blocks": "36对象覆盖module/imports/第三父目录REPO_ROOT/24个输入Path常量/1类/6方法/main guard，47成员包含self、每次局部读取str及9个变换。28语义分区原行1..285无空洞不重叠；每块已核进入路径、状态、后续影响。282 canonical spans逐一前后hash验证，6method span仅是对象镜像，不能重复计为288个独立覆盖项。",
+    "module_lifecycle": "模块导入仅创建Path值（REPO_ROOT先resolve）；Path拼接不打开输入。各方法按原语句顺序重新read_text，无fixture/共享文本缓存/装饰器/FFI或插件。with管理句柄在read_text返回前关闭；owned str仅方法局部存活，正常返回None。单独的静态读取观察不代表原方法到达后续赋值。",
+    "caller_contract": "本地Python3.14标准库实际源码确认：loader反射TestCase子类、test前缀callable并默认按名称排序，每个方法独立构造实例；直接main交TestProgram处理argv。默认failfast false时方法error记入result而suite继续其他独立实例；自定义runner/failfast改变后续调度。没有执行方法、import测试模块、unittest.main或discover。",
+    "discovery_boundary": "tools/__init__.py和tools/tests/__init__.py缺失；本地loader实际递归规则下从仓库根默认discover不进入无init的tools，显式start=tools/tests且top默认该目录可以发现文件。有界历史rg未找到专属当前runner，不扩大成全仓/外部调用不存在。",
+    "method_reviews": [
+      "M1原88–98/现93–104：1输入read/1空白split+join变换/7文本断言，仅A2用compact其余用raw。17个可静态核对真谓词中本方法贡献7，不证明实际计时延迟或派发。",
+      "M2原100–159/现107–169：先9读取后4变换和34断言，首旧tooltip物理输入缺失，后8读/全部34断言被阻断。固定函数签名split片段、首if闭括号片段均非Rust parser；resolver存在但真实方法未读到。两时长常量/Surface默认值也只作被阻断域的独立文本观察。",
+      "M3原161–182/现172–195：首旧platform输入缺失，余5读及8断言被阻断。pointer/keyboard次数阈值不是派发行为证明；现有window文本CRLF由read_text统一换行，物理SHA2678...与UTF8文本SHAf2e545...分别保留。",
+      "M4原184–257/现198–274：首旧window资源缺失，余10读/39断言被阻断。root children首区段、两个固定node标记间anchor slice和三文本换行join/lower只构造词法域，不能证明资源结构/布局/实际popup所有权。",
+      "M5原259–271/现277–289：3存在输入/1首cfg(test)前缀/7静态真谓词，无sleep只对该原域成立，不执行event loop/wakeup。",
+      "M6原273–281/现292–300：2存在输入/3静态真谓词，host原计数2>=2与两个menu属性存在，不执行遮挡。"
+    ],
+    "proof_boundaries": "24物理输入和32有序read与Python AST真实路径operand一致；41domain按原split/join/lower/count/index表达式重建；98断言完整操作数与operator逐项比对。17 reachable_static predicates全true，81真实方法blocked；可独立取到的blocked域保留观测，取不到为null。新注释对所有原操作数和原文档字符串贡献为0。",
+    "additional_blocked_false": [
+      "M2:A34 原157–159/现167–169：原生产metadata_dirty文本没有tooltip_intro_progress_and_status_are_render_only。实际cfg(test)+path在生产326–328直接挂载15行测试文件，函数在测试4行；该断言被M2首次读取阻断，保留观察不新增重复BUG。",
+      "M4:A27 原234–236/现251–253：原needle observe_workbench_pointer_input(pointer, tooltip_target)在实际wiring缺失；真实47行调用含&source，callee13–18要求HierarchyPointerSource引用，并非仅空白变体。本方法已首读阻断，不改操作数不新增额外标签。"
+    ],
+    "comments_review": "新增注释说明文本检查边界、每次读取生命周期、split非语法解析、方法独立错误入口及直接发现边界。三个BUG标签紧邻相应首次读取，使用当前物理缺失和本地Path.read_text->open->io.open无localcatch路径证明，不声称执行复现。无需root补改任务新增注释，固定child保留不变。",
+    "scope_validation": "内存compile/ast.parse和非注释token/docstring等价；16插入组exacttext/offset/hash逆向恢复所有原bytes并等于rawHEAD。精确+20/-0且cached为空；change_guard exact1 passed、0error/0warning/0suppressed，三个opened markers与child一致。未运行广Cargo、构建、Rust/GUI/集成/性能或Python测试，非milestone验收。",
+    "limits": "真实文件系统缺失/存在是当前固定checkout观察；不存在路径不替换为迁移后的邻近文件。迁移文件选段仅上下文，未承诺其整体覆盖或把源扫描静态真当行为通过。Git现存LF→CRLF和globalignore权限warning保留，未改变配置/权限/原EOL。index.lock未知所有者保留，不由稳定hash推断未知writer终态。",
+    "lifecycle": "本批已知source/child writers和root实际验证请求均真实终态。source apply_patch曾返回{}不暴露native/PID不虚构exit0，独立fixed读回证明落盘。child首次NameError false写前失败及独立child不存在检查保留；后续CAS/fixed读回已终态，历史其他批未知writer不据此关闭。无临时脚本/源码副本/生成夹具/缓存构建，释放0文件/0B。正式Jenkins验证/精确stage commit/附带授权WeCom仍待指定会话处理，无push授权。"
+  },
+  "coverage_counts": {
+    "objects": 36,
+    "members": 47,
+    "semantic_blocks": 28,
+    "insertion_blocks": 16,
+    "added_lines": 20,
+    "targets": 24,
+    "reads": 32,
+    "domains": 41,
+    "guards": 98,
+    "reachable": 17,
+    "blocked": 81
+  },
+  "canonical_ranges": 282,
+  "method_span_mirrors": 6,
+  "canonical_range_digest": "c8e22c63cf4d7b64608601278f42dfa1ccd02087a13410c664f482f1e7800749",
+  "object_review": [
+    {
+      "id": "module",
+      "node_kind": "Module",
+      "span": {
+        "before": [
+          1,
+          285
+        ],
+        "current": [
+          1,
+          305
+        ],
+        "before_sha256": "52d057150d2598577aa3591ea10c1c29f979b56014a610af7de1aaf7d0b8a46a",
+        "current_sha256": "8cae463a875697d63a45282c29f19a749bfedd68f06775d15f1b9750a94306de"
+      },
+      "role": "Tooltip时序与原生桥接的源文本契约。原首行中文注释保留；无模块docstring、文件读取fixture或行为测试。"
+    },
+    {
+      "id": "unittest",
+      "node_kind": "Import",
+      "span": {
+        "before": [
+          2,
+          2
+        ],
+        "current": [
+          2,
+          2
+        ],
+        "before_sha256": "e1d92481cfd5db7ec574fbd3ddef3734c629ec779e84eaa6ad92c125936320c7",
+        "current_sha256": "e1d92481cfd5db7ec574fbd3ddef3734c629ec779e84eaa6ad92c125936320c7"
+      },
+      "role": "提供TestCase继承、文本断言及直接执行入口。"
+    },
+    {
+      "id": "Path",
+      "node_kind": "ImportFrom",
+      "span": {
+        "before": [
+          3,
+          3
+        ],
+        "current": [
+          3,
+          3
+        ],
+        "before_sha256": "3cb9ffccba5146b2dd177a30c3057a4395ebd5c745d0789d2ed95d0cf4afe271",
+        "current_sha256": "3cb9ffccba5146b2dd177a30c3057a4395ebd5c745d0789d2ed95d0cf4afe271"
+      },
+      "role": "标准库Path创建物理路径，read_text直接读取UTF-8文本。"
+    },
+    {
+      "id": "REPO_ROOT",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          6,
+          6
+        ],
+        "current": [
+          8,
+          8
+        ],
+        "before_sha256": "204776b03d3c01842005d984c10914092f444b1ddb227fc8a0df4ee65bb37a18",
+        "current_sha256": "204776b03d3c01842005d984c10914092f444b1ddb227fc8a0df4ee65bb37a18"
+      },
+      "role": "由__file__.resolve().parents[2]取得仓库物理根，导入时创建Path；不读取输入文件。"
+    },
+    {
+      "id": "RUNTIME_MANAGER",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          7,
+          9
+        ],
+        "current": [
+          9,
+          11
+        ],
+        "before_sha256": "d61bba38b845b6e444c410e6d638bdbcdcb9c161f3c3692ca9c6e7c9ae5cc486",
+        "current_sha256": "d61bba38b845b6e444c410e6d638bdbcdcb9c161f3c3692ca9c6e7c9ae5cc486"
+      },
+      "role": "输入管理器源码，M1检查外部tooltip计时接线。"
+    },
+    {
+      "id": "RUNTIME_TIMERS",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          10,
+          12
+        ],
+        "current": [
+          12,
+          14
+        ],
+        "before_sha256": "0f8f0cf1135d9c41ab7477afd6eb2be4eb2c802ea3777b0449aa72fdf79e62f8",
+        "current_sha256": "0f8f0cf1135d9c41ab7477afd6eb2be4eb2c802ea3777b0449aa72fdf79e62f8"
+      },
+      "role": "Runtime计时器源码，M2检查两项默认时长常量；读取被首个旧路径遮蔽。"
+    },
+    {
+      "id": "RUNTIME_DISPATCH",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          13,
+          13
+        ],
+        "current": [
+          15,
+          15
+        ],
+        "before_sha256": "0d01674d7e24de9b54511aaacc2b561316247d523ebb2cfc464a3e4c9d35ba8c",
+        "current_sha256": "0d01674d7e24de9b54511aaacc2b561316247d523ebb2cfc464a3e4c9d35ba8c"
+      },
+      "role": "Runtime dispatch导出源码，M2检查默认延时名的导出。"
+    },
+    {
+      "id": "SURFACE_TIMERS",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          14,
+          16
+        ],
+        "current": [
+          16,
+          18
+        ],
+        "before_sha256": "5591304110de54581f6cf52a193d4816a00030e977848e8654e663a4d0f909cb",
+        "current_sha256": "5591304110de54581f6cf52a193d4816a00030e977848e8654e663a4d0f909cb"
+      },
+      "role": "Surface默认交互计时源码，M2检查复用默认延时。"
+    },
+    {
+      "id": "RUNTIME_METADATA_DIRTY",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          17,
+          19
+        ],
+        "current": [
+          19,
+          21
+        ],
+        "before_sha256": "a37a6488bb4400e41b8e8f2bf427dfb8b1c9317304128e8d02826562dc3c9068",
+        "current_sha256": "a37a6488bb4400e41b8e8f2bf427dfb8b1c9317304128e8d02826562dc3c9068"
+      },
+      "role": "属性脏标记生产源码，M2要求测试函数名但实际在直接挂载的测试文件；保持原操作数。"
+    },
+    {
+      "id": "WORKBENCH_TOOLTIP",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          20,
+          23
+        ],
+        "current": [
+          23,
+          26
+        ],
+        "before_sha256": "a3cd501fb7a119fae03e360cea267efe2de656848b36eb0c468b7c9204d09c30",
+        "current_sha256": "a3cd501fb7a119fae03e360cea267efe2de656848b36eb0c468b7c9204d09c30"
+      },
+      "role": "旧宿主模板桥tooltip物理路径；M2首读缺失，M4后续读取被遮蔽。"
+    },
+    {
+      "id": "WORKBENCH_TOOLTIP_RESOLVER",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          24,
+          26
+        ],
+        "current": [
+          27,
+          29
+        ],
+        "before_sha256": "7dac2e1d79257f8beb5bc5918deb2e915aae433e7f8ccc9f41688adf7ce554da",
+        "current_sha256": "7dac2e1d79257f8beb5bc5918deb2e915aae433e7f8ccc9f41688adf7ce554da"
+      },
+      "role": "当前tooltip文本resolver源码，M2对指定函数名之后的后缀做排除检查。"
+    },
+    {
+      "id": "WORKBENCH_POINTER_DISPATCH",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          27,
+          29
+        ],
+        "current": [
+          30,
+          32
+        ],
+        "before_sha256": "bf1ceb418d5be12a36815149bf90f65c5dd75fb901bacd1f15d53a658a1b8d8a",
+        "current_sha256": "bf1ceb418d5be12a36815149bf90f65c5dd75fb901bacd1f15d53a658a1b8d8a"
+      },
+      "role": "当前workbench指针派发源码，M4检查Surface目标映射及候选更新。"
+    },
+    {
+      "id": "WORKBENCH_WINDOW",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          30,
+          32
+        ],
+        "current": [
+          33,
+          35
+        ],
+        "before_sha256": "d7ac5223c9b4848b2eb6943d494eac58a08f968880e2d44d6cdd88635712e7de",
+        "current_sha256": "d7ac5223c9b4848b2eb6943d494eac58a08f968880e2d44d6cdd88635712e7de"
+      },
+      "role": "旧窗口资源物理路径；M2后续缺失，M4首次缺失。"
+    },
+    {
+      "id": "WORKBENCH_TOOLTIP_METRICS",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          33,
+          36
+        ],
+        "current": [
+          36,
+          39
+        ],
+        "before_sha256": "fb1cd312cfbd023c066bfac9c9a23b03e6eb98434bd993b44d3a8088ea2ac2bb",
+        "current_sha256": "fb1cd312cfbd023c066bfac9c9a23b03e6eb98434bd993b44d3a8088ea2ac2bb"
+      },
+      "role": "旧tooltip尺寸源码路径，M2后续缺失。"
+    },
+    {
+      "id": "WORKBENCH_POINTER_TESTS",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          37,
+          40
+        ],
+        "current": [
+          40,
+          43
+        ],
+        "before_sha256": "1508de42f40d56a185493aaf4a745ae502c96ffd27b5041ba8bbb2250fd3f8f1",
+        "current_sha256": "1508de42f40d56a185493aaf4a745ae502c96ffd27b5041ba8bbb2250fd3f8f1"
+      },
+      "role": "旧指针preview测试物理路径，M2后续缺失。"
+    },
+    {
+      "id": "PLATFORM_INPUT",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          41,
+          44
+        ],
+        "current": [
+          44,
+          47
+        ],
+        "before_sha256": "583d8151290469528af621b6c4b920889501286e8db2910fbed26f529bf60a92",
+        "current_sha256": "583d8151290469528af621b6c4b920889501286e8db2910fbed26f529bf60a92"
+      },
+      "role": "旧原生平台输入源码路径，M3首读缺失。"
+    },
+    {
+      "id": "POINTER_EVENTS",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          45,
+          48
+        ],
+        "current": [
+          48,
+          51
+        ],
+        "before_sha256": "2d3f150bfd743adbf00385aa3fff8416fa8768cbd1f55f2c2ad1952e143e4ae6",
+        "current_sha256": "2d3f150bfd743adbf00385aa3fff8416fa8768cbd1f55f2c2ad1952e143e4ae6"
+      },
+      "role": "旧原生pointer事件源码路径，M3/M4读取被遮蔽。"
+    },
+    {
+      "id": "KEYBOARD_EVENTS",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          49,
+          52
+        ],
+        "current": [
+          52,
+          55
+        ],
+        "before_sha256": "340d1ae9f78f5701e935051c3fc455e89e3d2534db5fb602103889bd9b64c025",
+        "current_sha256": "340d1ae9f78f5701e935051c3fc455e89e3d2534db5fb602103889bd9b64c025"
+      },
+      "role": "旧keyboard事件源码路径，M3读取被遮蔽。"
+    },
+    {
+      "id": "WINDOW_EVENTS",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          53,
+          55
+        ],
+        "current": [
+          56,
+          58
+        ],
+        "before_sha256": "73e9dc50544a0ee3d4b3f03fa54ddb57afcdf2a1da47ab3c5bcb417d04b632df",
+        "current_sha256": "73e9dc50544a0ee3d4b3f03fa54ddb57afcdf2a1da47ab3c5bcb417d04b632df"
+      },
+      "role": "当前窗口事件源码，M3检查pointer取消回调接线。"
+    },
+    {
+      "id": "HOST_CALLBACKS",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          56,
+          58
+        ],
+        "current": [
+          59,
+          61
+        ],
+        "before_sha256": "cf6608af58c31bad8c189f019e90893e37be60ea3a6ea9778127bef6c69d12e3",
+        "current_sha256": "cf6608af58c31bad8c189f019e90893e37be60ea3a6ea9778127bef6c69d12e3"
+      },
+      "role": "当前宿主callback字段源码，M3/M4检查目标携带类型。"
+    },
+    {
+      "id": "HOST_CALLBACK_METHODS",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          59,
+          61
+        ],
+        "current": [
+          62,
+          64
+        ],
+        "before_sha256": "f52541112cbcd5ffa928dc9a025ee754d661e8a4a6ba03de788f70543ae51ff9",
+        "current_sha256": "f52541112cbcd5ffa928dc9a025ee754d661e8a4a6ba03de788f70543ae51ff9"
+      },
+      "role": "当前宿主上下文方法源码，M3/M4/M6检查输入回调和弹窗状态。"
+    },
+    {
+      "id": "HOST_TOOLTIP",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          62,
+          64
+        ],
+        "current": [
+          65,
+          67
+        ],
+        "before_sha256": "fdac72889a2cd7feba9996faa326d50c85826bbeb81a03cebae7e21d69078f7f",
+        "current_sha256": "fdac72889a2cd7feba9996faa326d50c85826bbeb81a03cebae7e21d69078f7f"
+      },
+      "role": "当前宿主tooltip实现，M4/M5/M6检查延时、唤醒槽和遮挡源码标记。"
+    },
+    {
+      "id": "NATIVE_TOOLTIP_TARGET",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          65,
+          68
+        ],
+        "current": [
+          68,
+          71
+        ],
+        "before_sha256": "2b1a566e3ac3e7388388d9dca7f1c471c06941d2363d8bbcb4b8a642cc96e9bc",
+        "current_sha256": "2b1a566e3ac3e7388388d9dca7f1c471c06941d2363d8bbcb4b8a642cc96e9bc"
+      },
+      "role": "旧原生tooltip目标物理路径，M4读取被遮蔽。"
+    },
+    {
+      "id": "NATIVE_POINTER_ROOT",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          69,
+          71
+        ],
+        "current": [
+          72,
+          74
+        ],
+        "before_sha256": "afa4e3b90348d302f27b2523908534e7274d0b020bf7b9d2d1d04fb724d6cd9d",
+        "current_sha256": "afa4e3b90348d302f27b2523908534e7274d0b020bf7b9d2d1d04fb724d6cd9d"
+      },
+      "role": "当前原生pointer根模块源码，M4检查tooltip目标挂载。"
+    },
+    {
+      "id": "NATIVE_POINTER_MOVE",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          72,
+          75
+        ],
+        "current": [
+          75,
+          78
+        ],
+        "before_sha256": "be27c457790c6ef73095f185810da63708bca017decf2136dde2add9c429cb53",
+        "current_sha256": "be27c457790c6ef73095f185810da63708bca017decf2136dde2add9c429cb53"
+      },
+      "role": "旧原生pointer移动实现路径，M4读取被遮蔽。"
+    },
+    {
+      "id": "HOST_CALLBACK_WIRING",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          76,
+          78
+        ],
+        "current": [
+          79,
+          81
+        ],
+        "before_sha256": "732e5372b03702de8bed3b9617dde350d210899f2822315f0df2449b47bbc9fd",
+        "current_sha256": "732e5372b03702de8bed3b9617dde350d210899f2822315f0df2449b47bbc9fd"
+      },
+      "role": "当前宿主callback接线，M4的旧两参数调用字串缺少当前source参数；不改断言。"
+    },
+    {
+      "id": "WINDOW_REDRAW",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          79,
+          81
+        ],
+        "current": [
+          82,
+          84
+        ],
+        "before_sha256": "534ca5bf08854e2146fc4de048c6810655a5f2c400cc7d96bccf0ccf1ce5b1c7",
+        "current_sha256": "534ca5bf08854e2146fc4de048c6810655a5f2c400cc7d96bccf0ccf1ce5b1c7"
+      },
+      "role": "当前窗口redraw源码，M5检查独立输入计时器唤醒函数。"
+    },
+    {
+      "id": "EVENT_LOOP_LIFECYCLE",
+      "node_kind": "Assign",
+      "span": {
+        "before": [
+          82,
+          84
+        ],
+        "current": [
+          85,
+          87
+        ],
+        "before_sha256": "8ba34b2116fe2ccb2e275e435a2c1cb865aaf97cfc41f74c26b6ff6aeeb7fa13",
+        "current_sha256": "8ba34b2116fe2ccb2e275e435a2c1cb865aaf97cfc41f74c26b6ff6aeeb7fa13"
+      },
+      "role": "当前事件循环生命周期源码，M5检查输入计时器的等待期限与到期消费。"
+    },
+    {
+      "id": "EditorZuiRuntimeTooltipContractTests",
+      "node_kind": "ClassDef",
+      "span": {
+        "before": [
+          87,
+          281
+        ],
+        "current": [
+          91,
+          300
+        ],
+        "before_sha256": "448d8734dbcd0b295e3aa9da6946938c18cf078f8f54cf449001969fec773ac4",
+        "current_sha256": "eead5485e1fbbfbb48e3476588fc56d72662462e7adb487a518903fc74ade388"
+      },
+      "role": "无decorator、自定义setUp/tearDown、classmethod或load_tests；六个独立方法由unittest反射发现。"
+    },
+    {
+      "id": "main_guard",
+      "node_kind": "If",
+      "span": {
+        "before": [
+          284,
+          285
+        ],
+        "current": [
+          304,
+          305
+        ],
+        "before_sha256": "b08279bbab104c1743a90005a61f5306c3fd31f52da7f6dcaf26f919d9cfeab7",
+        "current_sha256": "b08279bbab104c1743a90005a61f5306c3fd31f52da7f6dcaf26f919d9cfeab7"
+      },
+      "role": "直接执行时调用unittest.main；显式测试目录发现也可加载。入口未执行。"
+    },
+    {
+      "id": "test_runtime_input_manager_owns_external_tooltip_timing",
+      "node_kind": "FunctionDef",
+      "span": {
+        "before": [
+          88,
+          98
+        ],
+        "current": [
+          93,
+          104
+        ],
+        "before_sha256": "19fbe459cdf07aba99de4299b3406ca1671a739eb6eb8cc23cf4af04476cd395",
+        "current_sha256": "26dba577ef7b7a997fc6b83347d1391578a9a314d45aab9cc61c6f5e0415f976"
+      },
+      "role": "先读manager再合并空白供单项断言；7项原文本谓词均静态满足，不验证计时行为。"
+    },
+    {
+      "id": "test_workbench_candidate_does_not_open_popup_before_runtime_tick",
+      "node_kind": "FunctionDef",
+      "span": {
+        "before": [
+          100,
+          159
+        ],
+        "current": [
+          107,
+          169
+        ],
+        "before_sha256": "7d38769cbfec6b5c1a7b645be2d5edd74383f2a3bea0f862aaca721aeb41ad3c",
+        "current_sha256": "adcc86c117f9c9301031457367b2e4cfbed02b3c804db91d9964a823bf7ff19e"
+      },
+      "role": "首个旧tooltip路径缺失；其后8读取与34断言未达，函数/if分隔串不是Rust解析。"
+    },
+    {
+      "id": "test_native_mouse_events_preserve_standard_pointer_metadata",
+      "node_kind": "FunctionDef",
+      "span": {
+        "before": [
+          161,
+          182
+        ],
+        "current": [
+          172,
+          195
+        ],
+        "before_sha256": "c045ad84013c5bc3bd8db3ed85db33c17f737eb22074f683ba3e76ae9de3a6c4",
+        "current_sha256": "48b82b72e816a0ee4c330892553e0e418ae839247560295c29cda29cdf016899"
+      },
+      "role": "首个旧platform路径缺失；后5读取及8断言未达，计数门槛也不是派发行为证明。"
+    },
+    {
+      "id": "test_native_dock_tabs_use_the_runtime_tooltip_timer_through_a_real_zui_anchor",
+      "node_kind": "FunctionDef",
+      "span": {
+        "before": [
+          184,
+          257
+        ],
+        "current": [
+          198,
+          274
+        ],
+        "before_sha256": "d7e58f64061fda00c9fe1ccd3e70843c3cd3a1f5b2274a9d7eb6d9d5d0b91df5",
+        "current_sha256": "3e1d1cf65d6923fef24c60c6b55262dc0fc5d8e48d9fa9ebad988f957fe21ceb"
+      },
+      "role": "首个旧窗口资源路径缺失；后10读取及39断言未达，包含锚点顺序和跨文件拼接域。"
+    },
+    {
+      "id": "test_input_timer_has_an_independent_wait_until_slot",
+      "node_kind": "FunctionDef",
+      "span": {
+        "before": [
+          259,
+          271
+        ],
+        "current": [
+          277,
+          289
+        ],
+        "before_sha256": "5c1e6a2e9fadb06f1c9123b68740bfce5c28602ec9926a1986bbcac5463b6e9f",
+        "current_sha256": "5c1e6a2e9fadb06f1c9123b68740bfce5c28602ec9926a1986bbcac5463b6e9f"
+      },
+      "role": "3输入存在；6项接线包含和首测试标记之前不含sleep的排除检查均静态满足。"
+    },
+    {
+      "id": "test_host_popups_occlude_underlying_workbench_tooltips",
+      "node_kind": "FunctionDef",
+      "span": {
+        "before": [
+          273,
+          281
+        ],
+        "current": [
+          292,
+          300
+        ],
+        "before_sha256": "91caa2dc6e4f4217b97f31f9e242071e0d35d1c9c66112e024c693554d1c7e38",
+        "current_sha256": "91caa2dc6e4f4217b97f31f9e242071e0d35d1c9c66112e024c693554d1c7e38"
+      },
+      "role": "2输入存在；宿主遮挡调用计数为2及两项菜单状态谓词均静态满足，不执行遮挡。"
+    }
+  ],
+  "member_review": [
+    {
+      "id": "M1:self",
+      "owner": "M1",
+      "kind": "parameter",
+      "span": {
+        "before": [
+          88,
+          88
+        ],
+        "current": [
+          93,
+          93
+        ],
+        "before_sha256": "82300c9d4a794e4e8883e575232f60c9741ede81950230869539746fd59085f2",
+        "current_sha256": "82300c9d4a794e4e8883e575232f60c9741ede81950230869539746fd59085f2"
+      },
+      "role": "由unittest按方法名创建的独立TestCase实例；无外部参数，正常完成隐式返回None。"
+    },
+    {
+      "id": "M1:R1:source",
+      "owner": "M1",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          89,
+          89
+        ],
+        "current": [
+          94,
+          94
+        ],
+        "before_sha256": "243be13d5eb99168a61c00a9192acd758f5a94cfae455cc5420ce52688b7498a",
+        "current_sha256": "243be13d5eb99168a61c00a9192acd758f5a94cfae455cc5420ce52688b7498a"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M1:R1"
+    },
+    {
+      "id": "M1:T1:compact",
+      "owner": "M1",
+      "kind": "local-text-transform",
+      "span": {
+        "before": [
+          90,
+          90
+        ],
+        "current": [
+          96,
+          96
+        ],
+        "before_sha256": "81b462ae08fb7574f6c9156f8aa1cce8d5cb1fe52d9aa6f6bcd6cf0940cb7fa5",
+        "current_sha256": "81b462ae08fb7574f6c9156f8aa1cce8d5cb1fe52d9aa6f6bcd6cf0940cb7fa5"
+      },
+      "role": "局部文本变换，严格按原split/join/lower域；不是Rust或ZUI结构解析。",
+      "domain": "M1:T1"
+    },
+    {
+      "id": "M2:self",
+      "owner": "M2",
+      "kind": "parameter",
+      "span": {
+        "before": [
+          100,
+          100
+        ],
+        "current": [
+          107,
+          107
+        ],
+        "before_sha256": "3cd939aec674e219c45a62d06ff5bc8fa5e99a1989c76145d7ca08500ca28d3c",
+        "current_sha256": "3cd939aec674e219c45a62d06ff5bc8fa5e99a1989c76145d7ca08500ca28d3c"
+      },
+      "role": "由unittest按方法名创建的独立TestCase实例；无外部参数，正常完成隐式返回None。"
+    },
+    {
+      "id": "M2:R1:source",
+      "owner": "M2",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          101,
+          101
+        ],
+        "current": [
+          110,
+          110
+        ],
+        "before_sha256": "7debd8e2ac5c7215979d4193ec9b4671ace795d9b9744080ff77ea6455319d01",
+        "current_sha256": "7debd8e2ac5c7215979d4193ec9b4671ace795d9b9744080ff77ea6455319d01"
+      },
+      "role": "原物理读取未完成，局部赋值不能执行；不能替换为迁移后文件。",
+      "domain": "M2:R1"
+    },
+    {
+      "id": "M2:R2:resolver_source",
+      "owner": "M2",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          102,
+          102
+        ],
+        "current": [
+          111,
+          111
+        ],
+        "before_sha256": "9f090704f07d3978d7ca7de78c219e4ab197debcd45110fb98690e05dc624088",
+        "current_sha256": "9f090704f07d3978d7ca7de78c219e4ab197debcd45110fb98690e05dc624088"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M2:R2"
+    },
+    {
+      "id": "M2:R3:window",
+      "owner": "M2",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          103,
+          103
+        ],
+        "current": [
+          112,
+          112
+        ],
+        "before_sha256": "cd42be2ad1e2b71c45f5ca91175ae2b95d748cb127bdc7f55d2755bb23c16489",
+        "current_sha256": "cd42be2ad1e2b71c45f5ca91175ae2b95d748cb127bdc7f55d2755bb23c16489"
+      },
+      "role": "原物理读取未完成，局部赋值不能执行；不能替换为迁移后文件。",
+      "domain": "M2:R3"
+    },
+    {
+      "id": "M2:R4:metrics",
+      "owner": "M2",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          104,
+          104
+        ],
+        "current": [
+          113,
+          113
+        ],
+        "before_sha256": "7d0d9283f29343f24404776015acbd061c98595cdca5847497354f907344826a",
+        "current_sha256": "7d0d9283f29343f24404776015acbd061c98595cdca5847497354f907344826a"
+      },
+      "role": "原物理读取未完成，局部赋值不能执行；不能替换为迁移后文件。",
+      "domain": "M2:R4"
+    },
+    {
+      "id": "M2:R5:runtime_timers",
+      "owner": "M2",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          105,
+          105
+        ],
+        "current": [
+          114,
+          114
+        ],
+        "before_sha256": "a33b22bb8db3daa1fcba4d0d0b8522dece173eb79ebaa8be7b8de88ed6be8a7e",
+        "current_sha256": "a33b22bb8db3daa1fcba4d0d0b8522dece173eb79ebaa8be7b8de88ed6be8a7e"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M2:R5"
+    },
+    {
+      "id": "M2:R6:runtime_dispatch",
+      "owner": "M2",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          106,
+          106
+        ],
+        "current": [
+          115,
+          115
+        ],
+        "before_sha256": "b5ece47adac8da19e9010256f56f1796197394ae7cf7e41cd5a79ef6fc174deb",
+        "current_sha256": "b5ece47adac8da19e9010256f56f1796197394ae7cf7e41cd5a79ef6fc174deb"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M2:R6"
+    },
+    {
+      "id": "M2:R7:surface_timers",
+      "owner": "M2",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          107,
+          107
+        ],
+        "current": [
+          116,
+          116
+        ],
+        "before_sha256": "61f5034adf1f84ac192dbc8ee8602a34258af6373f2031d9244b4c37eefce92b",
+        "current_sha256": "61f5034adf1f84ac192dbc8ee8602a34258af6373f2031d9244b4c37eefce92b"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M2:R7"
+    },
+    {
+      "id": "M2:R8:metadata_dirty",
+      "owner": "M2",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          108,
+          108
+        ],
+        "current": [
+          117,
+          117
+        ],
+        "before_sha256": "73538d77fd811119853ea7ddb5019206c0ecb24da1e805d0667630707174ffa6",
+        "current_sha256": "73538d77fd811119853ea7ddb5019206c0ecb24da1e805d0667630707174ffa6"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M2:R8"
+    },
+    {
+      "id": "M2:R9:pointer_tests",
+      "owner": "M2",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          109,
+          109
+        ],
+        "current": [
+          118,
+          118
+        ],
+        "before_sha256": "c195ddabb3e03b3ac5429ae59c97d0976fcef396d67b7deea1a71ccbccab2284",
+        "current_sha256": "c195ddabb3e03b3ac5429ae59c97d0976fcef396d67b7deea1a71ccbccab2284"
+      },
+      "role": "原物理读取未完成，局部赋值不能执行；不能替换为迁移后文件。",
+      "domain": "M2:R9"
+    },
+    {
+      "id": "M2:T1:update",
+      "owner": "M2",
+      "kind": "local-text-transform",
+      "span": {
+        "before": [
+          110,
+          112
+        ],
+        "current": [
+          120,
+          122
+        ],
+        "before_sha256": "96ffc1d5694d6097c7da823aad4bec64b91bca77da5edf2c6b753a83c252286a",
+        "current_sha256": "96ffc1d5694d6097c7da823aad4bec64b91bca77da5edf2c6b753a83c252286a"
+      },
+      "role": "局部文本变换，严格按原split/join/lower域；不是Rust或ZUI结构解析。",
+      "domain": "M2:T1"
+    },
+    {
+      "id": "M2:T2:tick",
+      "owner": "M2",
+      "kind": "local-text-transform",
+      "span": {
+        "before": [
+          113,
+          113
+        ],
+        "current": [
+          123,
+          123
+        ],
+        "before_sha256": "52d326b39b065b86144cfbeb7995972f1a5f4b9eae124768afb28ec56be71c02",
+        "current_sha256": "52d326b39b065b86144cfbeb7995972f1a5f4b9eae124768afb28ec56be71c02"
+      },
+      "role": "局部文本变换，严格按原split/join/lower域；不是Rust或ZUI结构解析。",
+      "domain": "M2:T2"
+    },
+    {
+      "id": "M2:T3:current_candidate",
+      "owner": "M2",
+      "kind": "local-text-transform",
+      "span": {
+        "before": [
+          125,
+          125
+        ],
+        "current": [
+          135,
+          135
+        ],
+        "before_sha256": "042057d1680e3e08d907cebacee27b77d0232d263e3269f7dbecb0ee9c2e7c18",
+        "current_sha256": "042057d1680e3e08d907cebacee27b77d0232d263e3269f7dbecb0ee9c2e7c18"
+      },
+      "role": "局部文本变换，严格按原split/join/lower域；不是Rust或ZUI结构解析。",
+      "domain": "M2:T3"
+    },
+    {
+      "id": "M2:T4:resolver",
+      "owner": "M2",
+      "kind": "local-text-transform",
+      "span": {
+        "before": [
+          144,
+          146
+        ],
+        "current": [
+          154,
+          156
+        ],
+        "before_sha256": "6bb0771de6a4abdd441200b3288b7fefcebfb1ec79088f29234bb6e9f26a0f85",
+        "current_sha256": "6bb0771de6a4abdd441200b3288b7fefcebfb1ec79088f29234bb6e9f26a0f85"
+      },
+      "role": "局部文本变换，严格按原split/join/lower域；不是Rust或ZUI结构解析。",
+      "domain": "M2:T4"
+    },
+    {
+      "id": "M3:self",
+      "owner": "M3",
+      "kind": "parameter",
+      "span": {
+        "before": [
+          161,
+          161
+        ],
+        "current": [
+          172,
+          172
+        ],
+        "before_sha256": "bd8f976c54961652270698bf7369e69aed073df150f4b49e8e60a39789018fc3",
+        "current_sha256": "bd8f976c54961652270698bf7369e69aed073df150f4b49e8e60a39789018fc3"
+      },
+      "role": "由unittest按方法名创建的独立TestCase实例；无外部参数，正常完成隐式返回None。"
+    },
+    {
+      "id": "M3:R1:platform",
+      "owner": "M3",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          162,
+          162
+        ],
+        "current": [
+          175,
+          175
+        ],
+        "before_sha256": "937ae1edb27cfad5501bbf5e8ea7795307cd60334be29f4758850e2725964c5b",
+        "current_sha256": "937ae1edb27cfad5501bbf5e8ea7795307cd60334be29f4758850e2725964c5b"
+      },
+      "role": "原物理读取未完成，局部赋值不能执行；不能替换为迁移后文件。",
+      "domain": "M3:R1"
+    },
+    {
+      "id": "M3:R2:pointer",
+      "owner": "M3",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          163,
+          163
+        ],
+        "current": [
+          176,
+          176
+        ],
+        "before_sha256": "ac55bbfff1eed1c50b650744d3ad12eb309ede0ce7e1671b192e6782dfcb98f3",
+        "current_sha256": "ac55bbfff1eed1c50b650744d3ad12eb309ede0ce7e1671b192e6782dfcb98f3"
+      },
+      "role": "原物理读取未完成，局部赋值不能执行；不能替换为迁移后文件。",
+      "domain": "M3:R2"
+    },
+    {
+      "id": "M3:R3:window",
+      "owner": "M3",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          164,
+          164
+        ],
+        "current": [
+          177,
+          177
+        ],
+        "before_sha256": "7eaae52f8aa6823117e974e38c9e8b1c8016f79b3042fb0cb9987ad052c284fc",
+        "current_sha256": "7eaae52f8aa6823117e974e38c9e8b1c8016f79b3042fb0cb9987ad052c284fc"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M3:R3"
+    },
+    {
+      "id": "M3:R4:callbacks",
+      "owner": "M3",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          165,
+          165
+        ],
+        "current": [
+          178,
+          178
+        ],
+        "before_sha256": "5bf01a7c5d6e7a1c9bd6be5f145e360952132b26d0d8a4884a014d578774574d",
+        "current_sha256": "5bf01a7c5d6e7a1c9bd6be5f145e360952132b26d0d8a4884a014d578774574d"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M3:R4"
+    },
+    {
+      "id": "M3:R5:methods",
+      "owner": "M3",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          166,
+          166
+        ],
+        "current": [
+          179,
+          179
+        ],
+        "before_sha256": "55cb696cc5968b7b032249c904b15b899514992df9972cd5f43f23d04e3055b2",
+        "current_sha256": "55cb696cc5968b7b032249c904b15b899514992df9972cd5f43f23d04e3055b2"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M3:R5"
+    },
+    {
+      "id": "M3:R6:keyboard",
+      "owner": "M3",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          167,
+          167
+        ],
+        "current": [
+          180,
+          180
+        ],
+        "before_sha256": "44aa296197c5ed04062b35f219ceb51ed8a71fa9612fb42ac7dbe8bd2690c9ce",
+        "current_sha256": "44aa296197c5ed04062b35f219ceb51ed8a71fa9612fb42ac7dbe8bd2690c9ce"
+      },
+      "role": "原物理读取未完成，局部赋值不能执行；不能替换为迁移后文件。",
+      "domain": "M3:R6"
+    },
+    {
+      "id": "M4:self",
+      "owner": "M4",
+      "kind": "parameter",
+      "span": {
+        "before": [
+          185,
+          185
+        ],
+        "current": [
+          199,
+          199
+        ],
+        "before_sha256": "b5a8e4329e4101b4b49c6d2f8732627496457b36554d41da26f250ec3ca8b0ec",
+        "current_sha256": "b5a8e4329e4101b4b49c6d2f8732627496457b36554d41da26f250ec3ca8b0ec"
+      },
+      "role": "由unittest按方法名创建的独立TestCase实例；无外部参数，正常完成隐式返回None。"
+    },
+    {
+      "id": "M4:R1:window",
+      "owner": "M4",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          187,
+          187
+        ],
+        "current": [
+          203,
+          203
+        ],
+        "before_sha256": "cd42be2ad1e2b71c45f5ca91175ae2b95d748cb127bdc7f55d2755bb23c16489",
+        "current_sha256": "cd42be2ad1e2b71c45f5ca91175ae2b95d748cb127bdc7f55d2755bb23c16489"
+      },
+      "role": "原物理读取未完成，局部赋值不能执行；不能替换为迁移后文件。",
+      "domain": "M4:R1"
+    },
+    {
+      "id": "M4:R2:target",
+      "owner": "M4",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          188,
+          188
+        ],
+        "current": [
+          204,
+          204
+        ],
+        "before_sha256": "2bf54cffe8d240bc6f55948e47aaa851a3c371c00a4ff6c844f8f3ed90b64379",
+        "current_sha256": "2bf54cffe8d240bc6f55948e47aaa851a3c371c00a4ff6c844f8f3ed90b64379"
+      },
+      "role": "原物理读取未完成，局部赋值不能执行；不能替换为迁移后文件。",
+      "domain": "M4:R2"
+    },
+    {
+      "id": "M4:R3:native_root",
+      "owner": "M4",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          189,
+          189
+        ],
+        "current": [
+          205,
+          205
+        ],
+        "before_sha256": "af2d3b2926e154eb5c26e03db760be0cbfddf279e5a2965b8e93c038df34f067",
+        "current_sha256": "af2d3b2926e154eb5c26e03db760be0cbfddf279e5a2965b8e93c038df34f067"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M4:R3"
+    },
+    {
+      "id": "M4:R4:pointer_move",
+      "owner": "M4",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          190,
+          190
+        ],
+        "current": [
+          206,
+          206
+        ],
+        "before_sha256": "dd6a17c920839b1054edf9ab7aa43b419b74a3cea31d3cc2746fc9d80d02a175",
+        "current_sha256": "dd6a17c920839b1054edf9ab7aa43b419b74a3cea31d3cc2746fc9d80d02a175"
+      },
+      "role": "原物理读取未完成，局部赋值不能执行；不能替换为迁移后文件。",
+      "domain": "M4:R4"
+    },
+    {
+      "id": "M4:R5:pointer_events",
+      "owner": "M4",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          191,
+          191
+        ],
+        "current": [
+          207,
+          207
+        ],
+        "before_sha256": "6e3cd60e13acce7d97604e3896e61dc8e289fd28e5d983c2d8884b99f0297f4e",
+        "current_sha256": "6e3cd60e13acce7d97604e3896e61dc8e289fd28e5d983c2d8884b99f0297f4e"
+      },
+      "role": "原物理读取未完成，局部赋值不能执行；不能替换为迁移后文件。",
+      "domain": "M4:R5"
+    },
+    {
+      "id": "M4:R6:callbacks",
+      "owner": "M4",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          192,
+          192
+        ],
+        "current": [
+          208,
+          208
+        ],
+        "before_sha256": "5bf01a7c5d6e7a1c9bd6be5f145e360952132b26d0d8a4884a014d578774574d",
+        "current_sha256": "5bf01a7c5d6e7a1c9bd6be5f145e360952132b26d0d8a4884a014d578774574d"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M4:R6"
+    },
+    {
+      "id": "M4:R7:methods",
+      "owner": "M4",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          193,
+          193
+        ],
+        "current": [
+          209,
+          209
+        ],
+        "before_sha256": "55cb696cc5968b7b032249c904b15b899514992df9972cd5f43f23d04e3055b2",
+        "current_sha256": "55cb696cc5968b7b032249c904b15b899514992df9972cd5f43f23d04e3055b2"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M4:R7"
+    },
+    {
+      "id": "M4:R8:wiring",
+      "owner": "M4",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          194,
+          194
+        ],
+        "current": [
+          210,
+          210
+        ],
+        "before_sha256": "c304292b3b985c91f10c050d74f11eb5e5a97a844a5a299798a15e6fefc2154c",
+        "current_sha256": "c304292b3b985c91f10c050d74f11eb5e5a97a844a5a299798a15e6fefc2154c"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M4:R8"
+    },
+    {
+      "id": "M4:R9:host",
+      "owner": "M4",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          195,
+          195
+        ],
+        "current": [
+          211,
+          211
+        ],
+        "before_sha256": "607bce69ed494445943a5a5a744302a536e3024ee350fe0d01c29e4e161878b2",
+        "current_sha256": "607bce69ed494445943a5a5a744302a536e3024ee350fe0d01c29e4e161878b2"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M4:R9"
+    },
+    {
+      "id": "M4:R10:bridge",
+      "owner": "M4",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          196,
+          196
+        ],
+        "current": [
+          212,
+          212
+        ],
+        "before_sha256": "c90b5040088b59579e9ac12114d79751f72d8bd81c8fc3e893e6848d4234a39b",
+        "current_sha256": "c90b5040088b59579e9ac12114d79751f72d8bd81c8fc3e893e6848d4234a39b"
+      },
+      "role": "原物理读取未完成，局部赋值不能执行；不能替换为迁移后文件。",
+      "domain": "M4:R10"
+    },
+    {
+      "id": "M4:R11:surface_dispatch",
+      "owner": "M4",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          197,
+          197
+        ],
+        "current": [
+          213,
+          213
+        ],
+        "before_sha256": "ff144736bab0a7116a11e7f035a1d3836666854ecbe115d2c8d8061a948d0819",
+        "current_sha256": "ff144736bab0a7116a11e7f035a1d3836666854ecbe115d2c8d8061a948d0819"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M4:R11"
+    },
+    {
+      "id": "M4:T1:root_children",
+      "owner": "M4",
+      "kind": "local-text-transform",
+      "span": {
+        "before": [
+          199,
+          199
+        ],
+        "current": [
+          216,
+          216
+        ],
+        "before_sha256": "26c3fd568c5be38a031232a2d46c340e12dab76b04ec1f9711fc6c1ad70fd21e",
+        "current_sha256": "26c3fd568c5be38a031232a2d46c340e12dab76b04ec1f9711fc6c1ad70fd21e"
+      },
+      "role": "局部文本变换，严格按原split/join/lower域；不是Rust或ZUI结构解析。",
+      "domain": "M4:T1"
+    },
+    {
+      "id": "M4:T2:anchor",
+      "owner": "M4",
+      "kind": "local-text-transform",
+      "span": {
+        "before": [
+          205,
+          207
+        ],
+        "current": [
+          222,
+          224
+        ],
+        "before_sha256": "5750fa4806778c8a9621b2fbc5745dc5f65cf4e03785f31c527847f3263af751",
+        "current_sha256": "5750fa4806778c8a9621b2fbc5745dc5f65cf4e03785f31c527847f3263af751"
+      },
+      "role": "局部文本变换，严格按原split/join/lower域；不是Rust或ZUI结构解析。",
+      "domain": "M4:T2"
+    },
+    {
+      "id": "M4:T3:native_sources",
+      "owner": "M4",
+      "kind": "local-text-transform",
+      "span": {
+        "before": [
+          253,
+          253
+        ],
+        "current": [
+          270,
+          270
+        ],
+        "before_sha256": "56138125b878aaeefb29e47fa44c92c4c7028b06de30b0d9597fc938d7a81cde",
+        "current_sha256": "56138125b878aaeefb29e47fa44c92c4c7028b06de30b0d9597fc938d7a81cde"
+      },
+      "role": "局部文本变换，严格按原split/join/lower域；不是Rust或ZUI结构解析。",
+      "domain": "M4:T3"
+    },
+    {
+      "id": "M5:self",
+      "owner": "M5",
+      "kind": "parameter",
+      "span": {
+        "before": [
+          259,
+          259
+        ],
+        "current": [
+          277,
+          277
+        ],
+        "before_sha256": "a56fcbe7007c2d0198da15ac1b47c7f749f95523b3871274fa82609fe67f4a30",
+        "current_sha256": "a56fcbe7007c2d0198da15ac1b47c7f749f95523b3871274fa82609fe67f4a30"
+      },
+      "role": "由unittest按方法名创建的独立TestCase实例；无外部参数，正常完成隐式返回None。"
+    },
+    {
+      "id": "M5:R1:host",
+      "owner": "M5",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          260,
+          260
+        ],
+        "current": [
+          278,
+          278
+        ],
+        "before_sha256": "607bce69ed494445943a5a5a744302a536e3024ee350fe0d01c29e4e161878b2",
+        "current_sha256": "607bce69ed494445943a5a5a744302a536e3024ee350fe0d01c29e4e161878b2"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M5:R1"
+    },
+    {
+      "id": "M5:R2:redraw",
+      "owner": "M5",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          261,
+          261
+        ],
+        "current": [
+          279,
+          279
+        ],
+        "before_sha256": "c1c6e927b0d2d74765570a0370a6cf771e6fcfa57568ba7b413bc6148938348d",
+        "current_sha256": "c1c6e927b0d2d74765570a0370a6cf771e6fcfa57568ba7b413bc6148938348d"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M5:R2"
+    },
+    {
+      "id": "M5:R3:lifecycle",
+      "owner": "M5",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          262,
+          262
+        ],
+        "current": [
+          280,
+          280
+        ],
+        "before_sha256": "12564e3adc66ed2ac3dd197acde16291f879d2956badc59285b9826a8d16a986",
+        "current_sha256": "12564e3adc66ed2ac3dd197acde16291f879d2956badc59285b9826a8d16a986"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M5:R3"
+    },
+    {
+      "id": "M5:T1:production",
+      "owner": "M5",
+      "kind": "local-text-transform",
+      "span": {
+        "before": [
+          270,
+          270
+        ],
+        "current": [
+          288,
+          288
+        ],
+        "before_sha256": "2c6a4a47d9413edd7eb00f033b0ed6aee54992189088827c9cd150bd0b714808",
+        "current_sha256": "2c6a4a47d9413edd7eb00f033b0ed6aee54992189088827c9cd150bd0b714808"
+      },
+      "role": "局部文本变换，严格按原split/join/lower域；不是Rust或ZUI结构解析。",
+      "domain": "M5:T1"
+    },
+    {
+      "id": "M6:self",
+      "owner": "M6",
+      "kind": "parameter",
+      "span": {
+        "before": [
+          273,
+          273
+        ],
+        "current": [
+          292,
+          292
+        ],
+        "before_sha256": "375cedb14d97e42b05edf780e6b523d0695736d4ddab811b31324678abe5688c",
+        "current_sha256": "375cedb14d97e42b05edf780e6b523d0695736d4ddab811b31324678abe5688c"
+      },
+      "role": "由unittest按方法名创建的独立TestCase实例；无外部参数，正常完成隐式返回None。"
+    },
+    {
+      "id": "M6:R1:host",
+      "owner": "M6",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          274,
+          274
+        ],
+        "current": [
+          293,
+          293
+        ],
+        "before_sha256": "607bce69ed494445943a5a5a744302a536e3024ee350fe0d01c29e4e161878b2",
+        "current_sha256": "607bce69ed494445943a5a5a744302a536e3024ee350fe0d01c29e4e161878b2"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M6:R1"
+    },
+    {
+      "id": "M6:R2:methods",
+      "owner": "M6",
+      "kind": "local-source-text",
+      "span": {
+        "before": [
+          275,
+          275
+        ],
+        "current": [
+          294,
+          294
+        ],
+        "before_sha256": "55cb696cc5968b7b032249c904b15b899514992df9972cd5f43f23d04e3055b2",
+        "current_sha256": "55cb696cc5968b7b032249c904b15b899514992df9972cd5f43f23d04e3055b2"
+      },
+      "role": "方法局部UTF-8源码字符串；每次调用重新读取，不跨方法缓存。",
+      "domain": "M6:R2"
+    }
+  ],
+  "semantic_block_review": [
+    {
+      "id": "module_imports",
+      "span": {
+        "before": [
+          1,
+          5
+        ],
+        "current": [
+          1,
+          5
+        ],
+        "before_sha256": "81684431e2cb0ee846db374851b58afb47622b932db2a6497e1bbcce524d3754",
+        "current_sha256": "81684431e2cb0ee846db374851b58afb47622b932db2a6497e1bbcce524d3754"
+      },
+      "review": "原中文注释与unittest/Path导入。"
+    },
+    {
+      "id": "runtime_paths",
+      "span": {
+        "before": [
+          6,
+          19
+        ],
+        "current": [
+          8,
+          21
+        ],
+        "before_sha256": "3f85204449056e10c1e8b8a458930a28a84b9835abd01ae0bd2c75a117b49e72",
+        "current_sha256": "3f85204449056e10c1e8b8a458930a28a84b9835abd01ae0bd2c75a117b49e72"
+      },
+      "review": "仓库根与Runtime四类源码物理路径。"
+    },
+    {
+      "id": "workbench_paths",
+      "span": {
+        "before": [
+          20,
+          40
+        ],
+        "current": [
+          23,
+          43
+        ],
+        "before_sha256": "3b0d7e6b9f1bc8d18e6cf0247a336b98b0e29b99f1f9892c529c664a2de9822d",
+        "current_sha256": "3b0d7e6b9f1bc8d18e6cf0247a336b98b0e29b99f1f9892c529c664a2de9822d"
+      },
+      "review": "tooltip/资源/metrics/preview测试旧物理输入。"
+    },
+    {
+      "id": "native_host_paths",
+      "span": {
+        "before": [
+          41,
+          84
+        ],
+        "current": [
+          44,
+          87
+        ],
+        "before_sha256": "5a31e8607f7d3725ef28350af09e84d14dd40b82a6c955995626855e37ecf397",
+        "current_sha256": "5a31e8607f7d3725ef28350af09e84d14dd40b82a6c955995626855e37ecf397"
+      },
+      "review": "原生事件、宿主回调、tooltip及唤醒路径。"
+    },
+    {
+      "id": "class_and_m1",
+      "span": {
+        "before": [
+          85,
+          88
+        ],
+        "current": [
+          88,
+          93
+        ],
+        "before_sha256": "9e1bbe85583aaf2363b32ccba38c7a10ba5c987f644d946ecd15afdd393bf905",
+        "current_sha256": "0cddc0ef56d8815c5fbe45caa162aa52f8dc85481a606750e32f210bdc2abccf"
+      },
+      "review": "TestCase类及M1声明，无fixture或共享文本缓存。"
+    },
+    {
+      "id": "m1_read_compact",
+      "span": {
+        "before": [
+          89,
+          91
+        ],
+        "current": [
+          94,
+          97
+        ],
+        "before_sha256": "34e51857e87482a5139f4c121cc08cdba8871e524aa1a81ea94442c4cc2bf054",
+        "current_sha256": "f8788749bebe59935963553deb2676ac565a89958f1a2f42657e9e49cdfb70fb"
+      },
+      "review": "读manager，只有一项断言使用空白合并域。"
+    },
+    {
+      "id": "m1_guards",
+      "span": {
+        "before": [
+          92,
+          98
+        ],
+        "current": [
+          98,
+          104
+        ],
+        "before_sha256": "8a7fd6ff1a4e07a993788abd9bce71c8e22352fb4e8e0e277e19065b48920cbe",
+        "current_sha256": "8a7fd6ff1a4e07a993788abd9bce71c8e22352fb4e8e0e277e19065b48920cbe"
+      },
+      "review": "7项原始文本包含检查。"
+    },
+    {
+      "id": "m2_declaration",
+      "span": {
+        "before": [
+          99,
+          100
+        ],
+        "current": [
+          105,
+          107
+        ],
+        "before_sha256": "cede1e4fce8fa1a53cdac90ba219f672215fc1842626762049cbdfd5abf6e48e",
+        "current_sha256": "6793ea8e25298123726b2c459271eff7a35d3ac840e937eaf84c8c83f5b16c62"
+      },
+      "review": "独立候选时序文本契约。"
+    },
+    {
+      "id": "m2_reads",
+      "span": {
+        "before": [
+          101,
+          109
+        ],
+        "current": [
+          110,
+          118
+        ],
+        "before_sha256": "bcd72bfe7d1839087c7a9470890750fabd968f4655e4740e483d324f9703cfc2",
+        "current_sha256": "bcd72bfe7d1839087c7a9470890750fabd968f4655e4740e483d324f9703cfc2"
+      },
+      "review": "首旧tooltip路径缺失遮蔽后8读取。"
+    },
+    {
+      "id": "m2_update_tick_domains",
+      "span": {
+        "before": [
+          110,
+          114
+        ],
+        "current": [
+          120,
+          124
+        ],
+        "before_sha256": "bf6ebed0cad0850118607f27e81a0dae4f48303f8bdcb66ed2a604a2381e4d5c",
+        "current_sha256": "bf6ebed0cad0850118607f27e81a0dae4f48303f8bdcb66ed2a604a2381e4d5c"
+      },
+      "review": "以固定函数签名分隔符切出update与tick后缀，不解析Rust。"
+    },
+    {
+      "id": "m2_update_guards",
+      "span": {
+        "before": [
+          115,
+          124
+        ],
+        "current": [
+          125,
+          134
+        ],
+        "before_sha256": "52d193bb73b99631b893e3f1bbe4fbfdde9ce24e749b5db21a4f65027670dec1",
+        "current_sha256": "52d193bb73b99631b893e3f1bbe4fbfdde9ce24e749b5db21a4f65027670dec1"
+      },
+      "review": "10项update与原source文本约束。"
+    },
+    {
+      "id": "m2_candidate_guards",
+      "span": {
+        "before": [
+          125,
+          143
+        ],
+        "current": [
+          135,
+          153
+        ],
+        "before_sha256": "d772157c0139fee3c65cd7329f4a5d0eb9fa6760da1448d577300b5da1cfffa4",
+        "current_sha256": "d772157c0139fee3c65cd7329f4a5d0eb9fa6760da1448d577300b5da1cfffa4"
+      },
+      "review": "首if闭括号切片及宽度、资源、metrics、默认延时标记。"
+    },
+    {
+      "id": "m2_resolver_runtime_guards",
+      "span": {
+        "before": [
+          144,
+          159
+        ],
+        "current": [
+          154,
+          169
+        ],
+        "before_sha256": "cca86be85568c54829a4dadd1c14c6fc553aac3249c6906289200499ece2c89b",
+        "current_sha256": "cca86be85568c54829a4dadd1c14c6fc553aac3249c6906289200499ece2c89b"
+      },
+      "review": "resolver后缀、两常量、Surface默认延时及metadata测试名；全blocked。"
+    },
+    {
+      "id": "m3_declaration",
+      "span": {
+        "before": [
+          160,
+          161
+        ],
+        "current": [
+          170,
+          172
+        ],
+        "before_sha256": "2a2bf01b860dd86234c8a202a04486c711dad0066989fad4913c74d25792655c",
+        "current_sha256": "46182308df2f4af26e37fbceb60b4eb72148dd9c3aba76fdc38ca1bb908f7350"
+      },
+      "review": "独立原生metadata接线契约。"
+    },
+    {
+      "id": "m3_reads",
+      "span": {
+        "before": [
+          162,
+          168
+        ],
+        "current": [
+          175,
+          181
+        ],
+        "before_sha256": "821ed4229f8b9f3e4aab9dcde1d926ed7926f9d192865a362312352c848abc77",
+        "current_sha256": "821ed4229f8b9f3e4aab9dcde1d926ed7926f9d192865a362312352c848abc77"
+      },
+      "review": "首旧platform路径缺失遮蔽后5读取。"
+    },
+    {
+      "id": "m3_guards",
+      "span": {
+        "before": [
+          169,
+          182
+        ],
+        "current": [
+          182,
+          195
+        ],
+        "before_sha256": "ca48161669a07e29843f98fda08ad3006313fc8dbb79a906ce90b1b201e55879",
+        "current_sha256": "ca48161669a07e29843f98fda08ad3006313fc8dbb79a906ce90b1b201e55879"
+      },
+      "review": "8项包含/计数约束，均未达。"
+    },
+    {
+      "id": "m4_declaration",
+      "span": {
+        "before": [
+          183,
+          186
+        ],
+        "current": [
+          196,
+          200
+        ],
+        "before_sha256": "9334070f78979bd6874a2ace07437c2fd55fe33031edcfd9de3b5392b333786d",
+        "current_sha256": "f697e72ac0921a281e26cf5f6db7059ad351d0955676c1e92fe02b359832b51a"
+      },
+      "review": "独立原生dock锚点与计时所有者契约。"
+    },
+    {
+      "id": "m4_reads",
+      "span": {
+        "before": [
+          187,
+          198
+        ],
+        "current": [
+          203,
+          214
+        ],
+        "before_sha256": "3a298ea7900470bc7e0d8034368eacad00e93a3681d3eaf83188615f68700703",
+        "current_sha256": "3a298ea7900470bc7e0d8034368eacad00e93a3681d3eaf83188615f68700703"
+      },
+      "review": "首旧window资源缺失遮蔽后10读取。"
+    },
+    {
+      "id": "m4_window_slices",
+      "span": {
+        "before": [
+          199,
+          207
+        ],
+        "current": [
+          216,
+          224
+        ],
+        "before_sha256": "2ff5934f7eb0d348e0c48a2a459e6ef422bc32c05188504b693c001d5c129044",
+        "current_sha256": "2ff5934f7eb0d348e0c48a2a459e6ef422bc32c05188504b693c001d5c129044"
+      },
+      "review": "首children段与两个固定节点标题之间的slice；不解析ZUI。"
+    },
+    {
+      "id": "m4_target_guards",
+      "span": {
+        "before": [
+          208,
+          229
+        ],
+        "current": [
+          225,
+          246
+        ],
+        "before_sha256": "d04134338c40e7ce5573b384edf5ae8441141de3bdcaa9a4a4da7c7b8d989297",
+        "current_sha256": "d04134338c40e7ce5573b384edf5ae8441141de3bdcaa9a4a4da7c7b8d989297"
+      },
+      "review": "锚点6属性、target成员和原生move源标记。"
+    },
+    {
+      "id": "m4_bridge_guards",
+      "span": {
+        "before": [
+          230,
+          252
+        ],
+        "current": [
+          247,
+          269
+        ],
+        "before_sha256": "1e46a759381e91101d2cf0838bc7b2a3837583fe91c48d801734c2ef1da970a6",
+        "current_sha256": "1e46a759381e91101d2cf0838bc7b2a3837583fe91c48d801734c2ef1da970a6"
+      },
+      "review": "目标携带、callback接线、Surface映射与通用timer桥。"
+    },
+    {
+      "id": "m4_joined_domain",
+      "span": {
+        "before": [
+          253,
+          257
+        ],
+        "current": [
+          270,
+          274
+        ],
+        "before_sha256": "beab6f171e923a69d387dc7ff7789e3aa6702ee81801bede9214724ece5b441b",
+        "current_sha256": "beab6f171e923a69d387dc7ff7789e3aa6702ee81801bede9214724ece5b441b"
+      },
+      "review": "三份原生文本按换行拼接，deadline检查另转小写。"
+    },
+    {
+      "id": "m5_declaration",
+      "span": {
+        "before": [
+          258,
+          259
+        ],
+        "current": [
+          275,
+          277
+        ],
+        "before_sha256": "ab0a73f7241fe849640739f6b66b5ace46c5bf22d4aca61ed7d91d62fd241fd8",
+        "current_sha256": "9d7a36f8110182d8fd12489e22fa7c0431f5c8e5394b5e1cce9ab13c9309c46b"
+      },
+      "review": "独立输入计时器唤醒槽文本契约。"
+    },
+    {
+      "id": "m5_reads",
+      "span": {
+        "before": [
+          260,
+          263
+        ],
+        "current": [
+          278,
+          281
+        ],
+        "before_sha256": "d3f967222bd67e0c132b2160d3cebadc91248ee72b71527628262a0f48f5680d",
+        "current_sha256": "d3f967222bd67e0c132b2160d3cebadc91248ee72b71527628262a0f48f5680d"
+      },
+      "review": "3个存在输入按顺序读取。"
+    },
+    {
+      "id": "m5_guards_production",
+      "span": {
+        "before": [
+          264,
+          271
+        ],
+        "current": [
+          282,
+          289
+        ],
+        "before_sha256": "eb57d0ac326e4191557754cd81df5e5cdd4966a226252ca2ef7f9c392d2dc9e4",
+        "current_sha256": "eb57d0ac326e4191557754cd81df5e5cdd4966a226252ca2ef7f9c392d2dc9e4"
+      },
+      "review": "6项接线及首cfg(test)标记之前不含sleep。"
+    },
+    {
+      "id": "m6_declaration",
+      "span": {
+        "before": [
+          272,
+          273
+        ],
+        "current": [
+          290,
+          292
+        ],
+        "before_sha256": "cd34cac1a79684ce6effa922e1b400f4c1e275c7ebf328ad6e393574f6d2a6ef",
+        "current_sha256": "4c6f84c9d32c83248c407ed99bc1ec7ec777360be828c8512cf268442a13f022"
+      },
+      "review": "独立弹窗遮挡文本契约。"
+    },
+    {
+      "id": "m6_reads_guards",
+      "span": {
+        "before": [
+          274,
+          281
+        ],
+        "current": [
+          293,
+          300
+        ],
+        "before_sha256": "dc8f9cab5f502f539b53126008aa1924286e3e9a617a4d12144a2180bf1737c1",
+        "current_sha256": "dc8f9cab5f502f539b53126008aa1924286e3e9a617a4d12144a2180bf1737c1"
+      },
+      "review": "2输入读取、调用计数>=2与两菜单状态标记。"
+    },
+    {
+      "id": "main_entry",
+      "span": {
+        "before": [
+          282,
+          285
+        ],
+        "current": [
+          301,
+          305
+        ],
+        "before_sha256": "0149fff3c2f713166cc3a15b93dd742e9738e238bbda2b512fd75c285f7c5a7f",
+        "current_sha256": "8245677e0a28332821493ac6aae1fd7c9786ef96416aa2ea051f5be2fb3d53f4"
+      },
+      "review": "仅直接执行时交给unittest；本审查不执行。"
+    }
+  ],
+  "methods": [
+    {
+      "id": "M1",
+      "name": "test_runtime_input_manager_owns_external_tooltip_timing",
+      "reads": 1,
+      "transforms": 1,
+      "assertions": 7,
+      "first_missing_read": null
+    },
+    {
+      "id": "M2",
+      "name": "test_workbench_candidate_does_not_open_popup_before_runtime_tick",
+      "reads": 9,
+      "transforms": 4,
+      "assertions": 34,
+      "first_missing_read": "M2:R1"
+    },
+    {
+      "id": "M3",
+      "name": "test_native_mouse_events_preserve_standard_pointer_metadata",
+      "reads": 6,
+      "transforms": 0,
+      "assertions": 8,
+      "first_missing_read": "M3:R1"
+    },
+    {
+      "id": "M4",
+      "name": "test_native_dock_tabs_use_the_runtime_tooltip_timer_through_a_real_zui_anchor",
+      "reads": 11,
+      "transforms": 3,
+      "assertions": 39,
+      "first_missing_read": "M4:R1"
+    },
+    {
+      "id": "M5",
+      "name": "test_input_timer_has_an_independent_wait_until_slot",
+      "reads": 3,
+      "transforms": 1,
+      "assertions": 7,
+      "first_missing_read": null
+    },
+    {
+      "id": "M6",
+      "name": "test_host_popups_occlude_underlying_workbench_tooltips",
+      "reads": 2,
+      "transforms": 0,
+      "assertions": 3,
+      "first_missing_read": null
+    }
+  ],
+  "issues": [
+    {
+      "issue_id": "CR-ZCA-R074-0001",
+      "kind": "BUG",
+      "method": "test_workbench_candidate_does_not_open_popup_before_runtime_tick",
+      "before_line": 101,
+      "first_missing_operand": "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/icon_tooltip.rs",
+      "finding": "该独立unittest方法首个Path.read_text输入在当前checkout不存在，正常执行到该语句必抛FileNotFoundError并跳过本方法后续读取与断言；未运行测试。",
+      "evidence": "root32be1d full285L+4ba183 raw consumer context; current writer AST/physical path checks; agent aa53fb/e11998/9f0990/af575b readonly evidence.",
+      "later_reads_blocked": 8,
+      "read_id": "M2:R1",
+      "span": {
+        "before": [
+          101,
+          101
+        ],
+        "current": [
+          110,
+          110
+        ],
+        "before_sha256": "7debd8e2ac5c7215979d4193ec9b4671ace795d9b9744080ff77ea6455319d01",
+        "current_sha256": "7debd8e2ac5c7215979d4193ec9b4671ace795d9b9744080ff77ea6455319d01"
+      },
+      "current_marker_line": 108,
+      "blocked_assertions": 34,
+      "proof": "Current physical operand missing; Path.read_text->Path.open->io.open raises FileNotFoundError before any later statement in this independently scheduled method. No local catch; test not executed.",
+      "root_confirmed": true,
+      "status": "documented-only-not-fixed",
+      "new_comment_contribution": 0,
+      "root_independent_evidence": {
+        "path_operand_missing": true,
+        "source_read_line": 110,
+        "marker_line": 108,
+        "first_missing_read": "M2:R1",
+        "lifecycle": "Path.read_text with self.open->io.open; no localcatch; method exception recorded by default unittest result; default suite continues other instances",
+        "proof_receipts": [
+          "409/819cff source305L",
+          "422/4f3ec7 native11412->6e5c1b exit0/PID25244",
+          "421/ce4308 exit0/PID20716",
+          "425/df33f4 exit0/PID28628"
+        ],
+        "test_executed": false
+      },
+      "next_action": "在另行授权的行为修复任务中将该方法迁移至真实当前物理输入，逐条核对旧文本断言与当前契约，然后执行该独立方法及对应行为验证；本任务只记录不修复。",
+      "formal_acceptance": false
+    },
+    {
+      "issue_id": "CR-ZCA-R074-0002",
+      "kind": "BUG",
+      "method": "test_native_mouse_events_preserve_standard_pointer_metadata",
+      "before_line": 162,
+      "first_missing_operand": "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs",
+      "finding": "该独立unittest方法首个Path.read_text输入在当前checkout不存在，正常执行到该语句必抛FileNotFoundError并跳过本方法后续读取与断言；未运行测试。",
+      "evidence": "root32be1d full285L+4ba183 raw consumer context; current writer AST/physical path checks; agent aa53fb/e11998/9f0990/af575b readonly evidence.",
+      "later_reads_blocked": 5,
+      "read_id": "M3:R1",
+      "span": {
+        "before": [
+          162,
+          162
+        ],
+        "current": [
+          175,
+          175
+        ],
+        "before_sha256": "937ae1edb27cfad5501bbf5e8ea7795307cd60334be29f4758850e2725964c5b",
+        "current_sha256": "937ae1edb27cfad5501bbf5e8ea7795307cd60334be29f4758850e2725964c5b"
+      },
+      "current_marker_line": 173,
+      "blocked_assertions": 8,
+      "proof": "Current physical operand missing; Path.read_text->Path.open->io.open raises FileNotFoundError before any later statement in this independently scheduled method. No local catch; test not executed.",
+      "root_confirmed": true,
+      "status": "documented-only-not-fixed",
+      "new_comment_contribution": 0,
+      "root_independent_evidence": {
+        "path_operand_missing": true,
+        "source_read_line": 175,
+        "marker_line": 173,
+        "first_missing_read": "M3:R1",
+        "lifecycle": "Path.read_text with self.open->io.open; no localcatch; method exception recorded by default unittest result; default suite continues other instances",
+        "proof_receipts": [
+          "409/819cff source305L",
+          "422/4f3ec7 native11412->6e5c1b exit0/PID25244",
+          "421/ce4308 exit0/PID20716",
+          "425/df33f4 exit0/PID28628"
+        ],
+        "test_executed": false
+      },
+      "next_action": "在另行授权的行为修复任务中将该方法迁移至真实当前物理输入，逐条核对旧文本断言与当前契约，然后执行该独立方法及对应行为验证；本任务只记录不修复。",
+      "formal_acceptance": false
+    },
+    {
+      "issue_id": "CR-ZCA-R074-0003",
+      "kind": "BUG",
+      "method": "test_native_dock_tabs_use_the_runtime_tooltip_timer_through_a_real_zui_anchor",
+      "before_line": 187,
+      "first_missing_operand": "zircon_editor/assets/ui/editor/windows/workbench_window.zui",
+      "finding": "该独立unittest方法首个Path.read_text输入在当前checkout不存在，正常执行到该语句必抛FileNotFoundError并跳过本方法后续读取与断言；未运行测试。",
+      "evidence": "root32be1d full285L+4ba183 raw consumer context; current writer AST/physical path checks; agent aa53fb/e11998/9f0990/af575b readonly evidence.",
+      "later_reads_blocked": 10,
+      "read_id": "M4:R1",
+      "span": {
+        "before": [
+          187,
+          187
+        ],
+        "current": [
+          203,
+          203
+        ],
+        "before_sha256": "cd42be2ad1e2b71c45f5ca91175ae2b95d748cb127bdc7f55d2755bb23c16489",
+        "current_sha256": "cd42be2ad1e2b71c45f5ca91175ae2b95d748cb127bdc7f55d2755bb23c16489"
+      },
+      "current_marker_line": 201,
+      "blocked_assertions": 39,
+      "proof": "Current physical operand missing; Path.read_text->Path.open->io.open raises FileNotFoundError before any later statement in this independently scheduled method. No local catch; test not executed.",
+      "root_confirmed": true,
+      "status": "documented-only-not-fixed",
+      "new_comment_contribution": 0,
+      "root_independent_evidence": {
+        "path_operand_missing": true,
+        "source_read_line": 203,
+        "marker_line": 201,
+        "first_missing_read": "M4:R1",
+        "lifecycle": "Path.read_text with self.open->io.open; no localcatch; method exception recorded by default unittest result; default suite continues other instances",
+        "proof_receipts": [
+          "409/819cff source305L",
+          "422/4f3ec7 native11412->6e5c1b exit0/PID25244",
+          "421/ce4308 exit0/PID20716",
+          "425/df33f4 exit0/PID28628"
+        ],
+        "test_executed": false
+      },
+      "next_action": "在另行授权的行为修复任务中将该方法迁移至真实当前物理输入，逐条核对旧文本断言与当前契约，然后执行该独立方法及对应行为验证；本任务只记录不修复。",
+      "formal_acceptance": false
+    }
+  ],
+  "actual_evidence": {
+    "root_source_full": "409/819cff exit0/PID4084 full305L; original285L root32be1d/PID4000 +4ba183/PID36376",
+    "root_child_models": "411/f35092 exit0/PID34912 native16076 tokens intact; outerdisplay truncated only, missingmembers/blocks safely recovered same saved data in416 with no new native",
+    "root_contexts": [
+      {
+        "path": "zircon_editor/src/ui/retained/dispatch/templates/workbench/icon_tooltip.rs",
+        "sha256": "b8cec88c728db549410209b7285c177f3ee181c8477264ac949e8a5e9526c6d9",
+        "bytes": 20060,
+        "lines": 555,
+        "root_read_ranges": [
+          [
+            1,
+            60
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      },
+      {
+        "path": "zircon_editor/src/ui/retained/contract/window/event_loop/platform_input.rs",
+        "sha256": "0d1452b145043208b59f2acc712a36c72d4126b5cb420e0da1434466e82a01e0",
+        "bytes": 4560,
+        "lines": 137,
+        "root_read_ranges": [
+          [
+            1,
+            45
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      },
+      {
+        "path": "zircon_editor/src/ui/retained/contract/pointer/tooltip_target.rs",
+        "sha256": "d5cfb4f247225f15805cda88126936321cb6def94ce0f5c21534e357956407bf",
+        "bytes": 4531,
+        "lines": 154,
+        "root_read_ranges": [
+          [
+            1,
+            45
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      },
+      {
+        "path": "zircon_runtime/src/ui/surface/property_mutation/tests/metadata_dirty.rs",
+        "sha256": "bf5957bf009e81c2ed65cb7056118bb2648bffaf413e5cd65e28af18f37d02cb",
+        "bytes": 453,
+        "lines": 15,
+        "root_read_ranges": [
+          [
+            1,
+            15
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      },
+      {
+        "path": "zircon_runtime/src/ui/surface/property_mutation/metadata_dirty.rs",
+        "sha256": "aa6c470229e1bcb6053fb237c8e9000177c7e82466a27999dc30cc679ae1a78b",
+        "bytes": 9347,
+        "lines": 328,
+        "root_read_ranges": [
+          [
+            270,
+            328
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      },
+      {
+        "path": "zircon_editor/src/ui/retained/app/callback_wiring/host_shell/runtime.rs",
+        "sha256": "abe94b9ec52def1e76456a09c3a3bb1ba51c355c5a4eaef274d91201a8601a88",
+        "bytes": 3304,
+        "lines": 96,
+        "root_read_ranges": [
+          [
+            1,
+            96
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      },
+      {
+        "path": "zircon_editor/src/ui/retained/app/tooltip.rs",
+        "sha256": "c00c406dd5a4d910c116a0bf9aeccc824660a4bf5c7af507a0fbe05e71b85ef7",
+        "bytes": 6784,
+        "lines": 167,
+        "root_read_ranges": [
+          [
+            1,
+            95
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      }
+    ],
+    "root_additional_stdlib": [
+      {
+        "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\loader.py",
+        "sha256": "a0c6e71654f156420369d73fbf4f8a0d38ef78278c1cacd2150a952c8d49836c",
+        "read_ranges": [
+          [
+            273,
+            340
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      },
+      {
+        "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\main.py",
+        "sha256": "58faa95ab82f8714e17b5686f2591a6a5d336a35a8e9f2968404782e7bc82b27",
+        "read_ranges": [
+          [
+            115,
+            143
+          ],
+          [
+            231,
+            243
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      },
+      {
+        "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\case.py",
+        "sha256": "6c233f91c98b16899cb09801178c2313f48d58dce66a36d2d144facedb6bdbc4",
+        "read_ranges": [
+          [
+            1293,
+            1297
+          ],
+          [
+            1311,
+            1315
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      },
+      {
+        "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\suite.py",
+        "sha256": "26acd439bc5828fcba41c1dc7d2495ce05ed4f9073375e7fbfac05fafdd82e64",
+        "read_ranges": [
+          [
+            60,
+            67
+          ],
+          [
+            355,
+            358
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      },
+      {
+        "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\runner.py",
+        "sha256": "c1ad778381995aa5d9a4e6935a2eb570975f1506cb69a66851e904906500c4ff",
+        "read_ranges": [
+          [
+            15,
+            21
+          ],
+          [
+            37,
+            43
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      },
+      {
+        "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\result.py",
+        "sha256": "a3e2fc7d81e336083ebc33e148e29a41d679e5275369b134132370a76578ea1d",
+        "read_ranges": [
+          [
+            9,
+            11
+          ],
+          [
+            76,
+            82
+          ],
+          [
+            102,
+            111
+          ],
+          [
+            178,
+            186
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      },
+      {
+        "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\__init__.py",
+        "sha256": "f6a8ed4b51a29dd660e4689311e785d2dcfe15793f58c0a67ed8d21427d4db81",
+        "read_ranges": [
+          [
+            1,
+            49
+          ]
+        ],
+        "receipt": "421/ce4308 exit0/PID20716"
+      }
+    ],
+    "root_actual_stdlib_definitions": [
+      {
+        "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\loader.py",
+        "sha256": "a0c6e71654f156420369d73fbf4f8a0d38ef78278c1cacd2150a952c8d49836c",
+        "definitions": [
+          {
+            "name": "TestLoader.loadTestsFromTestCase",
+            "range": [
+              81,
+              95
+            ]
+          },
+          {
+            "name": "TestLoader.loadTestsFromModule",
+            "range": [
+              97,
+              119
+            ]
+          },
+          {
+            "name": "TestLoader.getTestCaseNames",
+            "range": [
+              210,
+              227
+            ]
+          }
+        ],
+        "receipt": "425/df33f4 exit0/PID28628"
+      },
+      {
+        "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\main.py",
+        "sha256": "58faa95ab82f8714e17b5686f2591a6a5d336a35a8e9f2968404782e7bc82b27",
+        "definitions": [
+          {
+            "name": "TestProgram.__init__",
+            "range": [
+              66,
+              104
+            ]
+          }
+        ],
+        "receipt": "425/df33f4 exit0/PID28628"
+      },
+      {
+        "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\result.py",
+        "sha256": "a3e2fc7d81e336083ebc33e148e29a41d679e5275369b134132370a76578ea1d",
+        "definitions": [
+          {
+            "name": ".failfast",
+            "range": [
+              12,
+              18
+            ]
+          },
+          {
+            "name": "TestResult.__init__",
+            "range": [
+              38,
+              54
+            ]
+          },
+          {
+            "name": "TestResult.addError",
+            "range": [
+              111,
+              117
+            ]
+          }
+        ],
+        "receipt": "425/df33f4 exit0/PID28628"
+      },
+      {
+        "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\case.py",
+        "sha256": "6c233f91c98b16899cb09801178c2313f48d58dce66a36d2d144facedb6bdbc4",
+        "definitions": [
+          {
+            "name": "_Outcome.testPartExecutor",
+            "range": [
+              53,
+              83
+            ]
+          }
+        ],
+        "receipt": "425/df33f4 exit0/PID28628"
+      },
+      {
+        "path": "C:\\Users\\HeJiahui\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\unittest\\runner.py",
+        "sha256": "c1ad778381995aa5d9a4e6935a2eb570975f1506cb69a66851e904906500c4ff",
+        "definitions": [
+          {
+            "name": "TextTestRunner.__init__",
+            "range": [
+              189,
+              208
+            ]
+          }
+        ],
+        "receipt": "425/df33f4 exit0/PID28628"
+      }
+    ],
+    "prior_same_pins_actual_root_stdlib": {
+      "receipts": [
+        "386/146601 exit0/PID34568",
+        "387/00b23f native32379 exit0/PID2692"
+      ],
+      "ranges": {
+        "__init__.py": [
+          [
+            50,
+            80
+          ]
+        ],
+        "loader.py": [
+          [
+            65,
+            119
+          ],
+          [
+            210,
+            227
+          ],
+          [
+            229,
+            272
+          ],
+          [
+            374,
+            481
+          ]
+        ],
+        "main.py": [
+          [
+            60,
+            104
+          ],
+          [
+            144,
+            154
+          ],
+          [
+            177,
+            183
+          ],
+          [
+            244,
+            280
+          ]
+        ],
+        "case.py": [
+          [
+            54,
+            83
+          ],
+          [
+            614,
+            697
+          ],
+          [
+            1187,
+            1199
+          ]
+        ],
+        "suite.py": [
+          [
+            102,
+            133
+          ]
+        ],
+        "runner.py": [
+          [
+            186,
+            205
+          ],
+          [
+            242,
+            248
+          ]
+        ],
+        "result.py": [
+          [
+            12,
+            18
+          ],
+          [
+            44,
+            50
+          ],
+          [
+            112,
+            117
+          ]
+        ]
+      }
+    },
+    "pathlib": {
+      "path": "C:/Users/HeJiahui/AppData/Local/Python/pythoncore-3.14-64/Lib/pathlib/__init__.py",
+      "sha256": "208546aa566ca8df4b8e1259f30209c0f803c3f920e6d080ae1b10d53d05bd72",
+      "bytes": 48114,
+      "lines": 1307,
+      "read_ranges": [
+        [
+          763,
+          771
+        ],
+        [
+          780,
+          788
+        ]
+      ],
+      "receipt": "ffdcd1 exit0/PID24696",
+      "root_receipt": "421/ce4308 exit0/PID20716"
+    },
+    "validation_actual": "422/4f3ec7 native11412->423/6e5c1b exit0/PID25244",
+    "native_output_limit": "422 actual18146 token output truncated middle of domains and guard JSONL, not full evidence. targets/methods/orderedreads/first4commands intact, final3commands+wholefinalvalidation intact423. Only missingdomain/guards recovered424/1356e1 exit0/PID23788 from same fixed sources, no nativechecks rerun.",
+    "grant_actual": "418/62d30f native89389->41b095 exit0/PID35036",
+    "grant_independent": "420/f87335 exit0/PID34428",
+    "source_and_child_fixed": true
+  },
+  "post_validation": {
+    "path": "docs/plans/source-comments/reviews/R074-post-validation.json",
+    "sha256": "5623849902f4073d41bd0538f176865eb567c0ff4a9d07e71f2b959056ab372e",
+    "bytes": 206433
+  },
+  "source_preservation": {
+    "all_original_bytes_inverse_equals_grant_rawHEAD": true,
+    "AST_equal": true,
+    "noncomment_tokens_equal": true,
+    "all_original_docstrings_unchanged": true,
+    "new_comment_contribution": 0,
+    "all_original_code_and_public_API_unchanged": true
+  },
+  "reviewed_new_comments": {
+    "groups": 16,
+    "lines": 20,
+    "root_amendment_needed": false
+  },
+  "tests_run": 0,
+  "retained_failures_and_limits": {
+    "enumeration_is_not_full_read": true,
+    "workbench_window_replacement": "有界文件名搜索未找到，不能据此声称全资产域已穷尽；旧物理操作数确实缺失。",
+    "rust_aliases_do_not_resolve_physical_python_reads": true,
+    "all_context_coverage": false
+  },
+  "child_lifecycle": [
+    {
+      "stage": "record-draft-attempt-1",
+      "receipt": "12c1f1",
+      "exit_code": 1,
+      "exception": "NameError: name 'false' is not defined. Did you mean: 'False'?",
+      "effect": "Failed while constructing in-memory metadata before open; independently reconciled, not inferred.",
+      "exception_original": "Traceback (most recent call last):\n  File \"<stdin>\", line 10, in <module>\nNameError: name 'false' is not defined. Did you mean: 'False'?\n"
+    },
+    {
+      "stage": "independent-after-failure",
+      "receipt": "b45477",
+      "exit_code": 0,
+      "pid": 31588,
+      "source_sha256": "8cae463a875697d63a45282c29f19a749bfedd68f06775d15f1b9750a94306de",
+      "child_exists": false
+    },
+    {
+      "stage": "record-draft-attempt-2",
+      "pid": 11340,
+      "state": "unfixed draft, own native terminal not yet available in this file"
+    },
+    {
+      "stage": "record-draft-attempt-2-terminal",
+      "receipt": "cd0fc8/native42378->1550b5",
+      "pid": 11340,
+      "exit_code": 0,
+      "draft_sha256": "30327b471c09f7d722c69e4dc1758458e3cd3541569a0b61ef7eecc229fedd12",
+      "command_chars": 21662
+    },
+    {
+      "stage": "independent-draft-readback",
+      "receipt": "ecc54a",
+      "pid": 5016,
+      "exit_code": 0,
+      "child_sha256": "30327b471c09f7d722c69e4dc1758458e3cd3541569a0b61ef7eecc229fedd12",
+      "source_pin_unchanged": true
+    },
+    {
+      "stage": "struct-CAS-writer",
+      "pid": 35836,
+      "cas_before_sha256": "30327b471c09f7d722c69e4dc1758458e3cd3541569a0b61ef7eecc229fedd12",
+      "own_native_terminal": "awaiting actual receipt",
+      "unfixed": true
+    },
+    {
+      "stage": "struct-CAS-terminal",
+      "receipt": "da3283",
+      "pid": 35836,
+      "exit_code": 0,
+      "draft_sha256": "0fccbee75b74b79d63b09ca9c33bb8ae8c8bc5d48b688191ba55415c09da14f9",
+      "command_chars": 12482
+    },
+    {
+      "stage": "independent-struct-readback",
+      "receipt": "ddecf4",
+      "pid": 25056,
+      "exit_code": 0,
+      "child_sha256": "0fccbee75b74b79d63b09ca9c33bb8ae8c8bc5d48b688191ba55415c09da14f9",
+      "source_pin_unchanged": true,
+      "verified_original_current_span_pairs": 184,
+      "inverse_equals_rawHEAD_and_grant": true,
+      "AST_equal": true
+    },
+    {
+      "stage": "guard-CAS-writer",
+      "pid": 32956,
+      "cas_before_sha256": "0fccbee75b74b79d63b09ca9c33bb8ae8c8bc5d48b688191ba55415c09da14f9",
+      "own_native_terminal": "awaiting actual receipt",
+      "unfixed": true
+    },
+    {
+      "stage": "guard-CAS-terminal",
+      "receipt": "4c6167",
+      "pid": 32956,
+      "exit_code": 0,
+      "draft_sha256": "f5870726747888eec87f4a2b3d6ec5d640b2ceba333ac343fc35e29fa5044386",
+      "command_chars": 16238
+    },
+    {
+      "stage": "independent-guard-readback",
+      "receipt": "ffdcd1",
+      "pid": 24696,
+      "exit_code": 0,
+      "child_sha256": "f5870726747888eec87f4a2b3d6ec5d640b2ceba333ac343fc35e29fa5044386",
+      "source_pin_unchanged": true,
+      "all_span_pairs": 288,
+      "all_inputs_and_operands_verified": true
+    },
+    {
+      "stage": "record-finalize-CAS",
+      "pid": 15920,
+      "cas_before_sha256": "f5870726747888eec87f4a2b3d6ec5d640b2ceba333ac343fc35e29fa5044386",
+      "state_at_serialization": "Final writer terminal and independent final child hash must be delivered externally after this write; they cannot be embedded recursively without a later write.",
+      "write_set": [
+        "docs/plans/source-comments/reviews/R074.json"
+      ]
+    }
+  ],
+  "child_preflight_receipts": [
+    {
+      "receipt": "0da426",
+      "exit_code": 1,
+      "pid": 15136,
+      "scope": "full285L source/ownership read then next on absent second candidate coverage raised StopIteration; not preflight pass; no writes"
+    },
+    {
+      "receipt": "aa53fb",
+      "exit_code": 0,
+      "pid": 34468,
+      "scope": "physical pins/Git/HEAD/EOL, ignored54L"
+    },
+    {
+      "receipt": "e11998",
+      "exit_code": 0,
+      "pid": 30120,
+      "scope": "24 targets, six methods,32 reads,98 operands; issue and ignore checks"
+    },
+    {
+      "receipt": "9f0990",
+      "exit_code": 0,
+      "pid": 5140,
+      "scope": "production test mount and actual wiring, ignored regex capture limits"
+    },
+    {
+      "receipt": "af575b",
+      "exit_code": 0,
+      "pid": 23788,
+      "scope": "migrated selected contexts/direct test body and unittest stdlib pins"
+    }
+  ],
+  "child_source_receipts": [
+    {
+      "receipt": "e76b8b",
+      "exit_code": 0,
+      "pid": 25488,
+      "scope": "fresh grant assigned/source/rawHEAD/checkout/cleanfilter/stage0/scoped empty status+unstaged+cached/child absent; index.lock present readonly; standard and registry planned child verified"
+    },
+    {
+      "receipt": "apply_patch cell3",
+      "scope": "relative authorized source header with actual LF; terminal tool response {}; no native PID/exit code exposed"
+    },
+    {
+      "receipt": "335b76",
+      "exit_code": 0,
+      "pid": 12096,
+      "scope": "first20# lines/16blocks, original byte inverse and AST, child absent; intermediate source97dd6c9920dc710f8e6e59563e55af31f98db21e124e81b20108e04ec78bed1b"
+    },
+    {
+      "receipt": "apply_patch cell6",
+      "scope": "same tool terminal {}; only two newly added comment phrases narrowed; no native PID/exit exposed"
+    },
+    {
+      "receipt": "b02fc9",
+      "exit_code": 0,
+      "pid": 26900,
+      "scope": "final source8cae463a…305L; inverse/AST/tokens/docstring/path/assertions/diff--check0/cached empty/full model generation"
+    }
+  ],
+  "child_final_checks": {
+    "receipt": "ffdcd1 exit0/PID24696",
+    "primary_span_pairs": 282,
+    "method_mirror_span_pairs": 6,
+    "all_span_pairs": 288,
+    "all_24_physical_inputs_same_pins": true,
+    "all_98_complete_assertion_AST_operator_args_same": true,
+    "all_98_before_current_values_same": true,
+    "all_new_comment_operand_contributions": 0,
+    "reachable_static_true": 17,
+    "blocked_assertions": 81,
+    "tests_run": false,
+    "before_current_values_are_static_observations_not_test_execution": true
+  },
+  "cleanup": {
+    "deleted_files": 0,
+    "freed_bytes": 0,
+    "retained": "Exact source/child/main/post and necessary actual failure/validation evidence until managed gate. Unknown and other active artifacts preserved."
+  },
+  "post_writer_actual_terminal": "429/a41d70 exit0/PID29244",
+  "root_script_length_limits": [
+    {
+      "characters": 28218,
+      "result": "No native call/no files; split post and main records into ordinary independently bounded native writes."
+    },
+    {
+      "characters": 23747,
+      "result": "No native call/no files; redundant repeated hash assertion removed; final post23614 chars."
+    }
+  ]
+}

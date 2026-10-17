@@ -147,7 +147,9 @@ impl AssetBrowserProjectionInput {
             && self.kind_filter == snapshot.kind_filter
             && self.selected_folder_id == snapshot.selected_folder_id
             && self.selected_asset_uuid == snapshot.selected_asset_uuid
-            && self.visible_assets.shares_items_with(&snapshot.visible_assets)
+            && self
+                .visible_assets
+                .shares_items_with(&snapshot.visible_assets)
     }
 }
 
@@ -815,7 +817,6 @@ fn utility_tab_for_control_id(control_id: &str) -> Option<AssetUtilityTab> {
     None
 }
 
-
 #[cfg(test)]
 mod synchronized_selection_cache_tests {
     use super::*;
@@ -824,19 +825,34 @@ mod synchronized_selection_cache_tests {
         let mut snapshot = AssetWorkspaceSnapshot {
             selected_asset_uuid: Some("source-asset".into()),
             visible_assets: vec![AssetItemSnapshot {
-            uuid: "source-asset".into(), locator: "res://source.model".into(),
-            display_name: "Source".into(), file_name: "source.model".into(), extension: "model".into(),
-            kind: ResourceKind::Model,
-            asset_type: crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(ResourceKind::Model),
-            preview_artifact_path: String::new(), dirty: false, diagnostics: vec![], selected: false,
-            resource_state: None, resource_revision: None,
-            }].into(), ..Default::default()
+                uuid: "source-asset".into(),
+                locator: "res://source.model".into(),
+                display_name: "Source".into(),
+                file_name: "source.model".into(),
+                extension: "model".into(),
+                kind: ResourceKind::Model,
+                asset_type:
+                    crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                        ResourceKind::Model,
+                    ),
+                preview_artifact_path: String::new(),
+                dirty: false,
+                diagnostics: vec![],
+                selected: false,
+                resource_state: None,
+                resource_revision: None,
+            }]
+            .into(),
+            ..Default::default()
         };
         let previous = AssetBrowserProjectionInput::new(&snapshot);
         assert!(previous.matches(&snapshot));
         let mut changed = snapshot.visible_assets[0].clone();
         changed.selected = true;
-        snapshot.visible_assets = snapshot.visible_assets.replace_existing_items([changed]).unwrap();
+        snapshot.visible_assets = snapshot
+            .visible_assets
+            .replace_existing_items([changed])
+            .unwrap();
         assert!(!previous.matches(&snapshot));
         let current = AssetBrowserProjectionInput::new(&snapshot);
         assert!(current.matches(&snapshot.clone()));

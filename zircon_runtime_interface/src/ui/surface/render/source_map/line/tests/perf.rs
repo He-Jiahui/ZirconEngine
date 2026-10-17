@@ -1,3 +1,8 @@
+//! 固定合成行上的光标、源范围投影及重复源边界查询。
+//!
+//! 普通测试对照线性实现；带忽略标记的计时项目须显式选择，忽略属性不检查 release 配置。
+//! 夹具与映射构造在计时外，三组计时均交替两路径先后顺序并比较排序后的最大样本。
+
 use std::{hint::black_box, time::Instant};
 
 use crate::ui::{
@@ -14,6 +19,10 @@ const CLUSTER_COUNT: usize = 65_536;
 const LOOKUP_COUNT: usize = 64;
 const SAMPLE_COUNT: usize = 11;
 
+/// 构造每个 ASCII 字节独占一个 run 的左到右行，源与视觉范围一一对应。
+///
+/// # 返回
+/// 返回独立拥有文本、run 和等宽 advance 的合成夹具，供查询对照与计时复用。
 fn dense_line() -> UiResolvedTextLine {
     let text = "x".repeat(CLUSTER_COUNT);
     let runs = (0..CLUSTER_COUNT)
@@ -52,6 +61,10 @@ fn dense_line() -> UiResolvedTextLine {
     }
 }
 
+/// 将密集行的每个 run 改为指向整行源范围，保留视觉范围和文本。
+///
+/// # 返回
+/// 返回拥有自身数据的非一一对应夹具，供重复源范围边界查询使用。
 fn repeated_source_line() -> UiResolvedTextLine {
     let mut line = dense_line();
     for run in &mut line.runs {
@@ -63,6 +76,7 @@ fn repeated_source_line() -> UiResolvedTextLine {
     line
 }
 
+/// 在固定行的首、中、尾位置对照两种亲和性下的光标查询结果。
 #[test]
 fn runtime_interface03_batch14_binary_caret_source_lookup_preserves_affinity() {
     let line = dense_line();
@@ -82,6 +96,7 @@ fn runtime_interface03_batch14_binary_caret_source_lookup_preserves_affinity() {
     }
 }
 
+/// 对照空范围、局部范围及行尾外范围的视觉投影结果。
 #[test]
 fn runtime_interface03_batch15_binary_source_span_range_preserves_projection() {
     let line = dense_line();
@@ -110,6 +125,7 @@ fn runtime_interface03_batch15_binary_source_span_range_preserves_projection() {
     }
 }
 
+/// 对照重复源范围的聚合边界，并在连续查询后确认惰性缓存已建立。
 #[test]
 fn runtime_interface03_batch16_cached_source_edges_preserve_projection() {
     let line = repeated_source_line();
@@ -128,6 +144,9 @@ fn runtime_interface03_batch16_cached_source_edges_preserve_projection() {
         .is_some());
 }
 
+/// 计时前先跨过线性查询阈值，测量缓存已建立后的重复边界查询。
+///
+/// 缓存建立的成本不在计时范围内，测量结果对应此热缓存夹具。
 #[test]
 #[ignore = "release-only repeated nonisomorphic source-edge cache benchmark"]
 fn runtime_interface03_batch16_cached_source_edges_release_benchmark() {
@@ -180,6 +199,7 @@ fn runtime_interface03_batch16_cached_source_edges_release_benchmark() {
     );
 }
 
+/// 在映射构造后，比较靠近行尾的单个源范围查询与线性对照的耗时。
 #[test]
 #[ignore = "release-only binary source-span cluster-range benchmark"]
 fn runtime_interface03_batch15_binary_source_span_range_release_benchmark() {
@@ -232,6 +252,7 @@ fn runtime_interface03_batch15_binary_source_span_range_release_benchmark() {
     );
 }
 
+/// 在映射构造后，比较靠近行尾的下游光标查询与线性对照的耗时。
 #[test]
 #[ignore = "release-only binary caret source-cluster lookup benchmark"]
 fn runtime_interface03_batch14_binary_caret_source_lookup_release_benchmark() {

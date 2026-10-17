@@ -13,7 +13,9 @@ mod geometry;
 mod painter_receipts;
 #[path = "product_presentation.rs"]
 mod product_presentation;
-pub(crate) use product_presentation::{normal_workbench_business_snapshot, NormalWorkbenchBusinessSnapshot};
+pub(crate) use product_presentation::{
+    normal_workbench_business_snapshot, NormalWorkbenchBusinessSnapshot,
+};
 #[path = "readiness.rs"]
 mod readiness;
 #[path = "source.rs"]

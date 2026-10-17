@@ -29,13 +29,17 @@ fn save_all_documents_command_saves_dirty_toolkits_without_blocking_the_host() {
     let instance_id = harness
         .host
         .borrow()
-        .editor_manager.enter().expect("editor manager admission")
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .open_ui_asset_editor(&path, None)
         .expect("ui asset editor should open");
     harness
         .host
         .borrow()
-        .editor_manager.enter().expect("editor manager admission")
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .mark_document_external_effect(&instance_id, DirtyExternalEffectId::ui_source_buffer())
         .expect("document should become dirty");
 
@@ -49,7 +53,9 @@ fn save_all_documents_command_saves_dirty_toolkits_without_blocking_the_host() {
     assert!(!harness
         .host
         .borrow()
-        .editor_manager.enter().expect("editor manager admission")
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .dirty_document_toolkits()
         .expect("save completion must be polled by the retained tick")
         .is_empty());
@@ -59,7 +65,9 @@ fn save_all_documents_command_saves_dirty_toolkits_without_blocking_the_host() {
         && !harness
             .host
             .borrow()
-            .editor_manager.enter().expect("editor manager admission")
+            .editor_manager
+            .enter()
+            .expect("editor manager admission")
             .dirty_document_toolkits()
             .expect("dirty document projection")
             .is_empty()
@@ -71,7 +79,9 @@ fn save_all_documents_command_saves_dirty_toolkits_without_blocking_the_host() {
     assert!(harness
         .host
         .borrow()
-        .editor_manager.enter().expect("editor manager admission")
+        .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .dirty_document_toolkits()
         .expect("dirty document projection")
         .is_empty());

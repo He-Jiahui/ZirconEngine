@@ -11,9 +11,9 @@ fn section_title_asset_projects_runtime_text_and_unreal_header_contract() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     // BUG: [CR-EDITOR-PAINT-CONTROLSTYLE-0008] 正式 section-title 资源与主题已改用设计 token，下面仍要求旧数字字面量。
     // 读取成功也无法满足这些 contains 断言；应核验 token 引用与解析后语义，避免把主题迁移误报为资源退化。
-    let component = std::fs::read_to_string(manifest.join(
-        "assets/ui/editor/workbench/primitives/chrome/section_title.zui",
-    ))
+    let component = std::fs::read_to_string(
+        manifest.join("assets/ui/editor/workbench/primitives/chrome/section_title.zui"),
+    )
     .expect("Workbench section-title primitive should be readable");
     for required in [
         "component_variant = \"section-title\"",

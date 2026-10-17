@@ -93,6 +93,7 @@ pub(crate) struct BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(super) scene_filter_forced_expanded_entities: BTreeSet<EntityId>,
     pub(super) inspector_source_properties: Arc<[InspectorPluginComponentPropertySnapshot]>,
     pub(super) inspector_component_label: String,
+    pub(super) inspector_component_add: super::inspector_component_add::InspectorComponentAddState,
     pub(super) inspector_has_selection: bool,
     pub(super) inspector_has_component: bool,
     pub(super) component_properties: Arc<[InspectorPluginComponentPropertySnapshot]>,
@@ -175,6 +176,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             scene_filter_forced_expanded_entities: BTreeSet::new(),
             inspector_source_properties: Arc::from([]),
             inspector_component_label: String::new(),
+            inspector_component_add: Default::default(),
             inspector_has_selection: false,
             inspector_has_component: false,
             component_properties: Arc::from([]),
@@ -240,17 +242,27 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,
         std::sync::Arc<serde_json::Value>,
     )> {
-        let Some(captured)=self.template_surface.prepared_viewport_toolbar_publication.as_ref() else {
-            #[cfg(test)] eprintln!("viewport-toolbar getter-reject: capture cache absent");
+        let Some(captured) = self
+            .template_surface
+            .prepared_viewport_toolbar_publication
+            .as_ref()
+        else {
+            #[cfg(test)]
+            eprintln!("viewport-toolbar getter-reject: capture cache absent");
             return None;
         };
-        if !std::sync::Arc::ptr_eq(&captured.0,&self.template_surface.surface.surface_frame()) {
-            #[cfg(test)] eprintln!("viewport-toolbar getter-reject: prepared/current source Arc mismatch");
+        if !std::sync::Arc::ptr_eq(&captured.0, &self.template_surface.surface.surface_frame()) {
+            #[cfg(test)]
+            eprintln!("viewport-toolbar getter-reject: prepared/current source Arc mismatch");
             return None;
         }
-        let mut publication=(*captured.1).clone();
-        if self.attach_unreal_toolbar_desired_sizes(&mut publication).is_none() {
-            #[cfg(test)] eprintln!("viewport-toolbar getter-reject: original logical desired size/MeasureKey association rejected");
+        let mut publication = (*captured.1).clone();
+        if self
+            .attach_unreal_toolbar_desired_sizes(&mut publication)
+            .is_none()
+        {
+            #[cfg(test)]
+            eprintln!("viewport-toolbar getter-reject: original logical desired size/MeasureKey association rejected");
             return None;
         }
         Some((captured.0.clone(), std::sync::Arc::new(publication)))

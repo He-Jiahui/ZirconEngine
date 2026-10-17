@@ -18,8 +18,8 @@ use super::pending_material_draw::PendingMaterialDraw;
 #[derive(Clone)]
 pub(super) enum PendingMeshGeometry {
     Prepared(Arc<GpuMeshResource>),
-    Dynamic(ModelPrimitiveAsset),
-    CpuMorphed(ModelPrimitiveAsset),
+    Dynamic(Arc<ModelPrimitiveAsset>),
+    CpuMorphed(Arc<ModelPrimitiveAsset>),
     GpuMorphed(Arc<GpuMeshResource>),
 }
 
@@ -27,7 +27,7 @@ pub(super) enum PendingMeshGeometry {
 pub(super) enum PendingSkinnedGpuSource {
     Prepared(Arc<GpuMeshResource>),
     CpuMorphed {
-        primitive: ModelPrimitiveAsset,
+        primitive: Arc<ModelPrimitiveAsset>,
         morph_shape_signature: u64,
     },
 }
@@ -78,8 +78,8 @@ pub(super) struct PendingMeshDraw {
     pub(super) normal_transform_flags: u32,
     pub(super) skinned: bool,
     pub(super) skinned_palette_signature: Option<u64>,
-    pub(super) skinned_joint_palette: Option<SkinnedMeshJointPaletteStorage>,
-    pub(super) previous_skinned_joint_palette: Option<SkinnedMeshJointPaletteStorage>,
+    pub(super) skinned_joint_palette: Option<Arc<SkinnedMeshJointPaletteStorage>>,
+    pub(super) previous_skinned_joint_palette: Option<Arc<SkinnedMeshJointPaletteStorage>>,
     // Holds the original prepared mesh for the guarded shader-skinning path.
     // CPU-skinned dynamic fallback draws leave this empty to avoid double skinning.
     pub(super) skinned_gpu_source: Option<PendingSkinnedGpuSource>,

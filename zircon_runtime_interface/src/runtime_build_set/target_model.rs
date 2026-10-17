@@ -11,6 +11,7 @@ pub enum ZrRuntimeEndianV1 {
 }
 
 /// Target data model that must match before an internal runtime library can be loaded.
+/// 内部 Runtime 库加载前必须匹配的目标数据模型。
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ZrRuntimeTargetModelV1 {
@@ -21,6 +22,7 @@ pub struct ZrRuntimeTargetModelV1 {
 }
 
 impl ZrRuntimeTargetModelV1 {
+    /// 构造并校验架构、操作系统和指针宽度；不探测外部文件或动态库。
     pub fn new(
         architecture: impl Into<String>,
         operating_system: impl Into<String>,
@@ -37,6 +39,7 @@ impl ZrRuntimeTargetModelV1 {
         Ok(target)
     }
 
+    /// 从当前编译目标常量生成 Host 期望值。
     pub fn current() -> Self {
         let endian = if cfg!(target_endian = "little") {
             ZrRuntimeEndianV1::Little
@@ -51,6 +54,7 @@ impl ZrRuntimeTargetModelV1 {
         }
     }
 
+    /// 校验名称非空且指针宽度为 ABI 支持的 32 或 64 位。
     pub fn validate(&self) -> Result<(), ZrRuntimeIdentityFormatError> {
         if self.architecture.is_empty() || self.operating_system.is_empty() {
             return Err(ZrRuntimeIdentityFormatError::TargetNameMissing);

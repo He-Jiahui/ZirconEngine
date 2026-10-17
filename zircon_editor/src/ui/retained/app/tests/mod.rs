@@ -57,3 +57,6 @@ mod save_batch_failure;
 
 #[path = "module_tools_menus.rs"]
 mod module_tools_menus;
+
+#[path = "module_plugin_details.rs"]
+mod module_plugin_details;

@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::manager::{
@@ -55,7 +55,7 @@ fn close_runtime_context(
 ) -> CoreResult<()> {
     let budget = deadline
         .map(|deadline| deadline.saturating_duration_since(Instant::now()))
-        .unwrap_or(std::time::Duration::ZERO);
+        .unwrap_or(web_time::Duration::ZERO);
     context.with_existing_registered_manager::<TextRuntimeContext>(
         TEXT_RUNTIME_CONTEXT_MANAGER_NAME,
         |runtime_context| {
@@ -67,8 +67,11 @@ fn close_runtime_context(
                 }
                 let remaining = deadline
                     .map(|deadline| deadline.saturating_duration_since(Instant::now()))
-                    .unwrap_or(std::time::Duration::ZERO);
-                if state == TextRuntimeContextLifecycleState::Faulted || remaining.is_zero() {
+                    .unwrap_or(web_time::Duration::ZERO);
+                if state == TextRuntimeContextLifecycleState::Faulted
+                    || remaining.is_zero()
+                    || cfg!(target_arch = "wasm32")
+                {
                     let active = runtime_context
                         .health_snapshot()
                         .active_layout_session_family_count();
@@ -81,7 +84,8 @@ fn close_runtime_context(
                         cancelled: 0,
                     });
                 }
-                std::thread::sleep(remaining.min(std::time::Duration::from_millis(1)));
+                #[cfg(not(target_arch = "wasm32"))]
+                std::thread::sleep(remaining.min(web_time::Duration::from_millis(1)));
             }
         },
     )?;

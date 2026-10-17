@@ -39,7 +39,7 @@ pub(in crate::graphics::scene) struct PublishedMaterialTextureSet {
     pub(in crate::graphics::scene) clearcoat_normal: PublishedMaterialTextureBinding,
 }
 
-/// One immutable view of every draw-facing field in a published material generation.
+/// One immutable view of every draw-facing field in one selected material generation.
 ///
 /// Render extraction must keep this proxy intact when it later selects a context-qualified
 /// last-good generation. Looking up runtime state and GPU bindings independently would allow
@@ -215,7 +215,7 @@ fn same_texture_revision(snapshot: Option<u64>, current: Option<u64>) -> bool {
 }
 
 impl ResourceStreamer {
-    /// 给管线准入报告当前可见、上次可见和待发布的三个代际；绘制实际只经代理选取前两者。
+    /// 报告三个代际；已准入的冷启动候选可供当前视图使用，热替换仍保留 Published。
     pub(crate) fn material_draw_generations(&self, id: &ResourceId) -> [Option<u64>; 3] {
         let Some(prepared) = self.materials.get(id) else {
             return [None, None, None];
@@ -238,6 +238,32 @@ impl ResourceStreamer {
 
     pub(crate) fn staged_material_draw_generation(&self, id: &ResourceId) -> Option<u64> {
         self.material_draw_generations(id)[2]
+    }
+
+    /// Resolve only the exact fresh cold candidate whose requirements the caller admitted.
+    /// This view does not publish the bundle or expose a hot replacement.
+    pub(crate) fn admitted_cold_staged_material_draw_proxy(
+        &self,
+        id: &ResourceId,
+        generation: u64,
+    ) -> PublishedMaterialDrawProxy<'_> {
+        let bundle = self
+            .materials
+            .get(id)
+            .filter(|prepared| prepared.published.is_none() && !prepared.staged_pipeline_failed)
+            .and_then(|prepared| prepared.staged_candidate.as_ref())
+            .filter(|candidate| {
+                candidate.draw_generation == generation
+                    && self.prepared_material_bundle_cache_is_current(
+                        candidate,
+                        self.resource_revision(*id).ok(),
+                        candidate.texture_support,
+                    )
+            });
+        PublishedMaterialDrawProxy {
+            streamer: self,
+            bundle,
+        }
     }
 
     pub(crate) fn published_material_draw_proxy(

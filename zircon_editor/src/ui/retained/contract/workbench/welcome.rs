@@ -1,6 +1,7 @@
 use super::super::data::{FrameRect, PaneData, WelcomePaneLayoutData};
 use super::super::paint_frame::HostRgbaFrame;
 use super::super::paint_primitives::{draw_border_clipped, draw_rect_clipped};
+#[cfg(test)]
 use super::SEPARATOR;
 
 #[path = "welcome/layout.rs"]
@@ -15,6 +16,7 @@ mod style;
 use layout::{inset_frame, translated_welcome_frame, WELCOME_COLUMN_INSET};
 use main_column::draw_welcome_main_column;
 use recent_projects::draw_welcome_recent_projects;
+#[cfg(test)]
 use style::{WELCOME_BACKGROUND, WELCOME_SURFACE};
 
 pub(in crate::ui::retained_host::host_contract) fn draw_welcome_native_content(
@@ -27,16 +29,33 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_native_content(
         return false;
     }
 
-    draw_rect_clipped(frame, body.clone(), Some(clip), WELCOME_BACKGROUND);
+    draw_rect_clipped(
+        frame,
+        body.clone(),
+        Some(clip),
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette()
+            .shell_background,
+    );
 
     let layout = &pane.welcome.layout;
     let (recent_panel, main_panel) = resolve_welcome_panel_frames(layout, body);
     if let Some(recent_panel) = recent_panel.as_ref() {
-        draw_welcome_panel(frame, recent_panel, clip, WELCOME_SURFACE);
+        draw_welcome_panel(
+            frame,
+            recent_panel,
+            clip,
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette().surface,
+        );
         draw_welcome_recent_projects(frame, pane, layout, body, recent_panel, clip);
     }
     if let Some(main_panel) = main_panel.as_ref() {
-        draw_welcome_panel(frame, main_panel, clip, WELCOME_BACKGROUND);
+        draw_welcome_panel(
+            frame,
+            main_panel,
+            clip,
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette()
+                .shell_background,
+        );
         draw_welcome_main_column(frame, pane, layout, body, main_panel, clip);
     }
     true
@@ -105,7 +124,12 @@ fn draw_welcome_panel(
     color: [u8; 4],
 ) {
     draw_rect_clipped(frame, rect.clone(), Some(clip), color);
-    draw_border_clipped(frame, rect.clone(), Some(clip), SEPARATOR);
+    draw_border_clipped(
+        frame,
+        rect.clone(),
+        Some(clip),
+        crate::ui::retained_host::host_contract::paint_theme::current_host_palette().border,
+    );
 }
 
 #[cfg(test)]

@@ -1,3 +1,6 @@
+//! 验证 IME 可见预编辑与已提交源的分离、重绑及准入失败后的结束路径。
+//! 部分用例经输入管理器或无管理器的 Surface 分派走实际状态转换，核对正文、epoch 与诊断后效。
+
 use zircon_runtime_interface::ui::{
     dispatch::{
         UiImeInputEvent, UiImeInputEventKind, UiInputDispatchResult, UiInputEvent,

@@ -252,6 +252,40 @@ struct TestGraph {
 }
 
 impl super::GraphModel for TestGraph {
+    fn retention_revision_v1(&self) -> u64 {
+        self.value as u64
+    }
+    fn delta_retention_v1(
+        &self,
+        _delta: &i32,
+        meter: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
+    ) -> Result<super::model::GraphDeltaProofV1, EditCommandError> {
+        meter.layout(2 * std::mem::size_of::<i32>(), std::mem::align_of::<i32>())?;
+        Ok(super::model::GraphDeltaProofV1 {
+            revision: self.value as u64,
+            retained_pair_bytes: 8,
+            materialization_peak_bytes: 8,
+        })
+    }
+    fn prepare_delta_v1(
+        &self,
+        delta: &i32,
+    ) -> Result<super::model::PreparedGraphDeltaV1<i32>, Infallible> {
+        Ok(super::model::PreparedGraphDeltaV1 {
+            revision: self.value as u64,
+            forward: *delta,
+            inverse: -*delta,
+        })
+    }
+    fn apply_prepared_delta_v1(
+        &mut self,
+        prepared: &super::model::PreparedGraphDeltaV1<i32>,
+    ) -> Result<(), Infallible> {
+        assert_eq!(prepared.revision, self.value as u64);
+        self.value += prepared.forward;
+        Ok(())
+    }
+
     type NodeId = String;
     type Delta = i32;
     type Error = Infallible;
@@ -310,6 +344,14 @@ impl EditContext for TestGraphContext {
         Ok(())
     }
 
+    fn selection_retention_bound_v1(
+        &self,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<u64, EditCommandError> {
+        SelectionSnapshot::scalar_retention_bound_v1(model, limit)
+    }
+
     fn selection_snapshot(&self) -> SelectionSnapshot {
         SelectionSnapshot::default()
     }
@@ -328,6 +370,16 @@ impl EditContext for TestGraphContext {
 }
 
 impl GraphEditContext<TestGraph, String> for TestGraphContext {
+    fn graph_model(&self, target: &String) -> Result<&TestGraph, EditCommandError> {
+        if target == &self.graph_id {
+            Ok(&self.graph)
+        } else {
+            Err(EditCommandError::TargetMissing {
+                target: target.clone(),
+            })
+        }
+    }
+
     fn graph_model_mut(&mut self, target: &String) -> Result<&mut TestGraph, EditCommandError> {
         if target == &self.graph_id {
             Ok(&mut self.graph)
@@ -337,4 +389,337 @@ impl GraphEditContext<TestGraph, String> for TestGraphContext {
             })
         }
     }
+}
+
+use crate::core::editing::engine::{
+    EditorTransactionEngine, HistoryContextId, HistoryRetentionBudgetV1, HistoryRetentionDomainV1,
+    RetentionPhaseV1,
+};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::Arc;
+use zircon_runtime_interface::retained_memory::{
+    verified_std_model_v1, ImmutableRetainedOwnerV1, RetainedBoundBuilderV1, RetainedOwnerV1,
+    RetentionContractError,
+};
+
+struct RetainedGraphV1 {
+    value: Arc<Vec<u8>>,
+    revision: u64,
+    preparations: Arc<AtomicUsize>,
+}
+impl super::GraphModel for RetainedGraphV1 {
+    type NodeId = String;
+    type Delta = Arc<Vec<u8>>;
+    type Error = Infallible;
+    fn retention_revision_v1(&self) -> u64 {
+        self.revision
+    }
+    fn delta_retention_v1(
+        &self,
+        delta: &Self::Delta,
+        meter: &mut RetainedBoundBuilderV1,
+    ) -> Result<super::model::GraphDeltaProofV1, EditCommandError> {
+        let start = meter.bytes().get();
+        meter.owned(delta)?;
+        meter.owned(&self.value)?;
+        let pair = meter.bytes().get() - start;
+        Ok(super::model::GraphDeltaProofV1 {
+            revision: self.revision,
+            retained_pair_bytes: pair,
+            materialization_peak_bytes: pair
+                .checked_mul(2)
+                .ok_or(RetentionContractError::Overflow)?,
+        })
+    }
+    fn prepare_delta_v1(
+        &self,
+        delta: &Self::Delta,
+    ) -> Result<super::model::PreparedGraphDeltaV1<Self::Delta>, Infallible> {
+        self.preparations.fetch_add(1, Ordering::SeqCst);
+        // A shared immutable source remains valid: materialize the writable
+        // publication copy only after the engine grants this exact revision.
+        let mut forward = Vec::with_capacity(delta.len());
+        forward.extend_from_slice(delta.as_slice());
+        Ok(super::model::PreparedGraphDeltaV1 {
+            revision: self.revision,
+            forward: Arc::new(forward),
+            inverse: self.value.clone(),
+        })
+    }
+    fn apply_prepared_delta_v1(
+        &mut self,
+        prepared: &super::model::PreparedGraphDeltaV1<Self::Delta>,
+    ) -> Result<(), Infallible> {
+        assert_eq!(prepared.revision, self.revision);
+        self.value = prepared.forward.clone();
+        self.revision += 1;
+        Ok(())
+    }
+    fn nodes(&self) -> Vec<GraphNodeView<String>> {
+        Vec::new()
+    }
+    fn edges(&self) -> Vec<GraphEdgeView<String>> {
+        Vec::new()
+    }
+    fn palette(&self) -> &crate::core::editor_authoring_extension::GraphNodePaletteDescriptor {
+        unreachable!()
+    }
+    fn can_connect(
+        &self,
+        _: GraphPortRef<String>,
+        _: GraphPortRef<String>,
+    ) -> super::ConnectVerdict {
+        unreachable!()
+    }
+    fn structure_constraint(&self) -> StructureConstraint {
+        StructureConstraint::FreeGraph
+    }
+    fn apply(
+        &mut self,
+        delta: Self::Delta,
+    ) -> Result<GraphMutationEffect<Self::Delta>, Infallible> {
+        let inverse = std::mem::replace(&mut self.value, delta);
+        self.revision += 1;
+        Ok(GraphMutationEffect::Applied { inverse })
+    }
+}
+struct RetainedGraphContextV1 {
+    graph: RetainedGraphV1,
+    model_reads: Arc<AtomicUsize>,
+}
+impl EditContext for RetainedGraphContextV1 {
+    fn capture_world_route(&self, domain: WorldDomain) -> Result<EditWorldRoute, EditCommandError> {
+        Ok(EditWorldRoute::logical(domain))
+    }
+    fn activate_world_route(&mut self, _: &EditWorldRoute) -> Result<(), EditCommandError> {
+        Ok(())
+    }
+    fn retire_world_route(&mut self, _: WorldDomain) -> Result<(), EditCommandError> {
+        Ok(())
+    }
+    fn selection_retention_bound_v1(
+        &self,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<u64, EditCommandError> {
+        SelectionSnapshot::scalar_retention_bound_v1(model, limit)
+    }
+
+    fn selection_snapshot(&self) -> SelectionSnapshot {
+        SelectionSnapshot::default()
+    }
+    fn restore_selection(&mut self, _: &SelectionSnapshot) -> Result<(), EditCommandError> {
+        Ok(())
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+impl GraphEditContext<RetainedGraphV1, String> for RetainedGraphContextV1 {
+    fn graph_model(&self, _: &String) -> Result<&RetainedGraphV1, EditCommandError> {
+        self.model_reads.fetch_add(1, Ordering::SeqCst);
+        Ok(&self.graph)
+    }
+    fn graph_model_mut(&mut self, _: &String) -> Result<&mut RetainedGraphV1, EditCommandError> {
+        Ok(&mut self.graph)
+    }
+}
+struct RetainedGraphTargetV1 {
+    id: String,
+    domain: HistoryRetentionDomainV1,
+    retiring_seen: Arc<AtomicU64>,
+}
+impl RetainedOwnerV1 for RetainedGraphTargetV1 {
+    fn retained_bound_v1(
+        &self,
+        m: &mut RetainedBoundBuilderV1,
+    ) -> Result<(), RetentionContractError> {
+        self.id.retained_bound_v1(m)?;
+        self.retiring_seen.retained_bound_v1(m)
+        // The domain's separate mandatory ledger charges its own mutable storage.
+    }
+}
+unsafe impl ImmutableRetainedOwnerV1 for RetainedGraphTargetV1 {}
+impl Drop for RetainedGraphTargetV1 {
+    fn drop(&mut self) {
+        self.retiring_seen.store(
+            self.domain.snapshot().unwrap().retiring_bytes,
+            Ordering::SeqCst,
+        );
+    }
+}
+impl GraphEditContext<RetainedGraphV1, RetainedGraphTargetV1> for RetainedGraphContextV1 {
+    fn graph_model(&self, _: &RetainedGraphTargetV1) -> Result<&RetainedGraphV1, EditCommandError> {
+        self.model_reads.fetch_add(1, Ordering::SeqCst);
+        Ok(&self.graph)
+    }
+    fn graph_model_mut(
+        &mut self,
+        _: &RetainedGraphTargetV1,
+    ) -> Result<&mut RetainedGraphV1, EditCommandError> {
+        Ok(&mut self.graph)
+    }
+}
+fn retained_graph_engine_v1(
+    initial: usize,
+    capacity: usize,
+) -> (
+    EditorTransactionEngine,
+    Arc<AtomicUsize>,
+    Arc<AtomicUsize>,
+    HistoryRetentionDomainV1,
+) {
+    let preparations = Arc::new(AtomicUsize::new(0));
+    let reads = Arc::new(AtomicUsize::new(0));
+    let domain = HistoryRetentionDomainV1::try_new(HistoryRetentionBudgetV1 {
+        record_bytes: 32 * 1024,
+        history_bytes: 64 * 1024,
+        committed_bytes: 4 * 1024 * 1024,
+        staging_bytes: 1024 * 1024,
+    })
+    .unwrap();
+    let engine = EditorTransactionEngine::with_retention_domain_v1(
+        RetainedGraphContextV1 {
+            graph: RetainedGraphV1 {
+                value: Arc::new(vec![1; initial]),
+                revision: 0,
+                preparations: preparations.clone(),
+            },
+            model_reads: reads.clone(),
+        },
+        capacity,
+        domain.clone(),
+    )
+    .unwrap();
+    (engine, preparations, reads, domain)
+}
+
+#[test]
+fn graph_delta_prepares_the_inverse_bound_before_model_mutation() {
+    let (engine, preparations, _, _) = retained_graph_engine_v1(40 * 1024, 128);
+    let mut scope = engine
+        .begin("graph inverse", HistoryContextId::Global)
+        .unwrap();
+    let result = scope.push(GraphDeltaCommand::<
+        RetainedGraphV1,
+        RetainedGraphContextV1,
+        String,
+    >::new(
+        "small forward", "graph".to_string(), Arc::new(vec![2; 8])
+    ));
+    scope.cancel().unwrap();
+    assert!(matches!(result, Err(EditCommandError::Retention(_))));
+    assert_eq!(preparations.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        engine
+            .with_context::<RetainedGraphContextV1, _>(|c| (c.graph.value.len(), c.graph.revision))
+            .unwrap(),
+        Some((40 * 1024, 0))
+    );
+}
+
+#[test]
+fn graph_history_charges_label_and_target_capacity_before_model_access() {
+    let (engine, preparations, reads, _) = retained_graph_engine_v1(8, 128);
+    for large_label in [true, false] {
+        let mut label = String::with_capacity(if large_label { 40 * 1024 } else { 8 });
+        label.push_str("graph");
+        let mut target = String::with_capacity(if large_label { 8 } else { 40 * 1024 });
+        target.push_str("graph");
+        let mut scope = engine
+            .begin("owner refusal", HistoryContextId::Global)
+            .unwrap();
+        let result = scope.push(GraphDeltaCommand::<
+            RetainedGraphV1,
+            RetainedGraphContextV1,
+            String,
+        >::new(label, target, Arc::new(vec![2; 8])));
+        scope.cancel().unwrap();
+        assert!(matches!(result, Err(EditCommandError::Retention(_))));
+    }
+    assert_eq!(reads.load(Ordering::SeqCst), 0);
+    assert_eq!(preparations.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn graph_history_reserves_copy_on_write_and_replay_growth_before_mutation() {
+    let (engine, preparations, _, _) = retained_graph_engine_v1(32, 128);
+    let source = Arc::new(vec![7; 64]);
+    let source_copy = source.clone();
+    let mut scope = engine
+        .begin("shared source", HistoryContextId::Global)
+        .unwrap();
+    scope
+        .push(GraphDeltaCommand::<
+            RetainedGraphV1,
+            RetainedGraphContextV1,
+            String,
+        >::new("COW", "graph".to_string(), source))
+        .unwrap();
+    scope.commit().unwrap();
+    assert_eq!(source_copy.as_slice(), &[7; 64]);
+    assert_eq!(preparations.load(Ordering::SeqCst), 1);
+    engine
+        .with_context_mut::<RetainedGraphContextV1, _>(|context| {
+            context.graph.value = Arc::new(vec![9; 40 * 1024]);
+            context.graph.revision += 1;
+        })
+        .unwrap();
+    let before = engine.history_status(HistoryContextId::Global).unwrap();
+    let refused = engine.undo(HistoryContextId::Global);
+    assert!(matches!(refused, Err(EditCommandError::Retention(_))));
+    assert_eq!(
+        engine.history_status(HistoryContextId::Global).unwrap(),
+        before
+    );
+    assert_eq!(preparations.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        engine
+            .with_context::<RetainedGraphContextV1, _>(|c| c.graph.value.len())
+            .unwrap(),
+        Some(40 * 1024)
+    );
+}
+
+#[test]
+fn graph_history_keeps_last_owner_charged_until_unlocked_drop() {
+    let (engine, _, _, domain) = retained_graph_engine_v1(32, 1);
+    let seen = Arc::new(AtomicU64::new(0));
+    let mut scope = engine
+        .begin("graph owner", HistoryContextId::Global)
+        .unwrap();
+    scope
+        .push(GraphDeltaCommand::<
+            RetainedGraphV1,
+            RetainedGraphContextV1,
+            RetainedGraphTargetV1,
+        >::new(
+            "last owner",
+            RetainedGraphTargetV1 {
+                id: "graph".to_string(),
+                domain: domain.clone(),
+                retiring_seen: seen.clone(),
+            },
+            Arc::new(vec![3; 1024]),
+        ))
+        .unwrap();
+    scope.commit().unwrap();
+    let mut scope = engine
+        .begin("retire graph owner", HistoryContextId::Global)
+        .unwrap();
+    scope
+        .push(GraphDeltaCommand::<
+            RetainedGraphV1,
+            RetainedGraphContextV1,
+            String,
+        >::new(
+            "next", "graph".to_string(), Arc::new(vec![4; 64])
+        ))
+        .unwrap();
+    scope.commit().unwrap();
+    assert!(seen.load(Ordering::SeqCst) >= 1024);
+    assert_eq!(domain.snapshot().unwrap().retiring_bytes, 0);
 }

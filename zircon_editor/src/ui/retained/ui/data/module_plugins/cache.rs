@@ -7,12 +7,14 @@ use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 
 const MAX_CACHED_MODULE_PLUGIN_PANES: usize = 8;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct ModulePluginsPaneProjectionCacheKey {
     pub document_identity: usize,
     pub uses_template: bool,
     pub width_bits: u32,
     pub height_bits: u32,
+    pub detail_generation: u64,
+    pub detail_locale: String,
 }
 
 #[derive(Clone)]
@@ -33,14 +35,14 @@ impl ModulePluginsPaneProjectionCache {
     pub(super) fn cached(
         &mut self,
         pane_id: &str,
-        key: ModulePluginsPaneProjectionCacheKey,
+        key: &ModulePluginsPaneProjectionCacheKey,
         plugins: &ModelRc<ModulePluginStatusViewData>,
         diagnostics: &SharedString,
     ) -> Option<ModulePluginsPaneData> {
         self.use_sequence = self.use_sequence.wrapping_add(1);
         let last_used = self.use_sequence;
         let entry = self.entries.get_mut(pane_id)?;
-        if entry.key != key
+        if &entry.key != key
             || !entry.source_plugins.shares_values_with(plugins)
             || entry.pane.diagnostics.as_str() != diagnostics.as_str()
         {

@@ -21,13 +21,14 @@ impl BundleInsertionTransaction<'_> {
                 let lifecycle_start = self.world.staged_lifecycle_events.len();
                 let prior_lifecycle_staging =
                     std::mem::replace(&mut self.world.record_staged_lifecycle_events, true);
-                let staging_guard = LifecycleStagingGuard::new(
+                let mut staging_guard = LifecycleStagingGuard::new(
                     self.world,
                     prior_lifecycle_staging,
                     lifecycle_start,
                 );
-                let result = self.world.remove_entity(self.entity);
-                self.world.record_staged_lifecycle_events = prior_lifecycle_staging;
+                let world = staging_guard.world();
+                let result = world.remove_entity(self.entity);
+                world.record_staged_lifecycle_events = prior_lifecycle_staging;
                 drop(staging_guard);
                 if result.is_err() {
                     self.world.staged_lifecycle_events.truncate(lifecycle_start);
@@ -92,13 +93,14 @@ impl BundleInsertionTransaction<'_> {
         self.materialize_reserved_component_types();
         let archetype_assignments_before = self.world.archetype_assignment_count();
         let boundary = self.begin_commit(commit_input);
-        let staging_guard = LifecycleStagingGuard::new(
+        let mut staging_guard = LifecycleStagingGuard::new(
             self.world,
             boundary.prior_lifecycle_staging,
             boundary.lifecycle_start,
         );
+        let world = staging_guard.world();
         let staged_value_allocations = self.default_value_count + self.component_count;
-        let tick = self.world.mutation_change_tick();
+        let tick = world.mutation_change_tick();
         let mut table_values: [Option<TableBundlePublication>; MAX_BUNDLE_COMPONENT_TYPES] =
             std::array::from_fn(|_| None);
         let mut table_value_count = 0_usize;
@@ -119,13 +121,12 @@ impl BundleInsertionTransaction<'_> {
             {
                 continue;
             }
-            let was_present = self
-                .world
-                .contains_component_id(self.entity, default_value.component_id());
+            let was_present =
+                world.contains_component_id(self.entity, default_value.component_id());
             effects[effect_count] =
                 Some(default_value.prepare_effect(was_present, hierarchy_parent_before));
             effect_count += 1;
-            match default_value.publish_value(&mut *self.world, boundary.internal, tick) {
+            match default_value.publish_value(&mut *world, boundary.internal, tick) {
                 PendingBundlePublication::Table(value) => {
                     table_values[table_value_count] = Some(value);
                     table_value_count += 1;
@@ -142,14 +143,13 @@ impl BundleInsertionTransaction<'_> {
             .flatten()
         {
             debug_assert!(matches!(
-                self.world
+                world
                     .component_registry
                     .rust_type_for_id(prepared.preflight.component_id),
                 Some((type_id, _)) if type_id == prepared.preflight.type_id
             ));
-            let was_present = self
-                .world
-                .contains_component_id(self.entity, prepared.preflight.component_id);
+            let was_present =
+                world.contains_component_id(self.entity, prepared.preflight.component_id);
             effects[effect_count] = Some(
                 prepared
                     .component
@@ -158,7 +158,7 @@ impl BundleInsertionTransaction<'_> {
             effect_count += 1;
             match prepared
                 .component
-                .publish_value(&mut *self.world, boundary.internal, tick)
+                .publish_value(&mut *world, boundary.internal, tick)
             {
                 PendingBundlePublication::Table(value) => {
                     table_values[table_value_count] = Some(value);
@@ -171,8 +171,7 @@ impl BundleInsertionTransaction<'_> {
             component_storage_moves += 1;
         }
 
-        let current_signature = self
-            .world
+        let current_signature = world
             .entity_archetype_signature(self.entity)
             .expect("bundle target must own an archetype row at publication");
         let final_archetype_transition = current_signature != final_signature;
@@ -214,8 +213,7 @@ impl BundleInsertionTransaction<'_> {
                 updates.insert(removal.component_id(), None);
             }
             let mut transition =
-                self.world
-                    .transition_entity_archetype_row(self.entity, final_signature, updates);
+                world.transition_entity_archetype_row(self.entity, final_signature, updates);
             let previous = transition
                 .as_mut()
                 .expect("a changed deferred final signature must transition one row");
@@ -227,17 +225,16 @@ impl BundleInsertionTransaction<'_> {
                 let (value, _) = previous
                     .remove(&removal.component_id())
                     .expect("preflighted deferred table removal must take its old value");
-                removal.publish_table(&mut *self.world, self.entity, value);
+                removal.publish_table(&mut *world, self.entity, value);
             }
         } else {
             debug_assert_eq!(table_removal_count, 0);
-            let location = self
-                .world
+            let location = world
                 .internal_entity_location(self.entity)
                 .expect("bundle target must retain its archetype row")
                 .location;
             for publication in table_values.into_iter().take(table_value_count).flatten() {
-                let replaced = self.world.archetype_index.replace(
+                let replaced = world.archetype_index.replace(
                     location.archetype_id,
                     location.table_row,
                     publication.component_id,
@@ -252,56 +249,50 @@ impl BundleInsertionTransaction<'_> {
             .take(sparse_removal_count)
             .flatten()
         {
-            let removed = removal.publish_sparse(&mut *self.world, self.entity, boundary.internal);
+            let removed = removal.publish_sparse(&mut *world, self.entity, boundary.internal);
             debug_assert!(removed);
         }
         component_storage_moves += table_removal_count + sparse_removal_count;
         if let Some(current_parent) = self.staged_hierarchy_parent {
-            self.world.update_hierarchy_mutation_index(
+            world.update_hierarchy_mutation_index(
                 self.entity,
                 hierarchy_parent_before,
                 current_parent,
             );
         }
         for effect in effects.into_iter().take(effect_count).flatten() {
-            effect.apply(&mut *self.world, self.entity);
+            effect.apply(&mut *world, self.entity);
         }
         if final_archetype_transition {
-            self.world.bump_lifecycle_visibility_revision();
+            world.bump_lifecycle_visibility_revision();
         }
         if boundary.spawned_entity {
-            self.world.mark_derived_state_dirty();
-            self.world
-                .inspection_artifact_cache
-                .mark_hierarchy_rows_dirty();
-            self.world
-                .advance_scene_binding_generations_for_new_descendant(self.entity);
+            world.mark_derived_state_dirty();
+            world.inspection_artifact_cache.mark_hierarchy_rows_dirty();
+            world.advance_scene_binding_generations_for_new_descendant(self.entity);
         }
-        self.world.advance_world_generation();
+        world.advance_world_generation();
         if boundary.spawned_entity {
-            self.world
-                .record_world_fact(WorldFact::Spawned(self.entity));
+            world.record_world_fact(WorldFact::Spawned(self.entity));
             if let Some(token) = deferred_spawn {
-                self.world.mark_deferred_spawn_published(token);
+                world.mark_deferred_spawn_published(token);
             }
         }
-        let lifecycle_events = self
-            .world
+        let lifecycle_events = world
             .staged_lifecycle_events
             .len()
             .saturating_sub(boundary.lifecycle_start);
-        let archetype_assignments = self
-            .world
+        let archetype_assignments = world
             .archetype_assignment_count()
             .saturating_sub(archetype_assignments_before);
-        self.world.record_bundle_transaction_diagnostics(
+        world.record_bundle_transaction_diagnostics(
             final_archetype_transition,
             archetype_assignments,
             component_storage_moves,
             lifecycle_events,
             staged_value_allocations,
         );
-        self.world.record_staged_lifecycle_events = boundary.prior_lifecycle_staging;
+        world.record_staged_lifecycle_events = boundary.prior_lifecycle_staging;
         drop(staging_guard);
         if boundary.prior_lifecycle_staging {
             return Ok(());

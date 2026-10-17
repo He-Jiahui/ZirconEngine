@@ -81,23 +81,19 @@ fn no_reparse_open_rejects_a_junction_installed_after_parent_admission() {
     fs::create_dir(&target).unwrap();
     fixture.held = Some(open(&fixture.junction, FILE_OPEN_IF, true).unwrap());
     set_junction(&fixture.junction, &target).unwrap();
-    assert!(
-        open(
-            &fixture.junction.join("redirected.dat"),
-            FILE_OPEN_IF,
-            false
-        )
-        .is_err()
-    );
+    assert!(open(
+        &fixture.junction.join("redirected.dat"),
+        FILE_OPEN_IF,
+        false
+    )
+    .is_err());
     assert!(!target.join("redirected.dat").exists());
-    assert!(
-        open(
-            &fixture.junction.join("redirected-directory"),
-            FILE_OPEN_IF,
-            true
-        )
-        .is_err()
-    );
+    assert!(open(
+        &fixture.junction.join("redirected-directory"),
+        FILE_OPEN_IF,
+        true
+    )
+    .is_err());
     assert!(!target.join("redirected-directory").exists());
     // Confirm that the fixture redirects an ordinary path open.
     fs::write(fixture.junction.join("control"), b"redirected").unwrap();

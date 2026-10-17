@@ -5,10 +5,13 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use image::{ImageBuffer, ImageFormat, Rgba};
+use zircon_runtime::asset::assets::{AlphaMode, MaterialAsset};
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
+use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::asset::{
-    cook_virtual_geometry_from_mesh, AssetManager, AssetUri, MeshVertex, ModelAsset,
-    ModelPrimitiveAsset, ProjectManifest, VirtualGeometryCookConfig,
+    cook_virtual_geometry_from_mesh, AssetManager, AssetReference, AssetUri, MeshVertex,
+    ModelAsset, ModelPrimitiveAsset, ProjectManifest, VirtualGeometryCookConfig,
 };
 use zircon_runtime::core::framework::render::{
     render_mesh_stable_instance_key, render_mesh_transform_revision, DisplayMode,
@@ -22,9 +25,22 @@ use zircon_runtime::core::framework::render::{
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use zircon_runtime::graphics::{
+    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
+    RenderPipelineAsset, RenderPipelineCompileOptions,
+};
 use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
 
-use crate::test_support::render_feature_fixtures::pluginized_wgpu_render_framework_with_asset_manager;
+use crate::{
+    test_support::render_feature_fixtures::{
+        pluginized_wgpu_render_framework_with_asset_manager,
+        virtual_geometry_render_feature_descriptor,
+    },
+    virtual_geometry::{
+        VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
+        VirtualGeometryPrepareDrawSegment, VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
+    },
+};
 
 const RTX_3060_ADAPTER_NAME: &str = "NVIDIA GeForce RTX 3060";
 const VIRTUAL_GEOMETRY_EXECUTOR_IDS: [&str; 5] = [
@@ -218,33 +234,27 @@ fn render_framework_stats_follow_public_virtual_geometry_execution_segments() {
         "expected public RenderFramework stats to count the visibility-owned VG execution segment produced by the authored cluster"
     );
     assert_eq!(
-        stats.last_virtual_geometry_execution_segment_count,
-        1,
+        stats.last_virtual_geometry_execution_segment_count, 1,
         "expected render-framework stats to expose the single execution segment selected from the authored VG extract"
     );
     assert_eq!(
-        stats.last_virtual_geometry_execution_page_count,
-        1,
+        stats.last_virtual_geometry_execution_page_count, 1,
         "expected render-framework stats to expose the execution subset page count rather than only the prepare-owned page universe"
     );
     assert_eq!(
-        stats.last_virtual_geometry_execution_resident_segment_count,
-        1,
+        stats.last_virtual_geometry_execution_resident_segment_count, 1,
         "expected render-framework stats to classify the authored cluster execution segment as resident"
     );
     assert_eq!(
-        stats.last_virtual_geometry_execution_pending_segment_count,
-        0,
+        stats.last_virtual_geometry_execution_pending_segment_count, 0,
         "expected render-framework stats to keep pending-upload execution counts at zero for the fully resident authored extract"
     );
     assert_eq!(
-        stats.last_virtual_geometry_execution_missing_segment_count,
-        0,
+        stats.last_virtual_geometry_execution_missing_segment_count, 0,
         "expected render-framework stats to keep missing execution counts at zero for the fully resident authored extract"
     );
     assert_eq!(
-        stats.last_virtual_geometry_execution_repeated_draw_count,
-        0,
+        stats.last_virtual_geometry_execution_repeated_draw_count, 0,
         "expected the authored single-cluster VG extract to report no repeated execution draw expansion"
     );
     assert_eq!(
@@ -747,7 +757,7 @@ fn cooked_triangle_project() -> (
     };
     fs::write(
         model_dir.join("vg_triangle.model.toml"),
-        model_asset.to_toml_string().unwrap(),
+        toml::to_string_pretty(&model_asset).unwrap(),
     )
     .unwrap();
 
@@ -809,7 +819,7 @@ fn cooked_two_page_project() -> (
     };
     fs::write(
         model_dir.join("vg_two_pages.model.toml"),
-        model_asset.to_toml_string().unwrap(),
+        toml::to_string_pretty(&model_asset).unwrap(),
     )
     .unwrap();
 
@@ -835,4 +845,684 @@ fn resource_handle<T>(asset_manager: &ProjectAssetManager, uri: &str) -> Resourc
             .resolve_asset_id(&AssetUri::parse(uri).unwrap())
             .unwrap_or_else(|| panic!("missing resource id for {uri}")),
     )
+}
+
+#[test]
+fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_primitives_only_change_model_enumeration_order(
+) {
+    let root = unique_temp_graphics_root("graphics_virtual_geometry_multi_primitive_order");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryMultiPrimitiveOrder",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_double_quad_gltf(
+        paths
+            .assets_root()
+            .join("models")
+            .join("double_quad_lr.gltf"),
+        false,
+    );
+    write_double_quad_gltf(
+        paths
+            .assets_root()
+            .join("models")
+            .join("double_quad_rl.gltf"),
+        true,
+    );
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.zmaterial"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let left_then_right_model =
+        resource_handle::<ModelMarker>(&asset_manager, "res://models/double_quad_lr.gltf");
+    let right_then_left_model =
+        resource_handle::<ModelMarker>(&asset_manager, "res://models/double_quad_rl.gltf");
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
+    let viewport_size = UVec2::new(160, 120);
+    let left_then_right_extract =
+        build_single_entity_extract(viewport_size, left_then_right_model, green_material);
+    let right_then_left_extract =
+        build_single_entity_extract(viewport_size, right_then_left_model, green_material);
+    let compiled = compile_virtual_geometry_pipeline(&left_then_right_extract);
+
+    let prepare = Some(VirtualGeometryPrepareFrame {
+        visible_entities: vec![2],
+        visible_clusters: vec![VirtualGeometryPrepareCluster {
+            entity: 2,
+            cluster_id: 2,
+            page_id: 300,
+            lod_level: 0,
+            resident_slot: Some(1),
+            state: VirtualGeometryPrepareClusterState::Resident,
+        }],
+        cluster_draw_segments: vec![draw_segment_with_span(
+            2,
+            2,
+            300,
+            Some(1),
+            0,
+            1,
+            1,
+            0,
+            VirtualGeometryPrepareClusterState::Resident,
+        )],
+        resident_pages: vec![VirtualGeometryPreparePage {
+            page_id: 300,
+            slot: 1,
+            size_bytes: 4096,
+        }],
+        pending_page_requests: Vec::new(),
+        available_slots: Vec::new(),
+        evictable_pages: Vec::new(),
+    });
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
+    let ((_, left_rgba, _), (_, right_rgba, _)) = renderer
+        .render_compiled_virtual_geometry_captured_test_frame_pair(
+            viewport_size,
+            (left_then_right_extract, prepare.clone()),
+            (right_then_left_extract, prepare),
+            &compiled,
+        )
+        .unwrap();
+    let left_then_right = ActualCapturedVirtualGeometryFrame { rgba: left_rgba };
+    let right_then_left = ActualCapturedVirtualGeometryFrame { rgba: right_rgba };
+
+    assert_eq!(
+        left_then_right.rgba, right_then_left.rgba,
+        "expected same-segment repeated primitive compaction to stay stable when only glTF primitive enumeration order changes; model import order should not keep deciding which geometry gets the compacted indirect slot"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_primitives_only_change_model_enumeration_order_with_distinct_uvs(
+) {
+    let root = unique_temp_graphics_root("graphics_virtual_geometry_multi_primitive_uv_order");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryMultiPrimitiveUvOrder",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_textured_color_wgsl(
+        paths
+            .assets_root()
+            .join("shaders")
+            .join("textured_color.wgsl"),
+    );
+    write_split_color_png(
+        paths.assets_root().join("textures").join("split_rg.png"),
+        [255, 32, 32, 255],
+        [32, 32, 255, 255],
+    );
+    write_overlapping_uv_gltf(
+        paths
+            .assets_root()
+            .join("models")
+            .join("overlap_uv_lr.gltf"),
+        false,
+    );
+    write_overlapping_uv_gltf(
+        paths
+            .assets_root()
+            .join("models")
+            .join("overlap_uv_rl.gltf"),
+        true,
+    );
+    write_material_with_base_color_and_alpha_mode(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("textured_blend.zmaterial"),
+        "res://shaders/textured_color.wgsl",
+        "res://textures/split_rg.png",
+        [1.0, 1.0, 1.0, 0.65],
+        AlphaMode::Blend,
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let left_then_right_model =
+        resource_handle::<ModelMarker>(&asset_manager, "res://models/overlap_uv_lr.gltf");
+    let right_then_left_model =
+        resource_handle::<ModelMarker>(&asset_manager, "res://models/overlap_uv_rl.gltf");
+    let blend_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/textured_blend.zmaterial",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let left_then_right_extract =
+        build_single_entity_extract(viewport_size, left_then_right_model, blend_material);
+    let right_then_left_extract =
+        build_single_entity_extract(viewport_size, right_then_left_model, blend_material);
+    let compiled = compile_virtual_geometry_pipeline(&left_then_right_extract);
+
+    let prepare = Some(VirtualGeometryPrepareFrame {
+        visible_entities: vec![2],
+        visible_clusters: vec![VirtualGeometryPrepareCluster {
+            entity: 2,
+            cluster_id: 2,
+            page_id: 300,
+            lod_level: 0,
+            resident_slot: Some(1),
+            state: VirtualGeometryPrepareClusterState::Resident,
+        }],
+        cluster_draw_segments: vec![draw_segment_with_span(
+            2,
+            2,
+            300,
+            Some(1),
+            0,
+            1,
+            1,
+            0,
+            VirtualGeometryPrepareClusterState::Resident,
+        )],
+        resident_pages: vec![VirtualGeometryPreparePage {
+            page_id: 300,
+            slot: 1,
+            size_bytes: 4096,
+        }],
+        pending_page_requests: Vec::new(),
+        available_slots: Vec::new(),
+        evictable_pages: Vec::new(),
+    });
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
+    let ((_, left_rgba, _), (_, right_rgba, _)) = renderer
+        .render_compiled_virtual_geometry_captured_test_frame_pair(
+            viewport_size,
+            (left_then_right_extract, prepare.clone()),
+            (right_then_left_extract, prepare),
+            &compiled,
+        )
+        .unwrap();
+    let left_then_right = ActualCapturedVirtualGeometryFrame { rgba: left_rgba };
+    let right_then_left = ActualCapturedVirtualGeometryFrame { rgba: right_rgba };
+
+    assert_eq!(
+        left_then_right.rgba, right_then_left.rgba,
+        "expected same-segment repeated primitive compaction to stay stable when only glTF primitive enumeration order changes for overlapping primitives with different texcoords; mesh import order must not keep deciding which UV-colored primitive owns the compacted indirect slot"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+fn compile_virtual_geometry_pipeline(extract: &RenderFrameExtract) -> CompiledRenderPipeline {
+    RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([virtual_geometry_render_feature_descriptor()])
+        .compile_with_options(
+            extract,
+            &RenderPipelineCompileOptions::default()
+                .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap()
+}
+
+fn virtual_geometry_scene_renderer(
+    asset_manager: Arc<ProjectAssetManager>,
+) -> crate::test_support::render_feature_fixtures::PluginizedWgpuRenderFrameworkFixture {
+    crate::test_support::render_feature_fixtures::pluginized_wgpu_render_framework_with_uploader_collector(
+        asset_manager, Arc::new(crate::virtual_geometry::VirtualGeometryUploaderTestCollector::default()),
+    )
+}
+
+fn draw_segment_with_span(
+    entity: u64,
+    cluster_id: u32,
+    page_id: u32,
+    resident_slot: Option<u32>,
+    cluster_ordinal: u32,
+    cluster_span_count: u32,
+    cluster_count: u32,
+    lod_level: u8,
+    state: VirtualGeometryPrepareClusterState,
+) -> crate::virtual_geometry::types::VirtualGeometryPrepareDrawSegment {
+    crate::virtual_geometry::types::VirtualGeometryPrepareDrawSegment {
+        entity,
+        cluster_id,
+        page_id,
+        resident_slot,
+        cluster_ordinal,
+        cluster_span_count,
+        cluster_count,
+        lineage_depth: u32::from(lod_level),
+        lod_level,
+        state,
+    }
+}
+
+fn write_flat_color_wgsl(path: PathBuf, color: [f32; 3]) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(
+        path,
+        format!(
+            r#"
+struct SceneUniform {{
+    view_proj: mat4x4<f32>,
+    light_dir: vec4<f32>,
+    light_color: vec4<f32>,
+    ambient_color: vec4<f32>,
+}};
+struct ModelUniform {{
+    model: mat4x4<f32>,
+    tint: vec4<f32>,
+}};
+@group(0) @binding(0) var<uniform> scene: SceneUniform;
+@group(1) @binding(0) var<uniform> model_data: ModelUniform;
+@group(2) @binding(0) var albedo_tex: texture_2d<f32>;
+@group(2) @binding(1) var albedo_sampler: sampler;
+
+struct VertexInput {{
+    @location(0) position: vec3<f32>,
+    @location(1) normal: vec3<f32>,
+    @location(2) uv: vec2<f32>,
+}};
+
+struct VertexOutput {{
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) uv: vec2<f32>,
+}};
+
+@vertex
+fn vs_main(input: VertexInput) -> VertexOutput {{
+    var output: VertexOutput;
+    let world = model_data.model * vec4<f32>(input.position, 1.0);
+    output.clip_position = scene.view_proj * world;
+    output.uv = input.uv;
+    return output;
+}}
+
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {{
+    let alpha = textureSample(albedo_tex, albedo_sampler, input.uv).a;
+    return vec4<f32>({:.6}, {:.6}, {:.6}, alpha) * model_data.tint;
+}}
+"#,
+            color[0], color[1], color[2]
+        ),
+    )
+    .unwrap();
+}
+
+fn write_textured_color_wgsl(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(
+        path,
+        r#"
+struct SceneUniform {
+    view_proj: mat4x4<f32>,
+    light_dir: vec4<f32>,
+    light_color: vec4<f32>,
+    ambient_color: vec4<f32>,
+};
+struct ModelUniform {
+    model: mat4x4<f32>,
+    tint: vec4<f32>,
+};
+@group(0) @binding(0) var<uniform> scene: SceneUniform;
+@group(1) @binding(0) var<uniform> model_data: ModelUniform;
+@group(2) @binding(0) var albedo_tex: texture_2d<f32>;
+@group(2) @binding(1) var albedo_sampler: sampler;
+
+struct VertexInput {
+    @location(0) position: vec3<f32>,
+    @location(1) normal: vec3<f32>,
+    @location(2) uv: vec2<f32>,
+};
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) uv: vec2<f32>,
+};
+
+@vertex
+fn vs_main(input: VertexInput) -> VertexOutput {
+    var output: VertexOutput;
+    let world = model_data.model * vec4<f32>(input.position, 1.0);
+    output.clip_position = scene.view_proj * world;
+    output.uv = input.uv;
+    return output;
+}
+
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    return textureSample(albedo_tex, albedo_sampler, input.uv) * model_data.tint;
+}
+"#,
+    )
+    .unwrap();
+}
+
+fn write_solid_png(path: PathBuf, rgba: [u8; 4]) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    ImageBuffer::<Rgba<u8>, _>::from_fn(2, 2, |_x, _y| Rgba(rgba))
+        .save_with_format(path, ImageFormat::Png)
+        .unwrap();
+}
+
+fn write_split_color_png(path: PathBuf, left_rgba: [u8; 4], right_rgba: [u8; 4]) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    ImageBuffer::<Rgba<u8>, _>::from_fn(2, 1, |x, _y| {
+        if x == 0 {
+            Rgba(left_rgba)
+        } else {
+            Rgba(right_rgba)
+        }
+    })
+    .save_with_format(path, ImageFormat::Png)
+    .unwrap();
+}
+
+fn write_double_quad_gltf(path: PathBuf, reverse_primitive_order: bool) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+
+    let mut binary = Vec::new();
+    for value in [
+        -1.0f32, -1.0, 0.0, //
+        0.0, -1.0, 0.0, //
+        0.0, 1.0, 0.0, //
+        -1.0, 1.0, 0.0,
+    ] {
+        binary.extend_from_slice(&value.to_le_bytes());
+    }
+    for index in [0u32, 1, 2, 0, 2, 3] {
+        binary.extend_from_slice(&index.to_le_bytes());
+    }
+    for value in [
+        0.0f32, -1.0, 0.0, //
+        1.0, -1.0, 0.0, //
+        1.0, 1.0, 0.0, //
+        0.0, 1.0, 0.0,
+    ] {
+        binary.extend_from_slice(&value.to_le_bytes());
+    }
+    for index in [0u32, 1, 2, 0, 2, 3] {
+        binary.extend_from_slice(&index.to_le_bytes());
+    }
+
+    let generated_name = if reverse_primitive_order {
+        "double_quad_rl.bin"
+    } else {
+        "double_quad_lr.bin"
+    };
+    let buffer_path = path
+        .ancestors()
+        .nth(3)
+        .expect("gltf path should live under <root>/assets/models")
+        .join(".generated")
+        .join(generated_name);
+    if let Some(parent) = buffer_path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(&buffer_path, &binary).unwrap();
+
+    let primitive_json = if reverse_primitive_order {
+        r#"
+        {"attributes":{"POSITION":2},"indices":3},
+        {"attributes":{"POSITION":0},"indices":1}
+"#
+    } else {
+        r#"
+        {"attributes":{"POSITION":0},"indices":1},
+        {"attributes":{"POSITION":2},"indices":3}
+"#
+    };
+    let gltf = format!(
+        r#"{{
+  "asset": {{"version": "2.0"}},
+  "buffers": [
+    {{"uri": "../../.generated/{generated_name}", "byteLength": {}}}
+  ],
+  "bufferViews": [
+    {{"buffer":0,"byteOffset":0,"byteLength":48,"target":34962}},
+    {{"buffer":0,"byteOffset":48,"byteLength":24,"target":34963}},
+    {{"buffer":0,"byteOffset":72,"byteLength":48,"target":34962}},
+    {{"buffer":0,"byteOffset":120,"byteLength":24,"target":34963}}
+  ],
+  "accessors": [
+    {{"bufferView":0,"componentType":5126,"count":4,"type":"VEC3","min":[-1.0,-1.0,0.0],"max":[0.0,1.0,0.0]}},
+    {{"bufferView":1,"componentType":5125,"count":6,"type":"SCALAR","min":[0],"max":[3]}},
+    {{"bufferView":2,"componentType":5126,"count":4,"type":"VEC3","min":[0.0,-1.0,0.0],"max":[1.0,1.0,0.0]}},
+    {{"bufferView":3,"componentType":5125,"count":6,"type":"SCALAR","min":[0],"max":[3]}}
+  ],
+  "meshes": [
+    {{
+      "primitives": [{primitive_json}
+      ]
+    }}
+  ],
+  "nodes": [
+    {{"mesh": 0}}
+  ],
+  "scenes": [
+    {{"nodes": [0]}}
+  ],
+  "scene": 0
+}}"#,
+        binary.len()
+    );
+    fs::write(path, gltf).unwrap();
+}
+
+fn write_overlapping_uv_gltf(path: PathBuf, reverse_primitive_order: bool) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+
+    let quad_positions = [
+        -1.0f32, -1.0, 0.0, //
+        1.0, -1.0, 0.0, //
+        1.0, 1.0, 0.0, //
+        -1.0, 1.0, 0.0,
+    ];
+    let quad_indices = [0u32, 1, 2, 0, 2, 3];
+    let left_uvs = [
+        0.0f32, 1.0, //
+        0.49, 1.0, //
+        0.49, 0.0, //
+        0.0, 0.0,
+    ];
+    let right_uvs = [
+        0.51f32, 1.0, //
+        1.0, 1.0, //
+        1.0, 0.0, //
+        0.51, 0.0,
+    ];
+
+    let mut binary = Vec::new();
+    for value in quad_positions {
+        binary.extend_from_slice(&value.to_le_bytes());
+    }
+    for value in left_uvs {
+        binary.extend_from_slice(&value.to_le_bytes());
+    }
+    for index in quad_indices {
+        binary.extend_from_slice(&index.to_le_bytes());
+    }
+    for value in quad_positions {
+        binary.extend_from_slice(&value.to_le_bytes());
+    }
+    for value in right_uvs {
+        binary.extend_from_slice(&value.to_le_bytes());
+    }
+    for index in quad_indices {
+        binary.extend_from_slice(&index.to_le_bytes());
+    }
+
+    let generated_name = if reverse_primitive_order {
+        "overlap_uv_rl.bin"
+    } else {
+        "overlap_uv_lr.bin"
+    };
+    let buffer_path = path
+        .ancestors()
+        .nth(3)
+        .expect("gltf path should live under <root>/assets/models")
+        .join(".generated")
+        .join(generated_name);
+    if let Some(parent) = buffer_path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(&buffer_path, &binary).unwrap();
+
+    let primitive_json = if reverse_primitive_order {
+        r#"
+        {"attributes":{"POSITION":3,"TEXCOORD_0":4},"indices":5},
+        {"attributes":{"POSITION":0,"TEXCOORD_0":1},"indices":2}
+"#
+    } else {
+        r#"
+        {"attributes":{"POSITION":0,"TEXCOORD_0":1},"indices":2},
+        {"attributes":{"POSITION":3,"TEXCOORD_0":4},"indices":5}
+"#
+    };
+    let gltf = format!(
+        r#"{{
+  "asset": {{"version": "2.0"}},
+  "buffers": [
+    {{"uri": "../../.generated/{generated_name}", "byteLength": {}}}
+  ],
+  "bufferViews": [
+    {{"buffer":0,"byteOffset":0,"byteLength":48,"target":34962}},
+    {{"buffer":0,"byteOffset":48,"byteLength":32,"target":34962}},
+    {{"buffer":0,"byteOffset":80,"byteLength":24,"target":34963}},
+    {{"buffer":0,"byteOffset":104,"byteLength":48,"target":34962}},
+    {{"buffer":0,"byteOffset":152,"byteLength":32,"target":34962}},
+    {{"buffer":0,"byteOffset":184,"byteLength":24,"target":34963}}
+  ],
+  "accessors": [
+    {{"bufferView":0,"componentType":5126,"count":4,"type":"VEC3","min":[-1.0,-1.0,0.0],"max":[1.0,1.0,0.0]}},
+    {{"bufferView":1,"componentType":5126,"count":4,"type":"VEC2","min":[0.0,0.0],"max":[0.49,1.0]}},
+    {{"bufferView":2,"componentType":5125,"count":6,"type":"SCALAR","min":[0],"max":[3]}},
+    {{"bufferView":3,"componentType":5126,"count":4,"type":"VEC3","min":[-1.0,-1.0,0.0],"max":[1.0,1.0,0.0]}},
+    {{"bufferView":4,"componentType":5126,"count":4,"type":"VEC2","min":[0.51,0.0],"max":[1.0,1.0]}},
+    {{"bufferView":5,"componentType":5125,"count":6,"type":"SCALAR","min":[0],"max":[3]}}
+  ],
+  "meshes": [
+    {{
+      "primitives": [{primitive_json}
+      ]
+    }}
+  ],
+  "nodes": [
+    {{"mesh": 0}}
+  ],
+  "scenes": [
+    {{"nodes": [0]}}
+  ],
+  "scene": 0
+}}"#,
+        binary.len()
+    );
+    fs::write(path, gltf).unwrap();
+}
+
+fn write_material(path: PathBuf, shader_uri: &str, texture_uri: &str) {
+    write_material_with_base_color_and_alpha_mode(
+        path,
+        shader_uri,
+        texture_uri,
+        [1.0, 1.0, 1.0, 1.0],
+        AlphaMode::Opaque,
+    );
+}
+
+fn write_material_with_base_color_and_alpha_mode(
+    path: PathBuf,
+    shader_uri: &str,
+    texture_uri: &str,
+    base_color: [f32; 4],
+    alpha_mode: AlphaMode,
+) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    let material = MaterialAsset {
+        name: Some("VirtualGeometryTest".to_string()),
+        shader: asset_reference(shader_uri),
+        parent: None,
+        options: Default::default(),
+        queue: None,
+        base_color,
+        base_color_texture: Some(asset_reference(texture_uri)),
+        normal_texture: None,
+        metallic: 0.0,
+        roughness: 1.0,
+        metallic_roughness_texture: None,
+        occlusion_texture: None,
+        emissive: [0.0, 0.0, 0.0],
+        emissive_texture: None,
+        alpha_mode,
+        double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
+    };
+    fs::write(path, material.to_toml_string().unwrap()).unwrap();
+}
+
+fn asset_reference(uri: &str) -> AssetReference {
+    AssetReference::from_locator(AssetUri::parse(uri).unwrap())
+}
+
+struct ActualCapturedVirtualGeometryFrame {
+    rgba: Vec<u8>,
 }

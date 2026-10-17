@@ -64,6 +64,7 @@ fn one_thousand_stable_projection_reads_reuse_one_generation_at_1_100_1000_plugi
 
 fn status_report_with_plugin_count(plugin_count: usize) -> Arc<EditorPluginStatusReport> {
     Arc::new(EditorPluginStatusReport {
+        enablement: None,
         plugins: (0..plugin_count)
             .map(|index| EditorPluginStatus {
                 plugin_id: format!("test.plugin.{index:04}"),

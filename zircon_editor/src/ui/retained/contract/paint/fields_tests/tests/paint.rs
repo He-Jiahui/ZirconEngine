@@ -216,7 +216,14 @@ fn search_workbench_field_paints_a_clear_action_only_for_a_nonempty_query() {
 
 #[test]
 fn authored_property_field_paints_name_outside_the_value_surface() {
-    let mut node = positioned_field_node("WorkbenchComponentPropertyVirtualRow0", "200", 0.0, 8.0, 240.0, 28.0);
+    let mut node = positioned_field_node(
+        "WorkbenchComponentPropertyVirtualRow0",
+        "200",
+        0.0,
+        8.0,
+        240.0,
+        28.0,
+    );
     node.text = "Far".into();
     node.authored_field_label_width = Some(92.0);
     node.authored_field_padding = [Some(8.0), Some(8.0), Some(4.0), Some(4.0)];
@@ -225,6 +232,12 @@ fn authored_property_field_paints_name_outside_the_value_surface() {
     let bytes = paint_template_nodes_for_test(240, 48, model_rc(vec![node]));
     assert_eq!(pixel_at(&bytes, 240, 80, 22), [0, 0, 0, 255]);
     assert_eq!(pixel_at(&bytes, 240, 220, 22), FIELD_SURFACE);
-    assert!(changed_pixel_count(&bytes, 240, 8, 14, 34, 16) > 0, "the authored property name must be painted");
-    assert!(changed_pixel_count(&bytes, 240, 100, 14, 36, 16) > 0, "the property value must be painted independently");
+    assert!(
+        changed_pixel_count(&bytes, 240, 8, 14, 34, 16) > 0,
+        "the authored property name must be painted"
+    );
+    assert!(
+        changed_pixel_count(&bytes, 240, 100, 14, 36, 16) > 0,
+        "the property value must be painted independently"
+    );
 }

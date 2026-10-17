@@ -20,9 +20,7 @@ fn runtime_15_ui_editor_showcase_descriptor_builders_use_owner_name() {
         "editor showcase descriptor builders owner should be readable",
     );
     let production_guard = read_text(
-        &manifest_root.join(
-            "src/tests/source_size/ui_component_catalog_editor_showcase.rs",
-        ),
+        &manifest_root.join("src/tests/source_size/ui_component_catalog_editor_showcase.rs"),
         "editor showcase production-budget guard should be readable",
     );
     let runtime_15_plan = read_repo_text(

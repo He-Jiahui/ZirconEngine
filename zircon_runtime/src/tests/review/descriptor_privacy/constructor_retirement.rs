@@ -5,13 +5,10 @@ fn review_f8_runtime_plugin_descriptor_public_constructor_is_retired() {
     let repo_root = manifest_dir
         .parent()
         .expect("runtime crate should have repository parent");
-    let descriptor_builder_mod =
-        include_str!("../../../plugin/runtime/descriptor/builder.rs");
-    let descriptor_builder = include_str!(
-        "../../../plugin/runtime/descriptor/builder/desc_builder.rs"
-    );
-    let builtin_catalog_root =
-        include_str!("../../../plugin/runtime/builtin_catalog.rs");
+    let descriptor_builder_mod = include_str!("../../../plugin/runtime/descriptor/builder.rs");
+    let descriptor_builder =
+        include_str!("../../../plugin/runtime/descriptor/builder/desc_builder.rs");
+    let builtin_catalog_root = include_str!("../../../plugin/runtime/builtin_catalog.rs");
     let plugin_sdk_runtime =
         std::fs::read_to_string(repo_root.join("zircon_plugins/plugin_sdk/src/runtime.rs"))
             .expect("read plugin SDK runtime declaration source");
@@ -20,10 +17,8 @@ fn review_f8_runtime_plugin_descriptor_public_constructor_is_retired() {
     let runtime_06_plan = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
     );
-    let runtime_index =
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
-        include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
     let package_manifest_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/plugin/package_manifest.md");
 

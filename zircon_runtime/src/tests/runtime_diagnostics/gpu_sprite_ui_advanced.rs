@@ -3,6 +3,7 @@ use crate::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 use super::support::{
     assert_render_bool_series, assert_render_byte_series, assert_render_count_series,
+    assert_render_microsecond_series,
 };
 
 pub(super) fn assert_gpu_sprite_ui_advanced(snapshot: &RuntimeDiagnosticsSnapshot) {
@@ -231,19 +232,37 @@ pub(super) fn assert_gpu_sprite_ui_advanced(snapshot: &RuntimeDiagnosticsSnapsho
         29.0,
         &["hybrid_gi", "global_sdf", "upload"],
     );
-    assert_render_count_series(
+    assert_render_microsecond_series(
         &snapshot.store,
         "render.hybrid_gi.global_sdf.cpu_prepare_time_us",
         1500.0,
         &["hybrid_gi", "global_sdf", "cpu", "prepare"],
     );
-    assert_render_count_series(
+    assert_render_microsecond_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.cpu_mesh_object_collection_time_us",
+        200.0,
+        &["hybrid_gi", "global_sdf", "cpu", "object", "collection"],
+    );
+    assert_render_microsecond_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.cpu_mesh_scene_sync_time_us",
+        300.0,
+        &["hybrid_gi", "global_sdf", "cpu", "mesh", "sync"],
+    );
+    assert_render_microsecond_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.cpu_residency_time_us",
+        400.0,
+        &["hybrid_gi", "global_sdf", "cpu", "residency"],
+    );
+    assert_render_microsecond_series(
         &snapshot.store,
         "render.hybrid_gi.global_sdf.cpu_candidate_build_time_us",
         500.0,
         &["hybrid_gi", "global_sdf", "cpu", "candidate", "build"],
     );
-    assert_render_count_series(
+    assert_render_microsecond_series(
         &snapshot.store,
         "render.hybrid_gi.global_sdf.cpu_influence_update_time_us",
         100.0,
@@ -279,13 +298,13 @@ pub(super) fn assert_gpu_sprite_ui_advanced(snapshot: &RuntimeDiagnosticsSnapsho
         2.0,
         &["hybrid_gi", "global_sdf", "clipmap", "fallback"],
     );
-    assert_render_count_series(
+    assert_render_byte_series(
         &snapshot.store,
         "render.hybrid_gi.global_sdf.candidate_bucket_capacity_bytes",
         768.0,
         &["hybrid_gi", "global_sdf", "candidate", "capacity"],
     );
-    assert_render_count_series(
+    assert_render_byte_series(
         &snapshot.store,
         "render.hybrid_gi.global_sdf.persistent_resource_byte_count",
         4096.0,
@@ -303,31 +322,31 @@ pub(super) fn assert_gpu_sprite_ui_advanced(snapshot: &RuntimeDiagnosticsSnapsho
         1.0,
         &["hybrid_gi", "global_sdf", "resource", "transient"],
     );
-    assert_render_count_series(
+    assert_render_byte_series(
         &snapshot.store,
         "render.hybrid_gi.global_sdf.transient_parameter_upload_byte_count",
         16.0,
         &["hybrid_gi", "global_sdf", "resource", "upload"],
     );
-    assert_render_count_series(
+    assert_render_byte_series(
         &snapshot.store,
         "render.hybrid_gi.global_sdf.transient_page_upload_byte_count",
         36.0,
         &["hybrid_gi", "global_sdf", "resource", "upload"],
     );
-    assert_render_count_series(
+    assert_render_byte_series(
         &snapshot.store,
         "render.hybrid_gi.global_sdf.transient_mesh_upload_byte_count",
         432.0,
         &["hybrid_gi", "global_sdf", "resource", "upload"],
     );
-    assert_render_count_series(
+    assert_render_byte_series(
         &snapshot.store,
         "render.hybrid_gi.global_sdf.transient_completion_upload_byte_count",
         4.0,
         &["hybrid_gi", "global_sdf", "resource", "upload"],
     );
-    assert_render_count_series(
+    assert_render_byte_series(
         &snapshot.store,
         "render.hybrid_gi.global_sdf.transient_upload_byte_count",
         488.0,

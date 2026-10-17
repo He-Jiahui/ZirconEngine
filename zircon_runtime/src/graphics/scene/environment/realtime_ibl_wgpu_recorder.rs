@@ -1,4 +1,4 @@
-use std::time::Instant;
+use web_time::Instant;
 
 use crate::core::framework::render::{
     IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactRequest, ProceduralSkyParams,
