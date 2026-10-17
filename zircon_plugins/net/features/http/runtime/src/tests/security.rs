@@ -68,7 +68,7 @@ fn http_feature_manager_accepts_configured_certificate_pin_before_network_io() {
 }
 
 #[test]
-fn self_signed_cert_rejected_then_pinned_accepted() {
+fn untrusted_cert_rejected_then_trusted_and_pinned_accepted() {
     let leaf_certificate = certificate_chain_der()[0].clone();
     let server = spawn_tls_fixture_server();
     let net = http_runtime_manager();
@@ -88,12 +88,37 @@ fn self_signed_cert_rejected_then_pinned_accepted() {
     let mut pinned = NetHttpRequestDescriptor::new(NetRequestId::new(39), NetHttpMethod::Get, url);
     pinned.timeout_ms = 2_000;
     pinned.security = NetSecurityPolicy::production_tls()
+        .with_certificate_root_der(certificate_chain_der().last().unwrap().clone())
         .with_certificate_pin("127.0.0.1", certificate_sha256_pin(&leaf_certificate));
 
     let response = net.send_http_request(pinned).unwrap();
 
     assert_eq!(response.status_code, 200);
     assert_eq!(response.body, b"tls-ok");
+    server.join();
+}
+
+#[test]
+fn mismatched_pin_sends_no_http_request_bytes() {
+    let server = spawn_tls_fixture_server();
+    let net = http_runtime_manager();
+    let url = format!("https://127.0.0.1:{}/secret", server.addr.port());
+    let mut request = NetHttpRequestDescriptor::new(NetRequestId::new(40), NetHttpMethod::Post, url);
+    request.timeout_ms = 2_000;
+    request.headers.push(("Authorization".to_string(), "Bearer secret".to_string()));
+    request.body = b"private payload".to_vec();
+    request.security = NetSecurityPolicy::production_tls()
+        .with_certificate_root_der(certificate_chain_der().last().unwrap().clone())
+        .with_certificate_pin("127.0.0.1", "sha256/wrong");
+    assert!(net.send_http_request(request.clone()).is_err());
+
+    // The fixture exits after its first HTTP request. If the failed pin leaked
+    // even a request, this subsequent trusted request could not succeed.
+    request.security.certificate_pins.clear();
+    request.security = request.security.with_certificate_pin(
+        "127.0.0.1", certificate_sha256_pin(&certificate_chain_der()[0]),
+    );
+    assert_eq!(net.send_http_request(request).unwrap().status_code, 200);
     server.join();
 }
 
@@ -206,32 +231,32 @@ fn pem_blocks(pem: &str, label: &str) -> Vec<Vec<u8>> {
     blocks
 }
 
+// Test-only CA and localhost leaf, valid 2020-2040. Never used outside this fixture.
 const CHAIN_PEM: &str = r#"-----BEGIN CERTIFICATE-----
-MIIBszCCAVmgAwIBAgIUUg3keFcU1xXWK8BNVb1KynPulV8wCgYIKoZIzj0EAwIw
-JjEkMCIGA1UEAwwbUnVzdGxzIFJvYnVzdCBSb290IC0gUnVuZyAyMCAXDTc1MDEw
-MTAwMDAwMFoYDzQwOTYwMTAxMDAwMDAwWjAhMR8wHQYDVQQDDBZyY2dlbiBzZWxm
-IHNpZ25lZCBjZXJ0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEud6w4gtZ0xbw
-J3E69SSMy5TZfdIifl9L5ZY+hgEe4UiUsBWS32f6Y5NR5Jo8FO1f6o13b3+FvVHR
-EHCGdvppL6NoMGYwFQYDVR0RBA4wDIIKZm9vYmFyLmNvbTAdBgNVHSUEFjAUBggr
-BgEFBQcDAQYIKwYBBQUHAwIwHQYDVR0OBBYEFELvxbj5tD75n4pYFvJyr+c8qVEi
-MA8GA1UdEwEB/wQFMAMBAQAwCgYIKoZIzj0EAwIDSAAwRQIhALxSSdUsrRFnwNMu
-/doBqI8i8u5HdohVAheFTDwObkOMAiASSjULUtkWSD15u/7Sr01Wm9J1MpqW1pob
-BVqU3CNRlA==
+MIIBdTCCARugAwIBAgIUL63CdrtpV/dOVTchm3N4+xO+hLswCgYIKoZIzj0EAwIw
+HjEcMBoGA1UEAwwTWmlyY29uIEhUVFAgdGVzdCBDQTAeFw0yMDAxMDEwMDAwMDBa
+Fw00MDAxMDEwMDAwMDBaMBQxEjAQBgNVBAMMCWxvY2FsaG9zdDBZMBMGByqGSM49
+AgEGCCqGSM49AwEHA0IABC+DJLIuDlhThxnuXeAVMjP+DeaM0Z1X0+LpwaJ5UN0p
+sFw+vhdwATvdFx/lmKBhGa/ox9bhG6MU2pwCtgreDWajQTA/MAwGA1UdEwEB/wQC
+MAAwGgYDVR0RBBMwEYIJbG9jYWxob3N0hwR/AAABMBMGA1UdJQQMMAoGCCsGAQUF
+BwMBMAoGCCqGSM49BAMCA0gAMEUCIDz+v1XHN0UkMpOrdC6QPGnpzKBBbUnvYxMV
+QYjI1LM1AiEAv44UN01kS9pz9MvyN5btSbujTUeSzmrRqo6retACXE0=
 -----END CERTIFICATE-----
 -----BEGIN CERTIFICATE-----
-MIIBiTCCATCgAwIBAgIUHWiVYIvMMWoZEFYvSz46COf2FqowCgYIKoZIzj0EAwIw
-HTEbMBkGA1UEAwwSUnVzdGxzIFJvYnVzdCBSb290MCAXDTc1MDEwMTAwMDAwMFoY
-DzQwOTYwMTAxMDAwMDAwWjAmMSQwIgYDVQQDDBtSdXN0bHMgUm9idXN0IFJvb3Qg
-LSBSdW5nIDIwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATAOCcBD7dXjmAZ3te5
-D47cCJ9ec93PWv7BKYIL826CJsKfXQOGrBTthLm77hXLhHu6uv8E5QXNLZpfowLQ
-Do1ao0MwQTAPBgNVHQ8BAf8EBQMDB4QAMB0GA1UdDgQWBBRdza76r11Ok9vRmlg6
-Nn/wL/N+jTAPBgNVHRMBAf8EBTADAQH/MAoGCCqGSM49BAMCA0cAMEQCIFmZrXeK
-hnfkahocvkhhNT3cDv1LWf6WBoFaCiBwZXFPAiARaKRiSCMG7PCHmSqFe82TBVmL
-odHGogAVax1Dh/aYAA==
------END CERTIFICATE-----"#;
+MIIBZDCCAQqgAwIBAgIUOhwjFjBq2I2TwgcQ53M8MYrSYIUwCgYIKoZIzj0EAwIw
+HjEcMBoGA1UEAwwTWmlyY29uIEhUVFAgdGVzdCBDQTAeFw0yMDAxMDEwMDAwMDBa
+Fw00MDAxMDEwMDAwMDBaMB4xHDAaBgNVBAMME1ppcmNvbiBIVFRQIHRlc3QgQ0Ew
+WTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATiklyxuO0S9ARTa/m+Hx6/6lr1Z1Ez
+NjLmCFUb2DgR1/I23HWe1qa+6ZsBa3ANuKF7OF8G4flLWeE9E4/fl87DoyYwJDAS
+BgNVHRMBAf8ECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIBhjAKBggqhkjOPQQDAgNI
+ADBFAiB51AiQS1Z/9Qb6xB4IlWtPPCYKz1E4kt4JAC8CRLD1rwIhAMiQsB2mEqbt
+U50cNFRfYzUO8Q5W2zUyDdSqMT03beUq
+-----END CERTIFICATE-----
+"#;
 
 const PRIVATE_KEY_PEM: &str = r#"-----BEGIN PRIVATE KEY-----
-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgTbAQpfjAT46fgF4B
-mP15n37woNG5ZNJmwcqsred/7tmhRANCAAS53rDiC1nTFvAncTr1JIzLlNl90iJ+
-X0vllj6GAR7hSJSwFZLfZ/pjk1HkmjwU7V/qjXdvf4W9UdEQcIZ2+mkv
------END PRIVATE KEY-----"#;
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgn+sy6C69QA/8mQpm
+Vz+F/b51hTJ56bNqXlMPuEY804ehRANCAAQvgySyLg5YU4cZ7l3gFTIz/g3mjNGd
+V9Pi6cGieVDdKbBcPr4XcAE73Rcf5ZigYRmv6MfW4RujFNqcArYK3g1m
+-----END PRIVATE KEY-----
+"#;

@@ -25,3 +25,8 @@ explicit evidence below says otherwise. No build outputs are created here.
   retain the generated availability fallback. Move the profile contract workflow
   onto the guarded Windows output lane with Rust 1.94.1. Build-script and workflow
   source checks passed; cross-platform Cargo validation requires approved storage.
+- H2: HTTP reuses the rustls handshake verifier (chain, hostname, pin), forbids
+  pinned redirects and plaintext TLS material. Replace the old untrusted/mismatched
+  hostname fixture with a trusted loopback CA/leaf. Add wrong-pin/no-request
+  regression and retain a successful pinned request. Fixture and source checks
+  passed; compiled TLS tests are pending the Windows validation lane.
